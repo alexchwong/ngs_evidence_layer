@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/ngs_evidence_layer/accepted_package_schema.json",
+  "title": "Portable accepted evidence package",
+  "description": "The confirm-produced envelope consumed by incorporation. Manual submissions must use this same shape.",
+  "type": "object",
+  "required": ["schema_version", "acceptance_path", "metadata", "final"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "acceptance_path": { "enum": ["confirmed", "manual-or-unverified"] },
+    "metadata": { "$ref": "metadata_schema.json" },
+    "final": { "$ref": "ingestion_package_schema.json" }
+  }
+}

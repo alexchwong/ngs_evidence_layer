@@ -6,15 +6,15 @@ here. Duplicating the lists inline is how the retriever and the validator end up
 disagreeing about what a legal disease is, which surfaces as cards that validate
 and then never retrieve.
 
-The data lives in schema/disease_vocabulary.json; the enum in card_schema.json is
-the schema-level copy and is checked against it by check_vocabulary_consistency().
+The data lives in schema/disease_vocabulary.json; the enum in the merged ingestion
+package schema is checked against it by check_vocabulary_consistency().
 """
 import json
 from pathlib import Path
 
 SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schema"
 VOCAB_PATH = SCHEMA_DIR / "disease_vocabulary.json"
-CARD_SCHEMA_PATH = SCHEMA_DIR / "card_schema.json"
+PACKAGE_SCHEMA_PATH = SCHEMA_DIR / "ingestion_package_schema.json"
 
 _VOCAB = json.loads(VOCAB_PATH.read_text(encoding="utf-8"))
 
@@ -49,12 +49,12 @@ def missing_umbrellas(diseases):
 
 def check_vocabulary_consistency():
     """Fail loudly if the JSON Schema enum has drifted from the vocabulary file."""
-    schema = json.loads(CARD_SCHEMA_PATH.read_text(encoding="utf-8"))
+    schema = json.loads(PACKAGE_SCHEMA_PATH.read_text(encoding="utf-8"))
     enum = schema["$defs"]["disease"]["enum"]
     problems = []
     if list(enum) != DISEASES:
         problems.append(
-            "card_schema.json disease enum differs from disease_vocabulary.json"
+            "ingestion_package_schema.json disease enum differs from disease_vocabulary.json"
         )
     for term in UMBRELLA:
         if term not in DISEASE_SET:

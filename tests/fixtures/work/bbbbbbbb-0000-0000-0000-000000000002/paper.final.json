@@ -1,0 +1,74 @@
+{
+  "schema_version": "4.0",
+  "paper_id": "bbbbbbbb-0000-0000-0000-000000000002",
+  "round": 1,
+  "extraction_date": "2026-01-01",
+  "extraction_model": "fixture-carding-model",
+  "genes_covered": [
+    "GENEA"
+  ],
+  "diseases_covered": [
+    "AML"
+  ],
+  "census_entries": 1,
+  "cards": [
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-dx-001",
+      "locator": "Section 1 - Entity definition",
+      "interpretation": "FIXTURE. Under Second Fixture Classifier first edition, GENEA mutation defines Fixture Entity One, recorded here as AML, at any blast count; no blast threshold applies. The source does not state an exclusion.",
+      "genes": [
+        "GENEA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "category": "diagnosis",
+      "evidence_tier": "guideline criterion",
+      "escalates_to": "AML",
+      "secondary_citation": null
+    },
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-mrd-002",
+      "locator": "Section 3 - Follow-up marker",
+      "interpretation": "FIXTURE. GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay. The source does not state the assay threshold or the timepoints at which it applies.",
+      "genes": [
+        "GENEA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "category": "biomarker",
+      "evidence_tier": "guideline criterion",
+      "escalates_to": null,
+      "secondary_citation": null
+    }
+  ],
+  "quotes": [
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-dx-001",
+      "locator": "Section 1 - Entity definition",
+      "quote": "GENEA mutation defines Fixture Entity One at any blast count. No blast threshold applies under this classifier."
+    },
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-mrd-002",
+      "locator": "Section 3 - Follow-up marker",
+      "quote": "The GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay."
+    }
+  ],
+  "audit": {
+    "audit_date": "2026-01-02",
+    "audit_model": "fixture-audit-model",
+    "extraction_model_reviewed": "fixture-carding-model",
+    "approved_round": 1,
+    "results": [
+      {
+        "card_id": "fixture-2022-second-fixture-journal-2-1-genea-dx-001",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2022-second-fixture-journal-2-1-genea-mrd-002",
+        "verdict": "pass"
+      }
+    ]
+  }
+}

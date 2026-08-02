@@ -1,5 +1,15 @@
 # NEWS
 
+## 0.1.1
+
+- Replaced central phase queues with independent `work/<paper-id>/` folder state.
+- Moved complete, generated phase instructions to committed `prompts/` data.
+- Added deterministic fan-out, source-aware confirmation, and accept-only incorporation.
+- Made final packages identify the exact provisional round independently audited.
+- Removed provisional corpus semantics; corpus membership now implies completed audit.
+- Added per-paper incorporation rejection while keeping global identity collisions fatal.
+- Separated private input, work, acceptance, and archive data from shipped `output/` artefacts.
+
 ## 0.1.0
 
 Initial release of the corpus-grounded evidence layer for myeloid NGS interpretation.

@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "paper_id": "aaaaaaaa-0000-0000-0000-000000000001",
+  "corpus": "fixtures",
+  "stem": "fixture-alpha--aaaaaaaa",
+  "publication_key": "fixture-2020-fixture-journal-1-1",
+  "citation": {
+    "authors": [
+      "Fixture A",
+      "Fixture B"
+    ],
+    "title": "Fixture Classifier, first edition",
+    "journal": "Fixture Journal",
+    "year": 2020,
+    "volume": "1",
+    "issue": "1",
+    "pages": "1-10",
+    "display": "Fixture A, Fixture B. Fixture Classifier, first edition. Fixture Journal. 2020;1(1):1-10.",
+    "citation_incomplete": [],
+    "doi": ""
+  },
+  "publication_type": "guideline",
+  "source_filename": "fixture-alpha--aaaaaaaa.md",
+  "source_sha256": null,
+  "markdown_sha256": "426605b2bc34dcba767663da96c01c66709064259dbc07fafc2767684861d59f",
+  "created_at": "2026-01-01T00:00:00+00:00"
+}

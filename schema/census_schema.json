@@ -6,17 +6,17 @@
   "type": "object",
   "required": [
     "schema_version",
-    "source_stem",
+    "paper_id",
     "census_date",
     "census_model",
     "entries",
-    "geneless_statements"
+    "geneless_statements",
+    "validation_unresolved"
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "2.0" },
-    "source_stem": { "type": "string", "minLength": 1 },
-    "publication_key": { "type": ["string", "null"] },
+    "schema_version": { "const": "3.0" },
+    "paper_id": { "type": "string", "format": "uuid" },
     "census_date": { "type": "string", "format": "date" },
     "census_model": { "type": "string", "minLength": 1 },
     "supplement_flags": {
@@ -76,6 +76,11 @@
           "summary": { "type": "string", "minLength": 1 }
         }
       }
+    },
+    "validation_unresolved": {
+      "type": "array",
+      "description": "Specific Phase 1 exit-validation defects still unresolved after the third pass.",
+      "items": { "type": "string", "minLength": 1 }
     }
   }
 }

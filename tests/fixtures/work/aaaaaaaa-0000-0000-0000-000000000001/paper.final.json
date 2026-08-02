@@ -1,0 +1,235 @@
+{
+  "schema_version": "4.0",
+  "paper_id": "aaaaaaaa-0000-0000-0000-000000000001",
+  "round": 1,
+  "extraction_date": "2026-01-01",
+  "extraction_model": "fixture-carding-model",
+  "genes_covered": [
+    "GENEA",
+    "GENEB",
+    "GENEC",
+    "GENED"
+  ],
+  "diseases_covered": [
+    "AML",
+    "MDS/AML",
+    "MDS"
+  ],
+  "census_entries": 4,
+  "cards": [
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-dx-001",
+      "locator": "Section 1 - Entity definition",
+      "interpretation": "FIXTURE. Under Fixture Classifier first edition, GENEA mutation defines Fixture Entity One, recorded here as AML, where blasts are at least 20 per cent; 10 to 19 per cent blasts are assigned to Fixture Entity Two, recorded as MDS/AML. The criterion is defeated where a fixture-defining fusion is present. The source does not specify applicability to therapy-related disease.",
+      "genes": [
+        "GENEA"
+      ],
+      "diseases": [
+        "AML",
+        "MDS/AML"
+      ],
+      "category": "diagnosis",
+      "evidence_tier": "guideline criterion",
+      "escalates_to": "AML",
+      "secondary_citation": null
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-dx-002",
+      "locator": "Section 1 - Entity definition",
+      "interpretation": "FIXTURE. Under Fixture Classifier first edition, GENEB mutation refines an existing category without moving the major diagnostic category. The source does not state a blast threshold or an exclusion for this refinement.",
+      "genes": [
+        "GENEB"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "category": "diagnosis",
+      "evidence_tier": "guideline criterion",
+      "escalates_to": null,
+      "secondary_citation": null
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-px-003",
+      "locator": "Section 2 - Prognostic table",
+      "interpretation": "FIXTURE. In the fixture cohort, GENEA mutation was favourable on analysis adjusted for age and blast count. The source does not state a treatment context for this cohort.",
+      "genes": [
+        "GENEA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "category": "prognosis",
+      "evidence_tier": "multivariable-adjusted",
+      "escalates_to": null,
+      "secondary_citation": null
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-004",
+      "locator": "Section 2 - Prognostic table",
+      "interpretation": "FIXTURE. In the fixture cohort, GENEC mutation had no independent prognostic effect after adjustment (negative fact; remove in final pass per R2.7).",
+      "genes": [
+        "GENEC"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "category": "prognosis",
+      "evidence_tier": "multivariable-adjusted",
+      "escalates_to": null,
+      "secondary_citation": null
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-005",
+      "locator": "Section 2 - Prognostic table",
+      "interpretation": "FIXTURE. An earlier fixture series reported GENEC mutation as adverse on univariable analysis only, restated here without reanalysis. The source does not state the cohort size or the treatment received.",
+      "genes": [
+        "GENEC"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "category": "prognosis",
+      "evidence_tier": "restated secondary",
+      "escalates_to": null,
+      "secondary_citation": {
+        "authors": [
+          "Fixture C"
+        ],
+        "title": "An earlier fixture series",
+        "journal": "Fixture Reports",
+        "year": 2011,
+        "display": "Fixture C. An earlier fixture series. Fixture Reports. 2011.",
+        "citation_incomplete": [
+          "volume",
+          "issue",
+          "pages"
+        ]
+      }
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-mrd-006",
+      "locator": "Section 3 - Follow-up marker",
+      "interpretation": "FIXTURE. GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay. The source does not state the assay threshold or the timepoints at which it applies.",
+      "genes": [
+        "GENEA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "category": "biomarker",
+      "evidence_tier": "guideline criterion",
+      "escalates_to": null,
+      "secondary_citation": null
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-mrd-007",
+      "locator": "Section 3 - Follow-up marker",
+      "interpretation": "FIXTURE. GENEB mutation is not validated as a stand-alone follow-up marker in this fixture setting (negative fact; remove in final pass per R4.7).",
+      "genes": [
+        "GENEB"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "category": "biomarker",
+      "evidence_tier": "guideline criterion",
+      "escalates_to": null,
+      "secondary_citation": null
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-gened-gl-008",
+      "locator": "Section 4 - Predisposition",
+      "interpretation": "FIXTURE. A near-heterozygous loss-of-function GENED variant accompanied by a lower-burden second event is the characteristic fixture predisposition architecture, and warrants confirmation on a non-haematopoietic specimen. The source does not state which allele is constitutional.",
+      "genes": [
+        "GENED"
+      ],
+      "diseases": [],
+      "category": "germline",
+      "evidence_tier": "guideline criterion",
+      "escalates_to": null,
+      "secondary_citation": null
+    }
+  ],
+  "quotes": [
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-dx-001",
+      "locator": "Section 1 - Entity definition",
+      "quote": "GENEA mutation defines Fixture Entity One when the blast count is at least 20 per cent; a blast count of 10 to 19 per cent is assigned to Fixture Entity Two. The criterion is defeated where a fixture-defining fusion is present."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-dx-002",
+      "locator": "Section 1 - Entity definition",
+      "quote": "GENEB mutation refines an existing category but does not move it."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-px-003",
+      "locator": "Section 2 - Prognostic table",
+      "quote": "GENEA | favourable in the fixture cohort | multivariable-adjusted for age and blast count"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-004",
+      "locator": "Section 2 - Prognostic table",
+      "quote": "GENEC | no independent effect after adjustment | multivariable-adjusted"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-005",
+      "locator": "Section 2 - Prognostic table",
+      "quote": "GENEC was reported as adverse in an earlier fixture series on univariable analysis only."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-mrd-006",
+      "locator": "Section 3 - Follow-up marker",
+      "quote": "The GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-mrd-007",
+      "locator": "Section 3 - Follow-up marker",
+      "quote": "GENEB is not validated as a stand-alone follow-up marker in this fixture setting."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-gened-gl-008",
+      "locator": "Section 4 - Predisposition",
+      "quote": "A near-heterozygous loss-of-function GENED variant with a lower-burden second event is the characteristic fixture predisposition architecture, and warrants confirmation on a non-haematopoietic specimen."
+    }
+  ],
+  "audit": {
+    "audit_date": "2026-01-02",
+    "audit_model": "fixture-audit-model",
+    "extraction_model_reviewed": "fixture-carding-model",
+    "approved_round": 1,
+    "results": [
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-genea-dx-001",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-geneb-dx-002",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-genea-px-003",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-genec-px-004",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-genec-px-005",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-genea-mrd-006",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-geneb-mrd-007",
+        "verdict": "pass"
+      },
+      {
+        "card_id": "fixture-2020-fixture-journal-1-1-gened-gl-008",
+        "verdict": "pass"
+      }
+    ]
+  }
+}

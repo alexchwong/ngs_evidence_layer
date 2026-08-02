@@ -1,242 +1,67 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/ngs_evidence_layer/ingestion_package_schema.json",
-  "title": "Portable Phase 2/3 ingestion package (one publication)",
-  "description": "The single model-authored output shared by carding and audit. Phase 2 sets audited=false and audit=null; Phase 3 preserves the extraction and adds a complete independent audit.",
+  "title": "Phase 2 provisional or Phase 3 final evidence package",
   "type": "object",
-  "required": [
-    "schema_version",
-    "publication_key",
-    "citation",
-    "publication_type",
-    "extraction_date",
-    "extraction_model",
-    "genes_covered",
-    "diseases_covered",
-    "census_entries",
-    "cards",
-    "quotes",
-    "audited",
-    "audit"
-  ],
+  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "genes_covered", "diseases_covered", "census_entries", "cards", "quotes", "audit"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "3.0" },
-    "publication_key": {
-      "type": "string",
-      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
-    },
-    "citation": { "$ref": "#/$defs/citation" },
-    "publication_type": {
-      "enum": [
-        "guideline",
-        "consensus statement",
-        "primary study",
-        "systematic review",
-        "narrative review",
-        "other"
-      ]
-    },
+    "schema_version": { "const": "4.0" },
+    "paper_id": { "type": "string", "format": "uuid" },
+    "round": { "type": "integer", "minimum": 1 },
     "extraction_date": { "type": "string", "format": "date" },
     "extraction_model": { "type": "string", "minLength": 1 },
-    "genes_covered": {
-      "type": "array",
-      "minItems": 1,
-      "items": { "$ref": "#/$defs/gene" }
-    },
-    "diseases_covered": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/disease" }
-    },
+    "genes_covered": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
+    "diseases_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
     "census_entries": { "type": "integer", "minimum": 0 },
-    "cards": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/card" }
-    },
-    "quotes": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/quote" }
-    },
-    "audited": { "type": "boolean" },
-    "audit": {
-      "anyOf": [
-        { "type": "null" },
-        { "$ref": "#/$defs/audit" }
-      ]
-    }
+    "cards": { "type": "array", "items": { "$ref": "#/$defs/card" } },
+    "quotes": { "type": "array", "items": { "$ref": "#/$defs/quote" } },
+    "audit": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/audit" }] }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": { "audited": { "const": false } },
-        "required": ["audited"]
-      },
-      "then": {
-        "properties": { "audit": { "type": "null" } }
-      }
-    },
-    {
-      "if": {
-        "properties": { "audited": { "const": true } },
-        "required": ["audited"]
-      },
-      "then": {
-        "properties": { "audit": { "$ref": "#/$defs/audit" } }
-      }
-    }
-  ],
   "$defs": {
-    "gene": {
-      "type": "string",
-      "pattern": "^[A-Z0-9][A-Z0-9\\-]*$"
+    "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
+    "disease": {
+      "enum": ["CHIP", "CCUS", "MDS", "MDS/AML", "AML", "APL", "MDS/MPN-U", "CMML", "aCML", "MDS/MPN-SF3B1-T", "JMML", "MPN-U", "PV", "ET", "PMF", "post-PV/post-ET MF", "CML", "CNL", "CEL", "mastocytosis", "myeloid/lymphoid neoplasm with eosinophilia and TK fusion", "BPDCN", "germline predisposition syndrome", "myeloid neoplasm, unspecified", "lymphoid neoplasm"]
     },
     "citation": {
-      "type": "object",
-      "required": ["display"],
-      "additionalProperties": false,
+      "type": "object", "required": ["display"], "additionalProperties": false,
       "properties": {
-        "authors": { "type": "array", "items": { "type": "string" } },
-        "title": { "type": "string" },
-        "journal": { "type": "string" },
-        "year": { "type": "integer", "minimum": 1950, "maximum": 2100 },
-        "volume": { "type": "string" },
-        "issue": { "type": "string" },
-        "pages": { "type": "string" },
+        "authors": { "type": "array", "items": { "type": "string" } }, "title": { "type": "string" },
+        "journal": { "type": "string" }, "year": { "type": "integer", "minimum": 1950, "maximum": 2100 },
+        "volume": { "type": "string" }, "issue": { "type": "string" }, "pages": { "type": "string" },
         "display": { "type": "string", "minLength": 1 },
-        "citation_incomplete": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
+        "citation_incomplete": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
       }
-    },
-    "disease": {
-      "enum": [
-        "CHIP",
-        "CCUS",
-        "MDS",
-        "MDS/AML",
-        "AML",
-        "APL",
-        "MDS/MPN-U",
-        "CMML",
-        "aCML",
-        "MDS/MPN-SF3B1-T",
-        "JMML",
-        "MPN-U",
-        "PV",
-        "ET",
-        "PMF",
-        "post-PV/post-ET MF",
-        "CML",
-        "CNL",
-        "CEL",
-        "mastocytosis",
-        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-        "BPDCN",
-        "germline predisposition syndrome",
-        "myeloid neoplasm, unspecified",
-        "lymphoid neoplasm"
-      ]
     },
     "card": {
       "type": "object",
-      "required": [
-        "card_id",
-        "locator",
-        "interpretation",
-        "genes",
-        "diseases",
-        "category",
-        "evidence_tier"
-      ],
+      "required": ["card_id", "locator", "interpretation", "genes", "diseases", "category", "evidence_tier", "escalates_to", "secondary_citation"],
       "additionalProperties": false,
       "properties": {
-        "card_id": { "type": "string", "minLength": 1 },
-        "locator": { "type": "string", "minLength": 1 },
+        "card_id": { "type": "string", "minLength": 1 }, "locator": { "type": "string", "minLength": 1 },
         "interpretation": { "type": "string", "minLength": 1 },
-        "genes": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "$ref": "#/$defs/gene" }
-        },
-        "diseases": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/disease" }
-        },
-        "category": {
-          "enum": [
-            "diagnosis",
-            "prognosis",
-            "treatment",
-            "biomarker",
-            "germline"
-          ]
-        },
-        "evidence_tier": {
-          "enum": [
-            "guideline criterion",
-            "multivariable-adjusted",
-            "univariable or descriptive",
-            "restated secondary"
-          ]
-        },
-        "escalates_to": {
-          "anyOf": [
-            { "type": "null" },
-            { "$ref": "#/$defs/disease" }
-          ]
-        },
-        "secondary_citation": {
-          "anyOf": [
-            { "type": "null" },
-            { "$ref": "#/$defs/citation" }
-          ]
-        }
+        "genes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
+        "diseases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
+        "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker", "germline"] },
+        "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
+        "escalates_to": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/disease" }] },
+        "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
       }
     },
     "quote": {
-      "type": "object",
-      "required": ["card_id", "quote", "locator"],
-      "additionalProperties": false,
-      "properties": {
-        "card_id": { "type": "string", "minLength": 1 },
-        "quote": { "type": "string", "minLength": 1 },
-        "locator": { "type": "string", "minLength": 1 }
-      }
+      "type": "object", "required": ["card_id", "quote", "locator"], "additionalProperties": false,
+      "properties": { "card_id": { "type": "string", "minLength": 1 }, "quote": { "type": "string", "minLength": 1 }, "locator": { "type": "string", "minLength": 1 } }
     },
     "audit": {
-      "type": "object",
-      "required": [
-        "audit_date",
-        "audit_model",
-        "extraction_model_reviewed",
-        "results"
-      ],
-      "additionalProperties": false,
+      "type": "object", "required": ["audit_date", "audit_model", "extraction_model_reviewed", "approved_round", "results"], "additionalProperties": false,
       "properties": {
-        "audit_date": { "type": "string", "format": "date" },
-        "audit_model": { "type": "string", "minLength": 1 },
-        "extraction_model_reviewed": { "type": "string", "minLength": 1 },
+        "audit_date": { "type": "string", "format": "date" }, "audit_model": { "type": "string", "minLength": 1 },
+        "extraction_model_reviewed": { "type": "string", "minLength": 1 }, "approved_round": { "type": "integer", "minimum": 1 },
         "results": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["card_id", "verdict"],
-            "additionalProperties": false,
-            "properties": {
-              "card_id": { "type": "string", "minLength": 1 },
-              "verdict": { "enum": ["pass", "fail"] },
-              "reason": { "type": "string", "minLength": 1 }
-            },
-            "allOf": [
-              {
-                "if": {
-                  "properties": { "verdict": { "const": "fail" } },
-                  "required": ["verdict"]
-                },
-                "then": { "required": ["reason"] }
-              }
-            ]
+          "type": "array", "items": {
+            "type": "object", "required": ["card_id", "verdict"], "additionalProperties": false,
+            "properties": { "card_id": { "type": "string", "minLength": 1 }, "verdict": { "enum": ["pass", "fail"] }, "reason": { "type": "string", "minLength": 1 } },
+            "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]
           }
         }
       }

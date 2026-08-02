@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "paper_id": "bbbbbbbb-0000-0000-0000-000000000002",
+  "corpus": "fixtures",
+  "stem": "fixture-beta--bbbbbbbb",
+  "publication_key": "fixture-2022-second-fixture-journal-2-1",
+  "citation": {
+    "authors": [
+      "Fixture D"
+    ],
+    "title": "Second Fixture Classifier, first edition",
+    "journal": "Second Fixture Journal",
+    "year": 2022,
+    "volume": "2",
+    "issue": "1",
+    "pages": "1-5",
+    "display": "Fixture D. Second Fixture Classifier, first edition. Second Fixture Journal. 2022;2(1):1-5.",
+    "citation_incomplete": [],
+    "doi": ""
+  },
+  "publication_type": "consensus statement",
+  "source_filename": "fixture-beta--bbbbbbbb.md",
+  "source_sha256": null,
+  "markdown_sha256": "765347f45e97b94a4f1c97764ea76ab2c79d6ed513f87fc64e6a64740dabce1f",
+  "created_at": "2026-01-01T00:00:00+00:00"
+}

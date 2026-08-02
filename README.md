@@ -1,17 +1,14 @@
 # ngs_evidence_layer
 
 A corpus-grounded evidence layer for myeloid NGS interpretation. It converts one
-publication at a time into gene-indexed evidence cards backed by separately held
-verbatim quotes, then retrieves a deterministic, citable evidence block for a
-case.
+publication at a time into gene-indexed evidence cards backed by private verbatim
+quotes, then retrieves and renders a deterministic, citable evidence block.
 
-It is **not a report writer**. It collates what publications state; it does not
-reconcile classifiers, rank findings, make clinical decisions, or draft a final
-interpretative report.
+It collates what publications state. It does not reconcile classifiers, rank
+findings, make clinical decisions, or draft a report. No model haematology knowledge
+may enter evidence output.
 
 ## Setup
-
-Use the repository-local virtual environment:
 
 ```bash
 python3 -m venv .env
@@ -21,128 +18,80 @@ python scripts/vocab.py
 python -m unittest discover -s tests -v
 ```
 
-Publication inputs are archived Markdown plus an index. See `input/README.md` for
-that input contract. PDF extraction is outside this project, and only intact
-Markdown tables are interpreted.
+## Ingestion v0.1.1
 
-## Ingestion
-
-`INGEST.md` is the authoritative operator and agent runbook. It defines strict
-read/write allowlists, preconditions, outputs, validation, external audit handoff,
-and stop conditions.
-
-Ingestion has three explicitly bounded model phases. Each `pre-phaseN` command
-either prepares the two-file model handoff when no response is present, or
-validates and accepts the response already placed in that phase's inbox. It never
-starts the next phase.
+Prompts are committed data under `prompts/`; private folder contents are workflow
+state. Papers are independent and may be in flight concurrently.
 
 ```bash
-# Inspect which publication and phase are next.
-python scripts/next_paper.py
+# Create work/<paper-id>/paper.md and metadata.json.
+python scripts/fanout.py --corpus <name>
 
-# Prepare or accept the census response, then stop.
-python scripts/ingest.py pre-phase1
+# Run Phases 1–3 in fresh model sessions using prompts/phaseN_prompt.md,
+# saving outputs directly in each paper's work folder.
 
-# After accepted Phase 1 exists, prepare or accept cards and quotes, then stop.
-python scripts/ingest.py pre-phase2
+# Deterministically accept one fully audited paper.
+python scripts/confirm.py --id <paper-id>
 
-# In a fresh session with a different model, prepare or accept the audit, then stop.
-python scripts/ingest.py pre-phase3
+# Build release artefacts from accept/ only.
+python scripts/incorporate.py
 ```
 
-Each phase uses `exchange/ingest/phaseN/`: `outbox/` holds the source copy and
-deterministic context, `inbox/` receives one unvalidated JSON response, and
-`archive/` receives that response only after validation passes. Stable accepted
-responses are written to `output/phaseN/`. Validation uses temporary private
-card and quote views; the corpus builder reads accepted phase packages directly,
-so no second persistent set of per-publication files is maintained.
+The lifecycle is:
 
-Phase 3 is deliberately performed in a fresh session by a different model from
-Phase 2. The Phase 3 context contains the accepted Phase 2 package and narrow
-audit instruction; the auditor returns the complete package with only audit
-metadata added.
-
-Failed Phase 3 verdicts intentionally block acceptance. Phase 3 reports defects
-but never edits extraction content. Return a valid failed audit to a separate
-Phase 2 rework round with:
-
-```bash
-python scripts/ingest.py pre-phase2-rework --id <input-id>
+```text
+input → fanout → work → model phases → confirm → accept + archive → incorporate → output
 ```
 
-The rework handoff includes the source, accepted Phase 2 package, and failure
-reasons. A corrected complete Phase 2 package replaces the active package only
-after deterministic validation; the superseded package and failed audit remain
-archived. The corrected package then requires a fresh full Phase 3 audit. See
-`INGEST.md` for validation-only commands and rework paths.
+`confirm` is the last source-aware gate: it verifies every quote against `paper.md`
+and proves that `paper.final.json` is the exact provisional round independently
+audited. `incorporate` excludes invalid individual accepted pairs, strips all quote
+text, and writes:
 
-Corpus incorporation is a separate operator decision:
-
-```bash
-# Build a provisional corpus from accepted Phase 2 packages.
-python scripts/ingest.py incorporate --after-phase 2
-
-# Or build an audited corpus from accepted Phase 3 packages.
-python scripts/ingest.py incorporate --after-phase 3
+```text
+output/corpus/nel.corpus.json
+output/corpus/nel.index.json
+output/reports/build-report.json
 ```
 
-The core ingestion guarantees are:
-
-- one publication per model session;
-- the census is the completeness contract;
-- every card has exactly one source-verbatim quote;
-- the audit model must differ from the extraction model;
-- every card must pass audit before entering the audited corpus;
-- a corpus incorporated after Phase 2 is explicitly marked provisional;
-- quote text never enters the distributable corpus; and
-- each job stops at its declared phase boundary.
-
-For extraction and audit semantics, see `SKILL.md`. For the closed reporting
-rules, see `rules/agreed_reporting_rules.md`.
+There is no provisional corpus. Membership means a package passed independent audit
+and deterministic acceptance. See `INGEST.md` for the operator runbook and
+`docs/INPUT.md` for private input metadata.
 
 ## Retrieval
 
-Retrieval is deterministic after the bounded model step that extracts a provisional
-disease and genes from the case.
+Retrieval remains deterministic after the bounded model step that extracts a
+provisional disease and genes from the case:
 
 ```bash
-# Diagnosis cards and closed-set escalation candidates.
 python scripts/retrieve.py diagnosis \
-    --genes NPM1 SRSF2 DNMT3A \
-    --provisional-disease MDS \
-    --corpus output/corpus/nel.corpus.json \
-    --index output/corpus/nel.index.json \
-    --output step2.json
+  --genes NPM1 SRSF2 DNMT3A \
+  --provisional-disease MDS \
+  --output step2.json
 
-# After selecting refined_disease only from the allowed escalation result.
 python scripts/retrieve.py full \
-    --diagnosis-result step2.json \
-    --refined-disease AML \
-    --driven-by <card-id> \
-    --output bundle.json
+  --diagnosis-result step2.json \
+  --refined-disease AML \
+  --driven-by <card-id> \
+  --output bundle.json
 
 python scripts/render.py --bundle bundle.json --output block.md
 ```
 
-`block.md` is the evidence-layer deliverable. It is passed to a separate
-report-writing step where clinical synthesis, negative-fact filtering, and final
-judgement occur.
+Diagnosis retrieval is gene-based and returns a closed set of source-supported
+escalation candidates. Full retrieval applies disease filtering to prognosis,
+treatment, and biomarker evidence, while germline remains gene-only. Genes the
+corpus cannot address are named rather than answered from model memory.
 
-Retrieval rejects a stale index whose hash does not match the corpus. Genes the
-corpus cannot address are named as unassessed rather than answered from model
-memory.
+Quotes never enter retrieval or rendered output. Every rendered interpretation
+carries a card ID and deterministic citations back to its publication.
 
-## Evidence and vocabulary boundaries
+## Boundaries
 
-The disease vocabulary is closed and categorical. Specific diseases require their
-configured umbrella tags so broad retrieval cannot silently miss them. Changing
-the vocabulary changes the meaning of existing omissions and therefore requires
-re-ingestion and re-audit, not a mechanical field migration.
-
-Different publications coexist even when they disagree. Duplicate claims across
-publications are allowed; only byte-identical rendered interpretations collapse,
-while retaining all citations.
-
-The corpus is the sole evidence source at retrieval time. The project does not use
-live databases, model approval status or jurisdiction, infer missing literature,
-or promote an unsupported statement from model knowledge.
+- Markdown only; PDF extraction is outside the project.
+- Closed categorical disease vocabulary with enforced umbrella tags.
+- Different publications coexist even when they disagree.
+- No live databases, approval-status modelling, cross-publication deduplication, or
+  clinical synthesis.
+- Reporting-rule, vocabulary, or extraction-schema changes require re-ingestion,
+  not a mechanical migration.

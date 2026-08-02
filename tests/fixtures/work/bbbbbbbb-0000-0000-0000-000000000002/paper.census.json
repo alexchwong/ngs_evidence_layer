@@ -1,0 +1,23 @@
+{
+  "schema_version": "3.0",
+  "census_date": "2026-01-01",
+  "census_model": "fixture-census-model",
+  "supplement_flags": [],
+  "entries": [
+    {
+      "entry_id": "GENEA",
+      "gene": "GENEA",
+      "locators": [
+        "Section 1 - Entity definition",
+        "Section 3 - Follow-up marker"
+      ],
+      "categories": [
+        "diagnosis",
+        "biomarker"
+      ]
+    }
+  ],
+  "geneless_statements": [],
+  "paper_id": "bbbbbbbb-0000-0000-0000-000000000002",
+  "validation_unresolved": []
+}

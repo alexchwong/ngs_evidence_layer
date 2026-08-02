@@ -1,7 +1,15 @@
 __pycache__/
 *.pyc
+.env/
 .venv/
 venv/
+
+# Private operator inputs and ingestion state. Only release artefacts under output/
+# are committed.
+/input/
+/work/
+/archive/
+/accept/
 
 # Working files from a retrieval session. The rendered block is the deliverable;
 # the intermediate JSON is not worth keeping.
@@ -9,7 +17,3 @@ step2.json
 bundle.json
 block.md
 
-# Built corpus and per-publication outputs are regenerable from input/ plus the
-# ingestion sessions. Commit them only deliberately, when sealing a version.
-output/corpus/
-output/reports/build-report.json
