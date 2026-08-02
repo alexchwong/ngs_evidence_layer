@@ -7,6 +7,7 @@ venv/
 # Private operator inputs and ingestion state. Only release artefacts under output/
 # are committed.
 /input/
+/pdf/
 /work/
 /archive/
 /accept/

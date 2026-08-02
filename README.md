@@ -18,12 +18,15 @@ python scripts/vocab.py
 python -m unittest discover -s tests -v
 ```
 
-## Ingestion v0.1.1
+## Ingestion v0.1.2
 
 Prompts are committed data under `prompts/`; private folder contents are workflow
 state. Papers are independent and may be in flight concurrently.
 
 ```bash
+# Convert queued PDFs to deterministic Markdown and resolve citations.
+python scripts/parse_pdfs.py --corpus <name> --mailto <email>
+
 # Create work/<paper-id>/paper.md and metadata.json.
 python scripts/fanout.py --corpus <name>
 
@@ -40,8 +43,25 @@ python scripts/incorporate.py
 The lifecycle is:
 
 ```text
-input → fanout → work → model phases → confirm → accept + archive → incorporate → output
+pdf → parse/index → input → fanout → work → model phases → confirm → accept + archive → incorporate → output
 ```
+
+### Pipeline directories
+
+| Directory | Purpose |
+|---|---|
+| `pdf/` | Private incoming queue. Place source publications under `pdf/<corpus>/` before parsing. |
+| `pdf/archive/` | Private storage for source PDFs moved after successful parsing. This leaves each incoming corpus folder containing only pending work. |
+| `input/` | Private parsed corpus state under `input/<corpus>/`, including evidence Markdown, publication indexes, and citation-repair files. Model phases use the Markdown, not the original PDF. |
+| `work/` | Private per-publication work in progress under `work/<paper-id>/`, including source Markdown, metadata, census, provisional packages, and independent audit files. |
+| `accept/` | Private, deterministically accepted packages. This is the only input from which `incorporate.py` builds release artefacts. |
+| `archive/` | Private completed work folders retained with their source-aware model-phase files and audit trail after confirmation. |
+| `output/corpus/` | Committed release corpus and index artefacts: `nel.corpus.json` and `nel.index.json`. |
+| `output/reports/` | Committed incorporation reports, including `build-report.json` with accepted and rejected paper outcomes. |
+
+The private runtime directories remain ignored by Git. Their tracked `.gitkeep` files
+have no runtime meaning; they only ensure that a fresh clone contains the required
+empty directory structure.
 
 `confirm` is the last source-aware gate: it verifies every quote against `paper.md`
 and proves that `paper.final.json` is the exact provisional round independently
@@ -88,7 +108,10 @@ carries a card ID and deterministic citations back to its publication.
 
 ## Boundaries
 
-- Markdown only; PDF extraction is outside the project.
+- PDF conversion is an input-layer operation; Markdown alone is the archived evidence
+  path and no card or model phase cites or reads a PDF.
+- Crossref is used only to resolve a detected DOI; model-assisted repair supplies a
+  DOI candidate that is re-resolved and recorded with provenance.
 - Closed categorical disease vocabulary with enforced umbrella tags.
 - Different publications coexist even when they disagree.
 - No live databases, approval-status modelling, cross-publication deduplication, or

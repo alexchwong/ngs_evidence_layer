@@ -21,6 +21,11 @@ material qualifier is not specified. Negative facts remain first-class and cite
 their reporting-rule disposition. `escalates_to` is diagnosis-only and only for a
 source-stated change of major diagnostic category.
 
+Copy `publication_type` and `publication_type_basis` verbatim from the census into
+every provisional package. Revise either only when responding to a supplied review
+that explicitly identifies publication type as a defect; otherwise disagreement
+with the census is invalid.
+
 For a first extraction write `paper.provisional-001.json`. After review NNN, write
 the complete corrected package as the next round. The package filename round and
 its `round` field must agree. It is never a patch. Set `audit` to null.
@@ -258,14 +263,18 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   "$id": "https://local/ngs_evidence_layer/ingestion_package_schema.json",
   "title": "Phase 2 provisional or Phase 3 final evidence package",
   "type": "object",
-  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "genes_covered", "diseases_covered", "census_entries", "cards", "quotes", "audit"],
+  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "publication_type", "publication_type_basis", "genes_covered", "diseases_covered", "census_entries", "cards", "quotes", "audit"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "4.0" },
+    "schema_version": { "const": "4.1" },
     "paper_id": { "type": "string", "format": "uuid" },
     "round": { "type": "integer", "minimum": 1 },
     "extraction_date": { "type": "string", "format": "date" },
     "extraction_model": { "type": "string", "minLength": 1 },
+    "publication_type": {
+      "enum": ["guideline", "consensus statement", "primary study", "systematic review", "narrative review", "other"]
+    },
+    "publication_type_basis": { "type": "string", "minLength": 1 },
     "genes_covered": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
     "diseases_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
     "census_entries": { "type": "integer", "minimum": 0 },
@@ -308,10 +317,20 @@ Do not repeat the clinical history, morphology or standard treatment unless need
       "properties": { "card_id": { "type": "string", "minLength": 1 }, "quote": { "type": "string", "minLength": 1 }, "locator": { "type": "string", "minLength": 1 } }
     },
     "audit": {
-      "type": "object", "required": ["audit_date", "audit_model", "extraction_model_reviewed", "approved_round", "results"], "additionalProperties": false,
+      "type": "object", "required": ["audit_date", "audit_model", "extraction_model_reviewed", "approved_round", "publication_type_verdict", "results"], "additionalProperties": false,
       "properties": {
         "audit_date": { "type": "string", "format": "date" }, "audit_model": { "type": "string", "minLength": 1 },
         "extraction_model_reviewed": { "type": "string", "minLength": 1 }, "approved_round": { "type": "integer", "minimum": 1 },
+        "publication_type_verdict": {
+          "type": "object",
+          "required": ["verdict"],
+          "additionalProperties": false,
+          "properties": {
+            "verdict": { "enum": ["pass", "fail"] },
+            "reason": { "type": "string", "minLength": 1 }
+          },
+          "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]
+        },
         "results": {
           "type": "array", "items": {
             "type": "object", "required": ["card_id", "verdict"], "additionalProperties": false,

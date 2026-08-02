@@ -1,5 +1,19 @@
 # NEWS
 
+## 0.1.2
+
+- Added deterministic, content-addressed PDF-to-Markdown ingestion with locked
+  OpenDataLoader settings and atomic publication.
+- Added DOI detection, Crossref resolution, model-assisted DOI recovery, and a
+  batch-atomic manual citation worksheet.
+- Made JSONL the canonical input index and added a synchronized read-only CSV view.
+- Moved publication-type assignment and justification into Phase 1, propagation into
+  Phase 2, and independent audit into Phase 3.
+- Added stable acceptance timestamps and changed duplicate publication keys at
+  incorporation from fatal errors to deterministic per-paper rejection.
+- Bumped all working and accepted schemas; prior in-flight artefacts require
+  re-ingestion rather than migration.
+
 ## 0.1.1
 
 - Replaced central phase queues with independent `work/<paper-id>/` folder state.

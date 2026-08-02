@@ -9,16 +9,29 @@
     "paper_id",
     "census_date",
     "census_model",
+    "publication_type",
+    "publication_type_basis",
     "entries",
     "geneless_statements",
     "validation_unresolved"
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "3.0" },
+    "schema_version": { "const": "3.1" },
     "paper_id": { "type": "string", "format": "uuid" },
     "census_date": { "type": "string", "format": "date" },
     "census_model": { "type": "string", "minLength": 1 },
+    "publication_type": {
+      "enum": [
+        "guideline",
+        "consensus statement",
+        "primary study",
+        "systematic review",
+        "narrative review",
+        "other"
+      ]
+    },
+    "publication_type_basis": { "type": "string", "minLength": 1 },
     "supplement_flags": {
       "type": "array",
       "description": "Critical values referenced by the main text but living in supplementary material. Record, do not refuse.",

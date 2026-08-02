@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import package_validation as validation
@@ -64,8 +65,10 @@ def confirm(args):
     staged_final = staging / final_destination.name
     staged_census = staging / census_destination.name
     accepted = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "acceptance_path": "confirmed",
+        "accepted_at": datetime.now(timezone.utc).isoformat(),
+        "accepted_at_source": "confirm",
         "metadata": metadata,
         "final": final,
     }

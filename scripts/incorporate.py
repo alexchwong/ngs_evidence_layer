@@ -59,6 +59,20 @@ def load_pair(final_path, census_path):
     return envelope, census, warnings, report
 
 
+def normalize_accepted_at(final_path):
+    """Persist a stable mtime-derived acceptance time for a legacy manual drop."""
+    envelope = validation.read_json(final_path, "accepted package")
+    if "accepted_at" in envelope:
+        return
+    if envelope.get("acceptance_path") != "manual-or-unverified":
+        raise ValueError("accepted_at is missing from a non-manual accepted package")
+    accepted_at = datetime.fromtimestamp(final_path.stat().st_mtime, timezone.utc).isoformat()
+    envelope["schema_version"] = "1.1"
+    envelope["accepted_at"] = accepted_at
+    envelope["accepted_at_source"] = "file-mtime"
+    atomic_json(final_path, envelope)
+
+
 def build(args):
     final_paths = sorted(args.accept_dir.glob("*.final.json"))
     census_paths = {path.name.removesuffix(".census.json"): path for path in args.accept_dir.glob("*.census.json")}
@@ -75,6 +89,7 @@ def build(args):
             rejected[paper_id] = ["accepted final package has no paired census"]
             continue
         try:
+            normalize_accepted_at(final_path)
             envelope, census, warnings, report = load_pair(final_path, census_path)
         except (OSError, ValueError) as exc:
             rejected[paper_id] = str(exc).splitlines()
@@ -84,14 +99,27 @@ def build(args):
             continue
         accepted.append((paper_id, envelope, census, warnings, report))
 
-    key_owners = {}
+    key_groups = defaultdict(list)
     card_owners = {}
     global_errors = []
-    for paper_id, envelope, _census, _warnings, _report in accepted:
+    for item in accepted:
+        _paper_id, envelope, _census, _warnings, _report = item
         key = envelope["metadata"]["publication_key"]
-        if key in key_owners:
-            global_errors.append(f"duplicate publication_key {key}: {key_owners[key]} and {paper_id}")
-        key_owners[key] = paper_id
+        key_groups[key].append(item)
+    selected = []
+    for key, group in sorted(key_groups.items()):
+        ranked = sorted(
+            group,
+            key=lambda item: (datetime.fromisoformat(item[1]["accepted_at"]), item[0]),
+        )
+        winner = ranked[0]
+        winner_id = winner[0]
+        selected.append(winner)
+        for loser in ranked[1:]:
+            loser_id = loser[0]
+            rejected[loser_id] = [f"duplicate publication_key {key}: superseded by {winner_id}"]
+            print(f"warning: duplicate publication_key {key}: {loser_id} superseded by {winner_id}", file=sys.stderr)
+    for paper_id, envelope, _census, _warnings, _report in selected:
         for card in envelope["final"]["cards"]:
             card_id = card["card_id"]
             if card_id in card_owners:
@@ -104,13 +132,13 @@ def build(args):
     by_escalation, by_tier, by_year, by_type = (defaultdict(list) for _ in range(4))
     publications, paper_index, card_index = [], {}, {}
     census_total = 0
-    for paper_id, envelope, census, warnings, report in accepted:
+    for paper_id, envelope, census, warnings, report in selected:
         metadata, package = envelope["metadata"], envelope["final"]
         cards = sorted(package["cards"], key=lambda card: card["card_id"])
         document = {
             "publication_key": metadata["publication_key"],
             "citation": metadata["citation"],
-            "publication_type": metadata["publication_type"],
+            "publication_type": package["publication_type"],
             "extraction_date": package["extraction_date"],
             "extraction_model": package["extraction_model"],
             "genes_covered": package["genes_covered"],
@@ -135,7 +163,7 @@ def build(args):
             if card["escalates_to"]: add(by_escalation, card["escalates_to"], card_id)
         year = metadata["citation"].get("year")
         if year is not None: add(by_year, str(year), metadata["publication_key"])
-        add(by_type, metadata["publication_type"], metadata["publication_key"])
+        add(by_type, package["publication_type"], metadata["publication_key"])
         source = {
             "input_id": paper_id, "source_filename": metadata["source_filename"],
             "source_sha256": metadata["source_sha256"], "markdown_sha256": metadata["markdown_sha256"],

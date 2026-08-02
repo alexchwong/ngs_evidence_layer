@@ -1,4 +1,4 @@
-# Ingestion operations — v0.1.1
+# Ingestion operations — v0.1.2
 
 This is the operator runbook. One publication occupies one independent working
 folder; folder contents are its state. Any number of papers may be in flight in
@@ -13,6 +13,22 @@ python -m pip install -r requirements.txt
 ```
 
 Inputs follow `docs/INPUT.md`. They are private operator data.
+
+## 0. Parse PDFs and resolve citations
+
+Drop PDFs in `pdf/<corpus>/`, then run:
+
+```bash
+python scripts/parse_pdfs.py --corpus <name> --mailto <email>
+```
+
+Successful sources move to `pdf/archive/<corpus>/`; Markdown and synchronized JSONL
+and CSV indexes are written under `input/<corpus>/`. Exit 1 means at least one paper
+needs citation repair or failed conversion. Repair citations with the request/apply
+or manual-export/manual-apply commands documented in `docs/INPUT.md`.
+
+The same PDF bytes always receive the same ID. Forced reparsing is blocked when that
+ID exists in `work/`, `accept/`, or `archive/` unless `--allow-reparse` is supplied.
 
 ## 1. Fan out indexed papers
 
@@ -102,7 +118,7 @@ accept/<paper-id>.census.json
 ```
 
 and moves the complete history from `work/<paper-id>/` to
-`archive/<paper-id>/`. Archives are immutable in v0.1.1; reopening is not provided.
+`archive/<paper-id>/`. Archives are immutable in v0.1.2; reopening is not provided.
 
 Manual acceptance is possible only by constructing the same accepted envelope and
 setting `acceptance_path` to `manual-or-unverified`. Incorporation cannot recheck
@@ -115,8 +131,9 @@ python scripts/incorporate.py
 ```
 
 The command reads `accept/` only. Invalid individual pairs are recorded under
-`rejected` and excluded while valid papers build. Global duplicate publication keys
-or card IDs stop the whole build because choosing a winner would be arbitrary.
+`rejected` and excluded while valid papers build. Duplicate publication keys retain
+the earliest `accepted_at`, with lexicographic paper ID as a tie-break; losers are
+reported and skipped. Duplicate card IDs remain fatal.
 
 Outputs:
 

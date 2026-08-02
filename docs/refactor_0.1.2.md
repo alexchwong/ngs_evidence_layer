@@ -37,7 +37,8 @@ input/<corpus>/                   gitignored. Unchanged 0.1.1 contract.
   index/papers.jsonl              canonical
   index/papers.csv                synchronised view, read-only for operators
   citations/request-<UTC>.md      generated repair prompt
-  citations/response.json         operator-supplied model return
+  citations/response.json         operator-supplied model DOI return
+  citations/manual-<UTC>.csv      generated no-DOI citation worksheet
 work/, accept/, archive/          unchanged
 output/                           unchanged
 ```
@@ -223,9 +224,15 @@ columns: `id`, `status`, `source_filename`, `markdown_path`, `citation_source`,
 `doi`, `year`, `first_author`, `title`, `publication_key`, `error`. It is a view;
 hand-edits to it are ignored and overwritten.
 
-**[D] Operator citation edits are made in `papers.jsonl`, not the CSV.** A CSV
-cannot represent the author array without a quoting convention that will be got
-wrong exactly once, silently.
+Operator citation repair does not require hand-editing `papers.jsonl`. The manual
+CSV workflow in §6 exports a dedicated worksheet and applies it through validated,
+atomic code. `papers.csv` remains a read-only synchronised view and is never an
+input.
+
+**[D] Manual citation authors use a semicolon-separated cell.** For example,
+`Khoury JD; Solary E`. The export file is written and read with Python's `csv`
+module, so commas and quotes in titles and journal names retain standard CSV
+escaping while the author-array encoding remains explicit and reversible.
 
 ---
 
@@ -256,15 +263,18 @@ Network failure, a 404, or an incomplete record all yield `citation-pending` wit
 the reason in `parse.error`. Conversion is never rolled back for a citation
 failure; the Markdown is already good.
 
-### Repair path — `scripts/citations.py`
+### Repair paths — `scripts/citations.py`
 
 ```bash
 python scripts/citations.py request --corpus <name>   # writes the prompt
 python scripts/citations.py apply   --corpus <name> --response <file>
+python scripts/citations.py manual-export --corpus <name> [--output <file>]
+python scripts/citations.py manual-apply  --corpus <name> --csv <file>
 ```
 
-**[D] Both subcommands live in one script.** They share the record-matching logic,
-and splitting them invites the two halves to disagree about identity.
+**[D] All four subcommands live in one script.** They share index access and
+record-matching logic, and splitting them invites the repair paths to disagree
+about identity or write semantics.
 
 `request` emits one Markdown file covering every `citation-pending` paper in the
 corpus, at `input/<corpus>/citations/request-<UTC>.md`. Per paper it supplies the
@@ -311,8 +321,39 @@ exits non-zero if any row failed.
 warning.** The extracted DOI is the weaker signal — it is regex output from a
 document that may cite a hundred others.
 
-The third path remains: an operator editing `papers.jsonl` by hand sets
-`citation_source: "operator"` and flips the status themselves.
+#### Manual citation path — no DOI
+
+`manual-export` writes a timestamped CSV at
+`input/<corpus>/citations/manual-<UTC>.csv` unless `--output` is supplied. It emits
+every `citation-pending` paper exactly once with these columns:
+
+```text
+paper_id,authors,title,journal,year,volume,issue,pages,doi
+```
+
+Only `paper_id` is populated. All citation cells are empty for the operator to
+complete; `doi` may remain empty. Export does not modify either index file.
+
+`manual-apply` validates the complete CSV before changing the master index:
+
+- each `paper_id` is unique, known, and currently `citation-pending`;
+- `authors` is a non-empty semicolon-separated list whose members remain non-empty
+  after trimming;
+- `title` is non-empty and `year` is an integer accepted by the metadata schema;
+- `journal`, `volume`, `issue`, `pages`, and `doi` may be empty;
+- display citation and `publication_key` are rebuilt through `make_key.py`; no
+  operator-supplied derived value is accepted.
+
+If any row is invalid, nothing is written. If all rows are valid, the command sets
+the citation, `status: "ingested"`, `citation_source: "operator"`,
+`citation_resolved_at` to the application time, and the canonical
+`publication_key`, then atomically rewrites `papers.jsonl` once and regenerates
+`papers.csv` from the same in-memory records.
+
+**[D] Manual application is batch-atomic, unlike model DOI application.** The CSV
+is an operator-authored structured update to the canonical index; refusing a
+partially valid worksheet makes correction and rerun safe and prevents the JSONL
+and CSV views from representing different batches.
 
 ---
 
@@ -379,8 +420,8 @@ paper's own front matter and structure.
 |---|---|---|
 | `metadata_schema.json` | `1.0` → `1.1` | Remove `publication_type`; add `citation_source` (enum) and `citation_resolved_at` (date-time, nullable) |
 | `census_schema.json` | `3.0` → `3.1` | Add required `publication_type`, `publication_type_basis` |
-| `ingestion_package_schema.json` | `3.0` → `3.1` | Add required `publication_type`, `publication_type_basis`; audit block gains `publication_type_verdict` |
-| `accepted_package_schema.json` | bump | Add required `accepted_at` (date-time) |
+| `ingestion_package_schema.json` | `4.0` → `4.1` | Add required `publication_type`, `publication_type_basis`; audit block gains `publication_type_verdict` |
+| `accepted_package_schema.json` | `1.0` → `1.1` | Add required `accepted_at` (date-time) and `accepted_at_source` (`confirm`, `file-mtime`) |
 | `disease_vocabulary.json` | — | Unchanged |
 
 All four keep `additionalProperties: false` and pin `schema_version` with `const`,
@@ -396,9 +437,21 @@ audit that did not happen.
 Both fixtures under `tests/fixtures/work/` are regenerated by hand.
 
 **[D] `accepted_at` is added because `acceptance_path` is an enum, not a
-timestamp.** The tiebreak in §10 needs an ordering and there is currently none;
-`confirm.py` writes it at acceptance, and the manual path falls back to
-`metadata.created_at`.
+timestamp.** The tiebreak in §10 needs an ordering and there is currently none.
+`confirm.py` writes it at acceptance with `accepted_at_source: "confirm"`.
+
+For a manual package dropped directly into `accept/` without `accepted_at`,
+`incorporate.py` takes the final file's mtime, converts it to an ISO-8601 UTC value,
+adds `accepted_at_source: "file-mtime"`, and atomically rewrites the accepted
+package before schema validation or duplicate selection. It then reloads the
+persisted envelope. This is performed only while `accepted_at` is absent; every
+later build uses the stored value and never consults mtime again.
+
+**[D] Failure to persist a synthesized timestamp rejects that paper.** Using an
+mtime only in memory could produce a duplicate winner that changes on the next
+build. Persist-before-use makes the first normalization the only machine-dependent
+event. A clone, copy, or restore can affect an as-yet unnormalised manual drop, but
+cannot change the winner after one successful normalization.
 
 ---
 
@@ -409,6 +462,9 @@ anything is written, so one duplicate stops the corpus.
 
 New behaviour:
 
+- Before loading accepted pairs, normalize each manual `*.final.json` lacking
+  `accepted_at` by persisting its file mtime and `accepted_at_source:
+  "file-mtime"`. Already timestamped packages are never rewritten for this purpose.
 - **Duplicate `publication_key`** — retain the earliest `accepted_at`; ties broken
   by lexicographic `paper_id`. Losers are recorded in `index["rejected"]` and the
   build report with `duplicate publication_key <key>: superseded by <paper_id>`,
@@ -470,6 +526,11 @@ New, in `tests/test_parse.py`:
 - Incomplete Crossref record yields `citation-pending`.
 - `citations.py apply`: good row, unknown id, blank DOI, title-mismatch rejection,
   contradicted-DOI warning.
+- `citations.py manual-export`: pending-only selection, empty citation cells, stable
+  columns, and CSV escaping.
+- `citations.py manual-apply`: no-DOI success, multi-author round trip, canonical
+  key/display derivation, and batch-atomic rejection for unknown, duplicate,
+  already-ingested, blank-required, or malformed-year rows.
 - Table-integrity flagging on a malformed fixture.
 
 Amended:
@@ -478,6 +539,9 @@ Amended:
   new cases for fan-out rejection at `citation-pending` and at an empty citation.
 - `test_pipeline.py` — duplicate `publication_key` produces a skip with the
   earliest `accepted_at` retained, not an abort; duplicate `card_id` still aborts.
+  A manual package's missing timestamp is synthesized from mtime and persisted;
+  changing mtime after that first build does not alter the stored timestamp or the
+  duplicate winner. Equal timestamps are resolved by lexicographic `paper_id`.
 
 Conversion itself is not tested. It needs a JVM and a real PDF; the seam is
 `convert_batch()`, stubbed in tests.
@@ -493,10 +557,11 @@ One file at a time, per `.clinerules`.
    `publication_type` agreement.
 3. `scripts/index_store.py` — new, corpus-parameterised.
 4. `scripts/parse_pdfs.py` — new.
-5. `scripts/citations.py` — new.
+5. `scripts/citations.py` — new; DOI/model repair and manual CSV export/apply.
 6. `scripts/fanout.py` — index contract and `metadata_for`.
-7. `scripts/confirm.py` — `accepted_at`, type agreement.
-8. `scripts/incorporate.py` — duplicate-key skip; type from package.
+7. `scripts/confirm.py` — `accepted_at`, `accepted_at_source`, type agreement.
+8. `scripts/incorporate.py` — one-time persisted mtime normalization,
+   duplicate-key skip; type from package.
 9. `prompts/templates/phase1|2|3` and `build_prompts.py` — `publication_type`
    assignment, propagation, audit.
 10. `docs/INPUT.md` rewrite; `README.md` boundaries; `INGEST.md` step 0;

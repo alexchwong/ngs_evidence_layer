@@ -9,6 +9,10 @@ every gene about which the paper makes a claim, its claim locations, and all tou
 categories. Record rule-relevant geneless statements and missing supplementary
 values. Do not refuse because a supplement is unavailable.
 
+Assign `publication_type` from the paper's front matter and structure using exactly
+one schema enum value. Record a concise one-line `publication_type_basis` explaining
+that judgement.
+
 Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
 ## Reporting rules
@@ -25,6 +29,7 @@ Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
 Check that every section and table is accounted for, every entry has a locator,
 genes are valid symbols, IDs and genes are unique, and no rule-covered paper claim
-is absent. Repair and repeat, at most three passes. If defects remain, list each one
+is absent. Confirm the publication type and basis are supported by the paper. Repair
+and repeat, at most three passes. If defects remain, list each one
 under `validation_unresolved`; otherwise return an empty list. Return JSON only and
 do not claim that Phase 2 has begun.

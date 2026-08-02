@@ -9,6 +9,10 @@ every gene about which the paper makes a claim, its claim locations, and all tou
 categories. Record rule-relevant geneless statements and missing supplementary
 values. Do not refuse because a supplement is unavailable.
 
+Assign `publication_type` from the paper's front matter and structure using exactly
+one schema enum value. Record a concise one-line `publication_type_basis` explaining
+that judgement.
+
 Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
 ## Reporting rules
@@ -179,16 +183,29 @@ Do not repeat the clinical history, morphology or standard treatment unless need
     "paper_id",
     "census_date",
     "census_model",
+    "publication_type",
+    "publication_type_basis",
     "entries",
     "geneless_statements",
     "validation_unresolved"
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "3.0" },
+    "schema_version": { "const": "3.1" },
     "paper_id": { "type": "string", "format": "uuid" },
     "census_date": { "type": "string", "format": "date" },
     "census_model": { "type": "string", "minLength": 1 },
+    "publication_type": {
+      "enum": [
+        "guideline",
+        "consensus statement",
+        "primary study",
+        "systematic review",
+        "narrative review",
+        "other"
+      ]
+    },
+    "publication_type_basis": { "type": "string", "minLength": 1 },
     "supplement_flags": {
       "type": "array",
       "description": "Critical values referenced by the main text but living in supplementary material. Record, do not refuse.",
@@ -260,6 +277,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 Check that every section and table is accounted for, every entry has a locator,
 genes are valid symbols, IDs and genes are unique, and no rule-covered paper claim
-is absent. Repair and repeat, at most three passes. If defects remain, list each one
+is absent. Confirm the publication type and basis are supported by the paper. Repair
+and repeat, at most three passes. If defects remain, list each one
 under `validation_unresolved`; otherwise return an empty list. Return JSON only and
 do not claim that Phase 2 has begun.

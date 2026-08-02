@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared deterministic validation for v0.1.1 working and accepted artefacts."""
+"""Shared deterministic validation for v0.1.2 working and accepted artefacts."""
 import copy
 import json
 import re
@@ -92,6 +92,10 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package paper_id does not match metadata")
     if package["census_entries"] != len(census.get("entries", [])):
         errors.append("package census_entries does not match census")
+    if package["publication_type"] != census.get("publication_type"):
+        errors.append("package publication_type does not match census")
+    if package["publication_type_basis"] != census.get("publication_type_basis"):
+        errors.append("package publication_type_basis does not match census")
 
     card_ids = [card["card_id"] for card in package["cards"]]
     quote_ids = [quote["card_id"] for quote in package["quotes"]]
@@ -158,6 +162,8 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append("audit model must differ from extraction model")
         if audit["extraction_model_reviewed"] != package["extraction_model"]:
             errors.append("extraction_model_reviewed does not match extraction_model")
+        if audit["publication_type_verdict"]["verdict"] != "pass":
+            errors.append("failed publication_type verdict blocks acceptance")
         verdict_ids = [result["card_id"] for result in audit["results"]]
         if len(verdict_ids) != len(set(verdict_ids)):
             errors.append("audit contains duplicate card verdicts")

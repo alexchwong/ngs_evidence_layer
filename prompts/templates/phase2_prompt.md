@@ -21,6 +21,11 @@ material qualifier is not specified. Negative facts remain first-class and cite
 their reporting-rule disposition. `escalates_to` is diagnosis-only and only for a
 source-stated change of major diagnostic category.
 
+Copy `publication_type` and `publication_type_basis` verbatim from the census into
+every provisional package. Revise either only when responding to a supplied review
+that explicitly identifies publication type as a defect; otherwise disagreement
+with the census is invalid.
+
 For a first extraction write `paper.provisional-001.json`. After review NNN, write
 the complete corrected package as the next round. The package filename round and
 its `round` field must agree. It is never a patch. Set `audit` to null.

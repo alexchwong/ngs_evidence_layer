@@ -26,6 +26,10 @@ For every diagnosis card, also compare the quote and interpretation with
 `escalates_to`. Fail missing, wrong, or over-inferred category changes. Identical
 quote text alone is not failure when it supports distinct useful roles.
 
+Audit the package-level `publication_type` against the paper's own front matter and
+structure. Record `audit.publication_type_verdict`. A disagreement is a review
+failure and must identify publication type as the defect; do not repair it.
+
 If any card fails, write only `paper.review-NNN.json`, where NNN is the provisional
 round. Include each failed card ID and a precise reason. Do not write a final and do
 not repair cards.
@@ -33,5 +37,6 @@ not repair cards.
 If all cards pass, write `paper.final.json` as the complete provisional package
 with extraction content unchanged and an `audit` object containing the audit date,
 your model identity, the extraction model reviewed, `approved_round`, and exactly
-one passing verdict per card. The filename round, package round, and approved round
+one passing verdict per card, plus a passing publication-type verdict. The filename
+round, package round, and approved round
 must agree. Return JSON only.

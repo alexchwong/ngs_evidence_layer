@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workflow tests for v0.1.1 folder-as-state ingestion."""
+"""Workflow tests for v0.1.2 folder-as-state ingestion."""
 import copy
 import hashlib
 import importlib.util
@@ -49,13 +49,15 @@ class FolderStateWorkflowTests(unittest.TestCase):
             "id": PAPER_ID, "markdown_path": f"markdown/{STEM}.md",
             "source_filename": "fixture-alpha.md",
             "sha256": hashlib.sha256(self.source.read_bytes()).hexdigest(),
-            "status": "ingested", "publication_type": "guideline",
+            "status": "ingested", "citation_source": "operator",
+            "citation_resolved_at": "2026-08-02T00:00:00+00:00",
             "citation": {
                 "authors": ["Fixture A", "Fixture B"],
                 "title": "Fixture Classifier, first edition",
                 "journal": "Fixture Journal", "year": 2020, "volume": "1",
                 "issue": "1", "pages": "1-10", "doi": "",
             },
+            "publication_key": "fixture-2020-fixture-journal-1-1",
         }
         self.write_index([self.record])
 
@@ -98,6 +100,8 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertEqual((working / "paper.md").read_bytes(), self.source.read_bytes())
         metadata = read(working / "metadata.json")
         self.assertEqual(metadata["paper_id"], PAPER_ID)
+        self.assertEqual(metadata["citation_source"], "operator")
+        self.assertNotIn("publication_type", metadata)
         first = (working / "metadata.json").read_bytes()
         self.assertIn("left 1 existing", self.fanout())
         self.assertEqual((working / "metadata.json").read_bytes(), first)
@@ -125,6 +129,28 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertTrue((self.archive / PAPER_ID / "paper.provisional-001.json").is_file())
         accepted = read(self.accept / f"{PAPER_ID}.final.json")
         self.assertEqual(accepted["acceptance_path"], "confirmed")
+        self.assertEqual(accepted["accepted_at_source"], "confirm")
+        self.assertTrue(accepted["accepted_at"])
+
+    def test_fanout_rejects_pending_and_incomplete_citations(self):
+        pending = copy.deepcopy(self.record)
+        pending["status"] = "citation-pending"
+        pending["parse"] = {"error": "awaiting citation repair"}
+        self.write_index([pending])
+        output = self.run_script(
+            "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
+            "--work-dir", self.work, success=False,
+        )
+        self.assertIn("awaiting citation repair", output)
+
+        incomplete = copy.deepcopy(self.record)
+        incomplete["citation"]["authors"] = []
+        self.write_index([incomplete])
+        output = self.run_script(
+            "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
+            "--work-dir", self.work, success=False,
+        )
+        self.assertIn("lacks authors, title, or year", output)
 
     def test_confirm_rejects_extraction_change_without_moving(self):
         working = self.prepare_complete_work()

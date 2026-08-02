@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create independent v0.1.1 working folders from one indexed input corpus."""
+"""Create independent v0.1.2 working folders from one indexed input corpus."""
 import argparse
 import hashlib
 import json
@@ -27,7 +27,7 @@ def load_index(path):
             record = json.loads(line)
         except json.JSONDecodeError as exc:
             raise ValueError(f"{path}:{line_number}: invalid JSON: {exc}") from exc
-        required = {"id", "markdown_path", "source_filename", "status", "citation", "publication_type"}
+        required = {"id", "markdown_path", "source_filename", "status", "citation", "citation_source"}
         missing = sorted(required - set(record))
         if missing:
             raise ValueError(f"{path}:{line_number}: missing fields: {', '.join(missing)}")
@@ -36,7 +36,13 @@ def load_index(path):
         if record["markdown_path"] in seen_paths:
             raise ValueError(f"duplicate markdown_path: {record['markdown_path']}")
         if record["status"] != "ingested":
-            raise ValueError(f"{record['id']}: status must be 'ingested'")
+            reason = (record.get("parse") or {}).get("error", "")
+            if record["status"] == "citation-pending":
+                reason = reason or "awaiting citation repair"
+            raise ValueError(f"{record['id']}: status {record['status']!r} is not eligible: {reason}")
+        citation = record["citation"]
+        if not citation.get("authors") or not citation.get("title") or not citation.get("year"):
+            raise ValueError(f"{record['id']}: ingested citation lacks authors, title, or year")
         suffix = f"--{record['id'][:8]}.md"
         if not Path(record["markdown_path"]).name.endswith(suffix):
             raise ValueError(f"{record['id']}: Markdown filename must end with {suffix}")
@@ -53,13 +59,14 @@ def metadata_for(record, corpus, source, created_at):
     citation = dict(built["citation"])
     citation["doi"] = record["citation"].get("doi", "")
     return {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "paper_id": record["id"],
         "corpus": corpus,
         "stem": source.stem,
         "publication_key": built["publication_key"],
         "citation": citation,
-        "publication_type": record["publication_type"],
+        "citation_source": record["citation_source"],
+        "citation_resolved_at": record.get("citation_resolved_at"),
         "source_filename": record["source_filename"],
         "source_sha256": record.get("sha256"),
         "markdown_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
@@ -86,6 +93,12 @@ def fanout(args):
         if not source.is_file():
             raise ValueError(f"{record['id']}: indexed Markdown not found: {source}")
         metadata = metadata_for(record, args.corpus, source, created_at)
+        stored_key = record.get("publication_key")
+        if stored_key and stored_key != metadata["publication_key"]:
+            raise ValueError(
+                f"{record['id']}: stored publication_key {stored_key} does not match "
+                f"computed {metadata['publication_key']}"
+            )
         errors = validation.validate_metadata(metadata)
         if errors:
             raise ValueError("\n".join(errors))

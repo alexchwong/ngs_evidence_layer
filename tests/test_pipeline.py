@@ -49,12 +49,16 @@ def fixture_package(stem, final=True):
     return metadata, census, package
 
 
-def write_accept(accept_dir, stem, mutate=None):
+def write_accept(accept_dir, stem, mutate=None, accepted_at="2026-01-01T00:00:00+00:00"):
     metadata, census, package = fixture_package(stem)
     if mutate:
         mutate(metadata, census, package)
     paper_id = metadata["paper_id"]
-    envelope = {"schema_version": "1.0", "acceptance_path": "confirmed", "metadata": metadata, "final": package}
+    envelope = {
+        "schema_version": "1.1", "acceptance_path": "confirmed",
+        "accepted_at": accepted_at, "accepted_at_source": "confirm",
+        "metadata": metadata, "final": package,
+    }
     (accept_dir / f"{paper_id}.final.json").write_text(json.dumps(envelope), encoding="utf-8")
     (accept_dir / f"{paper_id}.census.json").write_text(json.dumps(census), encoding="utf-8")
 
@@ -154,6 +158,61 @@ class IncorporationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(read(root / "corpus" / "nel.corpus.json")["counts"]["completed_papers"], 1)
             self.assertIn(IDS[BETA], read(root / "report.json")["rejected"])
+
+    def test_duplicate_publication_key_retains_earliest_acceptance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, accept = Path(tmp), Path(tmp) / "accept"; accept.mkdir()
+            write_accept(accept, ALPHA, accepted_at="2026-01-02T00:00:00+00:00")
+            def duplicate(metadata, census, package):
+                alpha_metadata, alpha_census, _alpha_package = fixture_package(ALPHA)
+                metadata["publication_key"] = alpha_metadata["publication_key"]
+                census["publication_type"] = package["publication_type"]
+                census["publication_type_basis"] = package["publication_type_basis"]
+                for card in package["cards"]:
+                    card["card_id"] = card["card_id"].replace(
+                        "fixture-2022-second-fixture-journal-2-1", alpha_metadata["publication_key"]
+                    )
+                for quote in package["quotes"]:
+                    quote["card_id"] = quote["card_id"].replace(
+                        "fixture-2022-second-fixture-journal-2-1", alpha_metadata["publication_key"]
+                    )
+                for result in package["audit"]["results"]:
+                    result["card_id"] = result["card_id"].replace(
+                        "fixture-2022-second-fixture-journal-2-1", alpha_metadata["publication_key"]
+                    )
+            write_accept(accept, BETA, duplicate, accepted_at="2026-01-01T00:00:00+00:00")
+            result = subprocess.run([
+                sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
+                "--output-dir", str(root / "corpus"), "--report", str(root / "report.json"),
+            ], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            report = read(root / "report.json")
+            self.assertIn(IDS[ALPHA], report["rejected"])
+            self.assertEqual(read(root / "corpus" / "nel.corpus.json")["counts"]["completed_papers"], 1)
+
+    def test_manual_missing_timestamp_is_persisted_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, accept = Path(tmp), Path(tmp) / "accept"; accept.mkdir()
+            write_accept(accept, ALPHA)
+            path = accept / f"{IDS[ALPHA]}.final.json"
+            envelope = read(path)
+            envelope.pop("accepted_at"); envelope.pop("accepted_at_source")
+            envelope["schema_version"] = "1.0"
+            envelope["acceptance_path"] = "manual-or-unverified"
+            path.write_text(json.dumps(envelope), encoding="utf-8")
+            subprocess.run([
+                sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
+                "--output-dir", str(root / "corpus"), "--report", str(root / "report.json"),
+            ], check=True, capture_output=True)
+            persisted = read(path)
+            self.assertEqual(persisted["accepted_at_source"], "file-mtime")
+            first = persisted["accepted_at"]
+            path.touch()
+            subprocess.run([
+                sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
+                "--output-dir", str(root / "corpus2"), "--report", str(root / "report2.json"),
+            ], check=True, capture_output=True)
+            self.assertEqual(read(path)["accepted_at"], first)
 
 
 class RetrievalAndRenderTests(unittest.TestCase):
