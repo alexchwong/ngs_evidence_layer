@@ -10,6 +10,7 @@ import unittest
 import uuid
 from argparse import Namespace
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
@@ -43,6 +44,18 @@ def record(paper_id="aaaaaaaa-0000-0000-0000-000000000001", status="citation-pen
 
 
 class IdentityAndCrossrefTests(unittest.TestCase):
+    def test_convert_batch_uses_supported_locked_options(self):
+        calls = []
+        fake_module = Namespace(convert=lambda **kwargs: calls.append(kwargs))
+        with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
+            parse.convert_batch([Path("paper.pdf")], Path("output"), quiet=True)
+        self.assertEqual(calls, [{
+            "input_path": ["paper.pdf"], "output_dir": "output",
+            "format": "markdown", "reading_order": "xycut",
+            "keep_line_breaks": False, "use_struct_tree": False,
+            "image_output": "off", "quiet": True,
+        }])
+
     def test_uuid_and_stem_are_stable(self):
         first = parse.paper_uuid("a" * 64)
         self.assertEqual(first, parse.paper_uuid("a" * 64))

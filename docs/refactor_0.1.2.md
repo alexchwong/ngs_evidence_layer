@@ -118,7 +118,7 @@ opendataloader_pdf.convert(
     reading_order="xycut",    # geometric segmentation; the multi-column default
     keep_line_breaks=False,   # reflow paragraphs into single logical lines
     use_struct_tree=False,    # ignore embedded tags
-    image_output="none",      # no figure extraction
+    image_output="off",       # no figure extraction
     quiet=args.quiet,
 )
 ```

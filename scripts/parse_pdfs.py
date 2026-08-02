@@ -103,7 +103,7 @@ def convert_batch(paths, output_dir, quiet=False):
     opendataloader_pdf.convert(
         input_path=[str(path) for path in paths], output_dir=str(output_dir),
         format="markdown", reading_order="xycut", keep_line_breaks=False,
-        use_struct_tree=False, image_output="none", quiet=quiet,
+        use_struct_tree=False, image_output="off", quiet=quiet,
     )
 
 
