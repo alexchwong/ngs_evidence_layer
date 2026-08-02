@@ -1,0 +1,66 @@
+{
+  "vocabulary_version": "1.0",
+  "note": "Closed, categorical, no free-text subtypes, no modifiers. Build spec section 3. Not to be extended casually: an added term changes what every existing card means by omission.",
+  "diseases": [
+    "CHIP",
+    "CCUS",
+    "MDS",
+    "MDS/AML",
+    "AML",
+    "APL",
+    "MDS/MPN-U",
+    "CMML",
+    "aCML",
+    "MDS/MPN-SF3B1-T",
+    "JMML",
+    "MPN-U",
+    "PV",
+    "ET",
+    "PMF",
+    "post-PV/post-ET MF",
+    "CML",
+    "CNL",
+    "CEL",
+    "mastocytosis",
+    "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+    "BPDCN",
+    "germline predisposition syndrome",
+    "myeloid neoplasm, unspecified",
+    "lymphoid neoplasm"
+  ],
+  "umbrella": {
+    "APL": ["AML"],
+    "PV": ["MPN-U"],
+    "ET": ["MPN-U"],
+    "PMF": ["MPN-U"],
+    "post-PV/post-ET MF": ["MPN-U"],
+    "CNL": ["MPN-U"],
+    "CEL": ["MPN-U"]
+  },
+  "categories": [
+    "diagnosis",
+    "prognosis",
+    "treatment",
+    "biomarker",
+    "germline"
+  ],
+  "evidence_tiers_strongest_first": [
+    "guideline criterion",
+    "multivariable-adjusted",
+    "univariable or descriptive",
+    "restated secondary"
+  ],
+  "publication_types": [
+    "guideline",
+    "consensus statement",
+    "primary study",
+    "systematic review",
+    "narrative review",
+    "other"
+  ],
+  "disease_naming_expected": [
+    "prognosis",
+    "treatment",
+    "biomarker"
+  ]
+}

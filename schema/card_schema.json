@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/ngs_evidence_layer/card_schema.json",
+  "title": "Myeloid NGS evidence card file (one publication)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "publication_key",
+    "citation",
+    "publication_type",
+    "extraction_date",
+    "extraction_model",
+    "genes_covered",
+    "diseases_covered",
+    "census_entries",
+    "cards"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "2.0" },
+    "publication_key": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "citation": { "$ref": "#/$defs/citation" },
+    "publication_type": {
+      "enum": [
+        "guideline",
+        "consensus statement",
+        "primary study",
+        "systematic review",
+        "narrative review",
+        "other"
+      ]
+    },
+    "extraction_date": { "type": "string", "format": "date" },
+    "extraction_model": { "type": "string", "minLength": 1 },
+    "audit_model": { "type": ["string", "null"] },
+    "genes_covered": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/gene" }
+    },
+    "diseases_covered": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/disease" }
+    },
+    "census_entries": { "type": "integer", "minimum": 0 },
+    "cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "card_id",
+          "locator",
+          "interpretation",
+          "genes",
+          "diseases",
+          "category",
+          "evidence_tier"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "card_id": { "type": "string", "minLength": 1 },
+          "locator": { "type": "string", "minLength": 1 },
+          "interpretation": { "type": "string", "minLength": 1 },
+          "genes": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/gene" }
+          },
+          "diseases": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/disease" }
+          },
+          "category": {
+            "enum": [
+              "diagnosis",
+              "prognosis",
+              "treatment",
+              "biomarker",
+              "germline"
+            ]
+          },
+          "evidence_tier": {
+            "enum": [
+              "guideline criterion",
+              "multivariable-adjusted",
+              "univariable or descriptive",
+              "restated secondary"
+            ]
+          },
+          "escalates_to": {
+            "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/disease" }]
+          },
+          "secondary_citation": {
+            "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
+    "citation": {
+      "type": "object",
+      "required": ["display"],
+      "additionalProperties": false,
+      "properties": {
+        "authors": { "type": "array", "items": { "type": "string" } },
+        "title": { "type": "string" },
+        "journal": { "type": "string" },
+        "year": { "type": "integer", "minimum": 1950, "maximum": 2100 },
+        "volume": { "type": "string" },
+        "issue": { "type": "string" },
+        "pages": { "type": "string" },
+        "display": { "type": "string", "minLength": 1 },
+        "citation_incomplete": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "disease": {
+      "enum": [
+        "CHIP",
+        "CCUS",
+        "MDS",
+        "MDS/AML",
+        "AML",
+        "APL",
+        "MDS/MPN-U",
+        "CMML",
+        "aCML",
+        "MDS/MPN-SF3B1-T",
+        "JMML",
+        "MPN-U",
+        "PV",
+        "ET",
+        "PMF",
+        "post-PV/post-ET MF",
+        "CML",
+        "CNL",
+        "CEL",
+        "mastocytosis",
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+        "BPDCN",
+        "germline predisposition syndrome",
+        "myeloid neoplasm, unspecified",
+        "lymphoid neoplasm"
+      ]
+    }
+  }
+}

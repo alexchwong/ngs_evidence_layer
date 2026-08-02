@@ -1,0 +1,18 @@
+{
+  "schema_version": "2.0",
+  "publication_key": "fixture-2022-second-fixture-journal-2-1",
+  "extraction_date": "2026-01-01",
+  "extraction_model": "fixture-carding-model",
+  "quotes": [
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-dx-001",
+      "locator": "Section 1 - Entity definition",
+      "quote": "GENEA mutation defines Fixture Entity One at any blast count. No blast threshold applies under this classifier."
+    },
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-mrd-002",
+      "locator": "Section 3 - Follow-up marker",
+      "quote": "The GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay."
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+1. Do not modify more than one file at a time.
+2. When running this repository, create and activate the virtual environment at `.env`, and install all dependencies inside it.

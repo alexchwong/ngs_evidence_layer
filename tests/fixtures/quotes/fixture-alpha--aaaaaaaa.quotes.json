@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "publication_key": "fixture-2020-fixture-journal-1-1",
+  "extraction_date": "2026-01-01",
+  "extraction_model": "fixture-carding-model",
+  "quotes": [
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-dx-001",
+      "locator": "Section 1 - Entity definition",
+      "quote": "GENEA mutation defines Fixture Entity One when the blast count is at least 20 per cent; a blast count of 10 to 19 per cent is assigned to Fixture Entity Two. The criterion is defeated where a fixture-defining fusion is present."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-dx-002",
+      "locator": "Section 1 - Entity definition",
+      "quote": "GENEB mutation refines an existing category but does not move it."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-px-003",
+      "locator": "Section 2 - Prognostic table",
+      "quote": "GENEA | favourable in the fixture cohort | multivariable-adjusted for age and blast count"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-004",
+      "locator": "Section 2 - Prognostic table",
+      "quote": "GENEC | no independent effect after adjustment | multivariable-adjusted"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-005",
+      "locator": "Section 2 - Prognostic table",
+      "quote": "GENEC was reported as adverse in an earlier fixture series on univariable analysis only."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-mrd-006",
+      "locator": "Section 3 - Follow-up marker",
+      "quote": "The GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-mrd-007",
+      "locator": "Section 3 - Follow-up marker",
+      "quote": "GENEB is not validated as a stand-alone follow-up marker in this fixture setting."
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-gened-gl-008",
+      "locator": "Section 4 - Predisposition",
+      "quote": "A near-heterozygous loss-of-function GENED variant with a lower-burden second event is the characteristic fixture predisposition architecture, and warrants confirmation on a non-haematopoietic specimen."
+    }
+  ]
+}
