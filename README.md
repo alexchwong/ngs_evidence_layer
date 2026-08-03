@@ -27,6 +27,13 @@ state. Papers are independent and may be in flight concurrently.
 # Convert queued PDFs to deterministic Markdown and resolve citations.
 python scripts/parse_pdfs.py --corpus <name> --mailto <email>
 
+# Repair unresolved citations by supplying DOI candidates that are re-resolved
+# through Crossref, or by applying a validated manual citation worksheet.
+python scripts/citations.py request --corpus <name>
+python scripts/citations.py apply --corpus <name> --response <file>
+python scripts/citations.py manual-export --corpus <name>
+python scripts/citations.py manual-apply --corpus <name> --csv <file>
+
 # Create work/<publication-key>/paper.md and metadata.json.
 python scripts/fanout.py --corpus <name>
 
@@ -62,6 +69,20 @@ pdf → parse/index → input → fanout → work → model phases → confirm �
 The private runtime directories remain ignored by Git. Their tracked `.gitkeep` files
 have no runtime meaning; they only ensure that a fresh clone contains the required
 empty directory structure.
+
+The content-derived `paper_id` provides stable internal identity from PDF checksum.
+Once a citation is resolved, the human-readable `publication_key` identifies the work
+folder and prefixes its card IDs. Fan-out recomputes the key and rejects index or
+folder collisions before model work begins.
+
+Each model phase has a strict, mutually exclusive output contract. Phase 1 alone
+writes the census and assigns `publication_type` with a source-supported basis. Phase
+2 either critiques a materially deficient census or writes the next complete
+provisional package; it must preserve every source qualifier and maintain exactly one
+quote per card. Phase 3 independently audits publication type and every card/quote
+pair, then either writes the exact final package or a structured review with bounded
+reviewer suggestions for the next Phase 2 round. Mandatory pre-output gates prevent a
+phase from overwriting its inputs or returning another phase's artefact.
 
 `confirm` is the last source-aware gate: it verifies every quote against `paper.md`
 and proves that `paper.final.json` is the exact provisional round independently
@@ -118,7 +139,8 @@ python scripts/render.py --bundle bundle.json --output block.md
 Diagnosis retrieval is gene-based and returns all matching diagnosis cards without a
 disease filter. The adjudicator may compose multiple supplied patient facts against a
 card's source-stated criteria, but may not add criteria or facts from model knowledge.
-Missing required facts are `unknown` and fail closed as `indeterminate`.
+Missing required facts are `unknown` and fail closed as `indeterminate`. A card's
+legacy `escalates_to` value remains provenance and is not a runtime decision gate.
 
 The validated adjudication distinguishes the source-supported specific
 `diagnostic_label` from the closed-vocabulary `refined_disease`. The latter is the
