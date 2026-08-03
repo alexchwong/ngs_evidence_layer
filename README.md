@@ -27,14 +27,14 @@ state. Papers are independent and may be in flight concurrently.
 # Convert queued PDFs to deterministic Markdown and resolve citations.
 python scripts/parse_pdfs.py --corpus <name> --mailto <email>
 
-# Create work/<paper-id>/paper.md and metadata.json.
+# Create work/<publication-key>/paper.md and metadata.json.
 python scripts/fanout.py --corpus <name>
 
 # Run Phases 1–3 in fresh model sessions using prompts/phaseN_prompt.md,
 # saving outputs directly in each paper's work folder.
 
 # Deterministically accept one fully audited paper.
-python scripts/confirm.py --id <paper-id>
+python scripts/confirm.py --key <publication-key>
 
 # Build release artefacts from accept/ only.
 python scripts/incorporate.py
@@ -53,7 +53,7 @@ pdf → parse/index → input → fanout → work → model phases → confirm �
 | `pdf/` | Private incoming queue. Place source publications under `pdf/<corpus>/` before parsing. |
 | `pdf/archive/` | Private storage for source PDFs moved after successful parsing. This leaves each incoming corpus folder containing only pending work. |
 | `input/` | Private parsed corpus state under `input/<corpus>/`, including evidence Markdown, publication indexes, and citation-repair files. Model phases use the Markdown, not the original PDF. |
-| `work/` | Private per-publication work in progress under `work/<paper-id>/`, including source Markdown, metadata, census, provisional packages, and independent audit files. |
+| `work/` | Private per-publication work in progress under `work/<publication-key>/`, including source Markdown, metadata, census, provisional packages, and independent audit files. The content-derived `paper_id` remains internal identity metadata. |
 | `accept/` | Private, deterministically accepted packages. This is the only input from which `incorporate.py` builds release artefacts. |
 | `archive/` | Private completed work folders retained with their source-aware model-phase files and audit trail after confirmation. |
 | `output/corpus/` | Committed release corpus and index artefacts: `nel.corpus.json` and `nel.index.json`. |

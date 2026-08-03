@@ -129,6 +129,33 @@ one passing verdict per card, plus a passing publication-type verdict. The filen
 round, package round, and approved round
 must agree.
 
+Use exactly this audit shape in the final package; replace placeholders and repeat
+the `results` item once for every card:
+
+```json
+{
+  "audit_date": "YYYY-MM-DD",
+  "audit_model": "<your model identity>",
+  "extraction_model_reviewed": "<provisional extraction_model>",
+  "approved_round": 1,
+  "publication_type_verdict": {
+    "verdict": "pass",
+    "reason": "<concise paper-based reason>"
+  },
+  "results": [
+    {
+      "card_id": "<exact provisional card ID>",
+      "verdict": "pass"
+    }
+  ]
+}
+```
+
+Do not copy review-envelope fields into a final audit. In particular, a final audit
+must not contain `reviewer_model`, `result`, `cards_total`, `cards_failed`,
+`card_verdicts`, `package_value`, `auditor_value`, or `basis`. Use `audit_model`,
+`results`, and publication verdict `reason` exactly as shown.
+
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

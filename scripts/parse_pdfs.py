@@ -115,9 +115,31 @@ def parser_version():
 
 
 def reparse_conflicts(paper_id, work_dir, accept_dir, archive_dir):
-    candidates = [work_dir / paper_id, archive_dir / paper_id,
-                  accept_dir / f"{paper_id}.final.json", accept_dir / f"{paper_id}.census.json"]
-    return [path for path in candidates if path.exists()]
+    conflicts = []
+    for root in (work_dir, archive_dir):
+        if not root.is_dir():
+            continue
+        for metadata_path in root.glob("*/metadata.json"):
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if metadata.get("paper_id") == paper_id:
+                conflicts.append(metadata_path.parent)
+    if accept_dir.is_dir():
+        for final_path in accept_dir.glob("*.final.json"):
+            try:
+                envelope = json.loads(final_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if (envelope.get("metadata") or {}).get("paper_id") == paper_id:
+                conflicts.append(final_path)
+                census_path = final_path.with_name(
+                    final_path.name.removesuffix(".final.json") + ".census.json"
+                )
+                if census_path.exists():
+                    conflicts.append(census_path)
+    return conflicts
 
 
 def parse_one(source, args, records):

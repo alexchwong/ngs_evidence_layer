@@ -131,6 +131,19 @@ For a first extraction write `paper.provisional-001.json`. After review NNN, wri
 the complete corrected package as the next round. The package filename round and
 its `round` field must agree. It is never a patch. Set `audit` to null.
 
+Use `metadata.publication_key` as the human-readable card namespace. Assign card IDs
+as `<publication_key>-C0001`, `<publication_key>-C0002`, and so on, and use each
+exact same ID in its paired quote. Never construct card IDs from `paper_id`; that
+content-derived UUID is used only to preserve paper identity across input artefacts.
+
+Treat the vocabulary's `umbrella` mapping as mandatory normalization. When a card
+contains a mapped specific disease, mechanically add every configured umbrella term
+to that same card even when the quote names only the specific entity. Disease
+provenance applies to the specific source-stated disease; the configured umbrella is
+an indexing tag and need not appear verbatim in the quote. Set `diseases_covered` to
+the exact unique union of all normalized card disease arrays, and set
+`genes_covered` to the exact unique union of all card gene arrays.
+
 ## Reporting rules
 
 # Agreed reporting rules for interpretative myeloid NGS summaries
@@ -482,8 +495,12 @@ Before writing, verify privately that:
    equals its `round`, and it contains `cards`, `quotes`, `genes_covered`,
    `diseases_covered`, and `census_entries`;
 5. every provisional card has exactly one paired quote and `audit` is exactly
-   `null`; and
-6. `paper.census.json` was used only as a read-only input.
+   `null`;
+6. every card ID begins with `metadata.publication_key` plus `-`, no card ID uses
+   `paper_id`, and paired card/quote IDs are identical;
+7. all configured disease umbrellas are present and `genes_covered` and
+   `diseases_covered` equal the exact unions represented by cards; and
+8. `paper.census.json` was used only as a read-only input.
 
 If any check fails, repair the output before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences around JSON, or more than one file.

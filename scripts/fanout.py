@@ -80,10 +80,10 @@ def fanout(args):
     if not index_path.is_file():
         raise ValueError(f"input corpus index not found: {index_path}")
     records = load_index(index_path)
-    if args.paper_id:
-        records = [record for record in records if record["id"] == args.paper_id]
+    if args.publication_key:
+        records = [record for record in records if record.get("publication_key") == args.publication_key]
         if not records:
-            raise ValueError(f"paper id not found: {args.paper_id}")
+            raise ValueError(f"publication key not found: {args.publication_key}")
 
     created_at = args.created_at or datetime.now(timezone.utc).isoformat()
     planned = []
@@ -114,21 +114,32 @@ def fanout(args):
     staging = Path(tempfile.mkdtemp(prefix=".fanout-", dir=args.work_dir))
     try:
         for record, source, metadata in planned:
-            destination = args.work_dir / record["id"]
+            key = metadata["publication_key"]
+            destination = args.work_dir / key
             if destination.exists():
-                skipped.append(record["id"])
+                existing_metadata_path = destination / "metadata.json"
+                if not existing_metadata_path.is_file():
+                    raise ValueError(f"existing work folder has no metadata: {destination}")
+                existing_metadata = validation.read_json(existing_metadata_path, "existing metadata")
+                if existing_metadata.get("paper_id") != record["id"]:
+                    raise ValueError(
+                        f"{key}: existing work folder belongs to paper_id "
+                        f"{existing_metadata.get('paper_id')}, not {record['id']}"
+                    )
+                skipped.append(key)
                 continue
-            staged = staging / record["id"]
+            staged = staging / key
             staged.mkdir()
             shutil.copyfile(source, staged / "paper.md")
             (staged / "metadata.json").write_text(
                 json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
             )
-        for record, _source, _metadata in planned:
-            staged = staging / record["id"]
+        for _record, _source, metadata in planned:
+            key = metadata["publication_key"]
+            staged = staging / key
             if staged.exists():
-                os.replace(staged, args.work_dir / record["id"])
-                created.append(record["id"])
+                os.replace(staged, args.work_dir / key)
+                created.append(key)
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     return created, skipped
@@ -137,7 +148,7 @@ def fanout(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", required=True)
-    parser.add_argument("--id", dest="paper_id")
+    parser.add_argument("--key", dest="publication_key")
     parser.add_argument("--input-dir", type=Path, default=Path("input"))
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
     parser.add_argument("--created-at", help=argparse.SUPPRESS)
@@ -147,10 +158,10 @@ def main():
     except (OSError, ValueError) as exc:
         sys.exit(f"FAN-OUT FAILED:\n{exc}")
     print(f"Created {len(created)} working folder(s); left {len(skipped)} existing folder(s) unchanged.")
-    for paper_id in created:
-        print(f"created: {args.work_dir / paper_id}")
-    for paper_id in skipped:
-        print(f"unchanged: {args.work_dir / paper_id}")
+    for publication_key in created:
+        print(f"created: {args.work_dir / publication_key}")
+    for publication_key in skipped:
+        print(f"unchanged: {args.work_dir / publication_key}")
 
 
 if __name__ == "__main__":

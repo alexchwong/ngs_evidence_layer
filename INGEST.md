@@ -27,22 +27,24 @@ and CSV indexes are written under `input/<corpus>/`. Exit 1 means at least one p
 needs citation repair or failed conversion. Repair citations with the request/apply
 or manual-export/manual-apply commands documented in `docs/INPUT.md`.
 
-The same PDF bytes always receive the same ID. Forced reparsing is blocked when that
-ID exists in `work/`, `accept/`, or `archive/` unless `--allow-reparse` is supplied.
+The same PDF bytes always receive the same internal `paper_id`. It is a deterministic
+UUID derived from the source SHA-256 and is used only to validate source identity.
+Forced reparsing is blocked when that identity exists in `work/`, `accept/`, or
+`archive/` unless `--allow-reparse` is supplied.
 
 ## 1. Fan out indexed papers
 
 ```bash
 python scripts/fanout.py --corpus <name>
 # or one paper
-python scripts/fanout.py --corpus <name> --id <paper-id>
+python scripts/fanout.py --corpus <name> --key <publication-key>
 ```
 
 The command preflights the complete selected set before writing, allocates stable
 publication keys, hashes the Markdown, and creates:
 
 ```text
-work/<paper-id>/
+work/<publication-key>/
   paper.md
   metadata.json
 ```
@@ -53,11 +55,11 @@ Existing folders are never changed.
 
 Start a fresh model session with exactly:
 
-- `work/<paper-id>/paper.md`
-- `work/<paper-id>/metadata.json`
+- `work/<publication-key>/paper.md`
+- `work/<publication-key>/metadata.json`
 - `prompts/phase1_prompt.md`
 
-Save its output as `work/<paper-id>/paper.census.json`. Phase 1 may overwrite that
+Save its output as `work/<publication-key>/paper.census.json`. Phase 1 may overwrite that
 file when correcting a Phase 2 census critique. Do not start Phase 2 in the same
 session.
 
@@ -118,7 +120,7 @@ Legacy reviews without `suggested_action` remain valid Phase 2 rework inputs.
 ## 5. Confirm one paper
 
 ```bash
-python scripts/confirm.py --id <paper-id>
+python scripts/confirm.py --key <publication-key>
 ```
 
 Confirmation checks schemas, IDs, vocabulary, umbrella tags, census reconciliation,
@@ -129,12 +131,15 @@ round. Failure changes nothing.
 Success writes:
 
 ```text
-accept/<paper-id>.final.json
-accept/<paper-id>.census.json
+accept/<publication-key>.final.json
+accept/<publication-key>.census.json
 ```
 
-and moves the complete history from `work/<paper-id>/` to
-`archive/<paper-id>/`. Archives are immutable in v0.1.2; reopening is not provided.
+and moves the complete history from `work/<publication-key>/` to
+`archive/<publication-key>/`. Archives are immutable in v0.1.2; reopening is not
+provided. The internal `paper_id` remains embedded in metadata, census, provisional,
+and final artefacts and must agree across them; users do not use it as a path or CLI
+locator.
 
 Manual acceptance is possible only by constructing the same accepted envelope and
 setting `acceptance_path` to `manual-or-unverified`. Incorporation cannot recheck
@@ -147,9 +152,9 @@ python scripts/incorporate.py
 ```
 
 The command reads `accept/` only. Invalid individual pairs are recorded under
-`rejected` and excluded while valid papers build. Duplicate publication keys retain
-the earliest `accepted_at`, with lexicographic paper ID as a tie-break; losers are
-reported and skipped. Duplicate card IDs remain fatal.
+`rejected` and excluded while valid papers build. Accepted filenames are keyed by
+`publication_key`, so a mismatched filename and embedded key is rejected. Duplicate
+card IDs remain fatal.
 
 Outputs:
 

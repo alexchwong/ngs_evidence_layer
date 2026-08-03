@@ -83,27 +83,27 @@ def build(args):
     for orphan in sorted(set(census_paths) - final_ids):
         rejected[orphan] = ["accepted census has no paired final package"]
     for final_path in final_paths:
-        paper_id = final_path.name.removesuffix(".final.json")
-        census_path = census_paths.get(paper_id)
+        publication_key = final_path.name.removesuffix(".final.json")
+        census_path = census_paths.get(publication_key)
         if census_path is None:
-            rejected[paper_id] = ["accepted final package has no paired census"]
+            rejected[publication_key] = ["accepted final package has no paired census"]
             continue
         try:
             normalize_accepted_at(final_path)
             envelope, census, warnings, report = load_pair(final_path, census_path)
         except (OSError, ValueError) as exc:
-            rejected[paper_id] = str(exc).splitlines()
+            rejected[publication_key] = str(exc).splitlines()
             continue
-        if envelope["metadata"]["paper_id"] != paper_id:
-            rejected[paper_id] = ["accepted filename does not match metadata paper_id"]
+        if envelope["metadata"]["publication_key"] != publication_key:
+            rejected[publication_key] = ["accepted filename does not match metadata publication_key"]
             continue
-        accepted.append((paper_id, envelope, census, warnings, report))
+        accepted.append((publication_key, envelope, census, warnings, report))
 
     key_groups = defaultdict(list)
     card_owners = {}
     global_errors = []
     for item in accepted:
-        _paper_id, envelope, _census, _warnings, _report = item
+        _publication_key, envelope, _census, _warnings, _report = item
         key = envelope["metadata"]["publication_key"]
         key_groups[key].append(item)
     selected = []
@@ -119,12 +119,12 @@ def build(args):
             loser_id = loser[0]
             rejected[loser_id] = [f"duplicate publication_key {key}: superseded by {winner_id}"]
             print(f"warning: duplicate publication_key {key}: {loser_id} superseded by {winner_id}", file=sys.stderr)
-    for paper_id, envelope, _census, _warnings, _report in selected:
+    for publication_key, envelope, _census, _warnings, _report in selected:
         for card in envelope["final"]["cards"]:
             card_id = card["card_id"]
             if card_id in card_owners:
-                global_errors.append(f"duplicate card_id {card_id}: {card_owners[card_id]} and {paper_id}")
-            card_owners[card_id] = paper_id
+                global_errors.append(f"duplicate card_id {card_id}: {card_owners[card_id]} and {publication_key}")
+            card_owners[card_id] = publication_key
     if global_errors:
         raise ValueError("\n".join(global_errors))
 
@@ -132,7 +132,7 @@ def build(args):
     by_escalation, by_tier, by_year, by_type = (defaultdict(list) for _ in range(4))
     publications, paper_index, card_index = [], {}, {}
     census_total = 0
-    for paper_id, envelope, census, warnings, report in selected:
+    for publication_key, envelope, census, warnings, report in selected:
         metadata, package = envelope["metadata"], envelope["final"]
         cards = sorted(package["cards"], key=lambda card: card["card_id"])
         document = {
@@ -151,7 +151,7 @@ def build(args):
             card_id = card["card_id"]
             card_ids.append(card_id)
             card_index[card_id] = {
-                "input_id": paper_id, "publication_key": metadata["publication_key"],
+                "input_id": metadata["paper_id"], "publication_key": metadata["publication_key"],
                 "genes": sorted(card["genes"]), "diseases": sorted(card["diseases"]),
                 "category": card["category"], "evidence_tier": card["evidence_tier"],
                 "escalates_to": card["escalates_to"],
@@ -165,13 +165,13 @@ def build(args):
         if year is not None: add(by_year, str(year), metadata["publication_key"])
         add(by_type, package["publication_type"], metadata["publication_key"])
         source = {
-            "input_id": paper_id, "source_filename": metadata["source_filename"],
+            "input_id": metadata["paper_id"], "source_filename": metadata["source_filename"],
             "source_sha256": metadata["source_sha256"], "markdown_sha256": metadata["markdown_sha256"],
             "acceptance_path": envelope["acceptance_path"],
             "audit": package["audit"], "extraction": report, "warnings": warnings,
         }
         publications.append({"source": source, "document": document})
-        paper_index[paper_id] = {
+        paper_index[publication_key] = {
             "status": "completed", "publication_key": metadata["publication_key"],
             "citation_display": metadata["citation"]["display"], "genes": sorted(package["genes_covered"]),
             "diseases": sorted(package["diseases_covered"]), "card_ids": card_ids,

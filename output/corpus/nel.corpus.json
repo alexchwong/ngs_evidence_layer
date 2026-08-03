@@ -1,0 +1,1244 @@
+{
+  "corpus_version": "1.1",
+  "counts": {
+    "cards": 21,
+    "census_entries": 82,
+    "completed_papers": 1,
+    "rejected_papers": 0
+  },
+  "generated_at": "2026-08-03T02:11:48.031633+00:00",
+  "publications": [
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0001",
+            "category": "diagnosis",
+            "diseases": [
+              "CML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BCR",
+              "ABL1"
+            ],
+            "interpretation": "CML is defined by BCR::ABL1 resulting from t(9;22)(q34;q11).",
+            "locator": "Myeloproliferative neoplasms—CML definition",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0002",
+            "category": "diagnosis",
+            "diseases": [
+              "PV",
+              "MPN-U"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For PV, JAK2 p.V617F or an exon 12 mutation is part of the major diagnostic criteria together with elevated haemoglobin/haematocrit and panmyelosis with pleomorphic mature megakaryocytes.",
+            "locator": "Myeloproliferative neoplasms—PV major diagnostic criteria",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0003",
+            "category": "prognosis",
+            "diseases": [
+              "PMF",
+              "MPN-U"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "EZH2",
+              "IDH1",
+              "IDH2",
+              "SRSF2",
+              "U2AF1",
+              "ASXL1"
+            ],
+            "interpretation": "In PMF, EZH2, IDH1, IDH2, SRSF2, U2AF1 and ASXL1 mutations are associated with poorer prognostic risk.",
+            "locator": "Myeloproliferative neoplasms—poor-risk mutations in PMF",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0004",
+            "category": "biomarker",
+            "diseases": [
+              "CNL",
+              "MPN-U"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CSF3R"
+            ],
+            "interpretation": "CNL is described as a BCR::ABL1-negative MPN with sustained peripheral blood neutrophilia (WBC ≥25 × 10^9/L, including ≥80% segmented neutrophils and bands), marrow hypercellularity from neutrophilic proliferation, and hepatosplenomegaly; CSF3R mutations are common and detected in more than 60% of cases.",
+            "locator": "Myeloproliferative neoplasms—chronic neutrophilic leukaemia",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0005",
+            "category": "diagnosis",
+            "diseases": [
+              "JMML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "KMT2A"
+            ],
+            "interpretation": "JMML diagnosis combines clinical, laboratory and molecular criteria; KMT2A rearrangements are excluded and molecular studies demonstrating RAS-pathway activation are emphasized.",
+            "locator": "Myeloproliferative neoplasms—JMML diagnostic update",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0006",
+            "category": "prognosis",
+            "diseases": [
+              "JMML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "PTPN11",
+              "NF1",
+              "CBL"
+            ],
+            "interpretation": "In JMML, somatic PTPN11-initiated cases and cases associated with germline NF1 pathogenic variants are described as the most aggressive, whereas some germline CBL-associated cases may undergo spontaneous remission.",
+            "locator": "Myeloproliferative neoplasms—JMML genotype and risk",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0008",
+            "category": "diagnosis",
+            "diseases": [
+              "mastocytosis"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "KIT"
+            ],
+            "interpretation": "Any KIT mutation causing ligand-independent activation is accepted as a minor diagnostic criterion for systemic mastocytosis.",
+            "locator": "Mastocytosis—systemic mastocytosis diagnostic criteria",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0009",
+            "category": "diagnosis",
+            "diseases": [
+              "MDS"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SF3B1",
+              "TP53"
+            ],
+            "interpretation": "WHO-5 groups MDS with low blasts and SF3B1 mutation and MDS with biallelic TP53 inactivation among genetically defined MDS types; MDS-biTP53 takes diagnostic precedence over MDS-5q and MDS-SF3B1.",
+            "locator": "Myelodysplastic neoplasms—genetically defined types",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0010",
+            "category": "biomarker",
+            "diseases": [
+              "MDS"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Biallelic TP53 status may consist of multiple TP53 mutations or a TP53 mutation with deletion of the other allele; after a constitutional TP53 variant has been ruled out, VAF at least 50% is only presumptive, not definitive, evidence of loss of the trans allele or copy-neutral LOH.",
+            "locator": "Myelodysplastic neoplasms—biallelic TP53 detection",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0011",
+            "category": "diagnosis",
+            "diseases": [
+              "AML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SRSF2",
+              "SF3B1",
+              "U2AF1",
+              "ZRSR2",
+              "ASXL1",
+              "EZH2",
+              "BCOR",
+              "STAG2"
+            ],
+            "interpretation": "AML-MR requires at least 20% blasts with a myeloid immunophenotype plus a qualifying MDS-related cytogenetic abnormality, one of eight defining mutations, or prior MDS/MDS-MPN; morphology alone no longer establishes AML-MR.",
+            "locator": "Acute myeloid leukaemia—AML-MR mutation-based definition",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0012",
+            "category": "diagnosis",
+            "diseases": [
+              "AML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "AML with NPM1 mutation may be diagnosed irrespective of blast count, with clinicopathologic correlation.",
+            "locator": "Acute myeloid leukaemia—NPM1-mutated AML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0013",
+            "category": "diagnosis",
+            "diseases": [
+              "AML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "AML with CEBPA mutation includes biallelic CEBPA mutations and single mutations in the bZIP region.",
+            "locator": "Acute myeloid leukaemia—CEBPA-mutated AML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0014",
+            "category": "prognosis",
+            "diseases": [
+              "AML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "Single bZIP-region CEBPA-mutated AML is associated with favourable prognosis in children and adults up to age 70.",
+            "locator": "Acute myeloid leukaemia—CEBPA prognosis",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0015",
+            "category": "diagnosis",
+            "diseases": [
+              "AML"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1"
+            ],
+            "interpretation": "RUNX1 mutation is not sufficiently specific to define a standalone AML type because it overlaps with a broad range of defining molecular features.",
+            "locator": "Acute myeloid leukaemia—RUNX1 classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0016",
+            "category": "diagnosis",
+            "diseases": [
+              "myeloid neoplasm, unspecified"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "PARP1"
+            ],
+            "interpretation": "Exposure to PARP1 inhibitors is a qualifying exposure for a myeloid neoplasm post cytotoxic therapy; the underlying myeloid neoplasm must still meet its own diagnostic criteria.",
+            "locator": "Secondary myeloid neoplasms—post cytotoxic therapy",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0017",
+            "category": "prognosis",
+            "diseases": [
+              "AML",
+              "MDS"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In AML or MDS post cytotoxic therapy, outcomes are generally worse with biallelic or multi-hit TP53 alterations, defined here as at least two TP53 mutations or a TP53 mutation with 17p/TP53 deletion or copy-neutral LOH.",
+            "locator": "Secondary myeloid neoplasms—TP53 prognosis after cytotoxic therapy",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0018",
+            "category": "germline",
+            "diseases": [
+              "AML",
+              "MDS"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "PPM1D"
+            ],
+            "interpretation": "PPM1D and other DNA-damage-response gene mutations are less frequent in post-cytotoxic AML/MDS and may require additional germline-predisposition work-up; the mutation itself does not establish germline status.",
+            "locator": "Secondary myeloid neoplasms—PPM1D and germline work-up",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0019",
+            "category": "diagnosis",
+            "diseases": [
+              "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "PDGFRA",
+              "PDGFRB",
+              "FGFR1",
+              "JAK2",
+              "FLT3",
+              "ETV6",
+              "ABL1"
+            ],
+            "interpretation": "MLN-TK may be defined by PDGFRA, PDGFRB, FGFR1, JAK2 or FLT3 rearrangements or ETV6::ABL1; the source specifies common fusion contexts and notes that eosinophilia or phenotype can vary.",
+            "locator": "MLN-TK—defining kinase abnormalities",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0020",
+            "category": "biomarker",
+            "diseases": [
+              "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "FIP1L1",
+              "PDGFRA"
+            ],
+            "interpretation": "Most PDGFRA-rearranged MLN-TK cases have a cytogenetically cryptic 4q12 deletion producing FIP1L1::PDGFRA, making targeted fusion detection clinically relevant.",
+            "locator": "MLN-TK—FIP1L1::PDGFRA detection",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0021",
+            "category": "treatment",
+            "diseases": [
+              "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "PDGFRA",
+              "PDGFRB"
+            ],
+            "interpretation": "MLN-TK with PDGFRA or PDGFRB rearrangements is highly treatment-relevant because its natural history has been dramatically altered by TKI therapy, particularly imatinib.",
+            "locator": "MLN-TK—PDGFRA/PDGFRB treatment sensitivity",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "khoury-2022-leukemia-36-1703-C0022",
+            "category": "treatment",
+            "diseases": [
+              "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+            ],
+            "escalates_to": null,
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "FGFR1",
+              "JAK2",
+              "FLT3",
+              "ETV6",
+              "ABL1"
+            ],
+            "interpretation": "MLN-TK with FGFR1, JAK2 or FLT3 fusions, or ETV6::ABL1, has more variable sensitivity to available newer-generation TKIs; the source states that long-term disease-free survival may often require allogeneic transplantation.",
+            "locator": "MLN-TK—variable TKI sensitivity",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 82,
+        "citation": {
+          "authors": [
+            "Khoury JD",
+            "Solary E",
+            "Abla O",
+            "Akkari Y",
+            "Alaggio R",
+            "Apperley JF",
+            "Bejar R",
+            "Berti E",
+            "Busque L",
+            "Chan JKC",
+            "Chen W",
+            "Chen X",
+            "Chng W",
+            "Choi JK",
+            "Colmenero I",
+            "Coupland SE",
+            "Cross NCP",
+            "De Jong D",
+            "Elghetany MT",
+            "Takahashi E",
+            "Emile J",
+            "Ferry J",
+            "Fogelstrand L",
+            "Fontenay M",
+            "Germing U",
+            "Gujral S",
+            "Haferlach T",
+            "Harrison C",
+            "Hodge JC",
+            "Hu S",
+            "Jansen JH",
+            "Kanagal-Shamanna R",
+            "Kantarjian HM",
+            "Kratz CP",
+            "Li X",
+            "Lim MS",
+            "Loeb K",
+            "Loghavi S",
+            "Marcogliese A",
+            "Meshinchi S",
+            "Michaels P",
+            "Naresh KN",
+            "Natkunam Y",
+            "Nejati R",
+            "Ott G",
+            "Padron E",
+            "Patel KP",
+            "Patkar N",
+            "Picarsic J",
+            "Platzbecker U",
+            "Roberts I",
+            "Schuh A",
+            "Sewell W",
+            "Siebert R",
+            "Tembhare P",
+            "Tyner J",
+            "Verstovsek S",
+            "Wang W",
+            "Wood B",
+            "Xiao W",
+            "Yeung C",
+            "Hochhaus A"
+          ],
+          "citation_incomplete": [],
+          "display": "Khoury JD, Solary E, Abla O, Akkari Y, Alaggio R, Apperley JF, et al. The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms. Leukemia. 2022;36(7):1703-1719.",
+          "doi": "10.1038/s41375-022-01613-1",
+          "issue": "7",
+          "journal": "Leukemia",
+          "pages": "1703-1719",
+          "title": "The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms",
+          "volume": "36",
+          "year": 2022
+        },
+        "diseases_covered": [
+          "AML",
+          "CML",
+          "CNL",
+          "JMML",
+          "MDS",
+          "MPN-U",
+          "PMF",
+          "PV",
+          "mastocytosis",
+          "myeloid neoplasm, unspecified",
+          "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+        ],
+        "extraction_date": "2026-08-03",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "ABL1",
+          "ASXL1",
+          "BCOR",
+          "BCR",
+          "CBL",
+          "CEBPA",
+          "CSF3R",
+          "ETV6",
+          "EZH2",
+          "FGFR1",
+          "FIP1L1",
+          "FLT3",
+          "IDH1",
+          "IDH2",
+          "JAK2",
+          "KIT",
+          "KMT2A",
+          "NF1",
+          "NPM1",
+          "PARP1",
+          "PDGFRA",
+          "PDGFRB",
+          "PPM1D",
+          "PTPN11",
+          "RUNX1",
+          "SF3B1",
+          "SRSF2",
+          "STAG2",
+          "TP53",
+          "U2AF1",
+          "ZRSR2"
+        ],
+        "publication_key": "khoury-2022-leukemia-36-1703",
+        "publication_type": "narrative review"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 3,
+          "audit_date": "2026-08-03",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Front matter carries the banner REVIEW ARTICLE OPEN and the abstract states the paper summarizes the new WHO classification scheme and the rationale for changes; the body proceeds as narrative sections by disease family with no search protocol, eligibility criteria, or original patient cohort.",
+            "verdict": "pass"
+          },
+          "results": [
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0017",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0018",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0019",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0020",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0021",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "khoury-2022-leukemia-36-1703-C0022",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 21,
+          "census_entries": 82,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "biomarker",
+              "gene": "ABL1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "ABL1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "AFDN"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "AFDN"
+            },
+            {
+              "category": "prognosis",
+              "gene": "AFDN"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ALK"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ALK"
+            },
+            {
+              "category": "treatment",
+              "gene": "ALK"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ANKRD26"
+            },
+            {
+              "category": "germline",
+              "gene": "ANKRD26"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ARAF"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ARAF"
+            },
+            {
+              "category": "treatment",
+              "gene": "ARAF"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ASXL1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "BCL11B"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "BCL11B"
+            },
+            {
+              "category": "prognosis",
+              "gene": "BCOR"
+            },
+            {
+              "category": "biomarker",
+              "gene": "BCR"
+            },
+            {
+              "category": "treatment",
+              "gene": "BCR"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "BLM"
+            },
+            {
+              "category": "germline",
+              "gene": "BLM"
+            },
+            {
+              "category": "biomarker",
+              "gene": "BRAF"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "BRAF"
+            },
+            {
+              "category": "treatment",
+              "gene": "BRAF"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CALR"
+            },
+            {
+              "category": "prognosis",
+              "gene": "CALR"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CBFA2T3"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CBFA2T3"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CBFB"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CBFB"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CBL"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CBL"
+            },
+            {
+              "category": "germline",
+              "gene": "CBL"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CEBPA"
+            },
+            {
+              "category": "germline",
+              "gene": "CEBPA"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CREBBP"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CSF3R"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "DDX41"
+            },
+            {
+              "category": "germline",
+              "gene": "DDX41"
+            },
+            {
+              "category": "biomarker",
+              "gene": "DEK"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "DEK"
+            },
+            {
+              "category": "biomarker",
+              "gene": "DNMT3A"
+            },
+            {
+              "category": "prognosis",
+              "gene": "DNMT3A"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ELL"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ELL"
+            },
+            {
+              "category": "prognosis",
+              "gene": "ELL"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "EP300"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ETV6"
+            },
+            {
+              "category": "germline",
+              "gene": "ETV6"
+            },
+            {
+              "category": "biomarker",
+              "gene": "EZH2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "FGFR1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "FGFR1OP"
+            },
+            {
+              "category": "treatment",
+              "gene": "FGFR1OP"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "FGFR2"
+            },
+            {
+              "category": "treatment",
+              "gene": "FGFR2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "FIP1L1"
+            },
+            {
+              "category": "treatment",
+              "gene": "FIP1L1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "FLT3"
+            },
+            {
+              "category": "biomarker",
+              "gene": "GATA1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "GATA1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "GATA2"
+            },
+            {
+              "category": "germline",
+              "gene": "GATA2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "GLIS2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "GLIS2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "IDH1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "IDH2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "JAK2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "JAK2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KIF5B"
+            },
+            {
+              "category": "treatment",
+              "gene": "KIF5B"
+            },
+            {
+              "category": "biomarker",
+              "gene": "KIT"
+            },
+            {
+              "category": "prognosis",
+              "gene": "KIT"
+            },
+            {
+              "category": "biomarker",
+              "gene": "KMT2A"
+            },
+            {
+              "category": "biomarker",
+              "gene": "KRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KRAS"
+            },
+            {
+              "category": "germline",
+              "gene": "KRAS"
+            },
+            {
+              "category": "prognosis",
+              "gene": "KRAS"
+            },
+            {
+              "category": "treatment",
+              "gene": "KRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "LYN"
+            },
+            {
+              "category": "treatment",
+              "gene": "LYN"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MAP2K1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MAP2K1"
+            },
+            {
+              "category": "treatment",
+              "gene": "MAP2K1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MECOM"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MECOM"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MLLT10"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MLLT10"
+            },
+            {
+              "category": "prognosis",
+              "gene": "MLLT10"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MLLT3"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MLLT3"
+            },
+            {
+              "category": "prognosis",
+              "gene": "MLLT3"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MPL"
+            },
+            {
+              "category": "prognosis",
+              "gene": "MPL"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MRTFA"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MRTFA"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MYH11"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MYH11"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NF1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NF1"
+            },
+            {
+              "category": "germline",
+              "gene": "NF1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NPM1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "NPM1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NRAS"
+            },
+            {
+              "category": "germline",
+              "gene": "NRAS"
+            },
+            {
+              "category": "prognosis",
+              "gene": "NRAS"
+            },
+            {
+              "category": "treatment",
+              "gene": "NRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NTRK3"
+            },
+            {
+              "category": "treatment",
+              "gene": "NTRK3"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NUP214"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NUP214"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NUP98"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NUP98"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PCM1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PDGFRB"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PHF6"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PICALM"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PICALM"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PML"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PML"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PPM1D"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "germline",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RANBP2"
+            },
+            {
+              "category": "treatment",
+              "gene": "RANBP2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "RARA"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RARA"
+            },
+            {
+              "category": "biomarker",
+              "gene": "RBM15"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RBM15"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RET"
+            },
+            {
+              "category": "treatment",
+              "gene": "RET"
+            },
+            {
+              "category": "biomarker",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "germline",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "RUNX1T1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RUNX1T1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SAMD9"
+            },
+            {
+              "category": "germline",
+              "gene": "SAMD9"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SAMD9L"
+            },
+            {
+              "category": "germline",
+              "gene": "SAMD9L"
+            },
+            {
+              "category": "biomarker",
+              "gene": "SF3B1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "SF3B1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "STAG2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "STAG2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TAF15"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TCF3"
+            },
+            {
+              "category": "biomarker",
+              "gene": "TET2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "TET2"
+            },
+            {
+              "category": "germline",
+              "gene": "TP53"
+            },
+            {
+              "category": "biomarker",
+              "gene": "U2AF1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "UBA1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "UBA1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ZNF384"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ZNF384"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ZRSR2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "ZRSR2"
+            }
+          ],
+          "ratio": 0.26
+        },
+        "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+        "markdown_sha256": "8e6a983fffa4327283991c0c10566d82c3888fe9ee756d2456d10808870012ab",
+        "source_filename": "R1-01_Khoury_2022_WHO5_myeloid_classification.pdf",
+        "source_sha256": "1f3a650ff233058c5e4afd6e809a67838af15394ffefc34c5cb62b8fc64c60f1",
+        "warnings": [
+          "khoury-2022-leukemia-36-1703-C0006: quote is identical to khoury-2022-leukemia-36-1703-C0005; review independent utility",
+          "khoury-2022-leukemia-36-1703-C0013: quote is identical to khoury-2022-leukemia-36-1703-C0012; review independent utility",
+          "khoury-2022-leukemia-36-1703-C0014: quote is identical to khoury-2022-leukemia-36-1703-C0013; review independent utility",
+          "khoury-2022-leukemia-36-1703-C0015: quote is identical to khoury-2022-leukemia-36-1703-C0014; review independent utility",
+          "khoury-2022-leukemia-36-1703-C0018: quote is identical to khoury-2022-leukemia-36-1703-C0017; review independent utility",
+          "khoury-2022-leukemia-36-1703-C0020: quote is identical to khoury-2022-leukemia-36-1703-C0019; review independent utility",
+          "khoury-2022-leukemia-36-1703-C0022: quote is identical to khoury-2022-leukemia-36-1703-C0021; review independent utility"
+        ]
+      }
+    }
+  ],
+  "schema_version": "3.0"
+}

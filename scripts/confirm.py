@@ -13,7 +13,7 @@ import package_validation as validation
 
 
 def confirm(args):
-    working = args.work_dir / args.paper_id
+    working = args.work_dir / args.publication_key
     if not working.is_dir():
         raise ValueError(f"working folder not found: {working}")
     paths = {
@@ -31,8 +31,8 @@ def confirm(args):
     final = validation.read_json(paths["final"], "final package")
     errors = validation.validate_metadata(metadata)
     errors.extend(validation.validate_census(census, metadata))
-    if metadata.get("paper_id") != args.paper_id:
-        errors.append("metadata paper_id does not match --id")
+    if metadata.get("publication_key") != args.publication_key:
+        errors.append("metadata publication_key does not match --key")
     approved_round = (final.get("audit") or {}).get("approved_round")
     provisional_path = working / f"paper.provisional-{approved_round:03d}.json" if isinstance(approved_round, int) else None
     provisional = None
@@ -52,16 +52,16 @@ def confirm(args):
     if errors:
         raise ValueError("\n".join(errors))
 
-    final_destination = args.accept_dir / f"{args.paper_id}.final.json"
-    census_destination = args.accept_dir / f"{args.paper_id}.census.json"
-    archive_destination = args.archive_dir / args.paper_id
+    final_destination = args.accept_dir / f"{args.publication_key}.final.json"
+    census_destination = args.accept_dir / f"{args.publication_key}.census.json"
+    archive_destination = args.archive_dir / args.publication_key
     collisions = [path for path in (final_destination, census_destination, archive_destination) if path.exists()]
     if collisions:
         raise ValueError("destination already exists:\n" + "\n".join(str(path) for path in collisions))
 
     args.accept_dir.mkdir(parents=True, exist_ok=True)
     args.archive_dir.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=f".{args.paper_id}.", dir=args.accept_dir))
+    staging = Path(tempfile.mkdtemp(prefix=f".{args.publication_key}.", dir=args.accept_dir))
     staged_final = staging / final_destination.name
     staged_census = staging / census_destination.name
     accepted = {
@@ -95,7 +95,7 @@ def confirm(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--id", dest="paper_id", required=True)
+    parser.add_argument("--key", dest="publication_key", required=True)
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
     parser.add_argument("--accept-dir", type=Path, default=Path("accept"))
     parser.add_argument("--archive-dir", type=Path, default=Path("archive"))
@@ -106,7 +106,7 @@ def main():
         sys.exit(f"CONFIRM FAILED:\n{exc}")
     for warning in warnings:
         print(f"warning: {warning}")
-    print(f"CONFIRMED: {args.paper_id}")
+    print(f"CONFIRMED: {args.publication_key}")
     print(f"Cards: {report['cards']}; census ratio: {report['ratio']}")
     print(f"Accepted: {args.accept_dir}")
     print(f"Archived: {archive}")

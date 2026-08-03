@@ -53,14 +53,14 @@ def write_accept(accept_dir, stem, mutate=None, accepted_at="2026-01-01T00:00:00
     metadata, census, package = fixture_package(stem)
     if mutate:
         mutate(metadata, census, package)
-    paper_id = metadata["paper_id"]
+    publication_key = metadata["publication_key"]
     envelope = {
         "schema_version": "1.1", "acceptance_path": "confirmed",
         "accepted_at": accepted_at, "accepted_at_source": "confirm",
         "metadata": metadata, "final": package,
     }
-    (accept_dir / f"{paper_id}.final.json").write_text(json.dumps(envelope), encoding="utf-8")
-    (accept_dir / f"{paper_id}.census.json").write_text(json.dumps(census), encoding="utf-8")
+    (accept_dir / f"{publication_key}.final.json").write_text(json.dumps(envelope), encoding="utf-8")
+    (accept_dir / f"{publication_key}.census.json").write_text(json.dumps(census), encoding="utf-8")
 
 
 def build_fixture_corpus(root):
@@ -190,44 +190,32 @@ class IncorporationTests(unittest.TestCase):
             ], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(read(root / "corpus" / "nel.corpus.json")["counts"]["completed_papers"], 1)
-            self.assertIn(IDS[BETA], read(root / "report.json")["rejected"])
+            beta_key = fixture_package(BETA)[0]["publication_key"]
+            self.assertIn(beta_key, read(root / "report.json")["rejected"])
 
-    def test_duplicate_publication_key_retains_earliest_acceptance(self):
+    def test_accepted_filename_must_match_publication_key(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, accept = Path(tmp), Path(tmp) / "accept"; accept.mkdir()
-            write_accept(accept, ALPHA, accepted_at="2026-01-02T00:00:00+00:00")
-            def duplicate(metadata, census, package):
-                alpha_metadata, alpha_census, _alpha_package = fixture_package(ALPHA)
-                metadata["publication_key"] = alpha_metadata["publication_key"]
-                census["publication_type"] = package["publication_type"]
-                census["publication_type_basis"] = package["publication_type_basis"]
-                for card in package["cards"]:
-                    card["card_id"] = card["card_id"].replace(
-                        "fixture-2022-second-fixture-journal-2-1", alpha_metadata["publication_key"]
-                    )
-                for quote in package["quotes"]:
-                    quote["card_id"] = quote["card_id"].replace(
-                        "fixture-2022-second-fixture-journal-2-1", alpha_metadata["publication_key"]
-                    )
-                for result in package["audit"]["results"]:
-                    result["card_id"] = result["card_id"].replace(
-                        "fixture-2022-second-fixture-journal-2-1", alpha_metadata["publication_key"]
-                    )
-            write_accept(accept, BETA, duplicate, accepted_at="2026-01-01T00:00:00+00:00")
+            write_accept(accept, ALPHA)
+            key = fixture_package(ALPHA)[0]["publication_key"]
+            (accept / f"{key}.final.json").rename(accept / "wrong-name.final.json")
+            (accept / f"{key}.census.json").rename(accept / "wrong-name.census.json")
             result = subprocess.run([
                 sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
                 "--output-dir", str(root / "corpus"), "--report", str(root / "report.json"),
             ], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             report = read(root / "report.json")
-            self.assertIn(IDS[ALPHA], report["rejected"])
-            self.assertEqual(read(root / "corpus" / "nel.corpus.json")["counts"]["completed_papers"], 1)
+            self.assertIn("wrong-name", report["rejected"])
+            self.assertIn("publication_key", report["rejected"]["wrong-name"][0])
+            self.assertEqual(read(root / "corpus" / "nel.corpus.json")["counts"]["completed_papers"], 0)
 
     def test_manual_missing_timestamp_is_persisted_once(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, accept = Path(tmp), Path(tmp) / "accept"; accept.mkdir()
             write_accept(accept, ALPHA)
-            path = accept / f"{IDS[ALPHA]}.final.json"
+            key = fixture_package(ALPHA)[0]["publication_key"]
+            path = accept / f"{key}.final.json"
             envelope = read(path)
             envelope.pop("accepted_at"); envelope.pop("accepted_at_source")
             envelope["schema_version"] = "1.0"
