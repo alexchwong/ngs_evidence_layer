@@ -201,7 +201,7 @@ def main():
     parser.add_argument("--allow-reparse", action="store_true")
     parser.add_argument("--keep-source", action="store_true")
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--mailto", default=os.environ.get("NEL_CROSSREF_MAILTO"))
+    parser.add_argument("--mailto", default=os.environ.get("NEL_CROSSREF_MAILTO", "noreply@example.org"))
     parser.add_argument("--pdf-dir", type=Path, default=Path("pdf"))
     parser.add_argument("--input-dir", type=Path, default=Path("input"))
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
