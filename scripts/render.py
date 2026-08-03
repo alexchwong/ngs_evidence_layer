@@ -164,7 +164,7 @@ def render_body(cards, bundle):
 
 def render_header(bundle):
     provenance = bundle.get("provenance", {})
-    escalation = bundle.get("escalation", {})
+    adjudication = bundle.get("diagnostic_adjudication", {})
     out = [
         "# Evidence block",
         "",
@@ -176,16 +176,37 @@ def render_header(bundle):
         ),
         "",
         f"Genes submitted: {', '.join(bundle.get('genes', [])) or 'none'}",
-        f"Provisional disease: {bundle.get('provisional_disease')}",
-        f"Refined disease: {bundle.get('refined_disease')}",
+        f"Provisional major diagnostic category: {bundle.get('provisional_disease')}",
+        (
+            "Downstream filter disease (adjudicated major category): "
+            f"{bundle.get('refined_disease')}"
+        ),
     ]
-    if escalation.get("applied"):
+    label = adjudication.get("diagnostic_label")
+    if label:
+        out.append(f"Source-supported diagnostic label: {label}")
+    status = adjudication.get("status")
+    driven_by = adjudication.get("driven_by") or []
+    if status == "criteria_met" and bundle.get("refined_disease") != bundle.get("provisional_disease"):
         out.append(
-            "Escalation applied on the assertion of: "
-            + ", ".join(escalation.get("driven_by", []))
+            "Diagnostic adjudication changed the downstream major category; driven by: "
+            + ", ".join(driven_by)
+        )
+    elif status == "criteria_met":
+        suffix = f" Driven by: {', '.join(driven_by)}." if driven_by else ""
+        out.append("Diagnostic adjudication: criteria met; major category unchanged." + suffix)
+    elif status == "indeterminate":
+        out.append(
+            "Diagnostic adjudication: indeterminate; downstream filtering preserves "
+            "the provisional major category."
+        )
+    elif status == "criteria_not_met":
+        out.append(
+            "Diagnostic adjudication: criteria not met; downstream filtering preserves "
+            "the provisional major category."
         )
     else:
-        out.append("Escalation: not applied; the provisional disease stands.")
+        out.append("Diagnostic adjudication metadata is absent.")
     out.append(
         f"Corpus {provenance.get('corpus_version')} "
         f"sha256 {str(provenance.get('corpus_sha256'))[:16]}..., "

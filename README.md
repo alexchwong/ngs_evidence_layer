@@ -80,28 +80,54 @@ and deterministic acceptance. See `INGEST.md` for the operator runbook and
 
 ## Retrieval
 
-Retrieval remains deterministic after the bounded model step that extracts a
-provisional disease and genes from the case:
+Case handling has two bounded model steps. Step 1 extracts a provisional major
+diagnostic category, NGS genes, and structured case facts with stable `fact_id`
+values. Step 3 adjudicates those facts against retrieved diagnosis cards under
+`prompts/diagnostic_adjudication_prompt.md`. All retrieval before, between, and after
+those decisions is deterministic.
+
+For example, `case-facts.json` may contain:
+
+```json
+{
+  "case_facts": [
+    {"fact_id": "F-SF3B1", "type": "variant", "gene": "SF3B1", "vaf_percent": 30},
+    {"fact_id": "F-RS", "type": "morphology", "ring_sideroblast_percent": 7}
+  ]
+}
+```
 
 ```bash
 python scripts/retrieve.py diagnosis \
-  --genes NPM1 SRSF2 DNMT3A \
-  --provisional-disease MDS \
+  --genes SF3B1 \
+  --provisional-disease "myeloid neoplasm, unspecified" \
+  --case-facts case-facts.json \
   --output step2.json
+
+# Run a fresh model session with step2.json and
+# prompts/diagnostic_adjudication_prompt.md, saving adjudication.json.
 
 python scripts/retrieve.py full \
   --diagnosis-result step2.json \
-  --refined-disease AML \
-  --driven-by <card-id> \
+  --adjudication-result adjudication.json \
   --output bundle.json
 
 python scripts/render.py --bundle bundle.json --output block.md
 ```
 
-Diagnosis retrieval is gene-based and returns a closed set of source-supported
-escalation candidates. Full retrieval applies disease filtering to prognosis,
-treatment, and biomarker evidence, while germline remains gene-only. Genes the
-corpus cannot address are named rather than answered from model memory.
+Diagnosis retrieval is gene-based and returns all matching diagnosis cards without a
+disease filter. The adjudicator may compose multiple supplied patient facts against a
+card's source-stated criteria, but may not add criteria or facts from model knowledge.
+Missing required facts are `unknown` and fail closed as `indeterminate`.
+
+The validated adjudication distinguishes the source-supported specific
+`diagnostic_label` from the closed-vocabulary `refined_disease`. The latter is the
+major category used mechanically by full retrieval to filter prognosis, treatment,
+and biomarker evidence; germline remains gene-only. Thus a label of `MDS-SF3B1` uses
+`refined_disease: "MDS"`, and MDS cards are called downstream. A changed major
+category is rejected unless every required criterion is met and cites both retrieved
+diagnosis cards and supplied case facts. Genes the corpus cannot address are named
+rather than answered from model memory.
 
 Quotes never enter retrieval or rendered output. Every rendered interpretation
 carries a card ID and deterministic citations back to its publication.

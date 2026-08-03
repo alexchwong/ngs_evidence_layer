@@ -58,21 +58,40 @@ citations.
 
 ## Retrieval
 
-Retrieval is deterministic after one bounded case-intake model emits only:
+Retrieval surrounds two bounded model steps with deterministic code. Case intake
+emits the provisional major category, NGS genes, and structured patient facts with
+stable IDs, for example:
 
 ```json
-{"provisional_disease": "MDS", "genes": ["NPM1", "SRSF2", "DNMT3A"]}
+{
+  "provisional_disease": "myeloid neoplasm, unspecified",
+  "genes": ["SF3B1"],
+  "case_facts": [
+    {"fact_id": "F-SF3B1", "type": "variant", "gene": "SF3B1", "vaf_percent": 30},
+    {"fact_id": "F-RS", "type": "morphology", "ring_sideroblast_percent": 7}
+  ]
+}
 ```
 
 Genes come strictly from the NGS result block. The provisional disease comes from
-the closed vocabulary and is not upgraded from model knowledge.
+the closed vocabulary and is not upgraded from model knowledge. Case facts must
+preserve the supplied values; absent information is not inferred.
 
 ### Diagnosis pass
 
 `scripts/retrieve.py diagnosis` retrieves every diagnosis card for submitted genes
-without a disease filter and returns the closed set of non-null source-supported
-`escalates_to` values. A refinement may choose only the provisional disease or one
-of those candidates, citing the driving card IDs.
+without a disease filter and carries the case facts into Step 3. The adjudication
+model uses `prompts/diagnostic_adjudication_prompt.md` to compare only those facts
+with the retrieved cards. It may compose complex source-stated criteria but may not
+supply a missing rule, threshold, exclusion, or patient fact from model knowledge.
+Legacy `escalates_to` values are provenance, not a runtime logic gate.
+
+The adjudication returns a source-supported `diagnostic_label` and a closed-vocabulary
+`refined_disease`. The latter is the major category that controls downstream card
+calling. For example, `MDS-SF3B1` is represented by `diagnostic_label: "MDS-SF3B1"`
+and `refined_disease: "MDS"`. Every required criterion must cite retrieved card IDs
+and supplied fact IDs; missing facts make the result `indeterminate` and preserve the
+provisional category.
 
 ### Full pass
 
@@ -82,6 +101,11 @@ of those candidates, citing the driving card IDs.
 - prognosis, treatment, biomarker: gene match and either refined-disease match or
   an empty disease array;
 - germline: gene match only.
+
+The script validates the adjudication and passes its exact
+`downstream_filter_disease`/`refined_disease` value to this filter. It rejects changed
+major categories with unknown or unmet required criteria, unretrieved card IDs, or
+unsupplied case-fact IDs.
 
 It also returns disease-filtered cards under `suppressed`, submitted genes with no
 card under `not_assessed`, and corpus/card provenance.
