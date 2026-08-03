@@ -38,13 +38,56 @@ matching provisional package. A malformed review stops the session.
 
 ## Working method
 
-Walk every census gene/category pair. Author comprehensive, independently useful
-cards with exactly one minimal verbatim quote each. Interpretations must state all
-source-specified population, disease, treatment, allelic/variant, analysis,
-classifier, threshold, branch, and exclusion qualifiers; explicitly state when a
-material qualifier is not specified. Negative facts remain first-class and cite
-their reporting-rule disposition. `escalates_to` is diagnosis-only and only for a
-source-stated change of major diagnostic category.
+Walk every census gene/category pair as a review obligation, not an output
+obligation. A census pair identifies where to inspect the paper; it does not require
+a card. Emit a card only when one substantive passage directly supports that gene,
+category, and interpretation. If no such passage exists, emit no card for the pair.
+Never manufacture category coverage merely to match the census.
+
+Work passage-first rather than gene-first:
+
+1. select one contiguous, substantive passage;
+2. identify only the role or roles that passage explicitly asserts;
+3. identify only the population and disease context governed by that passage;
+4. create at most one card for each independently useful, directly supported role;
+5. include only genes participating in that exact assertion.
+
+Do not union assertions, diseases, populations, or qualifiers across separate
+locators merely because they belong to the same census entry. A card's `locator`,
+interpretation, diseases, genes, category, and quote must describe the same local
+claim. Author comprehensive, independently useful cards with exactly one minimal
+verbatim quote each. Interpretations must state all source-specified population,
+disease, treatment, allelic/variant, analysis, classifier, threshold, branch, and
+exclusion qualifiers; explicitly state when a material qualifier is not specified.
+Negative facts remain first-class and cite their reporting-rule disposition.
+`escalates_to` is diagnosis-only and only for a source-stated change of major
+diagnostic category.
+
+Apply these category entailment tests before creating a card:
+
+- `diagnosis`: the passage states that the alteration defines, supports, excludes,
+  differentiates, or changes a diagnosis or classification;
+- `prognosis`: the passage explicitly states an outcome, risk, survival,
+  progression, relapse, or named prognostic-model effect;
+- `treatment`: the passage explicitly links the alteration to treatment
+  sensitivity, resistance, eligibility, response, or selection;
+- `biomarker`: the passage explicitly assigns a testing, detection, monitoring, or
+  discrimination role that remains independently useful rather than merely
+  relabelling the same diagnostic assertion;
+- `germline`: the passage explicitly concerns inherited, constitutional, or
+  predisposition status, or germline evaluation.
+
+Gene presence, mutation frequency, co-occurrence, enrichment, a fusion-partner
+list, an entity name, or a census category does not by itself establish another
+category. In particular, do not infer prognosis from frequency, treatment from a
+kinase/fusion list, germline status from tumour findings, or a second biomarker card
+from an already exhausted diagnostic statement.
+
+A quote must be self-contained enough to support the interpretation. Do not use a
+bibliographic reference-list entry, heading alone, sentence fragment, or truncated
+table extraction. A bare list is insufficient unless its governing heading and row
+together explicitly express the claimed relation; include that necessary context in
+the single quote. If no valid substantive quote exists, omit the card.
 
 Copy `publication_type` and `publication_type_basis` verbatim from the census into
 every provisional package. Revise either only when responding to a supplied review
@@ -335,7 +378,16 @@ Do not repeat the clinical history, morphology or standard treatment unless need
         "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
         "escalates_to": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/disease" }] },
         "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker"] } },
+            "required": ["category"]
+          },
+          "then": { "properties": { "diseases": { "minItems": 1 } } }
+        }
+      ]
     },
     "quote": {
       "type": "object", "required": ["card_id", "quote", "locator"], "additionalProperties": false,
@@ -376,6 +428,12 @@ and (2) is it independently useful rather than redundant? For diagnosis cards al
 check `escalates_to` fidelity. Repair all failures and rerun over the whole package,
 at most three passes. At the cap, narrow or delete remaining failures. Do not return
 internal verdicts and do not claim independent audit.
+
+During rework, treat every review reason as a defect in the complete package, not as
+a request for cosmetic wording changes. Narrow disease scope to the paired quote,
+replace invalid quotes with substantive self-contained passages, split cards that
+combine separate contexts, and delete cards whose category lacks direct support.
+Fewer cards are preferable to unsupported or redundant cards.
 
 ## Mandatory pre-output gate
 

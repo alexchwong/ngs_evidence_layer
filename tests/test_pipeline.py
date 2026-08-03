@@ -135,6 +135,39 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertTrue(any("identical" in warning for warning in warnings))
 
+    def test_disease_dependent_card_requires_disease_but_germline_does_not(self):
+        def remove_disease(_metadata, _census, package):
+            package["cards"][0]["diseases"] = []
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+        errors, _warnings, _report = self.validate(remove_disease)
+        self.assertTrue(any("diseases" in error and "non-empty" in error for error in errors), errors)
+
+        def gene_only_germline(_metadata, _census, package):
+            package["cards"][0]["category"] = "germline"
+            package["cards"][0]["diseases"] = []
+            package["cards"][0]["escalates_to"] = None
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+        errors, _warnings, _report = self.validate(gene_only_germline)
+        self.assertEqual(errors, [])
+
+    def test_reference_list_quote_is_rejected(self):
+        def mutate(_metadata, _census, package):
+            package["quotes"][0]["quote"] = (
+                "- 7. Beck DB, et al. Somatic mutations in UBA1. "
+                "N Engl J Med. 2020;383:2628-38."
+            )
+        errors, _warnings, _report = self.validate(mutate, source=False)
+        self.assertTrue(any("bibliographic reference-list entry" in error for error in errors), errors)
+
+    def test_generic_category_boilerplate_is_warning(self):
+        def mutate(_metadata, _census, package):
+            package["cards"][0]["interpretation"] += (
+                " Application remains dependent on the source-stated disease context."
+            )
+        errors, warnings, _report = self.validate(mutate)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("generic category boilerplate" in warning for warning in warnings), warnings)
+
 
 class IncorporationTests(unittest.TestCase):
     def test_builds_indexes_and_strips_quotes(self):

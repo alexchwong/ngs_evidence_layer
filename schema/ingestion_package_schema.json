@@ -50,7 +50,16 @@
         "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
         "escalates_to": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/disease" }] },
         "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker"] } },
+            "required": ["category"]
+          },
+          "then": { "properties": { "diseases": { "minItems": 1 } } }
+        }
+      ]
     },
     "quote": {
       "type": "object", "required": ["card_id", "quote", "locator"], "additionalProperties": false,
