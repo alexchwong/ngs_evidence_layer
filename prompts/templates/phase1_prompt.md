@@ -25,6 +25,10 @@ Assign `publication_type` from the paper's front matter and structure using exac
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
 that judgement.
 
+### Publication-type taxonomy
+
+{{PUBLICATION_TYPE_RUBRIC}}
+
 Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
 ## Reporting rules

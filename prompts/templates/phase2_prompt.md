@@ -127,6 +127,15 @@ every provisional package. Revise either only when responding to a supplied revi
 that explicitly identifies publication type as a defect; otherwise disagreement
 with the census is invalid.
 
+When a review identifies publication type as a defect, verify the requested change
+against this taxonomy. Use only an allowed value, apply the precedence rules, and
+reject guidance based only on a publisher article-format label or an equally
+defensible alternative.
+
+### Publication-type taxonomy
+
+{{PUBLICATION_TYPE_RUBRIC}}
+
 For a first extraction write `paper.provisional-001.json`. After review NNN, write
 the complete corrected package as the next round. The package filename round and
 its `round` field must agree. It is never a patch. Set `audit` to null.

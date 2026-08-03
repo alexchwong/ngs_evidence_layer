@@ -127,6 +127,30 @@ every provisional package. Revise either only when responding to a supplied revi
 that explicitly identifies publication type as a defect; otherwise disagreement
 with the census is invalid.
 
+When a review identifies publication type as a defect, verify the requested change
+against this taxonomy. Use only an allowed value, apply the precedence rules, and
+reject guidance based only on a publisher article-format label or an equally
+defensible alternative.
+
+### Publication-type taxonomy
+
+Allowed values and operational definitions:
+- `guideline`: Formal practice recommendations developed using an explicit guideline process, such as evidence appraisal, recommendation formulation, or recommendation grading. Do not use solely because an expert group gives advice or classification criteria without a formal guideline-development method.
+- `consensus statement`: An expert group's agreed classification, definitions, criteria, terminology, or recommendations without the formal methodology required for a guideline. Supporting analyses or literature summaries do not make the paper a primary study or review when the main contribution is the group's agreed position.
+- `primary study`: The principal purpose is to report original empirical data from a cohort, experiment, assay evaluation, or trial. Do not use for a consensus or guideline paper merely because it contains supporting analyses or examples.
+- `systematic review`: An evidence synthesis with an explicit, reproducible literature-search and study-selection method; a meta-analysis is included when present. Do not use for an unstructured literature overview.
+- `narrative review`: A literature overview without systematic-review methods and without an authoritative group consensus as its primary purpose. Do not use when the primary contribution is agreed classification criteria, terminology, or recommendations.
+- `other`: None of the other five semantic types fits the paper's primary purpose. Use only after applying the definitions and precedence rules; do not use merely because the publisher supplies a different article-format label.
+
+Apply these precedence rules in order:
+1. Classify the paper's primary purpose, not merely its journal banner, section name, or publisher article-format label.
+2. Explicit formal guideline-development methodology takes guideline precedence.
+3. Group-authored agreed classification, criteria, definitions, or terminology takes consensus statement precedence when formal guideline methodology is absent; expert classification systems such as ICC normally fit here.
+4. Original empirical research takes primary study precedence only when it is the paper's main contribution.
+5. An explicit reproducible search and study-selection method identifies a systematic review.
+6. Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.
+7. Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods.
+
 For a first extraction write `paper.provisional-001.json`. After review NNN, write
 the complete corrected package as the next round. The package filename round and
 its `round` field must agree. It is never a patch. Set `audit` to null.
@@ -316,11 +340,13 @@ Do not repeat the clinical history, morphology or standard treatment unless need
     "aCML",
     "MDS/MPN-SF3B1-T",
     "JMML",
+    "MPN",
     "MPN-U",
     "PV",
     "ET",
     "PMF",
     "post-PV/post-ET MF",
+    "MPN blast phase",
     "CML",
     "CNL",
     "CEL",
@@ -333,12 +359,14 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   ],
   "umbrella": {
     "APL": ["AML"],
-    "PV": ["MPN-U"],
-    "ET": ["MPN-U"],
-    "PMF": ["MPN-U"],
-    "post-PV/post-ET MF": ["MPN-U"],
-    "CNL": ["MPN-U"],
-    "CEL": ["MPN-U"]
+    "MPN-U": ["MPN"],
+    "PV": ["MPN"],
+    "ET": ["MPN"],
+    "PMF": ["MPN"],
+    "post-PV/post-ET MF": ["MPN"],
+    "MPN blast phase": ["MPN"],
+    "CNL": ["MPN"],
+    "CEL": ["MPN"]
   },
   "categories": [
     "diagnosis",
@@ -399,7 +427,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   "$defs": {
     "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
     "disease": {
-      "enum": ["CHIP", "CCUS", "MDS", "MDS/AML", "AML", "APL", "MDS/MPN-U", "CMML", "aCML", "MDS/MPN-SF3B1-T", "JMML", "MPN-U", "PV", "ET", "PMF", "post-PV/post-ET MF", "CML", "CNL", "CEL", "mastocytosis", "myeloid/lymphoid neoplasm with eosinophilia and TK fusion", "BPDCN", "germline predisposition syndrome", "myeloid neoplasm, unspecified", "lymphoid neoplasm"]
+      "enum": ["CHIP", "CCUS", "MDS", "MDS/AML", "AML", "APL", "MDS/MPN-U", "CMML", "aCML", "MDS/MPN-SF3B1-T", "JMML", "MPN", "MPN-U", "PV", "ET", "PMF", "post-PV/post-ET MF", "MPN blast phase", "CML", "CNL", "CEL", "mastocytosis", "myeloid/lymphoid neoplasm with eosinophilia and TK fusion", "BPDCN", "germline predisposition syndrome", "myeloid neoplasm, unspecified", "lymphoid neoplasm"]
     },
     "citation": {
       "type": "object", "required": ["display"], "additionalProperties": false,

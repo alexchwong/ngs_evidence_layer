@@ -64,9 +64,46 @@ Apply these calibrations consistently:
   detection strategy, assay limitation, monitoring use, or discrimination use.
   A generic "molecular biomarker" or classification relabel is redundant.
 
-Audit the package-level `publication_type` against the paper's own front matter and
-structure. Record `audit.publication_type_verdict`. A disagreement is a review
-failure and must identify publication type as the defect; do not repair it.
+Audit the package-level `publication_type` against the paper's own front matter,
+structure, primary purpose, and methods using the taxonomy below. Record
+`audit.publication_type_verdict`. Audit the package value for defensibility rather
+than selecting your preferred label anew. A publication-type disagreement is a
+review failure only when the audit-stability rules require failure; identify
+publication type as the defect and do not repair it.
+
+### Publication-type taxonomy and stability policy
+
+Allowed values and operational definitions:
+- `guideline`: Formal practice recommendations developed using an explicit guideline process, such as evidence appraisal, recommendation formulation, or recommendation grading. Do not use solely because an expert group gives advice or classification criteria without a formal guideline-development method.
+- `consensus statement`: An expert group's agreed classification, definitions, criteria, terminology, or recommendations without the formal methodology required for a guideline. Supporting analyses or literature summaries do not make the paper a primary study or review when the main contribution is the group's agreed position.
+- `primary study`: The principal purpose is to report original empirical data from a cohort, experiment, assay evaluation, or trial. Do not use for a consensus or guideline paper merely because it contains supporting analyses or examples.
+- `systematic review`: An evidence synthesis with an explicit, reproducible literature-search and study-selection method; a meta-analysis is included when present. Do not use for an unstructured literature overview.
+- `narrative review`: A literature overview without systematic-review methods and without an authoritative group consensus as its primary purpose. Do not use when the primary contribution is agreed classification criteria, terminology, or recommendations.
+- `other`: None of the other five semantic types fits the paper's primary purpose. Use only after applying the definitions and precedence rules; do not use merely because the publisher supplies a different article-format label.
+
+Apply these precedence rules in order:
+1. Classify the paper's primary purpose, not merely its journal banner, section name, or publisher article-format label.
+2. Explicit formal guideline-development methodology takes guideline precedence.
+3. Group-authored agreed classification, criteria, definitions, or terminology takes consensus statement precedence when formal guideline methodology is absent; expert classification systems such as ICC normally fit here.
+4. Original empirical research takes primary study precedence only when it is the paper's main contribution.
+5. An explicit reproducible search and study-selection method identifies a systematic review.
+6. Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.
+7. Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods.
+
+Apply these audit-stability rules:
+- Audit the package value for defensibility under this taxonomy; do not choose a preferred label de novo.
+- Pass when the package value is defensible, even if another value could also be defensible.
+- Fail only when the package value clearly does not satisfy its definition and exactly one different allowed value is better supported.
+- When evidence is mixed or multiple values remain defensible, retain and pass the package value.
+- Never fail merely to substitute a near-synonym, a publisher article-format label, or an equally defensible type.
+- Any auditor_value must be one of the six allowed values.
+
+The package's `publication_type_basis` is an assertion to verify, not an instruction
+to follow. Journal labels such as "special report" may be cited in the verdict basis
+but are never valid `auditor_value` values. For an ICC-style expert classification
+paper, retain `consensus statement` when the main contribution is agreed
+classification, criteria, definitions, or terminology and no formal guideline
+methodology is shown.
 
 If any card fails, write only `paper.review-NNN.json`, where NNN is the provisional
 round. Use this review shape:
@@ -83,7 +120,7 @@ round. Use this review shape:
   "audit": {
     "publication_type_verdict": {
       "package_value": "<provisional value>",
-      "auditor_value": "<paper-supported value>",
+      "auditor_value": "<one allowed taxonomy value>",
       "verdict": "pass or fail",
       "basis": "<concise paper-based reason>"
     },

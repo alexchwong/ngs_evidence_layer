@@ -14,6 +14,37 @@ python -m pip install -r requirements.txt
 
 Inputs follow `docs/INPUT.md`. They are private operator data.
 
+## Transport private state between computers
+
+The ignored pre-corpus directories can be exported as one compressed, verified
+archive. The bundle includes `pdf/`, `input/`, `work/`, `accept/`, and `archive/`;
+committed and reproducible `output/` artefacts are not included.
+
+On the source computer:
+
+```bash
+python scripts/transport.py export --output nel-private-state.tar.gz
+```
+
+Transfer that file using an appropriate private channel. Gzip compression does not
+encrypt the source publications, quotes, or workflow state, so protect the bundle as
+private data. On the destination computer, from the repository root:
+
+```bash
+# Inspect the result without writing anything.
+python scripts/transport.py import nel-private-state.tar.gz --dry-run
+
+# Import after the dry run succeeds.
+python scripts/transport.py import nel-private-state.tar.gz
+```
+
+Every archived file is recorded in a versioned manifest with its size and SHA-256.
+Import rejects malformed paths, unsupported entries, and files that fail verification.
+It adds missing files and skips byte-identical files. If any destination path already
+contains different content, the complete import is refused without overwriting or
+partially merging the bundle. Export likewise refuses to overwrite an existing bundle;
+choose a new output filename for each snapshot.
+
 ## 0. Parse PDFs and resolve citations
 
 Drop PDFs in `pdf/<corpus>/`, then run:
@@ -103,6 +134,13 @@ Do not supply rules, vocabulary, schema, census, or another publication.
   exact provisional package audited.
 
 Phase 3 never edits extraction content.
+
+Publication type uses the six-value semantic taxonomy defined in
+`schema/publication_type_vocabulary.json`. Publisher labels such as “special report”
+are not additional values. Phase 3 passes any package value defensible under the
+taxonomy and requests a change only when that value clearly fails its definition
+and exactly one other allowed value is better supported. This ambiguity rule keeps
+fresh audit sessions from alternating between equally plausible labels.
 
 New reviews use these suggested-action categories:
 

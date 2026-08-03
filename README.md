@@ -27,11 +27,20 @@ state. Papers are independent and may be in flight concurrently.
 # Convert queued PDFs to deterministic Markdown and resolve citations.
 python scripts/parse_pdfs.py --corpus <name> --mailto <email>
 
-# Repair unresolved citations by supplying DOI candidates that are re-resolved
-# through Crossref, or by applying a validated manual citation worksheet.
+# Step 1 (DOI path): build a recovery request from citation-pending index records and
+# parsed Markdown; outputs input/<name>/citations/request-<UTC>.md.
 python scripts/citations.py request --corpus <name>
+
+# Step 2 (DOI path): provide a JSON array of paper_id, title_seen, and doi entries;
+# verifies each DOI via Crossref and updates valid records to ingested in the index.
 python scripts/citations.py apply --corpus <name> --response <file>
+
+# Alternative step 1 (manual path): export pending paper IDs to a citation worksheet;
+# outputs input/<name>/citations/manual-<UTC>.csv for the operator to complete.
 python scripts/citations.py manual-export --corpus <name>
+
+# Alternative step 2 (manual path): provide the completed CSV worksheet;
+# validates the entire batch, then stores citations and marks its records ingested.
 python scripts/citations.py manual-apply --corpus <name> --csv <file>
 
 # Create work/<publication-key>/paper.md and metadata.json.

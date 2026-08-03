@@ -83,6 +83,11 @@ class VocabularyAndKeyTests(unittest.TestCase):
         self.assertEqual(vocab.check_vocabulary_consistency(), [])
         self.assertEqual(vocab.missing_umbrellas(["APL"]), ["AML"])
         self.assertEqual(vocab.missing_umbrellas(["APL", "AML"]), [])
+        self.assertEqual(vocab.missing_umbrellas(["PV"]), ["MPN"])
+        self.assertEqual(vocab.missing_umbrellas(["PV", "MPN"]), [])
+        self.assertEqual(vocab.missing_umbrellas(["MPN-U"]), ["MPN"])
+        self.assertEqual(vocab.missing_umbrellas(["MPN blast phase"]), ["MPN"])
+        self.assertNotIn("MPN-U", vocab.missing_umbrellas(["PV"]))
 
     def test_primary_key_is_deterministic(self):
         citation = {"authors": ["Dohner H"], "title": "Fixture", "journal": "Blood", "year": 2022, "volume": "140", "pages": "1345-1377"}

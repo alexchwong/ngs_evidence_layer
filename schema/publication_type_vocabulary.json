@@ -1,0 +1,53 @@
+{
+  "vocabulary_version": "1.0",
+  "note": "Closed semantic publication taxonomy. Journal article labels are evidence, not additional values.",
+  "types": [
+    {
+      "value": "guideline",
+      "definition": "Formal practice recommendations developed using an explicit guideline process, such as evidence appraisal, recommendation formulation, or recommendation grading.",
+      "excludes": "Do not use solely because an expert group gives advice or classification criteria without a formal guideline-development method."
+    },
+    {
+      "value": "consensus statement",
+      "definition": "An expert group's agreed classification, definitions, criteria, terminology, or recommendations without the formal methodology required for a guideline.",
+      "excludes": "Supporting analyses or literature summaries do not make the paper a primary study or review when the main contribution is the group's agreed position."
+    },
+    {
+      "value": "primary study",
+      "definition": "The principal purpose is to report original empirical data from a cohort, experiment, assay evaluation, or trial.",
+      "excludes": "Do not use for a consensus or guideline paper merely because it contains supporting analyses or examples."
+    },
+    {
+      "value": "systematic review",
+      "definition": "An evidence synthesis with an explicit, reproducible literature-search and study-selection method; a meta-analysis is included when present.",
+      "excludes": "Do not use for an unstructured literature overview."
+    },
+    {
+      "value": "narrative review",
+      "definition": "A literature overview without systematic-review methods and without an authoritative group consensus as its primary purpose.",
+      "excludes": "Do not use when the primary contribution is agreed classification criteria, terminology, or recommendations."
+    },
+    {
+      "value": "other",
+      "definition": "None of the other five semantic types fits the paper's primary purpose.",
+      "excludes": "Use only after applying the definitions and precedence rules; do not use merely because the publisher supplies a different article-format label."
+    }
+  ],
+  "precedence": [
+    "Classify the paper's primary purpose, not merely its journal banner, section name, or publisher article-format label.",
+    "Explicit formal guideline-development methodology takes guideline precedence.",
+    "Group-authored agreed classification, criteria, definitions, or terminology takes consensus statement precedence when formal guideline methodology is absent; expert classification systems such as ICC normally fit here.",
+    "Original empirical research takes primary study precedence only when it is the paper's main contribution.",
+    "An explicit reproducible search and study-selection method identifies a systematic review.",
+    "Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.",
+    "Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods."
+  ],
+  "audit_stability": [
+    "Audit the package value for defensibility under this taxonomy; do not choose a preferred label de novo.",
+    "Pass when the package value is defensible, even if another value could also be defensible.",
+    "Fail only when the package value clearly does not satisfy its definition and exactly one different allowed value is better supported.",
+    "When evidence is mixed or multiple values remain defensible, retain and pass the package value.",
+    "Never fail merely to substitute a near-synonym, a publisher article-format label, or an equally defensible type.",
+    "Any auditor_value must be one of the six allowed values."
+  ]
+}
