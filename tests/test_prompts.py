@@ -73,6 +73,50 @@ class PublicationTypePromptTests(unittest.TestCase):
         )
         self.assertIn('"auditor_value": "<one allowed taxonomy value>"', prompt)
 
+    def test_phase2_requires_minimal_sufficient_passages(self):
+        prompt = BUILD_PROMPTS.render(2)
+        normalized = " ".join(prompt.split())
+
+        self.assertIn("minimal sufficient verbatim passage", normalized)
+        self.assertIn(
+            '"Minimal" means exclude unrelated material, not choose the shortest fragment',
+            normalized,
+        )
+        self.assertIn(
+            "a quote may and must contain multiple contiguous sentences",
+            normalized,
+        )
+        self.assertIn(
+            "freeze that complete passage as the candidate quote before drafting the interpretation",
+            normalized,
+        )
+
+    def test_phase2_checks_quote_boundaries_and_atomic_support(self):
+        prompt = BUILD_PROMPTS.render(2)
+        normalized = " ".join(prompt.split())
+
+        self.assertIn("### Quote boundary method", prompt)
+        self.assertIn(
+            "inspect the sentence immediately before and after each candidate quote",
+            normalized,
+        )
+        self.assertIn(
+            "decompose the proposed interpretation privately into atomic assertions",
+            normalized,
+        )
+        self.assertIn(
+            "If any assertion has no supporting span, expand the quote, narrow the interpretation, split the card, or omit it.",
+            normalized,
+        )
+        self.assertIn("never join non-contiguous excerpts with ellipses", normalized)
+
+    def test_phase3_does_not_receive_phase2_quote_authoring_method(self):
+        phase3 = BUILD_PROMPTS.render(3)
+
+        self.assertNotIn("### Quote boundary method", phase3)
+        self.assertNotIn("minimal sufficient verbatim passage", phase3)
+        self.assertNotIn("atomic assertions", phase3)
+
 
 if __name__ == "__main__":
     unittest.main()

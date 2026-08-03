@@ -51,22 +51,65 @@ Never manufacture category coverage merely to match the census.
 
 Work passage-first rather than gene-first:
 
-1. select one contiguous, substantive passage;
-2. identify only the role or roles that passage explicitly asserts;
-3. identify only the population and disease context governed by that passage;
-4. create at most one card for each independently useful, directly supported role;
-5. include only genes participating in that exact assertion.
+1. find the source sentence that states the role claim;
+2. expand to one contiguous, substantive passage containing every sentence needed
+   to support and delimit that claim;
+3. freeze that complete passage as the candidate quote before drafting the
+   interpretation;
+4. identify only the role or roles that candidate quote explicitly asserts;
+5. identify only the population and disease context governed by that candidate
+   quote;
+6. create at most one card for each independently useful, directly supported role;
+7. include only genes participating in that exact assertion.
 
 Do not union assertions, diseases, populations, or qualifiers across separate
 locators merely because they belong to the same census entry. A card's `locator`,
 interpretation, diseases, genes, category, and quote must describe the same local
-claim. Author comprehensive, independently useful cards with exactly one minimal
-verbatim quote each. Interpretations must state all source-specified population,
-disease, treatment, allelic/variant, analysis, classifier, threshold, branch, and
-exclusion qualifiers; explicitly state when a material qualifier is not specified.
-Negative facts remain first-class and cite their reporting-rule disposition.
-`escalates_to` is diagnosis-only and only for a source-stated change of major
-diagnostic category.
+claim. Author comprehensive, independently useful cards with exactly one
+**minimal sufficient verbatim passage** each. "Minimal" means exclude unrelated
+material, not choose the shortest fragment: a quote may and must contain multiple
+contiguous sentences when the claim and its governing context are distributed
+across them. Interpretations must state all source-specified population, disease,
+treatment, allelic/variant, analysis, classifier, threshold, branch, and exclusion
+qualifiers; explicitly state when a material qualifier is not specified. Negative
+facts remain first-class and cite their reporting-rule disposition. `escalates_to`
+is diagnosis-only and only for a source-stated change of major diagnostic category.
+
+### Quote boundary method
+
+For every candidate quote, start with the sentence containing the explicit role
+claim and inspect the surrounding paragraph, table block, or list block. Expand the
+quote while keeping it contiguous:
+
+1. expand backward for any text needed to identify the gene or alteration, disease
+   or entity, population or cohort, treatment, assay, classifier, comparator, or an
+   antecedent referenced by wording such as "this", "these patients", or "such
+   mutations";
+2. expand forward for any text that limits, conditions, contrasts, quantifies,
+   excludes, or supplies the clinical consequence of the claim;
+3. retain sentences distinguishing a subgroup from the whole cohort, univariable
+   from multivariable analysis, one classifier branch from another, or association
+   from the independently useful clinical conclusion;
+4. for a table or list, include the governing header, row label, legend, or footnote
+   needed to make the quoted relation explicit, provided the result remains one
+   contiguous source passage;
+5. stop only when the quote itself supports every material element of the proposed
+   interpretation without relying on the locator, heading, census, nearby unquoted
+   text, or general understanding of the paragraph.
+
+Treat `however`, `whereas`, `except`, `unless`, `only`, `independent of`, thresholds,
+exclusions, unresolved pronouns, and a following sentence that explains clinical
+meaning as boundary warnings, not automatic sentence breaks. If all necessary text
+cannot be captured as one coherent contiguous passage, narrow or split the card;
+never join non-contiguous excerpts with ellipses.
+
+After freezing the candidate quote, decompose the proposed interpretation privately
+into atomic assertions. Map each assertion to explicit words in the quote, including
+the gene and alteration class, disease, population, role and direction, treatment or
+analysis context, comparator, certainty, thresholds, branches, and exclusions when
+material. If any assertion has no supporting span, expand the quote, narrow the
+interpretation, split the card, or omit it. Do not draft from paragraph-level memory
+and then attach only the shortest sentence.
 
 Before drafting each card, apply these private gates. If any gate fails, repair the
 candidate before output or omit it:
@@ -118,9 +161,9 @@ A quote must be self-contained enough to support the interpretation. Do not use 
 bibliographic reference-list entry, heading alone, sentence fragment, or truncated
 table extraction. A bare list is insufficient unless its governing heading and row
 together explicitly express the claimed relation; include that necessary context in
-the single quote. A bibliographic reference title or reference-list entry is a hard
-stop even if its title appears to describe the desired claim. If no valid
-substantive quote exists, omit the card.
+the single contiguous quote. A bibliographic reference title or reference-list
+entry is a hard stop even if its title appears to describe the desired claim. If no
+valid substantive quote exists, omit the card.
 
 Copy `publication_type` and `publication_type_basis` verbatim from the census into
 every provisional package. Revise either only when responding to a supplied review
@@ -176,6 +219,13 @@ and (2) is it independently useful rather than redundant? For diagnosis cards al
 check `escalates_to` fidelity. Repair all failures and rerun over the whole package,
 at most three passes. At the cap, narrow or delete remaining failures. Do not return
 internal verdicts and do not claim independent audit.
+
+As a specific quote-boundary check, inspect the sentence immediately before and
+after each candidate quote in its source passage. If either sentence materially
+changes the scope, certainty, direction, eligibility, exception, analysis, or
+clinical meaning of the quoted claim, the quote is incomplete: expand it while
+keeping it contiguous, or narrow, split, or delete the card. Once a quote passes
+this check, do not shorten it merely for concision.
 
 During rework, treat every review reason as a defect in the complete package, not as
 a request for cosmetic wording changes. Narrow disease scope to the paired quote,
