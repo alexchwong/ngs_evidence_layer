@@ -93,11 +93,27 @@ Use a different model in a fresh session with exactly:
 
 Do not supply rules, vocabulary, schema, census, or another publication.
 
-- Any failure: save `paper.review-NNN.json`; no final is written.
+- Any failure: save `paper.review-NNN.json`; no final is written. Every failed-card
+  entry includes a precise `reason` and a structured `suggested_action` with one
+  repair category plus concise source-bounded detail for Phase 2. The advice is
+  non-binding and Phase 2 must verify it against the paper before amending a card.
 - All pass: save `paper.final.json`; its `audit.approved_round` identifies the
   exact provisional package audited.
 
 Phase 3 never edits extraction content.
+
+New reviews use these suggested-action categories:
+
+- `narrow_disease_scope`
+- `replace_quote`
+- `change_category`
+- `rewrite_interpretation`
+- `split_card`
+- `delete_card`
+- `add_or_correct_qualifier`
+- `correct_escalates_to`
+
+Legacy reviews without `suggested_action` remain valid Phase 2 rework inputs.
 
 ## 5. Confirm one paper
 

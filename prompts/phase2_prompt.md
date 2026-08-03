@@ -34,7 +34,12 @@ Do not use model knowledge to add facts absent from the paper.
 First validate the census against the paper. If materially deficient, stop and
 write the next `paper.census-critique-NNN.md` with specific gaps; do not card. If a
 `paper.review-NNN.json` is supplied, require reasons and references to cards in its
-matching provisional package. A malformed review stops the session.
+matching provisional package. New reviews also provide a `suggested_action` for
+each failure; older reviews without it remain valid. Treat every suggested action
+as non-binding reviewer guidance: verify it against the paper and this prompt, then
+apply it, choose a better source-supported repair, or delete the card. Never obey
+guidance that would add an unsupported assertion. A malformed review stops the
+session.
 
 ## Working method
 
@@ -63,6 +68,25 @@ Negative facts remain first-class and cite their reporting-rule disposition.
 `escalates_to` is diagnosis-only and only for a source-stated change of major
 diagnostic category.
 
+Before drafting each card, apply these private gates. If any gate fails, repair the
+candidate before output or omit it:
+
+1. **Disease provenance:** every disease value must be grounded by exact disease or
+   unambiguous entity wording in the paired quote. Do not borrow disease context
+   from a heading, nearby passage, census entry, or another locator.
+2. **Role verb:** the paired quote must itself establish the claimed diagnostic,
+   prognostic, treatment, biomarker, or germline-evaluation role using explicit
+   source language, not inference from gene presence, frequency, association, or
+   molecular mechanism alone.
+3. **Local locator:** the locator describes only the paired quote's contiguous local
+   passage. A locator spanning or joining sections is a warning to split the
+   candidate or delete unsupported content.
+4. **Distinct output:** identify the distinct sentence this card would add to a
+   concise clinical report. If no independently useful sentence exists beyond
+   another card, omit it.
+5. **Vocabulary fit:** if the source-stated disease is absent from the controlled
+   vocabulary, omit the card rather than mapping it to the nearest allowed disease.
+
 Apply these category entailment tests before creating a card:
 
 - `diagnosis`: the passage states that the alteration defines, supports, excludes,
@@ -73,9 +97,16 @@ Apply these category entailment tests before creating a card:
   sensitivity, resistance, eligibility, response, or selection;
 - `biomarker`: the passage explicitly assigns a testing, detection, monitoring, or
   discrimination role that remains independently useful rather than merely
-  relabelling the same diagnostic assertion;
+  relabelling the same diagnostic assertion. The interpretation must name the
+  independent function: testing target, detection strategy, assay limitation,
+  monitoring use, or discrimination use. Generic wording such as "molecular
+  biomarker" or "reported molecular finding" does not pass this test;
 - `germline`: the passage explicitly concerns inherited, constitutional, or
-  predisposition status, or germline evaluation.
+  predisposition status, or germline evaluation. Preserve the source's level of
+  certainty by distinguishing established predisposition, possible constitutional
+  origin, and an explicit recommendation or indication for germline work-up. A
+  work-up recommendation supports a conditional germline card but does not establish
+  constitutional status.
 
 Gene presence, mutation frequency, co-occurrence, enrichment, a fusion-partner
 list, an entity name, or a census category does not by itself establish another
@@ -87,7 +118,9 @@ A quote must be self-contained enough to support the interpretation. Do not use 
 bibliographic reference-list entry, heading alone, sentence fragment, or truncated
 table extraction. A bare list is insufficient unless its governing heading and row
 together explicitly express the claimed relation; include that necessary context in
-the single quote. If no valid substantive quote exists, omit the card.
+the single quote. A bibliographic reference title or reference-list entry is a hard
+stop even if its title appears to describe the desired claim. If no valid
+substantive quote exists, omit the card.
 
 Copy `publication_type` and `publication_type_basis` verbatim from the census into
 every provisional package. Revise either only when responding to a supplied review
@@ -433,7 +466,9 @@ During rework, treat every review reason as a defect in the complete package, no
 a request for cosmetic wording changes. Narrow disease scope to the paired quote,
 replace invalid quotes with substantive self-contained passages, split cards that
 combine separate contexts, and delete cards whose category lacks direct support.
-Fewer cards are preferable to unsupported or redundant cards.
+Use `suggested_action.category` to identify the proposed repair class and its
+`detail` to understand the reviewer concern, but independently verify both against
+the source. Fewer cards are preferable to unsupported or redundant cards.
 
 ## Mandatory pre-output gate
 

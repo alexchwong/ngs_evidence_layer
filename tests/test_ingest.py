@@ -196,6 +196,22 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertNotIn('"$schema"', phase3)
         self.assertNotIn("paper.census.json", phase3)
 
+    def test_review_guidance_contract_is_actionable_and_backward_compatible(self):
+        phase2 = build_prompts.render(2)
+        phase3 = build_prompts.render(3)
+
+        self.assertIn("older reviews without it remain valid", phase2)
+        self.assertIn("non-binding reviewer guidance", phase2)
+        self.assertIn("every disease value must be grounded", phase2)
+        self.assertIn("work-up recommendation supports a conditional germline card", phase2)
+
+        self.assertIn('"suggested_action"', phase3)
+        self.assertIn("narrow_disease_scope", phase3)
+        self.assertIn("correct_escalates_to", phase3)
+        self.assertIn("source-bounded detail", phase3)
+        self.assertIn("Pass an explicit work-up recommendation", phase3)
+        self.assertIn("quote reuse alone", phase3)
+
 
 if __name__ == "__main__":
     unittest.main()
