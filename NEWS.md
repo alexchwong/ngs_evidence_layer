@@ -1,5 +1,31 @@
 # NEWS
 
+## 0.1.2
+
+- Added deterministic, content-addressed PDF-to-Markdown ingestion with locked
+  OpenDataLoader settings and atomic publication.
+- Added DOI detection, Crossref resolution, model-assisted DOI recovery, and a
+  batch-atomic manual citation worksheet.
+- Made JSONL the canonical input index and added a synchronized read-only CSV view.
+- Made the human-readable publication key the operator-facing work-folder identity
+  and card-ID prefix while retaining the content-derived paper UUID internally.
+- Moved publication-type assignment and justification into Phase 1, propagation into
+  Phase 2, and independent audit into Phase 3.
+- Hardened all model phases with exclusive output contracts and mandatory pre-output
+  gates; strengthened Phase 2 qualifier, quote, and independent-utility checks, and
+  added bounded Phase 3 reviewer suggestions for rejected packages.
+- Added stable acceptance timestamps and changed duplicate publication keys at
+  incorporation from fatal errors to deterministic per-paper rejection.
+- Replaced escalation-candidate selection with evidence-bounded diagnostic
+  adjudication over structured case facts and all gene-matched diagnosis cards.
+  Adjudication now separates a source-supported diagnostic label from the major
+  disease category used for deterministic downstream filtering, and fails closed
+  when required facts are missing or criteria are unmet.
+- Updated rendering to expose adjudication status, the downstream filter disease,
+  any supported diagnostic label, and the cards driving a changed major category.
+- Bumped all working and accepted schemas; prior in-flight artefacts require
+  re-ingestion rather than migration.
+
 ## 0.1.1
 
 - Replaced central phase queues with independent `work/<paper-id>/` folder state.

@@ -2,17 +2,17 @@
 """Retrieval steps 2 and 4. Everything here is a script for a reason.
 
 The two model decisions in the procedure are bounded elsewhere: step 1 extracts
-genes and a provisional disease from free text, step 3 picks a refined disease
-from a closed set this script produced. Between and after them, what a gene is
-allowed to retrieve is decided by code, because a prompt is a request and code is
-a guarantee.
+structured case facts, genes, and a provisional disease from free text; step 3
+adjudicates those facts against retrieved diagnosis cards. Between and after them,
+what a gene is allowed to retrieve is decided by code, because a prompt is a
+request and code is a guarantee.
 
 Two subcommands:
 
   diagnosis   step 2. Every diagnosis card for the submitted genes, with no
               disease filter at all, because a gene may point toward a diagnosis
-              other than the one the marrow report proposed. Also emits
-              escalation_candidates: the closed set from which step 3 may choose.
+              other than the one the marrow report proposed. Carries structured
+              case facts into the evidence-bounded adjudication input.
 
   full        step 4. prognosis, treatment and biomarker cards on gene match AND
               (disease match OR empty disease array); germline cards on gene match
@@ -26,12 +26,12 @@ gene that was never looked at are very different things, and a clinician reading
 the output cannot tell them apart unless the tool says so.
 
 Usage:
-  retrieve.py diagnosis --genes NPM1 DNMT3A FLT3 \\
+  retrieve.py diagnosis --genes NPM1 DNMT3A FLT3 --case-facts case-facts.json \\
       --corpus output/corpus/nel.corpus.json --index output/corpus/nel.index.json \\
       --provisional-disease MDS > step2.json
 
-  retrieve.py full --diagnosis-result step2.json --refined-disease AML \\
-      --driven-by who5-2022-npm1-dx-001 > bundle.json
+  retrieve.py full --diagnosis-result step2.json \\
+      --adjudication-result adjudication.json > bundle.json
 """
 import argparse
 import hashlib
@@ -109,7 +109,24 @@ def provenance(corpus, corpus_path, index_path, digest, card_ids):
     }
 
 
-def step2(cards, genes, provisional_disease):
+def validate_case_facts(case_facts):
+    if not isinstance(case_facts, list):
+        raise ValueError("case_facts must be a JSON array")
+    fact_ids = []
+    for index, fact in enumerate(case_facts):
+        if not isinstance(fact, dict):
+            raise ValueError(f"case_facts[{index}] must be an object")
+        fact_id = fact.get("fact_id")
+        if not isinstance(fact_id, str) or not fact_id.strip():
+            raise ValueError(f"case_facts[{index}].fact_id must be a non-empty string")
+        fact_ids.append(fact_id)
+    if len(fact_ids) != len(set(fact_ids)):
+        raise ValueError("case fact IDs must be unique")
+    return case_facts
+
+
+def step2(cards, genes, provisional_disease, case_facts=None):
+    case_facts = validate_case_facts(case_facts or [])
     wanted = {gene.upper() for gene in genes}
     hits = []
     for card in cards:
@@ -121,24 +138,95 @@ def step2(cards, genes, provisional_disease):
             hit["matched_genes"] = matched
             hits.append(hit)
 
-    escalation = {}
-    for hit in hits:
-        target = hit.get("escalates_to")
-        if target and target != provisional_disease:
-            escalation.setdefault(target, []).append(hit["card_id"])
-
     genes_with_diagnosis_card = {gene for hit in hits for gene in hit["matched_genes"]}
     return {
         "step": 2,
         "provisional_disease": provisional_disease,
         "genes": sorted(wanted),
+        "case_facts": case_facts,
         "diagnosis_cards": sorted(hits, key=lambda item: item["card_id"]),
-        "escalation_candidates": [
-            {"disease": disease, "card_ids": sorted(card_ids)}
-            for disease, card_ids in sorted(escalation.items())
-        ],
+        "allowed_refined_diseases": list(vocab.DISEASES),
         "genes_with_no_diagnosis_card": sorted(wanted - genes_with_diagnosis_card),
     }
+
+
+def validate_adjudication(step2_result, adjudication):
+    required_keys = {
+        "status", "provisional_disease", "refined_disease",
+        "downstream_filter_disease", "diagnostic_label", "driven_by",
+        "criterion_assessment", "reason",
+    }
+    if not isinstance(adjudication, dict) or set(adjudication) != required_keys:
+        raise ValueError(
+            "adjudication must contain exactly: " + ", ".join(sorted(required_keys))
+        )
+
+    status = adjudication["status"]
+    if status not in {"criteria_met", "criteria_not_met", "indeterminate"}:
+        raise ValueError(f"invalid adjudication status {status!r}")
+    provisional = step2_result["provisional_disease"]
+    if adjudication["provisional_disease"] != provisional:
+        raise ValueError("adjudication provisional_disease does not match diagnosis result")
+    refined = adjudication["refined_disease"]
+    if refined not in vocab.DISEASE_SET:
+        raise ValueError(f"adjudication refined_disease {refined!r} is outside the vocabulary")
+    if adjudication["downstream_filter_disease"] != refined:
+        raise ValueError(
+            "downstream_filter_disease must exactly equal refined_disease; this value "
+            "controls downstream prognosis, treatment, and biomarker retrieval"
+        )
+    label = adjudication["diagnostic_label"]
+    if label is not None and (not isinstance(label, str) or not label.strip()):
+        raise ValueError("diagnostic_label must be null or a non-empty string")
+    if not isinstance(adjudication["reason"], str) or not adjudication["reason"].strip():
+        raise ValueError("adjudication reason must be a non-empty string")
+
+    retrieved_card_ids = {card["card_id"] for card in step2_result["diagnosis_cards"]}
+    driven_by = adjudication["driven_by"]
+    if not isinstance(driven_by, list) or any(card_id not in retrieved_card_ids for card_id in driven_by):
+        raise ValueError("every driven_by ID must name a retrieved diagnosis card")
+    if len(driven_by) != len(set(driven_by)):
+        raise ValueError("driven_by card IDs must be unique")
+
+    supplied_fact_ids = {fact["fact_id"] for fact in validate_case_facts(step2_result["case_facts"])}
+    assessments = adjudication["criterion_assessment"]
+    if not isinstance(assessments, list):
+        raise ValueError("criterion_assessment must be an array")
+    required_assessments = []
+    for index, item in enumerate(assessments):
+        item_keys = {"criterion", "required", "status", "card_ids", "case_fact_ids"}
+        if not isinstance(item, dict) or set(item) != item_keys:
+            raise ValueError(f"criterion_assessment[{index}] has the wrong fields")
+        if not isinstance(item["criterion"], str) or not item["criterion"].strip():
+            raise ValueError(f"criterion_assessment[{index}].criterion must be non-empty")
+        if not isinstance(item["required"], bool):
+            raise ValueError(f"criterion_assessment[{index}].required must be boolean")
+        if item["status"] not in {"met", "not_met", "unknown"}:
+            raise ValueError(f"criterion_assessment[{index}] has invalid status")
+        if not isinstance(item["card_ids"], list) or not item["card_ids"]:
+            raise ValueError(f"criterion_assessment[{index}] must cite a diagnosis card")
+        if any(card_id not in retrieved_card_ids for card_id in item["card_ids"]):
+            raise ValueError(f"criterion_assessment[{index}] cites an unretrieved card")
+        if not isinstance(item["case_fact_ids"], list):
+            raise ValueError(f"criterion_assessment[{index}].case_fact_ids must be an array")
+        if any(fact_id not in supplied_fact_ids for fact_id in item["case_fact_ids"]):
+            raise ValueError(f"criterion_assessment[{index}] cites an unsupplied case fact")
+        if item["status"] != "unknown" and not item["case_fact_ids"]:
+            raise ValueError(f"criterion_assessment[{index}] must cite a case fact")
+        if item["required"]:
+            required_assessments.append(item)
+
+    changed = refined != provisional
+    if status != "criteria_met" and changed:
+        raise ValueError("non-met or indeterminate adjudication must preserve provisional_disease")
+    if changed:
+        if not driven_by:
+            raise ValueError("a changed major category requires at least one driving card")
+        if not required_assessments:
+            raise ValueError("a changed major category requires at least one required criterion")
+        if any(item["status"] != "met" for item in required_assessments):
+            raise ValueError("a changed major category requires every required criterion to be met")
+    return adjudication
 
 
 def step4(cards, genes, refined_disease, diagnosis_cards):
@@ -208,41 +296,32 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
 def run_diagnosis(args):
     corpus, _index, digest = load_corpus(args.corpus, args.index)
     cards = flatten(corpus)
-    result = step2(cards, args.genes, args.provisional_disease)
+    facts_document = json.loads(args.case_facts.read_text(encoding="utf-8"))
+    case_facts = facts_document.get("case_facts") if isinstance(facts_document, dict) else facts_document
+    result = step2(cards, args.genes, args.provisional_disease, case_facts)
     result["corpus"] = {"path": str(args.corpus), "index": str(args.index)}
     result["provenance"] = provenance(
         corpus, args.corpus, args.index, digest,
         [card["card_id"] for card in result["diagnosis_cards"]],
     )
     result["step3_instruction"] = (
-        "Choose refined_disease from {provisional_disease} union escalation_candidates "
-        "only. Any other value is rejected. In most cases there are no candidates and "
-        "the provisional disease stands unchanged."
+        "Use prompts/diagnostic_adjudication_prompt.md to compare only case_facts with "
+        "the retrieved diagnosis_cards. refined_disease is the major category used for "
+        "downstream card filtering; diagnostic_label may preserve a supported subtype."
     )
     return result
 
 
 def run_full(args):
     step2_result = json.loads(Path(args.diagnosis_result).read_text(encoding="utf-8"))
+    adjudication = json.loads(Path(args.adjudication_result).read_text(encoding="utf-8"))
+    validate_adjudication(step2_result, adjudication)
     corpus_path = Path(args.corpus or step2_result["corpus"]["path"])
     index_path = Path(args.index or step2_result["corpus"]["index"])
     corpus, _index, digest = load_corpus(corpus_path, index_path)
 
     provisional = step2_result["provisional_disease"]
-    candidates = [item["disease"] for item in step2_result["escalation_candidates"]]
-    allowed = {provisional} | set(candidates)
-    refined = args.refined_disease or provisional
-    if refined not in allowed:
-        raise ValueError(
-            f"refined_disease {refined!r} is outside the permitted set "
-            f"{sorted(allowed)}. Step 3 may only choose from the provisional disease "
-            "and the escalation candidates the corpus actually asserted."
-        )
-    if refined != provisional and not args.driven_by:
-        raise ValueError(
-            "--driven-by is required when the refined disease differs from the "
-            "provisional one: the cards that moved the diagnosis must be named"
-        )
+    refined = adjudication["downstream_filter_disease"]
 
     genes = args.genes or step2_result["genes"]
     cards = flatten(corpus)
@@ -253,11 +332,7 @@ def run_full(args):
         "genes": sorted({gene.upper() for gene in genes}),
         "provisional_disease": provisional,
         "refined_disease": refined,
-        "escalation": {
-            "candidates": step2_result["escalation_candidates"],
-            "applied": refined != provisional,
-            "driven_by": sorted(args.driven_by or []),
-        },
+        "diagnostic_adjudication": adjudication,
         **result,
     }
     result["provenance"] = provenance(
@@ -275,6 +350,8 @@ def main():
 
     diagnosis = sub.add_parser("diagnosis", help="step 2")
     diagnosis.add_argument("--genes", nargs="+", required=True)
+    diagnosis.add_argument("--case-facts", type=Path, required=True,
+                           help="JSON array, or object with case_facts array")
     diagnosis.add_argument("--provisional-disease", default=vocab.UNSPECIFIED_DISEASE,
                            choices=vocab.DISEASES)
     diagnosis.add_argument("--corpus", type=Path, default=Path("output/corpus/nel.corpus.json"))
@@ -282,8 +359,8 @@ def main():
 
     full = sub.add_parser("full", help="step 4")
     full.add_argument("--diagnosis-result", type=Path, required=True)
-    full.add_argument("--refined-disease", choices=vocab.DISEASES)
-    full.add_argument("--driven-by", nargs="+", help="card IDs that moved the diagnosis")
+    full.add_argument("--adjudication-result", type=Path, required=True,
+                      help="JSON emitted under diagnostic_adjudication_prompt.md")
     full.add_argument("--genes", nargs="+")
     full.add_argument("--corpus", type=Path)
     full.add_argument("--index", type=Path)

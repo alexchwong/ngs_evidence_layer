@@ -1,9 +1,11 @@
 {
-  "schema_version": "4.0",
+  "schema_version": "4.1",
   "paper_id": "aaaaaaaa-0000-0000-0000-000000000001",
   "round": 1,
   "extraction_date": "2026-01-01",
   "extraction_model": "fixture-carding-model",
+  "publication_type": "guideline",
+  "publication_type_basis": "The publication presents classifier criteria as a guideline.",
   "genes_covered": [
     "GENEA",
     "GENEB",

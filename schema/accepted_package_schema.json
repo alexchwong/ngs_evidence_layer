@@ -4,11 +4,13 @@
   "title": "Portable accepted evidence package",
   "description": "The confirm-produced envelope consumed by incorporation. Manual submissions must use this same shape.",
   "type": "object",
-  "required": ["schema_version", "acceptance_path", "metadata", "final"],
+  "required": ["schema_version", "acceptance_path", "accepted_at", "accepted_at_source", "metadata", "final"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "acceptance_path": { "enum": ["confirmed", "manual-or-unverified"] },
+    "accepted_at": { "type": "string", "format": "date-time" },
+    "accepted_at_source": { "enum": ["confirm", "file-mtime"] },
     "metadata": { "$ref": "metadata_schema.json" },
     "final": { "$ref": "ingestion_package_schema.json" }
   }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workflow tests for v0.1.1 folder-as-state ingestion."""
+"""Workflow tests for v0.1.2 folder-as-state ingestion."""
 import copy
 import hashlib
 import importlib.util
@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
 PAPER_ID = "aaaaaaaa-0000-0000-0000-000000000001"
+PUBLICATION_KEY = "fixture-2020-fixture-journal-1-1"
 STEM = "fixture-alpha--aaaaaaaa"
 WORK_FIXTURE = FIXTURES / "work" / PAPER_ID
 
@@ -49,13 +50,15 @@ class FolderStateWorkflowTests(unittest.TestCase):
             "id": PAPER_ID, "markdown_path": f"markdown/{STEM}.md",
             "source_filename": "fixture-alpha.md",
             "sha256": hashlib.sha256(self.source.read_bytes()).hexdigest(),
-            "status": "ingested", "publication_type": "guideline",
+            "status": "ingested", "citation_source": "operator",
+            "citation_resolved_at": "2026-08-02T00:00:00+00:00",
             "citation": {
                 "authors": ["Fixture A", "Fixture B"],
                 "title": "Fixture Classifier, first edition",
                 "journal": "Fixture Journal", "year": 2020, "volume": "1",
                 "issue": "1", "pages": "1-10", "doi": "",
             },
+            "publication_key": PUBLICATION_KEY,
         }
         self.write_index([self.record])
 
@@ -86,18 +89,21 @@ class FolderStateWorkflowTests(unittest.TestCase):
 
     def prepare_complete_work(self):
         self.fanout()
-        working = self.work / PAPER_ID
+        working = self.work / PUBLICATION_KEY
         for name in ("paper.census.json", "paper.provisional-001.json", "paper.final.json"):
             shutil.copy(WORK_FIXTURE / name, working / name)
         return working
 
     def test_fanout_creates_identity_and_is_idempotent(self):
         output = self.fanout()
-        working = self.work / PAPER_ID
+        working = self.work / PUBLICATION_KEY
         self.assertIn("Created 1", output)
         self.assertEqual((working / "paper.md").read_bytes(), self.source.read_bytes())
         metadata = read(working / "metadata.json")
         self.assertEqual(metadata["paper_id"], PAPER_ID)
+        self.assertEqual(metadata["publication_key"], PUBLICATION_KEY)
+        self.assertEqual(metadata["citation_source"], "operator")
+        self.assertNotIn("publication_type", metadata)
         first = (working / "metadata.json").read_bytes()
         self.assertIn("left 1 existing", self.fanout())
         self.assertEqual((working / "metadata.json").read_bytes(), first)
@@ -112,19 +118,41 @@ class FolderStateWorkflowTests(unittest.TestCase):
             "--work-dir", self.work, success=False,
         )
         self.assertIn("indexed Markdown not found", output)
-        self.assertFalse((self.work / PAPER_ID).exists())
+        self.assertFalse((self.work / PUBLICATION_KEY).exists())
 
     def test_confirm_accepts_approved_round_and_archives(self):
         self.prepare_complete_work()
         output = self.run_script(
-            "confirm.py", "--id", PAPER_ID, "--work-dir", self.work,
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
             "--accept-dir", self.accept, "--archive-dir", self.archive,
         )
         self.assertIn("CONFIRMED", output)
-        self.assertFalse((self.work / PAPER_ID).exists())
-        self.assertTrue((self.archive / PAPER_ID / "paper.provisional-001.json").is_file())
-        accepted = read(self.accept / f"{PAPER_ID}.final.json")
+        self.assertFalse((self.work / PUBLICATION_KEY).exists())
+        self.assertTrue((self.archive / PUBLICATION_KEY / "paper.provisional-001.json").is_file())
+        accepted = read(self.accept / f"{PUBLICATION_KEY}.final.json")
         self.assertEqual(accepted["acceptance_path"], "confirmed")
+        self.assertEqual(accepted["accepted_at_source"], "confirm")
+        self.assertTrue(accepted["accepted_at"])
+
+    def test_fanout_rejects_pending_and_incomplete_citations(self):
+        pending = copy.deepcopy(self.record)
+        pending["status"] = "citation-pending"
+        pending["parse"] = {"error": "awaiting citation repair"}
+        self.write_index([pending])
+        output = self.run_script(
+            "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
+            "--work-dir", self.work, success=False,
+        )
+        self.assertIn("awaiting citation repair", output)
+
+        incomplete = copy.deepcopy(self.record)
+        incomplete["citation"]["authors"] = []
+        self.write_index([incomplete])
+        output = self.run_script(
+            "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
+            "--work-dir", self.work, success=False,
+        )
+        self.assertIn("lacks authors, title, or year", output)
 
     def test_confirm_rejects_extraction_change_without_moving(self):
         working = self.prepare_complete_work()
@@ -132,7 +160,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         final["cards"][0]["interpretation"] += " Changed by auditor."
         (working / "paper.final.json").write_text(json.dumps(final), encoding="utf-8")
         output = self.run_script(
-            "confirm.py", "--id", PAPER_ID, "--work-dir", self.work,
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
             "--accept-dir", self.accept, "--archive-dir", self.archive, success=False,
         )
         self.assertIn("only audit may change", output)
@@ -142,7 +170,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
     def test_incorporate_strips_quotes_and_reports_bad_pair(self):
         self.prepare_complete_work()
         self.run_script(
-            "confirm.py", "--id", PAPER_ID, "--work-dir", self.work,
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
             "--accept-dir", self.accept, "--archive-dir", self.archive,
         )
         (self.accept / "bad.census.json").write_text("{}", encoding="utf-8")
@@ -169,6 +197,27 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertNotIn("agreed_reporting_rules", phase3)
         self.assertNotIn('"$schema"', phase3)
         self.assertNotIn("paper.census.json", phase3)
+
+    def test_review_guidance_contract_is_actionable_and_backward_compatible(self):
+        phase2 = build_prompts.render(2)
+        phase3 = build_prompts.render(3)
+
+        self.assertIn("older reviews without it remain valid", phase2)
+        self.assertIn("non-binding reviewer guidance", phase2)
+        self.assertIn("every disease value must be grounded", phase2)
+        self.assertIn("work-up recommendation supports a conditional germline card", phase2)
+        self.assertIn("Never construct card IDs from `paper_id`", phase2)
+        self.assertIn("mandatory normalization", phase2)
+
+        self.assertIn('"suggested_action"', phase3)
+        self.assertIn("narrow_disease_scope", phase3)
+        self.assertIn("correct_escalates_to", phase3)
+        self.assertIn("source-bounded detail", phase3)
+        self.assertIn("Pass an explicit work-up recommendation", phase3)
+        self.assertIn("quote reuse alone", phase3)
+        self.assertIn('"audit_model"', phase3)
+        self.assertIn('"results"', phase3)
+        self.assertIn("must not contain `reviewer_model`", phase3)
 
 
 if __name__ == "__main__":

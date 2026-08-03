@@ -1,55 +1,66 @@
-# Input corpus contract
+# Input corpus contract — v0.1.2
 
-Input is private, operator-managed data and is ignored by git:
+PDFs and generated input state are private and ignored by git:
 
 ```text
+pdf/<corpus>/                     pending operator PDF queue
+pdf/archive/<corpus>/             successfully processed sources
 input/<corpus>/
-  markdown/<stem>--<first-8-characters-of-paper-id>.md
-  index/papers.jsonl
+  markdown/<stem>--<id8>.md        archived evidence source
+  index/papers.jsonl              canonical index
+  index/papers.csv                regenerated read-only view
+  citations/                      DOI and manual repair files
 ```
 
-`papers.jsonl` contains one JSON object per line:
+Run `scripts/parse_pdfs.py --corpus <name>` to convert pending PDFs with locked
+OpenDataLoader settings. Identity is UUIDv5 over the PDF SHA-256, so identical PDF
+bytes always receive the same paper ID. Conversion publishes Markdown atomically;
+no structured JSON or images are retained.
 
-```json
-{
-  "id": "3f0a91c2-7b4e-4c11-9d02-8a5f6e1c0d33",
-  "markdown_path": "markdown/who5--3f0a91c2.md",
-  "source_filename": "who5.pdf",
-  "sha256": "optional 64-character source-file SHA-256",
-  "status": "ingested",
-  "publication_type": "guideline",
-  "citation": {
-    "authors": ["Khoury JD"],
-    "title": "The 5th edition of the World Health Organization classification",
-    "journal": "Leukemia",
-    "year": 2022,
-    "volume": "36",
-    "issue": "7",
-    "pages": "1703-1719",
-    "doi": "10.1038/s41375-022-01613-1"
-  }
-}
+## Index contract
+
+`papers.jsonl` contains one object per source checksum. Records include identity,
+relative Markdown path, source filename and hash, status, citation and provenance,
+canonical `publication_key`, and parse diagnostics. Status is one of:
+
+- `ingested`: Markdown exists and citation authors, title, and year are resolved;
+- `citation-pending`: Markdown exists but citation repair is required;
+- `failed`: conversion failed and will be retried on the next parse run.
+
+`citation_source` is `crossref-doi`, `model-supplied-doi`, or `operator`.
+`papers.csv` is regenerated after every index update and is never an input.
+
+Parse-time publication-key collisions warn but retain both records. Fan-out
+recomputes the key, rejects stored-key mismatches, and aborts if the selected corpus
+contains duplicate publication keys.
+
+## Citation resolution
+
+The parser detects a DOI only in front and back matter and uses Crossref only when
+`--mailto` or `NEL_CROSSREF_MAILTO` is supplied. It performs no fuzzy title search.
+Citation failure does not roll back valid Markdown.
+
+Repair pending records with:
+
+```bash
+python scripts/citations.py request --corpus <name>
+python scripts/citations.py apply --corpus <name> --response response.json
+python scripts/citations.py manual-export --corpus <name>
+python scripts/citations.py manual-apply --corpus <name> --csv worksheet.csv
 ```
 
-## Required invariants
+The model path accepts DOI candidates only, re-resolves them through Crossref, and
+checks title overlap. The manual path accepts a batch-atomic CSV; authors are
+semicolon-separated and DOI may be empty. Derived displays and publication keys are
+always rebuilt by code.
 
-- `id` is a unique UUID.
-- `markdown_path` is unique and relative to `input/<corpus>/`.
-- `status` is exactly `ingested`.
-- the Markdown filename ends `--<id8>.md`.
-- the Markdown exists before fan-out.
-- `source_filename`, `publication_type`, and complete primary citation authors,
-  title, and year are supplied by the operator.
-- publication type is one of: `guideline`, `consensus statement`, `primary study`,
-  `systematic review`, `narrative review`, `other`.
-- absent citation strings are represented as empty strings, not invented values.
+## Evidence boundary and reparsing
 
-Fan-out derives `publication_key` and display citation deterministically using
-`scripts/make_key.py`, computes the Markdown hash, and rejects duplicate publication
-keys across the selected corpus before creating any working folder. No network DOI
-lookup or model-derived bibliography is used.
+PDF conversion and Crossref DOI lookup are input-layer operations. After conversion,
+Markdown is the only archived evidence source: model phases, confirmation, cards,
+and citations never read or cite a PDF.
 
-Markdown is the archived evidence source. PDF conversion is outside this project,
-and only intact Markdown tables may be interpreted. Re-ingestion requires the exact
-Markdown that was originally carded; a schema or reporting-rule change cannot be
-recovered by mechanically migrating fields.
+`--force` reparsing is blocked if the content-addressed paper already exists in
+`work/`, `accept/`, or `archive/`. `--allow-reparse` explicitly overrides this
+safeguard. A parser upgrade can change Markdown and invalidate verified quotes, so
+schema or rule changes require re-ingestion rather than mechanical migration.

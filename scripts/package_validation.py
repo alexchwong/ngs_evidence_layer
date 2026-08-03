@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared deterministic validation for v0.1.1 working and accepted artefacts."""
+"""Shared deterministic validation for v0.1.2 working and accepted artefacts."""
 import copy
 import json
 import re
@@ -14,6 +14,14 @@ UMBRELLAS = {
     "APL": "AML", "PV": "MPN-U", "ET": "MPN-U", "PMF": "MPN-U",
     "post-PV/post-ET MF": "MPN-U", "CNL": "MPN-U", "CEL": "MPN-U",
 }
+DISEASE_DEPENDENT_CATEGORIES = {"diagnosis", "prognosis", "treatment", "biomarker"}
+GENERIC_INTERPRETATION_PATTERNS = (
+    "application remains dependent on the source-stated disease context",
+    "does not provide a complete patient-level risk score in this passage",
+    "the implication is alteration- and disease-specific and should not be generalized",
+    "does not by itself establish germline origin, clonal chronology, or suitability as a stand-alone mrd marker",
+)
+REFERENCE_ENTRY_RE = re.compile(r"^\s*[-*]?\s*\d{1,4}\.\s+.+\b(?:19|20)\d{2}\s*;", re.IGNORECASE)
 
 
 def read_json(path, label="JSON"):
@@ -92,6 +100,10 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package paper_id does not match metadata")
     if package["census_entries"] != len(census.get("entries", [])):
         errors.append("package census_entries does not match census")
+    if package["publication_type"] != census.get("publication_type"):
+        errors.append("package publication_type does not match census")
+    if package["publication_type_basis"] != census.get("publication_type_basis"):
+        errors.append("package publication_type_basis does not match census")
 
     card_ids = [card["card_id"] for card in package["cards"]]
     quote_ids = [quote["card_id"] for quote in package["quotes"]]
@@ -113,6 +125,11 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append(f"{card_id}: card_id must begin with {prefix}")
         if card["category"] != "diagnosis" and card.get("escalates_to") is not None:
             errors.append(f"{card_id}: escalates_to is allowed only on diagnosis cards")
+        if card["category"] in DISEASE_DEPENDENT_CATEGORIES and not card["diseases"]:
+            errors.append(f"{card_id}: {card['category']} card requires at least one disease")
+        interpretation = normalise(card["interpretation"]).lower()
+        if any(pattern in interpretation for pattern in GENERIC_INTERPRETATION_PATTERNS):
+            warnings.append(f"{card_id}: interpretation contains generic category boilerplate; review direct quote support")
         for disease in card["diseases"]:
             umbrella = UMBRELLAS.get(disease)
             if umbrella and umbrella not in card["diseases"]:
@@ -124,6 +141,8 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         card_id = quote["card_id"]
         if len(quote["quote"].split()) > 400:
             errors.append(f"{card_id}: quote exceeds 400 words")
+        if REFERENCE_ENTRY_RE.search(quote["quote"]):
+            errors.append(f"{card_id}: quote appears to be a bibliographic reference-list entry")
         if source is not None and normalise(quote["quote"], markdown=True) not in source:
             errors.append(f"{card_id}: quote not found verbatim in paper.md")
         duplicate = quote_texts.get(normalise(quote["quote"]))
@@ -158,6 +177,8 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append("audit model must differ from extraction model")
         if audit["extraction_model_reviewed"] != package["extraction_model"]:
             errors.append("extraction_model_reviewed does not match extraction_model")
+        if audit["publication_type_verdict"]["verdict"] != "pass":
+            errors.append("failed publication_type verdict blocks acceptance")
         verdict_ids = [result["card_id"] for result in audit["results"]]
         if len(verdict_ids) != len(set(verdict_ids)):
             errors.append("audit contains duplicate card verdicts")

@@ -1,9 +1,11 @@
 {
-  "schema_version": "4.0",
+  "schema_version": "4.1",
   "paper_id": "bbbbbbbb-0000-0000-0000-000000000002",
   "round": 1,
   "extraction_date": "2026-01-01",
   "extraction_model": "fixture-carding-model",
+  "publication_type": "consensus statement",
+  "publication_type_basis": "The publication states a group consensus classifier.",
   "genes_covered": [
     "GENEA"
   ],

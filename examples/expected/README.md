@@ -19,13 +19,17 @@ directory.
 After WHO-5 is ingested and the corpus is built, for each case in
 `examples/cases/`:
 
-1. Run step 1 by hand or with a model: read the case, emit
-   `{"provisional_disease": ..., "genes": [...]}`. Genes come strictly from the
-   NGS result block.
-2. `scripts/retrieve.py diagnosis --genes ... --provisional-disease ... --output step2.json`
-3. Run step 3: choose `refined_disease` from the provisional disease and the
-   escalation candidates only.
-4. `scripts/retrieve.py full --diagnosis-result step2.json --refined-disease ... --output bundle.json`
+1. Run step 1 by hand or with a model: read the case and emit
+   `provisional_disease`, NGS `genes`, and structured `case_facts` with unique
+   `fact_id` values. Genes come strictly from the NGS result block; facts preserve
+   only supplied case information.
+2. Save the facts array in `case-facts.json`, then run
+   `scripts/retrieve.py diagnosis --genes ... --provisional-disease ... --case-facts case-facts.json --output step2.json`.
+3. In a fresh model session, apply `prompts/diagnostic_adjudication_prompt.md` to
+   `step2.json` and save the JSON result as `adjudication.json`. The adjudicated
+   `refined_disease` is the major category used for downstream card calling; a more
+   specific source-supported entity belongs in `diagnostic_label`.
+4. `scripts/retrieve.py full --diagnosis-result step2.json --adjudication-result adjudication.json --output bundle.json`
 5. `scripts/render.py --bundle bundle.json --output examples/expected/<case>.md`
 6. **Read it.** Commit it only once a human has looked at it and agreed it is
    what the corpus should be saying. Committing an unreviewed block turns a diff

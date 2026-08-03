@@ -3,14 +3,18 @@
   "$id": "https://local/ngs_evidence_layer/ingestion_package_schema.json",
   "title": "Phase 2 provisional or Phase 3 final evidence package",
   "type": "object",
-  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "genes_covered", "diseases_covered", "census_entries", "cards", "quotes", "audit"],
+  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "publication_type", "publication_type_basis", "genes_covered", "diseases_covered", "census_entries", "cards", "quotes", "audit"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "4.0" },
+    "schema_version": { "const": "4.1" },
     "paper_id": { "type": "string", "format": "uuid" },
     "round": { "type": "integer", "minimum": 1 },
     "extraction_date": { "type": "string", "format": "date" },
     "extraction_model": { "type": "string", "minLength": 1 },
+    "publication_type": {
+      "enum": ["guideline", "consensus statement", "primary study", "systematic review", "narrative review", "other"]
+    },
+    "publication_type_basis": { "type": "string", "minLength": 1 },
     "genes_covered": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
     "diseases_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
     "census_entries": { "type": "integer", "minimum": 0 },
@@ -46,17 +50,36 @@
         "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
         "escalates_to": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/disease" }] },
         "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker"] } },
+            "required": ["category"]
+          },
+          "then": { "properties": { "diseases": { "minItems": 1 } } }
+        }
+      ]
     },
     "quote": {
       "type": "object", "required": ["card_id", "quote", "locator"], "additionalProperties": false,
       "properties": { "card_id": { "type": "string", "minLength": 1 }, "quote": { "type": "string", "minLength": 1 }, "locator": { "type": "string", "minLength": 1 } }
     },
     "audit": {
-      "type": "object", "required": ["audit_date", "audit_model", "extraction_model_reviewed", "approved_round", "results"], "additionalProperties": false,
+      "type": "object", "required": ["audit_date", "audit_model", "extraction_model_reviewed", "approved_round", "publication_type_verdict", "results"], "additionalProperties": false,
       "properties": {
         "audit_date": { "type": "string", "format": "date" }, "audit_model": { "type": "string", "minLength": 1 },
         "extraction_model_reviewed": { "type": "string", "minLength": 1 }, "approved_round": { "type": "integer", "minimum": 1 },
+        "publication_type_verdict": {
+          "type": "object",
+          "required": ["verdict"],
+          "additionalProperties": false,
+          "properties": {
+            "verdict": { "enum": ["pass", "fail"] },
+            "reason": { "type": "string", "minLength": 1 }
+          },
+          "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]
+        },
         "results": {
           "type": "array", "items": {
             "type": "object", "required": ["card_id", "verdict"], "additionalProperties": false,

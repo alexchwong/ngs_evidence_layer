@@ -1,7 +1,9 @@
 {
-  "schema_version": "3.0",
+  "schema_version": "3.1",
   "census_date": "2026-01-01",
   "census_model": "fixture-census-model",
+  "publication_type": "guideline",
+  "publication_type_basis": "The publication presents classifier criteria as a guideline.",
   "supplement_flags": [],
   "entries": [
     {

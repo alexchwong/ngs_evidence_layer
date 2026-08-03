@@ -1,0 +1,630 @@
+{
+  "by_category": {
+    "biomarker": [
+      "khoury-2022-leukemia-36-1703-C0004",
+      "khoury-2022-leukemia-36-1703-C0010",
+      "khoury-2022-leukemia-36-1703-C0020"
+    ],
+    "diagnosis": [
+      "khoury-2022-leukemia-36-1703-C0001",
+      "khoury-2022-leukemia-36-1703-C0002",
+      "khoury-2022-leukemia-36-1703-C0005",
+      "khoury-2022-leukemia-36-1703-C0008",
+      "khoury-2022-leukemia-36-1703-C0009",
+      "khoury-2022-leukemia-36-1703-C0011",
+      "khoury-2022-leukemia-36-1703-C0012",
+      "khoury-2022-leukemia-36-1703-C0013",
+      "khoury-2022-leukemia-36-1703-C0015",
+      "khoury-2022-leukemia-36-1703-C0016",
+      "khoury-2022-leukemia-36-1703-C0019"
+    ],
+    "germline": [
+      "khoury-2022-leukemia-36-1703-C0018"
+    ],
+    "prognosis": [
+      "khoury-2022-leukemia-36-1703-C0003",
+      "khoury-2022-leukemia-36-1703-C0006",
+      "khoury-2022-leukemia-36-1703-C0014",
+      "khoury-2022-leukemia-36-1703-C0017"
+    ],
+    "treatment": [
+      "khoury-2022-leukemia-36-1703-C0021",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ]
+  },
+  "by_disease": {
+    "AML": [
+      "khoury-2022-leukemia-36-1703-C0011",
+      "khoury-2022-leukemia-36-1703-C0012",
+      "khoury-2022-leukemia-36-1703-C0013",
+      "khoury-2022-leukemia-36-1703-C0014",
+      "khoury-2022-leukemia-36-1703-C0015",
+      "khoury-2022-leukemia-36-1703-C0017",
+      "khoury-2022-leukemia-36-1703-C0018"
+    ],
+    "CML": [
+      "khoury-2022-leukemia-36-1703-C0001"
+    ],
+    "CNL": [
+      "khoury-2022-leukemia-36-1703-C0004"
+    ],
+    "JMML": [
+      "khoury-2022-leukemia-36-1703-C0005",
+      "khoury-2022-leukemia-36-1703-C0006"
+    ],
+    "MDS": [
+      "khoury-2022-leukemia-36-1703-C0009",
+      "khoury-2022-leukemia-36-1703-C0010",
+      "khoury-2022-leukemia-36-1703-C0017",
+      "khoury-2022-leukemia-36-1703-C0018"
+    ],
+    "MPN-U": [
+      "khoury-2022-leukemia-36-1703-C0002",
+      "khoury-2022-leukemia-36-1703-C0003",
+      "khoury-2022-leukemia-36-1703-C0004"
+    ],
+    "PMF": [
+      "khoury-2022-leukemia-36-1703-C0003"
+    ],
+    "PV": [
+      "khoury-2022-leukemia-36-1703-C0002"
+    ],
+    "mastocytosis": [
+      "khoury-2022-leukemia-36-1703-C0008"
+    ],
+    "myeloid neoplasm, unspecified": [
+      "khoury-2022-leukemia-36-1703-C0016"
+    ],
+    "myeloid/lymphoid neoplasm with eosinophilia and TK fusion": [
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0020",
+      "khoury-2022-leukemia-36-1703-C0021",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ]
+  },
+  "by_escalates_to": {},
+  "by_evidence_tier": {
+    "restated secondary": [
+      "khoury-2022-leukemia-36-1703-C0001",
+      "khoury-2022-leukemia-36-1703-C0002",
+      "khoury-2022-leukemia-36-1703-C0003",
+      "khoury-2022-leukemia-36-1703-C0004",
+      "khoury-2022-leukemia-36-1703-C0005",
+      "khoury-2022-leukemia-36-1703-C0006",
+      "khoury-2022-leukemia-36-1703-C0008",
+      "khoury-2022-leukemia-36-1703-C0009",
+      "khoury-2022-leukemia-36-1703-C0010",
+      "khoury-2022-leukemia-36-1703-C0011",
+      "khoury-2022-leukemia-36-1703-C0012",
+      "khoury-2022-leukemia-36-1703-C0013",
+      "khoury-2022-leukemia-36-1703-C0014",
+      "khoury-2022-leukemia-36-1703-C0015",
+      "khoury-2022-leukemia-36-1703-C0016",
+      "khoury-2022-leukemia-36-1703-C0017",
+      "khoury-2022-leukemia-36-1703-C0018",
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0020",
+      "khoury-2022-leukemia-36-1703-C0021",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ]
+  },
+  "by_gene": {
+    "ABL1": [
+      "khoury-2022-leukemia-36-1703-C0001",
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ],
+    "ASXL1": [
+      "khoury-2022-leukemia-36-1703-C0003",
+      "khoury-2022-leukemia-36-1703-C0011"
+    ],
+    "BCOR": [
+      "khoury-2022-leukemia-36-1703-C0011"
+    ],
+    "BCR": [
+      "khoury-2022-leukemia-36-1703-C0001"
+    ],
+    "CBL": [
+      "khoury-2022-leukemia-36-1703-C0006"
+    ],
+    "CEBPA": [
+      "khoury-2022-leukemia-36-1703-C0013",
+      "khoury-2022-leukemia-36-1703-C0014"
+    ],
+    "CSF3R": [
+      "khoury-2022-leukemia-36-1703-C0004"
+    ],
+    "ETV6": [
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ],
+    "EZH2": [
+      "khoury-2022-leukemia-36-1703-C0003",
+      "khoury-2022-leukemia-36-1703-C0011"
+    ],
+    "FGFR1": [
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ],
+    "FIP1L1": [
+      "khoury-2022-leukemia-36-1703-C0020"
+    ],
+    "FLT3": [
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ],
+    "IDH1": [
+      "khoury-2022-leukemia-36-1703-C0003"
+    ],
+    "IDH2": [
+      "khoury-2022-leukemia-36-1703-C0003"
+    ],
+    "JAK2": [
+      "khoury-2022-leukemia-36-1703-C0002",
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0022"
+    ],
+    "KIT": [
+      "khoury-2022-leukemia-36-1703-C0008"
+    ],
+    "KMT2A": [
+      "khoury-2022-leukemia-36-1703-C0005"
+    ],
+    "NF1": [
+      "khoury-2022-leukemia-36-1703-C0006"
+    ],
+    "NPM1": [
+      "khoury-2022-leukemia-36-1703-C0012"
+    ],
+    "PARP1": [
+      "khoury-2022-leukemia-36-1703-C0016"
+    ],
+    "PDGFRA": [
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0020",
+      "khoury-2022-leukemia-36-1703-C0021"
+    ],
+    "PDGFRB": [
+      "khoury-2022-leukemia-36-1703-C0019",
+      "khoury-2022-leukemia-36-1703-C0021"
+    ],
+    "PPM1D": [
+      "khoury-2022-leukemia-36-1703-C0018"
+    ],
+    "PTPN11": [
+      "khoury-2022-leukemia-36-1703-C0006"
+    ],
+    "RUNX1": [
+      "khoury-2022-leukemia-36-1703-C0015"
+    ],
+    "SF3B1": [
+      "khoury-2022-leukemia-36-1703-C0009",
+      "khoury-2022-leukemia-36-1703-C0011"
+    ],
+    "SRSF2": [
+      "khoury-2022-leukemia-36-1703-C0003",
+      "khoury-2022-leukemia-36-1703-C0011"
+    ],
+    "STAG2": [
+      "khoury-2022-leukemia-36-1703-C0011"
+    ],
+    "TP53": [
+      "khoury-2022-leukemia-36-1703-C0009",
+      "khoury-2022-leukemia-36-1703-C0010",
+      "khoury-2022-leukemia-36-1703-C0017"
+    ],
+    "U2AF1": [
+      "khoury-2022-leukemia-36-1703-C0003",
+      "khoury-2022-leukemia-36-1703-C0011"
+    ],
+    "ZRSR2": [
+      "khoury-2022-leukemia-36-1703-C0011"
+    ]
+  },
+  "by_publication_type": {
+    "narrative review": [
+      "khoury-2022-leukemia-36-1703"
+    ]
+  },
+  "by_year": {
+    "2022": [
+      "khoury-2022-leukemia-36-1703"
+    ]
+  },
+  "cards": {
+    "khoury-2022-leukemia-36-1703-C0001": {
+      "category": "diagnosis",
+      "diseases": [
+        "CML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0002": {
+      "category": "diagnosis",
+      "diseases": [
+        "MPN-U",
+        "PV"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0003": {
+      "category": "prognosis",
+      "diseases": [
+        "MPN-U",
+        "PMF"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0004": {
+      "category": "biomarker",
+      "diseases": [
+        "CNL",
+        "MPN-U"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CSF3R"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0005": {
+      "category": "diagnosis",
+      "diseases": [
+        "JMML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "KMT2A"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0006": {
+      "category": "prognosis",
+      "diseases": [
+        "JMML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CBL",
+        "NF1",
+        "PTPN11"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0008": {
+      "category": "diagnosis",
+      "diseases": [
+        "mastocytosis"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "KIT"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0009": {
+      "category": "diagnosis",
+      "diseases": [
+        "MDS"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0010": {
+      "category": "biomarker",
+      "diseases": [
+        "MDS"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0011": {
+      "category": "diagnosis",
+      "diseases": [
+        "AML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "EZH2",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0012": {
+      "category": "diagnosis",
+      "diseases": [
+        "AML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NPM1"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0013": {
+      "category": "diagnosis",
+      "diseases": [
+        "AML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0014": {
+      "category": "prognosis",
+      "diseases": [
+        "AML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0015": {
+      "category": "diagnosis",
+      "diseases": [
+        "AML"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0016": {
+      "category": "diagnosis",
+      "diseases": [
+        "myeloid neoplasm, unspecified"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PARP1"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0017": {
+      "category": "prognosis",
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0018": {
+      "category": "germline",
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PPM1D"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0019": {
+      "category": "diagnosis",
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "ETV6",
+        "FGFR1",
+        "FLT3",
+        "JAK2",
+        "PDGFRA",
+        "PDGFRB"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0020": {
+      "category": "biomarker",
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "FIP1L1",
+        "PDGFRA"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0021": {
+      "category": "treatment",
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PDGFRA",
+        "PDGFRB"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "khoury-2022-leukemia-36-1703-C0022": {
+      "category": "treatment",
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "escalates_to": null,
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "ETV6",
+        "FGFR1",
+        "FLT3",
+        "JAK2"
+      ],
+      "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
+      "publication_key": "khoury-2022-leukemia-36-1703"
+    }
+  },
+  "corpus_sha256": "55ed81558e622d2a5c2ae47b7a2596203914c39c57a5dc34c9358ad4e0dd24ef",
+  "counts": {
+    "cards": 21,
+    "census_entries": 82,
+    "completed_papers": 1,
+    "rejected_papers": 0
+  },
+  "generated_at": "2026-08-03T02:11:48.031633+00:00",
+  "index_version": "1.1",
+  "papers": {
+    "khoury-2022-leukemia-36-1703": {
+      "card_ids": [
+        "khoury-2022-leukemia-36-1703-C0001",
+        "khoury-2022-leukemia-36-1703-C0002",
+        "khoury-2022-leukemia-36-1703-C0003",
+        "khoury-2022-leukemia-36-1703-C0004",
+        "khoury-2022-leukemia-36-1703-C0005",
+        "khoury-2022-leukemia-36-1703-C0006",
+        "khoury-2022-leukemia-36-1703-C0008",
+        "khoury-2022-leukemia-36-1703-C0009",
+        "khoury-2022-leukemia-36-1703-C0010",
+        "khoury-2022-leukemia-36-1703-C0011",
+        "khoury-2022-leukemia-36-1703-C0012",
+        "khoury-2022-leukemia-36-1703-C0013",
+        "khoury-2022-leukemia-36-1703-C0014",
+        "khoury-2022-leukemia-36-1703-C0015",
+        "khoury-2022-leukemia-36-1703-C0016",
+        "khoury-2022-leukemia-36-1703-C0017",
+        "khoury-2022-leukemia-36-1703-C0018",
+        "khoury-2022-leukemia-36-1703-C0019",
+        "khoury-2022-leukemia-36-1703-C0020",
+        "khoury-2022-leukemia-36-1703-C0021",
+        "khoury-2022-leukemia-36-1703-C0022"
+      ],
+      "cards": 21,
+      "census_entries": 82,
+      "citation_display": "Khoury JD, Solary E, Abla O, Akkari Y, Alaggio R, Apperley JF, et al. The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms. Leukemia. 2022;36(7):1703-1719.",
+      "diseases": [
+        "AML",
+        "CML",
+        "CNL",
+        "JMML",
+        "MDS",
+        "MPN-U",
+        "PMF",
+        "PV",
+        "mastocytosis",
+        "myeloid neoplasm, unspecified",
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "genes": [
+        "ABL1",
+        "ASXL1",
+        "BCOR",
+        "BCR",
+        "CBL",
+        "CEBPA",
+        "CSF3R",
+        "ETV6",
+        "EZH2",
+        "FGFR1",
+        "FIP1L1",
+        "FLT3",
+        "IDH1",
+        "IDH2",
+        "JAK2",
+        "KIT",
+        "KMT2A",
+        "NF1",
+        "NPM1",
+        "PARP1",
+        "PDGFRA",
+        "PDGFRB",
+        "PPM1D",
+        "PTPN11",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "TP53",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "publication_key": "khoury-2022-leukemia-36-1703",
+      "status": "completed"
+    }
+  },
+  "rejected": {}
+}

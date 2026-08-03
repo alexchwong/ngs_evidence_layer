@@ -10,7 +10,8 @@
     "stem",
     "publication_key",
     "citation",
-    "publication_type",
+    "citation_source",
+    "citation_resolved_at",
     "source_filename",
     "source_sha256",
     "markdown_sha256",
@@ -18,7 +19,7 @@
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "paper_id": { "type": "string", "format": "uuid" },
     "corpus": { "type": "string", "minLength": 1 },
     "stem": { "type": "string", "minLength": 1 },
@@ -27,14 +28,13 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
     },
     "citation": { "$ref": "#/$defs/citation" },
-    "publication_type": {
-      "enum": [
-        "guideline",
-        "consensus statement",
-        "primary study",
-        "systematic review",
-        "narrative review",
-        "other"
+    "citation_source": {
+      "enum": ["crossref-doi", "model-supplied-doi", "operator"]
+    },
+    "citation_resolved_at": {
+      "anyOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
       ]
     },
     "source_filename": { "type": "string", "minLength": 1 },
