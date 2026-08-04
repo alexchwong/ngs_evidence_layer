@@ -48,6 +48,18 @@ amend, split, or delete, with any necessary instructions. If Phase 3 failed
 publication type, also ask the human to retain it or provide the final corrected
 allowed value and basis.
 
+**Failed-card gate**
+
+For every card Phase 3 marked `fail`:
+
+- ask the user for a free-text final decision and instructions;
+- require an explicit response for that card; never infer or supply one;
+- do not treat Phase 3's suggested action as the user's response;
+- if any response is missing or ambiguous, ask again and stop; do not create
+  `paper.final.json`; and
+- apply the response, but do not record the decision or adjudication history on the
+  card or elsewhere in the final package.
+
 The human review and action are final. Human instructions are amendment direction,
 not source evidence. Verify every retained or amended assertion and every fragment
 against `paper.md`, this prompt's reporting rules, vocabulary, and schema. Carry out
