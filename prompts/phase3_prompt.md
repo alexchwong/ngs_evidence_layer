@@ -45,8 +45,22 @@ Identical quote text alone is not failure when it supports distinct useful roles
 
 Apply these calibrations consistently:
 
-- Every disease value must be grounded by disease or unambiguous entity wording in
-  the paired quote; context imported from elsewhere in the paper is insufficient.
+- **Disease grounding:**
+  - Each specific disease asserted by the card must be named or unambiguously
+    identified in the paired quote.
+  - Do not import specific disease context from headings or elsewhere in the paper.
+  - A broader umbrella disease tag does not need to appear in the quote when the
+    quote names a disease within that umbrella. For example, a PV card may include
+    both `PV` and `MPN`.
+  - An umbrella tag broadens indexing only. It must not broaden the interpretation
+    beyond the specific disease supported by the quote.
+  - Fail a disease value when it adds unsupported narrower, sibling, or otherwise
+    distinct disease scope.
+- For `germline predisposition syndrome`, a named genetic disorder or constitutional
+  abnormality is sufficient grounding; the quote need not use the words "germline",
+  "inherited", or "predisposition". This includes inherited or de novo disorders,
+  constitutional chromosomal abnormalities, and constitutional mosaicism, but
+  excludes acquired or tumour-restricted abnormalities.
 - A bibliographic reference title or reference-list entry is not substantive
   evidence and must fail, even when its title appears to state the desired claim.
 - Preserve strict quote fidelity for treatment, variant class, allelic state,
