@@ -11,10 +11,10 @@ them as inputs only; do not overwrite them.
 
 Phase 4 has two checkpoints:
 
-1. before human adjudication is complete, ask one combined set of questions and
-   create no file;
-2. after the human has adjudicated every provisional card and any failed publication
-   type, return exactly `paper.final.json`.
+1. if Phase 3 failed any card or publication type, discuss those failed items in chat
+   and create no file until the user finalizes adjudication;
+2. after all failed items are adjudicated, or immediately if nothing failed, return
+   exactly `paper.final.json`.
 
 Phase 4 is final. Do not create another provisional package, another Phase 3 review,
 or another audit round. Do not send any card back to Phase 3.
@@ -29,44 +29,56 @@ session.
 
 ## Mandatory human adjudication
 
-Before editing cards or writing a final package, ask the user to adjudicate every
-provisional card, including cards Phase 3 passed. Ask all questions together and
-then stop. This question list is the only permitted non-file output.
+Adjudicate only:
 
-For each card, print one numbered question containing:
+- cards Phase 3 marked `fail`; and
+- publication type, if Phase 3 marked it `fail`.
+
+Retain passed cards unchanged. Do not show them or ask the user about them.
+
+### Initial chat output
+
+Print one numerically ordered section for each failed card directly in chat. Use
+headings and bullet points; do not create a Markdown file. For each failed card,
+show:
 
 1. the exact `card_id`;
-2. the complete current card;
-3. the exact paired evidence bundle;
-4. Phase 3's verdict; and
-5. for a failure, the complete Phase 3 `details`, including failure type, reason,
-   defensibility, suggested action, and quote restatement when present.
+2. the current interpretation and all card fields;
+3. the complete paired evidence;
+4. the complete Phase 3 failure details and suggested action;
+5. Phase 4's independent, source-checked suggestion for resolving the failure; and
+6. a request for the user's free-text questions, decision, or instructions.
 
-For a passed card, ask the human to keep it or provide final amendment instructions.
-For a failed card, ask the human to choose the final action: keep as defensible,
-amend, split, or delete, with any necessary instructions. If Phase 3 failed
-publication type, also ask the human to retain it or provide the final corrected
-allowed value and basis.
+Keep Phase 3's and Phase 4's suggestions separate. Neither is the user's decision.
 
-**Failed-card gate**
+If publication type failed, add a separate numbered section with its current value
+and basis, Phase 3 findings, Phase 4's independent suggestion, and a request for
+free-text input. If nothing failed, create `paper.final.json` without asking
+questions.
 
-For every card Phase 3 marked `fail`:
+### Discussion and finalization
 
-- ask the user for a free-text final decision and instructions;
-- require an explicit response for that card; never infer or supply one;
-- do not treat Phase 3's suggested action as the user's response;
-- if any response is missing or ambiguous, ask again and stop; do not create
-  `paper.final.json`; and
-- apply the response, but do not record the decision or adjudication history on the
-  card or elsewhere in the final package.
+- Accept free-text discussion and instructions over any number of chat turns.
+- Answer the user's questions about any failed item.
+- Do not expect the next response to contain final decisions.
+- Treat all instructions as provisional until the user sends `FINALIZE` on its own
+  line.
+- Before `FINALIZE`, do not create or return `paper.final.json`.
+- Never infer or supply the user's decision.
+- Never treat a Phase 3 or Phase 4 suggestion as the user's decision.
 
-The human review and action are final. Human instructions are amendment direction,
-not source evidence. Verify every retained or amended assertion and every fragment
-against `paper.md`, this prompt's reporting rules, vocabulary, and schema. Carry out
-the human's chosen outcome when source-supported. If an instruction would introduce
-unsupported content, explain the conflict and ask only for resolution of that item;
-do not silently invent or substitute evidence. Continue waiting until every card and
-any publication-type failure has an unambiguous final decision.
+When the user sends `FINALIZE`:
+
+- verify that the user explicitly and unambiguously addressed every failed item;
+- if anything remains unresolved, ask only about those items and wait for another
+  `FINALIZE`; and
+- otherwise apply the user's instructions and create `paper.final.json`.
+
+Human instructions direct amendments but are not source evidence. Verify all retained
+or amended content against `paper.md`, the reporting rules, vocabulary, and schema.
+If an instruction is unsupported, explain the conflict and continue discussion; do
+not silently invent or substitute evidence. Do not record the user's decisions,
+discussion, or adjudication history on cards or elsewhere in the final package.
 
 ## Final package construction
 
@@ -127,8 +139,8 @@ decision fields to the audit; adjudication is represented by the final card cont
 
 Before writing, verify privately that:
 
-1. the active phase is Phase 4, every provisional card was presented to the human,
-   and every required decision was received;
+1. the active phase is Phase 4, no passed card required adjudication, and every failed
+   item was explicitly adjudicated and finalized by the user;
 2. the only file output is `paper.final.json` and no input was overwritten;
 3. every final assertion and evidence fragment is supported verbatim by `paper.md`;
 4. every resulting card has exactly one paired evidence bundle and all paired IDs
