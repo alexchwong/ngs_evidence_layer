@@ -60,7 +60,7 @@ Before writing, verify privately that:
    `metadata.json`;
 4. the file contains `entries`, `geneless_statements`, and
    `validation_unresolved`; and
-5. the file does not contain `cards`, `quotes`, or `audit`.
+5. the file does not contain `cards`, `evidence`, or `audit`.
 
 If any check fails, repair the output before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences, or a claim that Phase 2 has begun.

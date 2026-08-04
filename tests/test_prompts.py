@@ -77,31 +77,31 @@ class PublicationTypePromptTests(unittest.TestCase):
         )
         self.assertIn('"auditor_value": "<one allowed taxonomy value>"', prompt)
 
-    def test_phase2_requires_minimal_sufficient_passages(self):
+    def test_phase2_requires_minimal_sufficient_evidence_bundles(self):
         prompt = BUILD_PROMPTS.render(2)
         normalized = " ".join(prompt.split())
 
-        self.assertIn("minimal sufficient verbatim passage", normalized)
+        self.assertIn("minimal sufficient evidence bundle", normalized)
         self.assertIn(
             '"Minimal" means exclude unrelated material, not choose the shortest fragment',
             normalized,
         )
         self.assertIn(
-            "a quote may and must contain multiple contiguous sentences",
+            "Its sole fragment has role `claim` and may contain multiple contiguous sentences.",
             normalized,
         )
         self.assertIn(
-            "freeze that complete passage as the candidate quote before drafting the interpretation",
+            "freeze the complete candidate evidence bundle before drafting the interpretation",
             normalized,
         )
 
-    def test_phase2_checks_quote_boundaries_and_atomic_support(self):
+    def test_phase2_checks_evidence_boundaries_and_atomic_support(self):
         prompt = BUILD_PROMPTS.render(2)
         normalized = " ".join(prompt.split())
 
-        self.assertIn("### Quote boundary method", prompt)
+        self.assertIn("### Evidence bundle method", prompt)
         self.assertIn(
-            "inspect the sentence immediately before and after each candidate quote",
+            "For every `claim` fragment, inspect the sentence immediately before and after it",
             normalized,
         )
         self.assertIn(
@@ -109,29 +109,42 @@ class PublicationTypePromptTests(unittest.TestCase):
             normalized,
         )
         self.assertIn(
-            "If any assertion has no supporting span, expand the quote, narrow the interpretation, split the card, or omit it.",
+            "If any assertion has no supporting span, expand the bundle, narrow the interpretation, split the card, or omit it.",
             normalized,
         )
-        self.assertIn("never join non-contiguous excerpts with ellipses", normalized)
+        self.assertIn("Never join non-contiguous excerpts with ellipses", normalized)
 
-    def test_phase3_does_not_receive_phase2_quote_authoring_method(self):
+    def test_phase3_audits_relationships_without_receiving_phase2_authoring_method(self):
         phase3 = BUILD_PROMPTS.render(3)
 
-        self.assertNotIn("### Quote boundary method", phase3)
-        self.assertNotIn("minimal sufficient verbatim passage", phase3)
+        self.assertNotIn("### Evidence bundle method", phase3)
+        self.assertNotIn("minimal sufficient evidence bundle", phase3)
         self.assertNotIn("atomic assertions", phase3)
+        self.assertIn("**Scope governance:**", phase3)
+        self.assertIn("**Table reconstruction:**", phase3)
+        self.assertIn("**No evidence laundering:**", phase3)
 
     def test_phase2_requires_human_adjudication_before_rework(self):
         prompt = BUILD_PROMPTS.render(2)
         normalized = " ".join(prompt.split())
 
         self.assertIn("### Mandatory human adjudication before rework", prompt)
-        self.assertIn("the exact paired quote", normalized)
+        self.assertIn("the exact paired evidence bundle", normalized)
         self.assertIn("the current card interpretation", normalized)
         self.assertIn("Phase 3's exact failure reason", normalized)
         self.assertIn("suggested_action.category", normalized)
         self.assertIn("affirm Phase 3's suggested action or provide alternate amendment instructions", normalized)
         self.assertIn("Do not create any file in the same response", normalized)
+
+    def test_phase2_requires_both_matching_rework_artefacts(self):
+        prompt = BUILD_PROMPTS.render(2)
+        normalized = " ".join(prompt.split())
+
+        self.assertIn("require both `paper.review-NNN.json` and its exact prior `paper.provisional-NNN.json`", normalized)
+        self.assertIn("their filename rounds, `round` values, and `paper_id` values must match", normalized)
+        self.assertIn("neither rework artefact is optional", normalized)
+        self.assertIn("missing, mismatched, or malformed rework artefact stops the session", normalized)
+        self.assertNotIn("an optional review file", normalized)
 
     def test_publication_type_is_verified_once_by_phase3(self):
         phase1 = " ".join(BUILD_PROMPTS.render(1).split())

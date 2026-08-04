@@ -1,4 +1,4 @@
-# Input corpus contract — v0.1.2
+# Input corpus contract — v0.1.3
 
 PDFs and generated input state are private and ignored by git:
 
@@ -62,5 +62,6 @@ and citations never read or cite a PDF.
 
 `--force` reparsing is blocked if the content-addressed paper already exists in
 `work/`, `accept/`, or `archive/`. `--allow-reparse` explicitly overrides this
-safeguard. A parser upgrade can change Markdown and invalidate verified quotes, so
-schema or rule changes require re-ingestion rather than mechanical migration.
+safeguard. A parser upgrade can change Markdown and invalidate verified evidence
+fragments, so schema or rule changes require re-ingestion rather than mechanical
+migration.

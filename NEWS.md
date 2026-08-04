@@ -1,5 +1,18 @@
 # NEWS
 
+## 0.1.3
+
+- Replaced the single contiguous quote contract with one typed evidence bundle per
+  card: `contiguous_text`, `composite_text`, or `table_relation`.
+- Added independently verbatim, locatable evidence fragments, atomic `support_map`
+  references, and explicit table links between cells, headers, legends, and footnotes.
+- Added deterministic bundle cardinality, reference, role, source-presence, and
+  aggregate-length validation while keeping private evidence out of public artefacts.
+- Made scope governance, complete table reconstruction, and prevention of evidence
+  laundering mandatory Phase 3 audit checks.
+- Bumped ingestion packages to schema version 5.0; version 4.2 packages and external
+  consumers of the former `quotes` array require re-ingestion or adaptation.
+
 ## 0.1.2
 
 - Added deterministic, content-addressed PDF-to-Markdown ingestion with locked

@@ -28,42 +28,44 @@ disease vocabulary, schema, or other publication.
 
 ## Entry validation
 
-Require a well-formed provisional package with `audit: null`, one quote per card,
+Require a well-formed provisional package with `audit: null`, one evidence bundle per card,
 and a filename round matching its `round` field. Otherwise stop without an output.
 
 ## Audit
 
 For every card answer:
 
-1. Does the paired quote support every material assertion in the interpretation,
+1. Does the paired evidence bundle support every material assertion in the interpretation,
    without generalisation beyond its population, disease, context, threshold,
    exclusion, branch, variant class, allelic state, or analysis type?
 2. Is the card independently useful rather than materially redundant elsewhere in
    the package?
 
-Identical quote text alone is not failure when it supports distinct useful roles.
+Identical fragment text alone is not failure when it supports distinct useful roles.
 
 Apply these calibrations consistently:
 
 - **Disease grounding:**
   - Each specific disease asserted by the card must be named or unambiguously
-    identified in the paired quote.
-  - Do not import specific disease context from headings or elsewhere in the paper.
-  - A broader umbrella disease tag does not need to appear in the quote when the
-    quote names a disease within that umbrella. For example, a PV card may include
+    identified in the paired evidence bundle.
+  - A `scope_heading` may supply disease context only when the claim occurs within
+    that heading's section and no intervening heading or section boundary changes
+    scope. Fail a heading that is merely nearby or broadly related.
+  - A broader umbrella disease tag does not need to appear in the evidence when the
+    evidence names a disease within that umbrella. For example, a PV card may include
     both `PV` and `MPN`.
   - An umbrella tag broadens indexing only. It must not broaden the interpretation
-    beyond the specific disease supported by the quote.
+    beyond the specific disease supported by the evidence.
   - Fail a disease value when it adds unsupported narrower, sibling, or otherwise
     distinct disease scope.
 - For `germline predisposition syndrome`, a named genetic disorder or constitutional
-  abnormality is sufficient grounding; the quote need not use the words "germline",
+  abnormality is sufficient grounding; the evidence need not use the words "germline",
   "inherited", or "predisposition". This includes inherited or de novo disorders,
   constitutional chromosomal abnormalities, and constitutional mosaicism, but
   excludes acquired or tumour-restricted abnormalities.
 - A bibliographic reference title or reference-list entry is not substantive
   evidence and must fail, even when its title appears to state the desired claim.
-- Preserve strict quote fidelity for treatment, variant class, allelic state,
+- Preserve strict evidence fidelity for treatment, variant class, allelic state,
   population, and all material qualifiers.
 - For `germline`, distinguish established inherited or constitutional status from
   possible constitutional origin and from a source-stated recommendation or
@@ -71,10 +73,28 @@ Apply these calibrations consistently:
   interpretation remains conditional; do not require it to declare constitutional
   status, and fail an interpretation that does so.
 - Judge independent utility from the interpretation actually written, not from
-  quote reuse alone. Diagnosis and biomarker cards may coexist only when the
+  fragment reuse alone. Diagnosis and biomarker cards may coexist only when the
   biomarker interpretation states a distinct, source-supported testing target,
   detection strategy, assay limitation, monitoring use, or discrimination use.
   A generic "molecular biomarker" or classification relabel is redundant.
+
+For every `composite_text` or `table_relation` bundle, perform these mandatory
+relationship audits in addition to ordinary assertion support:
+
+1. **Scope governance:** verify that every contextual fragment structurally governs
+   the claim and that no intervening heading, section boundary, population, or
+   analysis changes its scope.
+2. **Table reconstruction:** verify that every selected cell is linked to all
+   applicable row headers, column headers, spanning or multi-level headers, legends,
+   and marked footnotes. Fail merged, continued, malformed, or ambiguous relations.
+3. **No evidence laundering:** verify that `support_map`, fragment roles, and table
+   links only describe meanings explicitly expressed by the verbatim fragments. Fail
+   any disease, role, direction, qualifier, or relation introduced by model-authored
+   structure rather than source text.
+
+Treat locators as navigation metadata, not substantive evidence. Verify the complete
+assembled relation while keeping every non-contiguous fragment independently
+verbatim; ellipses or synthetic concatenation do not cure missing support.
 
 When `publication_type_verified_by_phase3` is `false`, audit the package-level
 `publication_type` against the paper's own front matter, structure, primary purpose,
@@ -106,7 +126,7 @@ NNN is the provisional round. Use this review shape:
 
 ```json
 {
-  "schema_version": "4.2",
+  "schema_version": "5.0",
   "paper_id": "<provisional paper_id>",
   "round": 1,
   "review_date": "YYYY-MM-DD",
@@ -140,7 +160,7 @@ NNN is the provisional round. Use this review shape:
 Every failed card must have exactly one `suggested_action.category`, selected from:
 
 - `narrow_disease_scope`
-- `replace_quote`
+- `replace_evidence`
 - `change_category`
 - `rewrite_interpretation`
 - `split_card`
@@ -149,10 +169,10 @@ Every failed card must have exactly one `suggested_action.category`, selected fr
 
 Choose the primary repair class most likely to resolve the stated failure. The
 `detail` must tell Phase 2 what to consider changing and why, while remaining
-concise and grounded in the paired quote. It may identify content to retain or
+concise and grounded in the paired evidence bundle. It may identify content to retain or
 remove, a qualifier to preserve, or the kind of substantive passage needed. It must
 not supply a finished replacement card or introduce facts from outside the paired
-quote. Suggested actions are reviewer advice, not extraction edits. Include each
+evidence. Suggested actions are reviewer advice, not extraction edits. Include each
 failed card ID and a precise reason. Do not write a final and do not repair cards.
 
 If all cards and publication type pass, write `paper.final.json` as the complete

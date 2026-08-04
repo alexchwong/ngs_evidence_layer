@@ -16,7 +16,7 @@ authoring context starts improving cards instead of judging them.
 Every prompt edit must preserve these invariants:
 
 - no model knowledge enters output;
-- one source-verbatim quote per card and one card per quote;
+- one typed evidence bundle per card and one card per bundle, with every fragment source-verbatim;
 - cards are gene-indexed and independently useful;
 - diseases use the closed vocabulary with required umbrella tags;
 - Phase 2 pauses for user adjudication before acting on Phase 3 failed-card suggestions;

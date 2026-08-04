@@ -1,4 +1,4 @@
-# Ingestion operations — v0.1.2
+# Ingestion operations — v0.1.3
 
 This is the operator runbook. One publication occupies one independent working
 folder; folder contents are its state. Any number of papers may be in flight in
@@ -27,8 +27,8 @@ python scripts/transport.py export --output nel-private-state.tar.gz
 ```
 
 Transfer that file using an appropriate private channel. Gzip compression does not
-encrypt the source publications, quotes, or workflow state, so protect the bundle as
-private data. On the destination computer, from the repository root:
+encrypt the source publications, evidence fragments, or workflow state, so protect
+the bundle as private data. On the destination computer, from the repository root:
 
 ```bash
 # Inspect the result without writing anything.
@@ -100,7 +100,12 @@ Start a fresh extraction session with:
 
 - `paper.md`, `metadata.json`, `paper.census.json`
 - `prompts/phase2_prompt.md`
-- the latest `paper.review-NNN.json`, only during rework
+- the latest `paper.review-NNN.json` and its exact prior
+  `paper.provisional-NNN.json`, both required only during rework
+
+For rework, both filenames must use the same `NNN`, and both artefacts must have
+matching `round` and `paper_id` values. A missing or mismatched artefact blocks the
+rework session.
 
 If the census is materially deficient, Phase 2 writes the next
 `paper.census-critique-NNN.md` and stops. Return that critique to a fresh Phase 1
@@ -135,6 +140,11 @@ Do not supply rules, vocabulary, schema, census, or another publication.
 
 Phase 3 never edits extraction content.
 
+For every typed evidence bundle, Phase 3 must independently verify that contextual
+fragments structurally govern the claim, table relations reconstruct all applicable
+headers and qualifiers, and provenance metadata does not assign meaning absent from
+the verbatim fragments.
+
 Publication type uses the six-value semantic taxonomy defined in
 `schema/publication_type_vocabulary.json`. Publisher labels such as “special report”
 are not additional values. Phase 3 passes any package value defensible under the
@@ -145,15 +155,27 @@ fresh audit sessions from alternating between equally plausible labels.
 New reviews use these suggested-action categories:
 
 - `narrow_disease_scope`
-- `replace_quote`
+- `replace_evidence`
 - `change_category`
 - `rewrite_interpretation`
 - `split_card`
 - `delete_card`
 - `add_or_correct_qualifier`
-- `correct_escalates_to`
 
 Legacy reviews without `suggested_action` remain valid Phase 2 rework inputs.
+
+Before rework, validate the review against the exact prior provisional package:
+
+```bash
+python scripts/validate_review.py \
+  --review work/<publication-key>/paper.review-NNN.json \
+  --provisional work/<publication-key>/paper.provisional-NNN.json
+```
+
+The validator checks `schema/review_schema.json` plus cross-artefact identity,
+round, model, card-count, card-ID, and publication-type invariants. Compatibility
+mode accepts legacy reviews without `suggested_action`; add
+`--require-current-guidance` when checking a newly generated review.
 
 ## 5. Confirm one paper
 
@@ -162,9 +184,10 @@ python scripts/confirm.py --key <publication-key>
 ```
 
 Confirmation checks schemas, IDs, vocabulary, umbrella tags, census reconciliation,
-one-to-one card/quote pairing, source-verbatim quotes, complete passing audit,
-different model identities, and exact equality with the approved provisional
-round. Failure changes nothing.
+one-to-one card/evidence-bundle pairing, independently source-verbatim fragments,
+bundle references and role constraints, complete passing audit, different model
+identities, and exact equality with the approved provisional round. Failure changes
+nothing.
 
 Success writes:
 
@@ -174,14 +197,14 @@ accept/<publication-key>.census.json
 ```
 
 and moves the complete history from `work/<publication-key>/` to
-`archive/<publication-key>/`. Archives are immutable in v0.1.2; reopening is not
+`archive/<publication-key>/`. Archives are immutable in v0.1.3; reopening is not
 provided. The internal `paper_id` remains embedded in metadata, census, provisional,
 and final artefacts and must agree across them; users do not use it as a path or CLI
 locator.
 
 Manual acceptance is possible only by constructing the same accepted envelope and
 setting `acceptance_path` to `manual-or-unverified`. Incorporation cannot recheck
-quotes against source Markdown on that path.
+evidence fragments against source Markdown on that path.
 
 ## 6. Incorporate all accepted pairs
 
@@ -202,8 +225,9 @@ output/corpus/nel.index.json
 output/reports/build-report.json
 ```
 
-Quote text is never written to distributable output. Every incorporated paper has
-already passed independent audit, so there is no provisional corpus mode.
+Evidence bundles and fragment text are never written to distributable output. Every
+incorporated paper has already passed independent audit, so there is no provisional
+corpus mode.
 
 ## Prompt maintenance
 

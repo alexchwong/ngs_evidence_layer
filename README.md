@@ -1,8 +1,9 @@
 # ngs_evidence_layer
 
 A corpus-grounded evidence layer for myeloid NGS interpretation. It converts one
-publication at a time into gene-indexed evidence cards backed by private verbatim
-quotes, then retrieves and renders a deterministic, citable evidence block.
+publication at a time into gene-indexed evidence cards backed by private typed
+evidence bundles of verbatim source fragments, then retrieves and renders a
+deterministic, citable evidence block.
 
 It collates what publications state. It does not reconcile classifiers, rank
 findings, make clinical decisions, or draft a report. No model haematology knowledge
@@ -18,7 +19,7 @@ python scripts/vocab.py
 python -m unittest discover -s tests -v
 ```
 
-## Ingestion v0.1.2
+## Ingestion v0.1.3
 
 Prompts are committed data under `prompts/`; private folder contents are workflow
 state. Papers are independent and may be in flight concurrently.
@@ -88,15 +89,18 @@ Each model phase has a strict, mutually exclusive output contract. Phase 1 alone
 writes the census and assigns `publication_type` with a source-supported basis. Phase
 2 either critiques a materially deficient census or writes the next complete
 provisional package; it must preserve every source qualifier and maintain exactly one
-quote per card. Phase 3 independently audits publication type and every card/quote
-pair, then either writes the exact final package or a structured review with bounded
-reviewer suggestions for the next Phase 2 round. Mandatory pre-output gates prevent a
-phase from overwriting its inputs or returning another phase's artefact.
+typed evidence bundle per card. A bundle is `contiguous_text`, `composite_text`, or
+`table_relation`; every fragment remains independently verbatim and locatable. Phase 3
+independently audits publication type, every card/bundle pair, cross-fragment scope,
+table reconstruction, and evidence laundering, then either writes the exact final
+package or a structured review with bounded reviewer suggestions for the next Phase 2
+round. Mandatory pre-output gates prevent a phase from overwriting its inputs or
+returning another phase's artefact.
 
-`confirm` is the last source-aware gate: it verifies every quote against `paper.md`
+`confirm` is the last source-aware gate: it verifies every evidence fragment against `paper.md`
 and proves that `paper.final.json` is the exact provisional round independently
-audited. `incorporate` excludes invalid individual accepted pairs, strips all quote
-text, and writes:
+audited. `incorporate` excludes invalid individual accepted pairs, strips all private
+evidence bundles and fragment text, and writes:
 
 ```text
 output/corpus/nel.corpus.json
@@ -160,7 +164,7 @@ category is rejected unless every required criterion is met and cites both retri
 diagnosis cards and supplied case facts. Genes the corpus cannot address are named
 rather than answered from model memory.
 
-Quotes never enter retrieval or rendered output. Every rendered interpretation
+Private evidence bundles never enter retrieval or rendered output. Every rendered interpretation
 carries a card ID and deterministic citations back to its publication.
 
 ## Boundaries

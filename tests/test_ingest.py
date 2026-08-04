@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workflow tests for v0.1.2 folder-as-state ingestion."""
+"""Workflow tests for v0.1.3 folder-as-state ingestion."""
 import copy
 import hashlib
 import importlib.util
@@ -134,6 +134,41 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertEqual(accepted["accepted_at_source"], "confirm")
         self.assertTrue(accepted["accepted_at"])
 
+    def test_confirm_accepts_and_archives_zero_card_package(self):
+        working = self.prepare_complete_work()
+        provisional = read(working / "paper.provisional-001.json")
+        provisional.update(
+            genes_covered=[], diseases_covered=[], cards=[], evidence=[]
+        )
+        (working / "paper.provisional-001.json").write_text(
+            json.dumps(provisional), encoding="utf-8"
+        )
+
+        final = copy.deepcopy(provisional)
+        final["publication_type_verified_by_phase3"] = True
+        final["audit"] = {
+            "audit_date": "2026-08-02",
+            "audit_model": "fixture-audit-model",
+            "extraction_model_reviewed": provisional["extraction_model"],
+            "approved_round": provisional["round"],
+            "publication_type_verdict": {
+                "verdict": "pass", "verified_by_phase3": True,
+            },
+            "results": [],
+        }
+        (working / "paper.final.json").write_text(json.dumps(final), encoding="utf-8")
+
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+        )
+        self.assertIn("CONFIRMED", output)
+        self.assertIn("Cards: 0", output)
+        accepted = read(self.accept / f"{PUBLICATION_KEY}.final.json")
+        self.assertEqual(accepted["final"]["cards"], [])
+        self.assertEqual(accepted["final"]["audit"]["results"], [])
+        self.assertTrue((self.archive / PUBLICATION_KEY / "paper.final.json").is_file())
+
     def test_fanout_rejects_pending_and_incomplete_citations(self):
         pending = copy.deepcopy(self.record)
         pending["status"] = "citation-pending"
@@ -167,7 +202,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertTrue(working.is_dir())
         self.assertFalse(self.accept.exists())
 
-    def test_incorporate_strips_quotes_and_reports_bad_pair(self):
+    def test_incorporate_strips_evidence_and_reports_bad_pair(self):
         self.prepare_complete_work()
         self.run_script(
             "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
@@ -182,7 +217,8 @@ class FolderStateWorkflowTests(unittest.TestCase):
         )
         self.assertIn("Rejected: 1", output)
         corpus_text = (output_dir / "nel.corpus.json").read_text(encoding="utf-8")
-        self.assertNotIn('"quotes"', corpus_text)
+        self.assertNotIn('"evidence"', corpus_text)
+        self.assertNotIn('"fragments"', corpus_text)
         self.assertNotIn('"quote"', corpus_text)
         self.assertNotIn('"provisional"', corpus_text)
         self.assertIn("bad", read(report)["rejected"])
@@ -205,7 +241,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertIn("older reviews without it remain valid", phase2)
         self.assertIn("Mandatory human adjudication before rework", phase2)
         self.assertIn("affirm Phase 3's suggested action", phase2)
-        self.assertIn("every disease value must be grounded", phase2)
+        self.assertIn("every specific disease value must be grounded", phase2)
         self.assertIn("work-up recommendation supports a conditional germline card", phase2)
         self.assertIn("Never construct card IDs from `paper_id`", phase2)
         self.assertIn("mandatory normalization", phase2)
@@ -215,7 +251,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertNotIn("correct_escalates_to", phase3)
         self.assertIn("source-bounded detail", phase3)
         self.assertIn("Pass an explicit work-up recommendation", phase3)
-        self.assertIn("quote reuse alone", phase3)
+        self.assertIn("fragment reuse alone", phase3)
         self.assertIn('"audit_model"', phase3)
         self.assertIn('"results"', phase3)
         self.assertIn("must not contain `reviewer_model`", phase3)

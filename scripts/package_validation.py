@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared deterministic validation for v0.1.2 working and accepted artefacts."""
+"""Shared deterministic validation for v0.1.3 working and accepted artefacts."""
 import copy
 import json
 import re
@@ -8,12 +8,10 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
+import vocab
+
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMAS = ROOT / "schema"
-UMBRELLAS = {
-    "APL": "AML", "PV": "MPN-U", "ET": "MPN-U", "PMF": "MPN-U",
-    "post-PV/post-ET MF": "MPN-U", "CNL": "MPN-U", "CEL": "MPN-U",
-}
 DISEASE_DEPENDENT_CATEGORIES = {"diagnosis", "prognosis", "treatment", "biomarker"}
 GENERIC_INTERPRETATION_PATTERNS = (
     "application remains dependent on the source-stated disease context",
@@ -84,6 +82,49 @@ def validate_census(census, metadata=None):
     return errors
 
 
+def validate_review(review, provisional, require_current_guidance=False):
+    """Validate a Phase 3 rejection and its exact Phase 2 input package."""
+    errors = schema_errors(review, "review_schema.json", "review")
+    if errors:
+        return errors
+
+    if review["paper_id"] != provisional.get("paper_id"):
+        errors.append("review paper_id does not match provisional package")
+    if review["round"] != provisional.get("round"):
+        errors.append("review round does not match provisional package")
+    if review["extraction_model_reviewed"] != provisional.get("extraction_model"):
+        errors.append("review extraction_model_reviewed does not match provisional extraction_model")
+    if review["reviewer_model"] == provisional.get("extraction_model"):
+        errors.append("reviewer model must differ from provisional extraction model")
+
+    failed_cards = review["failed_cards"]
+    failed_ids = [failure["card_id"] for failure in failed_cards]
+    provisional_ids = {card.get("card_id") for card in provisional.get("cards", [])}
+    if review["audit"]["cards_total"] != len(provisional.get("cards", [])):
+        errors.append("review cards_total does not match provisional cards")
+    if review["audit"]["cards_failed"] != len(failed_cards):
+        errors.append("review cards_failed does not match failed_cards")
+    if len(failed_ids) != len(set(failed_ids)):
+        errors.append("review contains duplicate failed card IDs")
+    unknown_ids = sorted(set(failed_ids) - provisional_ids)
+    if unknown_ids:
+        errors.append("review references unknown provisional cards: " + ", ".join(unknown_ids))
+
+    publication_verdict = review["audit"]["publication_type_verdict"]
+    if publication_verdict["package_value"] != provisional.get("publication_type"):
+        errors.append("review publication package_value does not match provisional publication_type")
+    if publication_verdict["verdict"] == "pass" and publication_verdict["auditor_value"] != publication_verdict["package_value"]:
+        errors.append("passing publication verdict must retain the package value")
+    if not failed_cards and publication_verdict["verdict"] != "fail":
+        errors.append("changes-required review must contain a card or publication-type failure")
+
+    if require_current_guidance:
+        missing_guidance = [failure["card_id"] for failure in failed_cards if "suggested_action" not in failure]
+        if missing_guidance:
+            errors.append("current review requires suggested_action for failed cards: " + ", ".join(missing_guidance))
+    return errors
+
+
 def extraction_view(package):
     result = copy.deepcopy(package)
     result["audit"] = None
@@ -109,17 +150,17 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append("first-round provisional publication type cannot already be verified")
 
     card_ids = [card["card_id"] for card in package["cards"]]
-    quote_ids = [quote["card_id"] for quote in package["quotes"]]
+    evidence_ids = [evidence["card_id"] for evidence in package["evidence"]]
     if len(card_ids) != len(set(card_ids)):
         errors.append("package contains duplicate card_id values")
-    if len(quote_ids) != len(set(quote_ids)):
-        errors.append("package contains more than one quote for the same card")
-    missing_quotes = sorted(set(card_ids) - set(quote_ids))
-    unknown_quotes = sorted(set(quote_ids) - set(card_ids))
-    if missing_quotes:
-        errors.append("cards with no quote: " + ", ".join(missing_quotes))
-    if unknown_quotes:
-        errors.append("quotes for unknown cards: " + ", ".join(unknown_quotes))
+    if len(evidence_ids) != len(set(evidence_ids)):
+        errors.append("package contains more than one evidence bundle for the same card")
+    missing_evidence = sorted(set(card_ids) - set(evidence_ids))
+    unknown_evidence = sorted(set(evidence_ids) - set(card_ids))
+    if missing_evidence:
+        errors.append("cards with no evidence bundle: " + ", ".join(missing_evidence))
+    if unknown_evidence:
+        errors.append("evidence bundles for unknown cards: " + ", ".join(unknown_evidence))
 
     prefix = metadata["publication_key"] + "-"
     for card in package["cards"]:
@@ -130,26 +171,76 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append(f"{card_id}: {card['category']} card requires at least one disease")
         interpretation = normalise(card["interpretation"]).lower()
         if any(pattern in interpretation for pattern in GENERIC_INTERPRETATION_PATTERNS):
-            warnings.append(f"{card_id}: interpretation contains generic category boilerplate; review direct quote support")
-        for disease in card["diseases"]:
-            umbrella = UMBRELLAS.get(disease)
-            if umbrella and umbrella not in card["diseases"]:
-                errors.append(f"{card_id}: disease {disease} requires umbrella tag {umbrella}")
+            warnings.append(f"{card_id}: interpretation contains generic category boilerplate; review direct evidence support")
+        for umbrella in vocab.missing_umbrellas(card["diseases"]):
+            errors.append(f"{card_id}: diseases require umbrella tag {umbrella}")
 
-    quote_texts = {}
+    bundle_texts = {}
     source = normalise(source_text, markdown=True) if source_text is not None else None
-    for quote in package["quotes"]:
-        card_id = quote["card_id"]
-        if len(quote["quote"].split()) > 400:
-            errors.append(f"{card_id}: quote exceeds 400 words")
-        if REFERENCE_ENTRY_RE.search(quote["quote"]):
-            errors.append(f"{card_id}: quote appears to be a bibliographic reference-list entry")
-        if source is not None and normalise(quote["quote"], markdown=True) not in source:
-            errors.append(f"{card_id}: quote not found verbatim in paper.md")
-        duplicate = quote_texts.get(normalise(quote["quote"]))
+    for evidence in package["evidence"]:
+        card_id = evidence["card_id"]
+        fragments = evidence["fragments"]
+        fragment_ids = [fragment["fragment_id"] for fragment in fragments]
+        fragment_id_set = set(fragment_ids)
+        if len(fragment_ids) != len(fragment_id_set):
+            errors.append(f"{card_id}: evidence bundle contains duplicate fragment_id values")
+        if sum(len(fragment["quote"].split()) for fragment in fragments) > 400:
+            errors.append(f"{card_id}: evidence bundle exceeds 400 words")
+
+        roles = {fragment["role"] for fragment in fragments}
+        if evidence["evidence_type"] in {"contiguous_text", "composite_text"} and "claim" not in roles:
+            errors.append(f"{card_id}: text evidence requires a claim fragment")
+        if evidence["evidence_type"] == "contiguous_text" and fragments[0]["role"] != "claim":
+            errors.append(f"{card_id}: contiguous text fragment must have role claim")
+        if evidence["evidence_type"] == "table_relation" and "cell" not in roles:
+            errors.append(f"{card_id}: table evidence requires at least one cell fragment")
+
+        referenced_ids = {
+            fragment_id
+            for mapped_ids in evidence["support_map"].values()
+            for fragment_id in mapped_ids
+        }
+        dangling_support = sorted(referenced_ids - fragment_id_set)
+        if dangling_support:
+            errors.append(f"{card_id}: support_map references unknown fragments: " + ", ".join(dangling_support))
+
+        if evidence["evidence_type"] == "table_relation":
+            fragments_by_id = {fragment["fragment_id"]: fragment for fragment in fragments}
+            relation_references = set()
+            for relation in evidence["table_relations"]:
+                relation_references.add(relation["value_fragment_id"])
+                relation_references.update(relation["header_fragment_ids"])
+                relation_references.update(relation["qualifier_fragment_ids"])
+                value = fragments_by_id.get(relation["value_fragment_id"])
+                if value and value["role"] != "cell":
+                    errors.append(f"{card_id}: table value {value['fragment_id']} must have role cell")
+                for header_id in relation["header_fragment_ids"]:
+                    header = fragments_by_id.get(header_id)
+                    if header and header["role"] not in {"column_header", "row_header"}:
+                        errors.append(f"{card_id}: table header {header_id} has invalid role {header['role']}")
+                for qualifier_id in relation["qualifier_fragment_ids"]:
+                    qualifier = fragments_by_id.get(qualifier_id)
+                    if qualifier and qualifier["role"] not in {"legend", "footnote"}:
+                        errors.append(f"{card_id}: table qualifier {qualifier_id} has invalid role {qualifier['role']}")
+            dangling_relations = sorted(relation_references - fragment_id_set)
+            if dangling_relations:
+                errors.append(f"{card_id}: table relations reference unknown fragments: " + ", ".join(dangling_relations))
+
+        normalized_fragments = []
+        for fragment in fragments:
+            fragment_label = f"{card_id}/{fragment['fragment_id']}"
+            quote_text = fragment["quote"]
+            if REFERENCE_ENTRY_RE.search(quote_text):
+                errors.append(f"{fragment_label}: fragment appears to be a bibliographic reference-list entry")
+            normalized = normalise(quote_text, markdown=True)
+            if source is not None and normalized not in source:
+                errors.append(f"{fragment_label}: fragment not found verbatim in paper.md")
+            normalized_fragments.append(normalized)
+        normalized_bundle = " || ".join(normalized_fragments)
+        duplicate = bundle_texts.get(normalized_bundle)
         if duplicate:
-            warnings.append(f"{card_id}: quote is identical to {duplicate}; review independent utility")
-        quote_texts[normalise(quote["quote"])] = card_id
+            warnings.append(f"{card_id}: evidence is identical to {duplicate}; review independent utility")
+        bundle_texts[normalized_bundle] = card_id
 
     census_pairs = {
         (entry["gene"], category)
