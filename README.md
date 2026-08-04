@@ -164,6 +164,13 @@ category is rejected unless every required criterion is met and cites both retri
 diagnosis cards and supplied case facts. Genes the corpus cannot address are named
 rather than answered from model memory.
 
+Card `diseases` contain only source-grounded exact clinical applicability and are the
+only disease values used by case retrieval. `disease_ancestors` are deterministic
+direct and transitive parents from `schema/disease_vocabulary.json`; incorporation
+uses them for broad corpus indexing without making a subtype card clinically
+applicable to its parent categories. `diseases_covered` likewise remains the union of
+exact card diseases only.
+
 Private evidence bundles never enter retrieval or rendered output. Every rendered interpretation
 carries a card ID and deterministic citations back to its publication.
 
@@ -173,7 +180,8 @@ carries a card ID and deterministic citations back to its publication.
   path and no card or model phase cites or reads a PDF.
 - Crossref is used only to resolve a detected DOI; model-assisted repair supplies a
   DOI candidate that is re-resolved and recorded with provenance.
-- Closed categorical disease vocabulary with enforced umbrella tags.
+- Closed categorical disease vocabulary with cycle-checked taxonomy ancestors kept
+  separate from exact clinical applicability.
 - Different publications coexist even when they disagree.
 - No live databases, approval-status modelling, cross-publication deduplication, or
   clinical synthesis.

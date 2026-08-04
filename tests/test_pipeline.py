@@ -81,13 +81,34 @@ def build_fixture_corpus(root):
 class VocabularyAndKeyTests(unittest.TestCase):
     def test_vocabulary_schema_and_umbrellas(self):
         self.assertEqual(vocab.check_vocabulary_consistency(), [])
-        self.assertEqual(vocab.missing_umbrellas(["APL"]), ["AML"])
-        self.assertEqual(vocab.missing_umbrellas(["APL", "AML"]), [])
-        self.assertEqual(vocab.missing_umbrellas(["PV"]), ["MPN"])
-        self.assertEqual(vocab.missing_umbrellas(["PV", "MPN"]), [])
-        self.assertEqual(vocab.missing_umbrellas(["MPN-U"]), ["MPN"])
-        self.assertEqual(vocab.missing_umbrellas(["MPN blast phase"]), ["MPN"])
-        self.assertNotIn("MPN-U", vocab.missing_umbrellas(["PV"]))
+        self.assertEqual(vocab.disease_ancestors(["APL"]), ["AML"])
+        self.assertEqual(vocab.disease_ancestors(["MDS/AML"]), ["MDS", "AML"])
+        self.assertEqual(
+            vocab.disease_ancestors(["CMML"]),
+            ["MDS", "MDS/MPN", "MPN"],
+        )
+        self.assertEqual(
+            vocab.disease_ancestors(["MDS/MPN-U"]),
+            ["MDS", "MDS/MPN", "MPN"],
+        )
+        self.assertEqual(vocab.disease_ancestors(["CML"]), ["MPN"])
+        self.assertEqual(vocab.disease_ancestors(["JMML"]), ["MPN"])
+        self.assertEqual(
+            vocab.disease_ancestors(["BPDCN"]),
+            ["histiocytic/dendritic neoplasm"],
+        )
+        self.assertEqual(vocab.disease_ancestors(["acute leukaemia of ambiguous lineage"]), [])
+        self.assertEqual(vocab.disease_ancestors(["haematological malignancy, other"]), [])
+
+    def test_umbrella_cycle_is_rejected(self):
+        original = copy.deepcopy(vocab.UMBRELLA)
+        try:
+            vocab.UMBRELLA["MDS"] = ["MDS/AML"]
+            with self.assertRaisesRegex(ValueError, "disease umbrella cycle"):
+                vocab.disease_ancestors(["MDS/AML"])
+        finally:
+            vocab.UMBRELLA.clear()
+            vocab.UMBRELLA.update(original)
 
     def test_primary_key_is_deterministic(self):
         citation = {"authors": ["Dohner H"], "title": "Fixture", "journal": "Blood", "year": 2022, "volume": "140", "pages": "1345-1377"}
@@ -112,29 +133,22 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report["cards"], 8)
         self.assertEqual(report["ratio"], 2.0)
 
-    def test_missing_umbrella_fails(self):
+    def test_incorrect_derived_ancestors_fail(self):
         def mutate(_metadata, _census, package):
             package["cards"][0]["diseases"] = ["APL"]
+            package["cards"][0]["disease_ancestors"] = []
             package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
         errors, _warnings, _report = self.validate(mutate)
-        self.assertTrue(any("umbrella" in error for error in errors), errors)
+        self.assertTrue(any("disease_ancestors" in error and "AML" in error for error in errors), errors)
 
-    def test_package_uses_canonical_mpn_umbrella(self):
-        def missing_mpn(_metadata, _census, package):
-            package["cards"][0]["diseases"] = ["PV"]
+    def test_package_separates_exact_disease_from_transitive_ancestors(self):
+        def exact_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS", "MDS/MPN", "MPN"]
             package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
 
-        errors, _warnings, _report = self.validate(missing_mpn)
-        umbrella_errors = [error for error in errors if "umbrella" in error]
-        self.assertEqual(umbrella_errors, [f"{fixture_package(ALPHA, final=False)[2]['cards'][0]['card_id']}: diseases require umbrella tag MPN"])
-        self.assertFalse(any("MPN-U" in error for error in errors), errors)
-
-        def includes_mpn(_metadata, _census, package):
-            package["cards"][0]["diseases"] = ["PV", "MPN"]
-            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
-
-        errors, _warnings, _report = self.validate(includes_mpn)
-        self.assertFalse(any("umbrella" in error for error in errors), errors)
+        errors, _warnings, _report = self.validate(exact_cmml)
+        self.assertEqual(errors, [])
 
     def test_pairing_and_verbatim_fragment_failures(self):
         def mutate(_metadata, _census, package):
@@ -378,6 +392,9 @@ class IncorporationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             corpus_path, index_path = build_fixture_corpus(Path(tmp))
             corpus, index = read(corpus_path), read(index_path)
+            self.assertEqual(corpus["corpus_version"], "1.2")
+            self.assertEqual(corpus["schema_version"], "3.1")
+            self.assertEqual(index["index_version"], "1.2")
             self.assertEqual(corpus["counts"]["cards"], 10)
             self.assertNotIn("by_escalates_to", index)
             self.assertNotIn("escalates_to", json.dumps(index))
@@ -385,6 +402,41 @@ class IncorporationTests(unittest.TestCase):
             self.assertNotIn('"fragments"', json.dumps(corpus))
             self.assertNotIn('"quote"', json.dumps(corpus))
             self.assertNotIn("provisional", corpus)
+
+    def test_indexes_transitive_ancestors_without_widening_exact_card_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, accept = Path(tmp), Path(tmp) / "accept"
+            accept.mkdir()
+
+            def exact_cmml(_metadata, _census, package):
+                card = package["cards"][0]
+                card["diseases"] = ["CMML"]
+                card["disease_ancestors"] = ["MDS", "MDS/MPN", "MPN"]
+                package["diseases_covered"] = sorted(
+                    {disease for item in package["cards"] for disease in item["diseases"]}
+                )
+
+            write_accept(accept, ALPHA, exact_cmml)
+            output = root / "corpus"
+            subprocess.run([
+                sys.executable, str(SCRIPTS / "incorporate.py"),
+                "--accept-dir", str(accept), "--output-dir", str(output),
+                "--report", str(root / "report.json"),
+            ], check=True, capture_output=True)
+
+            corpus, index = read(output / "nel.corpus.json"), read(output / "nel.index.json")
+            card_id = fixture_package(ALPHA)[2]["cards"][0]["card_id"]
+            corpus_card = next(
+                card
+                for publication in corpus["publications"]
+                for card in publication["document"]["cards"]
+                if card["card_id"] == card_id
+            )
+            self.assertEqual(corpus_card["diseases"], ["CMML"])
+            self.assertEqual(corpus_card["disease_ancestors"], ["MDS", "MDS/MPN", "MPN"])
+            self.assertEqual(index["cards"][card_id]["diseases"], ["CMML"])
+            for disease in ("CMML", "MDS", "MDS/MPN", "MPN"):
+                self.assertIn(card_id, index["by_disease"][disease])
 
     def test_invalid_paper_is_rejected_without_blocking_valid(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -496,6 +548,25 @@ class RetrievalAndRenderTests(unittest.TestCase):
         self.assertIn("AML", diagnosis["allowed_refined_diseases"])
         full = retrieve.step4(self.cards, ["GENEA"], "MDS", diagnosis["diagnosis_cards"])
         self.assertEqual(full["suppressed"]["by_disease"], {"AML": 3})
+
+    def test_taxonomic_ancestors_do_not_broaden_clinical_retrieval(self):
+        card = {
+            "card_id": "classifier-C1000", "category": "prognosis", "genes": ["TET2"],
+            "diseases": ["CMML"], "disease_ancestors": ["MDS", "MDS/MPN", "MPN"],
+            "evidence_tier": "multivariable-adjusted", "interpretation": "CMML-specific evidence.",
+            "locator": "fixture", "publication_key": "classifier", "publication_year": 2026,
+            "citation_display": "Classifier fixture", "citation_incomplete": [],
+            "secondary_citation": None,
+        }
+        for parent in ("MDS", "MDS/MPN", "MPN"):
+            with self.subTest(parent=parent):
+                result = retrieve.step4([card], ["TET2"], parent, [])
+                self.assertEqual(result["retrieved"], [])
+                self.assertEqual(result["suppressed"]["count"], 1)
+
+        result = retrieve.step4([card], ["TET2"], "CMML", [])
+        self.assertEqual([item["card_id"] for item in result["retrieved"]], ["classifier-C1000"])
+        self.assertEqual(result["suppressed"]["count"], 0)
 
     def test_sf3b1_adjudication_changes_downstream_filter_to_mds(self):
         diagnosis_card = {

@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import package_validation as validation
+import vocab
 
 
 def canonical_bytes(document):
@@ -149,14 +150,19 @@ def build(args):
         card_ids = []
         for card in cards:
             card_id = card["card_id"]
+            exact_diseases = list(card["diseases"])
+            disease_ancestors = vocab.disease_ancestors(exact_diseases)
+            card["disease_ancestors"] = disease_ancestors
             card_ids.append(card_id)
             card_index[card_id] = {
                 "input_id": metadata["paper_id"], "publication_key": metadata["publication_key"],
-                "genes": sorted(card["genes"]), "diseases": sorted(card["diseases"]),
+                "genes": sorted(card["genes"]), "diseases": sorted(exact_diseases),
+                "disease_ancestors": disease_ancestors,
                 "category": card["category"], "evidence_tier": card["evidence_tier"],
             }
             for gene in card["genes"]: add(by_gene, gene, card_id)
-            for disease in card["diseases"]: add(by_disease, disease, card_id)
+            for disease in (*exact_diseases, *disease_ancestors):
+                add(by_disease, disease, card_id)
             add(by_category, card["category"], card_id)
             add(by_tier, card["evidence_tier"], card_id)
         year = metadata["citation"].get("year")
@@ -179,10 +185,10 @@ def build(args):
 
     generated_at = args.generated_at or datetime.now(timezone.utc).isoformat()
     counts = {"completed_papers": len(publications), "rejected_papers": len(rejected), "cards": len(card_index), "census_entries": census_total}
-    corpus = {"corpus_version": "1.1", "schema_version": "3.0", "generated_at": generated_at, "counts": counts, "publications": sorted(publications, key=lambda item: item["source"]["input_id"])}
+    corpus = {"corpus_version": "1.2", "schema_version": "3.1", "generated_at": generated_at, "counts": counts, "publications": sorted(publications, key=lambda item: item["source"]["input_id"])}
     digest = hashlib.sha256(canonical_bytes(corpus)).hexdigest()
     index = {
-        "index_version": "1.1", "generated_at": generated_at, "corpus_sha256": digest, "counts": counts,
+        "index_version": "1.2", "generated_at": generated_at, "corpus_sha256": digest, "counts": counts,
         "papers": {key: paper_index[key] for key in sorted(paper_index)},
         "cards": {key: card_index[key] for key in sorted(card_index)},
         "by_gene": postings(by_gene), "by_disease": postings(by_disease), "by_category": postings(by_category),

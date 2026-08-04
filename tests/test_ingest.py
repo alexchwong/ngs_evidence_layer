@@ -244,7 +244,9 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertIn("every specific disease value must be grounded", phase2)
         self.assertIn("work-up recommendation supports a conditional germline card", phase2)
         self.assertIn("Never construct card IDs from `paper_id`", phase2)
-        self.assertIn("mandatory normalization", phase2)
+        self.assertIn("Use `diseases` only for exact clinical applicability", phase2)
+        self.assertIn("mechanically populate `disease_ancestors`", phase2)
+        self.assertIn("transitive parent reached", phase2)
 
         self.assertIn('"suggested_action"', phase3)
         self.assertIn("narrow_disease_scope", phase3)

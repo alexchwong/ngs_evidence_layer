@@ -121,6 +121,12 @@ paper.provisional-002.json   # after review 001
 The filename round and package `round` must agree. A rework output is a complete
 replacement, never a patch.
 
+For each card, `diseases` records only source-grounded exact clinical applicability.
+`disease_ancestors` records the canonical direct and transitive parents derived from
+the `umbrella` graph in `schema/disease_vocabulary.json`, excluding exact values.
+Ancestors support broad corpus indexing but never widen case retrieval;
+`diseases_covered` is therefore the unique union of exact `diseases` only.
+
 ## 4. Phase 3 — independent audit
 
 Use a different model in a fresh session with exactly:
@@ -183,7 +189,7 @@ mode accepts legacy reviews without `suggested_action`; add
 python scripts/confirm.py --key <publication-key>
 ```
 
-Confirmation checks schemas, IDs, vocabulary, umbrella tags, census reconciliation,
+Confirmation checks schemas, IDs, vocabulary, canonical disease ancestors, census reconciliation,
 one-to-one card/evidence-bundle pairing, independently source-verbatim fragments,
 bundle references and role constraints, complete passing audit, different model
 identities, and exact equality with the approved provisional round. Failure changes

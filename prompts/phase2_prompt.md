@@ -231,13 +231,22 @@ as `<publication_key>-C0001`, `<publication_key>-C0002`, and so on, and use each
 exact same ID in its paired evidence bundle. Never construct card IDs from `paper_id`; that
 content-derived UUID is used only to preserve paper identity across input artefacts.
 
-Treat the vocabulary's `umbrella` mapping as mandatory normalization. When a card
-contains a mapped specific disease, mechanically add every configured umbrella term
-to that same card even when the evidence names only the specific entity. Disease
-provenance applies to the specific source-stated disease; the configured umbrella is
-an indexing tag and need not appear verbatim in the evidence. Set `diseases_covered` to
-the exact unique union of all normalized card disease arrays, and set
-`genes_covered` to the exact unique union of all card gene arrays.
+Use `diseases` only for exact clinical applicability: include each source-grounded
+disease for which the interpretation itself is valid. Do not add broader taxonomy
+terms to `diseases` merely because the vocabulary's `umbrella` graph identifies them
+as ancestors; doing so would make a disease-specific card eligible for unrelated
+cases in downstream retrieval.
+
+For every card, mechanically populate `disease_ancestors` with every direct and
+transitive parent reached through the vocabulary's `umbrella` graph, in canonical
+vocabulary order, excluding values already present in `diseases`. These are derived
+indexing terms, not additional clinical scope, and need not appear in the evidence.
+For example, a CMML card has exact `diseases: ["CMML"]` and derived ancestors
+`["MDS", "MDS/MPN", "MPN"]`; it does not become generally applicable to MDS or MPN.
+
+Set `diseases_covered` to the exact unique union of the cards' exact `diseases`
+arrays only; do not include `disease_ancestors`. Set `genes_covered` to the exact
+unique union of all card gene arrays.
 
 ## Reporting rules
 
@@ -397,7 +406,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 ```json
 {
-  "vocabulary_version": "1.0",
+  "vocabulary_version": "1.2",
   "note": "Closed, categorical, no free-text subtypes, no modifiers. Build spec section 3. Not to be extended casually: an added term changes what every existing card means by omission.",
   "diseases": [
     "CHIP",
@@ -406,6 +415,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
     "MDS/AML",
     "AML",
     "APL",
+    "MDS/MPN",
     "MDS/MPN-U",
     "CMML",
     "aCML",
@@ -426,18 +436,30 @@ Do not repeat the clinical history, morphology or standard treatment unless need
     "BPDCN",
     "germline predisposition syndrome",
     "myeloid neoplasm, unspecified",
-    "lymphoid neoplasm"
+    "lymphoid neoplasm",
+    "acute leukaemia of ambiguous lineage",
+    "histiocytic/dendritic neoplasm",
+    "haematological malignancy, other"
   ],
   "umbrella": {
+    "MDS/AML": ["MDS", "AML"],
     "APL": ["AML"],
+    "MDS/MPN": ["MDS", "MPN"],
+    "MDS/MPN-U": ["MDS/MPN"],
+    "CMML": ["MDS/MPN"],
+    "aCML": ["MDS/MPN"],
+    "MDS/MPN-SF3B1-T": ["MDS/MPN"],
     "MPN-U": ["MPN"],
     "PV": ["MPN"],
     "ET": ["MPN"],
     "PMF": ["MPN"],
     "post-PV/post-ET MF": ["MPN"],
     "MPN blast phase": ["MPN"],
+    "CML": ["MPN"],
     "CNL": ["MPN"],
-    "CEL": ["MPN"]
+    "CEL": ["MPN"],
+    "JMML": ["MPN"],
+    "BPDCN": ["histiocytic/dendritic neoplasm"]
   },
   "categories": [
     "diagnosis",
@@ -499,7 +521,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   "$defs": {
     "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
     "disease": {
-      "enum": ["CHIP", "CCUS", "MDS", "MDS/AML", "AML", "APL", "MDS/MPN-U", "CMML", "aCML", "MDS/MPN-SF3B1-T", "JMML", "MPN", "MPN-U", "PV", "ET", "PMF", "post-PV/post-ET MF", "MPN blast phase", "CML", "CNL", "CEL", "mastocytosis", "myeloid/lymphoid neoplasm with eosinophilia and TK fusion", "BPDCN", "germline predisposition syndrome", "myeloid neoplasm, unspecified", "lymphoid neoplasm"]
+      "enum": ["CHIP", "CCUS", "MDS", "MDS/AML", "AML", "APL", "MDS/MPN", "MDS/MPN-U", "CMML", "aCML", "MDS/MPN-SF3B1-T", "JMML", "MPN", "MPN-U", "PV", "ET", "PMF", "post-PV/post-ET MF", "MPN blast phase", "CML", "CNL", "CEL", "mastocytosis", "myeloid/lymphoid neoplasm with eosinophilia and TK fusion", "BPDCN", "germline predisposition syndrome", "myeloid neoplasm, unspecified", "lymphoid neoplasm", "acute leukaemia of ambiguous lineage", "histiocytic/dendritic neoplasm", "haematological malignancy, other"]
     },
     "citation": {
       "type": "object", "required": ["display"], "additionalProperties": false,
@@ -520,6 +542,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
         "interpretation": { "type": "string", "minLength": 1 },
         "genes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
         "diseases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
+        "disease_ancestors": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
         "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker", "germline"] },
         "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
         "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
@@ -678,7 +701,8 @@ Before writing, verify privately that:
    `null`;
 6. every card ID begins with `metadata.publication_key` plus `-`, no card ID uses
    `paper_id`, and paired card/evidence IDs are identical;
-7. all configured disease umbrellas are present and `genes_covered` and
+7. every `disease_ancestors` array equals the canonical transitive ancestors of that
+   card's exact `diseases`, has no overlap with them, and `genes_covered` and
    `diseases_covered` equal the exact unions represented by cards; and
 8. `paper.census.json` was used only as a read-only input.
 

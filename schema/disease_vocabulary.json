@@ -1,5 +1,5 @@
 {
-  "vocabulary_version": "1.0",
+  "vocabulary_version": "1.2",
   "note": "Closed, categorical, no free-text subtypes, no modifiers. Build spec section 3. Not to be extended casually: an added term changes what every existing card means by omission.",
   "diseases": [
     "CHIP",
@@ -8,6 +8,7 @@
     "MDS/AML",
     "AML",
     "APL",
+    "MDS/MPN",
     "MDS/MPN-U",
     "CMML",
     "aCML",
@@ -28,18 +29,30 @@
     "BPDCN",
     "germline predisposition syndrome",
     "myeloid neoplasm, unspecified",
-    "lymphoid neoplasm"
+    "lymphoid neoplasm",
+    "acute leukaemia of ambiguous lineage",
+    "histiocytic/dendritic neoplasm",
+    "haematological malignancy, other"
   ],
   "umbrella": {
+    "MDS/AML": ["MDS", "AML"],
     "APL": ["AML"],
+    "MDS/MPN": ["MDS", "MPN"],
+    "MDS/MPN-U": ["MDS/MPN"],
+    "CMML": ["MDS/MPN"],
+    "aCML": ["MDS/MPN"],
+    "MDS/MPN-SF3B1-T": ["MDS/MPN"],
     "MPN-U": ["MPN"],
     "PV": ["MPN"],
     "ET": ["MPN"],
     "PMF": ["MPN"],
     "post-PV/post-ET MF": ["MPN"],
     "MPN blast phase": ["MPN"],
+    "CML": ["MPN"],
     "CNL": ["MPN"],
-    "CEL": ["MPN"]
+    "CEL": ["MPN"],
+    "JMML": ["MPN"],
+    "BPDCN": ["histiocytic/dendritic neoplasm"]
   },
   "categories": [
     "diagnosis",

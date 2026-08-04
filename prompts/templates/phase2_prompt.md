@@ -231,13 +231,22 @@ as `<publication_key>-C0001`, `<publication_key>-C0002`, and so on, and use each
 exact same ID in its paired evidence bundle. Never construct card IDs from `paper_id`; that
 content-derived UUID is used only to preserve paper identity across input artefacts.
 
-Treat the vocabulary's `umbrella` mapping as mandatory normalization. When a card
-contains a mapped specific disease, mechanically add every configured umbrella term
-to that same card even when the evidence names only the specific entity. Disease
-provenance applies to the specific source-stated disease; the configured umbrella is
-an indexing tag and need not appear verbatim in the evidence. Set `diseases_covered` to
-the exact unique union of all normalized card disease arrays, and set
-`genes_covered` to the exact unique union of all card gene arrays.
+Use `diseases` only for exact clinical applicability: include each source-grounded
+disease for which the interpretation itself is valid. Do not add broader taxonomy
+terms to `diseases` merely because the vocabulary's `umbrella` graph identifies them
+as ancestors; doing so would make a disease-specific card eligible for unrelated
+cases in downstream retrieval.
+
+For every card, mechanically populate `disease_ancestors` with every direct and
+transitive parent reached through the vocabulary's `umbrella` graph, in canonical
+vocabulary order, excluding values already present in `diseases`. These are derived
+indexing terms, not additional clinical scope, and need not appear in the evidence.
+For example, a CMML card has exact `diseases: ["CMML"]` and derived ancestors
+`["MDS", "MDS/MPN", "MPN"]`; it does not become generally applicable to MDS or MPN.
+
+Set `diseases_covered` to the exact unique union of the cards' exact `diseases`
+arrays only; do not include `disease_ancestors`. Set `genes_covered` to the exact
+unique union of all card gene arrays.
 
 ## Reporting rules
 
@@ -294,7 +303,8 @@ Before writing, verify privately that:
    `null`;
 6. every card ID begins with `metadata.publication_key` plus `-`, no card ID uses
    `paper_id`, and paired card/evidence IDs are identical;
-7. all configured disease umbrellas are present and `genes_covered` and
+7. every `disease_ancestors` array equals the canonical transitive ancestors of that
+   card's exact `diseases`, has no overlap with them, and `genes_covered` and
    `diseases_covered` equal the exact unions represented by cards; and
 8. `paper.census.json` was used only as a read-only input.
 

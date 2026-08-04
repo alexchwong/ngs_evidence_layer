@@ -172,8 +172,19 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         interpretation = normalise(card["interpretation"]).lower()
         if any(pattern in interpretation for pattern in GENERIC_INTERPRETATION_PATTERNS):
             warnings.append(f"{card_id}: interpretation contains generic category boilerplate; review direct evidence support")
-        for umbrella in vocab.missing_umbrellas(card["diseases"]):
-            errors.append(f"{card_id}: diseases require umbrella tag {umbrella}")
+        if "disease_ancestors" in card:
+            expected_ancestors = vocab.disease_ancestors(card["diseases"])
+            if card["disease_ancestors"] != expected_ancestors:
+                errors.append(
+                    f"{card_id}: disease_ancestors must equal the canonical transitive "
+                    f"ancestors {expected_ancestors}"
+                )
+            overlap = sorted(set(card["diseases"]) & set(card["disease_ancestors"]))
+            if overlap:
+                errors.append(
+                    f"{card_id}: exact diseases and disease_ancestors overlap: "
+                    + ", ".join(overlap)
+                )
 
     bundle_texts = {}
     source = normalise(source_text, markdown=True) if source_text is not None else None
