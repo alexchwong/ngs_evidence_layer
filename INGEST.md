@@ -94,18 +94,12 @@ Save its output as `work/<publication-key>/paper.census.json`. Phase 1 may overw
 file when correcting a Phase 2 census critique. Do not start Phase 2 in the same
 session.
 
-## 3. Phase 2 — carding or rework
+## 3. Phase 2 — carding
 
 Start a fresh extraction session with:
 
 - `paper.md`, `metadata.json`, `paper.census.json`
 - `prompts/phase2_prompt.md`
-- the latest `paper.review-NNN.json` and its exact prior
-  `paper.provisional-NNN.json`, both required only during rework
-
-For rework, both filenames must use the same `NNN`, and both artefacts must have
-matching `round` and `paper_id` values. A missing or mismatched artefact blocks the
-rework session.
 
 If the census is materially deficient, Phase 2 writes the next
 `paper.census-critique-NNN.md` and stops. Return that critique to a fresh Phase 1
@@ -115,11 +109,10 @@ Otherwise Phase 2 writes a complete package:
 
 ```text
 paper.provisional-001.json
-paper.provisional-002.json   # after review 001
 ```
 
-The filename round and package `round` must agree. A rework output is a complete
-replacement, never a patch.
+The filename round and package `round` are always 001/1. Phase 2 is not repeated
+after audit.
 
 For each card, `diseases` records only source-grounded exact clinical applicability.
 `disease_ancestors` records the canonical direct and transitive parents derived from
@@ -132,19 +125,18 @@ Ancestors support broad corpus indexing but never widen case retrieval;
 Use a different model in a fresh session with exactly:
 
 - `paper.md`
-- one `paper.provisional-NNN.json`
+- `paper.provisional-001.json`
 - `prompts/phase3_prompt.md`
 
 Do not supply rules, vocabulary, schema, census, or another publication.
 
-- Any failure: save `paper.review-NNN.json`; no final is written. Every failed-card
-  entry includes a precise `reason` and a structured `suggested_action` with one
-  repair category plus concise source-bounded detail for Phase 2. The advice is
-  non-binding and Phase 2 must verify it against the paper before amending a card.
-- All pass: save `paper.final.json`; its `audit.approved_round` identifies the
-  exact provisional package audited.
+- Always save `paper.review-001.json`; Phase 3 never writes a final.
+- The review contains one pass/fail result for every card. Passed cards contain only
+  their ID and verdict. Failed cards additionally include the failure type, precise
+  reason, defensibility statement, and structured suggested action.
+- A quote failure must restate the quote read by Phase 3 in its review details.
 
-Phase 3 never edits extraction content.
+Phase 3 never edits extraction content and is not repeated.
 
 For every typed evidence bundle, Phase 3 must independently verify that contextual
 fragments structurally govern the claim, table relations reconstruct all applicable
@@ -158,7 +150,7 @@ taxonomy and requests a change only when that value clearly fails its definition
 and exactly one other allowed value is better supported. This ambiguity rule keeps
 fresh audit sessions from alternating between equally plausible labels.
 
-New reviews use these suggested-action categories:
+Failed-card reviews use these suggested-action categories:
 
 - `narrow_disease_scope`
 - `replace_evidence`
@@ -168,22 +160,33 @@ New reviews use these suggested-action categories:
 - `delete_card`
 - `add_or_correct_qualifier`
 
-Legacy reviews without `suggested_action` remain valid Phase 2 rework inputs.
-
-Before rework, validate the review against the exact prior provisional package:
+Validate the complete review against its provisional package:
 
 ```bash
 python scripts/validate_review.py \
-  --review work/<publication-key>/paper.review-NNN.json \
-  --provisional work/<publication-key>/paper.provisional-NNN.json
+  --review work/<publication-key>/paper.review-001.json \
+  --provisional work/<publication-key>/paper.provisional-001.json
 ```
 
 The validator checks `schema/review_schema.json` plus cross-artefact identity,
-round, model, card-count, card-ID, and publication-type invariants. Compatibility
-mode accepts legacy reviews without `suggested_action`; add
-`--require-current-guidance` when checking a newly generated review.
+round, model, complete card coverage and ordering, counts, card IDs, conditional
+failure details, and publication-type invariants.
 
-## 5. Confirm one paper
+## 5. Phase 4 — human adjudication and finalization
+
+Start a fresh finalization session with:
+
+- `paper.md`, `metadata.json`, `paper.census.json`
+- `paper.provisional-001.json`, `paper.review-001.json`
+- `prompts/phase4_prompt.md`
+
+Phase 4 presents every card to the human, including Phase 3-passed cards. The human
+chooses the final action for each card. Phase 4 applies source-supported decisions
+and writes `paper.final.json`; it never creates another provisional package or sends
+cards back to Phase 3. All resulting cards receive passing entries in the existing
+final audit shape because the human review and action taken are final.
+
+## 6. Confirm one paper
 
 ```bash
 python scripts/confirm.py --key <publication-key>
@@ -191,9 +194,10 @@ python scripts/confirm.py --key <publication-key>
 
 Confirmation checks schemas, IDs, vocabulary, canonical disease ancestors, census reconciliation,
 one-to-one card/evidence-bundle pairing, independently source-verbatim fragments,
-bundle references and role constraints, complete passing audit, different model
-identities, and exact equality with the approved provisional round. Failure changes
-nothing.
+bundle references and role constraints, complete Phase 3 review, complete passing
+final audit, different model identities, and lineage to the approved provisional
+round. Phase 4's adjudicated extraction content may differ from the provisional.
+Failure changes nothing.
 
 Success writes:
 
@@ -212,7 +216,7 @@ Manual acceptance is possible only by constructing the same accepted envelope an
 setting `acceptance_path` to `manual-or-unverified`. Incorporation cannot recheck
 evidence fragments against source Markdown on that path.
 
-## 6. Incorporate all accepted pairs
+## 7. Incorporate all accepted pairs
 
 ```bash
 python scripts/incorporate.py
@@ -232,8 +236,8 @@ output/reports/build-report.json
 ```
 
 Evidence bundles and fragment text are never written to distributable output. Every
-incorporated paper has already passed independent audit, so there is no provisional
-corpus mode.
+incorporated paper has completed independent Phase 3 audit and human Phase 4
+adjudication, so there is no provisional corpus mode.
 
 ## Prompt maintenance
 
@@ -243,6 +247,7 @@ Edit prompt prose under `prompts/templates/`, then regenerate one committed prom
 python scripts/build_prompts.py --phase 1
 python scripts/build_prompts.py --phase 2
 python scripts/build_prompts.py --phase 3
+python scripts/build_prompts.py --phase 4
 ```
 
 Read `prompts/meta_prompt.md` before changing extraction rules or schemas.

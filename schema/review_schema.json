@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/ngs_evidence_layer/review_schema.json",
-  "title": "Phase 3 changes-required review",
+  "title": "Phase 3 complete card review",
   "type": "object",
-  "required": ["schema_version", "paper_id", "round", "review_date", "reviewer_model", "extraction_model_reviewed", "result", "audit", "failed_cards"],
+  "required": ["schema_version", "paper_id", "round", "review_date", "reviewer_model", "extraction_model_reviewed", "result", "audit", "card_results"],
   "additionalProperties": false,
   "properties": {
     "schema_version": { "const": "5.0" },
@@ -12,20 +12,21 @@
     "review_date": { "type": "string", "format": "date" },
     "reviewer_model": { "type": "string", "minLength": 1 },
     "extraction_model_reviewed": { "type": "string", "minLength": 1 },
-    "result": { "const": "changes_required" },
+    "result": { "const": "review_complete" },
     "audit": {
       "type": "object",
-      "required": ["publication_type_verdict", "cards_total", "cards_failed"],
+      "required": ["publication_type_verdict", "cards_total", "cards_passed", "cards_failed"],
       "additionalProperties": false,
       "properties": {
         "publication_type_verdict": { "$ref": "#/$defs/publication_type_verdict" },
         "cards_total": { "type": "integer", "minimum": 0 },
+        "cards_passed": { "type": "integer", "minimum": 0 },
         "cards_failed": { "type": "integer", "minimum": 0 }
       }
     },
-    "failed_cards": {
+    "card_results": {
       "type": "array",
-      "items": { "$ref": "#/$defs/failed_card" }
+      "items": { "$ref": "#/$defs/card_result" }
     }
   },
   "$defs": {
@@ -54,15 +55,43 @@
         }
       ]
     },
-    "failed_card": {
+    "card_result": {
       "type": "object",
-      "required": ["card_id", "reason"],
+      "required": ["card_id", "verdict"],
       "additionalProperties": false,
       "properties": {
         "card_id": { "type": "string", "minLength": 1 },
+        "verdict": { "enum": ["pass", "fail"] },
+        "details": { "$ref": "#/$defs/failure_details" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] },
+          "then": { "required": ["details"] },
+          "else": { "not": { "required": ["details"] } }
+        }
+      ]
+    },
+    "failure_details": {
+      "type": "object",
+      "required": ["failure_type", "reason", "defensibility", "suggested_action"],
+      "additionalProperties": false,
+      "properties": {
+        "failure_type": {
+          "enum": ["quote_error", "unsupported_assertion", "material_redundancy", "scope_or_qualifier", "evidence_relationship", "other"]
+        },
         "reason": { "type": "string", "minLength": 1 },
+        "defensibility": { "type": "string", "minLength": 1 },
+        "quote_restatement": { "type": "string", "minLength": 1 },
         "suggested_action": { "$ref": "#/$defs/suggested_action" }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "failure_type": { "const": "quote_error" } }, "required": ["failure_type"] },
+          "then": { "required": ["quote_restatement"] },
+          "else": { "not": { "required": ["quote_restatement"] } }
+        }
+      ]
     },
     "suggested_action": {
       "type": "object",

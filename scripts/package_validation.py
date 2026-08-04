@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Shared deterministic validation for v0.1.3 working and accepted artefacts."""
-import copy
 import json
 import re
 from pathlib import Path
@@ -82,8 +81,8 @@ def validate_census(census, metadata=None):
     return errors
 
 
-def validate_review(review, provisional, require_current_guidance=False):
-    """Validate a Phase 3 rejection and its exact Phase 2 input package."""
+def validate_review(review, provisional):
+    """Validate a complete Phase 3 review against its Phase 2 package."""
     errors = schema_errors(review, "review_schema.json", "review")
     if errors:
         return errors
@@ -97,38 +96,34 @@ def validate_review(review, provisional, require_current_guidance=False):
     if review["reviewer_model"] == provisional.get("extraction_model"):
         errors.append("reviewer model must differ from provisional extraction model")
 
-    failed_cards = review["failed_cards"]
-    failed_ids = [failure["card_id"] for failure in failed_cards]
-    provisional_ids = {card.get("card_id") for card in provisional.get("cards", [])}
+    card_results = review["card_results"]
+    result_ids = [result["card_id"] for result in card_results]
+    provisional_ids = [card.get("card_id") for card in provisional.get("cards", [])]
+    passed = [result for result in card_results if result["verdict"] == "pass"]
+    failed = [result for result in card_results if result["verdict"] == "fail"]
     if review["audit"]["cards_total"] != len(provisional.get("cards", [])):
         errors.append("review cards_total does not match provisional cards")
-    if review["audit"]["cards_failed"] != len(failed_cards):
-        errors.append("review cards_failed does not match failed_cards")
-    if len(failed_ids) != len(set(failed_ids)):
-        errors.append("review contains duplicate failed card IDs")
-    unknown_ids = sorted(set(failed_ids) - provisional_ids)
+    if review["audit"]["cards_passed"] != len(passed):
+        errors.append("review cards_passed does not match card_results")
+    if review["audit"]["cards_failed"] != len(failed):
+        errors.append("review cards_failed does not match card_results")
+    if len(result_ids) != len(set(result_ids)):
+        errors.append("review contains duplicate card IDs")
+    unknown_ids = sorted(set(result_ids) - set(provisional_ids))
     if unknown_ids:
         errors.append("review references unknown provisional cards: " + ", ".join(unknown_ids))
+    missing_ids = sorted(set(provisional_ids) - set(result_ids))
+    if missing_ids:
+        errors.append("review omits provisional cards: " + ", ".join(missing_ids))
+    if result_ids != provisional_ids:
+        errors.append("review card_results must preserve provisional card order")
 
     publication_verdict = review["audit"]["publication_type_verdict"]
     if publication_verdict["package_value"] != provisional.get("publication_type"):
         errors.append("review publication package_value does not match provisional publication_type")
     if publication_verdict["verdict"] == "pass" and publication_verdict["auditor_value"] != publication_verdict["package_value"]:
         errors.append("passing publication verdict must retain the package value")
-    if not failed_cards and publication_verdict["verdict"] != "fail":
-        errors.append("changes-required review must contain a card or publication-type failure")
-
-    if require_current_guidance:
-        missing_guidance = [failure["card_id"] for failure in failed_cards if "suggested_action" not in failure]
-        if missing_guidance:
-            errors.append("current review requires suggested_action for failed cards: " + ", ".join(missing_guidance))
     return errors
-
-
-def extraction_view(package):
-    result = copy.deepcopy(package)
-    result["audit"] = None
-    return result
 
 
 def validate_package(package, metadata, census, source_text=None, require_final=False):
@@ -141,12 +136,12 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package paper_id does not match metadata")
     if package["census_entries"] != len(census.get("entries", [])):
         errors.append("package census_entries does not match census")
-    if package["round"] == 1:
+    if package["round"] == 1 and not require_final:
         if package["publication_type"] != census.get("publication_type"):
             errors.append("first-round package publication_type does not match census")
         if package["publication_type_basis"] != census.get("publication_type_basis"):
             errors.append("first-round package publication_type_basis does not match census")
-        if not require_final and package["publication_type_verified_by_phase3"]:
+        if package["publication_type_verified_by_phase3"]:
             errors.append("first-round provisional publication type cannot already be verified")
 
     card_ids = [card["card_id"] for card in package["cards"]]
@@ -308,11 +303,12 @@ def validate_package(package, metadata, census, source_text=None, require_final=
 
 
 def validate_final_against_provisional(final, provisional):
+    """Validate Phase 4 identity and lineage without forbidding adjudicated edits."""
     errors = []
     if final.get("round") != provisional.get("round"):
         errors.append("final and approved provisional rounds differ")
-    expected = extraction_view(provisional)
-    expected["publication_type_verified_by_phase3"] = True
-    if extraction_view(final) != expected:
-        errors.append("Phase 3 changed extraction content; only audit may change")
+    if final.get("paper_id") != provisional.get("paper_id"):
+        errors.append("final and approved provisional paper_id values differ")
+    if final.get("extraction_model") != provisional.get("extraction_model"):
+        errors.append("final and approved provisional extraction_model values differ")
     return errors

@@ -56,11 +56,11 @@ def render(phase):
     replacements = {}
     if phase in (1, 3):
         replacements["{{PUBLICATION_TYPE_RUBRIC}}"] = publication_type_rubric(phase)
-    if phase in (1, 2):
+    if phase in (1, 2, 4):
         replacements["{{REPORTING_RULES}}"] = read(ROOT / "rules" / "agreed_reporting_rules.md")
     if phase == 1:
         replacements["{{CENSUS_SCHEMA}}"] = read(ROOT / "schema" / "census_schema.json")
-    if phase == 2:
+    if phase in (2, 4):
         replacements["{{DISEASE_VOCABULARY}}"] = read(ROOT / "schema" / "disease_vocabulary.json")
         replacements["{{PACKAGE_SCHEMA}}"] = read(ROOT / "schema" / "ingestion_package_schema.json")
     for marker, content in replacements.items():
@@ -75,7 +75,7 @@ def render(phase):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", type=int, choices=(1, 2, 3), required=True)
+    parser.add_argument("--phase", type=int, choices=(1, 2, 3, 4), required=True)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:

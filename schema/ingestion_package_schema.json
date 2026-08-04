@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/ngs_evidence_layer/ingestion_package_schema.json",
-  "title": "Phase 2 provisional or Phase 3 final evidence package",
+  "title": "Phase 2 provisional or Phase 4 final evidence package",
   "type": "object",
   "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "publication_type", "publication_type_basis", "publication_type_verified_by_phase3", "genes_covered", "diseases_covered", "census_entries", "cards", "evidence", "audit"],
   "additionalProperties": false,

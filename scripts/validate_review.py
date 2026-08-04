@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate a Phase 3 review against the exact provisional package it rejected."""
+"""Validate a complete Phase 3 review against its provisional package."""
 import argparse
 import sys
 
@@ -8,18 +8,13 @@ from package_validation import read_json, validate_review
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--review", required=True, help="path to paper.review-NNN.json")
-    parser.add_argument("--provisional", required=True, help="path to paper.provisional-NNN.json")
-    parser.add_argument(
-        "--require-current-guidance",
-        action="store_true",
-        help="require suggested_action on every failed card",
-    )
+    parser.add_argument("--review", required=True, help="path to paper.review-001.json")
+    parser.add_argument("--provisional", required=True, help="path to paper.provisional-001.json")
     args = parser.parse_args()
     try:
         review = read_json(args.review, "review")
         provisional = read_json(args.provisional, "provisional package")
-        errors = validate_review(review, provisional, args.require_current_guidance)
+        errors = validate_review(review, provisional)
     except ValueError as exc:
         sys.exit(f"REVIEW VALIDATION FAILED:\n- {exc}")
     if errors:

@@ -47,7 +47,7 @@ python scripts/citations.py manual-apply --corpus <name> --csv <file>
 # Create work/<publication-key>/paper.md and metadata.json.
 python scripts/fanout.py --corpus <name>
 
-# Run Phases 1–3 in fresh model sessions using prompts/phaseN_prompt.md,
+# Run Phases 1–4 in fresh model sessions using prompts/phaseN_prompt.md,
 # saving outputs directly in each paper's work folder.
 
 # Deterministically accept one fully audited paper.
@@ -87,20 +87,22 @@ folder collisions before model work begins.
 
 Each model phase has a strict, mutually exclusive output contract. Phase 1 alone
 writes the census and assigns `publication_type` with a source-supported basis. Phase
-2 either critiques a materially deficient census or writes the next complete
+2 either critiques a materially deficient census or writes the single complete
 provisional package; it must preserve every source qualifier and maintain exactly one
 typed evidence bundle per card. A bundle is `contiguous_text`, `composite_text`, or
 `table_relation`; every fragment remains independently verbatim and locatable. Phase 3
 independently audits publication type, every card/bundle pair, cross-fragment scope,
-table reconstruction, and evidence laundering, then either writes the exact final
-package or a structured review with bounded reviewer suggestions for the next Phase 2
-round. Mandatory pre-output gates prevent a phase from overwriting its inputs or
-returning another phase's artefact.
+table reconstruction, and evidence laundering, then writes one complete review with a
+pass/fail result for every card. Phase 4 presents every card and its review to the human,
+applies the final source-supported adjudication, and alone writes `paper.final.json`.
+Mandatory pre-output gates prevent a phase from overwriting its inputs or returning
+another phase's artefact.
 
 `confirm` is the last source-aware gate: it verifies every evidence fragment against `paper.md`
-and proves that `paper.final.json` is the exact provisional round independently
-audited. `incorporate` excludes invalid individual accepted pairs, strips all private
-evidence bundles and fragment text, and writes:
+and validates the complete Phase 3 review, Phase 4 final audit, and final package lineage
+to the independently audited provisional. Phase 4 may amend source-supported extraction
+content during human adjudication. `incorporate` excludes invalid individual accepted
+pairs, strips all private evidence bundles and fragment text, and writes:
 
 ```text
 output/corpus/nel.corpus.json
@@ -108,9 +110,9 @@ output/corpus/nel.index.json
 output/reports/build-report.json
 ```
 
-There is no provisional corpus. Membership means a package passed independent audit
-and deterministic acceptance. See `INGEST.md` for the operator runbook and
-`docs/INPUT.md` for private input metadata.
+There is no provisional corpus. Membership means a package completed independent audit,
+human adjudication, and deterministic acceptance. See `INGEST.md` for the operator
+runbook and `docs/INPUT.md` for private input metadata.
 
 ## Retrieval
 

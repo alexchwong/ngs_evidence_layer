@@ -35,6 +35,7 @@ def confirm(args):
         errors.append("metadata publication_key does not match --key")
     approved_round = (final.get("audit") or {}).get("approved_round")
     provisional_path = working / f"paper.provisional-{approved_round:03d}.json" if isinstance(approved_round, int) else None
+    review_path = working / f"paper.review-{approved_round:03d}.json" if isinstance(approved_round, int) else None
     provisional = None
     if provisional_path is None or not provisional_path.is_file():
         errors.append("final audit approved_round does not identify an existing provisional file")
@@ -45,6 +46,11 @@ def confirm(args):
         )
         errors.extend(provisional_errors)
         errors.extend(validation.validate_final_against_provisional(final, provisional))
+        if review_path is None or not review_path.is_file():
+            errors.append("final audit approved_round does not identify an existing Phase 3 review")
+        else:
+            review = validation.read_json(review_path, "Phase 3 review")
+            errors.extend(validation.validate_review(review, provisional))
     final_errors, warnings, report = validation.validate_package(
         final, metadata, census, paths["source"].read_text(encoding="utf-8"), True
     )

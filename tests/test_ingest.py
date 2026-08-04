@@ -92,6 +92,35 @@ class FolderStateWorkflowTests(unittest.TestCase):
         working = self.work / PUBLICATION_KEY
         for name in ("paper.census.json", "paper.provisional-001.json", "paper.final.json"):
             shutil.copy(WORK_FIXTURE / name, working / name)
+        provisional = read(working / "paper.provisional-001.json")
+        review = {
+            "schema_version": "5.0",
+            "paper_id": provisional["paper_id"],
+            "round": 1,
+            "review_date": "2026-08-02",
+            "reviewer_model": "fixture-review-model",
+            "extraction_model_reviewed": provisional["extraction_model"],
+            "result": "review_complete",
+            "audit": {
+                "publication_type_verdict": {
+                    "package_value": provisional["publication_type"],
+                    "auditor_value": provisional["publication_type"],
+                    "verdict": "pass",
+                    "verified_by_phase3": True,
+                    "basis": "The package value is defensible from the paper.",
+                },
+                "cards_total": len(provisional["cards"]),
+                "cards_passed": len(provisional["cards"]),
+                "cards_failed": 0,
+            },
+            "card_results": [
+                {"card_id": card["card_id"], "verdict": "pass"}
+                for card in provisional["cards"]
+            ],
+        }
+        (working / "paper.review-001.json").write_text(
+            json.dumps(review), encoding="utf-8"
+        )
         return working
 
     def test_fanout_creates_identity_and_is_idempotent(self):
@@ -143,6 +172,12 @@ class FolderStateWorkflowTests(unittest.TestCase):
         (working / "paper.provisional-001.json").write_text(
             json.dumps(provisional), encoding="utf-8"
         )
+        review = read(working / "paper.review-001.json")
+        review["audit"].update(cards_total=0, cards_passed=0, cards_failed=0)
+        review["card_results"] = []
+        (working / "paper.review-001.json").write_text(
+            json.dumps(review), encoding="utf-8"
+        )
 
         final = copy.deepcopy(provisional)
         final["publication_type_verified_by_phase3"] = True
@@ -189,18 +224,17 @@ class FolderStateWorkflowTests(unittest.TestCase):
         )
         self.assertIn("lacks authors, title, or year", output)
 
-    def test_confirm_rejects_extraction_change_without_moving(self):
+    def test_confirm_accepts_source_supported_phase4_change(self):
         working = self.prepare_complete_work()
         final = read(working / "paper.final.json")
-        final["cards"][0]["interpretation"] += " Changed by auditor."
+        final["cards"][0]["interpretation"] = "Phase 4 retained a narrower source-supported interpretation."
         (working / "paper.final.json").write_text(json.dumps(final), encoding="utf-8")
         output = self.run_script(
             "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
-            "--accept-dir", self.accept, "--archive-dir", self.archive, success=False,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
         )
-        self.assertIn("only audit may change", output)
-        self.assertTrue(working.is_dir())
-        self.assertFalse(self.accept.exists())
+        self.assertIn("CONFIRMED", output)
+        self.assertFalse(working.exists())
 
     def test_incorporate_strips_evidence_and_reports_bad_pair(self):
         self.prepare_complete_work()
@@ -223,40 +257,12 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertNotIn('"provisional"', corpus_text)
         self.assertIn("bad", read(report)["rejected"])
 
-    def test_generated_prompts_match_and_starve_phase3(self):
-        for phase in (1, 2, 3):
+    def test_generated_prompts_match_templates(self):
+        for phase in (1, 2, 3, 4):
             self.assertEqual(
                 (ROOT / "prompts" / f"phase{phase}_prompt.md").read_text(encoding="utf-8"),
                 build_prompts.render(phase),
             )
-        phase3 = build_prompts.render(3)
-        self.assertNotIn("agreed_reporting_rules", phase3)
-        self.assertNotIn('"$schema"', phase3)
-        self.assertNotIn("paper.census.json", phase3)
-
-    def test_review_guidance_contract_is_actionable_and_backward_compatible(self):
-        phase2 = build_prompts.render(2)
-        phase3 = build_prompts.render(3)
-
-        self.assertIn("older reviews without it remain valid", phase2)
-        self.assertIn("Mandatory human adjudication before rework", phase2)
-        self.assertIn("affirm Phase 3's suggested action", phase2)
-        self.assertIn("every specific disease value must be grounded", phase2)
-        self.assertIn("work-up recommendation supports a conditional germline card", phase2)
-        self.assertIn("Never construct card IDs from `paper_id`", phase2)
-        self.assertIn("Use `diseases` only for exact clinical applicability", phase2)
-        self.assertIn("mechanically populate `disease_ancestors`", phase2)
-        self.assertIn("transitive parent reached", phase2)
-
-        self.assertIn('"suggested_action"', phase3)
-        self.assertIn("narrow_disease_scope", phase3)
-        self.assertNotIn("correct_escalates_to", phase3)
-        self.assertIn("source-bounded detail", phase3)
-        self.assertIn("Pass an explicit work-up recommendation", phase3)
-        self.assertIn("fragment reuse alone", phase3)
-        self.assertIn('"audit_model"', phase3)
-        self.assertIn('"results"', phase3)
-        self.assertIn("must not contain `reviewer_model`", phase3)
 
 
 if __name__ == "__main__":

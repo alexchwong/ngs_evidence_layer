@@ -283,6 +283,26 @@ class ReviewValidationTests(unittest.TestCase):
     def setUp(self):
         _metadata, _census, self.provisional = fixture_package(ALPHA, final=False)
         self.card_id = self.provisional["cards"][0]["card_id"]
+        card_results = [
+            {"card_id": card["card_id"], "verdict": "pass"}
+            for card in self.provisional["cards"]
+        ]
+        card_results[0] = {
+            "card_id": self.card_id,
+            "verdict": "fail",
+            "details": {
+                "failure_type": "unsupported_assertion",
+                "reason": "The interpretation exceeds the paired evidence.",
+                "defensibility": (
+                    "The card would be defensible only if narrowed to the "
+                    "source-stated claim."
+                ),
+                "suggested_action": {
+                    "category": "rewrite_interpretation",
+                    "detail": "Narrow the interpretation to the source-stated claim.",
+                },
+            },
+        }
         self.review = {
             "schema_version": "5.0",
             "paper_id": self.provisional["paper_id"],
@@ -290,7 +310,7 @@ class ReviewValidationTests(unittest.TestCase):
             "review_date": "2026-01-02",
             "reviewer_model": "fixture-audit-model",
             "extraction_model_reviewed": self.provisional["extraction_model"],
-            "result": "changes_required",
+            "result": "review_complete",
             "audit": {
                 "publication_type_verdict": {
                     "package_value": self.provisional["publication_type"],
@@ -300,72 +320,104 @@ class ReviewValidationTests(unittest.TestCase):
                     "basis": "The package value is supported by the paper.",
                 },
                 "cards_total": len(self.provisional["cards"]),
+                "cards_passed": len(self.provisional["cards"]) - 1,
                 "cards_failed": 1,
             },
-            "failed_cards": [{
-                "card_id": self.card_id,
-                "reason": "The interpretation exceeds the paired evidence.",
-                "suggested_action": {
-                    "category": "rewrite_interpretation",
-                    "detail": "Narrow the interpretation to the source-stated claim.",
-                },
-            }],
+            "card_results": card_results,
         }
 
-    def test_current_review_validates_in_strict_mode(self):
-        self.assertEqual(validation.validate_review(self.review, self.provisional, True), [])
-
-    def test_legacy_review_without_suggested_action_is_compatible(self):
-        self.review["failed_cards"][0].pop("suggested_action")
+    def test_complete_review_validates(self):
         self.assertEqual(validation.validate_review(self.review, self.provisional), [])
-        errors = validation.validate_review(self.review, self.provisional, True)
-        self.assertTrue(any("requires suggested_action" in error for error in errors), errors)
 
-    def test_schema_enforces_complete_guidance_and_verdict_boolean(self):
-        self.review["failed_cards"][0]["suggested_action"].pop("detail")
-        errors = validation.validate_review(self.review, self.provisional)
-        self.assertTrue(any("suggested_action" in error and "detail" in error for error in errors), errors)
+    def test_pass_omits_details_and_failure_requires_complete_details(self):
+        passing_result = self.review["card_results"][1]
+        passing_result["details"] = copy.deepcopy(self.review["card_results"][0]["details"])
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
 
-        self.review["failed_cards"][0]["suggested_action"]["detail"] = "Narrow it."
-        self.review["audit"]["publication_type_verdict"]["verified_by_phase3"] = False
-        errors = validation.validate_review(self.review, self.provisional)
-        self.assertTrue(any("verified_by_phase3" in error for error in errors), errors)
+        passing_result.pop("details")
+        self.review["card_results"][0]["details"].pop("defensibility")
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
 
-    def test_cross_artefact_mismatches_and_duplicate_cards_fail(self):
-        duplicate = copy.deepcopy(self.review["failed_cards"][0])
-        self.review["failed_cards"].append(duplicate)
+    def test_quote_failure_requires_reviewed_quote_restatement(self):
+        details = self.review["card_results"][0]["details"]
+        details["failure_type"] = "quote_error"
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
+
+        details["quote_restatement"] = "The quote as read in the provisional card."
+        self.assertEqual(validation.validate_review(self.review, self.provisional), [])
+
+        details["failure_type"] = "unsupported_assertion"
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
+
+    def test_cross_artefact_identity_and_count_mismatches_fail(self):
         self.review["paper_id"] = "bbbbbbbb-0000-0000-0000-000000000002"
         self.review["round"] += 1
         self.review["reviewer_model"] = self.provisional["extraction_model"]
         self.review["extraction_model_reviewed"] = "wrong-model"
         self.review["audit"]["cards_total"] -= 1
+        self.review["audit"]["cards_passed"] -= 1
+        self.review["audit"]["cards_failed"] = 0
         errors = validation.validate_review(self.review, self.provisional)
-        for phrase in ("paper_id", "round", "extraction_model_reviewed", "must differ", "cards_total", "cards_failed", "duplicate"):
+        for phrase in (
+            "paper_id", "round", "extraction_model_reviewed", "must differ",
+            "cards_total", "cards_passed", "cards_failed",
+        ):
             self.assertTrue(any(phrase in error for error in errors), (phrase, errors))
 
-    def test_unknown_card_and_publication_value_mismatches_fail(self):
-        self.review["failed_cards"][0]["card_id"] = "unknown-card"
+    def test_review_requires_complete_unique_ordered_card_coverage(self):
+        mutations = {
+            "omitted": lambda results: results.pop(),
+            "duplicate": lambda results: results.__setitem__(1, copy.deepcopy(results[0])),
+            "unknown": lambda results: results[0].update(card_id="unknown-card"),
+            "reordered": lambda results: results.reverse(),
+        }
+        expected = {
+            "omitted": "omits provisional cards",
+            "duplicate": "duplicate card IDs",
+            "unknown": "unknown provisional cards",
+            "reordered": "preserve provisional card order",
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                review = copy.deepcopy(self.review)
+                mutate(review["card_results"])
+                review["audit"]["cards_passed"] = sum(
+                    result["verdict"] == "pass" for result in review["card_results"]
+                )
+                review["audit"]["cards_failed"] = sum(
+                    result["verdict"] == "fail" for result in review["card_results"]
+                )
+                errors = validation.validate_review(review, self.provisional)
+                self.assertTrue(any(expected[name] in error for error in errors), errors)
+
+    def test_publication_value_mismatches_fail(self):
         self.review["audit"]["publication_type_verdict"]["package_value"] = "primary study"
         self.review["audit"]["publication_type_verdict"]["auditor_value"] = "narrative review"
         errors = validation.validate_review(self.review, self.provisional)
-        self.assertTrue(any("unknown provisional cards" in error for error in errors), errors)
         self.assertTrue(any("package_value" in error and "provisional" in error for error in errors), errors)
         self.assertTrue(any("must retain" in error for error in errors), errors)
 
     def test_publication_type_only_failure_is_valid(self):
         verdict = self.review["audit"]["publication_type_verdict"]
         verdict.update(auditor_value="primary study", verdict="fail", verified_by_phase3=False)
-        self.review["failed_cards"] = []
+        self.review["card_results"] = [
+            {"card_id": card["card_id"], "verdict": "pass"}
+            for card in self.provisional["cards"]
+        ]
+        self.review["audit"]["cards_passed"] = len(self.provisional["cards"])
         self.review["audit"]["cards_failed"] = 0
-        self.assertEqual(validation.validate_review(self.review, self.provisional, True), [])
+        self.assertEqual(validation.validate_review(self.review, self.provisional), [])
 
-    def test_review_requires_at_least_one_failure(self):
-        self.review["failed_cards"] = []
+    def test_all_pass_review_is_valid(self):
+        self.review["card_results"] = [
+            {"card_id": card["card_id"], "verdict": "pass"}
+            for card in self.provisional["cards"]
+        ]
+        self.review["audit"]["cards_passed"] = len(self.provisional["cards"])
         self.review["audit"]["cards_failed"] = 0
-        errors = validation.validate_review(self.review, self.provisional)
-        self.assertTrue(any("must contain a card or publication-type failure" in error for error in errors), errors)
+        self.assertEqual(validation.validate_review(self.review, self.provisional), [])
 
-    def test_review_validation_cli_supports_strict_mode(self):
+    def test_review_validation_cli(self):
         with tempfile.TemporaryDirectory() as tmp:
             review_path = Path(tmp) / "paper.review-001.json"
             provisional_path = Path(tmp) / "paper.provisional-001.json"
@@ -374,17 +426,15 @@ class ReviewValidationTests(unittest.TestCase):
             command = [
                 sys.executable, str(SCRIPTS / "validate_review.py"),
                 "--review", str(review_path), "--provisional", str(provisional_path),
-                "--require-current-guidance",
             ]
             result = subprocess.run(command, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("OK: review matches provisional package", result.stdout)
 
-            self.review["failed_cards"][0].pop("suggested_action")
+            self.review["card_results"][0]["details"].pop("suggested_action")
             review_path.write_text(json.dumps(self.review), encoding="utf-8")
             result = subprocess.run(command, capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("requires suggested_action", result.stderr)
 
 
 class IncorporationTests(unittest.TestCase):

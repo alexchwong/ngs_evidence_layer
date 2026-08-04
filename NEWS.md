@@ -10,6 +10,12 @@
   aggregate-length validation while keeping private evidence out of public artefacts.
 - Made scope governance, complete table reconstruction, and prevention of evidence
   laundering mandatory Phase 3 audit checks.
+- Changed Phase 3 to emit one complete pass/fail review covering every provisional
+  card, with detailed defensibility and corrective guidance only for failures and a
+  restatement of the reviewed quote for quote failures.
+- Added Phase 4 human adjudication for every card as the sole creator of
+  `paper.final.json`, eliminating repeated Phase 2/Phase 3 correction rounds while
+  retaining the existing all-pass final audit shape.
 - Bumped ingestion packages to schema version 5.0; version 4.2 packages and external
   consumers of the former `quotes` array require re-ingestion or adaptation.
 
