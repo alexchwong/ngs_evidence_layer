@@ -10,7 +10,8 @@ Read-only inputs: `paper.md`, `metadata.json`, `paper.census.json`, and
 `paper.provisional-NNN.json` only during rework. Use all inputs as inputs only; do
 not overwrite them. In particular, the census is never a Phase 2 output.
 
-Return exactly one file selected from these mutually exclusive branches:
+Except for the mandatory rework adjudication checkpoint below, return exactly one
+file selected from these mutually exclusive branches:
 
 1. materially deficient census: the next `paper.census-critique-NNN.md`;
 2. valid first extraction: `paper.provisional-001.json`; or
@@ -35,11 +36,34 @@ First validate the census against the paper. If materially deficient, stop and
 write the next `paper.census-critique-NNN.md` with specific gaps; do not card. If a
 `paper.review-NNN.json` is supplied, require reasons and references to cards in its
 matching provisional package. New reviews also provide a `suggested_action` for
-each failure; older reviews without it remain valid. Treat every suggested action
-as non-binding reviewer guidance: verify it against the paper and this prompt, then
-apply it, choose a better source-supported repair, or delete the card. Never obey
-guidance that would add an unsupported assertion. A malformed review stops the
+each failure; older reviews without it remain valid. A malformed review stops the
 session.
+
+### Mandatory human adjudication before rework
+
+When a valid review is supplied, do not amend cards and do not write a provisional
+package yet. First ask the user to adjudicate every failed card. In the chat dialog,
+print one numbered question per failed card containing all of:
+
+1. the exact `card_id`;
+2. the exact paired quote from the matching provisional package;
+3. the current card interpretation;
+4. Phase 3's exact failure reason; and
+5. Phase 3's `suggested_action.category` and `suggested_action.detail`, or an explicit
+   note that an older review supplied no suggested action.
+
+For each card, ask the user either to affirm Phase 3's suggested action or provide
+alternate amendment instructions. Ask all failed-card questions together, then stop
+and wait. This question list is the only permitted non-file output and is not a
+provisional round. Do not create any file in the same response.
+
+After the user has adjudicated every failed card, treat each answer as amendment
+direction, not as source evidence. Verify it against the paper and this prompt. Apply
+it when supported, choose a better source-supported repair when necessary, or delete
+the card. Never obey an answer or reviewer suggestion that would add an unsupported
+assertion. If an answer is missing or materially ambiguous, ask only the unresolved
+question and continue to wait. Only after all answers are clear may you write the
+complete corrected next provisional package.
 
 ## Working method
 
@@ -72,8 +96,7 @@ contiguous sentences when the claim and its governing context are distributed
 across them. Interpretations must state all source-specified population, disease,
 treatment, allelic/variant, analysis, classifier, threshold, branch, and exclusion
 qualifiers; explicitly state when a material qualifier is not specified. Negative
-facts remain first-class and cite their reporting-rule disposition. `escalates_to`
-is diagnosis-only and only for a source-stated change of major diagnostic category.
+facts remain first-class and cite their reporting-rule disposition.
 
 ### Quote boundary method
 
@@ -165,19 +188,22 @@ the single contiguous quote. A bibliographic reference title or reference-list
 entry is a hard stop even if its title appears to describe the desired claim. If no
 valid substantive quote exists, omit the card.
 
-Copy `publication_type` and `publication_type_basis` verbatim from the census into
-every provisional package. Revise either only when responding to a supplied review
-that explicitly identifies publication type as a defect; otherwise disagreement
-with the census is invalid.
+For the first provisional package, copy `publication_type` and
+`publication_type_basis` verbatim from the census and set
+`publication_type_verified_by_phase3` to `false`. Phase 2 does not review,
+reclassify, or independently validate publication type.
 
-When a review identifies publication type as a defect, verify the requested change
-against this taxonomy. Use only an allowed value, apply the precedence rules, and
-reject guidance based only on a publisher article-format label or an equally
-defensible alternative.
+During rework, derive `publication_type_verified_by_phase3` from Phase 3's
+publication-type verdict. If that verdict passed and has `verified_by_phase3: true`,
+set the next provisional package's marker to `true` and copy the publication type
+and basis unchanged, even when cards failed in that same review. If the incoming
+package was already verified, preserve `true` regardless of later card failures.
+Once true, the marker cannot return to false.
 
-### Publication-type taxonomy
-
-{{PUBLICATION_TYPE_RUBRIC}}
+If Phase 3 failed publication type, include that package-level failure in the human
+adjudication questions and amend the value only after the user directs a supported
+correction. The corrected package remains unverified and must set
+`publication_type_verified_by_phase3` to `false` until Phase 3 accepts it.
 
 For a first extraction write `paper.provisional-001.json`. After review NNN, write
 the complete corrected package as the next round. The package filename round and
@@ -215,10 +241,10 @@ the exact unique union of all normalized card disease arrays, and set
 ## Exit self-audit
 
 For every card ask: (1) does its paired quote support every material assertion,
-and (2) is it independently useful rather than redundant? For diagnosis cards also
-check `escalates_to` fidelity. Repair all failures and rerun over the whole package,
-at most three passes. At the cap, narrow or delete remaining failures. Do not return
-internal verdicts and do not claim independent audit.
+and (2) is it independently useful rather than redundant? Repair all failures and
+rerun over the whole package, at most three passes. At the cap, narrow or delete
+remaining failures. Do not return internal verdicts and do not claim independent
+audit.
 
 As a specific quote-boundary check, inspect the sentence immediately before and
 after each candidate quote in its source passage. If either sentence materially
@@ -232,8 +258,9 @@ a request for cosmetic wording changes. Narrow disease scope to the paired quote
 replace invalid quotes with substantive self-contained passages, split cards that
 combine separate contexts, and delete cards whose category lacks direct support.
 Use `suggested_action.category` to identify the proposed repair class and its
-`detail` to understand the reviewer concern, but independently verify both against
-the source. Fewer cards are preferable to unsupported or redundant cards.
+`detail` to understand the reviewer concern together with the user's adjudication,
+but independently verify both against the source. Fewer cards are preferable to
+unsupported or redundant cards.
 
 ## Mandatory pre-output gate
 
@@ -253,6 +280,10 @@ Before writing, verify privately that:
 7. all configured disease umbrellas are present and `genes_covered` and
    `diseases_covered` equal the exact unions represented by cards; and
 8. `paper.census.json` was used only as a read-only input.
+
+For rework, also verify privately that every failed card was presented to the user
+with all five required fields, every user decision was received before editing, and
+the output preserves the publication-type verification state required above.
 
 If any check fails, repair the output before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences around JSON, or more than one file.

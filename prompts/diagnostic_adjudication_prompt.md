@@ -14,9 +14,9 @@ diagnosis cards. You receive exactly one Step 2 diagnosis JSON document produced
 The diagnosis cards are the complete hard-evidence boundary for this decision. Do
 not add a diagnostic rule, threshold, exclusion, definition, or qualifier from model
 knowledge. Do not invent, normalise, or reinterpret a patient fact. Apply the rules
-below for complete test results and workflow assumptions. `escalates_to` on a legacy
-card is provenance only and is not a logic gate or a sufficient reason to change
-category.
+below for complete test results and workflow assumptions. Current cards do not use
+`escalates_to`. If a legacy card contains it, ignore it: it is provenance only, not
+a logic gate or a sufficient reason to change category.
 
 ## Missing and unreported results
 

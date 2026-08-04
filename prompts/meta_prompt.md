@@ -19,5 +19,6 @@ Every prompt edit must preserve these invariants:
 - one source-verbatim quote per card and one card per quote;
 - cards are gene-indexed and independently useful;
 - diseases use the closed vocabulary with required umbrella tags;
-- only source-stated major-category reassignment populates `escalates_to`;
+- Phase 2 pauses for user adjudication before acting on Phase 3 failed-card suggestions;
+- publication type is assigned by Phase 1, copied by Phase 2, and verified once by Phase 3;
 - Phase 3 never repairs extraction content.

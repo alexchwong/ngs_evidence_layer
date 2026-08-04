@@ -203,7 +203,8 @@ class FolderStateWorkflowTests(unittest.TestCase):
         phase3 = build_prompts.render(3)
 
         self.assertIn("older reviews without it remain valid", phase2)
-        self.assertIn("non-binding reviewer guidance", phase2)
+        self.assertIn("Mandatory human adjudication before rework", phase2)
+        self.assertIn("affirm Phase 3's suggested action", phase2)
         self.assertIn("every disease value must be grounded", phase2)
         self.assertIn("work-up recommendation supports a conditional germline card", phase2)
         self.assertIn("Never construct card IDs from `paper_id`", phase2)
@@ -211,7 +212,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
 
         self.assertIn('"suggested_action"', phase3)
         self.assertIn("narrow_disease_scope", phase3)
-        self.assertIn("correct_escalates_to", phase3)
+        self.assertNotIn("correct_escalates_to", phase3)
         self.assertIn("source-bounded detail", phase3)
         self.assertIn("Pass an explicit work-up recommendation", phase3)
         self.assertIn("quote reuse alone", phase3)

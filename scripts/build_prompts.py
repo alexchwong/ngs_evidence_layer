@@ -53,7 +53,9 @@ def publication_type_rubric(phase):
 
 def render(phase):
     template = read(ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md")
-    replacements = {"{{PUBLICATION_TYPE_RUBRIC}}": publication_type_rubric(phase)}
+    replacements = {}
+    if phase in (1, 3):
+        replacements["{{PUBLICATION_TYPE_RUBRIC}}"] = publication_type_rubric(phase)
     if phase in (1, 2):
         replacements["{{REPORTING_RULES}}"] = read(ROOT / "rules" / "agreed_reporting_rules.md")
     if phase == 1:

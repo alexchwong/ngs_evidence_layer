@@ -129,7 +129,7 @@ def build(args):
         raise ValueError("\n".join(global_errors))
 
     by_gene, by_disease, by_category = defaultdict(list), defaultdict(list), defaultdict(list)
-    by_escalation, by_tier, by_year, by_type = (defaultdict(list) for _ in range(4))
+    by_tier, by_year, by_type = (defaultdict(list) for _ in range(3))
     publications, paper_index, card_index = [], {}, {}
     census_total = 0
     for publication_key, envelope, census, warnings, report in selected:
@@ -154,13 +154,11 @@ def build(args):
                 "input_id": metadata["paper_id"], "publication_key": metadata["publication_key"],
                 "genes": sorted(card["genes"]), "diseases": sorted(card["diseases"]),
                 "category": card["category"], "evidence_tier": card["evidence_tier"],
-                "escalates_to": card["escalates_to"],
             }
             for gene in card["genes"]: add(by_gene, gene, card_id)
             for disease in card["diseases"]: add(by_disease, disease, card_id)
             add(by_category, card["category"], card_id)
             add(by_tier, card["evidence_tier"], card_id)
-            if card["escalates_to"]: add(by_escalation, card["escalates_to"], card_id)
         year = metadata["citation"].get("year")
         if year is not None: add(by_year, str(year), metadata["publication_key"])
         add(by_type, package["publication_type"], metadata["publication_key"])
@@ -188,7 +186,7 @@ def build(args):
         "papers": {key: paper_index[key] for key in sorted(paper_index)},
         "cards": {key: card_index[key] for key in sorted(card_index)},
         "by_gene": postings(by_gene), "by_disease": postings(by_disease), "by_category": postings(by_category),
-        "by_escalates_to": postings(by_escalation), "by_evidence_tier": postings(by_tier),
+        "by_evidence_tier": postings(by_tier),
         "by_year": postings(by_year), "by_publication_type": postings(by_type),
         "rejected": {key: rejected[key] for key in sorted(rejected)},
     }

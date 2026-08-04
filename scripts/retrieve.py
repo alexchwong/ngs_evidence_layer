@@ -81,7 +81,6 @@ def flatten(corpus):
                 "genes": list(card.get("genes", [])),
                 "diseases": list(card.get("diseases") or []),
                 "evidence_tier": card["evidence_tier"],
-                "escalates_to": card.get("escalates_to"),
                 "interpretation": card["interpretation"],
                 "locator": card["locator"],
                 "publication_key": document.get("publication_key"),

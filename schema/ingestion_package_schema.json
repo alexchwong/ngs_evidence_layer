@@ -3,10 +3,10 @@
   "$id": "https://local/ngs_evidence_layer/ingestion_package_schema.json",
   "title": "Phase 2 provisional or Phase 3 final evidence package",
   "type": "object",
-  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "publication_type", "publication_type_basis", "genes_covered", "diseases_covered", "census_entries", "cards", "quotes", "audit"],
+  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "publication_type", "publication_type_basis", "publication_type_verified_by_phase3", "genes_covered", "diseases_covered", "census_entries", "cards", "quotes", "audit"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "4.1" },
+    "schema_version": { "const": "4.2" },
     "paper_id": { "type": "string", "format": "uuid" },
     "round": { "type": "integer", "minimum": 1 },
     "extraction_date": { "type": "string", "format": "date" },
@@ -15,6 +15,7 @@
       "enum": ["guideline", "consensus statement", "primary study", "systematic review", "narrative review", "other"]
     },
     "publication_type_basis": { "type": "string", "minLength": 1 },
+    "publication_type_verified_by_phase3": { "type": "boolean" },
     "genes_covered": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
     "diseases_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
     "census_entries": { "type": "integer", "minimum": 0 },
@@ -39,7 +40,7 @@
     },
     "card": {
       "type": "object",
-      "required": ["card_id", "locator", "interpretation", "genes", "diseases", "category", "evidence_tier", "escalates_to", "secondary_citation"],
+      "required": ["card_id", "locator", "interpretation", "genes", "diseases", "category", "evidence_tier", "secondary_citation"],
       "additionalProperties": false,
       "properties": {
         "card_id": { "type": "string", "minLength": 1 }, "locator": { "type": "string", "minLength": 1 },
@@ -48,7 +49,6 @@
         "diseases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
         "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker", "germline"] },
         "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
-        "escalates_to": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/disease" }] },
         "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
       },
       "allOf": [
@@ -72,10 +72,11 @@
         "extraction_model_reviewed": { "type": "string", "minLength": 1 }, "approved_round": { "type": "integer", "minimum": 1 },
         "publication_type_verdict": {
           "type": "object",
-          "required": ["verdict"],
+          "required": ["verdict", "verified_by_phase3"],
           "additionalProperties": false,
           "properties": {
             "verdict": { "enum": ["pass", "fail"] },
+            "verified_by_phase3": { "const": true },
             "reason": { "type": "string", "minLength": 1 }
           },
           "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]

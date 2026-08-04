@@ -33,13 +33,17 @@ class PublicationTypePromptTests(unittest.TestCase):
         )
         self.assertEqual(BUILD_PROMPTS.vocabulary_errors(), [])
 
-    def test_every_phase_receives_operational_definitions(self):
-        for phase in (1, 2, 3):
+    def test_assignment_and_audit_phases_receive_operational_definitions(self):
+        for phase in (1, 3):
             with self.subTest(phase=phase):
                 prompt = BUILD_PROMPTS.render(phase)
                 self.assertNotIn("{{PUBLICATION_TYPE_RUBRIC}}", prompt)
                 for value in self.allowed:
                     self.assertIn(f"`{value}`:", prompt)
+
+        phase2 = BUILD_PROMPTS.render(2)
+        self.assertNotIn("### Publication-type taxonomy", phase2)
+        self.assertIn("Phase 2 does not review", phase2)
 
     def test_only_phase3_receives_audit_stability_policy(self):
         phrase = "Pass when the package value is defensible"
@@ -116,6 +120,32 @@ class PublicationTypePromptTests(unittest.TestCase):
         self.assertNotIn("### Quote boundary method", phase3)
         self.assertNotIn("minimal sufficient verbatim passage", phase3)
         self.assertNotIn("atomic assertions", phase3)
+
+    def test_phase2_requires_human_adjudication_before_rework(self):
+        prompt = BUILD_PROMPTS.render(2)
+        normalized = " ".join(prompt.split())
+
+        self.assertIn("### Mandatory human adjudication before rework", prompt)
+        self.assertIn("the exact paired quote", normalized)
+        self.assertIn("the current card interpretation", normalized)
+        self.assertIn("Phase 3's exact failure reason", normalized)
+        self.assertIn("suggested_action.category", normalized)
+        self.assertIn("affirm Phase 3's suggested action or provide alternate amendment instructions", normalized)
+        self.assertIn("Do not create any file in the same response", normalized)
+
+    def test_publication_type_is_verified_once_by_phase3(self):
+        phase1 = " ".join(BUILD_PROMPTS.render(1).split())
+        phase2 = " ".join(BUILD_PROMPTS.render(2).split())
+        phase3 = " ".join(BUILD_PROMPTS.render(3).split())
+
+        self.assertIn("publication-type verification belongs only to Phase 3", phase1)
+        self.assertIn("publication_type_verified_by_phase3` to `false", phase2)
+        self.assertIn("When `publication_type_verified_by_phase3` is already `true`, do not review", phase3)
+        self.assertIn('"verified_by_phase3": true', phase3)
+
+    def test_escalates_to_is_absent_from_active_phase_prompts(self):
+        self.assertNotIn("escalates_to", BUILD_PROMPTS.render(2))
+        self.assertNotIn("escalates_to", BUILD_PROMPTS.render(3))
 
 
 if __name__ == "__main__":

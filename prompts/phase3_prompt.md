@@ -41,9 +41,7 @@ For every card answer:
 2. Is the card independently useful rather than materially redundant elsewhere in
    the package?
 
-For every diagnosis card, also compare the quote and interpretation with
-`escalates_to`. Fail missing, wrong, or over-inferred category changes. Identical
-quote text alone is not failure when it supports distinct useful roles.
+Identical quote text alone is not failure when it supports distinct useful roles.
 
 Apply these calibrations consistently:
 
@@ -64,12 +62,19 @@ Apply these calibrations consistently:
   detection strategy, assay limitation, monitoring use, or discrimination use.
   A generic "molecular biomarker" or classification relabel is redundant.
 
-Audit the package-level `publication_type` against the paper's own front matter,
-structure, primary purpose, and methods using the taxonomy below. Record
+When `publication_type_verified_by_phase3` is `false`, audit the package-level
+`publication_type` against the paper's own front matter, structure, primary purpose,
+and methods using the taxonomy below. Record the decision in
 `audit.publication_type_verdict`. Audit the package value for defensibility rather
 than selecting your preferred label anew. A publication-type disagreement is a
 review failure only when the audit-stability rules require failure; identify
-publication type as the defect and do not repair it.
+publication type as the defect and do not repair it. Set `verified_by_phase3` to
+`true` only when the verdict is `pass`.
+
+When `publication_type_verified_by_phase3` is already `true`, do not review,
+reclassify, or reassess publication type. Preserve the package value and basis, and
+record a passing publication-type verdict with `verified_by_phase3: true` and a
+reason stating that the prior Phase 3 verification was preserved.
 
 ### Publication-type taxonomy and stability policy
 
@@ -105,12 +110,12 @@ paper, retain `consensus statement` when the main contribution is agreed
 classification, criteria, definitions, or terminology and no formal guideline
 methodology is shown.
 
-If any card fails, write only `paper.review-NNN.json`, where NNN is the provisional
-round. Use this review shape:
+If any card or the publication type fails, write only `paper.review-NNN.json`, where
+NNN is the provisional round. Use this review shape:
 
 ```json
 {
-  "schema_version": "4.1",
+  "schema_version": "4.2",
   "paper_id": "<provisional paper_id>",
   "round": 1,
   "review_date": "YYYY-MM-DD",
@@ -122,6 +127,7 @@ round. Use this review shape:
       "package_value": "<provisional value>",
       "auditor_value": "<one allowed taxonomy value>",
       "verdict": "pass or fail",
+      "verified_by_phase3": "<true when verdict is pass; false when verdict is fail>",
       "basis": "<concise paper-based reason>"
     },
     "cards_total": 1,
@@ -149,7 +155,6 @@ Every failed card must have exactly one `suggested_action.category`, selected fr
 - `split_card`
 - `delete_card`
 - `add_or_correct_qualifier`
-- `correct_escalates_to`
 
 Choose the primary repair class most likely to resolve the stated failure. The
 `detail` must tell Phase 2 what to consider changing and why, while remaining
@@ -159,12 +164,13 @@ not supply a finished replacement card or introduce facts from outside the paire
 quote. Suggested actions are reviewer advice, not extraction edits. Include each
 failed card ID and a precise reason. Do not write a final and do not repair cards.
 
-If all cards pass, write `paper.final.json` as the complete provisional package
-with extraction content unchanged and an `audit` object containing the audit date,
-your model identity, the extraction model reviewed, `approved_round`, and exactly
-one passing verdict per card, plus a passing publication-type verdict. The filename
-round, package round, and approved round
-must agree.
+If all cards and publication type pass, write `paper.final.json` as the complete
+provisional package with extraction content unchanged except that
+`publication_type_verified_by_phase3` must be set to `true`. Populate an `audit`
+object containing the audit date, your model identity, the extraction model reviewed,
+`approved_round`, and exactly one passing verdict per card, plus a passing
+publication-type verdict. The filename round, package round, and approved round must
+agree.
 
 Use exactly this audit shape in the final package; replace placeholders and repeat
 the `results` item once for every card:
@@ -177,6 +183,7 @@ the `results` item once for every card:
   "approved_round": 1,
   "publication_type_verdict": {
     "verdict": "pass",
+    "verified_by_phase3": true,
     "reason": "<concise paper-based reason>"
   },
   "results": [
@@ -208,7 +215,8 @@ Before writing, verify privately that:
    exactly one passing audit result per card plus a passing publication-type
    verdict; and
 5. no card or other extraction content was authored, repaired, removed, reordered,
-   or otherwise changed in the final package; only `audit` was populated.
+   or otherwise changed in the final package; only `audit` was populated and
+   `publication_type_verified_by_phase3` was set to `true`.
 
 If any check fails, repair the output before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences, or more than one file.

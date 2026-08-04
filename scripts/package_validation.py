@@ -100,10 +100,13 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package paper_id does not match metadata")
     if package["census_entries"] != len(census.get("entries", [])):
         errors.append("package census_entries does not match census")
-    if package["publication_type"] != census.get("publication_type"):
-        errors.append("package publication_type does not match census")
-    if package["publication_type_basis"] != census.get("publication_type_basis"):
-        errors.append("package publication_type_basis does not match census")
+    if package["round"] == 1:
+        if package["publication_type"] != census.get("publication_type"):
+            errors.append("first-round package publication_type does not match census")
+        if package["publication_type_basis"] != census.get("publication_type_basis"):
+            errors.append("first-round package publication_type_basis does not match census")
+        if not require_final and package["publication_type_verified_by_phase3"]:
+            errors.append("first-round provisional publication type cannot already be verified")
 
     card_ids = [card["card_id"] for card in package["cards"]]
     quote_ids = [quote["card_id"] for quote in package["quotes"]]
@@ -123,8 +126,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         card_id = card["card_id"]
         if not card_id.startswith(prefix):
             errors.append(f"{card_id}: card_id must begin with {prefix}")
-        if card["category"] != "diagnosis" and card.get("escalates_to") is not None:
-            errors.append(f"{card_id}: escalates_to is allowed only on diagnosis cards")
         if card["category"] in DISEASE_DEPENDENT_CATEGORIES and not card["diseases"]:
             errors.append(f"{card_id}: {card['category']} card requires at least one disease")
         interpretation = normalise(card["interpretation"]).lower()
@@ -168,6 +169,8 @@ def validate_package(package, metadata, census, source_text=None, require_final=
     audit = package["audit"]
     if require_final and audit is None:
         errors.append("final package requires audit metadata")
+    if require_final and not package["publication_type_verified_by_phase3"]:
+        errors.append("final package publication type must be verified by Phase 3")
     if not require_final and audit is not None:
         errors.append("provisional package audit must be null")
     if audit is not None:
@@ -179,6 +182,8 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append("extraction_model_reviewed does not match extraction_model")
         if audit["publication_type_verdict"]["verdict"] != "pass":
             errors.append("failed publication_type verdict blocks acceptance")
+        if not audit["publication_type_verdict"]["verified_by_phase3"]:
+            errors.append("audit must mark publication type as verified by Phase 3")
         verdict_ids = [result["card_id"] for result in audit["results"]]
         if len(verdict_ids) != len(set(verdict_ids)):
             errors.append("audit contains duplicate card verdicts")
@@ -204,6 +209,8 @@ def validate_final_against_provisional(final, provisional):
     errors = []
     if final.get("round") != provisional.get("round"):
         errors.append("final and approved provisional rounds differ")
-    if extraction_view(final) != extraction_view(provisional):
+    expected = extraction_view(provisional)
+    expected["publication_type_verified_by_phase3"] = True
+    if extraction_view(final) != expected:
         errors.append("Phase 3 changed extraction content; only audit may change")
     return errors

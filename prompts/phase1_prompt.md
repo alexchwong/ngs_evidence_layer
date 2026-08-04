@@ -23,7 +23,8 @@ values. Do not refuse because a supplement is unavailable.
 
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
-that judgement.
+that judgement. Phase 1 assigns this provisional value but does not independently
+verify it; publication-type verification belongs only to Phase 3.
 
 ### Publication-type taxonomy
 

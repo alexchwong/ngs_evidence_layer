@@ -112,14 +112,12 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report["cards"], 8)
         self.assertEqual(report["ratio"], 2.0)
 
-    def test_missing_umbrella_and_non_diagnosis_escalation_fail(self):
+    def test_missing_umbrella_fails(self):
         def mutate(_metadata, _census, package):
             package["cards"][0]["diseases"] = ["APL"]
-            package["cards"][2]["escalates_to"] = "AML"
             package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
         errors, _warnings, _report = self.validate(mutate)
         self.assertTrue(any("umbrella" in error for error in errors), errors)
-        self.assertTrue(any("diagnosis cards" in error for error in errors), errors)
 
     def test_pairing_and_verbatim_quote_failures(self):
         def mutate(_metadata, _census, package):
@@ -132,7 +130,7 @@ class ValidationTests(unittest.TestCase):
     def test_identical_quote_is_warning_not_failure(self):
         def mutate(_metadata, _census, package):
             card = copy.deepcopy(package["cards"][0])
-            card.update(card_id=package["cards"][0]["card_id"] + "-other", category="treatment", escalates_to=None)
+            card.update(card_id=package["cards"][0]["card_id"] + "-other", category="treatment")
             quote = copy.deepcopy(package["quotes"][0]); quote["card_id"] = card["card_id"]
             package["cards"].append(card); package["quotes"].append(quote)
             package["genes_covered"] = sorted({g for c in package["cards"] for g in c["genes"]})
@@ -150,7 +148,6 @@ class ValidationTests(unittest.TestCase):
         def gene_only_germline(_metadata, _census, package):
             package["cards"][0]["category"] = "germline"
             package["cards"][0]["diseases"] = []
-            package["cards"][0]["escalates_to"] = None
             package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
         errors, _warnings, _report = self.validate(gene_only_germline)
         self.assertEqual(errors, [])
@@ -180,7 +177,8 @@ class IncorporationTests(unittest.TestCase):
             corpus_path, index_path = build_fixture_corpus(Path(tmp))
             corpus, index = read(corpus_path), read(index_path)
             self.assertEqual(corpus["counts"]["cards"], 10)
-            self.assertEqual(len(index["by_escalates_to"]["AML"]), 2)
+            self.assertNotIn("by_escalates_to", index)
+            self.assertNotIn("escalates_to", json.dumps(index))
             self.assertNotIn('"quote"', json.dumps(corpus))
             self.assertNotIn("provisional", corpus)
 
@@ -288,7 +286,7 @@ class RetrievalAndRenderTests(unittest.TestCase):
             stale = Path(tmp) / "index.json"; stale.write_text(json.dumps(index), encoding="utf-8")
             with self.assertRaises(ValueError): retrieve.load_corpus(self.corpus_path, stale)
 
-    def test_diagnosis_cards_are_not_gated_by_legacy_escalates_to(self):
+    def test_diagnosis_cards_are_not_gated_by_legacy_escalation_metadata(self):
         diagnosis = retrieve.step2(self.cards, ["GENEA"], "MDS")
         self.assertNotIn("escalation_candidates", diagnosis)
         self.assertIn("AML", diagnosis["allowed_refined_diseases"])
@@ -299,7 +297,6 @@ class RetrievalAndRenderTests(unittest.TestCase):
         diagnosis_card = {
             "card_id": "classifier-C0001", "category": "diagnosis", "genes": ["SF3B1"],
             "diseases": ["MDS"], "evidence_tier": "guideline criterion",
-            "escalates_to": None,
             "interpretation": "The classifier permits MDS-SF3B1 when its stated molecular, ring-sideroblast, and exclusion criteria are met.",
             "locator": "fixture", "publication_key": "classifier", "publication_year": 2026,
             "citation_display": "Classifier fixture", "citation_incomplete": [],
@@ -362,7 +359,7 @@ class RetrievalAndRenderTests(unittest.TestCase):
         card = {
             "card_id": "classifier-C0001", "category": "diagnosis", "genes": ["SF3B1"],
             "diseases": ["MDS"], "evidence_tier": "guideline criterion",
-            "escalates_to": None, "interpretation": "Fixture criterion.", "locator": "fixture",
+            "interpretation": "Fixture criterion.", "locator": "fixture",
         }
         step2 = retrieve.step2([card], ["SF3B1"], "myeloid neoplasm, unspecified", facts)
         adjudication = {
