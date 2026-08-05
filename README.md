@@ -1,8 +1,9 @@
 # ngs_evidence_layer
 
-A corpus-grounded evidence layer for myeloid NGS interpretation. It converts one
-publication at a time into gene-indexed evidence cards backed by private verbatim
-quotes, then retrieves and renders a deterministic, citable evidence block.
+A corpus-grounded evidence layer for myeloid NGS interpretation. It converts 
+publications into gene-indexed evidence cards backed by private typed
+evidence bundles of verbatim source fragments, then retrieves and renders a
+deterministic, citable evidence block.
 
 It collates what publications state. It does not reconcile classifiers, rank
 findings, make clinical decisions, or draft a report. No model haematology knowledge
@@ -18,26 +19,41 @@ python scripts/vocab.py
 python -m unittest discover -s tests -v
 ```
 
-## Ingestion v0.1.2
+## Ingestion v0.1.3
 
 Prompts are committed data under `prompts/`; private folder contents are workflow
 state. Papers are independent and may be in flight concurrently.
 
 ```bash
 # Convert queued PDFs to deterministic Markdown and resolve citations.
+# Input PDFs live in `pdf/[corpus]`
+# Output markdowns to `input/[corpus]`
 python scripts/parse_pdfs.py --corpus <name> --mailto <email>
 
-# Repair unresolved citations by supplying DOI candidates that are re-resolved
-# through Crossref, or by applying a validated manual citation worksheet.
+########
+# DOI and citation retrieval
+
+# Step 1 (DOI path): build a recovery request from citation-pending index records and
+# parsed Markdown; outputs input/<name>/citations/request-<UTC>.md.
 python scripts/citations.py request --corpus <name>
+
+# Step 2 (DOI path): provide a JSON array of paper_id, title_seen, and doi entries;
+# verifies each DOI via Crossref and updates valid records to ingested in the index.
 python scripts/citations.py apply --corpus <name> --response <file>
+
+# Alternative step 1 (manual path): export pending paper IDs to a citation worksheet;
+# outputs input/<name>/citations/manual-<UTC>.csv for the operator to complete.
 python scripts/citations.py manual-export --corpus <name>
+
+# Alternative step 2 (manual path): provide the completed CSV worksheet;
+# validates the entire batch, then stores citations and marks its records ingested.
 python scripts/citations.py manual-apply --corpus <name> --csv <file>
 
+######
 # Create work/<publication-key>/paper.md and metadata.json.
 python scripts/fanout.py --corpus <name>
 
-# Run Phases 1–3 in fresh model sessions using prompts/phaseN_prompt.md,
+# Run Phases 1–4 in fresh model sessions using prompts/phaseN_prompt.md,
 # saving outputs directly in each paper's work folder.
 
 # Deterministically accept one fully audited paper.
@@ -77,17 +93,22 @@ folder collisions before model work begins.
 
 Each model phase has a strict, mutually exclusive output contract. Phase 1 alone
 writes the census and assigns `publication_type` with a source-supported basis. Phase
-2 either critiques a materially deficient census or writes the next complete
+2 either critiques a materially deficient census or writes the single complete
 provisional package; it must preserve every source qualifier and maintain exactly one
-quote per card. Phase 3 independently audits publication type and every card/quote
-pair, then either writes the exact final package or a structured review with bounded
-reviewer suggestions for the next Phase 2 round. Mandatory pre-output gates prevent a
-phase from overwriting its inputs or returning another phase's artefact.
+typed evidence bundle per card. A bundle is `contiguous_text`, `composite_text`, or
+`table_relation`; every fragment remains independently verbatim and locatable. Phase 3
+independently audits publication type, every card/bundle pair, cross-fragment scope,
+table reconstruction, and evidence laundering, then writes one complete review with a
+pass/fail result for every card. Phase 4 presents every card and its review to the human,
+applies the final source-supported adjudication, and alone writes `paper.final.json`.
+Mandatory pre-output gates prevent a phase from overwriting its inputs or returning
+another phase's artefact.
 
-`confirm` is the last source-aware gate: it verifies every quote against `paper.md`
-and proves that `paper.final.json` is the exact provisional round independently
-audited. `incorporate` excludes invalid individual accepted pairs, strips all quote
-text, and writes:
+`confirm` is the last source-aware gate: it verifies every evidence fragment against `paper.md`
+and validates the complete Phase 3 review, Phase 4 final audit, and final package lineage
+to the independently audited provisional. Phase 4 may amend source-supported extraction
+content during human adjudication. `incorporate` excludes invalid individual accepted
+pairs, strips all private evidence bundles and fragment text, and writes:
 
 ```text
 output/corpus/nel.corpus.json
@@ -95,22 +116,24 @@ output/corpus/nel.index.json
 output/reports/build-report.json
 ```
 
-There is no provisional corpus. Membership means a package passed independent audit
-and deterministic acceptance. See `INGEST.md` for the operator runbook and
-`docs/INPUT.md` for private input metadata.
+There is no provisional corpus. Membership means a package completed independent audit,
+human adjudication, and deterministic acceptance. See `INGEST.md` for the operator
+runbook and `docs/INPUT.md` for private input metadata.
 
 ## Retrieval
 
 Case handling has two bounded model steps. Step 1 extracts a provisional major
 diagnostic category, NGS genes, and structured case facts with stable `fact_id`
-values. Step 3 adjudicates those facts against retrieved diagnosis cards under
-`prompts/diagnostic_adjudication_prompt.md`. All retrieval before, between, and after
-those decisions is deterministic.
+values into `case-input.json`. Step 3 adjudicates those facts against retrieved
+diagnosis cards under `prompts/diagnostic_adjudication_prompt.md`. Steps 2, 4, and 5
+are deterministic, performed by `scripts/run_case.py`.
 
-For example, `case-facts.json` may contain:
+For example, `case-input.json` may contain:
 
 ```json
 {
+  "provisional_disease": "myeloid neoplasm, unspecified",
+  "genes": ["SF3B1"],
   "case_facts": [
     {"fact_id": "F-SF3B1", "type": "variant", "gene": "SF3B1", "vaf_percent": 30},
     {"fact_id": "F-RS", "type": "morphology", "ring_sideroblast_percent": 7}
@@ -119,22 +142,36 @@ For example, `case-facts.json` may contain:
 ```
 
 ```bash
-python scripts/retrieve.py diagnosis \
-  --genes SF3B1 \
-  --provisional-disease "myeloid neoplasm, unspecified" \
-  --case-facts case-facts.json \
-  --output step2.json
+python scripts/run_case.py diagnosis --work-dir <work-dir>
 
-# Run a fresh model session with step2.json and
-# prompts/diagnostic_adjudication_prompt.md, saving adjudication.json.
+# Run a fresh model session with <work-dir>/step2.json and
+# prompts/diagnostic_adjudication_prompt.md, saving <work-dir>/adjudication.json.
+
+python scripts/run_case.py full --work-dir <work-dir>
+```
+
+The wrapper writes `<work-dir>/bundle.json` and `<work-dir>/block.md`. The sole final
+artifact is `<work-dir>/block.md`; `bundle.json` is an internal deterministic
+intermediate. If no working directory is supplied, `run_case.py` creates a retained
+secure system temporary directory and prints it to stderr.
+
+Advanced callers may still invoke `scripts/retrieve.py` directly:
+
+```bash
+python scripts/retrieve.py diagnosis \
+  --case-input <work-dir>/case-input.json \
+  --output <work-dir>/step2.json
 
 python scripts/retrieve.py full \
-  --diagnosis-result step2.json \
-  --adjudication-result adjudication.json \
-  --output bundle.json
+  --diagnosis-result <work-dir>/step2.json \
+  --adjudication-result <work-dir>/adjudication.json \
+  --output <work-dir>/bundle.json
 
-python scripts/render.py --bundle bundle.json --output block.md
+python scripts/render.py --bundle <work-dir>/bundle.json --output <work-dir>/block.md
 ```
+
+The legacy `retrieve.py diagnosis` flags (`--genes`, `--provisional-disease`,
+`--case-facts`, `--corpus`, `--index`) remain available as advanced overrides.
 
 Diagnosis retrieval is gene-based and returns all matching diagnosis cards without a
 disease filter. The adjudicator may compose multiple supplied patient facts against a
@@ -151,8 +188,17 @@ category is rejected unless every required criterion is met and cites both retri
 diagnosis cards and supplied case facts. Genes the corpus cannot address are named
 rather than answered from model memory.
 
-Quotes never enter retrieval or rendered output. Every rendered interpretation
-carries a card ID and deterministic citations back to its publication.
+Card `diseases` contain only source-grounded exact clinical applicability and are the
+only disease values used by case retrieval. `disease_ancestors` are deterministic
+direct and transitive parents from `schema/disease_vocabulary.json`; incorporation
+uses them for broad corpus indexing without making a subtype card clinically
+applicable to its parent categories. `diseases_covered` likewise remains the union of
+exact card diseases only.
+
+Private evidence bundles never enter retrieval or rendered output. Every rendered
+interpretation is traceable to its cards and deterministic citations through the
+end-of-document `## Refs` card-to-reference map and the numbered `## References`
+bibliography.
 
 ## Boundaries
 
@@ -160,7 +206,8 @@ carries a card ID and deterministic citations back to its publication.
   path and no card or model phase cites or reads a PDF.
 - Crossref is used only to resolve a detected DOI; model-assisted repair supplies a
   DOI candidate that is re-resolved and recorded with provenance.
-- Closed categorical disease vocabulary with enforced umbrella tags.
+- Closed categorical disease vocabulary with cycle-checked taxonomy ancestors kept
+  separate from exact clinical applicability.
 - Different publications coexist even when they disagree.
 - No live databases, approval-status modelling, cross-publication deduplication, or
   clinical synthesis.

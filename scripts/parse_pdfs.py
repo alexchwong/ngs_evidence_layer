@@ -77,7 +77,7 @@ def crossref_citation(doi, mailto, fetch=crossref_fetch):
     if not mailto:
         raise ValueError("Crossref lookup requires --mailto or NEL_CROSSREF_MAILTO")
     url = "https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="")
-    payload = fetch(url, {"User-Agent": f"ngs-evidence-layer/0.1.2 (mailto:{mailto})"})
+    payload = fetch(url, {"User-Agent": f"ngs-evidence-layer/0.1.3 (mailto:{mailto})"})
     message = payload.get("message", payload)
     authors = []
     for author in message.get("author", []):

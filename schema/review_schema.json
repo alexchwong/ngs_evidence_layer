@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/ngs_evidence_layer/review_schema.json",
+  "title": "Phase 3 complete card review",
+  "type": "object",
+  "required": ["schema_version", "paper_id", "round", "review_date", "reviewer_model", "extraction_model_reviewed", "result", "audit", "card_results"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "5.0" },
+    "paper_id": { "type": "string", "format": "uuid" },
+    "round": { "type": "integer", "minimum": 1 },
+    "review_date": { "type": "string", "format": "date" },
+    "reviewer_model": { "type": "string", "minLength": 1 },
+    "extraction_model_reviewed": { "type": "string", "minLength": 1 },
+    "result": { "const": "review_complete" },
+    "audit": {
+      "type": "object",
+      "required": ["publication_type_verdict", "cards_total", "cards_passed", "cards_failed"],
+      "additionalProperties": false,
+      "properties": {
+        "publication_type_verdict": { "$ref": "#/$defs/publication_type_verdict" },
+        "cards_total": { "type": "integer", "minimum": 0 },
+        "cards_passed": { "type": "integer", "minimum": 0 },
+        "cards_failed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "card_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/card_result" }
+    }
+  },
+  "$defs": {
+    "publication_type": {
+      "enum": ["guideline", "consensus statement", "primary study", "systematic review", "narrative review", "other"]
+    },
+    "publication_type_verdict": {
+      "type": "object",
+      "required": ["package_value", "auditor_value", "verdict", "verified_by_phase3", "basis"],
+      "additionalProperties": false,
+      "properties": {
+        "package_value": { "$ref": "#/$defs/publication_type" },
+        "auditor_value": { "$ref": "#/$defs/publication_type" },
+        "verdict": { "enum": ["pass", "fail"] },
+        "verified_by_phase3": { "type": "boolean" },
+        "basis": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "verdict": { "const": "pass" } }, "required": ["verdict"] },
+          "then": { "properties": { "verified_by_phase3": { "const": true } } }
+        },
+        {
+          "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] },
+          "then": { "properties": { "verified_by_phase3": { "const": false } } }
+        }
+      ]
+    },
+    "card_result": {
+      "type": "object",
+      "required": ["card_id", "verdict"],
+      "additionalProperties": false,
+      "properties": {
+        "card_id": { "type": "string", "minLength": 1 },
+        "verdict": { "enum": ["pass", "fail"] },
+        "details": { "$ref": "#/$defs/failure_details" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] },
+          "then": { "required": ["details"] },
+          "else": { "not": { "required": ["details"] } }
+        }
+      ]
+    },
+    "failure_details": {
+      "type": "object",
+      "required": ["failure_type", "reason", "defensibility", "suggested_action"],
+      "additionalProperties": false,
+      "properties": {
+        "failure_type": {
+          "enum": ["quote_error", "unsupported_assertion", "material_redundancy", "scope_or_qualifier", "evidence_relationship", "other"]
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "defensibility": { "type": "string", "minLength": 1 },
+        "quote_restatement": { "type": "string", "minLength": 1 },
+        "suggested_action": { "$ref": "#/$defs/suggested_action" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "failure_type": { "const": "quote_error" } }, "required": ["failure_type"] },
+          "then": { "required": ["quote_restatement"] },
+          "else": { "not": { "required": ["quote_restatement"] } }
+        }
+      ]
+    },
+    "suggested_action": {
+      "type": "object",
+      "required": ["category", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": ["narrow_disease_scope", "replace_evidence", "change_category", "rewrite_interpretation", "split_card", "delete_card", "add_or_correct_qualifier"]
+        },
+        "detail": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

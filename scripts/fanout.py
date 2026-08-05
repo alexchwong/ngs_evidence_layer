@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create independent v0.1.2 working folders from one indexed input corpus."""
+"""Create independent v0.1.3 working folders from one indexed input corpus."""
 import argparse
 import hashlib
 import json

@@ -1,0 +1,45 @@
+import importlib.util
+import json
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+SPEC = importlib.util.spec_from_file_location(
+    "build_prompts", ROOT / "scripts" / "build_prompts.py"
+)
+BUILD_PROMPTS = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(BUILD_PROMPTS)
+
+
+class PromptIntegrationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.vocabulary = json.loads(
+            (ROOT / "schema" / "publication_type_vocabulary.json").read_text()
+        )
+        cls.allowed = [entry["value"] for entry in cls.vocabulary["types"]]
+
+    def test_publication_type_vocabulary_matches_both_schemas(self):
+        census = json.loads((ROOT / "schema" / "census_schema.json").read_text())
+        package = json.loads(
+            (ROOT / "schema" / "ingestion_package_schema.json").read_text()
+        )
+        self.assertEqual(
+            census["properties"]["publication_type"]["enum"], self.allowed
+        )
+        self.assertEqual(
+            package["properties"]["publication_type"]["enum"], self.allowed
+        )
+        self.assertEqual(BUILD_PROMPTS.vocabulary_errors(), [])
+
+    def test_all_phase_templates_render_without_unresolved_markers(self):
+        for phase in (1, 2, 3, 4):
+            with self.subTest(phase=phase):
+                prompt = BUILD_PROMPTS.render(phase)
+                self.assertTrue(prompt.strip())
+                self.assertNotRegex(prompt, r"\{\{[^{}]+\}\}")
+
+
+if __name__ == "__main__":
+    unittest.main()

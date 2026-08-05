@@ -33,18 +33,36 @@ CATEGORY_RANK = {category: i for i, category in enumerate(CATEGORIES)}
 UNSPECIFIED_DISEASE = "myeloid neoplasm, unspecified"
 
 
-def missing_umbrellas(diseases):
-    """Umbrella tags a card claims a specific entity but omits.
+def disease_ancestors(diseases):
+    """Return all broader taxonomic ancestors in canonical vocabulary order.
 
-    Umbrella tagging is what makes a query on AML see an APL card. A card tagged
-    APL alone is invisible to the AML query, which is a silent retrieval hole
-    rather than a visible error, so it is checked mechanically.
+    Card ``diseases`` are exact clinical applicability values. Ancestors are
+    derived separately for broad corpus indexing so that, for example, a CMML
+    card can be discovered under MDS/MPN, MDS, and MPN without becoming
+    clinically applicable to every generic MDS or MPN case.
     """
+    requested = set(diseases)
+    ancestors = set()
+
+    def visit(disease, path):
+        if disease in path:
+            cycle = " -> ".join((*path, disease))
+            raise ValueError(f"disease umbrella cycle: {cycle}")
+        next_path = (*path, disease)
+        for parent in UMBRELLA.get(disease, []):
+            ancestors.add(parent)
+            visit(parent, next_path)
+
+    for disease in requested:
+        visit(disease, ())
+    ancestors -= requested
+    return [disease for disease in DISEASES if disease in ancestors]
+
+
+def missing_umbrellas(diseases):
+    """Backward-compatible alias for ancestors absent from an expanded tag set."""
     tagged = set(diseases)
-    required = set()
-    for disease in tagged:
-        required.update(UMBRELLA.get(disease, []))
-    return sorted(required - tagged)
+    return [disease for disease in disease_ancestors(diseases) if disease not in tagged]
 
 
 def check_vocabulary_consistency():
@@ -63,6 +81,11 @@ def check_vocabulary_consistency():
         for parent in parents:
             if parent not in DISEASE_SET:
                 problems.append(f"umbrella target {parent!r} is not in the vocabulary")
+    for disease in UMBRELLA:
+        try:
+            disease_ancestors([disease])
+        except ValueError as exc:
+            problems.append(str(exc))
     return problems
 
 

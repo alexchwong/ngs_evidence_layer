@@ -1,5 +1,5 @@
 {
-  "schema_version": "4.1",
+  "schema_version": "5.0",
   "paper_id": "bbbbbbbb-0000-0000-0000-000000000002",
   "round": 1,
   "extraction_date": "2026-01-01",
@@ -26,7 +26,6 @@
       ],
       "category": "diagnosis",
       "evidence_tier": "guideline criterion",
-      "escalates_to": "AML",
       "secondary_citation": null
     },
     {
@@ -41,24 +40,14 @@
       ],
       "category": "biomarker",
       "evidence_tier": "guideline criterion",
-      "escalates_to": null,
       "secondary_citation": null
     }
   ],
-  "quotes": [
-    {
-      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-dx-001",
-      "locator": "Section 1 - Entity definition",
-      "quote": "GENEA mutation defines Fixture Entity One at any blast count. No blast threshold applies under this classifier."
-    },
-    {
-      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-mrd-002",
-      "locator": "Section 3 - Follow-up marker",
-      "quote": "The GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay."
-    }
-  ],
   "audit": {
-    "publication_type_verdict": { "verdict": "pass" },
+    "publication_type_verdict": {
+      "verdict": "pass",
+      "verified_by_phase3": true
+    },
     "audit_date": "2026-01-02",
     "audit_model": "fixture-audit-model",
     "extraction_model_reviewed": "fixture-carding-model",
@@ -73,5 +62,54 @@
         "verdict": "pass"
       }
     ]
-  }
+  },
+  "publication_type_verified_by_phase3": true,
+  "evidence": [
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-dx-001",
+      "evidence_type": "contiguous_text",
+      "fragments": [
+        {
+          "fragment_id": "F01",
+          "role": "claim",
+          "quote": "GENEA mutation defines Fixture Entity One at any blast count. No blast threshold applies under this classifier.",
+          "locator": "Section 1 - Entity definition"
+        }
+      ],
+      "support_map": {
+        "gene": [
+          "F01"
+        ],
+        "role": [
+          "F01"
+        ],
+        "effect": [
+          "F01"
+        ]
+      }
+    },
+    {
+      "card_id": "fixture-2022-second-fixture-journal-2-1-genea-mrd-002",
+      "evidence_type": "contiguous_text",
+      "fragments": [
+        {
+          "fragment_id": "F01",
+          "role": "claim",
+          "quote": "The GENEA mutation is a validated fixture follow-up marker and should be tracked with a high-sensitivity assay.",
+          "locator": "Section 3 - Follow-up marker"
+        }
+      ],
+      "support_map": {
+        "gene": [
+          "F01"
+        ],
+        "role": [
+          "F01"
+        ],
+        "effect": [
+          "F01"
+        ]
+      }
+    }
+  ]
 }

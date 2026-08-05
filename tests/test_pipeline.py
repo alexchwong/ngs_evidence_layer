@@ -81,8 +81,34 @@ def build_fixture_corpus(root):
 class VocabularyAndKeyTests(unittest.TestCase):
     def test_vocabulary_schema_and_umbrellas(self):
         self.assertEqual(vocab.check_vocabulary_consistency(), [])
-        self.assertEqual(vocab.missing_umbrellas(["APL"]), ["AML"])
-        self.assertEqual(vocab.missing_umbrellas(["APL", "AML"]), [])
+        self.assertEqual(vocab.disease_ancestors(["APL"]), ["AML"])
+        self.assertEqual(vocab.disease_ancestors(["MDS/AML"]), ["MDS", "AML"])
+        self.assertEqual(
+            vocab.disease_ancestors(["CMML"]),
+            ["MDS", "MDS/MPN", "MPN"],
+        )
+        self.assertEqual(
+            vocab.disease_ancestors(["MDS/MPN-U"]),
+            ["MDS", "MDS/MPN", "MPN"],
+        )
+        self.assertEqual(vocab.disease_ancestors(["CML"]), ["MPN"])
+        self.assertEqual(vocab.disease_ancestors(["JMML"]), ["MPN"])
+        self.assertEqual(
+            vocab.disease_ancestors(["BPDCN"]),
+            ["histiocytic/dendritic neoplasm"],
+        )
+        self.assertEqual(vocab.disease_ancestors(["acute leukaemia of ambiguous lineage"]), [])
+        self.assertEqual(vocab.disease_ancestors(["haematological malignancy, other"]), [])
+
+    def test_umbrella_cycle_is_rejected(self):
+        original = copy.deepcopy(vocab.UMBRELLA)
+        try:
+            vocab.UMBRELLA["MDS"] = ["MDS/AML"]
+            with self.assertRaisesRegex(ValueError, "disease umbrella cycle"):
+                vocab.disease_ancestors(["MDS/AML"])
+        finally:
+            vocab.UMBRELLA.clear()
+            vocab.UMBRELLA.update(original)
 
     def test_primary_key_is_deterministic(self):
         citation = {"authors": ["Dohner H"], "title": "Fixture", "journal": "Blood", "year": 2022, "volume": "140", "pages": "1345-1377"}
@@ -107,33 +133,111 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report["cards"], 8)
         self.assertEqual(report["ratio"], 2.0)
 
-    def test_missing_umbrella_and_non_diagnosis_escalation_fail(self):
+    def test_incorrect_derived_ancestors_fail(self):
         def mutate(_metadata, _census, package):
             package["cards"][0]["diseases"] = ["APL"]
-            package["cards"][2]["escalates_to"] = "AML"
+            package["cards"][0]["disease_ancestors"] = []
             package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
         errors, _warnings, _report = self.validate(mutate)
-        self.assertTrue(any("umbrella" in error for error in errors), errors)
-        self.assertTrue(any("diagnosis cards" in error for error in errors), errors)
+        self.assertTrue(any("disease_ancestors" in error and "AML" in error for error in errors), errors)
 
-    def test_pairing_and_verbatim_quote_failures(self):
+    def test_package_separates_exact_disease_from_transitive_ancestors(self):
+        def exact_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS", "MDS/MPN", "MPN"]
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+
+        errors, _warnings, _report = self.validate(exact_cmml)
+        self.assertEqual(errors, [])
+
+    def test_transitive_ancestor_order_is_not_significant(self):
+        def permuted_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS/MPN", "MDS", "MPN"]
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+
+        errors, _warnings, _report = self.validate(permuted_cmml)
+        self.assertEqual(errors, [])
+
+    def test_missing_or_extra_transitive_ancestor_fails(self):
+        def missing_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS", "MDS/MPN"]
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+
+        errors, _warnings, _report = self.validate(missing_cmml)
+        self.assertTrue(any("disease_ancestors" in error for error in errors), errors)
+
+        def extra_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS", "MDS/MPN", "MPN", "AML"]
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+
+        errors, _warnings, _report = self.validate(extra_cmml)
+        self.assertTrue(any("disease_ancestors" in error for error in errors), errors)
+
+    def test_pairing_and_verbatim_fragment_failures(self):
         def mutate(_metadata, _census, package):
-            package["quotes"].pop()
-            package["quotes"][0]["quote"] = "not in source"
+            package["evidence"].pop()
+            package["evidence"][0]["fragments"][0]["quote"] = "not in source"
         errors, _warnings, _report = self.validate(mutate)
-        self.assertTrue(any("no quote" in error for error in errors), errors)
+        self.assertTrue(any("no evidence bundle" in error for error in errors), errors)
         self.assertTrue(any("not found verbatim" in error for error in errors), errors)
 
-    def test_identical_quote_is_warning_not_failure(self):
+    def test_identical_evidence_is_warning_not_failure(self):
         def mutate(_metadata, _census, package):
             card = copy.deepcopy(package["cards"][0])
-            card.update(card_id=package["cards"][0]["card_id"] + "-other", category="treatment", escalates_to=None)
-            quote = copy.deepcopy(package["quotes"][0]); quote["card_id"] = card["card_id"]
-            package["cards"].append(card); package["quotes"].append(quote)
+            card.update(card_id=package["cards"][0]["card_id"] + "-other", category="treatment")
+            evidence = copy.deepcopy(package["evidence"][0]); evidence["card_id"] = card["card_id"]
+            package["cards"].append(card); package["evidence"].append(evidence)
             package["genes_covered"] = sorted({g for c in package["cards"] for g in c["genes"]})
         errors, warnings, _report = self.validate(mutate)
         self.assertEqual(errors, [])
         self.assertTrue(any("identical" in warning for warning in warnings))
+
+    def test_composite_and_table_evidence_validate(self):
+        def mutate(_metadata, _census, package):
+            package["evidence"][0] = {
+                "card_id": package["cards"][0]["card_id"],
+                "evidence_type": "composite_text",
+                "fragments": [
+                    {"fragment_id": "F01", "role": "scope_heading", "quote": "Entity definition", "locator": "Section 1 heading"},
+                    {"fragment_id": "F02", "role": "claim", "quote": "GENEA mutation defines Fixture Entity One when the blast count is at least 20 per cent; a blast count of 10 to 19 per cent is assigned to Fixture Entity Two. The criterion is defeated where a fixture-defining fusion is present.", "locator": "Section 1"},
+                ],
+                "support_map": {"disease": ["F01"], "gene": ["F02"], "role": ["F02"], "qualifier": ["F02"]},
+            }
+            package["evidence"][2] = {
+                "card_id": package["cards"][2]["card_id"],
+                "evidence_type": "table_relation",
+                "fragments": [
+                    {"fragment_id": "F01", "role": "row_header", "quote": "GENEA", "locator": "Section 2, row GENEA"},
+                    {"fragment_id": "F02", "role": "column_header", "quote": "Effect", "locator": "Section 2, column 2"},
+                    {"fragment_id": "F03", "role": "cell", "quote": "favourable in the fixture cohort", "locator": "Section 2, row GENEA column 2"},
+                    {"fragment_id": "F04", "role": "column_header", "quote": "Adjustment", "locator": "Section 2, column 3"},
+                    {"fragment_id": "F05", "role": "cell", "quote": "multivariable-adjusted for age and blast count", "locator": "Section 2, row GENEA column 3"},
+                ],
+                "support_map": {"gene": ["F01"], "role": ["F02", "F03"], "effect": ["F03"], "qualifier": ["F04", "F05"]},
+                "table_relations": [
+                    {"value_fragment_id": "F03", "header_fragment_ids": ["F01", "F02"], "qualifier_fragment_ids": []},
+                    {"value_fragment_id": "F05", "header_fragment_ids": ["F01", "F04"], "qualifier_fragment_ids": []},
+                ],
+            }
+        errors, _warnings, _report = self.validate(mutate)
+        self.assertEqual(errors, [])
+
+    def test_dangling_support_and_invalid_table_link_fail(self):
+        def dangling(_metadata, _census, package):
+            package["evidence"][0]["support_map"]["gene"] = ["F99"]
+        errors, _warnings, _report = self.validate(dangling)
+        self.assertTrue(any("support_map references unknown" in error for error in errors), errors)
+
+        def invalid_table(_metadata, _census, package):
+            item = package["evidence"][2]
+            item["evidence_type"] = "table_relation"
+            item["fragments"].append({"fragment_id": "F02", "role": "cell", "quote": "GENEA", "locator": "Section 2"})
+            item["table_relations"] = [{"value_fragment_id": "F02", "header_fragment_ids": ["F01"], "qualifier_fragment_ids": []}]
+        errors, _warnings, _report = self.validate(invalid_table)
+        self.assertTrue(any("table header F01 has invalid role claim" in error for error in errors), errors)
 
     def test_disease_dependent_card_requires_disease_but_germline_does_not(self):
         def remove_disease(_metadata, _census, package):
@@ -145,14 +249,13 @@ class ValidationTests(unittest.TestCase):
         def gene_only_germline(_metadata, _census, package):
             package["cards"][0]["category"] = "germline"
             package["cards"][0]["diseases"] = []
-            package["cards"][0]["escalates_to"] = None
             package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
         errors, _warnings, _report = self.validate(gene_only_germline)
         self.assertEqual(errors, [])
 
-    def test_reference_list_quote_is_rejected(self):
+    def test_reference_list_fragment_is_rejected(self):
         def mutate(_metadata, _census, package):
-            package["quotes"][0]["quote"] = (
+            package["evidence"][0]["fragments"][0]["quote"] = (
                 "- 7. Beck DB, et al. Somatic mutations in UBA1. "
                 "N Engl J Med. 2020;383:2628-38."
             )
@@ -168,16 +271,248 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertTrue(any("generic category boilerplate" in warning for warning in warnings), warnings)
 
+    def test_zero_card_provisional_and_final_packages_validate(self):
+        metadata, census, provisional = fixture_package(ALPHA, final=False)
+        provisional.update(
+            genes_covered=[], diseases_covered=[], cards=[], evidence=[]
+        )
+        errors, warnings, report = validation.validate_package(
+            provisional, metadata, census, source_text=None, require_final=False
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(warnings, [])
+        self.assertEqual(report["cards"], 0)
+        self.assertTrue(report["gene_category_pairs_with_no_card"])
+
+        final = copy.deepcopy(provisional)
+        final["publication_type_verified_by_phase3"] = True
+        final["audit"] = {
+            "audit_date": "2026-01-02",
+            "audit_model": "fixture-audit-model",
+            "extraction_model_reviewed": provisional["extraction_model"],
+            "approved_round": provisional["round"],
+            "publication_type_verdict": {
+                "verdict": "pass", "verified_by_phase3": True,
+            },
+            "results": [],
+        }
+        errors, warnings, report = validation.validate_package(
+            final, metadata, census, source_text=None, require_final=True
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(warnings, [])
+        self.assertEqual(report["cards"], 0)
+        self.assertEqual(validation.validate_final_against_provisional(final, provisional), [])
+
+
+class ReviewValidationTests(unittest.TestCase):
+    def setUp(self):
+        _metadata, _census, self.provisional = fixture_package(ALPHA, final=False)
+        self.card_id = self.provisional["cards"][0]["card_id"]
+        card_results = [
+            {"card_id": card["card_id"], "verdict": "pass"}
+            for card in self.provisional["cards"]
+        ]
+        card_results[0] = {
+            "card_id": self.card_id,
+            "verdict": "fail",
+            "details": {
+                "failure_type": "unsupported_assertion",
+                "reason": "The interpretation exceeds the paired evidence.",
+                "defensibility": (
+                    "The card would be defensible only if narrowed to the "
+                    "source-stated claim."
+                ),
+                "suggested_action": {
+                    "category": "rewrite_interpretation",
+                    "detail": "Narrow the interpretation to the source-stated claim.",
+                },
+            },
+        }
+        self.review = {
+            "schema_version": "5.0",
+            "paper_id": self.provisional["paper_id"],
+            "round": self.provisional["round"],
+            "review_date": "2026-01-02",
+            "reviewer_model": "fixture-audit-model",
+            "extraction_model_reviewed": self.provisional["extraction_model"],
+            "result": "review_complete",
+            "audit": {
+                "publication_type_verdict": {
+                    "package_value": self.provisional["publication_type"],
+                    "auditor_value": self.provisional["publication_type"],
+                    "verdict": "pass",
+                    "verified_by_phase3": True,
+                    "basis": "The package value is supported by the paper.",
+                },
+                "cards_total": len(self.provisional["cards"]),
+                "cards_passed": len(self.provisional["cards"]) - 1,
+                "cards_failed": 1,
+            },
+            "card_results": card_results,
+        }
+
+    def test_complete_review_validates(self):
+        self.assertEqual(validation.validate_review(self.review, self.provisional), [])
+
+    def test_pass_omits_details_and_failure_requires_complete_details(self):
+        passing_result = self.review["card_results"][1]
+        passing_result["details"] = copy.deepcopy(self.review["card_results"][0]["details"])
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
+
+        passing_result.pop("details")
+        self.review["card_results"][0]["details"].pop("defensibility")
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
+
+    def test_quote_failure_requires_reviewed_quote_restatement(self):
+        details = self.review["card_results"][0]["details"]
+        details["failure_type"] = "quote_error"
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
+
+        details["quote_restatement"] = "The quote as read in the provisional card."
+        self.assertEqual(validation.validate_review(self.review, self.provisional), [])
+
+        details["failure_type"] = "unsupported_assertion"
+        self.assertTrue(validation.validate_review(self.review, self.provisional))
+
+    def test_cross_artefact_identity_and_count_mismatches_fail(self):
+        self.review["paper_id"] = "bbbbbbbb-0000-0000-0000-000000000002"
+        self.review["round"] += 1
+        self.review["reviewer_model"] = self.provisional["extraction_model"]
+        self.review["extraction_model_reviewed"] = "wrong-model"
+        self.review["audit"]["cards_total"] -= 1
+        self.review["audit"]["cards_passed"] -= 1
+        self.review["audit"]["cards_failed"] = 0
+        errors = validation.validate_review(self.review, self.provisional)
+        for phrase in (
+            "paper_id", "round", "extraction_model_reviewed", "must differ",
+            "cards_total", "cards_passed", "cards_failed",
+        ):
+            self.assertTrue(any(phrase in error for error in errors), (phrase, errors))
+
+    def test_review_requires_complete_unique_ordered_card_coverage(self):
+        mutations = {
+            "omitted": lambda results: results.pop(),
+            "duplicate": lambda results: results.__setitem__(1, copy.deepcopy(results[0])),
+            "unknown": lambda results: results[0].update(card_id="unknown-card"),
+            "reordered": lambda results: results.reverse(),
+        }
+        expected = {
+            "omitted": "omits provisional cards",
+            "duplicate": "duplicate card IDs",
+            "unknown": "unknown provisional cards",
+            "reordered": "preserve provisional card order",
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                review = copy.deepcopy(self.review)
+                mutate(review["card_results"])
+                review["audit"]["cards_passed"] = sum(
+                    result["verdict"] == "pass" for result in review["card_results"]
+                )
+                review["audit"]["cards_failed"] = sum(
+                    result["verdict"] == "fail" for result in review["card_results"]
+                )
+                errors = validation.validate_review(review, self.provisional)
+                self.assertTrue(any(expected[name] in error for error in errors), errors)
+
+    def test_publication_value_mismatches_fail(self):
+        self.review["audit"]["publication_type_verdict"]["package_value"] = "primary study"
+        self.review["audit"]["publication_type_verdict"]["auditor_value"] = "narrative review"
+        errors = validation.validate_review(self.review, self.provisional)
+        self.assertTrue(any("package_value" in error and "provisional" in error for error in errors), errors)
+        self.assertTrue(any("must retain" in error for error in errors), errors)
+
+    def test_publication_type_only_failure_is_valid(self):
+        verdict = self.review["audit"]["publication_type_verdict"]
+        verdict.update(auditor_value="primary study", verdict="fail", verified_by_phase3=False)
+        self.review["card_results"] = [
+            {"card_id": card["card_id"], "verdict": "pass"}
+            for card in self.provisional["cards"]
+        ]
+        self.review["audit"]["cards_passed"] = len(self.provisional["cards"])
+        self.review["audit"]["cards_failed"] = 0
+        self.assertEqual(validation.validate_review(self.review, self.provisional), [])
+
+    def test_all_pass_review_is_valid(self):
+        self.review["card_results"] = [
+            {"card_id": card["card_id"], "verdict": "pass"}
+            for card in self.provisional["cards"]
+        ]
+        self.review["audit"]["cards_passed"] = len(self.provisional["cards"])
+        self.review["audit"]["cards_failed"] = 0
+        self.assertEqual(validation.validate_review(self.review, self.provisional), [])
+
+    def test_review_validation_cli(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            review_path = Path(tmp) / "paper.review-001.json"
+            provisional_path = Path(tmp) / "paper.provisional-001.json"
+            review_path.write_text(json.dumps(self.review), encoding="utf-8")
+            provisional_path.write_text(json.dumps(self.provisional), encoding="utf-8")
+            command = [
+                sys.executable, str(SCRIPTS / "validate_review.py"),
+                "--review", str(review_path), "--provisional", str(provisional_path),
+            ]
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("OK: review matches provisional package", result.stdout)
+
+            self.review["card_results"][0]["details"].pop("suggested_action")
+            review_path.write_text(json.dumps(self.review), encoding="utf-8")
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+
 
 class IncorporationTests(unittest.TestCase):
-    def test_builds_indexes_and_strips_quotes(self):
+    def test_builds_indexes_and_strips_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             corpus_path, index_path = build_fixture_corpus(Path(tmp))
             corpus, index = read(corpus_path), read(index_path)
+            self.assertEqual(corpus["corpus_version"], "1.2")
+            self.assertEqual(corpus["schema_version"], "3.1")
+            self.assertEqual(index["index_version"], "1.2")
             self.assertEqual(corpus["counts"]["cards"], 10)
-            self.assertEqual(len(index["by_escalates_to"]["AML"]), 2)
+            self.assertNotIn("by_escalates_to", index)
+            self.assertNotIn("escalates_to", json.dumps(index))
+            self.assertNotIn('"evidence"', json.dumps(corpus))
+            self.assertNotIn('"fragments"', json.dumps(corpus))
             self.assertNotIn('"quote"', json.dumps(corpus))
             self.assertNotIn("provisional", corpus)
+
+    def test_indexes_transitive_ancestors_without_widening_exact_card_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, accept = Path(tmp), Path(tmp) / "accept"
+            accept.mkdir()
+
+            def exact_cmml(_metadata, _census, package):
+                card = package["cards"][0]
+                card["diseases"] = ["CMML"]
+                card["disease_ancestors"] = ["MDS", "MDS/MPN", "MPN"]
+                package["diseases_covered"] = sorted(
+                    {disease for item in package["cards"] for disease in item["diseases"]}
+                )
+
+            write_accept(accept, ALPHA, exact_cmml)
+            output = root / "corpus"
+            subprocess.run([
+                sys.executable, str(SCRIPTS / "incorporate.py"),
+                "--accept-dir", str(accept), "--output-dir", str(output),
+                "--report", str(root / "report.json"),
+            ], check=True, capture_output=True)
+
+            corpus, index = read(output / "nel.corpus.json"), read(output / "nel.index.json")
+            card_id = fixture_package(ALPHA)[2]["cards"][0]["card_id"]
+            corpus_card = next(
+                card
+                for publication in corpus["publications"]
+                for card in publication["document"]["cards"]
+                if card["card_id"] == card_id
+            )
+            self.assertEqual(corpus_card["diseases"], ["CMML"])
+            self.assertEqual(corpus_card["disease_ancestors"], ["MDS", "MDS/MPN", "MPN"])
+            self.assertEqual(index["cards"][card_id]["diseases"], ["CMML"])
+            for disease in ("CMML", "MDS", "MDS/MPN", "MPN"):
+                self.assertIn(card_id, index["by_disease"][disease])
 
     def test_invalid_paper_is_rejected_without_blocking_valid(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -283,18 +618,36 @@ class RetrievalAndRenderTests(unittest.TestCase):
             stale = Path(tmp) / "index.json"; stale.write_text(json.dumps(index), encoding="utf-8")
             with self.assertRaises(ValueError): retrieve.load_corpus(self.corpus_path, stale)
 
-    def test_diagnosis_cards_are_not_gated_by_legacy_escalates_to(self):
+    def test_diagnosis_cards_are_not_gated_by_legacy_escalation_metadata(self):
         diagnosis = retrieve.step2(self.cards, ["GENEA"], "MDS")
         self.assertNotIn("escalation_candidates", diagnosis)
         self.assertIn("AML", diagnosis["allowed_refined_diseases"])
         full = retrieve.step4(self.cards, ["GENEA"], "MDS", diagnosis["diagnosis_cards"])
         self.assertEqual(full["suppressed"]["by_disease"], {"AML": 3})
 
+    def test_taxonomic_ancestors_do_not_broaden_clinical_retrieval(self):
+        card = {
+            "card_id": "classifier-C1000", "category": "prognosis", "genes": ["TET2"],
+            "diseases": ["CMML"], "disease_ancestors": ["MDS", "MDS/MPN", "MPN"],
+            "evidence_tier": "multivariable-adjusted", "interpretation": "CMML-specific evidence.",
+            "locator": "fixture", "publication_key": "classifier", "publication_year": 2026,
+            "citation_display": "Classifier fixture", "citation_incomplete": [],
+            "secondary_citation": None,
+        }
+        for parent in ("MDS", "MDS/MPN", "MPN"):
+            with self.subTest(parent=parent):
+                result = retrieve.step4([card], ["TET2"], parent, [])
+                self.assertEqual(result["retrieved"], [])
+                self.assertEqual(result["suppressed"]["count"], 1)
+
+        result = retrieve.step4([card], ["TET2"], "CMML", [])
+        self.assertEqual([item["card_id"] for item in result["retrieved"]], ["classifier-C1000"])
+        self.assertEqual(result["suppressed"]["count"], 0)
+
     def test_sf3b1_adjudication_changes_downstream_filter_to_mds(self):
         diagnosis_card = {
             "card_id": "classifier-C0001", "category": "diagnosis", "genes": ["SF3B1"],
             "diseases": ["MDS"], "evidence_tier": "guideline criterion",
-            "escalates_to": None,
             "interpretation": "The classifier permits MDS-SF3B1 when its stated molecular, ring-sideroblast, and exclusion criteria are met.",
             "locator": "fixture", "publication_key": "classifier", "publication_year": 2026,
             "citation_display": "Classifier fixture", "citation_incomplete": [],
@@ -357,7 +710,7 @@ class RetrievalAndRenderTests(unittest.TestCase):
         card = {
             "card_id": "classifier-C0001", "category": "diagnosis", "genes": ["SF3B1"],
             "diseases": ["MDS"], "evidence_tier": "guideline criterion",
-            "escalates_to": None, "interpretation": "Fixture criterion.", "locator": "fixture",
+            "interpretation": "Fixture criterion.", "locator": "fixture",
         }
         step2 = retrieve.step2([card], ["SF3B1"], "myeloid neoplasm, unspecified", facts)
         adjudication = {
@@ -392,8 +745,9 @@ class RetrievalAndRenderTests(unittest.TestCase):
         self.assertTrue(first["references"])
         for stem in (ALPHA, BETA):
             provisional = read(fixture_folder(stem) / "paper.provisional-001.json")
-            for quote in provisional["quotes"]:
-                self.assertNotIn(quote["quote"], first["text"])
+            for evidence in provisional["evidence"]:
+                for fragment in evidence["fragments"]:
+                    self.assertNotIn(fragment["quote"], first["text"])
 
     def test_render_truncates_weakest_first(self):
         result = render.render(self.bundle(["GENEA", "GENEC", "GENED"], "AML"), token_budget=200)
