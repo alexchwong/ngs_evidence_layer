@@ -40,6 +40,29 @@ class PromptIntegrationTests(unittest.TestCase):
                 self.assertTrue(prompt.strip())
                 self.assertNotRegex(prompt, r"\{\{[^{}]+\}\}")
 
+    def test_phase2_allows_multi_claim_composite_text(self):
+        prompt = " ".join(BUILD_PROMPTS.render(2).split())
+        self.assertIn(
+            "use one or more `claim` fragments for substantive prose", prompt
+        )
+        self.assertIn(
+            "every `claim` fragment contributes to the same source assertion", prompt
+        )
+        self.assertNotIn(
+            "Include one `claim` fragment and only necessary", prompt
+        )
+
+    def test_phase3_audits_multi_claim_composites_without_auto_failure(self):
+        prompt = " ".join(BUILD_PROMPTS.render(3).split())
+        self.assertIn("Multiple `claim` fragments are valid.", prompt)
+        self.assertIn("**Single assertion:**", prompt)
+        self.assertIn("**Necessary composition:**", prompt)
+        self.assertIn(
+            "Do not use `evidence_relationship` solely because a valid bundle "
+            "contains multiple substantive `claim` fragments.",
+            prompt,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

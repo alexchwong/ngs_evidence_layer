@@ -65,17 +65,44 @@ Apply these calibrations consistently:
   biomarker interpretation states a distinct, source-supported testing target,
   detection strategy, assay limitation, monitoring use, or discrimination use.
 
-For every `composite_text` or `table_relation` bundle, also audit:
+For every `composite_text` bundle, also audit:
 
-1. **Scope governance:** every contextual fragment structurally governs the claim,
-   with no intervening heading, section, population, or analysis changing scope.
-2. **Table reconstruction:** every selected cell is linked to all applicable row and
-   column headers, spanning or multi-level headers, legends, and marked footnotes.
-3. **No evidence laundering:** `support_map`, fragment roles, and table links assign
-   no disease, role, direction, qualifier, or relation absent from source text.
+1. **Single assertion:** all substantive fragments jointly support one independently
+   useful source assertion.
+2. **Compatible scope:** the fragments use compatible disease, population, treatment,
+   comparator, analysis, and classifier scope.
+3. **Necessary composition:** each fragment supplies material support or qualification
+   not available in one sufficient contiguous passage.
+4. **Structural governance:** each `scope_heading`, `legend`, or `footnote` governs the
+   substantive fragment to which it is applied.
+5. **No evidence laundering:** the interpretation and `support_map` assert no
+   relationship, direction, scope, or qualifier absent from the assembled source text.
 
-Treat locators as navigation metadata, not evidence. Verify the complete assembled
-relation while keeping every non-contiguous fragment independently verbatim.
+Multiple `claim` fragments are valid. Do not fail a bundle merely because the gene,
+population, role, effect, or qualifier is distributed across non-contiguous passages.
+Fail the bundle when:
+
+- the fragments describe separate findings or independently useful conclusions;
+- intervening text changes the population, analysis, disease scope, comparator, or
+  conclusion;
+- the interpretation converts co-location or thematic similarity into an unstated
+  relationship; or
+- a material assertion depends on unquoted text, the locator, or model inference.
+
+For every `table_relation` bundle, also audit:
+
+1. every selected cell is linked to all applicable row and column headers;
+2. spanning or multi-level headers are preserved;
+3. applicable legends and marked footnotes are included; and
+4. the reconstructed relation states nothing absent from the table.
+
+Treat locators as navigation metadata, not evidence. Keep every non-contiguous
+fragment independently verbatim.
+
+Use `evidence_relationship` when the individual quotations are accurate but the
+bundle combines them into a relationship the source does not establish. Do not use
+`evidence_relationship` solely because a valid bundle contains multiple substantive
+`claim` fragments.
 
 When a card fails, classify its primary defect as one of:
 
