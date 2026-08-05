@@ -24,7 +24,20 @@ or another audit round. Do not send any card back to Phase 3.
 Require a well-formed round-1 provisional package and its matching complete Phase 3
 review. Their `paper_id`, `round`, extraction-model identity, card IDs, and card
 counts must match. The review must contain exactly one pass/fail result for every
-provisional card. A missing, mismatched, incomplete, or malformed artefact stops the
+provisional card.
+
+Verify model independence before proceeding:
+- read the Phase 2 identity from top-level `extraction_model` in
+  `paper.provisional-001.json`;
+- read the Phase 3 identity from top-level `reviewer_model` in
+  `paper.review-001.json`;
+- require `paper.review-001.json` field `extraction_model_reviewed` to equal the Phase 2
+  `extraction_model`; and
+- require `reviewer_model` to differ from `extraction_model`.
+
+If either identity is missing, the reviewed identity does not match, or the Phase 2 and
+Phase 3 identities are identical, stop and report that Phase 3 must be rerun with a
+different model. A missing, mismatched, incomplete, or malformed artefact stops the
 session.
 
 ## Mandatory human adjudication
@@ -95,21 +108,19 @@ a Phase 3 failure.
 
 For audit identity fields, copy strings exactly and do not infer substitutes:
 
-- `audit.audit_model` must be this Phase 4 session's active model identity, copied
-  verbatim from the model identity you are operating as.
+- `audit.audit_model` must be copied verbatim from the Phase 3 review's top-level
+  `reviewer_model`. It records the Phase 3 model identity, not the Phase 4 model.
 - `audit.extraction_model_reviewed` must be copied verbatim from the top-level
   `extraction_model` in `paper.provisional-001.json`.
-- `audit.audit_model` must not equal the final package top-level `extraction_model`.
-- If your active Phase 4 model identity is the same string as the provisional
-  `extraction_model`, stop and report that Phase 4 must be rerun with an independent
-  model; do not write `paper.final.json`.
+- The Phase 3 review's top-level `reviewer_model` must differ from the provisional
+  package's top-level `extraction_model`. Do not rename either field.
 
 Keep `round` equal to 1. Populate the existing final `audit` shape:
 
 ```json
 {
   "audit_date": "YYYY-MM-DD",
-  "audit_model": "<your model identity>",
+  "audit_model": "<Phase 3 reviewer_model>",
   "extraction_model_reviewed": "<provisional extraction_model>",
   "approved_round": 1,
   "publication_type_verdict": {
@@ -558,11 +569,12 @@ Before writing, verify privately that:
 6. package `round` and `audit.approved_round` are both 1;
 7. the audit contains exactly one passing result for every resulting card and no
    result for a deleted or superseded card;
-8. `audit.audit_model` is this Phase 4 session's active model identity copied
-   verbatim, `audit.extraction_model_reviewed` exactly equals the provisional
-   `extraction_model`, and `audit.audit_model` differs from the final package
-   top-level `extraction_model`; and
-9. the final package conforms to the output schema.
+8. `audit.audit_model` exactly equals the Phase 3 review's top-level
+   `reviewer_model`, and `audit.extraction_model_reviewed` exactly equals the
+   provisional `extraction_model`;
+9. the Phase 3 review's `reviewer_model` differs from the provisional package's
+   `extraction_model`; and
+10. the final package conforms to the output schema.
 
 If any check fails, repair the package before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences around JSON, or more than one file.
