@@ -169,9 +169,9 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             warnings.append(f"{card_id}: interpretation contains generic category boilerplate; review direct evidence support")
         if "disease_ancestors" in card:
             expected_ancestors = vocab.disease_ancestors(card["diseases"])
-            if card["disease_ancestors"] != expected_ancestors:
+            if set(card["disease_ancestors"]) != set(expected_ancestors):
                 errors.append(
-                    f"{card_id}: disease_ancestors must equal the canonical transitive "
+                    f"{card_id}: disease_ancestors must contain exactly the transitive "
                     f"ancestors {expected_ancestors}"
                 )
             overlap = sorted(set(card["diseases"]) & set(card["disease_ancestors"]))

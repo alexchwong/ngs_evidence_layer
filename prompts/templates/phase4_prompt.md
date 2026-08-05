@@ -93,6 +93,17 @@ Set `publication_type_verified_by_phase3` to true: Phase 3 supplied the independ
 assessment and the human adjudication is final, including when it retains or corrects
 a Phase 3 failure.
 
+For audit identity fields, copy strings exactly and do not infer substitutes:
+
+- `audit.audit_model` must be this Phase 4 session's active model identity, copied
+  verbatim from the model identity you are operating as.
+- `audit.extraction_model_reviewed` must be copied verbatim from the top-level
+  `extraction_model` in `paper.provisional-001.json`.
+- `audit.audit_model` must not equal the final package top-level `extraction_model`.
+- If your active Phase 4 model identity is the same string as the provisional
+  `extraction_model`, stop and report that Phase 4 must be rerun with an independent
+  model; do not write `paper.final.json`.
+
 Keep `round` equal to 1. Populate the existing final `audit` shape:
 
 ```json
@@ -148,8 +159,12 @@ Before writing, verify privately that:
 5. `genes_covered`, `diseases_covered`, and every `disease_ancestors` array are exact;
 6. package `round` and `audit.approved_round` are both 1;
 7. the audit contains exactly one passing result for every resulting card and no
-   result for a deleted or superseded card; and
-8. the final package conforms to the output schema.
+   result for a deleted or superseded card;
+8. `audit.audit_model` is this Phase 4 session's active model identity copied
+   verbatim, `audit.extraction_model_reviewed` exactly equals the provisional
+   `extraction_model`, and `audit.audit_model` differs from the final package
+   top-level `extraction_model`; and
+9. the final package conforms to the output schema.
 
 If any check fails, repair the package before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences around JSON, or more than one file.

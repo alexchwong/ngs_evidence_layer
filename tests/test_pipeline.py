@@ -150,6 +150,32 @@ class ValidationTests(unittest.TestCase):
         errors, _warnings, _report = self.validate(exact_cmml)
         self.assertEqual(errors, [])
 
+    def test_transitive_ancestor_order_is_not_significant(self):
+        def permuted_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS/MPN", "MDS", "MPN"]
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+
+        errors, _warnings, _report = self.validate(permuted_cmml)
+        self.assertEqual(errors, [])
+
+    def test_missing_or_extra_transitive_ancestor_fails(self):
+        def missing_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS", "MDS/MPN"]
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+
+        errors, _warnings, _report = self.validate(missing_cmml)
+        self.assertTrue(any("disease_ancestors" in error for error in errors), errors)
+
+        def extra_cmml(_metadata, _census, package):
+            package["cards"][0]["diseases"] = ["CMML"]
+            package["cards"][0]["disease_ancestors"] = ["MDS", "MDS/MPN", "MPN", "AML"]
+            package["diseases_covered"] = sorted({d for card in package["cards"] for d in card["diseases"]})
+
+        errors, _warnings, _report = self.validate(extra_cmml)
+        self.assertTrue(any("disease_ancestors" in error for error in errors), errors)
+
     def test_pairing_and_verbatim_fragment_failures(self):
         def mutate(_metadata, _census, package):
             package["evidence"].pop()
