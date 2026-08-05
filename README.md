@@ -1,7 +1,7 @@
 # ngs_evidence_layer
 
-A corpus-grounded evidence layer for myeloid NGS interpretation. It converts one
-publication at a time into gene-indexed evidence cards backed by private typed
+A corpus-grounded evidence layer for myeloid NGS interpretation. It converts 
+publications into gene-indexed evidence cards backed by private typed
 evidence bundles of verbatim source fragments, then retrieves and renders a
 deterministic, citable evidence block.
 
@@ -26,7 +26,12 @@ state. Papers are independent and may be in flight concurrently.
 
 ```bash
 # Convert queued PDFs to deterministic Markdown and resolve citations.
+# Input PDFs live in `pdf/[corpus]`
+# Output markdowns to `input/[corpus]`
 python scripts/parse_pdfs.py --corpus <name> --mailto <email>
+
+########
+# DOI and citation retrieval
 
 # Step 1 (DOI path): build a recovery request from citation-pending index records and
 # parsed Markdown; outputs input/<name>/citations/request-<UTC>.md.
@@ -44,6 +49,7 @@ python scripts/citations.py manual-export --corpus <name>
 # validates the entire batch, then stores citations and marks its records ingested.
 python scripts/citations.py manual-apply --corpus <name> --csv <file>
 
+######
 # Create work/<publication-key>/paper.md and metadata.json.
 python scripts/fanout.py --corpus <name>
 

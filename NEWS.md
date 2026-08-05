@@ -2,22 +2,22 @@
 
 ## 0.1.3
 
-- Replaced the single contiguous quote contract with one typed evidence bundle per
-  card: `contiguous_text`, `composite_text`, or `table_relation`.
-- Added independently verbatim, locatable evidence fragments, atomic `support_map`
-  references, and explicit table links between cells, headers, legends, and footnotes.
-- Added deterministic bundle cardinality, reference, role, source-presence, and
-  aggregate-length validation while keeping private evidence out of public artefacts.
-- Made scope governance, complete table reconstruction, and prevention of evidence
-  laundering mandatory Phase 3 audit checks.
-- Changed Phase 3 to emit one complete pass/fail review covering every provisional
-  card, with detailed defensibility and corrective guidance only for failures and a
-  restatement of the reviewed quote for quote failures.
-- Added Phase 4 human adjudication for every card as the sole creator of
-  `paper.final.json`, eliminating repeated Phase 2/Phase 3 correction rounds while
-  retaining the existing all-pass final audit shape.
-- Bumped ingestion packages to schema version 5.0; version 4.2 packages and external
-  consumers of the former `quotes` array require re-ingestion or adaptation.
+- Allowed multi-part quoting, introduced as evidence bundles (`contiguous_text`, `composite_text`, `table_relation`) using verbatim, role-tagged fragments mapped via `support_map`.
+- Changed Phase 3 to emit one complete pass/fail review per card, including failure type, defensibility, guidance, and quote restatement for failures; mandatory audit checks added.
+- Added Phase 4 human adjudication as the sole creator of `paper.final.json` and
+  removed the Phase 3 to Phase 2 rework loop.
+- Changed validation to focus only on the final json. Errors in upstream jsons return warnings
+- Separated exact card diseases from corpus-broadening `disease_ancestors` derived from a cycle-checked umbrella graph.
+- Extended the disease vocabulary to 1.2 with `MPN`, `MDS/MPN`, `MPN blast phase`,
+  `acute leukaemia of ambiguous lineage`, `histiocytic/dendritic neoplasm`, and
+  `haematological malignancy, other`, and re-parented the affected families.
+- `publication_type` limited to 6 categorical possibilities.
+- Added `publication_type_verified_by_phase3` and removed `escalates_to` from cards,
+  the index, and retrieval
+- Added `scripts/transport.py` to move private corpus files between computers
+- Optimized `SKILL.md` as a deny-by-default six-step case-reporting workflow with
+  declared inputs and one output per step, complete-test-result semantics, and
+  absent cytogenetics recorded as a declared assumption rather than a result.
 
 ## 0.1.2
 
