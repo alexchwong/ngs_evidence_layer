@@ -236,6 +236,97 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertIn("CONFIRMED", output)
         self.assertFalse(working.exists())
 
+    def test_confirm_allows_phase4_evidence_correction_in_final(self):
+        """A bad provisional evidence quote does not block a corrected final."""
+        working = self.prepare_complete_work()
+        provisional = read(working / "paper.provisional-001.json")
+        provisional["evidence"][0]["fragments"][0]["quote"] = "not in source"
+        (working / "paper.provisional-001.json").write_text(
+            json.dumps(provisional), encoding="utf-8"
+        )
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+        )
+        self.assertIn("CONFIRMED", output)
+        self.assertFalse(working.exists())
+        self.assertTrue((self.archive / PUBLICATION_KEY / "paper.provisional-001.json").is_file())
+
+    def test_confirm_rejects_invalid_final_quote(self):
+        working = self.prepare_complete_work()
+        final = read(working / "paper.final.json")
+        final["evidence"][0]["fragments"][0]["quote"] = "not in source"
+        (working / "paper.final.json").write_text(json.dumps(final), encoding="utf-8")
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+            success=False,
+        )
+        self.assertIn("final:", output)
+        self.assertIn("not found verbatim", output)
+        self.assertFalse((self.accept / f"{PUBLICATION_KEY}.final.json").exists())
+        self.assertFalse((self.archive / PUBLICATION_KEY).exists())
+
+    def test_confirm_rejects_provisional_structural_defect(self):
+        working = self.prepare_complete_work()
+        provisional = read(working / "paper.provisional-001.json")
+        provisional["cards"][0]["card_id"] = provisional["cards"][1]["card_id"]
+        (working / "paper.provisional-001.json").write_text(
+            json.dumps(provisional), encoding="utf-8"
+        )
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+            success=False,
+        )
+        self.assertIn("provisional:", output)
+        self.assertIn("duplicate card_id", output)
+
+    def test_confirm_rejects_review_provisional_mismatch(self):
+        working = self.prepare_complete_work()
+        review = read(working / "paper.review-001.json")
+        review["round"] += 1
+        (working / "paper.review-001.json").write_text(json.dumps(review), encoding="utf-8")
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+            success=False,
+        )
+        self.assertIn("review:", output)
+        self.assertIn("round", output)
+
+    def test_confirm_rejects_final_lineage_mismatch(self):
+        working = self.prepare_complete_work()
+        final = read(working / "paper.final.json")
+        final["paper_id"] = "bbbbbbbb-0000-0000-0000-000000000002"
+        (working / "paper.final.json").write_text(json.dumps(final), encoding="utf-8")
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+            success=False,
+        )
+        self.assertIn("final lineage:", output)
+        self.assertIn("paper_id", output)
+
+    def test_confirm_invalid_final_blocks_despite_historical_provisional_defect(self):
+        working = self.prepare_complete_work()
+        provisional = read(working / "paper.provisional-001.json")
+        provisional["evidence"][0]["fragments"][0]["quote"] = "not in source"
+        (working / "paper.provisional-001.json").write_text(
+            json.dumps(provisional), encoding="utf-8"
+        )
+        final = read(working / "paper.final.json")
+        final["evidence"][0]["fragments"][0]["quote"] = "also not in source"
+        (working / "paper.final.json").write_text(json.dumps(final), encoding="utf-8")
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+            success=False,
+        )
+        self.assertIn("final:", output)
+        self.assertIn("not found verbatim", output)
+        self.assertNotIn("provisional:", output)
+
     def test_incorporate_strips_evidence_and_reports_bad_pair(self):
         self.prepare_complete_work()
         self.run_script(

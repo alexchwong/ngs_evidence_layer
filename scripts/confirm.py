@@ -29,8 +29,8 @@ def confirm(args):
     metadata = validation.read_json(paths["metadata"], "metadata")
     census = validation.read_json(paths["census"], "census")
     final = validation.read_json(paths["final"], "final package")
-    errors = validation.validate_metadata(metadata)
-    errors.extend(validation.validate_census(census, metadata))
+    errors = [f"metadata: {error}" for error in validation.validate_metadata(metadata)]
+    errors.extend(f"census: {error}" for error in validation.validate_census(census, metadata))
     if metadata.get("publication_key") != args.publication_key:
         errors.append("metadata publication_key does not match --key")
     approved_round = (final.get("audit") or {}).get("approved_round")
@@ -41,20 +41,33 @@ def confirm(args):
         errors.append("final audit approved_round does not identify an existing provisional file")
     else:
         provisional = validation.read_json(provisional_path, "approved provisional package")
+
+        # The approved provisional is an immutable historical artefact. Phase 4
+        # may correct its evidence in paper.final.json, so confirmation validates
+        # provisional structure and lineage but source-validates only the final.
         provisional_errors, _warnings, _report = validation.validate_package(
-            provisional, metadata, census, paths["source"].read_text(encoding="utf-8"), False
+            provisional,
+            metadata,
+            census,
+            source_text=None,
+            require_final=False,
         )
-        errors.extend(provisional_errors)
-        errors.extend(validation.validate_final_against_provisional(final, provisional))
+        errors.extend(f"provisional: {error}" for error in provisional_errors)
+        errors.extend(
+            f"final lineage: {error}"
+            for error in validation.validate_final_against_provisional(final, provisional)
+        )
         if review_path is None or not review_path.is_file():
             errors.append("final audit approved_round does not identify an existing Phase 3 review")
         else:
             review = validation.read_json(review_path, "Phase 3 review")
-            errors.extend(validation.validate_review(review, provisional))
+            review_errors = validation.validate_review(review, provisional)
+            errors.extend(f"review: {error}" for error in review_errors)
+
     final_errors, warnings, report = validation.validate_package(
         final, metadata, census, paths["source"].read_text(encoding="utf-8"), True
     )
-    errors.extend(final_errors)
+    errors.extend(f"final: {error}" for error in final_errors)
     if errors:
         raise ValueError("\n".join(errors))
 
