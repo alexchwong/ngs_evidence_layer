@@ -60,8 +60,8 @@ def collapse(cards):
     """Fold byte-identical interpretations into one line.
 
     Two publications stating the same thing in the same words is not two facts.
-    The surviving line carries every contributing card ID and, later, the union of
-    their citation numbers, so nothing about where it came from is lost.
+    The surviving line carries every contributing card ID, and the renderer
+    preserves the per-card primary and secondary reference mapping.
     """
     groups = {}
     order = []
@@ -107,22 +107,36 @@ def citation_entries(card):
     return entries
 
 
-def number_citations(lines):
-    """Assign numbers in order of first appearance in the rendered body."""
+def assign_references(lines):
+    """Assign numbers in order of first appearance and record per-card roles.
+
+    Returns the ordered reference list and a map from card_id to its primary and
+    secondary reference numbers.
+    """
     numbers = {}
     references = []
+    card_map = {}
+
     for line in lines:
-        assigned = []
         for member in line["members"]:
+            card_id = member["card_id"]
+            if card_id not in card_map:
+                card_map[card_id] = {"primary_refs": [], "secondary_refs": []}
             for entry in citation_entries(member):
                 key = entry["key"]
                 if key not in numbers:
                     numbers[key] = len(references) + 1
                     references.append(entry)
-                if numbers[key] not in assigned:
-                    assigned.append(numbers[key])
-        line["citation_numbers"] = sorted(assigned)
-    return references
+                number = numbers[key]
+                bucket = "primary_refs" if entry["kind"] == "primary" else "secondary_refs"
+                if number not in card_map[card_id][bucket]:
+                    card_map[card_id][bucket].append(number)
+
+    for mapping in card_map.values():
+        mapping["primary_refs"].sort()
+        mapping["secondary_refs"].sort()
+
+    return references, card_map
 
 
 def estimate_tokens(text):
@@ -130,9 +144,7 @@ def estimate_tokens(text):
 
 
 def format_line(line):
-    ids = ", ".join(line["card_ids"])
-    markers = ",".join(str(number) for number in line["citation_numbers"])
-    body = f"[{ids}] {line['representative']['interpretation']} [{markers}]"
+    body = line["representative"]["interpretation"]
     # break_on_hyphens off: splitting "therapy-related" across lines turns a
     # variant-level qualifier into two words a reader can skim past.
     return textwrap.fill(
@@ -144,12 +156,71 @@ def format_line(line):
     )
 
 
-def render_body(cards, bundle):
-    lines = collapse(sorted(cards, key=sort_key))
-    references = number_citations(lines)
+def build_card_reference_map(lines, card_map, sorted_cards):
+    """Group cards by identical ordered reference signature.
 
+    Cards with the same (primary_refs, secondary_refs) signature share one
+    mapping line. Groups are ordered by the earliest rendered occurrence of any
+    member, with card ID as a tie-breaker.
+    """
+    if not lines:
+        return []
+
+    card_by_id = {card["card_id"]: card for card in sorted_cards}
+
+    groups = {}
+    for line_index, line in enumerate(lines):
+        for member in line["members"]:
+            card_id = member["card_id"]
+            refs = card_map[card_id]
+            signature = (tuple(refs["primary_refs"]), tuple(refs["secondary_refs"]))
+            if signature not in groups:
+                groups[signature] = {
+                    "card_ids": [card_id],
+                    "primary_refs": refs["primary_refs"],
+                    "secondary_refs": refs["secondary_refs"],
+                    "earliest_line": line_index,
+                }
+            else:
+                if card_id not in groups[signature]["card_ids"]:
+                    groups[signature]["card_ids"].append(card_id)
+                if line_index < groups[signature]["earliest_line"]:
+                    groups[signature]["earliest_line"] = line_index
+
+    for group in groups.values():
+        group["card_ids"].sort(key=lambda cid: sort_key(card_by_id[cid]))
+
+    ordered = sorted(groups.values(), key=lambda g: (g["earliest_line"], g["card_ids"][0]))
+    return [
+        {
+            "card_ids": group["card_ids"],
+            "primary_refs": group["primary_refs"],
+            "secondary_refs": group["secondary_refs"],
+        }
+        for group in ordered
+    ]
+
+
+def format_refs(reference_map):
+    """Render the card-to-reference mapping section."""
+    if not reference_map:
+        return ["## Refs", "", "None; no cards were rendered.", ""]
+
+    out = ["## Refs", ""]
+    for group in reference_map:
+        ids = ",".join(group["card_ids"])
+        parts = [f"primary ref {','.join(str(n) for n in group['primary_refs'])}"]
+        if group["secondary_refs"]:
+            parts.append(f"secondary ref {','.join(str(n) for n in group['secondary_refs'])}")
+        out.append(f"{ids}: {'; '.join(parts)}")
+    out.append("")
+    return out
+
+
+def render_body(lines):
     out = []
     current_category = None
+    rendered_facts = []
     for line in lines:
         category = line["representative"]["category"]
         if category != current_category:
@@ -159,7 +230,12 @@ def render_body(cards, bundle):
             out.append("")
         out.append(format_line(line))
         out.append("")
-    return out, references, lines
+        rendered_facts.append({
+            "category": category,
+            "interpretation": line["representative"]["interpretation"],
+            "card_ids": list(line["card_ids"]),
+        })
+    return out, rendered_facts
 
 
 def render_header(bundle):
@@ -215,7 +291,7 @@ def render_header(bundle):
     return out
 
 
-def render_tail(bundle, references, dropped):
+def render_tail(bundle, references, dropped, reference_map):
     out = []
 
     not_assessed = bundle.get("not_assessed") or []
@@ -262,6 +338,8 @@ def render_tail(bundle, references, dropped):
             out.append(f"- dropped {count} card(s) at evidence tier '{tier}' to fit the budget")
         out.append("")
 
+    out.extend(format_refs(reference_map))
+
     out.append("## References")
     out.append("")
     for number, entry in enumerate(references, 1):
@@ -287,9 +365,15 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
     dropped = []
 
     while True:
-        body, references, _lines = render_body(cards, bundle)
+        sorted_cards = sorted(cards, key=sort_key)
+        lines = collapse(sorted_cards)
+        references, card_map = assign_references(lines)
+        reference_map = build_card_reference_map(lines, card_map, sorted_cards)
+        body, rendered_facts = render_body(lines)
+        tail = render_tail(bundle, references, dropped, reference_map)
+
         text = "\n".join(
-            render_header(bundle) + body + render_tail(bundle, references, dropped)
+            render_header(bundle) + body + tail
         )
         # Sections are assembled independently, so blank-line runs are joined
         # rather than reasoned about.
@@ -331,6 +415,8 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
             {"number": number, **entry}
             for number, entry in enumerate(references, 1)
         ],
+        "rendered_facts": rendered_facts,
+        "card_reference_map": reference_map,
     }
 
 

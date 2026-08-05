@@ -1,16 +1,26 @@
 ---
-name: ngs_evidence_layer
-description: Produces a concise interpretative myeloid NGS report through a deny-by-default, corpus-bounded workflow with strict inputs and outputs at every step.
+name: ngs-evidence-layer
+description: Produces a deterministic, citable evidence block for a myeloid NGS case through a deny-by-default, corpus-bounded workflow. Only Step 1 (case structuring) and Step 3 (diagnostic adjudication) are model decisions; Steps 2, 4, and 5 are deterministic scripts. The sole final artifact is block.md; downstream report synthesis is outside this skill.
 ---
 
-# NGS evidence layer reporting
+# NGS evidence layer evidence block
 
 ## Purpose
 
-Produce a concise interpretative myeloid NGS report for clinical haematologists from
+Produce a deterministic, citable evidence block for clinical haematologists from
 one supplied case and the released evidence corpus. Literature-derived assertions
 must come from corpus evidence. Patient-specific assertions must come from the
 supplied case.
+
+Only two steps require model interpretation:
+
+1. **Step 1** — read the supplied case prose and create `case-input.json`.
+2. **Step 3** — read `prompts/diagnostic_adjudication_prompt.md` and
+   `<work-dir>/step2.json`, then create `<work-dir>/adjudication.json`.
+
+All other work is performed by deterministic scripts. The terminal artifact is
+`<work-dir>/block.md`. Production of a downstream interpretative report is out of
+scope for this skill.
 
 The corpus is an immutable input. This skill does not create, edit, audit, or
 incorporate evidence cards.
@@ -42,8 +52,37 @@ command writes it. If a required input is missing, unreadable, malformed, or
 inconsistent with its contract, stop and report that error. Do not browse for a
 replacement or infer the missing content.
 
-Use a fresh bounded model session for Step 3. Use another fresh bounded model session
-for Step 6. Each session receives exactly the inputs named by its step.
+Use a fresh bounded model session for Step 3. Each session receives exactly the
+inputs named by its step.
+
+## Working directory
+
+Before Step 1, select the working directory:
+
+1. If the user supplies a directory, use that directory.
+2. Otherwise, create a unique directory using the host platform's secure
+   system-temporary-directory facility.
+
+Resolve the selected directory to an absolute path. Create it if necessary. Fail if
+the path exists but is not a directory, or if it is unreadable or unwritable. Never
+silently fall back to another directory after the path has been announced.
+
+Print the absolute resolved directory before reading the case for Step 1:
+
+```text
+Working directory: /absolute/path/to/directory
+```
+
+Retain the directory after success and after failure. Do not perform automatic
+cleanup.
+
+Use the selected directory for every case-specific file:
+
+- `<work-dir>/case-input.json`
+- `<work-dir>/step2.json`
+- `<work-dir>/adjudication.json`
+- `<work-dir>/bundle.json`
+- `<work-dir>/block.md`
 
 ## Missing and unreported results
 
@@ -57,9 +96,9 @@ exclude a copy-number change, rearrangement, or other finding unless the case sa
 that the test assessed it.
 
 If cytogenetic results are not supplied, assume normal conventional cytogenetics for
-the interpretation. This is a workflow assumption, not a patient result. State the
-assumption in the final report. Do not say that cytogenetics were performed or that a
-specific cytogenetic abnormality was formally excluded.
+the interpretation. This is a workflow assumption, not a patient result. Record it as
+a `workflow_assumption` fact in Step 1. Do not say that cytogenetics were performed or
+that a specific cytogenetic abnormality was formally excluded.
 
 Do not use the normal-cytogenetics assumption if the case reports an abnormal
 karyotype, FISH result, copy-number result, or another finding that conflicts with it.
@@ -100,8 +139,8 @@ cytogenetic results are not supplied, record the normal-cytogenetics assumption 
 
 ### Output
 
-Write exactly one file, `case-input.json`, containing JSON only with exactly these
-three top-level fields:
+Write exactly one file, `<work-dir>/case-input.json`, containing JSON only with
+exactly these three top-level fields:
 
 ```json
 {
@@ -121,43 +160,36 @@ Do not include explanatory prose or additional top-level fields.
 
 ### Model-readable inputs
 
-Read exactly:
+None.
 
-1. `case-input.json`.
-
-Read nothing else. In particular, do not inspect the retrieval script, corpus, index,
-or disease vocabulary.
+Do not read `case-input.json` merely to construct command arguments; the wrapper and
+retrieval script consume it. Do not inspect the retrieval script, corpus, index, or
+disease vocabulary.
 
 ### Command-only inputs
 
-The following may be consumed by the deterministic command but must not be read by
-the model:
+The deterministic command may consume:
 
+- `scripts/run_case.py`;
 - `scripts/retrieve.py`;
+- `<work-dir>/case-input.json`;
 - `output/corpus/nel.corpus.json`;
 - `output/corpus/nel.index.json`.
 
 ### Required action
 
-Copy `genes` and `provisional_disease` exactly from `case-input.json` into this
-command. Pass the same file as the case-facts input:
+Run exactly:
 
 ```bash
-python scripts/retrieve.py diagnosis \
-  --genes <genes copied from case-input.json> \
-  --provisional-disease <value copied from case-input.json> \
-  --case-facts case-input.json \
-  --corpus output/corpus/nel.corpus.json \
-  --index output/corpus/nel.index.json \
-  --output step2.json
+python scripts/run_case.py diagnosis --work-dir <work-dir>
 ```
 
 Do not perform diagnostic selection or interpretation in this step.
 
 ### Output
 
-The only output is `step2.json`, exactly as written by the command. Do not read,
-edit, summarize, or supplement it in this step.
+The only output is `<work-dir>/step2.json`, exactly as written by the command. Do not
+read, edit, summarize, or supplement it in this step.
 
 ## Step 3 — Adjudicate the diagnosis
 
@@ -168,7 +200,7 @@ Use a fresh bounded model session.
 Read exactly:
 
 1. `prompts/diagnostic_adjudication_prompt.md`;
-2. `step2.json`.
+2. `<work-dir>/step2.json`.
 
 Read nothing else. Do not read the original case, `case-input.json`, disease
 vocabulary, corpus, index, reporting rules, scripts, examples, or repository
@@ -176,8 +208,8 @@ documentation.
 
 ### Required action
 
-Follow `prompts/diagnostic_adjudication_prompt.md` exactly. Treat `step2.json` as the
-complete patient-fact and diagnosis-evidence boundary. Do not add a fact, rule,
+Follow `prompts/diagnostic_adjudication_prompt.md` exactly. Treat `<work-dir>/step2.json`
+as the complete patient-fact and diagnosis-evidence boundary. Do not add a fact, rule,
 threshold, exclusion, definition, or qualifier from memory.
 
 Apply the recorded `test_result_status` and `workflow_assumption` facts as directed by
@@ -189,143 +221,62 @@ not by itself enough to raise it.
 
 ### Output
 
-Write exactly one file, `adjudication.json`. It must contain JSON only and exactly the
-output shape required by `prompts/diagnostic_adjudication_prompt.md`. Do not add prose
-or extra fields.
+Write exactly one file, `<work-dir>/adjudication.json`. It must contain JSON only and
+exactly the output shape required by `prompts/diagnostic_adjudication_prompt.md`. Do
+not add prose or extra fields.
 
-## Step 4 — Retrieve the full evidence bundle
+No model action occurs after this file is written.
+
+## Steps 4 and 5 — Retrieve the full evidence bundle and render the evidence block
 
 ### Model-readable inputs
 
 None.
 
-Do not read `step2.json`, `adjudication.json`, the corpus, the index, or the retrieval
-script. Their paths are sufficient to run the fixed command.
+Do not read `step2.json`, `adjudication.json`, `bundle.json`, `block.md`, the corpus,
+the index, or the retrieval or rendering scripts. Their paths are sufficient to run
+the fixed command.
 
 ### Command-only inputs
 
 The deterministic command may consume:
 
+- `scripts/run_case.py`;
 - `scripts/retrieve.py`;
-- `step2.json`;
-- `adjudication.json`;
-- the corpus and index identified by `step2.json`.
-
-### Required action
-
-Run exactly:
-
-```bash
-python scripts/retrieve.py full \
-  --diagnosis-result step2.json \
-  --adjudication-result adjudication.json \
-  --output bundle.json
-```
-
-Do not perform retrieval, filtering, validation, or interpretation manually.
-
-### Output
-
-The only output is `bundle.json`, exactly as written by the command. Do not read,
-edit, summarize, or supplement it in this step.
-
-## Step 5 — Render the evidence block
-
-### Model-readable inputs
-
-None.
-
-Do not read `bundle.json` or inspect the rendering script. Their paths are sufficient
-to run the fixed command.
-
-### Command-only inputs
-
-The deterministic command may consume:
-
 - `scripts/render.py`;
-- `bundle.json`.
+- `<work-dir>/step2.json`;
+- `<work-dir>/adjudication.json`;
+- the corpus and index identified by `<work-dir>/step2.json`.
 
 ### Required action
 
 Run exactly:
 
 ```bash
-python scripts/render.py --bundle bundle.json --output block.md
+python scripts/run_case.py full --work-dir <work-dir>
 ```
 
-Do not order, collapse, truncate, number, or format evidence manually.
+The wrapper deterministically writes:
+
+- `<work-dir>/bundle.json`;
+- `<work-dir>/block.md`.
+
+Do not perform retrieval, filtering, validation, ordering, collapsing, truncation,
+citation numbering, or formatting manually. Do not read, post-process, summarize, or
+rewrite either file.
 
 ### Output
 
-The only output is `block.md`, exactly as written by the command. Do not read, edit,
-summarize, or supplement it in this step.
+The terminal output is `<work-dir>/block.md`, exactly as written by the command.
+`bundle.json` remains an internal deterministic intermediate.
 
-## Step 6 — Write the interpretative report
+## Final delivery contract
 
-Use a fresh bounded model session.
+After `run_case.py full` succeeds:
 
-### Model-readable inputs
-
-Read exactly:
-
-1. the same one case document supplied to Step 1;
-2. `block.md`;
-3. `rules/agreed_reporting_rules.md`.
-
-Read nothing else. Do not read `case-input.json`, `step2.json`,
-`adjudication.json`, `bundle.json`, the diagnostic adjudication prompt, disease
-vocabulary, corpus, index, scripts, source publications, ingestion material,
-documentation, examples, expected outputs, tests, or logs.
-
-### Required action
-
-Treat the case document as the complete patient-fact boundary, `block.md` as the
-complete literature-evidence and citation boundary, and
-`rules/agreed_reporting_rules.md` as the complete report-synthesis policy.
-
-Apply the reporting rules in this order, omitting sections that are not relevant:
-
-1. Integrated diagnosis and classification
-2. Prognostic significance
-3. Clinically actionable implications
-4. MRD implications
-5. Possible germline predisposition
-
-For each included section:
-
-- lead with the clinically important conclusion;
-- integrate supplied patient facts with relevant rendered evidence rather than
-  copying the evidence block line by line;
-- preserve every material disease, population, treatment, allelic, variant, analysis,
-  classifier, threshold, branch, and exclusion qualifier;
-- cite each literature-derived conclusion using only the deterministic references in
-  `block.md`;
-- distinguish established conclusions from possibilities, unresolved conflicts, and
-  missing inputs;
-- name required variables when a diagnosis, score, tier, allelic state, or management
-  implication cannot be established;
-- do not include hypothetical exclusions that are not raised by the case;
-- mention a missing test or unresolved exclusion only when it could realistically
-  change the diagnosis in this patient;
-- if normal conventional cytogenetics were assumed because cytogenetic results were
-  not supplied, state exactly: "This interpretation assumes normal conventional
-  cytogenetics because cytogenetic results were not supplied.";
-- treat a gene reported as not assessed as outside this corpus version's coverage,
-  not as clinically negative or considered and cleared;
-- surface any truncation or corpus limitation material to interpretation.
-
-Do not invent literature, patient facts, approval status, jurisdiction, assay
-performance, quotations, or an ACMG/ClinGen/VICC conclusion. Do not supplement the
-three inputs from memory or another source. If the inputs conflict or are
-insufficient, state the bounded uncertainty in the report; do not search for more
-information.
-
-Verify the report privately against only these same three inputs. Do not open an
-intermediate file during verification.
-
-### Output
-
-Return only the final interpretative report in Markdown. If the user explicitly
-requests a file, write exactly one file, `report.md`, containing only that report.
-Do not return process commentary, JSON, an evidence appendix, copied cards, or any
-other artefact.
+- return `<work-dir>/block.md` as the sole artifact;
+- do not independently read and regenerate it;
+- do not append a summary, clinical interpretation, report, evidence appendix, or
+  commentary to the artifact;
+- normal UI text may identify the delivered filename, but the artifact content must be
+  exactly the renderer output.

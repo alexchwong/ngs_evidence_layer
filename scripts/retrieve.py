@@ -26,12 +26,14 @@ gene that was never looked at are very different things, and a clinician reading
 the output cannot tell them apart unless the tool says so.
 
 Usage:
+  retrieve.py diagnosis --case-input case-input.json --output step2.json
+
   retrieve.py diagnosis --genes NPM1 DNMT3A FLT3 --case-facts case-facts.json \\
       --corpus output/corpus/nel.corpus.json --index output/corpus/nel.index.json \\
-      --provisional-disease MDS > step2.json
+      --provisional-disease MDS --output step2.json
 
   retrieve.py full --diagnosis-result step2.json \\
-      --adjudication-result adjudication.json > bundle.json
+      --adjudication-result adjudication.json --output bundle.json
 """
 import argparse
 import hashlib
@@ -42,6 +44,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_CORPUS = REPO_ROOT / "output/corpus/nel.corpus.json"
+DEFAULT_INDEX = REPO_ROOT / "output/corpus/nel.index.json"
 
 DISEASE_FILTERED = ("prognosis", "treatment", "biomarker")
 
@@ -122,6 +128,52 @@ def validate_case_facts(case_facts):
     if len(fact_ids) != len(set(fact_ids)):
         raise ValueError("case fact IDs must be unique")
     return case_facts
+
+
+def validate_case_input(path):
+    """Validate and return the structured case input produced by Step 1."""
+    if not path.is_file():
+        raise ValueError(f"case-input not found: {path}")
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"case-input is not valid JSON: {exc}") from exc
+
+    if not isinstance(document, dict):
+        raise ValueError("case-input must be a JSON object")
+    required = {"provisional_disease", "genes", "case_facts"}
+    if set(document) != required:
+        raise ValueError(
+            "case-input must contain exactly: " + ", ".join(sorted(required))
+        )
+
+    provisional_disease = document["provisional_disease"]
+    if provisional_disease not in vocab.DISEASE_SET:
+        raise ValueError(
+            f"case-input provisional_disease {provisional_disease!r} is not in the disease vocabulary"
+        )
+
+    genes = document["genes"]
+    if not isinstance(genes, list) or not genes:
+        raise ValueError("case-input genes must be a non-empty JSON array")
+    normalised = []
+    seen = set()
+    for index, value in enumerate(genes):
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"case-input genes[{index}] must be a non-empty string")
+        upper = value.upper()
+        if upper in seen:
+            raise ValueError(f"case-input contains duplicate gene {upper!r} after normalisation")
+        seen.add(upper)
+        normalised.append(upper)
+
+    case_facts = validate_case_facts(document["case_facts"])
+
+    return {
+        "provisional_disease": provisional_disease,
+        "genes": normalised,
+        "case_facts": case_facts,
+    }
 
 
 def step2(cards, genes, provisional_disease, case_facts=None):
@@ -295,9 +347,45 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
 def run_diagnosis(args):
     corpus, _index, digest = load_corpus(args.corpus, args.index)
     cards = flatten(corpus)
-    facts_document = json.loads(args.case_facts.read_text(encoding="utf-8"))
-    case_facts = facts_document.get("case_facts") if isinstance(facts_document, dict) else facts_document
-    result = step2(cards, args.genes, args.provisional_disease, case_facts)
+
+    case_input = None
+    overrides = []
+    if args.case_input:
+        case_input = validate_case_input(args.case_input)
+
+    if args.genes:
+        genes = [gene.upper() for gene in args.genes]
+        if case_input:
+            overrides.append("genes")
+    elif case_input:
+        genes = case_input["genes"]
+    else:
+        raise ValueError("--genes is required unless --case-input is provided")
+
+    if args.provisional_disease is not None:
+        provisional = args.provisional_disease
+        if case_input:
+            overrides.append("provisional-disease")
+    elif case_input:
+        provisional = case_input["provisional_disease"]
+    else:
+        provisional = vocab.UNSPECIFIED_DISEASE
+
+    if args.case_facts:
+        facts_document = json.loads(args.case_facts.read_text(encoding="utf-8"))
+        case_facts = facts_document.get("case_facts") if isinstance(facts_document, dict) else facts_document
+        if case_input:
+            overrides.append("case-facts")
+    elif case_input:
+        case_facts = case_input["case_facts"]
+    else:
+        raise ValueError("--case-facts is required unless --case-input is provided")
+
+    for field in overrides:
+        flag = field if field != "provisional-disease" else "provisional-disease"
+        print(f"[retrieve] overriding case-input {field} from --{flag}", file=sys.stderr)
+
+    result = step2(cards, genes, provisional, case_facts)
     result["corpus"] = {"path": str(args.corpus), "index": str(args.index)}
     result["provenance"] = provenance(
         corpus, args.corpus, args.index, digest,
@@ -348,13 +436,14 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
 
     diagnosis = sub.add_parser("diagnosis", help="step 2")
-    diagnosis.add_argument("--genes", nargs="+", required=True)
-    diagnosis.add_argument("--case-facts", type=Path, required=True,
+    diagnosis.add_argument("--case-input", type=Path,
+                           help="JSON object with genes, provisional_disease, and case_facts")
+    diagnosis.add_argument("--genes", nargs="+")
+    diagnosis.add_argument("--case-facts", type=Path,
                            help="JSON array, or object with case_facts array")
-    diagnosis.add_argument("--provisional-disease", default=vocab.UNSPECIFIED_DISEASE,
-                           choices=vocab.DISEASES)
-    diagnosis.add_argument("--corpus", type=Path, default=Path("output/corpus/nel.corpus.json"))
-    diagnosis.add_argument("--index", type=Path, default=Path("output/corpus/nel.index.json"))
+    diagnosis.add_argument("--provisional-disease", default=None, choices=vocab.DISEASES)
+    diagnosis.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    diagnosis.add_argument("--index", type=Path, default=DEFAULT_INDEX)
 
     full = sub.add_parser("full", help="step 4")
     full.add_argument("--diagnosis-result", type=Path, required=True)

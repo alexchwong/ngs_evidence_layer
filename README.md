@@ -124,14 +124,16 @@ runbook and `docs/INPUT.md` for private input metadata.
 
 Case handling has two bounded model steps. Step 1 extracts a provisional major
 diagnostic category, NGS genes, and structured case facts with stable `fact_id`
-values. Step 3 adjudicates those facts against retrieved diagnosis cards under
-`prompts/diagnostic_adjudication_prompt.md`. All retrieval before, between, and after
-those decisions is deterministic.
+values into `case-input.json`. Step 3 adjudicates those facts against retrieved
+diagnosis cards under `prompts/diagnostic_adjudication_prompt.md`. Steps 2, 4, and 5
+are deterministic, performed by `scripts/run_case.py`.
 
-For example, `case-facts.json` may contain:
+For example, `case-input.json` may contain:
 
 ```json
 {
+  "provisional_disease": "myeloid neoplasm, unspecified",
+  "genes": ["SF3B1"],
   "case_facts": [
     {"fact_id": "F-SF3B1", "type": "variant", "gene": "SF3B1", "vaf_percent": 30},
     {"fact_id": "F-RS", "type": "morphology", "ring_sideroblast_percent": 7}
@@ -140,22 +142,36 @@ For example, `case-facts.json` may contain:
 ```
 
 ```bash
-python scripts/retrieve.py diagnosis \
-  --genes SF3B1 \
-  --provisional-disease "myeloid neoplasm, unspecified" \
-  --case-facts case-facts.json \
-  --output step2.json
+python scripts/run_case.py diagnosis --work-dir <work-dir>
 
-# Run a fresh model session with step2.json and
-# prompts/diagnostic_adjudication_prompt.md, saving adjudication.json.
+# Run a fresh model session with <work-dir>/step2.json and
+# prompts/diagnostic_adjudication_prompt.md, saving <work-dir>/adjudication.json.
+
+python scripts/run_case.py full --work-dir <work-dir>
+```
+
+The wrapper writes `<work-dir>/bundle.json` and `<work-dir>/block.md`. The sole final
+artifact is `<work-dir>/block.md`; `bundle.json` is an internal deterministic
+intermediate. If no working directory is supplied, `run_case.py` creates a retained
+secure system temporary directory and prints it to stderr.
+
+Advanced callers may still invoke `scripts/retrieve.py` directly:
+
+```bash
+python scripts/retrieve.py diagnosis \
+  --case-input <work-dir>/case-input.json \
+  --output <work-dir>/step2.json
 
 python scripts/retrieve.py full \
-  --diagnosis-result step2.json \
-  --adjudication-result adjudication.json \
-  --output bundle.json
+  --diagnosis-result <work-dir>/step2.json \
+  --adjudication-result <work-dir>/adjudication.json \
+  --output <work-dir>/bundle.json
 
-python scripts/render.py --bundle bundle.json --output block.md
+python scripts/render.py --bundle <work-dir>/bundle.json --output <work-dir>/block.md
 ```
+
+The legacy `retrieve.py diagnosis` flags (`--genes`, `--provisional-disease`,
+`--case-facts`, `--corpus`, `--index`) remain available as advanced overrides.
 
 Diagnosis retrieval is gene-based and returns all matching diagnosis cards without a
 disease filter. The adjudicator may compose multiple supplied patient facts against a
@@ -179,8 +195,10 @@ uses them for broad corpus indexing without making a subtype card clinically
 applicable to its parent categories. `diseases_covered` likewise remains the union of
 exact card diseases only.
 
-Private evidence bundles never enter retrieval or rendered output. Every rendered interpretation
-carries a card ID and deterministic citations back to its publication.
+Private evidence bundles never enter retrieval or rendered output. Every rendered
+interpretation is traceable to its cards and deterministic citations through the
+end-of-document `## Refs` card-to-reference map and the numbered `## References`
+bibliography.
 
 ## Boundaries
 
