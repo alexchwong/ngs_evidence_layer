@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Render a retrieval bundle as the evidence block that goes downstream.
+"""Render a step 4 retrieval bundle as a structured evidence-card block.
 
-Interpretation strings only. Quotes are never rendered or returned by retrieval;
-they remain private inside accepted ingestion packages.
+Quotes are never rendered or returned by retrieval; they remain private inside
+accepted ingestion packages.
 
-Citation numbering is scripted rather than modelled. A model asked to number its
-own references produces numbering that is plausible, locally consistent and
-different on the next run; worse, it will happily assign a number to a reference
-that does not exist. Here the numbers fall out of the deterministic card order,
-so the same corpus and the same case produce the same block every time, and every
-number points at something that was actually retrieved.
+The rendered Markdown preserves one visible record per retrieved evidence card.
+Each record includes its stable card ID, human-readable label, category, genes,
+disease context, evidence tier, interpretation, source locator, and any
+escalation target. Citations remain publication-style at the end of the block:
+card IDs map to primary and secondary reference numbers in ``## Refs``, followed
+by the numbered bibliography in ``## References``.
+
+Citation numbering is scripted rather than modelled. Numbers fall out of the
+deterministic card order, so the same corpus and case produce the same block,
+and every number points at a reference contributed by a rendered card.
 
 Order: category, then gene, then evidence tier strongest first, then publication
 year descending, then card ID.
@@ -18,6 +22,7 @@ Usage:
   render.py --bundle bundle.json > block.md
   render.py --bundle bundle.json --token-budget 120000 --format json
 """
+
 import argparse
 import json
 import re
@@ -31,6 +36,7 @@ import vocab  # noqa: E402
 DEFAULT_TOKEN_BUDGET = 120_000
 CHARS_PER_TOKEN = 4  # estimate; stated as an estimate wherever it is reported
 WRAP_WIDTH = 78
+
 # Truncation order. Guideline criteria and multivariable-adjusted findings are
 # never dropped: if the block still will not fit after these two tiers are gone,
 # the honest output is an over-budget block with a warning, not a quietly
@@ -56,36 +62,22 @@ def sort_key(card):
     )
 
 
-def collapse(cards):
-    """Fold byte-identical interpretations into one line.
+def card_lines(cards):
+    """Return one render record per card, preserving deterministic card order.
 
-    Two publications stating the same thing in the same words is not two facts.
-    The surviving line carries every contributing card ID, and the renderer
-    preserves the per-card primary and secondary reference mapping.
+    Evidence cards are the atomic downstream evidence objects. Byte-identical
+    interpretations are deliberately not collapsed: collapsing would hide
+    card-level metadata and break the visible interpretation -> card ->
+    reference chain required for downstream synthesis.
     """
-    groups = {}
-    order = []
-    for card in cards:
-        key = (card["category"], card["interpretation"])
-        if key not in groups:
-            groups[key] = {
-                "representative": card,
-                "cards": [card],
-            }
-            order.append(key)
-        else:
-            groups[key]["cards"].append(card)
-
-    lines = []
-    for key in order:
-        group = groups[key]
-        members = sorted(group["cards"], key=sort_key)
-        lines.append({
-            "representative": members[0],
-            "card_ids": [member["card_id"] for member in members],
-            "members": members,
-        })
-    return lines
+    return [
+        {
+            "representative": card,
+            "card_ids": [card["card_id"]],
+            "members": [card],
+        }
+        for card in cards
+    ]
 
 
 def citation_entries(card):
@@ -100,7 +92,8 @@ def citation_entries(card):
     if secondary:
         entries.append({
             "key": "secondary::" + (secondary.get("display") or ""),
-            "display": secondary.get("display") or "[reference incomplete in source publication]",
+            "display": secondary.get("display")
+            or "[reference incomplete in source publication]",
             "citation_incomplete": secondary.get("citation_incomplete") or [],
             "kind": "secondary",
         })
@@ -116,7 +109,6 @@ def assign_references(lines):
     numbers = {}
     references = []
     card_map = {}
-
     for line in lines:
         for member in line["members"]:
             card_id = member["card_id"]
@@ -128,10 +120,12 @@ def assign_references(lines):
                     numbers[key] = len(references) + 1
                     references.append(entry)
                 number = numbers[key]
-                bucket = "primary_refs" if entry["kind"] == "primary" else "secondary_refs"
+                bucket = (
+                    "primary_refs" if entry["kind"] == "primary"
+                    else "secondary_refs"
+                )
                 if number not in card_map[card_id][bucket]:
                     card_map[card_id][bucket].append(number)
-
     for mapping in card_map.values():
         mapping["primary_refs"].sort()
         mapping["secondary_refs"].sort()
@@ -143,17 +137,55 @@ def estimate_tokens(text):
     return max(1, (len(text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN)
 
 
-def format_line(line):
-    body = line["representative"]["interpretation"]
-    # break_on_hyphens off: splitting "therapy-related" across lines turns a
-    # variant-level qualifier into two words a reader can skim past.
+def inline_text(value, fallback="not specified"):
+    """Normalise a scalar to one deterministic Markdown-safe display line."""
+    if value is None:
+        return fallback
+    text = " ".join(str(value).split())
+    return text or fallback
+
+
+def list_text(values, fallback="none specified"):
+    """Render a sequence as a comma-separated inline value."""
+    cleaned = [inline_text(value, "") for value in (values or [])]
+    cleaned = [value for value in cleaned if value]
+    return ", ".join(cleaned) if cleaned else fallback
+
+
+def format_field(label, value):
+    """Format one wrapped Markdown bullet without breaking hyphenated terms."""
+    prefix = f"- {label}: "
     return textwrap.fill(
-        body,
+        inline_text(value),
         width=WRAP_WIDTH,
-        subsequent_indent="    ",
+        initial_indent=prefix,
+        subsequent_indent="  ",
         break_long_words=False,
         break_on_hyphens=False,
     )
+
+
+def card_label(card):
+    """Return the human-readable card label, falling back to the stable ID."""
+    return inline_text(card.get("locator"), inline_text(card["card_id"]))
+
+
+def format_card(card):
+    """Render one complete evidence card as structured Markdown."""
+    out = [
+        f"### {card_label(card)}",
+        "",
+        format_field("Card ID", f"`{inline_text(card['card_id'])}`"),
+        format_field("Category", card.get("category")),
+        format_field("Genes", list_text(card.get("genes"))),
+        format_field("Disease context", list_text(card.get("diseases"))),
+        format_field("Evidence tier", card.get("evidence_tier")),
+        format_field("Interpretation", card.get("interpretation")),
+        format_field("Source locator", card.get("locator")),
+    ]
+    if card.get("escalates_to"):
+        out.append(format_field("Escalates to", card["escalates_to"]))
+    return out
 
 
 def build_card_reference_map(lines, card_map, sorted_cards):
@@ -167,13 +199,15 @@ def build_card_reference_map(lines, card_map, sorted_cards):
         return []
 
     card_by_id = {card["card_id"]: card for card in sorted_cards}
-
     groups = {}
     for line_index, line in enumerate(lines):
         for member in line["members"]:
             card_id = member["card_id"]
             refs = card_map[card_id]
-            signature = (tuple(refs["primary_refs"]), tuple(refs["secondary_refs"]))
+            signature = (
+                tuple(refs["primary_refs"]),
+                tuple(refs["secondary_refs"]),
+            )
             if signature not in groups:
                 groups[signature] = {
                     "card_ids": [card_id],
@@ -186,11 +220,13 @@ def build_card_reference_map(lines, card_map, sorted_cards):
                     groups[signature]["card_ids"].append(card_id)
                 if line_index < groups[signature]["earliest_line"]:
                     groups[signature]["earliest_line"] = line_index
-
     for group in groups.values():
         group["card_ids"].sort(key=lambda cid: sort_key(card_by_id[cid]))
 
-    ordered = sorted(groups.values(), key=lambda g: (g["earliest_line"], g["card_ids"][0]))
+    ordered = sorted(
+        groups.values(),
+        key=lambda group: (group["earliest_line"], group["card_ids"][0]),
+    )
     return [
         {
             "card_ids": group["card_ids"],
@@ -202,40 +238,58 @@ def build_card_reference_map(lines, card_map, sorted_cards):
 
 
 def format_refs(reference_map):
-    """Render the card-to-reference mapping section."""
+    """Render the terminal card-to-reference mapping section."""
     if not reference_map:
         return ["## Refs", "", "None; no cards were rendered.", ""]
-
     out = ["## Refs", ""]
     for group in reference_map:
         ids = ",".join(group["card_ids"])
-        parts = [f"primary ref {','.join(str(n) for n in group['primary_refs'])}"]
+        parts = [
+            f"primary ref {','.join(str(number) for number in group['primary_refs'])}"
+        ]
         if group["secondary_refs"]:
-            parts.append(f"secondary ref {','.join(str(n) for n in group['secondary_refs'])}")
+            parts.append(
+                "secondary ref "
+                + ",".join(str(number) for number in group["secondary_refs"])
+            )
         out.append(f"{ids}: {'; '.join(parts)}")
     out.append("")
     return out
 
 
+def serialise_card(card):
+    """Return the loss-minimising card representation exposed in JSON output."""
+    return {
+        "card_id": card["card_id"],
+        "label": card_label(card),
+        "category": card.get("category"),
+        "genes": list(card.get("genes") or []),
+        "diseases": list(card.get("diseases") or []),
+        "evidence_tier": card.get("evidence_tier"),
+        "interpretation": card.get("interpretation"),
+        "locator": card.get("locator"),
+        "escalates_to": card.get("escalates_to"),
+        # Retained for compatibility with the previous rendered_facts shape.
+        "card_ids": [card["card_id"]],
+    }
+
+
 def render_body(lines):
     out = []
     current_category = None
-    rendered_facts = []
+    rendered_cards = []
     for line in lines:
-        category = line["representative"]["category"]
+        card = line["representative"]
+        category = card["category"]
         if category != current_category:
             current_category = category
             out.append("")
             out.append(f"## {CATEGORY_HEADINGS.get(category, category)}")
             out.append("")
-        out.append(format_line(line))
+        out.extend(format_card(card))
         out.append("")
-        rendered_facts.append({
-            "category": category,
-            "interpretation": line["representative"]["interpretation"],
-            "card_ids": list(line["card_ids"]),
-        })
-    return out, rendered_facts
+        rendered_cards.append(serialise_card(card))
+    return out, rendered_cards
 
 
 def render_header(bundle):
@@ -245,9 +299,10 @@ def render_header(bundle):
         "# Evidence block",
         "",
         textwrap.fill(
-            "Collated evidence, not a report. Every line below is one publication's "
-            "statement as extracted; nothing here has been reconciled, ranked "
-            "clinically or concluded from. Report synthesis happens downstream.",
+            "Collated evidence cards, not a report. Each card below preserves one "
+            "retrieved source statement and its card-level metadata; nothing has "
+            "been reconciled, ranked clinically or concluded from. Report synthesis "
+            "happens downstream.",
             width=WRAP_WIDTH,
         ),
         "",
@@ -263,14 +318,20 @@ def render_header(bundle):
         out.append(f"Source-supported diagnostic label: {label}")
     status = adjudication.get("status")
     driven_by = adjudication.get("driven_by") or []
-    if status == "criteria_met" and bundle.get("refined_disease") != bundle.get("provisional_disease"):
+    if (
+        status == "criteria_met"
+        and bundle.get("refined_disease") != bundle.get("provisional_disease")
+    ):
         out.append(
             "Diagnostic adjudication changed the downstream major category; driven by: "
             + ", ".join(driven_by)
         )
     elif status == "criteria_met":
         suffix = f" Driven by: {', '.join(driven_by)}." if driven_by else ""
-        out.append("Diagnostic adjudication: criteria met; major category unchanged." + suffix)
+        out.append(
+            "Diagnostic adjudication: criteria met; major category unchanged."
+            + suffix
+        )
     elif status == "indeterminate":
         out.append(
             "Diagnostic adjudication: indeterminate; downstream filtering preserves "
@@ -293,7 +354,6 @@ def render_header(bundle):
 
 def render_tail(bundle, references, dropped, reference_map):
     out = []
-
     not_assessed = bundle.get("not_assessed") or []
     out.append("")
     out.append("## Genes not assessed")
@@ -335,11 +395,12 @@ def render_tail(bundle, references, dropped, reference_map):
         out.append("## Truncated")
         out.append("")
         for tier, count in dropped:
-            out.append(f"- dropped {count} card(s) at evidence tier '{tier}' to fit the budget")
+            out.append(
+                f"- dropped {count} card(s) at evidence tier '{tier}' to fit the budget"
+            )
         out.append("")
 
     out.extend(format_refs(reference_map))
-
     out.append("## References")
     out.append("")
     for number, entry in enumerate(references, 1):
@@ -347,7 +408,8 @@ def render_tail(bundle, references, dropped, reference_map):
         if entry["citation_incomplete"]:
             suffix = (
                 " [citation incomplete in source: "
-                + ", ".join(entry["citation_incomplete"]) + "]"
+                + ", ".join(entry["citation_incomplete"])
+                + "]"
             )
         wrapped = textwrap.fill(
             f"{number}. {entry['display']}{suffix}",
@@ -366,15 +428,12 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
 
     while True:
         sorted_cards = sorted(cards, key=sort_key)
-        lines = collapse(sorted_cards)
+        lines = card_lines(sorted_cards)
         references, card_map = assign_references(lines)
         reference_map = build_card_reference_map(lines, card_map, sorted_cards)
-        body, rendered_facts = render_body(lines)
+        body, rendered_cards = render_body(lines)
         tail = render_tail(bundle, references, dropped, reference_map)
-
-        text = "\n".join(
-            render_header(bundle) + body + tail
-        )
+        text = "\n".join(render_header(bundle) + body + tail)
         # Sections are assembled independently, so blank-line runs are joined
         # rather than reasoned about.
         text = re.sub(r"\n{3,}", "\n\n", text).rstrip() + "\n"
@@ -382,8 +441,11 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
         if tokens <= token_budget:
             over_budget = False
             break
-        droppable = [tier for tier in DROPPABLE_TIERS
-                     if any(card["evidence_tier"] == tier for card in cards)]
+        droppable = [
+            tier
+            for tier in DROPPABLE_TIERS
+            if any(card["evidence_tier"] == tier for card in cards)
+        ]
         if not droppable:
             over_budget = True
             break
@@ -406,16 +468,24 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
         "text": text,
         "estimated_tokens": tokens,
         "token_budget": token_budget,
-        "token_estimate_method": f"characters divided by {CHARS_PER_TOKEN}, rounded up",
+        "token_estimate_method": (
+            f"characters divided by {CHARS_PER_TOKEN}, rounded up"
+        ),
         "over_budget": over_budget,
         "cards_rendered": len(cards),
         "cards_retrieved": len(bundle.get("retrieved", [])),
-        "dropped": [{"evidence_tier": tier, "cards": count} for tier, count in dropped],
+        "dropped": [
+            {"evidence_tier": tier, "cards": count}
+            for tier, count in dropped
+        ],
         "references": [
             {"number": number, **entry}
             for number, entry in enumerate(references, 1)
         ],
-        "rendered_facts": rendered_facts,
+        # Keep the previous key for consumers while changing its unit from a
+        # collapsed interpretation to one loss-minimising record per card.
+        "rendered_facts": rendered_cards,
+        "rendered_cards": rendered_cards,
         "card_reference_map": reference_map,
     }
 
@@ -444,19 +514,20 @@ def main():
         payload = json.dumps(result, indent=2, ensure_ascii=False)
     else:
         payload = result["text"]
-
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(payload if payload.endswith("\n") else payload + "\n",
-                               encoding="utf-8")
+        args.output.write_text(
+            payload if payload.endswith("\n") else payload + "\n",
+            encoding="utf-8",
+        )
     else:
         print(payload, end="" if payload.endswith("\n") else "\n")
-
     print(
         f"[render] {result['cards_rendered']}/{result['cards_retrieved']} card(s), "
         f"{len(result['references'])} reference(s), "
         f"~{result['estimated_tokens']} tokens (estimate: "
-        f"{result['token_estimate_method']}) against a budget of {result['token_budget']}",
+        f"{result['token_estimate_method']}) against a budget of "
+        f"{result['token_budget']}",
         file=sys.stderr,
     )
 
