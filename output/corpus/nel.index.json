@@ -12,7 +12,8 @@
       "d-hner-2022-blood-140-1345-C0006",
       "d-hner-2022-blood-140-1345-C0011",
       "d-hner-2022-blood-140-1345-C0012",
-      "d-hner-2022-blood-140-1345-C0015"
+      "d-hner-2022-blood-140-1345-C0015",
+      "weeks-2023-nejm-evidence-2-na-C0004"
     ],
     "diagnosis": [
       "arber-2022-blood-140-1200-C0001",
@@ -63,6 +64,11 @@
       "arber-2022-blood-140-1200-C0002",
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0012",
+      "barbui-2015-blood-cancer-journal-5-e369-C0001",
+      "barbui-2015-blood-cancer-journal-5-e369-C0002",
+      "barbui-2015-blood-cancer-journal-5-e369-C0003",
+      "barbui-2015-blood-cancer-journal-5-e369-C0004",
+      "barbui-2015-blood-cancer-journal-5-e369-C0005",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -90,15 +96,25 @@
       "d-hner-2024-blood-144-2169-C0012",
       "d-hner-2024-blood-144-2169-C0013",
       "d-hner-2024-blood-144-2169-C0014",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
+      "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0005",
       "khoury-2022-leukemia-36-1703-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
-      "khoury-2022-leukemia-36-1703-C0020"
+      "khoury-2022-leukemia-36-1703-C0020",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0003"
     ],
     "treatment": [
       "arber-2022-blood-140-1200-C0004",
       "arber-2022-blood-140-1200-C0005",
+      "barbui-2015-blood-cancer-journal-5-e369-C0006",
+      "barbui-2015-blood-cancer-journal-5-e369-C0007",
       "cloos-2026-blood-147-1147-C0004",
       "cloos-2026-blood-147-1147-C0008",
       "cloos-2026-blood-147-1147-C0016",
@@ -175,19 +191,41 @@
     "APL": [
       "cloos-2026-blood-147-1147-C0006"
     ],
+    "CCUS": [
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0004"
+    ],
+    "CHIP": [
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0004"
+    ],
     "CML": [
       "khoury-2022-leukemia-36-1703-C0001"
     ],
     "CMML": [
       "arber-2022-blood-140-1200-C0007",
       "arber-2022-blood-140-1200-C0008",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
+      "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0013"
     ],
     "CNL": [
       "arber-2022-blood-140-1200-C0003"
     ],
     "ET": [
-      "arber-2022-blood-140-1200-C0001"
+      "arber-2022-blood-140-1200-C0001",
+      "barbui-2015-blood-cancer-journal-5-e369-C0001",
+      "barbui-2015-blood-cancer-journal-5-e369-C0002",
+      "barbui-2015-blood-cancer-journal-5-e369-C0003",
+      "barbui-2015-blood-cancer-journal-5-e369-C0004",
+      "barbui-2015-blood-cancer-journal-5-e369-C0005",
+      "barbui-2015-blood-cancer-journal-5-e369-C0006",
+      "barbui-2015-blood-cancer-journal-5-e369-C0007"
     ],
     "JMML": [
       "khoury-2022-leukemia-36-1703-C0004",
@@ -211,6 +249,9 @@
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
       "bernard-2022-nejm-evidence-1-na-C0010",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
+      "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0008",
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0010",
@@ -228,6 +269,9 @@
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0010",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
+      "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0013"
     ],
     "MDS/MPN-SF3B1-T": [
@@ -241,16 +285,30 @@
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0010",
+      "barbui-2015-blood-cancer-journal-5-e369-C0001",
+      "barbui-2015-blood-cancer-journal-5-e369-C0002",
+      "barbui-2015-blood-cancer-journal-5-e369-C0003",
+      "barbui-2015-blood-cancer-journal-5-e369-C0004",
+      "barbui-2015-blood-cancer-journal-5-e369-C0005",
+      "barbui-2015-blood-cancer-journal-5-e369-C0006",
+      "barbui-2015-blood-cancer-journal-5-e369-C0007",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
+      "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0001",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0004",
       "khoury-2022-leukemia-36-1703-C0005",
-      "khoury-2022-leukemia-36-1703-C0013"
+      "khoury-2022-leukemia-36-1703-C0013",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
     ],
     "PMF": [
       "arber-2022-blood-140-1200-C0001",
-      "khoury-2022-leukemia-36-1703-C0003"
+      "khoury-2022-leukemia-36-1703-C0003",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
     ],
     "PV": [
       "arber-2022-blood-140-1200-C0001",
@@ -377,7 +435,13 @@
     "multivariable-adjusted": [
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
-      "bernard-2022-nejm-evidence-1-na-C0007"
+      "bernard-2022-nejm-evidence-1-na-C0007",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0002"
     ],
     "restated secondary": [
       "arber-2022-blood-140-1200-C0002",
@@ -388,6 +452,7 @@
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0012",
+      "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "d-hner-2022-blood-140-1345-C0019",
       "d-hner-2022-blood-140-1345-C0020",
       "d-hner-2024-blood-144-2169-C0004",
@@ -405,13 +470,22 @@
       "khoury-2022-leukemia-36-1703-C0027"
     ],
     "univariable or descriptive": [
+      "barbui-2015-blood-cancer-journal-5-e369-C0002",
+      "barbui-2015-blood-cancer-journal-5-e369-C0003",
+      "barbui-2015-blood-cancer-journal-5-e369-C0004",
+      "barbui-2015-blood-cancer-journal-5-e369-C0005",
+      "barbui-2015-blood-cancer-journal-5-e369-C0006",
+      "barbui-2015-blood-cancer-journal-5-e369-C0007",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0004",
       "bernard-2022-nejm-evidence-1-na-C0005",
       "bernard-2022-nejm-evidence-1-na-C0006",
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
-      "bernard-2022-nejm-evidence-1-na-C0010"
+      "bernard-2022-nejm-evidence-1-na-C0010",
+      "elena-2016-blood-128-1408-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0004"
     ]
   },
   "by_gene": {
@@ -447,8 +521,11 @@
       "d-hner-2022-blood-140-1345-C0008",
       "d-hner-2022-blood-140-1345-C0012",
       "d-hner-2024-blood-144-2169-C0016",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "khoury-2022-leukemia-36-1703-C0019",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001"
     ],
     "BCL2": [
       "d-hner-2022-blood-140-1345-C0013"
@@ -485,7 +562,9 @@
       "arber-2022-blood-140-1200-C0001",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0010",
-      "khoury-2022-leukemia-36-1703-C0013"
+      "barbui-2015-blood-cancer-journal-5-e369-C0001",
+      "khoury-2022-leukemia-36-1703-C0013",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
     ],
     "CBFB": [
       "cloos-2026-blood-147-1147-C0001",
@@ -596,7 +675,8 @@
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
-      "d-hner-2022-blood-140-1345-C0012"
+      "d-hner-2022-blood-140-1345-C0012",
+      "weeks-2023-nejm-evidence-2-na-C0002"
     ],
     "ETNK1": [
       "bernard-2022-nejm-evidence-1-na-C0007"
@@ -617,8 +697,10 @@
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
+      "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0003",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "khoury-2022-leukemia-36-1703-C0019",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001"
     ],
     "FGFR1": [
       "khoury-2022-leukemia-36-1703-C0025"
@@ -643,7 +725,8 @@
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0013",
       "khoury-2022-leukemia-36-1703-C0024",
-      "khoury-2022-leukemia-36-1703-C0025"
+      "khoury-2022-leukemia-36-1703-C0025",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "GATA2": [
       "bernard-2022-nejm-evidence-1-na-C0007",
@@ -662,7 +745,9 @@
       "d-hner-2022-blood-140-1345-C0014",
       "d-hner-2022-blood-140-1345-C0015",
       "d-hner-2024-blood-144-2169-C0011",
-      "khoury-2022-leukemia-36-1703-C0003"
+      "khoury-2022-leukemia-36-1703-C0003",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "IDH2": [
       "bernard-2022-nejm-evidence-1-na-C0007",
@@ -670,7 +755,9 @@
       "d-hner-2024-blood-144-2169-C0005",
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0017",
-      "khoury-2022-leukemia-36-1703-C0003"
+      "khoury-2022-leukemia-36-1703-C0003",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "IKZF1": [
       "arber-2022-blood-140-1200-C0017"
@@ -680,10 +767,17 @@
       "arber-2022-blood-140-1200-C0002",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0010",
+      "barbui-2015-blood-cancer-journal-5-e369-C0002",
+      "barbui-2015-blood-cancer-journal-5-e369-C0003",
+      "barbui-2015-blood-cancer-journal-5-e369-C0004",
+      "barbui-2015-blood-cancer-journal-5-e369-C0005",
+      "barbui-2015-blood-cancer-journal-5-e369-C0006",
+      "barbui-2015-blood-cancer-journal-5-e369-C0007",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0013",
       "khoury-2022-leukemia-36-1703-C0024",
-      "khoury-2022-leukemia-36-1703-C0025"
+      "khoury-2022-leukemia-36-1703-C0025",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "KIF5B": [
       "khoury-2022-leukemia-36-1703-C0027"
@@ -772,6 +866,8 @@
       "d-hner-2024-blood-144-2169-C0009",
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0013",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
       "khoury-2022-leukemia-36-1703-C0026"
     ],
     "NUP214": [
@@ -835,8 +931,11 @@
       "d-hner-2022-blood-140-1345-C0008",
       "d-hner-2022-blood-140-1345-C0011",
       "d-hner-2022-blood-140-1345-C0018",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002",
       "khoury-2022-leukemia-36-1703-C0018",
-      "khoury-2022-leukemia-36-1703-C0022"
+      "khoury-2022-leukemia-36-1703-C0022",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "RUNX1T1": [
       "cloos-2026-blood-147-1147-C0001",
@@ -853,7 +952,9 @@
     ],
     "SETBP1": [
       "arber-2022-blood-140-1200-C0009",
-      "bernard-2022-nejm-evidence-1-na-C0007"
+      "bernard-2022-nejm-evidence-1-na-C0007",
+      "elena-2016-blood-128-1408-C0001",
+      "elena-2016-blood-128-1408-C0002"
     ],
     "SF3B1": [
       "arber-2022-blood-140-1200-C0010",
@@ -865,7 +966,8 @@
       "khoury-2022-leukemia-36-1703-C0008",
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0010",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "khoury-2022-leukemia-36-1703-C0019",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "SRSF2": [
       "bernard-2022-nejm-evidence-1-na-C0006",
@@ -874,7 +976,9 @@
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
       "khoury-2022-leukemia-36-1703-C0003",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "khoury-2022-leukemia-36-1703-C0019",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "STAG2": [
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -915,7 +1019,8 @@
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0011",
       "khoury-2022-leukemia-36-1703-C0012",
-      "khoury-2022-leukemia-36-1703-C0020"
+      "khoury-2022-leukemia-36-1703-C0020",
+      "weeks-2023-nejm-evidence-2-na-C0003"
     ],
     "U2AF1": [
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -924,7 +1029,9 @@
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
       "khoury-2022-leukemia-36-1703-C0003",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "khoury-2022-leukemia-36-1703-C0019",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0004"
     ],
     "WT1": [
       "bernard-2022-nejm-evidence-1-na-C0007",
@@ -935,7 +1042,8 @@
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "khoury-2022-leukemia-36-1703-C0019",
+      "weeks-2023-nejm-evidence-2-na-C0001"
     ]
   },
   "by_publication_type": {
@@ -949,15 +1057,31 @@
       "cloos-2026-blood-147-1147"
     ],
     "primary study": [
-      "bernard-2022-nejm-evidence-1-na"
+      "barbui-2015-blood-cancer-journal-5-e369",
+      "bernard-2022-nejm-evidence-1-na",
+      "elena-2016-blood-128-1408",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "weeks-2023-nejm-evidence-2-na"
     ]
   },
   "by_year": {
+    "2015": [
+      "barbui-2015-blood-cancer-journal-5-e369"
+    ],
+    "2016": [
+      "elena-2016-blood-128-1408"
+    ],
+    "2018": [
+      "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    ],
     "2022": [
       "arber-2022-blood-140-1200",
       "bernard-2022-nejm-evidence-1-na",
       "d-hner-2022-blood-140-1345",
       "khoury-2022-leukemia-36-1703"
+    ],
+    "2023": [
+      "weeks-2023-nejm-evidence-2-na"
     ],
     "2024": [
       "d-hner-2024-blood-144-2169"
@@ -1242,6 +1366,111 @@
       ],
       "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
       "publication_key": "arber-2022-blood-140-1200"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CALR"
+      ],
+      "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369-C0006": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369-C0007": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
     },
     "bernard-2022-nejm-evidence-1-na-C0001": {
       "category": "prognosis",
@@ -2183,6 +2412,63 @@
       "input_id": "ad2131a7-b225-5a2a-badc-1fb730ce9e70",
       "publication_key": "d-hner-2024-blood-144-2169"
     },
+    "elena-2016-blood-128-1408-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "NRAS",
+        "RUNX1",
+        "SETBP1"
+      ],
+      "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
+      "publication_key": "elena-2016-blood-128-1408"
+    },
+    "elena-2016-blood-128-1408-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "NRAS",
+        "RUNX1",
+        "SETBP1"
+      ],
+      "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
+      "publication_key": "elena-2016-blood-128-1408"
+    },
+    "elena-2016-blood-128-1408-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "EZH2"
+      ],
+      "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
+      "publication_key": "elena-2016-blood-128-1408"
+    },
     "khoury-2022-leukemia-36-1703-C0001": {
       "category": "diagnosis",
       "disease_ancestors": [
@@ -2588,16 +2874,114 @@
       ],
       "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
       "publication_key": "khoury-2022-leukemia-36-1703"
+    },
+    "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
+      "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    },
+    "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "CALR"
+      ],
+      "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
+      "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "FLT3",
+        "IDH1",
+        "IDH2",
+        "JAK2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "ZRSR2"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0004": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "U2AF1"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
     }
   },
-  "corpus_sha256": "8c6394b27441a281e38891e1f1dfdea711faf5cb55259d32bd91b6659068a724",
+  "corpus_sha256": "441bb094f27dcff4ac8a13f0f14ad5b84ad8015565b3b045d0f1205165a6c453",
   "counts": {
-    "cards": 102,
-    "census_entries": 443,
-    "completed_papers": 6,
+    "cards": 118,
+    "census_entries": 495,
+    "completed_papers": 10,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-06T05:00:09.132150+00:00",
+  "generated_at": "2026-08-06T13:26:56.079801+00:00",
   "index_version": "1.2",
   "papers": {
     "arber-2022-blood-140-1200": {
@@ -2665,6 +3049,29 @@
         "TP53"
       ],
       "publication_key": "arber-2022-blood-140-1200",
+      "status": "completed"
+    },
+    "barbui-2015-blood-cancer-journal-5-e369": {
+      "card_ids": [
+        "barbui-2015-blood-cancer-journal-5-e369-C0001",
+        "barbui-2015-blood-cancer-journal-5-e369-C0002",
+        "barbui-2015-blood-cancer-journal-5-e369-C0003",
+        "barbui-2015-blood-cancer-journal-5-e369-C0004",
+        "barbui-2015-blood-cancer-journal-5-e369-C0005",
+        "barbui-2015-blood-cancer-journal-5-e369-C0006",
+        "barbui-2015-blood-cancer-journal-5-e369-C0007"
+      ],
+      "cards": 7,
+      "census_entries": 2,
+      "citation_display": "Barbui T, Vannucchi AM, Buxhofer-Ausch V, De Stefano V, Betti S, Rambaldi A, et al. Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia. Blood Cancer Journal. 2015;5(11):e369-e369.",
+      "diseases": [
+        "ET"
+      ],
+      "genes": [
+        "CALR",
+        "JAK2"
+      ],
+      "publication_key": "barbui-2015-blood-cancer-journal-5-e369",
       "status": "completed"
     },
     "bernard-2022-nejm-evidence-1-na": {
@@ -2901,6 +3308,28 @@
       "publication_key": "d-hner-2024-blood-144-2169",
       "status": "completed"
     },
+    "elena-2016-blood-128-1408": {
+      "card_ids": [
+        "elena-2016-blood-128-1408-C0001",
+        "elena-2016-blood-128-1408-C0002",
+        "elena-2016-blood-128-1408-C0003"
+      ],
+      "cards": 3,
+      "census_entries": 23,
+      "citation_display": "Elena C, Gallì A, Such E, Meggendorfer M, Germing U, Rizzo E, et al. Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia. Blood. 2016;128(10):1408-1417.",
+      "diseases": [
+        "CMML"
+      ],
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "NRAS",
+        "RUNX1",
+        "SETBP1"
+      ],
+      "publication_key": "elena-2016-blood-128-1408",
+      "status": "completed"
+    },
     "khoury-2022-leukemia-36-1703": {
       "card_ids": [
         "khoury-2022-leukemia-36-1703-C0001",
@@ -2992,6 +3421,59 @@
         "ZRSR2"
       ],
       "publication_key": "khoury-2022-leukemia-36-1703",
+      "status": "completed"
+    },
+    "tefferi-2018-journal-of-clinical-oncology-36-1769": {
+      "card_ids": [
+        "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+        "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
+      ],
+      "cards": 2,
+      "census_entries": 7,
+      "citation_display": "Tefferi A, Guglielmelli P, Lasho TL, Gangat N, Ketterling RP, Pardanani A, et al. MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis. Journal of Clinical Oncology. 2018;36(17):1769-1770.",
+      "diseases": [
+        "PMF"
+      ],
+      "genes": [
+        "ASXL1",
+        "CALR",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "status": "completed"
+    },
+    "weeks-2023-nejm-evidence-2-na": {
+      "card_ids": [
+        "weeks-2023-nejm-evidence-2-na-C0001",
+        "weeks-2023-nejm-evidence-2-na-C0002",
+        "weeks-2023-nejm-evidence-2-na-C0003",
+        "weeks-2023-nejm-evidence-2-na-C0004"
+      ],
+      "cards": 4,
+      "census_entries": 20,
+      "citation_display": "Weeks LD, Niroula A, Neuberg D, Wong W, Lindsley RC, Luskin MR, et al. Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis. NEJM Evidence. 2023;2(5).",
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "genes": [
+        "DNMT3A",
+        "FLT3",
+        "IDH1",
+        "IDH2",
+        "JAK2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "TP53",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "publication_key": "weeks-2023-nejm-evidence-2-na",
       "status": "completed"
     }
   },

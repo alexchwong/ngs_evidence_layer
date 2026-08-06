@@ -1,13 +1,230 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 102,
-    "census_entries": 443,
-    "completed_papers": 6,
+    "cards": 118,
+    "census_entries": 495,
+    "completed_papers": 10,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-06T05:00:09.132150+00:00",
+  "generated_at": "2026-08-06T13:26:56.079801+00:00",
   "publications": [
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SRSF2",
+              "SF3B1",
+              "ZRSR2",
+              "IDH1",
+              "IDH2",
+              "FLT3",
+              "RUNX1",
+              "JAK2"
+            ],
+            "interpretation": "In U.K. Biobank participants with CHIP/CCUS, mutations in SRSF2, SF3B1, ZRSR2, IDH1, IDH2, FLT3, RUNX1, or JAK2 constituted the recursive-partitioning high-risk mutation feature, which independently predicted incident myeloid neoplasm after adjustment for sex, cancer history, and smoking history (hazard ratio 4.72; 95% CI, 3.54–6.29).",
+            "locator": "Figure 1 legend (Panels G–H) and Figure 1H",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "DNMT3A"
+            ],
+            "interpretation": "In U.K. Biobank participants with CHIP/CCUS, a single DNMT3A mutation was an independently lower-risk feature for incident myeloid neoplasm after adjustment for sex, cancer history, and smoking history (hazard ratio 0.578; 95% CI, 0.402–0.831).",
+            "locator": "Figure 1 legend (Panels G–H) and Figure 1H",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53 was empirically included in the CHRS high-risk mutation category, but its inclusion did not significantly alter model performance; risk among TP53-mutant CHIP/CCUS was considered heterogeneous and potentially influenced by chemotherapy selection pressure, clone size, allelic state, and clonal complexity.",
+            "locator": "Discussion — TP53 inclusion in the CHRS high-risk mutation category",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0004",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "U2AF1"
+            ],
+            "interpretation": "U2AF1 could not be evaluated reliably in this CHIP/CCUS analysis because an erroneous duplication in the hg38 reference genome precluded reliable variant calls; datasets with reliable U2AF1 calling are required before confirming that U2AF1-mutant clonal hematopoiesis is high risk.",
+            "locator": "Discussion — U2AF1 reference-genome calling limitation",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 20,
+        "citation": {
+          "authors": [
+            "Weeks LD",
+            "Niroula A",
+            "Neuberg D",
+            "Wong W",
+            "Lindsley RC",
+            "Luskin MR",
+            "Berliner N",
+            "Stone RM",
+            "DeAngelo DJ",
+            "Soiffer RJ",
+            "Uddin MM",
+            "Griffin G",
+            "Vlasschaert C",
+            "Gibson CJ",
+            "Jaiswal S",
+            "Bick AG",
+            "Malcovati L",
+            "Natarajan P",
+            "Ebert BL"
+          ],
+          "citation_incomplete": [
+            "pages"
+          ],
+          "display": "Weeks LD, Niroula A, Neuberg D, Wong W, Lindsley RC, Luskin MR, et al. Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis. NEJM Evidence. 2023;2(5).",
+          "doi": "10.1056/evidoa2200310",
+          "issue": "5",
+          "journal": "NEJM Evidence",
+          "pages": "",
+          "title": "Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis",
+          "volume": "2",
+          "year": 2023
+        },
+        "diseases_covered": [
+          "CHIP",
+          "CCUS"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "SRSF2",
+          "SF3B1",
+          "ZRSR2",
+          "IDH1",
+          "IDH2",
+          "FLT3",
+          "RUNX1",
+          "JAK2",
+          "DNMT3A",
+          "TP53",
+          "U2AF1"
+        ],
+        "publication_key": "weeks-2023-nejm-evidence-2-na",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0004",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 4,
+          "census_entries": 20,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "prognosis",
+              "gene": "ASXL1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "CBL"
+            },
+            {
+              "category": "prognosis",
+              "gene": "GATA2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "GNB1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "NF1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "NPM1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "PPM1D"
+            },
+            {
+              "category": "prognosis",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "prognosis",
+              "gene": "TET2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "U2AF1"
+            }
+          ],
+          "ratio": 0.2
+        },
+        "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+        "markdown_sha256": "00eaa5c497775f2d9530a0ff7e97131d0300ff8250afd7f894d4db73b77fb24e",
+        "source_filename": "Weeks_2023_CHRS_clonal_haematopoiesis_risk.pdf",
+        "source_sha256": "e858964daf12c3d8f13978f426d80b3ee6e453b604bb7e849f29503e60d4886c",
+        "warnings": []
+      }
+    },
     {
       "document": {
         "cards": [
@@ -582,6 +799,229 @@
       "document": {
         "cards": [
           {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CALR"
+            ],
+            "interpretation": "In essential thrombocythaemia, the cited prior analysis reported that CALR mutation did not further affect the IPSET-thrombosis model for predicting future vascular events.",
+            "locator": "Opening paragraph: prior IPSET-thrombosis model and CALR mutation",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Among conventionally assigned low-risk ET patients, annual thrombosis rates were 0.44% with neither JAK2 mutation nor cardiovascular risk factors, 1.05% with cardiovascular risk factors alone, 1.59% with JAK2 mutation alone, and 2.57% with both; adding cardiovascular risk factors to JAK2 mutation did not significantly increase risk (P=0.217).",
+            "locator": "Results subsection (i): conventionally assigned low-risk group",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For ET, the authors proposed that a revised thrombosis-risk scheme might include four categories: very low risk, defined by no thrombosis history, age ≤60 years and JAK2-unmutated status; low risk, defined by no thrombosis history, age ≤60 years and JAK2-mutated status; intermediate risk, defined by no thrombosis history, age >60 years and JAK2-unmutated status; and high risk, defined by thrombosis history or age >60 years with JAK2 mutation.",
+            "locator": "Discussion: proposed revised four-category risk stratification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally high-risk ET, JAK2 mutation, cardiovascular risk factors, or both provided limited additional thrombosis-risk enhancement when high-risk status was defined by thrombosis history, regardless of age (P=NS). In contrast, JAK2 mutation, with or without cardiovascular risk factors, might have affected thrombosis risk when high-risk status was defined by age alone (P=0.05).",
+            "locator": "Additional analysis and discussion: high-risk status defined by thrombosis history versus age alone",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Among conventionally assigned high-risk ET patients, annual thrombosis rates were 1.44% with neither JAK2 mutation nor cardiovascular risk factors, 1.64% with cardiovascular risk factors alone, 2.36% with JAK2 mutation alone, and 4.17% with both; the combined-risk group had significantly greater risk than patients with neither factor (P=0.011).",
+            "locator": "Results subsection (ii): conventionally assigned high-risk group",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0006",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Pending prospective controlled studies, the authors would not insist on aspirin for very-low-risk ET (no thrombosis history, age ≤60 years and JAK2-unmutated) without cardiovascular risk factors, but advised once-daily aspirin when cardiovascular risk factors are present.",
+            "locator": "Discussion and treatment recommendations: very-low-risk ET",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0007",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Pending prospective controlled studies, twice-daily aspirin may reasonably be considered, but is not mandated, for low-risk JAK2-mutated ET, particularly when cardiovascular risk factors are present.",
+            "locator": "Treatment recommendations paragraph: low-risk JAK2-mutated ET",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 2,
+        "citation": {
+          "authors": [
+            "Barbui T",
+            "Vannucchi AM",
+            "Buxhofer-Ausch V",
+            "De Stefano V",
+            "Betti S",
+            "Rambaldi A",
+            "Rumi E",
+            "Ruggeri M",
+            "Rodeghiero F",
+            "Randi ML",
+            "Bertozzi I",
+            "Gisslinger H",
+            "Finazzi G",
+            "Carobbio A",
+            "Thiele J",
+            "Passamonti F",
+            "Falcone C",
+            "Tefferi A"
+          ],
+          "citation_incomplete": [],
+          "display": "Barbui T, Vannucchi AM, Buxhofer-Ausch V, De Stefano V, Betti S, Rambaldi A, et al. Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia. Blood Cancer Journal. 2015;5(11):e369-e369.",
+          "doi": "10.1038/bcj.2015.94",
+          "issue": "11",
+          "journal": "Blood Cancer Journal",
+          "pages": "e369-e369",
+          "title": "Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia",
+          "volume": "5",
+          "year": 2015
+        },
+        "diseases_covered": [
+          "ET"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "CALR",
+          "JAK2"
+        ],
+        "publication_key": "barbui-2015-blood-cancer-journal-5-e369",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0007",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 7,
+          "census_entries": 2,
+          "gene_category_pairs_with_no_card": [],
+          "ratio": 3.5
+        },
+        "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+        "markdown_sha256": "3ac9bfdc5626dcf6a1afdb04799d87354ca2e3560c46d18a84fa4404c23be23e",
+        "source_filename": "Barbui_2015_revised_IPSET_thrombosis_ET.pdf",
+        "source_sha256": "3dbdecfbb3be1294c8ae6098adfef4182d63697f6073dbaf8ac82f3bab6779d0",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
             "card_id": "d-hner-2024-blood-144-2169-C0004",
             "category": "prognosis",
             "disease_ancestors": [],
@@ -968,6 +1408,125 @@
         "source_filename": "Dohner_2024_ELN_less_intensive_AML_risk.pdf",
         "source_sha256": "eaee35628b4ba6676bae70d7ff283989e77610b213f5d41681f03b8d6c0befad",
         "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1",
+              "SRSF2",
+              "EZH2",
+              "IDH1",
+              "IDH2",
+              "U2AF1"
+            ],
+            "interpretation": "For patients aged 70 years or younger with primary myelofibrosis, MIPSS70+ version 2.0 treated ASXL1, SRSF2, EZH2, IDH1, IDH2, and U2AF1 Q157 as high-molecular-risk mutations. In multivariable analysis, one HMR mutation had HR 1.8 (95% CI, 1.3 to 2.5) and was assigned 2 points, whereas two or more HMR mutations had HR 2.6 (95% CI, 1.6 to 4.0) and were assigned 3 points.",
+            "locator": "Main text, opening paragraph and multivariable analysis and score construction paragraph",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "CALR"
+            ],
+            "interpretation": "For patients aged 70 years or younger with primary myelofibrosis, CALR type 1/like was the favorable mutation variable in MIPSS70/MIPSS70+. In the revised multivariable model, absence of a type 1/like CALR mutation had HR 2.1 (95% CI, 1.5 to 3.0) and was assigned 2 points in MIPSS70+ version 2.0.",
+            "locator": "Main text, opening paragraph and multivariable analysis and score construction paragraph",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 7,
+        "citation": {
+          "authors": [
+            "Tefferi A",
+            "Guglielmelli P",
+            "Lasho TL",
+            "Gangat N",
+            "Ketterling RP",
+            "Pardanani A",
+            "Vannucchi AM"
+          ],
+          "citation_incomplete": [],
+          "display": "Tefferi A, Guglielmelli P, Lasho TL, Gangat N, Ketterling RP, Pardanani A, et al. MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis. Journal of Clinical Oncology. 2018;36(17):1769-1770.",
+          "doi": "10.1200/jco.2018.78.9867",
+          "issue": "17",
+          "journal": "Journal of Clinical Oncology",
+          "pages": "1769-1770",
+          "title": "MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis",
+          "volume": "36",
+          "year": 2018
+        },
+        "diseases_covered": [
+          "PMF"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "ASXL1",
+          "SRSF2",
+          "EZH2",
+          "IDH1",
+          "IDH2",
+          "U2AF1",
+          "CALR"
+        ],
+        "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 2,
+          "census_entries": 7,
+          "gene_category_pairs_with_no_card": [],
+          "ratio": 0.29
+        },
+        "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
+        "markdown_sha256": "f95c1ffc40edfe32c34e9edb1642f1d5b36b9a043bbba3d4d5cfcd3407a25167",
+        "source_filename": "Tefferi_2018_MIPSS70plus_v2_myelofibrosis.pdf",
+        "source_sha256": "eabb8c620328f13f1430358c0678469982b27d633f0412968a5ba02a10b4bbf9",
+        "warnings": [
+          "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002: evidence is identical to tefferi-2018-journal-of-clinical-oncology-36-1769-C0001; review independent utility"
+        ]
       }
     },
     {
@@ -3663,6 +4222,266 @@
           "arber-2022-blood-140-1200-C0014: evidence is identical to arber-2022-blood-140-1200-C0013; review independent utility",
           "arber-2022-blood-140-1200-C0015: evidence is identical to arber-2022-blood-140-1200-C0014; review independent utility"
         ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "elena-2016-blood-128-1408-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1",
+              "NRAS",
+              "RUNX1",
+              "SETBP1"
+            ],
+            "interpretation": "In CMML, RUNX1, NRAS, SETBP1, and ASXL1 mutations each retained independent adverse prognostic value for overall survival after accounting for CPSS cytogenetic risk; these variables formed a CMML-specific genetic score that separated four groups for overall survival and AML evolution.",
+            "locator": "Results—Prognostic value of genetic lesions in CMML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1",
+              "NRAS",
+              "RUNX1",
+              "SETBP1"
+            ],
+            "interpretation": "CPSS-Mol combines the ASXL1/NRAS/RUNX1/SETBP1-plus-cytogenetic genetic score with RBC transfusion dependency, WBC count, and marrow blast percentage; sex-specific haemoglobin thresholds can substitute for transfusion dependency. The resulting four-group model stratified overall survival and leukemic evolution and was confirmed in an independent CMML validation cohort.",
+            "locator": "Results—Prognostic value of genetic lesions in CMML; Development and validation of CPSS-Mol",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "EZH2"
+            ],
+            "interpretation": "In CMML, EZH2 mutation was associated with worse overall survival in univariable analysis (HR 2.07; P=.023), but EZH2 was not among the mutations that retained independent prognostic value in the subsequent multivariable genetic model.",
+            "locator": "Results—Prognostic value of genetic lesions in CMML",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 23,
+        "citation": {
+          "authors": [
+            "Elena C",
+            "Gallì A",
+            "Such E",
+            "Meggendorfer M",
+            "Germing U",
+            "Rizzo E",
+            "Cervera J",
+            "Molteni E",
+            "Fasan A",
+            "Schuler E",
+            "Ambaglio I",
+            "Lopez-Pavia M",
+            "Zibellini S",
+            "Kuendgen A",
+            "Travaglino E",
+            "Sancho-Tello R",
+            "Catricalà S",
+            "Vicente AI",
+            "Haferlach T",
+            "Haferlach C",
+            "Sanz GF",
+            "Malcovati L",
+            "Cazzola M"
+          ],
+          "citation_incomplete": [],
+          "display": "Elena C, Gallì A, Such E, Meggendorfer M, Germing U, Rizzo E, et al. Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia. Blood. 2016;128(10):1408-1417.",
+          "doi": "10.1182/blood-2016-05-714030",
+          "issue": "10",
+          "journal": "Blood",
+          "pages": "1408-1417",
+          "title": "Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia",
+          "volume": "128",
+          "year": 2016
+        },
+        "diseases_covered": [
+          "CMML"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "ASXL1",
+          "EZH2",
+          "NRAS",
+          "RUNX1",
+          "SETBP1"
+        ],
+        "publication_key": "elena-2016-blood-128-1408",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "elena-2016-blood-128-1408-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0003",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 3,
+          "census_entries": 23,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "diagnosis",
+              "gene": "ASXL1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CBL"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CSF3R"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CUX1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "DNMT3A"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "EP300"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ETNK1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "EZH2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "IDH1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "IDH2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "JAK2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KIT"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NF1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SETBP1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SF3B1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "TET2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TET2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "U2AF1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ZRSR2"
+            }
+          ],
+          "ratio": 0.13
+        },
+        "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
+        "markdown_sha256": "668c0f43525447f49cb1d3a21b2d5957e64fea59b05a58544b2ccdab9af2b5ce",
+        "source_filename": "Elena_2016_CPSS-Mol_CMML.pdf",
+        "source_sha256": "cc9867d018ca1fcb18614254186e29a2e0cfb79ecd0d372fab3f16af42d5051c",
+        "warnings": []
       }
     },
     {
