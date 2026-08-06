@@ -26,13 +26,11 @@ def confirm(args):
     missing = [str(path) for path in paths.values() if not path.is_file()]
     if missing:
         raise ValueError("required working files missing:\n" + "\n".join(missing))
-
     metadata = validation.read_json(paths["metadata"], "metadata")
     final = validation.read_json(paths["final"], "final package")
     errors = []
     if metadata.get("publication_key") != args.publication_key:
         errors.append("metadata publication_key does not match --key")
-
     approved_round = (final.get("audit") or {}).get("approved_round")
     provisional_path = (
         working / f"paper.provisional-{approved_round:03d}.json"
@@ -55,16 +53,42 @@ def confirm(args):
     if errors:
         raise ValueError("\n".join(errors))
 
-    validation_errors, warnings, report = final_validation.validate_final_files(
-        metadata_path=paths["metadata"],
-        census_path=paths["census"],
-        source_path=paths["source"],
-        provisional_path=provisional_path,
-        review_path=review_path,
-        final_path=paths["final"],
+    phase_calls = (
+        (1, dict(metadata_path=paths["metadata"], census_path=paths["census"])),
+        (
+            2,
+            dict(
+                metadata_path=paths["metadata"],
+                census_path=paths["census"],
+                source_path=paths["source"],
+                provisional_path=provisional_path,
+            ),
+        ),
+        (3, dict(provisional_path=provisional_path, review_path=review_path)),
+        (
+            4,
+            dict(
+                metadata_path=paths["metadata"],
+                census_path=paths["census"],
+                source_path=paths["source"],
+                provisional_path=provisional_path,
+                review_path=review_path,
+                final_path=paths["final"],
+            ),
+        ),
     )
-    if validation_errors:
-        raise ValueError("\n".join(validation_errors))
+    warnings = []
+    report = None
+    for phase, phase_paths in phase_calls:
+        phase_errors, phase_warnings, phase_report = final_validation.validate_phase_files(
+            phase=phase, **phase_paths
+        )
+        errors.extend(f"phase {phase}: {error}" for error in phase_errors)
+        warnings.extend(f"phase {phase}: {warning}" for warning in phase_warnings)
+        if phase == 4:
+            report = phase_report
+    if errors:
+        raise ValueError("\n".join(errors))
 
     final_destination = args.accept_dir / f"{args.publication_key}.final.json"
     census_destination = args.accept_dir / f"{args.publication_key}.census.json"
@@ -76,8 +100,7 @@ def confirm(args):
     ]
     if collisions:
         raise ValueError(
-            "destination already exists:\n"
-            + "\n".join(str(path) for path in collisions)
+            "destination already exists:\n" + "\n".join(str(path) for path in collisions)
         )
     args.accept_dir.mkdir(parents=True, exist_ok=True)
     args.archive_dir.mkdir(parents=True, exist_ok=True)

@@ -36,9 +36,7 @@ def publication_type_rubric(phase):
     vocabulary = json.loads(read(ROOT / "schema" / "publication_type_vocabulary.json"))
     lines = ["Allowed values and operational definitions:"]
     for entry in vocabulary["types"]:
-        lines.append(
-            f'- `{entry["value"]}`: {entry["definition"]} {entry["excludes"]}'
-        )
+        lines.append(f'- `{entry["value"]}`: {entry["definition"]} {entry["excludes"]}')
     lines.append("\nApply these precedence rules in order:")
     lines.extend(
         f"{number}. {rule}"
@@ -52,7 +50,9 @@ def publication_type_rubric(phase):
 
 def render(phase):
     template = read(ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md")
-    replacements = {}
+    replacements = {
+        "{{PHASE_VALIDATION_SCRIPT}}": read(ROOT / "scripts" / "final_validation.py")
+    }
     if phase in (1, 3):
         replacements["{{PUBLICATION_TYPE_RUBRIC}}"] = publication_type_rubric(phase)
     if phase in (1, 2, 4):
@@ -62,16 +62,16 @@ def render(phase):
     if phase in (2, 4):
         replacements["{{DISEASE_VOCABULARY}}"] = read(ROOT / "schema" / "disease_vocabulary.json")
         replacements["{{PACKAGE_SCHEMA}}"] = read(ROOT / "schema" / "ingestion_package_schema.json")
-    if phase == 4:
-        replacements["{{FINAL_VALIDATION_SCRIPT}}"] = read(
-            ROOT / "scripts" / "final_validation.py"
-        )
     for marker, content in replacements.items():
         template = template.replace(marker, content)
-    unresolved = sorted(set(part.split("}}", 1)[0] + "}}" for part in template.split("{{")[1:]))
+    unresolved = sorted(
+        set(part.split("}}", 1)[0] + "}}" for part in template.split("{{")[1:])
+    )
     if unresolved:
         raise ValueError("unresolved prompt markers: " + ", ".join(unresolved))
-    if phase == 3 and any(term in template for term in ("agreed_reporting_rules", '"diseases": [', '"$schema"')):
+    if phase == 3 and any(
+        term in template for term in ("agreed_reporting_rules", '"diseases": [', '"$schema"')
+    ):
         raise ValueError("Phase 3 prompt contains forbidden authoring context")
     return template + "\n"
 

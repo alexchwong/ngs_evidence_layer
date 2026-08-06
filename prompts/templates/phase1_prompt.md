@@ -50,6 +50,27 @@ is absent. Confirm the publication type and basis are supported by the paper. Re
 and repeat, at most three passes. If defects remain, list each one
 under `validation_unresolved`; otherwise return an empty list.
 
+## Deterministic exit validation
+
+The validator below is the canonical program used by repository confirmation. It is
+included verbatim. Do not search for the repository or substitute another validator.
+
+<!-- BEGIN VERBATIM scripts/final_validation.py -->
+```python
+{{PHASE_VALIDATION_SCRIPT}}
+```
+<!-- END VERBATIM scripts/final_validation.py -->
+
+After writing `paper.census.json`, save the embedded script as
+`final_validation.py` and run:
+```bash
+python final_validation.py --phase 1 \
+  --metadata metadata.json \
+  --census paper.census.json
+```
+A non-zero exit means the Phase 1 product is invalid. Repair it and rerun until
+successful. Do not edit the output after the successful run.
+
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

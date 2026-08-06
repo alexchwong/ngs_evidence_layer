@@ -209,6 +209,31 @@ A passing card result contains only `card_id` and `verdict`. Failure details are
 present only for failed cards. A `quote_error` failure adds `quote_restatement` to
 its `details` object.
 
+## Deterministic exit validation
+
+All required inputs and validator code are provided in this chat. Do not search for,
+access, clone, or inspect any repository or external source.
+
+Treat the code below as the complete executable `scripts/final_validation.py` for
+this session. Write it verbatim to `final_validation.py` in the local
+execution environment. Do not modify, summarize, reinterpret, or replace any check.
+
+<!-- BEGIN VERBATIM scripts/final_validation.py -->
+```python
+{{PHASE_VALIDATION_SCRIPT}}
+```
+<!-- END VERBATIM scripts/final_validation.py -->
+
+After writing `paper.review-001.json`, save the embedded script as
+`final_validation.py` and run:
+```bash
+python final_validation.py --phase 3 \
+  --provisional paper.provisional-001.json \
+  --review paper.review-001.json
+```
+A non-zero exit means the Phase 3 product is invalid. Repair it and rerun until
+successful. Do not edit the output after the successful run.
+
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

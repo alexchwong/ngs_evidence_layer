@@ -137,26 +137,25 @@ decision fields to the audit; adjudication is represented by the final card cont
 ```json
 {{PACKAGE_SCHEMA}}
 ```
-## Deterministic final validation
+## Deterministic exit validation
 
 All required inputs and validator code are provided in this chat. Do not search for,
 access, clone, or inspect any repository or external source.
 
 Treat the code below as the complete executable `scripts/final_validation.py` for
-this session. Write it verbatim to `scripts/final_validation.py` in the local
+this session. Write it verbatim to `final_validation.py` in the local
 execution environment. Do not modify, summarize, reinterpret, or replace any check.
 
 <!-- BEGIN VERBATIM scripts/final_validation.py -->
 ```python
-{{FINAL_VALIDATION_SCRIPT}}
+{{PHASE_VALIDATION_SCRIPT}}
 ```
 <!-- END VERBATIM scripts/final_validation.py -->
 
-After writing `paper.final.json`, run the embedded local copy from the directory
-containing the supplied input files:
-
+After writing `paper.final.json`, save the embedded script as `final_validation.py`
+and run:
 ```bash
-python scripts/final_validation.py \
+python final_validation.py --phase 4 \
   --metadata metadata.json \
   --census paper.census.json \
   --source paper.md \
@@ -164,10 +163,9 @@ python scripts/final_validation.py \
   --review paper.review-001.json \
   --final paper.final.json
 ```
+A non-zero exit means the Phase 4 product is invalid. Repair `paper.final.json` and
+rerun the validator until successful. Do not edit `paper.final.json` after the successful run.
 
-A non-zero exit status means the final package is invalid. Repair `paper.final.json`
-and rerun the validator until it exits successfully. Do not edit `paper.final.json`
-after the successful run.
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:
