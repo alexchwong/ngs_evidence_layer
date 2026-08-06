@@ -139,8 +139,12 @@ decision fields to the audit; adjudication is represented by the final card cont
 ```
 ## Deterministic final validation
 
-The validator below is the canonical repository program used by `scripts/confirm.py`.
-It is included verbatim. Do not modify, summarize, reinterpret, or replace any check.
+All required inputs and validator code are provided in this chat. Do not search for,
+access, clone, or inspect any repository or external source.
+
+Treat the code below as the complete executable `scripts/final_validation.py` for
+this session. Write it verbatim to `scripts/final_validation.py` in the local
+execution environment. Do not modify, summarize, reinterpret, or replace any check.
 
 <!-- BEGIN VERBATIM scripts/final_validation.py -->
 ```python
@@ -148,7 +152,8 @@ It is included verbatim. Do not modify, summarize, reinterpret, or replace any c
 ```
 <!-- END VERBATIM scripts/final_validation.py -->
 
-After writing `paper.final.json`, run the repository copy from the repository root:
+After writing `paper.final.json`, run the embedded local copy from the directory
+containing the supplied input files:
 
 ```bash
 python scripts/final_validation.py \
