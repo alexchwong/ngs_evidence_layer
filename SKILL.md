@@ -1,34 +1,73 @@
 ---
 name: ngs-evidence-layer
-description: Produces a deterministic, citable evidence block for a myeloid NGS case through a deny-by-default, corpus-bounded workflow. Only Step 1 (case structuring) and Step 3 (diagnostic adjudication) are model decisions; Steps 2, 4, and 5 are deterministic scripts. The sole final artifact is block.md; downstream report synthesis is outside this skill.
+description: Produces either a deterministic, citable evidence block for a myeloid NGS case or, when explicitly requested, an NGS report grounded exclusively in an existing evidence block. Evidence-block mode uses model decisions only for case structuring and diagnostic adjudication. Report mode reads only the supplied case, block.md, and agreed reporting rules.
 ---
 
-# NGS evidence layer evidence block
+# NGS evidence layer
 
 ## Purpose
 
-Produce a deterministic, citable evidence block for clinical haematologists from
-one supplied case and the released evidence corpus. Literature-derived assertions
-must come from corpus evidence. Patient-specific assertions must come from the
-supplied case.
+Perform exactly one user-selected task:
+
+1. **Evidence-block mode** — produce a deterministic, citable evidence block from one supplied case and the released evidence corpus.
+2. **NGS-report mode** — produce an NGS report from the supplied case and an existing `block.md`.
+
+Do not infer the mode from available files. Determine it from the user's explicit request.
+
+Recognise requests to generate, retrieve, build, or render the evidence block as `evidence-block` mode.
+
+Recognise requests to write, draft, or generate the NGS report as `ngs-report` mode.
+
+If the user explicitly requests both, complete evidence-block mode first, then run Step 6 in a fresh bounded model session.
+
+In evidence-block mode, literature-derived assertions must come from corpus evidence. Patient-specific assertions must come from the supplied case.
+
+In NGS-report mode:
+
+- patient-specific assertions must come from the supplied case;
+- all literature-derived, disease-related, prognostic, therapeutic, biomarker, and germline interpretation must come from `block.md`;
+- `block.md` is the exclusive evidentiary source of truth;
+- `rules/agreed_reporting_rules` controls report selection, structure, wording, and handling of evidence but is not an additional clinical evidence source.
+
+The skill does not create, edit, audit, or incorporate evidence cards.
+
+## Workflow modes
+
+### Evidence-block mode
+
+Evidence-block mode has five steps.
 
 Only two steps require model interpretation:
 
-1. **Step 1** — read the supplied case prose and create `case-input.json`.
-2. **Step 3** — read `prompts/diagnostic_adjudication_prompt.md` and
-   `<work-dir>/step2.json`, then create `<work-dir>/adjudication.json`.
+1. Step 1 — read the supplied case and create `case-input.json`.
+2. Step 3 — read `prompts/diagnostic_adjudication_prompt.md` and `<work-dir>/step2.json`, then create `<work-dir>/adjudication.json`.
 
-All other work is performed by deterministic scripts. The terminal artifact is
-`<work-dir>/block.md`. Production of a downstream interpretative report is out of
-scope for this skill.
+Steps 2, 4, and 5 are deterministic. The terminal artifact is `<work-dir>/block.md`.
 
-The corpus is an immutable input. This skill does not create, edit, audit, or
-incorporate evidence cards.
+### NGS-report mode
+
+NGS-report mode consists only of optional Step 6.
+
+Step 6 must run in a fresh bounded model session. It reads only:
+
+1. the original case document supplied by the user;
+2. `<work-dir>/block.md`;
+3. `rules/agreed_reporting_rules`.
+
+Its terminal artifact is `<work-dir>/report.md`.
 
 ## Mandatory file-access policy
 
 File access is **deny by default**. After reading this skill, at each step read only
 the files listed under that step's **Model-readable inputs**.
+
+Select the operating mode before reading any case-specific input.
+
+- In `evidence-block` mode, follow Steps 1–5 and their file-access boundaries.
+- In `ngs-report` mode, skip Steps 1–5 and follow only Step 6.
+- When both outputs are explicitly requested, complete Steps 1–5, then discard the earlier model context and run Step 6 as a fresh bounded model session.
+
+Do not carry information from Steps 1 or 3 into Step 6. Step 6 receives the original case document again as an explicitly allowed input.
 
 Do not:
 
@@ -52,8 +91,7 @@ command writes it. If a required input is missing, unreadable, malformed, or
 inconsistent with its contract, stop and report that error. Do not browse for a
 replacement or infer the missing content.
 
-Use a fresh bounded model session for Step 3. Each session receives exactly the
-inputs named by its step.
+Use a fresh bounded model session for Step 3 and for Step 6. Each session receives exactly the inputs named by its step.
 
 ## Working directory
 
@@ -62,6 +100,8 @@ Before Step 1, select the working directory:
 1. If the user supplies a directory, use that directory.
 2. Otherwise, create a unique directory using the host platform's secure
    system-temporary-directory facility.
+
+For report-only mode, the user must supply or identify a working directory containing `block.md`. Do not search for one.
 
 Resolve the selected directory to an absolute path. Create it if necessary. Fail if
 the path exists but is not a directory, or if it is unreadable or unwritable. Never
@@ -76,13 +116,14 @@ Working directory: /absolute/path/to/directory
 Retain the directory after success and after failure. Do not perform automatic
 cleanup.
 
-Use the selected directory for every case-specific file:
+Use the selected directory for case-specific outputs:
 
 - `<work-dir>/case-input.json`
 - `<work-dir>/step2.json`
 - `<work-dir>/adjudication.json`
 - `<work-dir>/bundle.json`
 - `<work-dir>/block.md`
+- `<work-dir>/report.md`, only when Step 6 is requested
 
 ## Missing and unreported results
 
@@ -225,8 +266,6 @@ Write exactly one file, `<work-dir>/adjudication.json`. It must contain JSON onl
 exactly the output shape required by `prompts/diagnostic_adjudication_prompt.md`. Do
 not add prose or extra fields.
 
-No model action occurs after this file is written.
-
 ## Steps 4 and 5 — Retrieve the full evidence bundle and render the evidence block
 
 ### Model-readable inputs
@@ -270,13 +309,90 @@ rewrite either file.
 The terminal output is `<work-dir>/block.md`, exactly as written by the command.
 `bundle.json` remains an internal deterministic intermediate.
 
+## Step 6 — Write the NGS report
+
+Run this step only when the user explicitly requests an NGS report.
+
+Use a fresh bounded model session.
+
+### Model-readable inputs
+
+Read exactly:
+
+1. the original case document supplied by the user;
+2. `<work-dir>/block.md`;
+3. `rules/agreed_reporting_rules`.
+
+Read nothing else.
+
+Do not read `case-input.json`, `step2.json`, `adjudication.json`, `bundle.json`, the corpus, index, disease vocabulary, prompts, scripts, schemas, source publications, examples, tests, documentation, live sources, or external references.
+
+If any required input is missing, unreadable, or malformed, stop and report that error. Do not reconstruct `block.md`, rerun retrieval, browse for evidence, or substitute model knowledge.
+
+### Source hierarchy
+
+Apply the following boundaries:
+
+- Use the supplied case only for patient identity, specimen information, clinical context, test results, variants, measurements, and other patient-specific facts.
+- Use `block.md` as the exclusive source for interpretation of diagnosis, classification, prognosis, treatment, biomarkers, germline implications, and literature-derived claims.
+- Use `rules/agreed_reporting_rules` only to decide what should be reported and how the report should be structured and worded.
+- A reporting rule does not establish a patient fact or clinical assertion.
+- Never add a clinical assertion, association, threshold, recommendation, drug, trial, classification rule, or citation from model knowledge.
+- Do not strengthen, reconcile, or resolve statements beyond what `block.md` supports.
+- Preserve uncertainty, disagreement, limitations, and qualifiers stated in `block.md`.
+- Do not report an interpretation merely because it appears in the case document unless it is independently supported by `block.md`.
+- Do not copy evidence-layer workflow metadata into the clinical report unless the reporting rules explicitly require it.
+
+When the case and `block.md` appear inconsistent, do not silently repair the inconsistency. Represent only the interpretation supported by `block.md` and state the relevant limitation when required by the reporting rules.
+
+### Required action
+
+Write a complete NGS report that follows `rules/agreed_reporting_rules`.
+
+The report must:
+
+- describe only the supplied patient and specimen;
+- include only findings present in the supplied case;
+- base every interpretative statement exclusively on `block.md`;
+- distinguish patient findings from literature-derived interpretation;
+- retain clinically material qualifications and uncertainty;
+- include only citations or references available in `block.md`;
+- omit unsupported sections or state that no supported interpretation is available, as directed by the reporting rules.
+
+### Output
+
+Write exactly one file:
+
+`<work-dir>/report.md`
+
+The file must contain the report only. Do not include process commentary, source-audit notes, confidence commentary, alternative drafts, or a summary outside the report.
+
 ## Final delivery contract
+
+Deliver only the artifact requested by the user.
+
+### Evidence-block mode
 
 After `run_case.py full` succeeds:
 
-- return `<work-dir>/block.md` as the sole artifact;
-- do not independently read and regenerate it;
-- do not append a summary, clinical interpretation, report, evidence appendix, or
-  commentary to the artifact;
-- normal UI text may identify the delivered filename, but the artifact content must be
-  exactly the renderer output.
+- return `<work-dir>/block.md`;
+- do not independently regenerate, summarize, or modify it;
+- normal UI text may identify the delivered filename.
+
+### NGS-report mode
+
+After Step 6 succeeds:
+
+- return `<work-dir>/report.md`;
+- do not also return `block.md` unless the user explicitly requested both;
+- do not append commentary or an additional interpretation outside the report;
+- normal UI text may identify the delivered filename.
+
+### Both outputs explicitly requested
+
+Return:
+
+1. `<work-dir>/block.md`;
+2. `<work-dir>/report.md`.
+
+Do not combine them into one file.

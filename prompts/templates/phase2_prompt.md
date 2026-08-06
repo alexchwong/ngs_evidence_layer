@@ -39,14 +39,13 @@ Never manufacture category coverage merely to match the census.
 
 Work evidence-first rather than gene-first:
 
-1. find the source sentence that states the role claim;
-2. first attempt to capture one contiguous, substantive passage containing every
-   sentence needed to support and delimit that claim;
-3. when one passage is insufficient, capture only the additional governing heading,
-   remote qualifier, or table components required to express the relation;
+1. find the source passage that states the role claim;
+2. use one contiguous passage when it contains all material support and qualifiers;
+3. when required support is non-contiguous, use `composite_text` to capture the
+   additional substantive passages or governing context needed for the same assertion;
 4. freeze the complete candidate evidence bundle before drafting the interpretation;
-5. identify only the role, population, and disease context explicitly supported by
-   that bundle;
+5. identify only the role, population, disease, effect, and qualifiers explicitly
+   supported by that bundle;
 6. create at most one card for each independently useful, directly supported role;
 7. include only genes participating in that exact assertion.
 
@@ -82,17 +81,39 @@ list block. Expand that fragment while keeping it contiguous:
 
 Treat `however`, `whereas`, `except`, `unless`, `only`, `independent of`, thresholds,
 exclusions, unresolved pronouns, and a following sentence that explains clinical
-meaning as boundary warnings, not automatic sentence breaks. If all necessary text
-cannot be captured as one coherent contiguous passage, use `composite_text` only
-when a governing heading or remote source qualifier supplies the missing context.
-Never join non-contiguous excerpts with ellipses or present them as one quote.
+meaning as boundary warnings, not automatic sentence breaks. If one coherent
+contiguous passage is insufficient, use `composite_text`. Never join non-contiguous
+excerpts with ellipses or present them as one quote.
 
-For `composite_text`, use two to six independently verbatim fragments. Include one
-`claim` fragment and only necessary `scope_heading`, `legend`, or `footnote`
-fragments. A `scope_heading` is valid only when the claim occurs within that heading's
-section and no intervening heading changes scope. A heading is context, never a
-stand-alone claim. Do not combine fragments from separate populations, analyses, or
-sections merely because they mention the same gene.
+For `composite_text`, use two to six independently verbatim fragments:
+
+- use one or more `claim` fragments for substantive prose that jointly supports one
+  source assertion;
+- add `scope_heading`, `legend`, or `footnote` fragments only when they provide
+  necessary governing context;
+- require every fragment to contribute material support recorded in `support_map`;
+- require compatible disease, population, comparator, treatment, analysis, and
+  classifier scope across all fragments;
+- allow different fragments to supply the gene, disease, population, effect, role, or
+  a material qualifier;
+- do not combine separate findings, populations, analyses, classifier branches, or
+  independently useful conclusions;
+- do not combine passages merely because they mention the same gene.
+
+Use `composite_text` only when all of the following are true:
+
+1. no single coherent passage contains the minimal sufficient evidence;
+2. every fragment is required to support or delimit the interpretation;
+3. the fragments can be read together without changing population, analysis, disease
+   scope, or source conclusion;
+4. removing any fragment would leave a material assertion unsupported or materially
+   underqualified.
+
+Otherwise use `contiguous_text`, narrow the interpretation, split the card, or omit it.
+
+A `scope_heading` is valid only when the substantive passage occurs within that
+heading's section and no intervening heading changes scope. A heading provides
+context; it does not establish a role claim by itself.
 
 For a table whose governing labels are not reasonably captured with its value, use
 `table_relation`. Quote each required `column_header`, `row_header`, `cell`, `legend`,
@@ -221,12 +242,43 @@ remaining failures. Do not return internal verdicts and do not claim independent
 audit.
 
 For every `claim` fragment, inspect the sentence immediately before and after it in
-its source passage. If either sentence materially
-changes the scope, certainty, direction, eligibility, exception, analysis, or
-clinical meaning of the claim, the evidence is incomplete: expand the contiguous
-fragment or bundle, or narrow, split, or delete the card. Once the evidence passes
-this check, do not shorten it merely for concision.
+its source passage. If either sentence materially changes scope, certainty,
+direction, eligibility, exception, analysis, or clinical meaning, expand the fragment
+or bundle, or narrow, split, or delete the card.
 
+For every `composite_text` bundle, also verify that:
+
+1. every `claim` fragment contributes to the same source assertion;
+2. no intervening text changes the population, analysis, comparator, disease scope,
+   or conclusion;
+3. `support_map` identifies the material contribution of each fragment; and
+4. the interpretation does not imply a relationship the source does not state.
+
+Once the evidence passes these checks, do not shorten it merely for concision.
+
+## Deterministic exit validation
+
+All required inputs and the complete validation bundle are provided in this chat.
+Do not search for, access, clone, or inspect any repository or external source.
+
+The bundle below contains the canonical repository validator and every
+repository-owned dependency it requires. Recreate every file verbatim under
+`validation_bundle/`, preserving all displayed relative paths. Do not modify,
+summarize, reinterpret, combine, or replace any file or check.
+
+{{PHASE_VALIDATION_BUNDLE}}
+
+After writing `paper.provisional-001.json`, recreate the bundle and run:
+```bash
+python validation_bundle/scripts/final_validation.py --phase 2 \
+  --metadata metadata.json \
+  --census paper.census.json \
+  --source paper.md \
+  --provisional paper.provisional-001.json
+```
+A non-zero exit means the Phase 2 product is invalid. Repair it and rerun until
+successful. Do not edit the output after the successful run. The census-critique
+branch has no JSON product validator; its branch and filename checks remain manual.
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

@@ -40,6 +40,57 @@ class PromptIntegrationTests(unittest.TestCase):
                 self.assertTrue(prompt.strip())
                 self.assertNotRegex(prompt, r"\{\{[^{}]+\}\}")
 
+    def test_phase2_allows_multi_claim_composite_text(self):
+        prompt = " ".join(BUILD_PROMPTS.render(2).split())
+        self.assertIn(
+            "use one or more `claim` fragments for substantive prose", prompt
+        )
+        self.assertIn(
+            "every `claim` fragment contributes to the same source assertion", prompt
+        )
+        self.assertNotIn(
+            "Include one `claim` fragment and only necessary", prompt
+        )
+
+    def test_phase3_audits_multi_claim_composites_without_auto_failure(self):
+        prompt = " ".join(BUILD_PROMPTS.render(3).split())
+        self.assertIn("Multiple `claim` fragments are valid.", prompt)
+        self.assertIn("**Single assertion:**", prompt)
+        self.assertIn("**Necessary composition:**", prompt)
+        self.assertIn(
+            "Do not use `evidence_relationship` solely because a valid bundle "
+            "contains multiple substantive `claim` fragments.",
+            prompt,
+        )
+
+    def test_phase4_embeds_canonical_final_validator_verbatim(self):
+        rendered = BUILD_PROMPTS.render(4)
+        start_marker = "<!-- BEGIN VERBATIM scripts/final_validation.py -->\n```python\n"
+        end_marker = "\n```\n<!-- END VERBATIM scripts/final_validation.py -->"
+        embedded = rendered.split(start_marker, 1)[1].split(end_marker, 1)[0]
+        expected = (ROOT / "scripts" / "final_validation.py").read_text(
+            encoding="utf-8"
+        ).rstrip()
+        self.assertEqual(embedded, expected)
+
+    def test_phase4_requires_successful_validation_as_final_action(self):
+        prompt = BUILD_PROMPTS.render(4)
+        self.assertIn(
+            "python validation_bundle/scripts/final_validation.py --phase 4",
+            prompt,
+        )
+        self.assertNotIn("python final_validation.py --phase 4", prompt)
+        self.assertNotIn("python scripts/final_validation.py", prompt)
+        self.assertIn(
+            "The final action before returning `paper.final.json` must be a "
+            "successful run",
+            " ".join(prompt.split()),
+        )
+        self.assertIn(
+            "Do not edit `paper.final.json` after the successful run.",
+            " ".join(prompt.split()),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

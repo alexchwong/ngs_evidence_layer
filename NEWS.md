@@ -1,5 +1,9 @@
 # NEWS
 
+## 0.1.4
+
+- Improved multi-part evidence gathering for phases 2 and 3
+
 ## 0.1.3
 
 - Corpus includes WHO5, ICC and IPSS-M paper

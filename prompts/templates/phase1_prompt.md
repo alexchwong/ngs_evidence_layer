@@ -50,6 +50,24 @@ is absent. Confirm the publication type and basis are supported by the paper. Re
 and repeat, at most three passes. If defects remain, list each one
 under `validation_unresolved`; otherwise return an empty list.
 
+## Deterministic exit validation
+
+The bundle below contains the canonical repository validator and every
+repository-owned dependency it requires. Recreate every file verbatim under
+`validation_bundle/`, preserving all displayed relative paths. Do not search for
+the repository, modify a bundled file, combine files, or substitute another
+validator.
+
+{{PHASE_VALIDATION_BUNDLE}}
+
+After writing `paper.census.json`, recreate the bundle and run:
+```bash
+python validation_bundle/scripts/final_validation.py --phase 1 \
+  --metadata metadata.json \
+  --census paper.census.json
+```
+A non-zero exit means the Phase 1 product is invalid. Repair it and rerun until
+successful. Do not edit the output after the successful run.
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

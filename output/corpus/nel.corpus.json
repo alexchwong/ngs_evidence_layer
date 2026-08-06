@@ -1,13 +1,1534 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 54,
-    "census_entries": 236,
-    "completed_papers": 3,
+    "cards": 118,
+    "census_entries": 495,
+    "completed_papers": 10,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-05T11:47:47.353761+00:00",
+  "generated_at": "2026-08-06T13:26:56.079801+00:00",
   "publications": [
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SRSF2",
+              "SF3B1",
+              "ZRSR2",
+              "IDH1",
+              "IDH2",
+              "FLT3",
+              "RUNX1",
+              "JAK2"
+            ],
+            "interpretation": "In U.K. Biobank participants with CHIP/CCUS, mutations in SRSF2, SF3B1, ZRSR2, IDH1, IDH2, FLT3, RUNX1, or JAK2 constituted the recursive-partitioning high-risk mutation feature, which independently predicted incident myeloid neoplasm after adjustment for sex, cancer history, and smoking history (hazard ratio 4.72; 95% CI, 3.54–6.29).",
+            "locator": "Figure 1 legend (Panels G–H) and Figure 1H",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "DNMT3A"
+            ],
+            "interpretation": "In U.K. Biobank participants with CHIP/CCUS, a single DNMT3A mutation was an independently lower-risk feature for incident myeloid neoplasm after adjustment for sex, cancer history, and smoking history (hazard ratio 0.578; 95% CI, 0.402–0.831).",
+            "locator": "Figure 1 legend (Panels G–H) and Figure 1H",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53 was empirically included in the CHRS high-risk mutation category, but its inclusion did not significantly alter model performance; risk among TP53-mutant CHIP/CCUS was considered heterogeneous and potentially influenced by chemotherapy selection pressure, clone size, allelic state, and clonal complexity.",
+            "locator": "Discussion — TP53 inclusion in the CHRS high-risk mutation category",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0004",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "U2AF1"
+            ],
+            "interpretation": "U2AF1 could not be evaluated reliably in this CHIP/CCUS analysis because an erroneous duplication in the hg38 reference genome precluded reliable variant calls; datasets with reliable U2AF1 calling are required before confirming that U2AF1-mutant clonal hematopoiesis is high risk.",
+            "locator": "Discussion — U2AF1 reference-genome calling limitation",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 20,
+        "citation": {
+          "authors": [
+            "Weeks LD",
+            "Niroula A",
+            "Neuberg D",
+            "Wong W",
+            "Lindsley RC",
+            "Luskin MR",
+            "Berliner N",
+            "Stone RM",
+            "DeAngelo DJ",
+            "Soiffer RJ",
+            "Uddin MM",
+            "Griffin G",
+            "Vlasschaert C",
+            "Gibson CJ",
+            "Jaiswal S",
+            "Bick AG",
+            "Malcovati L",
+            "Natarajan P",
+            "Ebert BL"
+          ],
+          "citation_incomplete": [
+            "pages"
+          ],
+          "display": "Weeks LD, Niroula A, Neuberg D, Wong W, Lindsley RC, Luskin MR, et al. Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis. NEJM Evidence. 2023;2(5).",
+          "doi": "10.1056/evidoa2200310",
+          "issue": "5",
+          "journal": "NEJM Evidence",
+          "pages": "",
+          "title": "Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis",
+          "volume": "2",
+          "year": 2023
+        },
+        "diseases_covered": [
+          "CHIP",
+          "CCUS"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "SRSF2",
+          "SF3B1",
+          "ZRSR2",
+          "IDH1",
+          "IDH2",
+          "FLT3",
+          "RUNX1",
+          "JAK2",
+          "DNMT3A",
+          "TP53",
+          "U2AF1"
+        ],
+        "publication_key": "weeks-2023-nejm-evidence-2-na",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0004",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 4,
+          "census_entries": 20,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "prognosis",
+              "gene": "ASXL1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "CBL"
+            },
+            {
+              "category": "prognosis",
+              "gene": "GATA2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "GNB1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "NF1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "NPM1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "PPM1D"
+            },
+            {
+              "category": "prognosis",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "prognosis",
+              "gene": "TET2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "U2AF1"
+            }
+          ],
+          "ratio": 0.2
+        },
+        "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+        "markdown_sha256": "00eaa5c497775f2d9530a0ff7e97131d0300ff8250afd7f894d4db73b77fb24e",
+        "source_filename": "Weeks_2023_CHRS_clonal_haematopoiesis_risk.pdf",
+        "source_sha256": "e858964daf12c3d8f13978f426d80b3ee6e453b604bb7e849f29503e60d4886c",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0001",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "FLT3",
+              "PML",
+              "RARA",
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11",
+              "KMT2A",
+              "WT1",
+              "MECOM"
+            ],
+            "interpretation": "In AML, validated leukemia-specific MRD assays for NPM1, FLT3-ITD, PML::RARA, RUNX1::RUNX1T1, CBFB::MYH11, and KMT2A rearrangements are preferred over less-specific WT1 or MECOM expression markers.",
+            "locator": "C1. qPCR-based MRD assessment; recommendation C4",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0002",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "ABL1"
+            ],
+            "interpretation": "For NPM1-mutated AML qPCR MRD, negativity is defined as <0.001% mutNPM1/ABL1 or meeting EAC nondetection criteria with at least 10,000 ABL1 copies; BM levels are typically about tenfold higher than PB, so tissue-specific interpretation is required.",
+            "locator": "C1. qPCR-based MRD assessment — mutNPM1 MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "After two chemotherapy cycles in NPM1-mutated AML, PB—not BM—is used for the formal qPCR MRD positivity definition; a positive PB result is classified as warning rather than high risk of treatment failure because the optimal postremission treatment remains uncertain.",
+            "locator": "C1. qPCR-based MRD assessment — mutNPM1 MRD after 2 cycles",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0004",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "In NPM1-mutated AML, ELN-defined molecular MRD relapse closely precedes clinical relapse and supports considering antileukemic therapy before morphologic relapse, with alloHCT also strongly considered.",
+            "locator": "A5. Clinical consequences of MRD assessment — mutNPM1 MRD relapse",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "In CBF-AML with RUNX1::RUNX1T1 or CBFB::MYH11, qPCR MRD is measured in bone marrow as CBF-mutant/ABL1 copies, with diagnostic baseline transcript quantification required. After two cycles of intensive chemotherapy or before alloHCT, a ≥3-log10 reduction from diagnostic levels is classified as an optimal response (MRD negative or low-level positive), whereas a <3-log10 reduction is MRD-positive and classified as warning.",
+            "locator": "Table 5. Response criteria for MRD monitoring — CBF-AML qPCR",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0006",
+            "category": "biomarker",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "For PML::RARA-positive APL, routine MRD testing is recommended at end of treatment rather than during treatment; end-of-treatment positivity is a warning, and follow-up monitoring is principally reserved for high-risk patients not treated with ATO, using BM because PB may become positive only near hematologic relapse.",
+            "locator": "C1. qPCR-based MRD assessment — APL-MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0007",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3",
+              "NPM1"
+            ],
+            "interpretation": "In FLT3-ITD AML, UHS-NGS MRD is recommended after two treatment cycles and before alloHCT; EOT and follow-up use rests on more limited evidence. Positivity is above the assay LOD, which must be at least 0.01%, and NPM1 may serve as the stand-alone marker when both mutations are present and FLT3 UHS-NGS is unavailable.",
+            "locator": "C2. NGS-based MRD assessment — FLT3-ITD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0008",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3",
+              "NPM1"
+            ],
+            "interpretation": "After alloHCT for FLT3-mutated AML, sorafenib maintenance is effective independently of pretransplant MFC-MRD status. Gilteritinib is recommended, on the basis of a MORPHO trial subgroup analysis, for patients with FLT3-ITD UHS-NGS MRD positivity before or around day 30 after alloHCT, particularly the reported subgroup with one FLT3-ITD MRD clone and mutated NPM1.",
+            "locator": "A5. Maintenance therapies; recommendation A15",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0009",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "ANKRD26",
+              "CEBPA",
+              "DDX41",
+              "ETV6",
+              "GATA2",
+              "RUNX1",
+              "TP53",
+              "DNMT3A",
+              "TET2",
+              "ASXL1"
+            ],
+            "interpretation": "In AML remission after intensive chemotherapy and before alloHCT, germ line mutations in predisposition-associated genes—for example ANKRD26, CEBPA, DDX41, ETV6, GATA2, RUNX1 and TP53—and mutations associated with age-related clonal haematopoiesis, such as DNMT3A, TET2 and ASXL1, are not prognostic and should not be used to determine MRD status at those time points.",
+            "locator": "C2. NGS-based MRD assessment — recommendation C13",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0010",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "ANKRD26",
+              "CEBPA",
+              "DDX41",
+              "ETV6",
+              "GATA2",
+              "RUNX1",
+              "TP53",
+              "DNMT3A",
+              "TET2",
+              "ASXL1"
+            ],
+            "interpretation": "After alloHCT for AML, serial UHS-NGS monitoring of diagnostic mutations can correlate with impending relapse even for predisposition- or clonal-haematopoiesis-associated genes, but NPM1 is specifically well validated and additional genes require rigorous posttransplant validation.",
+            "locator": "C2. NGS-based MRD assessment — recommendation C14",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0011",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CD34",
+              "CD117",
+              "CD45",
+              "CD33",
+              "CD13",
+              "CD56",
+              "CD7",
+              "HLA-DR",
+              "CD38",
+              "CD11B",
+              "CD64",
+              "CD14",
+              "CD15",
+              "CD4",
+              "CD123",
+              "CD36"
+            ],
+            "interpretation": "For AML MFC-MRD, the integrated LAIP/DfN strategy should include CD34, CD117, CD45, CD33, CD13, CD56, CD7 and HLA-DR; the recommended 10-color core and monocytic panels additionally specify CD38, CD11B, CD64, CD14, CD15, CD4, CD123 and CD36.",
+            "locator": "Table 2, recommendation B3",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0012",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CD34",
+              "CD38",
+              "CD45RA",
+              "CD123",
+              "CLEC12A",
+              "CD45"
+            ],
+            "interpretation": "In AML, MFC assessment of CD34+/CD38− leukemia stem cells using aberrant CD45RA, CD123 and CLEC12A may add prognostic value beyond standard MFC-MRD; at least one million CD45-expressing cells supports higher-sensitivity measurement, but clinically actionable cutoffs still require validation.",
+            "locator": "B2. Quality requirements — leukemia stem cell MFC-MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0013",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "In CEBPA bZIP in-frame–mutated AML, some evidence suggests that MFC-MRD is preferred after two cycles of intensive chemotherapy; its prognostic role at end of treatment and during follow-up requires further study.",
+            "locator": "B2. Quality requirements — CEBPA AML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0014",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CD22",
+              "CD15"
+            ],
+            "interpretation": "In AML MFC-MRD, CD22- or CD15-associated abnormalities may reflect regenerating or stressed nonleukemic hematopoiesis rather than residual leukemia; reports should flag this possibility and consider repeat testing in 2–4 weeks when clinically indicated.",
+            "locator": "B1. Approach to MFC-MRD assessment — regenerative false positives",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0015",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53",
+              "IDH1",
+              "CEBPA"
+            ],
+            "interpretation": "For residual TP53, IDH1, or bZIP-mutated CEBPA detected by UHS-NGS in AML, prognostic effects have not been demonstrated at selected pre-alloHCT time points; gene- and timepoint-specific validation is required before these findings are used as established MRD prognostic markers.",
+            "locator": "C2. NGS-based MRD assessment — non-FLT3 mutations",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0016",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "KMT2A"
+            ],
+            "interpretation": "KMT2A-rearranged AML can be assessed with developing molecular MRD assays, but persistent fusion detection at specific thresholds or time points does not yet establish a validated treatment-intervention rule.",
+            "locator": "C1. qPCR-based MRD assessment — KMT2A-rearranged AML",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 41,
+        "citation": {
+          "authors": [
+            "Cloos J",
+            "Valk PJM",
+            "Thiede C",
+            "Döhner K",
+            "Roboz GJ",
+            "Wood BL",
+            "Walter RB",
+            "Wang S",
+            "Wierzbowska A",
+            "Wei AH",
+            "Wu D",
+            "Vergez F",
+            "Venditti A",
+            "van der Reijden BA",
+            "van de Loosdrecht AA",
+            "Tiong IS",
+            "Thol FR",
+            "Subklewe M",
+            "Roumier C",
+            "Reuvekamp T",
+            "Ravandi F",
+            "Preudhomme C",
+            "Plesa A",
+            "Othman J",
+            "Ossenkoppele GJ",
+            "Ofran Y",
+            "Mimoun A",
+            "Maurillo L",
+            "Majchrzak A",
+            "de Leeuw D",
+            "Kern W",
+            "Kim DDH",
+            "Ikoma-Colturato MRV",
+            "Haaksma LH",
+            "Guzman ML",
+            "Feuring M",
+            "Depreter B",
+            "Czyz A",
+            "Bücklein V",
+            "Baer C",
+            "Bachas C",
+            "Freeman SD",
+            "Buccisano F",
+            "Hourigan CS",
+            "Dillon R",
+            "Heuser M"
+          ],
+          "citation_incomplete": [],
+          "display": "Cloos J, Valk PJM, Thiede C, Döhner K, Roboz GJ, Wood BL, et al. 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party. Blood. 2026;147(11):1147-1167.",
+          "doi": "10.1182/blood.2025031480",
+          "issue": "11",
+          "journal": "Blood",
+          "pages": "1147-1167",
+          "title": "2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party",
+          "volume": "147",
+          "year": 2026
+        },
+        "diseases_covered": [
+          "AML",
+          "APL"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "NPM1",
+          "FLT3",
+          "PML",
+          "RARA",
+          "RUNX1",
+          "RUNX1T1",
+          "CBFB",
+          "MYH11",
+          "KMT2A",
+          "WT1",
+          "MECOM",
+          "ABL1",
+          "ANKRD26",
+          "CEBPA",
+          "DDX41",
+          "ETV6",
+          "GATA2",
+          "TP53",
+          "DNMT3A",
+          "TET2",
+          "ASXL1",
+          "CD34",
+          "CD117",
+          "CD45",
+          "CD33",
+          "CD13",
+          "CD56",
+          "CD7",
+          "HLA-DR",
+          "CD38",
+          "CD11B",
+          "CD64",
+          "CD14",
+          "CD15",
+          "CD4",
+          "CD123",
+          "CD36",
+          "CD45RA",
+          "CLEC12A",
+          "CD22",
+          "IDH1"
+        ],
+        "publication_key": "cloos-2026-blood-147-1147",
+        "publication_type": "guideline"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5 (Anthropic)",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0016",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 16,
+          "census_entries": 41,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "germline",
+              "gene": "ANKRD26"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD45RA"
+            },
+            {
+              "category": "germline",
+              "gene": "CEBPA"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CLEC12A"
+            },
+            {
+              "category": "germline",
+              "gene": "DDX41"
+            },
+            {
+              "category": "germline",
+              "gene": "ETV6"
+            },
+            {
+              "category": "prognosis",
+              "gene": "FLT3"
+            },
+            {
+              "category": "germline",
+              "gene": "GATA2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "IDH1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "PML"
+            },
+            {
+              "category": "treatment",
+              "gene": "PML"
+            },
+            {
+              "category": "prognosis",
+              "gene": "RARA"
+            },
+            {
+              "category": "treatment",
+              "gene": "RARA"
+            },
+            {
+              "category": "germline",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "germline",
+              "gene": "TP53"
+            }
+          ],
+          "ratio": 0.39
+        },
+        "input_id": "38aa8749-11da-5075-991d-15315d144543",
+        "markdown_sha256": "17102aea29c8ea5dcb023381d144e909557716a3e65c9ee45d935c059dd606fa",
+        "source_filename": "Cloos_2026_ELN_DAVID_AML_MRD_consensus.pdf",
+        "source_sha256": "a4e0fcfb887f0ac0632fff667913063fc6af6f86c69a922c70ba2f11e4fe3615",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CALR"
+            ],
+            "interpretation": "In essential thrombocythaemia, the cited prior analysis reported that CALR mutation did not further affect the IPSET-thrombosis model for predicting future vascular events.",
+            "locator": "Opening paragraph: prior IPSET-thrombosis model and CALR mutation",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Among conventionally assigned low-risk ET patients, annual thrombosis rates were 0.44% with neither JAK2 mutation nor cardiovascular risk factors, 1.05% with cardiovascular risk factors alone, 1.59% with JAK2 mutation alone, and 2.57% with both; adding cardiovascular risk factors to JAK2 mutation did not significantly increase risk (P=0.217).",
+            "locator": "Results subsection (i): conventionally assigned low-risk group",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For ET, the authors proposed that a revised thrombosis-risk scheme might include four categories: very low risk, defined by no thrombosis history, age ≤60 years and JAK2-unmutated status; low risk, defined by no thrombosis history, age ≤60 years and JAK2-mutated status; intermediate risk, defined by no thrombosis history, age >60 years and JAK2-unmutated status; and high risk, defined by thrombosis history or age >60 years with JAK2 mutation.",
+            "locator": "Discussion: proposed revised four-category risk stratification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally high-risk ET, JAK2 mutation, cardiovascular risk factors, or both provided limited additional thrombosis-risk enhancement when high-risk status was defined by thrombosis history, regardless of age (P=NS). In contrast, JAK2 mutation, with or without cardiovascular risk factors, might have affected thrombosis risk when high-risk status was defined by age alone (P=0.05).",
+            "locator": "Additional analysis and discussion: high-risk status defined by thrombosis history versus age alone",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Among conventionally assigned high-risk ET patients, annual thrombosis rates were 1.44% with neither JAK2 mutation nor cardiovascular risk factors, 1.64% with cardiovascular risk factors alone, 2.36% with JAK2 mutation alone, and 4.17% with both; the combined-risk group had significantly greater risk than patients with neither factor (P=0.011).",
+            "locator": "Results subsection (ii): conventionally assigned high-risk group",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0006",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Pending prospective controlled studies, the authors would not insist on aspirin for very-low-risk ET (no thrombosis history, age ≤60 years and JAK2-unmutated) without cardiovascular risk factors, but advised once-daily aspirin when cardiovascular risk factors are present.",
+            "locator": "Discussion and treatment recommendations: very-low-risk ET",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0007",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "Pending prospective controlled studies, twice-daily aspirin may reasonably be considered, but is not mandated, for low-risk JAK2-mutated ET, particularly when cardiovascular risk factors are present.",
+            "locator": "Treatment recommendations paragraph: low-risk JAK2-mutated ET",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 2,
+        "citation": {
+          "authors": [
+            "Barbui T",
+            "Vannucchi AM",
+            "Buxhofer-Ausch V",
+            "De Stefano V",
+            "Betti S",
+            "Rambaldi A",
+            "Rumi E",
+            "Ruggeri M",
+            "Rodeghiero F",
+            "Randi ML",
+            "Bertozzi I",
+            "Gisslinger H",
+            "Finazzi G",
+            "Carobbio A",
+            "Thiele J",
+            "Passamonti F",
+            "Falcone C",
+            "Tefferi A"
+          ],
+          "citation_incomplete": [],
+          "display": "Barbui T, Vannucchi AM, Buxhofer-Ausch V, De Stefano V, Betti S, Rambaldi A, et al. Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia. Blood Cancer Journal. 2015;5(11):e369-e369.",
+          "doi": "10.1038/bcj.2015.94",
+          "issue": "11",
+          "journal": "Blood Cancer Journal",
+          "pages": "e369-e369",
+          "title": "Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia",
+          "volume": "5",
+          "year": 2015
+        },
+        "diseases_covered": [
+          "ET"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "CALR",
+          "JAK2"
+        ],
+        "publication_key": "barbui-2015-blood-cancer-journal-5-e369",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0007",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 7,
+          "census_entries": 2,
+          "gene_category_pairs_with_no_card": [],
+          "ratio": 3.5
+        },
+        "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+        "markdown_sha256": "3ac9bfdc5626dcf6a1afdb04799d87354ca2e3560c46d18a84fa4404c23be23e",
+        "source_filename": "Barbui_2015_revised_IPSET_thrombosis_ET.pdf",
+        "source_sha256": "3dbdecfbb3be1294c8ae6098adfef4182d63697f6073dbaf8ac82f3bab6779d0",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NPM1",
+              "FLT3",
+              "KRAS",
+              "NRAS"
+            ],
+            "interpretation": "In NPM1-mutated AML treated with azacitidine plus venetoclax, absence of FLT3-ITD, KRAS and NRAS signaling alterations was associated with longer median overall survival than their presence (39.0 versus 9.9 months).",
+            "locator": "HMAs plus VEN, paragraph 3",
+            "secondary_citation": {
+              "display": "Döhner H, Pratz KW, DiNardo CD, et al. Genetic risk stratification and outcomes among treatment-naive patients with AML treated with venetoclax and azacitidine. Blood. 2024;144(21):2211-2222."
+            }
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IDH2",
+              "FLT3",
+              "KRAS",
+              "NRAS"
+            ],
+            "interpretation": "In IDH2-mutated AML treated with azacitidine plus venetoclax, absence of activated signaling variants was associated with longer median overall survival than their presence (36.9 versus 12.2 months).",
+            "locator": "HMAs plus VEN, paragraph 3",
+            "secondary_citation": {
+              "display": "Döhner H, Pratz KW, DiNardo CD, et al. Genetic risk stratification and outcomes among treatment-naive patients with AML treated with venetoclax and azacitidine. Blood. 2024;144(21):2211-2222."
+            }
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0007",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "DDX41-mutated AML appears to have a favorable prognosis with azacitidine plus venetoclax; one cited study reported a 2-year overall-survival probability of 91.1% and median overall survival not reached.",
+            "locator": "HMAs plus VEN, paragraph 4",
+            "secondary_citation": {
+              "display": "Bataller A, Loghavi S, Gerstein Y, et al. Characteristics and clinical outcomes of patients with myeloid malignancies and DDX41 variants. Am J Hematol. 2023;98(11):1780-1790."
+            }
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0009",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "FLT3",
+              "NRAS",
+              "KRAS",
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, newly diagnosed NPM1-mutated AML is favorable risk only when FLT3-ITD is negative and NRAS, KRAS and TP53 are wild type.",
+            "locator": "Table 1, ELN 2024 Less-Intensive risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0010",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH2",
+              "FLT3",
+              "NRAS",
+              "KRAS",
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, newly diagnosed IDH2-mutated AML is favorable risk only when FLT3-ITD is negative and NRAS, KRAS and TP53 are wild type.",
+            "locator": "Table 1, ELN 2024 Less-Intensive risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0011",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1",
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, IDH1-mutated AML with wild-type TP53 is favorable risk specifically when treated with azacitidine plus ivosidenib, irrespective of activating signaling-gene mutations.",
+            "locator": "Table 1, ELN 2024 Less-Intensive risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0012",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, newly diagnosed DDX41-mutated AML is favorable risk.",
+            "locator": "Table 1, ELN 2024 Less-Intensive risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0013",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3",
+              "NRAS",
+              "KRAS",
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, newly diagnosed TP53-wild-type AML with other cytogenetic or molecular abnormalities and FLT3-ITD positivity and/or NRAS or KRAS mutation is tentatively categorized as intermediate risk.",
+            "locator": "Table 1, ELN 2024 Less-Intensive risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0014",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, TP53-mutated AML is adverse risk.",
+            "locator": "Table 1, ELN 2024 Less-Intensive risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0015",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Identification of a DDX41 mutation at near-heterozygous frequency should prompt consideration of possible germline DDX41 origin.",
+            "locator": "Table 1, footnote †",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0016",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ASXL1"
+            ],
+            "interpretation": "ASXL1-mutated AML has been linked in cited studies to improved outcomes after hypomethylating-agent plus venetoclax therapy, but the statement is a secondary summary rather than a mutation-specific treatment recommendation.",
+            "locator": "Genetic risk classification, paragraph on AML with MR mutations",
+            "secondary_citation": {
+              "display": "Rahmani NE, Ramachandra N, Sahu S, et al. ASXL1 mutations are associated with distinct epigenomic alterations that lead to sensitivity to venetoclax and azacytidine. Blood Cancer J. 2021;11(9):157."
+            }
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0017",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NPM1",
+              "IDH2"
+            ],
+            "interpretation": "NPM1- or IDH2-mutated AML appears sensitive to venetoclax, but favorable outcome with less-intensive therapy is limited to cases lacking activated signaling-gene co-mutations.",
+            "locator": "Genetic risk classification, paragraph 2",
+            "secondary_citation": {
+              "display": "DiNardo CD, Tiong IS, Quaglieri A, et al. Molecular patterns of response and treatment failure after frontline venetoclax combinations in older patients with AML. Blood. 2020;135(11):791-803."
+            }
+          }
+        ],
+        "census_entries": 12,
+        "citation": {
+          "authors": [
+            "Döhner H",
+            "DiNardo CD",
+            "Appelbaum FR",
+            "Craddock C",
+            "Dombret H",
+            "Ebert BL",
+            "Fenaux P",
+            "Godley LA",
+            "Hasserjian RP",
+            "Larson RA",
+            "Levine RL",
+            "Miyazaki Y",
+            "Niederwieser D",
+            "Ossenkoppele G",
+            "Röllig C",
+            "Sierra J",
+            "Stein EM",
+            "Tallman MS",
+            "Tien H",
+            "Wang J",
+            "Wierzbowska A",
+            "Wei AH",
+            "Löwenberg B"
+          ],
+          "citation_incomplete": [],
+          "display": "Döhner H, DiNardo CD, Appelbaum FR, Craddock C, Dombret H, Ebert BL, et al. Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations. Blood. 2024;144(21):2169-2173.",
+          "doi": "10.1182/blood.2024025409",
+          "issue": "21",
+          "journal": "Blood",
+          "pages": "2169-2173",
+          "title": "Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations",
+          "volume": "144",
+          "year": 2024
+        },
+        "diseases_covered": [
+          "AML"
+        ],
+        "extraction_date": "2026-08-05",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "NPM1",
+          "FLT3",
+          "KRAS",
+          "NRAS",
+          "IDH2",
+          "DDX41",
+          "TP53",
+          "IDH1",
+          "ASXL1"
+        ],
+        "publication_key": "d-hner-2024-blood-144-2169",
+        "publication_type": "consensus statement"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0017",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 12,
+          "census_entries": 12,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "prognosis",
+              "gene": "ASXL1"
+            },
+            {
+              "category": "treatment",
+              "gene": "DDX41"
+            },
+            {
+              "category": "treatment",
+              "gene": "DNMT3A"
+            },
+            {
+              "category": "treatment",
+              "gene": "FLT3"
+            },
+            {
+              "category": "treatment",
+              "gene": "IDH1"
+            },
+            {
+              "category": "treatment",
+              "gene": "KRAS"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NPM1"
+            },
+            {
+              "category": "treatment",
+              "gene": "NRAS"
+            },
+            {
+              "category": "prognosis",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "treatment",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "treatment",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "treatment",
+              "gene": "TP53"
+            }
+          ],
+          "ratio": 1.0
+        },
+        "input_id": "ad2131a7-b225-5a2a-badc-1fb730ce9e70",
+        "markdown_sha256": "1ba5e76608f65b2a9e5849585cb6d65efadfea9908140d9c8b5e886e537203ad",
+        "source_filename": "Dohner_2024_ELN_less_intensive_AML_risk.pdf",
+        "source_sha256": "eaee35628b4ba6676bae70d7ff283989e77610b213f5d41681f03b8d6c0befad",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1",
+              "SRSF2",
+              "EZH2",
+              "IDH1",
+              "IDH2",
+              "U2AF1"
+            ],
+            "interpretation": "For patients aged 70 years or younger with primary myelofibrosis, MIPSS70+ version 2.0 treated ASXL1, SRSF2, EZH2, IDH1, IDH2, and U2AF1 Q157 as high-molecular-risk mutations. In multivariable analysis, one HMR mutation had HR 1.8 (95% CI, 1.3 to 2.5) and was assigned 2 points, whereas two or more HMR mutations had HR 2.6 (95% CI, 1.6 to 4.0) and were assigned 3 points.",
+            "locator": "Main text, opening paragraph and multivariable analysis and score construction paragraph",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "CALR"
+            ],
+            "interpretation": "For patients aged 70 years or younger with primary myelofibrosis, CALR type 1/like was the favorable mutation variable in MIPSS70/MIPSS70+. In the revised multivariable model, absence of a type 1/like CALR mutation had HR 2.1 (95% CI, 1.5 to 3.0) and was assigned 2 points in MIPSS70+ version 2.0.",
+            "locator": "Main text, opening paragraph and multivariable analysis and score construction paragraph",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 7,
+        "citation": {
+          "authors": [
+            "Tefferi A",
+            "Guglielmelli P",
+            "Lasho TL",
+            "Gangat N",
+            "Ketterling RP",
+            "Pardanani A",
+            "Vannucchi AM"
+          ],
+          "citation_incomplete": [],
+          "display": "Tefferi A, Guglielmelli P, Lasho TL, Gangat N, Ketterling RP, Pardanani A, et al. MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis. Journal of Clinical Oncology. 2018;36(17):1769-1770.",
+          "doi": "10.1200/jco.2018.78.9867",
+          "issue": "17",
+          "journal": "Journal of Clinical Oncology",
+          "pages": "1769-1770",
+          "title": "MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis",
+          "volume": "36",
+          "year": 2018
+        },
+        "diseases_covered": [
+          "PMF"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "ASXL1",
+          "SRSF2",
+          "EZH2",
+          "IDH1",
+          "IDH2",
+          "U2AF1",
+          "CALR"
+        ],
+        "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 2,
+          "census_entries": 7,
+          "gene_category_pairs_with_no_card": [],
+          "ratio": 0.29
+        },
+        "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
+        "markdown_sha256": "f95c1ffc40edfe32c34e9edb1642f1d5b36b9a043bbba3d4d5cfcd3407a25167",
+        "source_filename": "Tefferi_2018_MIPSS70plus_v2_myelofibrosis.pdf",
+        "source_sha256": "eabb8c620328f13f1430358c0678469982b27d633f0412968a5ba02a10b4bbf9",
+        "warnings": [
+          "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002: evidence is identical to tefferi-2018-journal-of-clinical-oncology-36-1769-C0001; review independent utility"
+        ]
+      }
+    },
     {
       "document": {
         "cards": [
@@ -2700,6 +4221,1723 @@
           "arber-2022-blood-140-1200-C0012: evidence is identical to arber-2022-blood-140-1200-C0011; review independent utility",
           "arber-2022-blood-140-1200-C0014: evidence is identical to arber-2022-blood-140-1200-C0013; review independent utility",
           "arber-2022-blood-140-1200-C0015: evidence is identical to arber-2022-blood-140-1200-C0014; review independent utility"
+        ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "elena-2016-blood-128-1408-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1",
+              "NRAS",
+              "RUNX1",
+              "SETBP1"
+            ],
+            "interpretation": "In CMML, RUNX1, NRAS, SETBP1, and ASXL1 mutations each retained independent adverse prognostic value for overall survival after accounting for CPSS cytogenetic risk; these variables formed a CMML-specific genetic score that separated four groups for overall survival and AML evolution.",
+            "locator": "Results—Prognostic value of genetic lesions in CMML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1",
+              "NRAS",
+              "RUNX1",
+              "SETBP1"
+            ],
+            "interpretation": "CPSS-Mol combines the ASXL1/NRAS/RUNX1/SETBP1-plus-cytogenetic genetic score with RBC transfusion dependency, WBC count, and marrow blast percentage; sex-specific haemoglobin thresholds can substitute for transfusion dependency. The resulting four-group model stratified overall survival and leukemic evolution and was confirmed in an independent CMML validation cohort.",
+            "locator": "Results—Prognostic value of genetic lesions in CMML; Development and validation of CPSS-Mol",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "EZH2"
+            ],
+            "interpretation": "In CMML, EZH2 mutation was associated with worse overall survival in univariable analysis (HR 2.07; P=.023), but EZH2 was not among the mutations that retained independent prognostic value in the subsequent multivariable genetic model.",
+            "locator": "Results—Prognostic value of genetic lesions in CMML",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 23,
+        "citation": {
+          "authors": [
+            "Elena C",
+            "Gallì A",
+            "Such E",
+            "Meggendorfer M",
+            "Germing U",
+            "Rizzo E",
+            "Cervera J",
+            "Molteni E",
+            "Fasan A",
+            "Schuler E",
+            "Ambaglio I",
+            "Lopez-Pavia M",
+            "Zibellini S",
+            "Kuendgen A",
+            "Travaglino E",
+            "Sancho-Tello R",
+            "Catricalà S",
+            "Vicente AI",
+            "Haferlach T",
+            "Haferlach C",
+            "Sanz GF",
+            "Malcovati L",
+            "Cazzola M"
+          ],
+          "citation_incomplete": [],
+          "display": "Elena C, Gallì A, Such E, Meggendorfer M, Germing U, Rizzo E, et al. Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia. Blood. 2016;128(10):1408-1417.",
+          "doi": "10.1182/blood-2016-05-714030",
+          "issue": "10",
+          "journal": "Blood",
+          "pages": "1408-1417",
+          "title": "Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia",
+          "volume": "128",
+          "year": 2016
+        },
+        "diseases_covered": [
+          "CMML"
+        ],
+        "extraction_date": "2026-08-06",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "ASXL1",
+          "EZH2",
+          "NRAS",
+          "RUNX1",
+          "SETBP1"
+        ],
+        "publication_key": "elena-2016-blood-128-1408",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-06",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "elena-2016-blood-128-1408-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0003",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 3,
+          "census_entries": 23,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "diagnosis",
+              "gene": "ASXL1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CBL"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CSF3R"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CUX1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "DNMT3A"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "EP300"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ETNK1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "EZH2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "IDH1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "IDH2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "JAK2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KIT"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NF1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RUNX1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SETBP1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SF3B1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "TET2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TET2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "U2AF1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ZRSR2"
+            }
+          ],
+          "ratio": 0.13
+        },
+        "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
+        "markdown_sha256": "668c0f43525447f49cb1d3a21b2d5957e64fea59b05a58544b2ccdab9af2b5ce",
+        "source_filename": "Elena_2016_CPSS-Mol_CMML.pdf",
+        "source_sha256": "cc9867d018ca1fcb18614254186e29a2e0cfb79ecd0d372fab3f16af42d5051c",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0001",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "BCR",
+              "ABL1",
+              "PML",
+              "RARA",
+              "CBFB",
+              "MYH11",
+              "RUNX1",
+              "RUNX1T1"
+            ],
+            "interpretation": "Under the ICC framework used in this paper, recurrent AML-defining genetic abnormalities establish AML at 10% or more marrow or blood blasts, except BCR::ABL1 AML, which requires 20% blasts; PML::RARA, CBFB::MYH11, and RUNX1::RUNX1T1 are included among the 10% threshold abnormalities.",
+            "locator": "Changes to the blast thresholds defining AML, paragraph 1 (paper.md lines 39-39)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0002",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RARA",
+              "KMT2A",
+              "MECOM",
+              "CEBPA"
+            ],
+            "interpretation": "Variant translocations involving RARA, KMT2A, or MECOM are recognized as AML-defining entities; an in-frame CEBPA bZIP mutation, whether monoallelic or biallelic, defines the CEBPA-mutated AML subtype and is associated with favorable outcome.",
+            "locator": "AML with recurrent genetic abnormalities (paper.md line 51)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "A pathogenic TP53 mutation with variant allele fraction at least 10%, with or without loss of the wild-type allele, defines AML with mutated TP53; the paper describes these neoplasms as having a very poor prognosis.",
+            "locator": "AML with mutated TP53 (paper.md line 55)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0004",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "ASXL1",
+              "BCOR",
+              "EZH2",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "STAG2",
+              "U2AF1",
+              "ZRSR2",
+              "TP53"
+            ],
+            "interpretation": "In cases lacking TP53 mutation, pathogenic mutations in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2 classify AML as AML with myelodysplasia-related gene mutations irrespective of prior MDS; these mutations confer adverse prognosis even in de novo AML.",
+            "locator": "AML with myelodysplasia-related gene mutations (paper.md line 57)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0005",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53",
+              "ASXL1",
+              "BCOR",
+              "EZH2",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "STAG2",
+              "U2AF1",
+              "ZRSR2"
+            ],
+            "interpretation": "The ICC classification is hierarchical. In the absence of an AML-defining recurrent genetic abnormality, AML with mutated TP53 takes precedence over AML with myelodysplasia-related gene mutations.",
+            "locator": "Figure 1 caption: Hierarchical classification of the ICC of AML (paper.md line 81)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0006",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "For NPM1-mutated AML and core-binding-factor AML, baseline molecular assessment by qPCR or dPCR is recommended to enable subsequent MRD monitoring.",
+            "locator": "Diagnostic procedures: molecular baseline for MRD (paper.md line 161)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0007",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3",
+              "NPM1"
+            ],
+            "interpretation": "ELN 2022 places FLT3-ITD AML without adverse-risk lesions in the intermediate-risk group regardless of allelic ratio or concurrent NPM1 mutation; the FLT3-ITD allelic ratio is no longer used.",
+            "locator": "2022 ELN genetic risk classification, changes (paper.md line 648)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0008",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "ASXL1",
+              "BCOR",
+              "EZH2",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "STAG2",
+              "U2AF1",
+              "ZRSR2"
+            ],
+            "interpretation": "ELN 2022 assigns AML with pathogenic ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2 mutations to the adverse-risk group, including de novo AML without myelodysplasia-related cytogenetic abnormalities.",
+            "locator": "2022 ELN genetic risk classification, changes (paper.md line 648)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0009",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "NPM1-mutated AML with adverse-risk cytogenetic abnormalities is adverse risk; whether myelodysplasia-related gene mutations also worsen outcome in NPM1-mutated AML was unresolved in this paper.",
+            "locator": "2022 ELN genetic risk classification, changes (paper.md lines 648-650)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0010",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "In-frame CEBPA bZIP mutations are favorable risk irrespective of whether they are monoallelic or biallelic.",
+            "locator": "2022 ELN genetic risk classification, changes (paper.md lines 648-650)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0011",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "CBFB",
+              "MYH11",
+              "RUNX1",
+              "RUNX1T1",
+              "KMT2A",
+              "MLLT3",
+              "DEK",
+              "NUP214",
+              "BCR",
+              "ABL1",
+              "WT1"
+            ],
+            "interpretation": "Validated qPCR molecular MRD targets in AML include mutated NPM1 and the CBFB::MYH11 and RUNX1::RUNX1T1 fusions; KMT2A::MLLT3, DEK::NUP214, BCR::ABL1, and WT1 are described as less validated targets.",
+            "locator": "Molecular MRD (paper.md lines 708-714)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0012",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DNMT3A",
+              "TET2",
+              "ASXL1"
+            ],
+            "interpretation": "DNMT3A, TET2, and ASXL1 mutations associated with premalignant clonal hematopoiesis should not be interpreted as AML MRD; NGS-based MRD was not standardized as a stand-alone method.",
+            "locator": "Molecular MRD: NGS exclusions (paper.md lines 712-716)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0013",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "BCL2"
+            ],
+            "interpretation": "For older or otherwise unfit patients with AML, adding the BCL2 inhibitor venetoclax to azacitidine improved CR/CRi and median overall survival versus azacitidine alone and established a standard nonintensive treatment option.",
+            "locator": "Patients not considered candidates for intensive therapy (paper.md line 881)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0014",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1"
+            ],
+            "interpretation": "For newly diagnosed IDH1-mutated AML, ivosidenib plus azacitidine improved event-free survival, response, and overall survival versus azacitidine plus placebo; rapid IDH1 screening is recommended in older patients to identify candidates.",
+            "locator": "IDH-mutated AML treatment (paper.md line 891)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0015",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1",
+              "IDH2",
+              "FLT3"
+            ],
+            "interpretation": "At AML progression, repeat molecular testing is recommended because actionable IDH1, IDH2, FLT3-ITD, or FLT3-TKD clones may newly emerge or expand and identify targeted salvage options.",
+            "locator": "Relapsed and refractory disease (paper.md line 897)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0016",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "For relapsed or refractory FLT3-mutated AML, gilteritinib is an approved targeted option supported by improved response rate and median overall survival versus physician-choice salvage therapy.",
+            "locator": "Relapsed and refractory disease (paper.md lines 899-901)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0017",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "germline predisposition syndrome"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Germline predisposition should be considered in hematologic malignancy at any age, including older patients with possible DDX41 predisposition; confirmation should use nonhematopoietic material such as cultured skin fibroblasts, and only pathogenic or likely pathogenic variants are considered causative.",
+            "locator": "Germline predisposition (paper.md line 139)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0018",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "germline predisposition syndrome"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "CEBPA"
+            ],
+            "interpretation": "Germline risk testing should occur early when allogeneic transplantation is contemplated; related donors carrying deleterious RUNX1 or CEBPA variants should not be used as hematopoietic stem-cell donors.",
+            "locator": "Germline predisposition and donor selection (paper.md lines 143-145)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0019",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML",
+              "germline predisposition syndrome"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BRCA1",
+              "BRCA2",
+              "PALB2",
+              "TP53",
+              "CHEK2"
+            ],
+            "interpretation": "In the therapy-related AML context, the ELN report states that deleterious familial cancer-predisposition mutations involving BRCA1, BRCA2, PALB2, TP53, or CHEK2 have been observed in approximately 20% of reported cases. Identifying such a preexisting condition informs counselling, family-donor selection for allogeneic HCT, cancer or organ surveillance, and cascade testing.",
+            "locator": "Therapy-related AML, familial cancer-predisposition paragraph (paper.md lines 85 and 131)",
+            "secondary_citation": {
+              "authors": [
+                "Churpek JE",
+                "Marquez R",
+                "Neistadt B",
+                "Claussen K",
+                "Lee MK",
+                "Churpek MM",
+                "Huo D",
+                "Weiner H",
+                "Bannerjee M",
+                "Godley LA",
+                "Olopade OI"
+              ],
+              "citation_incomplete": [],
+              "display": "Churpek JE, Marquez R, Neistadt B, et al. Inherited mutations in cancer susceptibility genes are common among breast cancer survivors who develop therapy-related leukemia. Cancer. 2016;122(2):304-311.",
+              "issue": "2",
+              "journal": "Cancer",
+              "pages": "304-311",
+              "title": "Inherited mutations in cancer susceptibility genes are common among breast cancer survivors who develop therapy-related leukemia",
+              "volume": "122",
+              "year": 2016
+            }
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0020",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "KMT2A",
+              "NPM1"
+            ],
+            "interpretation": "Menin inhibitors were under clinical evaluation for AML with KMT2A rearrangements or NPM1 mutations; the paper describes this use as investigational rather than established treatment.",
+            "locator": "New therapies (paper.md line 1060)",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 154,
+        "citation": {
+          "authors": [
+            "Döhner H",
+            "Wei AH",
+            "Appelbaum FR",
+            "Craddock C",
+            "DiNardo CD",
+            "Dombret H",
+            "Ebert BL",
+            "Fenaux P",
+            "Godley LA",
+            "Hasserjian RP",
+            "Larson RA",
+            "Levine RL",
+            "Miyazaki Y",
+            "Niederwieser D",
+            "Ossenkoppele G",
+            "Röllig C",
+            "Sierra J",
+            "Stein EM",
+            "Tallman MS",
+            "Tien H",
+            "Wang J",
+            "Wierzbowska A",
+            "Löwenberg B"
+          ],
+          "citation_incomplete": [],
+          "display": "Döhner H, Wei AH, Appelbaum FR, Craddock C, DiNardo CD, Dombret H, et al. Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN. Blood. 2022;140(12):1345-1377.",
+          "doi": "10.1182/blood.2022016867",
+          "issue": "12",
+          "journal": "Blood",
+          "pages": "1345-1377",
+          "title": "Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN",
+          "volume": "140",
+          "year": 2022
+        },
+        "diseases_covered": [
+          "AML",
+          "germline predisposition syndrome"
+        ],
+        "extraction_date": "2026-08-05",
+        "extraction_model": "GPT-5.6 Thinking",
+        "genes_covered": [
+          "BCR",
+          "ABL1",
+          "PML",
+          "RARA",
+          "CBFB",
+          "MYH11",
+          "RUNX1",
+          "RUNX1T1",
+          "KMT2A",
+          "MECOM",
+          "CEBPA",
+          "TP53",
+          "ASXL1",
+          "BCOR",
+          "EZH2",
+          "SF3B1",
+          "SRSF2",
+          "STAG2",
+          "U2AF1",
+          "ZRSR2",
+          "NPM1",
+          "FLT3",
+          "MLLT3",
+          "DEK",
+          "NUP214",
+          "WT1",
+          "DNMT3A",
+          "TET2",
+          "BCL2",
+          "IDH1",
+          "IDH2",
+          "DDX41",
+          "BRCA1",
+          "BRCA2",
+          "PALB2",
+          "CHEK2"
+        ],
+        "publication_key": "d-hner-2022-blood-140-1345",
+        "publication_type": "consensus statement"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-05",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Thinking",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0017",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0018",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0019",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0020",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 20,
+          "census_entries": 154,
+          "gene_category_pairs_with_no_card": [
+            {
+              "category": "prognosis",
+              "gene": "ABL1"
+            },
+            {
+              "category": "germline",
+              "gene": "ACD"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "AFDN"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "AFF1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ANKRD26"
+            },
+            {
+              "category": "germline",
+              "gene": "ANKRD26"
+            },
+            {
+              "category": "germline",
+              "gene": "ASXL1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "BCOR"
+            },
+            {
+              "category": "germline",
+              "gene": "BCOR"
+            },
+            {
+              "category": "biomarker",
+              "gene": "BCORL1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "BCR"
+            },
+            {
+              "category": "germline",
+              "gene": "BLM"
+            },
+            {
+              "category": "biomarker",
+              "gene": "BRAF"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "BRCA1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "BRCA2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CBFA2T3"
+            },
+            {
+              "category": "prognosis",
+              "gene": "CBFB"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CBL"
+            },
+            {
+              "category": "germline",
+              "gene": "CBL"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD13"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD13"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD14"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD14"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD15"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD15"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD19"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD19"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD22"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD22"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD33"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD33"
+            },
+            {
+              "category": "treatment",
+              "gene": "CD33"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD34"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD34"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD36"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD36"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD38"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD38"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD3D"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD3D"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD3E"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD3E"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD3G"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD3G"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD4"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD4"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD45"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD45"
+            },
+            {
+              "category": "treatment",
+              "gene": "CD47"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD7"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD7"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CD79A"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CD79A"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CEBPA"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CHEK2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CLEC12A"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "CREBBP"
+            },
+            {
+              "category": "prognosis",
+              "gene": "CREBBP"
+            },
+            {
+              "category": "biomarker",
+              "gene": "CSF3R"
+            },
+            {
+              "category": "germline",
+              "gene": "CSF3R"
+            },
+            {
+              "category": "germline",
+              "gene": "CTC1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "DDX41"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "DEK"
+            },
+            {
+              "category": "prognosis",
+              "gene": "DEK"
+            },
+            {
+              "category": "germline",
+              "gene": "DKC1"
+            },
+            {
+              "category": "germline",
+              "gene": "DNAJC21"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "DNMT3A"
+            },
+            {
+              "category": "prognosis",
+              "gene": "DNMT3A"
+            },
+            {
+              "category": "germline",
+              "gene": "EFL1"
+            },
+            {
+              "category": "germline",
+              "gene": "ELANE"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ELL"
+            },
+            {
+              "category": "germline",
+              "gene": "ERCC6L2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ERG"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ETV6"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ETV6"
+            },
+            {
+              "category": "germline",
+              "gene": "ETV6"
+            },
+            {
+              "category": "germline",
+              "gene": "EVI1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "EZH2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "FCGR1A"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "FCGR1A"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "FIP1L1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "FLT3"
+            },
+            {
+              "category": "germline",
+              "gene": "FLT3"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "FUS"
+            },
+            {
+              "category": "germline",
+              "gene": "G6PC3"
+            },
+            {
+              "category": "biomarker",
+              "gene": "GATA2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "GATA2"
+            },
+            {
+              "category": "germline",
+              "gene": "GATA2"
+            },
+            {
+              "category": "prognosis",
+              "gene": "GATA2"
+            },
+            {
+              "category": "germline",
+              "gene": "GFI1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "GLIS2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "GYPA"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "GYPA"
+            },
+            {
+              "category": "germline",
+              "gene": "HAX1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "HLA-DRA"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "HLA-DRA"
+            },
+            {
+              "category": "prognosis",
+              "gene": "IDH1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "IDH2"
+            },
+            {
+              "category": "treatment",
+              "gene": "IDH2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "IL3RA"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "IRF2BP2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ITGA2B"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ITGA2B"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ITGAM"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ITGAM"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ITGAX"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ITGAX"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ITGB3"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ITGB3"
+            },
+            {
+              "category": "germline",
+              "gene": "JAGN1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "JAK2"
+            },
+            {
+              "category": "germline",
+              "gene": "JAK2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KAT6A"
+            },
+            {
+              "category": "prognosis",
+              "gene": "KAT6A"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KDM5A"
+            },
+            {
+              "category": "biomarker",
+              "gene": "KIT"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KIT"
+            },
+            {
+              "category": "prognosis",
+              "gene": "KIT"
+            },
+            {
+              "category": "germline",
+              "gene": "KMT2A"
+            },
+            {
+              "category": "prognosis",
+              "gene": "KMT2A"
+            },
+            {
+              "category": "biomarker",
+              "gene": "KRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "KRAS"
+            },
+            {
+              "category": "germline",
+              "gene": "KRAS"
+            },
+            {
+              "category": "germline",
+              "gene": "MBD4"
+            },
+            {
+              "category": "germline",
+              "gene": "MDM4"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MECOM"
+            },
+            {
+              "category": "germline",
+              "gene": "MECOM"
+            },
+            {
+              "category": "prognosis",
+              "gene": "MECOM"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MLF1"
+            },
+            {
+              "category": "germline",
+              "gene": "MLH1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MLLT1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MLLT10"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MLLT3"
+            },
+            {
+              "category": "prognosis",
+              "gene": "MLLT3"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MME"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MME"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MNX1"
+            },
+            {
+              "category": "germline",
+              "gene": "MPL"
+            },
+            {
+              "category": "biomarker",
+              "gene": "MPO"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MPO"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MRTFA"
+            },
+            {
+              "category": "germline",
+              "gene": "MSH2"
+            },
+            {
+              "category": "germline",
+              "gene": "MSH6"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "MYC"
+            },
+            {
+              "category": "prognosis",
+              "gene": "MYH11"
+            },
+            {
+              "category": "germline",
+              "gene": "NBN"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NCAM1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NCAM1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NF1"
+            },
+            {
+              "category": "germline",
+              "gene": "NF1"
+            },
+            {
+              "category": "germline",
+              "gene": "NHP2"
+            },
+            {
+              "category": "germline",
+              "gene": "NOP10"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NPM1"
+            },
+            {
+              "category": "germline",
+              "gene": "NPM1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "NRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NRAS"
+            },
+            {
+              "category": "germline",
+              "gene": "NRAS"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NSD1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NUP214"
+            },
+            {
+              "category": "prognosis",
+              "gene": "NUP214"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "NUP98"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PALB2"
+            },
+            {
+              "category": "germline",
+              "gene": "PARN"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PHF6"
+            },
+            {
+              "category": "germline",
+              "gene": "PHF6"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PICALM"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PML"
+            },
+            {
+              "category": "germline",
+              "gene": "PMS2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PPM1D"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PPM1D"
+            },
+            {
+              "category": "germline",
+              "gene": "PPM1D"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "PRDM16"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "germline",
+              "gene": "PTPN11"
+            },
+            {
+              "category": "biomarker",
+              "gene": "PTPRC"
+            },
+            {
+              "category": "biomarker",
+              "gene": "RAD21"
+            },
+            {
+              "category": "biomarker",
+              "gene": "RARA"
+            },
+            {
+              "category": "germline",
+              "gene": "RARA"
+            },
+            {
+              "category": "germline",
+              "gene": "RBBP6"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RBM15"
+            },
+            {
+              "category": "germline",
+              "gene": "RECQL4"
+            },
+            {
+              "category": "germline",
+              "gene": "RPA1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "RPN1"
+            },
+            {
+              "category": "germline",
+              "gene": "RTEL1"
+            },
+            {
+              "category": "prognosis",
+              "gene": "RUNX1T1"
+            },
+            {
+              "category": "germline",
+              "gene": "SAMD9"
+            },
+            {
+              "category": "germline",
+              "gene": "SAMD9L"
+            },
+            {
+              "category": "germline",
+              "gene": "SBDS"
+            },
+            {
+              "category": "biomarker",
+              "gene": "SETBP1"
+            },
+            {
+              "category": "biomarker",
+              "gene": "SF3B1"
+            },
+            {
+              "category": "treatment",
+              "gene": "SIRPA"
+            },
+            {
+              "category": "germline",
+              "gene": "SRP54"
+            },
+            {
+              "category": "germline",
+              "gene": "SRP72"
+            },
+            {
+              "category": "biomarker",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "germline",
+              "gene": "SRSF2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "STAG2"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "STAT3"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "STAT5B"
+            },
+            {
+              "category": "treatment",
+              "gene": "SYK"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TBL1XR1"
+            },
+            {
+              "category": "germline",
+              "gene": "TERC"
+            },
+            {
+              "category": "germline",
+              "gene": "TERT"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TET1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TET2"
+            },
+            {
+              "category": "germline",
+              "gene": "TET2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "TFRC"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "TFRC"
+            },
+            {
+              "category": "germline",
+              "gene": "TINF2"
+            },
+            {
+              "category": "biomarker",
+              "gene": "TP53"
+            },
+            {
+              "category": "prognosis",
+              "gene": "TP53"
+            },
+            {
+              "category": "treatment",
+              "gene": "TP53"
+            },
+            {
+              "category": "biomarker",
+              "gene": "U2AF1"
+            },
+            {
+              "category": "germline",
+              "gene": "VPS45"
+            },
+            {
+              "category": "germline",
+              "gene": "WAS"
+            },
+            {
+              "category": "germline",
+              "gene": "WRAP53"
+            },
+            {
+              "category": "germline",
+              "gene": "WT1"
+            },
+            {
+              "category": "diagnosis",
+              "gene": "ZBTB16"
+            },
+            {
+              "category": "biomarker",
+              "gene": "ZRSR2"
+            }
+          ],
+          "ratio": 0.13
+        },
+        "input_id": "c2b332e6-e926-543e-af15-b6b3dccfc755",
+        "markdown_sha256": "5d6e1456d7c380004a8ab45a392d08a4c154eab5112ed2890b32bb43eb21de43",
+        "source_filename": "Dohner_2022_ELN_AML_recommendations.pdf",
+        "source_sha256": "807f4d95316a7d5ddf51e41455746d42bcedfbbcf199d5560204bffc8ace81a1",
+        "warnings": [
+          "d-hner-2022-blood-140-1345-C0008: evidence is identical to d-hner-2022-blood-140-1345-C0007; review independent utility",
+          "d-hner-2022-blood-140-1345-C0010: evidence is identical to d-hner-2022-blood-140-1345-C0009; review independent utility"
         ]
       }
     },
