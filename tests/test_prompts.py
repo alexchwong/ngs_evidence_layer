@@ -63,6 +63,29 @@ class PromptIntegrationTests(unittest.TestCase):
             prompt,
         )
 
+    def test_phase4_embeds_canonical_final_validator_verbatim(self):
+        rendered = BUILD_PROMPTS.render(4)
+        start_marker = "<!-- BEGIN VERBATIM scripts/final_validation.py -->\n```python\n"
+        end_marker = "\n```\n<!-- END VERBATIM scripts/final_validation.py -->"
+        embedded = rendered.split(start_marker, 1)[1].split(end_marker, 1)[0]
+        expected = (ROOT / "scripts" / "final_validation.py").read_text(
+            encoding="utf-8"
+        ).rstrip()
+        self.assertEqual(embedded, expected)
+
+    def test_phase4_requires_successful_validation_as_final_action(self):
+        prompt = BUILD_PROMPTS.render(4)
+        self.assertIn("python scripts/final_validation.py", prompt)
+        self.assertIn(
+            "The final action before returning `paper.final.json` must be a "
+            "successful run",
+            " ".join(prompt.split()),
+        )
+        self.assertIn(
+            "Do not edit `paper.final.json` after the successful run.",
+            " ".join(prompt.split()),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

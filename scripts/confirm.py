@@ -9,6 +9,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import final_validation
 import package_validation as validation
 
 
@@ -27,60 +28,62 @@ def confirm(args):
         raise ValueError("required working files missing:\n" + "\n".join(missing))
 
     metadata = validation.read_json(paths["metadata"], "metadata")
-    census = validation.read_json(paths["census"], "census")
     final = validation.read_json(paths["final"], "final package")
-    errors = [f"metadata: {error}" for error in validation.validate_metadata(metadata)]
-    errors.extend(f"census: {error}" for error in validation.validate_census(census, metadata))
+    errors = []
     if metadata.get("publication_key") != args.publication_key:
         errors.append("metadata publication_key does not match --key")
+
     approved_round = (final.get("audit") or {}).get("approved_round")
-    provisional_path = working / f"paper.provisional-{approved_round:03d}.json" if isinstance(approved_round, int) else None
-    review_path = working / f"paper.review-{approved_round:03d}.json" if isinstance(approved_round, int) else None
-    provisional = None
-    if provisional_path is None or not provisional_path.is_file():
-        errors.append("final audit approved_round does not identify an existing provisional file")
-    else:
-        provisional = validation.read_json(provisional_path, "approved provisional package")
-
-        # The approved provisional is an immutable historical artefact. Phase 4
-        # may correct its evidence in paper.final.json, so confirmation validates
-        # provisional structure and lineage but source-validates only the final.
-        provisional_errors, _warnings, _report = validation.validate_package(
-            provisional,
-            metadata,
-            census,
-            source_text=None,
-            require_final=False,
-        )
-        errors.extend(f"provisional: {error}" for error in provisional_errors)
-        errors.extend(
-            f"final lineage: {error}"
-            for error in validation.validate_final_against_provisional(final, provisional)
-        )
-        if review_path is None or not review_path.is_file():
-            errors.append("final audit approved_round does not identify an existing Phase 3 review")
-        else:
-            review = validation.read_json(review_path, "Phase 3 review")
-            review_errors = validation.validate_review(review, provisional)
-            errors.extend(f"review: {error}" for error in review_errors)
-
-    final_errors, warnings, report = validation.validate_package(
-        final, metadata, census, paths["source"].read_text(encoding="utf-8"), True
+    provisional_path = (
+        working / f"paper.provisional-{approved_round:03d}.json"
+        if isinstance(approved_round, int)
+        else None
     )
-    errors.extend(f"final: {error}" for error in final_errors)
+    review_path = (
+        working / f"paper.review-{approved_round:03d}.json"
+        if isinstance(approved_round, int)
+        else None
+    )
+    if provisional_path is None or not provisional_path.is_file():
+        errors.append(
+            "final audit approved_round does not identify an existing provisional file"
+        )
+    if review_path is None or not review_path.is_file():
+        errors.append(
+            "final audit approved_round does not identify an existing Phase 3 review"
+        )
     if errors:
         raise ValueError("\n".join(errors))
+
+    validation_errors, warnings, report = final_validation.validate_final_files(
+        metadata_path=paths["metadata"],
+        census_path=paths["census"],
+        source_path=paths["source"],
+        provisional_path=provisional_path,
+        review_path=review_path,
+        final_path=paths["final"],
+    )
+    if validation_errors:
+        raise ValueError("\n".join(validation_errors))
 
     final_destination = args.accept_dir / f"{args.publication_key}.final.json"
     census_destination = args.accept_dir / f"{args.publication_key}.census.json"
     archive_destination = args.archive_dir / args.publication_key
-    collisions = [path for path in (final_destination, census_destination, archive_destination) if path.exists()]
+    collisions = [
+        path
+        for path in (final_destination, census_destination, archive_destination)
+        if path.exists()
+    ]
     if collisions:
-        raise ValueError("destination already exists:\n" + "\n".join(str(path) for path in collisions))
-
+        raise ValueError(
+            "destination already exists:\n"
+            + "\n".join(str(path) for path in collisions)
+        )
     args.accept_dir.mkdir(parents=True, exist_ok=True)
     args.archive_dir.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=f".{args.publication_key}.", dir=args.accept_dir))
+    staging = Path(
+        tempfile.mkdtemp(prefix=f".{args.publication_key}.", dir=args.accept_dir)
+    )
     staged_final = staging / final_destination.name
     staged_census = staging / census_destination.name
     accepted = {

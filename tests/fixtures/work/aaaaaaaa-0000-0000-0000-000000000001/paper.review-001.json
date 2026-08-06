@@ -1,0 +1,55 @@
+{
+  "schema_version": "5.0",
+  "paper_id": "aaaaaaaa-0000-0000-0000-000000000001",
+  "round": 1,
+  "review_date": "2026-01-02",
+  "reviewer_model": "fixture-audit-model",
+  "extraction_model_reviewed": "fixture-carding-model",
+  "result": "review_complete",
+  "audit": {
+    "publication_type_verdict": {
+      "package_value": "guideline",
+      "auditor_value": "guideline",
+      "verdict": "pass",
+      "verified_by_phase3": true,
+      "basis": "The package value is defensible from the paper."
+    },
+    "cards_total": 8,
+    "cards_passed": 8,
+    "cards_failed": 0
+  },
+  "card_results": [
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-dx-001",
+      "verdict": "pass"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-dx-002",
+      "verdict": "pass"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-px-003",
+      "verdict": "pass"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-004",
+      "verdict": "pass"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genec-px-005",
+      "verdict": "pass"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-genea-mrd-006",
+      "verdict": "pass"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-geneb-mrd-007",
+      "verdict": "pass"
+    },
+    {
+      "card_id": "fixture-2020-fixture-journal-1-1-gened-gl-008",
+      "verdict": "pass"
+    }
+  ]
+}

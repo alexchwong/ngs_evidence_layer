@@ -98,7 +98,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
             "paper_id": provisional["paper_id"],
             "round": 1,
             "review_date": "2026-08-02",
-            "reviewer_model": "fixture-review-model",
+            "reviewer_model": "fixture-audit-model",
             "extraction_model_reviewed": provisional["extraction_model"],
             "result": "review_complete",
             "audit": {

@@ -1,5 +1,4 @@
 # Phase 4 — human adjudication and finalization
-
 ## Active phase and output contract
 
 Active phase: **Phase 4 only**. This prompt is the sole authority for this session's
@@ -10,7 +9,6 @@ Read-only inputs: `paper.md`, `metadata.json`, `paper.census.json`,
 them as inputs only; do not overwrite them.
 
 Phase 4 has two checkpoints:
-
 1. if Phase 3 failed any card or publication type, discuss those failed items in chat
    and create no file until the user finalizes adjudication;
 2. after all failed items are adjudicated, or immediately if nothing failed, return
@@ -18,14 +16,12 @@ Phase 4 has two checkpoints:
 
 Phase 4 is final. Do not create another provisional package, another Phase 3 review,
 or another audit round. Do not send any card back to Phase 3.
-
 ## Entry validation
 
 Require a well-formed round-1 provisional package and its matching complete Phase 3
 review. Their `paper_id`, `round`, extraction-model identity, card IDs, and card
 counts must match. The review must contain exactly one pass/fail result for every
 provisional card.
-
 Verify model independence before proceeding:
 - read the Phase 2 identity from top-level `extraction_model` in
   `paper.provisional-001.json`;
@@ -34,12 +30,10 @@ Verify model independence before proceeding:
 - require `paper.review-001.json` field `extraction_model_reviewed` to equal the Phase 2
   `extraction_model`; and
 - require `reviewer_model` to differ from `extraction_model`.
-
 If either identity is missing, the reviewed identity does not match, or the Phase 2 and
 Phase 3 identities are identical, stop and report that Phase 3 must be rerun with a
 different model. A missing, mismatched, incomplete, or malformed artefact stops the
 session.
-
 ## Mandatory human adjudication
 
 Adjudicate only:
@@ -48,13 +42,11 @@ Adjudicate only:
 - publication type, if Phase 3 marked it `fail`.
 
 Retain passed cards unchanged. Do not show them or ask the user about them.
-
 ### Initial chat output
 
 Print one numerically ordered section for each failed card directly in chat. Use
 headings and bullet points; do not create a Markdown file. For each failed card,
 show:
-
 1. the exact `card_id`;
 2. the current interpretation and all card fields;
 3. the complete paired evidence;
@@ -63,12 +55,10 @@ show:
 6. a request for the user's free-text questions, decision, or instructions.
 
 Keep Phase 3's and Phase 4's suggestions separate. Neither is the user's decision.
-
 If publication type failed, add a separate numbered section with its current value
 and basis, Phase 3 findings, Phase 4's independent suggestion, and a request for
 free-text input. If nothing failed, create `paper.final.json` without asking
 questions.
-
 ### Discussion and finalization
 
 - Accept free-text discussion and instructions over any number of chat turns.
@@ -79,20 +69,17 @@ questions.
 - Before `FINALIZE`, do not create or return `paper.final.json`.
 - Never infer or supply the user's decision.
 - Never treat a Phase 3 or Phase 4 suggestion as the user's decision.
-
 When the user sends `FINALIZE`:
 
 - verify that the user explicitly and unambiguously addressed every failed item;
 - if anything remains unresolved, ask only about those items and wait for another
   `FINALIZE`; and
 - otherwise apply the user's instructions and create `paper.final.json`.
-
 Human instructions direct amendments but are not source evidence. Verify all retained
 or amended content against `paper.md`, the reporting rules, vocabulary, and schema.
 If an instruction is unsupported, explain the conflict and continue discussion; do
 not silently invent or substitute evidence. Do not record the user's decisions,
 discussion, or adjudication history on cards or elsewhere in the final package.
-
 ## Final package construction
 
 Start from the complete provisional package and apply the adjudicated outcomes.
@@ -100,23 +87,19 @@ Retain, amend, split, or delete cards as directed. Every resulting card must rem
 independently useful and have exactly one minimal sufficient, source-verbatim evidence
 bundle. Recompute card IDs when splitting, one-to-one evidence pairing,
 `genes_covered`, `diseases_covered`, and canonical `disease_ancestors`.
-
 Set `publication_type` and `publication_type_basis` to the adjudicated final values.
 Set `publication_type_verified_by_phase3` to true: Phase 3 supplied the independent
 assessment and the human adjudication is final, including when it retains or corrects
 a Phase 3 failure.
 
 For audit identity fields, copy strings exactly and do not infer substitutes:
-
 - `audit.audit_model` must be copied verbatim from the Phase 3 review's top-level
   `reviewer_model`. It records the Phase 3 model identity, not the Phase 4 model.
 - `audit.extraction_model_reviewed` must be copied verbatim from the top-level
   `extraction_model` in `paper.provisional-001.json`.
 - The Phase 3 review's top-level `reviewer_model` must differ from the provisional
   package's top-level `extraction_model`. Do not rename either field.
-
 Keep `round` equal to 1. Populate the existing final `audit` shape:
-
 ```json
 {
   "audit_date": "YYYY-MM-DD",
@@ -136,11 +119,9 @@ Keep `round` equal to 1. Populate the existing final `audit` shape:
   ]
 }
 ```
-
 Repeat `results` exactly once for every resulting card. All resulting cards are
 marked pass because the human review and action taken are final. Do not add human
 decision fields to the audit; adjudication is represented by the final card content.
-
 ## Reporting rules
 
 # Agreed reporting rules for interpretative myeloid NGS summaries
@@ -554,11 +535,167 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   }
 }
 ```
+## Deterministic final validation
 
+The validator below is the canonical repository program used by `scripts/confirm.py`.
+It is included verbatim. Do not modify, summarize, reinterpret, or replace any check.
+
+<!-- BEGIN VERBATIM scripts/final_validation.py -->
+```python
+#!/usr/bin/env python3
+"""Deterministically validate a final paper package and its source artefacts."""
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import package_validation as validation
+
+
+def validate_final_files(
+    *,
+    metadata_path,
+    census_path,
+    source_path,
+    provisional_path,
+    review_path,
+    final_path,
+):
+    """Validate the complete Phase 4 file set used by confirmation."""
+    metadata_path = Path(metadata_path)
+    census_path = Path(census_path)
+    source_path = Path(source_path)
+    provisional_path = Path(provisional_path)
+    review_path = Path(review_path)
+    final_path = Path(final_path)
+
+    metadata = validation.read_json(metadata_path, "metadata")
+    census = validation.read_json(census_path, "census")
+    provisional = validation.read_json(provisional_path, "approved provisional package")
+    review = validation.read_json(review_path, "Phase 3 review")
+    final = validation.read_json(final_path, "final package")
+
+    errors = [
+        f"metadata: {error}"
+        for error in validation.validate_metadata(metadata)
+    ]
+    errors.extend(
+        f"census: {error}"
+        for error in validation.validate_census(census, metadata)
+    )
+
+    provisional_errors, _provisional_warnings, _provisional_report = (
+        validation.validate_package(
+            provisional,
+            metadata,
+            census,
+            source_text=None,
+            require_final=False,
+        )
+    )
+    errors.extend(f"provisional: {error}" for error in provisional_errors)
+
+    review_errors = validation.validate_review(review, provisional)
+    errors.extend(f"review: {error}" for error in review_errors)
+
+    errors.extend(
+        f"final lineage: {error}"
+        for error in validation.validate_final_against_provisional(
+            final, provisional
+        )
+    )
+
+    approved_round = (final.get("audit") or {}).get("approved_round")
+    if approved_round != provisional.get("round"):
+        errors.append(
+            "final audit approved_round does not match provisional round"
+        )
+    if approved_round != review.get("round"):
+        errors.append("final audit approved_round does not match review round")
+
+    audit = final.get("audit") or {}
+    if audit.get("audit_model") != review.get("reviewer_model"):
+        errors.append(
+            "final audit_model does not match Phase 3 reviewer_model"
+        )
+    if audit.get("extraction_model_reviewed") != provisional.get(
+        "extraction_model"
+    ):
+        errors.append(
+            "final extraction_model_reviewed does not match provisional "
+            "extraction_model"
+        )
+    if review.get("reviewer_model") == provisional.get("extraction_model"):
+        errors.append(
+            "Phase 3 reviewer model must differ from Phase 2 extraction model"
+        )
+
+    source_text = source_path.read_text(encoding="utf-8")
+    final_errors, warnings, report = validation.validate_package(
+        final,
+        metadata,
+        census,
+        source_text=source_text,
+        require_final=True,
+    )
+    errors.extend(f"final: {error}" for error in final_errors)
+    return errors, warnings, report
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--metadata", type=Path, required=True)
+    parser.add_argument("--census", type=Path, required=True)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--provisional", type=Path, required=True)
+    parser.add_argument("--review", type=Path, required=True)
+    parser.add_argument("--final", type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        errors, warnings, report = validate_final_files(
+            metadata_path=args.metadata,
+            census_path=args.census,
+            source_path=args.source,
+            provisional_path=args.provisional,
+            review_path=args.review,
+            final_path=args.final,
+        )
+    except (OSError, ValueError) as exc:
+        sys.exit(f"FINAL VALIDATION FAILED:\n{exc}")
+    if errors:
+        sys.exit("FINAL VALIDATION FAILED:\n" + "\n".join(errors))
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    print(json.dumps({"valid": True, **report}, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
+```
+<!-- END VERBATIM scripts/final_validation.py -->
+
+After writing `paper.final.json`, run the repository copy from the repository root:
+
+```bash
+python scripts/final_validation.py \
+  --metadata metadata.json \
+  --census paper.census.json \
+  --source paper.md \
+  --provisional paper.provisional-001.json \
+  --review paper.review-001.json \
+  --final paper.final.json
+```
+
+A non-zero exit status means the final package is invalid. Repair `paper.final.json`
+and rerun the validator until it exits successfully. Do not edit `paper.final.json`
+after the successful run.
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:
-
 1. the active phase is Phase 4, no passed card required adjudication, and every failed
    item was explicitly adjudicated and finalized by the user;
 2. the only file output is `paper.final.json` and no input was overwritten;
@@ -576,7 +713,9 @@ Before writing, verify privately that:
    `extraction_model`; and
 10. the final package conforms to the output schema.
 
-If any check fails, repair the package before finalizing. Do not print the checklist,
-explanatory prose, Markdown fences around JSON, or more than one file.
+The final action before returning `paper.final.json` must be a successful run of the
+deterministic validator against the exact file being returned. If any check fails,
+repair the package and rerun it. Do not print the checklist, explanatory prose,
+Markdown fences around JSON, or more than one file.
 
 Return exactly `paper.final.json`.

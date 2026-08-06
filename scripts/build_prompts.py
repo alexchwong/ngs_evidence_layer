@@ -18,7 +18,6 @@ def vocabulary_errors():
     expected = vocabulary["diseases"] if isinstance(vocabulary, dict) else vocabulary
     actual = package["$defs"]["disease"]["enum"]
     errors = [] if expected == actual else ["disease vocabulary and package schema enum differ"]
-
     publication_vocabulary = json.loads(
         read(ROOT / "schema" / "publication_type_vocabulary.json")
     )
@@ -63,6 +62,10 @@ def render(phase):
     if phase in (2, 4):
         replacements["{{DISEASE_VOCABULARY}}"] = read(ROOT / "schema" / "disease_vocabulary.json")
         replacements["{{PACKAGE_SCHEMA}}"] = read(ROOT / "schema" / "ingestion_package_schema.json")
+    if phase == 4:
+        replacements["{{FINAL_VALIDATION_SCRIPT}}"] = read(
+            ROOT / "scripts" / "final_validation.py"
+        )
     for marker, content in replacements.items():
         template = template.replace(marker, content)
     unresolved = sorted(set(part.split("}}", 1)[0] + "}}" for part in template.split("{{")[1:]))
