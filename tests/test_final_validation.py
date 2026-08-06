@@ -63,11 +63,12 @@ class FinalValidationTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
         self.assertGreater(report["cards"], 0)
-
         result = subprocess.run(
             [
                 sys.executable,
                 str(SCRIPTS / "final_validation.py"),
+                "--phase",
+                "4",
                 "--metadata",
                 str(self.work / "metadata.json"),
                 "--census",

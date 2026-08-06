@@ -75,7 +75,8 @@ class PromptIntegrationTests(unittest.TestCase):
 
     def test_phase4_requires_successful_validation_as_final_action(self):
         prompt = BUILD_PROMPTS.render(4)
-        self.assertIn("python scripts/final_validation.py", prompt)
+        self.assertIn("python final_validation.py --phase 4", prompt)
+        self.assertNotIn("python scripts/final_validation.py", prompt)
         self.assertIn(
             "The final action before returning `paper.final.json` must be a "
             "successful run",
