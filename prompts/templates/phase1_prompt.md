@@ -52,25 +52,22 @@ under `validation_unresolved`; otherwise return an empty list.
 
 ## Deterministic exit validation
 
-The validator below is the canonical program used by repository confirmation. It is
-included verbatim. Do not search for the repository or substitute another validator.
+The bundle below contains the canonical repository validator and every
+repository-owned dependency it requires. Recreate every file verbatim under
+`validation_bundle/`, preserving all displayed relative paths. Do not search for
+the repository, modify a bundled file, combine files, or substitute another
+validator.
 
-<!-- BEGIN VERBATIM scripts/final_validation.py -->
-```python
-{{PHASE_VALIDATION_SCRIPT}}
-```
-<!-- END VERBATIM scripts/final_validation.py -->
+{{PHASE_VALIDATION_BUNDLE}}
 
-After writing `paper.census.json`, save the embedded script as
-`final_validation.py` and run:
+After writing `paper.census.json`, recreate the bundle and run:
 ```bash
-python final_validation.py --phase 1 \
+python validation_bundle/scripts/final_validation.py --phase 1 \
   --metadata metadata.json \
   --census paper.census.json
 ```
 A non-zero exit means the Phase 1 product is invalid. Repair it and rerun until
 successful. Do not edit the output after the successful run.
-
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

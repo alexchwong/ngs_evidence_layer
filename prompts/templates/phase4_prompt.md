@@ -139,23 +139,19 @@ decision fields to the audit; adjudication is represented by the final card cont
 ```
 ## Deterministic exit validation
 
-All required inputs and validator code are provided in this chat. Do not search for,
-access, clone, or inspect any repository or external source.
+All required inputs and the complete validation bundle are provided in this chat.
+Do not search for, access, clone, or inspect any repository or external source.
 
-Treat the code below as the complete executable `scripts/final_validation.py` for
-this session. Write it verbatim to `final_validation.py` in the local
-execution environment. Do not modify, summarize, reinterpret, or replace any check.
+The bundle below contains the canonical repository validator and every
+repository-owned dependency it requires. Recreate every file verbatim under
+`validation_bundle/`, preserving all displayed relative paths. Do not modify,
+summarize, reinterpret, combine, or replace any file or check.
 
-<!-- BEGIN VERBATIM scripts/final_validation.py -->
-```python
-{{PHASE_VALIDATION_SCRIPT}}
-```
-<!-- END VERBATIM scripts/final_validation.py -->
+{{PHASE_VALIDATION_BUNDLE}}
 
-After writing `paper.final.json`, save the embedded script as `final_validation.py`
-and run:
+After writing `paper.final.json`, recreate the bundle and run:
 ```bash
-python final_validation.py --phase 4 \
+python validation_bundle/scripts/final_validation.py --phase 4 \
   --metadata metadata.json \
   --census paper.census.json \
   --source paper.md \
@@ -164,8 +160,8 @@ python final_validation.py --phase 4 \
   --final paper.final.json
 ```
 A non-zero exit means the Phase 4 product is invalid. Repair `paper.final.json` and
-rerun the validator until successful. Do not edit `paper.final.json` after the successful run.
-
+rerun the validator until successful. Do not edit `paper.final.json` after the
+successful run.
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

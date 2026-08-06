@@ -258,23 +258,19 @@ Once the evidence passes these checks, do not shorten it merely for concision.
 
 ## Deterministic exit validation
 
-All required inputs and validator code are provided in this chat. Do not search for,
-access, clone, or inspect any repository or external source.
+All required inputs and the complete validation bundle are provided in this chat.
+Do not search for, access, clone, or inspect any repository or external source.
 
-Treat the code below as the complete executable `scripts/final_validation.py` for
-this session. Write it verbatim to `final_validation.py` in the local
-execution environment. Do not modify, summarize, reinterpret, or replace any check.
+The bundle below contains the canonical repository validator and every
+repository-owned dependency it requires. Recreate every file verbatim under
+`validation_bundle/`, preserving all displayed relative paths. Do not modify,
+summarize, reinterpret, combine, or replace any file or check.
 
-<!-- BEGIN VERBATIM scripts/final_validation.py -->
-```python
-{{PHASE_VALIDATION_SCRIPT}}
-```
-<!-- END VERBATIM scripts/final_validation.py -->
+{{PHASE_VALIDATION_BUNDLE}}
 
-After writing `paper.provisional-001.json`, save the embedded script as
-`final_validation.py` and run:
+After writing `paper.provisional-001.json`, recreate the bundle and run:
 ```bash
-python final_validation.py --phase 2 \
+python validation_bundle/scripts/final_validation.py --phase 2 \
   --metadata metadata.json \
   --census paper.census.json \
   --source paper.md \
@@ -283,7 +279,6 @@ python final_validation.py --phase 2 \
 A non-zero exit means the Phase 2 product is invalid. Repair it and rerun until
 successful. Do not edit the output after the successful run. The census-critique
 branch has no JSON product validator; its branch and filename checks remain manual.
-
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:
