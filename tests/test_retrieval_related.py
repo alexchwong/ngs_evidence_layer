@@ -173,15 +173,21 @@ class RetrievalRelatedStep4Tests(unittest.TestCase):
         self.assertEqual(result["retrieved"], [])
         self.assertEqual(result["suppressed"]["count"], 1)
 
-    def test_diagnosis_and_germline_remain_gene_only(self):
+    def test_diagnosis_is_disease_filtered_and_germline_remains_gene_only(self):
         diagnosis = card("dx", "AML", "diagnosis", gene="RUNX1")
         diagnosis["matched_genes"] = ["RUNX1"]
         germline = card("germline", "AML", "germline", gene="RUNX1")
-        result = retrieve.step4([germline], ["RUNX1"], "MDS", [diagnosis])
+        result = retrieve.step4(
+            [diagnosis, germline], ["RUNX1"], "MDS", [diagnosis]
+        )
         hits = {item["card_id"]: item for item in result["retrieved"]}
-        self.assertEqual(set(hits), {"dx", "germline"})
-        self.assertEqual(hits["dx"]["retrieval_match"], "step2_diagnosis")
+        self.assertEqual(set(hits), {"germline"})
         self.assertEqual(hits["germline"]["retrieval_match"], "gene_only")
+        self.assertEqual(result["suppressed"]["by_disease"], {"AML": 1})
+        self.assertEqual(
+            {item["card_id"] for item in result["suppressed"]["cards"]},
+            {"dx"},
+        )
 
     def test_render_exposes_related_match_without_changing_card_disease_context(self):
         pmf = card("pmf-prog", "PMF", "prognosis")

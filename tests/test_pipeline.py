@@ -623,7 +623,7 @@ class RetrievalAndRenderTests(unittest.TestCase):
         self.assertNotIn("escalation_candidates", diagnosis)
         self.assertIn("AML", diagnosis["allowed_refined_diseases"])
         full = retrieve.step4(self.cards, ["GENEA"], "MDS", diagnosis["diagnosis_cards"])
-        self.assertEqual(full["suppressed"]["by_disease"], {"AML": 3})
+        self.assertEqual(full["suppressed"]["by_disease"], {"AML": 5, "MDS/AML": 1})
 
     def test_taxonomic_ancestors_do_not_broaden_clinical_retrieval(self):
         card = {
