@@ -3,24 +3,23 @@
 The two model decisions in the procedure are bounded elsewhere: step 1 extracts
 structured case facts, genes, and a provisional disease from free text; step 3
 adjudicates those facts against retrieved diagnosis cards. Between and after them,
-what a gene is allowed to retrieve is decided by code, because a prompt is a
-request and code is a guarantee.
+what a gene or disease is allowed to retrieve is decided by code, because a prompt
+is a request and code is a guarantee.
 Two subcommands:
   diagnosis   step 2. Every diagnosis card matching a submitted gene OR the
               provisional disease OR a direct diagnosis retrieval_related disease.
               Gene matching remains disease-unrestricted so an unexpected variant
               can still point toward another diagnosis. Carries structured case
               facts into the evidence-bounded adjudication input.
-  full        step 4. prognosis, treatment and biomarker cards on gene match AND
-              (exact disease match OR category-specific retrieval_related match OR
-              empty disease array); germline cards on gene match alone. Diagnosis
-              cards from the step 2 bundle are carried through so the rendered
-              block is complete.
-Nothing is silently dropped. Cards excluded by the disease filter appear in
-`suppressed`, counted by disease. Submitted genes with no card anywhere appear in
-`not_assessed`, named individually. A gene that was considered and cleared and a
-gene that was never looked at are very different things, and a clinician reading
-the output cannot tell them apart unless the tool says so.
+  full        step 4. diagnosis, prognosis, treatment and biomarker cards matching a
+              submitted gene AND the reviewed disease or a category-specific
+              retrieval_related disease. Germline cards remain gene-only. Phase-2
+              diagnosis cards are re-filtered under this stricter Step-4 rule.
+Nothing is silently dropped. Gene-matched cards excluded by the disease filter
+appear in `suppressed`, counted by disease. Submitted genes with no card anywhere
+appear in `not_assessed`, named individually. A gene that was considered and cleared
+and a gene that was never looked at are very different things, and a clinician
+reading the output cannot tell them apart unless the tool says so.
 Usage:
   retrieve.py diagnosis --case-input case-input.json --output step2.json
   retrieve.py diagnosis --genes NPM1 DNMT3A FLT3 --case-facts case-facts.json \
@@ -35,12 +34,14 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CORPUS = REPO_ROOT / "output/corpus/nel.corpus.json"
 DEFAULT_INDEX = REPO_ROOT / "output/corpus/nel.index.json"
-DISEASE_FILTERED = ("prognosis", "treatment", "biomarker")
+DISEASE_FILTERED = ("diagnosis", "prognosis", "treatment", "biomarker")
 
 
 def canonical_bytes(document):
@@ -408,47 +409,65 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
     _validate_case_disease(refined_disease, normalised_genes, field="refined_disease")
     wanted = set(normalised_genes)
     retrieved = []
-    for card in diagnosis_cards:
-        hit = dict(card)
-        hit["retrieval_match"] = "step2_diagnosis"
-        retrieved.append(hit)
     suppressed = []
     retrieval_scope = {
         category: vocab.retrieval_related_diseases(refined_disease, category)
         for category in DISEASE_FILTERED
     }
+
+    # Step 2 intentionally retrieves diagnosis cards broadly using
+    # gene OR disease OR retrieval_related. Step 4 is stricter: diagnosis cards,
+    # like prognosis/treatment/biomarker cards, require both a gene match and a
+    # disease-scope match. Use the Step-2 card set as the diagnosis source so Step 4
+    # cannot introduce diagnosis evidence that was unavailable to adjudication.
+    diagnosis_ids = {card["card_id"] for card in diagnosis_cards}
+
     for card in cards:
         category = card["category"]
-        if category == "diagnosis":
+        if category == "diagnosis" and card["card_id"] not in diagnosis_ids:
             continue
+
         matched = match_genes(card, wanted)
-        if not matched:
-            continue
         hit = dict(card)
         hit["matched_genes"] = matched
+
         if category == "germline":
-            # Germline retrieves on gene alone. A predisposition gene does not stop
-            # predisposing because the marrow was called something else.
-            hit["retrieval_match"] = "gene_only"
-            retrieved.append(hit)
+            # Germline remains gene-only.
+            if matched:
+                hit["retrieval_match"] = "gene_only"
+                retrieved.append(hit)
             continue
+
+        if category not in DISEASE_FILTERED:
+            continue
+
         diseases = card["diseases"]
         if not diseases:
-            hit["retrieval_match"] = "disease_unspecified"
-            retrieved.append(hit)
+            # Disease-filtered categories require disease scope in Step 4.
+            # A gene match alone is insufficient.
+            if matched:
+                suppressed.append(hit)
             continue
-        if refined_disease in diseases:
-            hit["retrieval_match"] = "exact"
-            retrieved.append(hit)
-            continue
+
+        exact_match = refined_disease in diseases
         related = set(retrieval_scope.get(category, []))
         related_matches = [disease for disease in diseases if disease in related]
-        if related_matches:
-            hit["retrieval_match"] = "related"
-            hit["matched_retrieval_related_diseases"] = related_matches
+        disease_matched = exact_match or bool(related_matches)
+
+        # Step 4 rule: gene AND (exact disease OR retrieval_related disease).
+        if matched and disease_matched:
+            if exact_match:
+                hit["retrieval_match"] = "exact"
+            else:
+                hit["retrieval_match"] = "related"
+                hit["matched_retrieval_related_diseases"] = related_matches
             retrieved.append(hit)
-        else:
+            continue
+
+        # A gene-matched card outside disease scope was considered but suppressed.
+        if matched:
             suppressed.append(hit)
+
     assessed = {gene for hit in retrieved for gene in hit["matched_genes"]}
     assessed |= {gene for hit in suppressed for gene in hit["matched_genes"]}
     not_assessed = sorted(wanted - assessed)
