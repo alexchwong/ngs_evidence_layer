@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Retrieval steps 2 and 4. Everything here is a script for a reason.
-
 The two model decisions in the procedure are bounded elsewhere: step 1 extracts
 structured case facts, genes, and a provisional disease from free text; step 3
 adjudicates those facts against retrieved diagnosis cards. Between and after them,
 what a gene is allowed to retrieve is decided by code, because a prompt is a
 request and code is a guarantee.
 Two subcommands:
-  diagnosis   step 2. Every diagnosis card for the submitted genes, with no
-              disease filter at all, because a gene may point toward a diagnosis
-              other than the one the marrow report proposed. Carries structured
-              case facts into the evidence-bounded adjudication input.
+  diagnosis   step 2. Every diagnosis card matching a submitted gene OR the
+              provisional disease OR a direct diagnosis retrieval_related disease.
+              Gene matching remains disease-unrestricted so an unexpected variant
+              can still point toward another diagnosis. Carries structured case
+              facts into the evidence-bounded adjudication input.
   full        step 4. prognosis, treatment and biomarker cards on gene match AND
               (exact disease match OR category-specific retrieval_related match OR
               empty disease array); germline cards on gene match alone. Diagnosis
@@ -37,7 +37,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CORPUS = REPO_ROOT / "output/corpus/nel.corpus.json"
 DEFAULT_INDEX = REPO_ROOT / "output/corpus/nel.index.json"
@@ -139,7 +138,6 @@ def _normalise_genes(genes, *, field="genes"):
 
 def _validate_case_disease(disease, genes, *, field):
     """Validate one case-level disease against the submitted variant genes.
-
     ``no_haematological_malignancy`` is deliberately case-only and is legal only
     when no variant genes are submitted. Other diseases may also have no reported
     variants; the case-only term must not be inferred solely from an empty gene list.
@@ -188,15 +186,24 @@ def step2(cards, genes, provisional_disease, case_facts=None):
     normalised_genes = _normalise_genes(list(genes), field="genes")
     _validate_case_disease(provisional_disease, normalised_genes, field="provisional_disease")
     wanted = set(normalised_genes)
+    related_diseases = set(
+        vocab.retrieval_related_diseases(provisional_disease, "diagnosis")
+    )
     hits = []
     for card in cards:
         if card["category"] != "diagnosis":
             continue
         matched = match_genes(card, wanted)
-        if matched:
-            hit = dict(card)
-            hit["matched_genes"] = matched
-            hits.append(hit)
+        diseases = set(card["diseases"])
+        disease_matched = (
+            provisional_disease in diseases
+            or bool(diseases & related_diseases)
+        )
+        if not matched and not disease_matched:
+            continue
+        hit = dict(card)
+        hit["matched_genes"] = matched
+        hits.append(hit)
     genes_with_diagnosis_card = {gene for hit in hits for gene in hit["matched_genes"]}
     return {
         "step": 2,
@@ -243,7 +250,6 @@ def _validate_user_review(
         raise ValueError(
             "user_review must contain exactly: " + ", ".join(sorted(review_keys))
         )
-
     decision = review["decision"]
     if decision not in {"pending", "agree", "disagree"}:
         raise ValueError(f"invalid user_review decision {decision!r}")
@@ -294,7 +300,6 @@ def _validate_user_review(
         raise ValueError(
             "a disagreeing user_review requires the user's integrated diagnostic_label"
         )
-
     return review
 
 
@@ -405,7 +410,7 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
     retrieved = []
     for card in diagnosis_cards:
         hit = dict(card)
-        hit["retrieval_match"] = "gene_only"
+        hit["retrieval_match"] = "step2_diagnosis"
         retrieved.append(hit)
     suppressed = []
     retrieval_scope = {

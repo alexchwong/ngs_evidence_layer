@@ -375,7 +375,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 ```json
 {
-  "vocabulary_version": "1.3",
+  "vocabulary_version": "1.4",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
   "diseases": [
     "CHIP",
@@ -438,82 +438,100 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   },
   "retrieval_related": {
     "MDS": {
+      "diagnosis": ["CCUS", "CHIP"],
       "prognosis": ["CCUS", "CHIP"],
       "biomarker": ["CCUS", "CHIP"]
     },
     "CCUS": {
+      "diagnosis": ["CHIP", "MDS"],
       "prognosis": ["CHIP", "MDS"],
       "biomarker": ["CHIP", "MDS"]
     },
     "CHIP": {
+      "diagnosis": ["CCUS"],
       "biomarker": ["CCUS"]
     },
     "MDS/AML": {
+      "diagnosis": ["MDS", "AML"],
       "prognosis": ["MDS", "AML"],
       "treatment": ["MDS", "AML"],
       "biomarker": ["MDS", "AML"]
     },
     "APL": {
+      "diagnosis": ["AML"],
       "biomarker": ["AML"]
     },
     "MDS/MPN": {
+      "diagnosis": ["MDS", "MPN"],
       "prognosis": ["MDS", "MPN"],
       "treatment": ["MDS", "MPN"],
       "biomarker": ["MDS", "MPN"]
     },
     "MDS/MPN-U": {
+      "diagnosis": ["MDS/MPN", "MDS", "MPN"],
       "prognosis": ["MDS/MPN", "MDS", "MPN"],
       "treatment": ["MDS/MPN", "MDS", "MPN"],
       "biomarker": ["MDS/MPN", "MDS", "MPN"]
     },
     "CMML": {
+      "diagnosis": ["MDS/MPN", "MDS"],
       "prognosis": ["MDS/MPN", "MDS"],
       "biomarker": ["MDS/MPN", "MDS"]
     },
     "aCML": {
+      "diagnosis": ["MDS/MPN", "MPN", "CNL"],
       "prognosis": ["MDS/MPN", "MPN"],
       "treatment": ["MDS/MPN", "MPN"],
       "biomarker": ["MDS/MPN", "MPN", "CNL"]
     },
     "MDS/MPN-SF3B1-T": {
+      "diagnosis": ["MDS/MPN", "MDS", "ET"],
       "prognosis": ["MDS/MPN", "MDS", "ET"],
       "biomarker": ["MDS/MPN", "MDS", "ET"]
     },
     "MPN-U": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
     },
     "PV": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
     },
     "ET": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
     },
     "PMF": {
+      "diagnosis": ["MPN", "post-PV/post-ET MF"],
       "prognosis": ["MPN", "post-PV/post-ET MF"],
       "biomarker": ["MPN", "post-PV/post-ET MF"]
     },
     "post-PV/post-ET MF": {
+      "diagnosis": ["PMF", "MPN"],
       "prognosis": ["PMF", "MPN"],
       "treatment": ["PMF", "MPN"],
       "biomarker": ["PMF", "MPN"]
     },
     "MPN blast phase": {
+      "diagnosis": ["AML", "MPN"],
       "prognosis": ["AML", "MPN"],
       "treatment": ["AML", "MPN"],
       "biomarker": ["AML", "MPN"]
     },
     "CNL": {
+      "diagnosis": ["MPN", "aCML"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN", "aCML"]
     },
     "CEL": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
@@ -541,6 +559,7 @@ Do not repeat the clinical history, morphology or standard treatment unless need
     "other"
   ],
   "disease_naming_expected": [
+    "diagnosis",
     "prognosis",
     "treatment",
     "biomarker"
@@ -1552,7 +1571,7 @@ if __name__ == "__main__":
 <!-- BEGIN VERBATIM schema/disease_vocabulary.json -->
 ```json
 {
-  "vocabulary_version": "1.3",
+  "vocabulary_version": "1.4",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
   "diseases": [
     "CHIP",
@@ -1615,82 +1634,100 @@ if __name__ == "__main__":
   },
   "retrieval_related": {
     "MDS": {
+      "diagnosis": ["CCUS", "CHIP"],
       "prognosis": ["CCUS", "CHIP"],
       "biomarker": ["CCUS", "CHIP"]
     },
     "CCUS": {
+      "diagnosis": ["CHIP", "MDS"],
       "prognosis": ["CHIP", "MDS"],
       "biomarker": ["CHIP", "MDS"]
     },
     "CHIP": {
+      "diagnosis": ["CCUS"],
       "biomarker": ["CCUS"]
     },
     "MDS/AML": {
+      "diagnosis": ["MDS", "AML"],
       "prognosis": ["MDS", "AML"],
       "treatment": ["MDS", "AML"],
       "biomarker": ["MDS", "AML"]
     },
     "APL": {
+      "diagnosis": ["AML"],
       "biomarker": ["AML"]
     },
     "MDS/MPN": {
+      "diagnosis": ["MDS", "MPN"],
       "prognosis": ["MDS", "MPN"],
       "treatment": ["MDS", "MPN"],
       "biomarker": ["MDS", "MPN"]
     },
     "MDS/MPN-U": {
+      "diagnosis": ["MDS/MPN", "MDS", "MPN"],
       "prognosis": ["MDS/MPN", "MDS", "MPN"],
       "treatment": ["MDS/MPN", "MDS", "MPN"],
       "biomarker": ["MDS/MPN", "MDS", "MPN"]
     },
     "CMML": {
+      "diagnosis": ["MDS/MPN", "MDS"],
       "prognosis": ["MDS/MPN", "MDS"],
       "biomarker": ["MDS/MPN", "MDS"]
     },
     "aCML": {
+      "diagnosis": ["MDS/MPN", "MPN", "CNL"],
       "prognosis": ["MDS/MPN", "MPN"],
       "treatment": ["MDS/MPN", "MPN"],
       "biomarker": ["MDS/MPN", "MPN", "CNL"]
     },
     "MDS/MPN-SF3B1-T": {
+      "diagnosis": ["MDS/MPN", "MDS", "ET"],
       "prognosis": ["MDS/MPN", "MDS", "ET"],
       "biomarker": ["MDS/MPN", "MDS", "ET"]
     },
     "MPN-U": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
     },
     "PV": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
     },
     "ET": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
     },
     "PMF": {
+      "diagnosis": ["MPN", "post-PV/post-ET MF"],
       "prognosis": ["MPN", "post-PV/post-ET MF"],
       "biomarker": ["MPN", "post-PV/post-ET MF"]
     },
     "post-PV/post-ET MF": {
+      "diagnosis": ["PMF", "MPN"],
       "prognosis": ["PMF", "MPN"],
       "treatment": ["PMF", "MPN"],
       "biomarker": ["PMF", "MPN"]
     },
     "MPN blast phase": {
+      "diagnosis": ["AML", "MPN"],
       "prognosis": ["AML", "MPN"],
       "treatment": ["AML", "MPN"],
       "biomarker": ["AML", "MPN"]
     },
     "CNL": {
+      "diagnosis": ["MPN", "aCML"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN", "aCML"]
     },
     "CEL": {
+      "diagnosis": ["MPN"],
       "prognosis": ["MPN"],
       "treatment": ["MPN"],
       "biomarker": ["MPN"]
@@ -1718,6 +1755,7 @@ if __name__ == "__main__":
     "other"
   ],
   "disease_naming_expected": [
+    "diagnosis",
     "prognosis",
     "treatment",
     "biomarker"

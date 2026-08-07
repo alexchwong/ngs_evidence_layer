@@ -238,6 +238,17 @@ competing diagnosis or precedence rule. Consider the competing diagnosis when a
 supplied mutation, cytogenetic or FISH finding, copy-number result, morphology, blood
 count, or clinical feature suggests that it may be present. Its mention in a card is
 not by itself enough to raise it.
+
+If `diagnosis_cards` is empty:
+- do not reclassify;
+- set `status` to `"indeterminate"`;
+- preserve `provisional_disease` as both `refined_disease` and
+  `downstream_filter_disease`;
+- set `diagnostic_label` to null, `driven_by` to `[]`, and
+  `criterion_assessment` to `[]`;
+- state in `reason` that no corpus diagnosis evidence was retrieved;
+- continue to mandatory user review.
+
 ### Mandatory user review
 
 First determine the evidence-bounded integrated diagnosis, taking the supplied NGS
@@ -322,9 +333,9 @@ Step 4 deterministically retrieves gene-matched prognosis, treatment, and biomar
 cards whose exact `diseases` contain either the reviewed case disease or a direct
 category-specific disease listed under that case disease in `retrieval_related`; a
 legacy card with an empty disease array remains disease-unspecified and is retained.
-Diagnosis cards and germline cards remain gene-only. `umbrella` and
-`disease_ancestors` remain taxonomy/indexing metadata and are not consulted for this
-retrieval expansion. Related retrieval is directional and non-transitive.
+Diagnosis cards are carried through from Step 2; germline cards remain gene-only.
+`umbrella` and `disease_ancestors` remain taxonomy/indexing metadata and are not
+consulted for retrieval expansion. Related retrieval is directional and non-transitive.
 
 The wrapper deterministically writes:
 

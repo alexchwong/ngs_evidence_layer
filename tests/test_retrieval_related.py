@@ -180,7 +180,7 @@ class RetrievalRelatedStep4Tests(unittest.TestCase):
         result = retrieve.step4([germline], ["RUNX1"], "MDS", [diagnosis])
         hits = {item["card_id"]: item for item in result["retrieved"]}
         self.assertEqual(set(hits), {"dx", "germline"})
-        self.assertEqual(hits["dx"]["retrieval_match"], "gene_only")
+        self.assertEqual(hits["dx"]["retrieval_match"], "step2_diagnosis")
         self.assertEqual(hits["germline"]["retrieval_match"], "gene_only")
 
     def test_render_exposes_related_match_without_changing_card_disease_context(self):
