@@ -318,7 +318,7 @@ Do not proceed unless all of the following are true:
 1. `adjudication.json` records `user_review.decision` as `"agree"` or `"disagree"`;
 2. the complete updated JSON has been presented to the user; and
 3. after reviewing that JSON, the user has issued the exact word
-   `ACCEPT`.
+   `PROCEED_TO_STEP_4`.
 
 Do not infer approval from similar wording, an earlier diagnosis decision, or the
 presence of a completed `user_review` object. Do not proceed in the same response in
