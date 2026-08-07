@@ -40,9 +40,10 @@ Evidence-block mode has five steps.
 Only two steps require model interpretation:
 
 1. Step 1 — read the supplied case and create `case-input.json`.
-2. Step 3 — read `prompts/diagnostic_adjudication_prompt.md` and `<work-dir>/step2.json`, then create `<work-dir>/adjudication.json`.
+2. Step 3 — adjudicate the integrated diagnosis, obtain mandatory user review, and finalise `<work-dir>/adjudication.json`.
 
 Steps 2, 4, and 5 are deterministic. The terminal artifact is `<work-dir>/block.md`.
+Step 4 is blocked until Step 3 user review is complete and the user issues the exact continuation word `PROCEED_TO_STEP_4`.
 
 ### NGS-report mode
 
@@ -86,10 +87,12 @@ A deterministic command may read its declared command inputs. That permission ap
 to the command, not to the model. Run only the exact commands declared below.
 
 Each step has one output contract. Do not add commentary, alternate artefacts,
-summaries, or convenience copies. Do not modify an output after a deterministic
-command writes it. If a required input is missing, unreadable, malformed, or
-inconsistent with its contract, stop and report that error. Do not browse for a
-replacement or infer the missing content.
+summaries, or convenience copies. The mandatory Step 3 user-review exchange is the
+sole exception: present the integrated-diagnosis argument and the current complete
+contents of `adjudication.json` in chat, but do not create another file. Do not modify
+an output after a deterministic command writes it. If a required input is missing,
+unreadable, malformed, or inconsistent with its contract, stop and report that
+error. Do not browse for a replacement or infer the missing content.
 
 Use a fresh bounded model session for Step 3 and for Step 6. Each session receives exactly the inputs named by its step.
 
@@ -260,13 +263,67 @@ supplied mutation, cytogenetic or FISH finding, copy-number result, morphology, 
 count, or clinical feature suggests that it may be present. Its mention in a card is
 not by itself enough to raise it.
 
+### Mandatory user review
+
+First determine the evidence-bounded integrated diagnosis, taking the supplied NGS
+results into account, and write the initial `<work-dir>/adjudication.json` with
+`user_review.decision` set to `"pending"` and both other `user_review` values set to
+null.
+
+Then present to the user:
+
+1. the proposed integrated diagnosis; and
+2. one concise paragraph defending it using only the cited diagnosis cards and
+   supplied case facts. Use a short list instead when there are several distinct
+   reasons.
+
+Ask the user to agree or disagree.
+
+- If the user agrees, set `user_review.decision` to `"agree"` and copy the model's
+  `diagnostic_label` and `refined_disease` exactly into `user_review`.
+- If the user disagrees, require the user to supply both the revised integrated
+  diagnostic label and the downstream major diagnostic category. The category must
+  be one exact value from `allowed_refined_diseases`. Record those values in
+  `user_review` and set `user_review.decision` to `"disagree"`.
+
+Do not alter the model's original evidence-bounded `refined_disease`,
+`diagnostic_label`, `criterion_assessment`, `driven_by`, `reason`, or `status` after
+the user responds. These fields preserve the model adjudication. Set
+`downstream_filter_disease` to the completed `user_review.refined_disease`.
+
+After updating the file:
+
+1. acknowledge whether the user agreed or supplied a revised diagnosis;
+2. confirm that `<work-dir>/adjudication.json` was modified;
+3. present the complete updated JSON to the user; and
+4. ask the user to review it and reply with the exact word `PROCEED_TO_STEP_4`.
+
+Do not begin Step 4 in the same response. Any other response leaves Step 4 blocked.
+The diagnosis decision and the continuation word are separate approvals.
+
 ### Output
 
 Write exactly one file, `<work-dir>/adjudication.json`. It must contain JSON only and
-exactly the output shape required by `prompts/diagnostic_adjudication_prompt.md`. Do
-not add prose or extra fields.
+exactly the output shape required by `prompts/diagnostic_adjudication_prompt.md`.
+The initial file may contain `user_review.decision: "pending"`. Before Step 4, it must
+contain a completed decision of `"agree"` or `"disagree"` and the corresponding
+reviewed diagnosis. Do not create a separate review, approval, or override file.
 
 ## Steps 4 and 5 — Retrieve the full evidence bundle and render the evidence block
+
+### Entry preconditions
+
+Do not proceed unless all of the following are true:
+
+1. `adjudication.json` records `user_review.decision` as `"agree"` or `"disagree"`;
+2. the complete updated JSON has been presented to the user; and
+3. after reviewing that JSON, the user has issued the exact word
+   `ACCEPT`.
+
+Do not infer approval from similar wording, an earlier diagnosis decision, or the
+presence of a completed `user_review` object. Do not proceed in the same response in
+which the updated JSON was presented. The deterministic `retrieve.py full` command
+also rejects an absent or pending user review.
 
 ### Model-readable inputs
 

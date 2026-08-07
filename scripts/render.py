@@ -3,14 +3,12 @@
 
 Quotes are never rendered or returned by retrieval; they remain private inside
 accepted ingestion packages.
-
 The rendered Markdown preserves one visible record per retrieved evidence card.
 Each record includes its stable card ID, human-readable label, category, genes,
 disease context, evidence tier, interpretation, source locator, and any
 escalation target. Citations remain publication-style at the end of the block:
 card IDs map to primary and secondary reference numbers in ``## Refs``, followed
 by the numbered bibliography in ``## References``.
-
 Citation numbering is scripted rather than modelled. Numbers fall out of the
 deterministic card order, so the same corpus and case produce the same block,
 and every number points at a reference contributed by a rendered card.
@@ -22,7 +20,6 @@ Usage:
   render.py --bundle bundle.json > block.md
   render.py --bundle bundle.json --token-budget 120000 --format json
 """
-
 import argparse
 import json
 import re
@@ -36,13 +33,11 @@ import vocab  # noqa: E402
 DEFAULT_TOKEN_BUDGET = 120_000
 CHARS_PER_TOKEN = 4  # estimate; stated as an estimate wherever it is reported
 WRAP_WIDTH = 78
-
 # Truncation order. Guideline criteria and multivariable-adjusted findings are
 # never dropped: if the block still will not fit after these two tiers are gone,
 # the honest output is an over-budget block with a warning, not a quietly
 # weakened one.
 DROPPABLE_TIERS = ["restated secondary", "univariable or descriptive"]
-
 CATEGORY_HEADINGS = {
     "diagnosis": "Diagnosis and classification",
     "prognosis": "Prognostic significance",
@@ -64,7 +59,6 @@ def sort_key(card):
 
 def card_lines(cards):
     """Return one render record per card, preserving deterministic card order.
-
     Evidence cards are the atomic downstream evidence objects. Byte-identical
     interpretations are deliberately not collapsed: collapsing would hide
     card-level metadata and break the visible interpretation -> card ->
@@ -102,7 +96,6 @@ def citation_entries(card):
 
 def assign_references(lines):
     """Assign numbers in order of first appearance and record per-card roles.
-
     Returns the ordered reference list and a map from card_id to its primary and
     secondary reference numbers.
     """
@@ -129,7 +122,6 @@ def assign_references(lines):
     for mapping in card_map.values():
         mapping["primary_refs"].sort()
         mapping["secondary_refs"].sort()
-
     return references, card_map
 
 
@@ -197,7 +189,6 @@ def build_card_reference_map(lines, card_map, sorted_cards):
     """
     if not lines:
         return []
-
     card_by_id = {card["card_id"]: card for card in sorted_cards}
     groups = {}
     for line_index, line in enumerate(lines):
@@ -222,7 +213,6 @@ def build_card_reference_map(lines, card_map, sorted_cards):
                     groups[signature]["earliest_line"] = line_index
     for group in groups.values():
         group["card_ids"].sort(key=lambda cid: sort_key(card_by_id[cid]))
-
     ordered = sorted(
         groups.values(),
         key=lambda group: (group["earliest_line"], group["card_ids"][0]),
@@ -295,6 +285,10 @@ def render_body(lines):
 def render_header(bundle):
     provenance = bundle.get("provenance", {})
     adjudication = bundle.get("diagnostic_adjudication", {})
+    review = adjudication.get("user_review") or {}
+    decision = review.get("decision")
+    model_refined = adjudication.get("refined_disease")
+    reviewed_refined = bundle.get("refined_disease")
     out = [
         "# Evidence block",
         "",
@@ -310,18 +304,29 @@ def render_header(bundle):
         f"Provisional major diagnostic category: {bundle.get('provisional_disease')}",
         (
             "Downstream filter disease (adjudicated major category): "
-            f"{bundle.get('refined_disease')}"
+            f"{reviewed_refined}"
         ),
     ]
-    label = adjudication.get("diagnostic_label")
-    if label:
-        out.append(f"Source-supported diagnostic label: {label}")
+
+    model_label = adjudication.get("diagnostic_label")
+    reviewed_label = review.get("diagnostic_label")
+    if model_label:
+        out.append(f"Source-supported diagnostic label: {model_label}")
+    if decision == "disagree" and reviewed_label:
+        out.append(f"User-reviewed integrated diagnosis: {reviewed_label}")
+
     status = adjudication.get("status")
     driven_by = adjudication.get("driven_by") or []
-    if (
-        status == "criteria_met"
-        and bundle.get("refined_disease") != bundle.get("provisional_disease")
-    ):
+    if decision == "disagree":
+        out.append(
+            "User review revised the downstream diagnosis"
+            + (
+                f" from {model_refined} to {reviewed_refined}."
+                if model_refined != reviewed_refined
+                else "."
+            )
+        )
+    elif status == "criteria_met" and model_refined != bundle.get("provisional_disease"):
         out.append(
             "Diagnostic adjudication changed the downstream major category; driven by: "
             + ", ".join(driven_by)
@@ -370,7 +375,6 @@ def render_tail(bundle, references, dropped, reference_map):
     else:
         out.append("None. Every submitted gene is addressed by at least one card.")
     out.append("")
-
     suppressed = bundle.get("suppressed") or {}
     out.append("## Suppressed by the disease filter")
     out.append("")
@@ -390,7 +394,6 @@ def render_tail(bundle, references, dropped, reference_map):
             width=WRAP_WIDTH,
         ))
     out.append("")
-
     if dropped:
         out.append("## Truncated")
         out.append("")
@@ -399,7 +402,6 @@ def render_tail(bundle, references, dropped, reference_map):
                 f"- dropped {count} card(s) at evidence tier '{tier}' to fit the budget"
             )
         out.append("")
-
     out.extend(format_refs(reference_map))
     out.append("## References")
     out.append("")
@@ -425,7 +427,6 @@ def render_tail(bundle, references, dropped, reference_map):
 def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
     cards = list(bundle.get("retrieved", []))
     dropped = []
-
     while True:
         sorted_cards = sorted(cards, key=sort_key)
         lines = card_lines(sorted_cards)
@@ -453,7 +454,6 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
         count = sum(1 for card in cards if card["evidence_tier"] == tier)
         cards = [card for card in cards if card["evidence_tier"] != tier]
         dropped.append((tier, count))
-
     if over_budget:
         text = text.rstrip() + (
             "\n\nWARNING: this block, before this note, is approximately "
@@ -463,7 +463,6 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
             "guideline criteria.\n"
         )
         tokens = estimate_tokens(text)
-
     return {
         "text": text,
         "estimated_tokens": tokens,
@@ -499,7 +498,6 @@ def main():
     parser.add_argument("--format", choices=["text", "json"], default="text")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-
     try:
         bundle = json.loads(args.bundle.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -509,7 +507,6 @@ def main():
         sys.exit("render expects a step 4 bundle from retrieve.py full")
 
     result = render(bundle, args.token_budget)
-
     if args.format == "json":
         payload = json.dumps(result, indent=2, ensure_ascii=False)
     else:
