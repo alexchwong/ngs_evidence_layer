@@ -20,20 +20,20 @@ Command-line usage:
 
 ```bash
 # List all available case IDs
-python3 validation/retrieve_cli.py list
+python validation/retrieve_cli.py list
 
 # Retrieve clinical information for a case variant
-python3 validation/retrieve_cli.py case 1A
+python validation/retrieve_cli.py case 1A
 
 # Retrieve shared stem only (Case 1)
-python3 validation/retrieve_cli.py case 1
+python validation/retrieve_cli.py case 1
 
 # Retrieve marking criteria
-python3 validation/retrieve_cli.py MC 1A
+python validation/retrieve_cli.py MC 1A
 
 # Help
-python3 validation/retrieve_cli.py --help
-python3 validation/retrieve_cli.py case --help
-python3 validation/retrieve_cli.py MC --help
-python3 validation/retrieve_cli.py list --help
+python validation/retrieve_cli.py --help
+python validation/retrieve_cli.py case --help
+python validation/retrieve_cli.py MC --help
+python validation/retrieve_cli.py list --help
 ```

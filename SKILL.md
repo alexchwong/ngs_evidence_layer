@@ -88,13 +88,19 @@ Use a fresh bounded model session for Step 3 and for Step 6. Each session receiv
 Before Step 1, select the working directory:
 
 1. If the user supplies a directory, use that directory.
-2. Otherwise, create a unique directory using the host platform's secure
-   system-temporary-directory facility.
+2. Otherwise, run exactly:
+
+   ```bash
+   python scripts/create_work_dir.py
+   ```
+
+   Treat the command's single output line as `<work-dir>`. Do not create, choose, or
+   substitute another directory.
 
 For report-only mode, the user must supply or identify a working directory containing `block.md`. Do not search for one.
-Resolve the selected directory to an absolute path. Create it if necessary. Fail if
+Resolve a user-supplied directory to an absolute path. Create it if necessary. Fail if
 the path exists but is not a directory, or if it is unreadable or unwritable. Never
-silently fall back to another directory after the path has been announced.
+silently fall back to another directory.
 
 Print the absolute resolved directory before reading the case for Step 1:
 
