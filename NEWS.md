@@ -2,7 +2,9 @@
 
 ## 0.1.4
 
-- Improved multi-part evidence gathering for phases 2 and 3
+- Improved multi-part evidence gathering for ingest phases 2 and 3
+- Each ingest phase deterministically audits json prior to output and completion
+- Updated corpus now includes ELN 2022/2024, ELN-DAVID 2025, IPSET, CHRS, Cpss-Mol and MIPPS70V2
 
 ## 0.1.3
 
