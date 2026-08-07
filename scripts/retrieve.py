@@ -6,28 +6,26 @@ structured case facts, genes, and a provisional disease from free text; step 3
 adjudicates those facts against retrieved diagnosis cards. Between and after them,
 what a gene is allowed to retrieve is decided by code, because a prompt is a
 request and code is a guarantee.
-
 Two subcommands:
   diagnosis   step 2. Every diagnosis card for the submitted genes, with no
               disease filter at all, because a gene may point toward a diagnosis
               other than the one the marrow report proposed. Carries structured
               case facts into the evidence-bounded adjudication input.
   full        step 4. prognosis, treatment and biomarker cards on gene match AND
-              (disease match OR empty disease array); germline cards on gene match
-              alone. Diagnosis cards from the step 2 bundle are carried through so
-              the rendered block is complete.
+              (exact disease match OR category-specific retrieval_related match OR
+              empty disease array); germline cards on gene match alone. Diagnosis
+              cards from the step 2 bundle are carried through so the rendered
+              block is complete.
 Nothing is silently dropped. Cards excluded by the disease filter appear in
 `suppressed`, counted by disease. Submitted genes with no card anywhere appear in
 `not_assessed`, named individually. A gene that was considered and cleared and a
 gene that was never looked at are very different things, and a clinician reading
 the output cannot tell them apart unless the tool says so.
-
 Usage:
   retrieve.py diagnosis --case-input case-input.json --output step2.json
   retrieve.py diagnosis --genes NPM1 DNMT3A FLT3 --case-facts case-facts.json \
       --corpus output/corpus/nel.corpus.json --index output/corpus/nel.index.json \
       --provisional-disease MDS --output step2.json
-
   retrieve.py full --diagnosis-result step2.json \
       --adjudication-result adjudication.json --output bundle.json
 """
@@ -43,7 +41,6 @@ import vocab  # noqa: E402
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CORPUS = REPO_ROOT / "output/corpus/nel.corpus.json"
 DEFAULT_INDEX = REPO_ROOT / "output/corpus/nel.index.json"
-
 DISEASE_FILTERED = ("prognosis", "treatment", "biomarker")
 
 
@@ -124,6 +121,38 @@ def validate_case_facts(case_facts):
     return case_facts
 
 
+def _normalise_genes(genes, *, field="genes"):
+    if not isinstance(genes, list):
+        raise ValueError(f"{field} must be a JSON array")
+    normalised = []
+    seen = set()
+    for index, value in enumerate(genes):
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{field}[{index}] must be a non-empty string")
+        upper = value.upper()
+        if upper in seen:
+            raise ValueError(f"{field} contains duplicate gene {upper!r} after normalisation")
+        seen.add(upper)
+        normalised.append(upper)
+    return normalised
+
+
+def _validate_case_disease(disease, genes, *, field):
+    """Validate one case-level disease against the submitted variant genes.
+
+    ``no_haematological_malignancy`` is deliberately case-only and is legal only
+    when no variant genes are submitted. Other diseases may also have no reported
+    variants; the case-only term must not be inferred solely from an empty gene list.
+    """
+    if disease not in vocab.CASE_DISEASE_SET:
+        raise ValueError(f"{field} {disease!r} is outside the case disease vocabulary")
+    if disease == vocab.NO_HAEMATOLOGICAL_MALIGNANCY and genes:
+        raise ValueError(
+            f"{field} {vocab.NO_HAEMATOLOGICAL_MALIGNANCY!r} requires no reported variants"
+        )
+    return disease
+
+
 def validate_case_input(path):
     """Validate and return the structured case input produced by Step 1."""
     if not path.is_file():
@@ -140,35 +169,25 @@ def validate_case_input(path):
             "case-input must contain exactly: " + ", ".join(sorted(required))
         )
     provisional_disease = document["provisional_disease"]
-    if provisional_disease not in vocab.DISEASE_SET:
-        raise ValueError(
-            f"case-input provisional_disease {provisional_disease!r} is not in the disease vocabulary"
-        )
-    genes = document["genes"]
-    if not isinstance(genes, list) or not genes:
-        raise ValueError("case-input genes must be a non-empty JSON array")
-    normalised = []
-    seen = set()
-    for index, value in enumerate(genes):
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError(f"case-input genes[{index}] must be a non-empty string")
-        upper = value.upper()
-        if upper in seen:
-            raise ValueError(f"case-input contains duplicate gene {upper!r} after normalisation")
-        seen.add(upper)
-        normalised.append(upper)
+    genes = _normalise_genes(document["genes"], field="case-input genes")
+    _validate_case_disease(
+        provisional_disease,
+        genes,
+        field="case-input provisional_disease",
+    )
     case_facts = validate_case_facts(document["case_facts"])
-
     return {
         "provisional_disease": provisional_disease,
-        "genes": normalised,
+        "genes": genes,
         "case_facts": case_facts,
     }
 
 
 def step2(cards, genes, provisional_disease, case_facts=None):
     case_facts = validate_case_facts(case_facts or [])
-    wanted = {gene.upper() for gene in genes}
+    normalised_genes = _normalise_genes(list(genes), field="genes")
+    _validate_case_disease(provisional_disease, normalised_genes, field="provisional_disease")
+    wanted = set(normalised_genes)
     hits = []
     for card in cards:
         if card["category"] != "diagnosis":
@@ -185,14 +204,19 @@ def step2(cards, genes, provisional_disease, case_facts=None):
         "genes": sorted(wanted),
         "case_facts": case_facts,
         "diagnosis_cards": sorted(hits, key=lambda item: item["card_id"]),
-        "allowed_refined_diseases": list(vocab.DISEASES),
+        "allowed_refined_diseases": list(vocab.DISEASES) + (
+            [vocab.NO_HAEMATOLOGICAL_MALIGNANCY]
+            if provisional_disease == vocab.NO_HAEMATOLOGICAL_MALIGNANCY
+            else []
+        ),
         "genes_with_no_diagnosis_card": sorted(wanted - genes_with_diagnosis_card),
     }
 
 
-def _validate_user_review(adjudication, *, require_completed_review):
+def _validate_user_review(
+    adjudication, genes, allowed_refined_diseases, *, require_completed_review
+):
     """Validate the human review state and return the completed review or ``None``.
-
     Legacy model-only adjudications remain valid for direct internal validation so
     existing callers can inspect the model decision. ``run_full`` always requests a
     completed review and therefore cannot enter Step 4 through that compatibility
@@ -202,7 +226,6 @@ def _validate_user_review(adjudication, *, require_completed_review):
     model_refined = adjudication["refined_disease"]
     model_label = adjudication["diagnostic_label"]
     downstream = adjudication["downstream_filter_disease"]
-
     if review is None:
         if require_completed_review:
             raise ValueError(
@@ -215,7 +238,6 @@ def _validate_user_review(adjudication, *, require_completed_review):
                 "refined_disease"
             )
         return None
-
     review_keys = {"decision", "diagnostic_label", "refined_disease"}
     if not isinstance(review, dict) or set(review) != review_keys:
         raise ValueError(
@@ -225,7 +247,6 @@ def _validate_user_review(adjudication, *, require_completed_review):
     decision = review["decision"]
     if decision not in {"pending", "agree", "disagree"}:
         raise ValueError(f"invalid user_review decision {decision!r}")
-
     reviewed_label = review["diagnostic_label"]
     if reviewed_label is not None and (
         not isinstance(reviewed_label, str) or not reviewed_label.strip()
@@ -233,13 +254,17 @@ def _validate_user_review(adjudication, *, require_completed_review):
         raise ValueError(
             "user_review diagnostic_label must be null or a non-empty string"
         )
-
     reviewed_refined = review["refined_disease"]
-    if reviewed_refined is not None and reviewed_refined not in vocab.DISEASE_SET:
-        raise ValueError(
-            f"user_review refined_disease {reviewed_refined!r} is outside the vocabulary"
+    if reviewed_refined is not None:
+        _validate_case_disease(
+            reviewed_refined,
+            genes,
+            field="user_review refined_disease",
         )
-
+        if reviewed_refined not in allowed_refined_diseases:
+            raise ValueError(
+                f"user_review refined_disease {reviewed_refined!r} is not allowed by Step 2"
+            )
     if decision == "pending":
         if reviewed_label is not None or reviewed_refined is not None:
             raise ValueError(
@@ -253,14 +278,12 @@ def _validate_user_review(adjudication, *, require_completed_review):
         if require_completed_review:
             raise ValueError("user review is pending; Step 4 is blocked")
         return review
-
     if reviewed_refined is None:
         raise ValueError("completed user_review requires refined_disease")
     if downstream != reviewed_refined:
         raise ValueError(
             "downstream_filter_disease must exactly equal user_review.refined_disease"
         )
-
     if decision == "agree":
         if reviewed_refined != model_refined or reviewed_label != model_label:
             raise ValueError(
@@ -291,15 +314,32 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     if status not in {"criteria_met", "criteria_not_met", "indeterminate"}:
         raise ValueError(f"invalid adjudication status {status!r}")
     provisional = step2_result["provisional_disease"]
+    genes = _normalise_genes(step2_result["genes"], field="step2 genes")
+    _validate_case_disease(provisional, genes, field="step2 provisional_disease")
+    allowed_refined_diseases = step2_result.get(
+        "allowed_refined_diseases", list(vocab.DISEASES)
+    )
+    if not isinstance(allowed_refined_diseases, list) or any(
+        disease not in vocab.CASE_DISEASE_SET for disease in allowed_refined_diseases
+    ):
+        raise ValueError("step2 allowed_refined_diseases is invalid")
     if adjudication["provisional_disease"] != provisional:
         raise ValueError("adjudication provisional_disease does not match diagnosis result")
     refined = adjudication["refined_disease"]
-    if refined not in vocab.DISEASE_SET:
-        raise ValueError(f"adjudication refined_disease {refined!r} is outside the vocabulary")
-    downstream = adjudication["downstream_filter_disease"]
-    if downstream not in vocab.DISEASE_SET:
+    _validate_case_disease(refined, genes, field="adjudication refined_disease")
+    if refined not in allowed_refined_diseases:
         raise ValueError(
-            f"adjudication downstream_filter_disease {downstream!r} is outside the vocabulary"
+            f"adjudication refined_disease {refined!r} is not allowed by Step 2"
+        )
+    downstream = adjudication["downstream_filter_disease"]
+    _validate_case_disease(
+        downstream,
+        genes,
+        field="adjudication downstream_filter_disease",
+    )
+    if downstream not in allowed_refined_diseases:
+        raise ValueError(
+            f"adjudication downstream_filter_disease {downstream!r} is not allowed by Step 2"
         )
     label = adjudication["diagnostic_label"]
     if label is not None and (not isinstance(label, str) or not label.strip()):
@@ -349,19 +389,29 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
             raise ValueError("a changed major category requires at least one required criterion")
         if any(item["status"] != "met" for item in required_assessments):
             raise ValueError("a changed major category requires every required criterion to be met")
-
     _validate_user_review(
         adjudication,
+        genes,
+        allowed_refined_diseases,
         require_completed_review=require_completed_review,
     )
     return adjudication
 
 
 def step4(cards, genes, refined_disease, diagnosis_cards):
-    wanted = {gene.upper() for gene in genes}
-    retrieved = list(diagnosis_cards)
+    normalised_genes = _normalise_genes(list(genes), field="genes")
+    _validate_case_disease(refined_disease, normalised_genes, field="refined_disease")
+    wanted = set(normalised_genes)
+    retrieved = []
+    for card in diagnosis_cards:
+        hit = dict(card)
+        hit["retrieval_match"] = "gene_only"
+        retrieved.append(hit)
     suppressed = []
-
+    retrieval_scope = {
+        category: vocab.retrieval_related_diseases(refined_disease, category)
+        for category in DISEASE_FILTERED
+    }
     for card in cards:
         category = card["category"]
         if category == "diagnosis":
@@ -374,23 +424,38 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
         if category == "germline":
             # Germline retrieves on gene alone. A predisposition gene does not stop
             # predisposing because the marrow was called something else.
+            hit["retrieval_match"] = "gene_only"
             retrieved.append(hit)
             continue
-
         diseases = card["diseases"]
-        if not diseases or refined_disease in diseases:
+        if not diseases:
+            hit["retrieval_match"] = "disease_unspecified"
+            retrieved.append(hit)
+            continue
+        if refined_disease in diseases:
+            hit["retrieval_match"] = "exact"
+            retrieved.append(hit)
+            continue
+        related = set(retrieval_scope.get(category, []))
+        related_matches = [disease for disease in diseases if disease in related]
+        if related_matches:
+            hit["retrieval_match"] = "related"
+            hit["matched_retrieval_related_diseases"] = related_matches
             retrieved.append(hit)
         else:
             suppressed.append(hit)
     assessed = {gene for hit in retrieved for gene in hit["matched_genes"]}
     assessed |= {gene for hit in suppressed for gene in hit["matched_genes"]}
     not_assessed = sorted(wanted - assessed)
-
     by_disease = {}
     for hit in suppressed:
         for disease in hit["diseases"]:
             by_disease[disease] = by_disease.get(disease, 0) + 1
     return {
+        "retrieval_scope": {
+            "case_disease": refined_disease,
+            "retrieval_related": retrieval_scope,
+        },
         "retrieved": sorted(retrieved, key=lambda item: item["card_id"]),
         "suppressed": {
             "count": len(suppressed),
@@ -421,7 +486,6 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
 def run_diagnosis(args):
     corpus, _index, digest = load_corpus(args.corpus, args.index)
     cards = flatten(corpus)
-
     case_input = None
     overrides = []
     if args.case_input:
@@ -482,8 +546,7 @@ def run_full(args):
     corpus, _index, digest = load_corpus(corpus_path, index_path)
     provisional = step2_result["provisional_disease"]
     refined = adjudication["downstream_filter_disease"]
-
-    genes = args.genes or step2_result["genes"]
+    genes = args.genes if args.genes is not None else step2_result["genes"]
     cards = flatten(corpus)
     result = step4(cards, genes, refined, step2_result["diagnosis_cards"])
     result = {
@@ -512,7 +575,7 @@ def main():
     diagnosis.add_argument("--genes", nargs="+")
     diagnosis.add_argument("--case-facts", type=Path,
                            help="JSON array, or object with case_facts array")
-    diagnosis.add_argument("--provisional-disease", default=None, choices=vocab.DISEASES)
+    diagnosis.add_argument("--provisional-disease", default=None, choices=vocab.CASE_DISEASES)
     diagnosis.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     diagnosis.add_argument("--index", type=Path, default=DEFAULT_INDEX)
     full = sub.add_parser("full", help="step 4")
@@ -524,9 +587,7 @@ def main():
     full.add_argument("--index", type=Path)
     for sub_parser in (diagnosis, full):
         sub_parser.add_argument("--output", type=Path, help="write JSON here instead of stdout")
-
     args = parser.parse_args()
-
     try:
         result = run_diagnosis(args) if args.command == "diagnosis" else run_full(args)
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:

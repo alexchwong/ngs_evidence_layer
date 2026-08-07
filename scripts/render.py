@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 """Render a step 4 retrieval bundle as a structured evidence-card block.
-
 Quotes are never rendered or returned by retrieval; they remain private inside
 accepted ingestion packages.
 The rendered Markdown preserves one visible record per retrieved evidence card.
 Each record includes its stable card ID, human-readable label, category, genes,
-disease context, evidence tier, interpretation, source locator, and any
-escalation target. Citations remain publication-style at the end of the block:
-card IDs map to primary and secondary reference numbers in ``## Refs``, followed
-by the numbered bibliography in ``## References``.
+disease context, retrieval match, evidence tier, interpretation, source locator,
+and any escalation target. Citations remain publication-style at the end of the
+block: card IDs map to primary and secondary reference numbers in ``## Refs``,
+followed by the numbered bibliography in ``## References``.
 Citation numbering is scripted rather than modelled. Numbers fall out of the
 deterministic card order, so the same corpus and case produce the same block,
 and every number points at a reference contributed by a rendered card.
-
 Order: category, then gene, then evidence tier strongest first, then publication
 year descending, then card ID.
 
@@ -29,7 +27,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
-
 DEFAULT_TOKEN_BUDGET = 120_000
 CHARS_PER_TOKEN = 4  # estimate; stated as an estimate wherever it is reported
 WRAP_WIDTH = 78
@@ -171,10 +168,18 @@ def format_card(card):
         format_field("Category", card.get("category")),
         format_field("Genes", list_text(card.get("genes"))),
         format_field("Disease context", list_text(card.get("diseases"))),
+    ]
+    retrieval_match = card.get("retrieval_match")
+    if retrieval_match:
+        out.append(format_field("Retrieval match", retrieval_match))
+    related_matches = card.get("matched_retrieval_related_diseases") or []
+    if related_matches:
+        out.append(format_field("Matched retrieval_related disease", list_text(related_matches)))
+    out.extend([
         format_field("Evidence tier", card.get("evidence_tier")),
         format_field("Interpretation", card.get("interpretation")),
         format_field("Source locator", card.get("locator")),
-    ]
+    ])
     if card.get("escalates_to"):
         out.append(format_field("Escalates to", card["escalates_to"]))
     return out
@@ -182,7 +187,6 @@ def format_card(card):
 
 def build_card_reference_map(lines, card_map, sorted_cards):
     """Group cards by identical ordered reference signature.
-
     Cards with the same (primary_refs, secondary_refs) signature share one
     mapping line. Groups are ordered by the earliest rendered occurrence of any
     member, with card ID as a tie-breaker.
@@ -255,6 +259,10 @@ def serialise_card(card):
         "category": card.get("category"),
         "genes": list(card.get("genes") or []),
         "diseases": list(card.get("diseases") or []),
+        "retrieval_match": card.get("retrieval_match"),
+        "matched_retrieval_related_diseases": list(
+            card.get("matched_retrieval_related_diseases") or []
+        ),
         "evidence_tier": card.get("evidence_tier"),
         "interpretation": card.get("interpretation"),
         "locator": card.get("locator"),
@@ -307,14 +315,12 @@ def render_header(bundle):
             f"{reviewed_refined}"
         ),
     ]
-
     model_label = adjudication.get("diagnostic_label")
     reviewed_label = review.get("diagnostic_label")
     if model_label:
         out.append(f"Source-supported diagnostic label: {model_label}")
     if decision == "disagree" and reviewed_label:
         out.append(f"User-reviewed integrated diagnosis: {reviewed_label}")
-
     status = adjudication.get("status")
     driven_by = adjudication.get("driven_by") or []
     if decision == "disagree":
@@ -372,6 +378,8 @@ def render_tail(bundle, references, dropped, reference_map):
         out.append("")
         for item in not_assessed:
             out.append(f"- {item['gene']}: {item['reason']}")
+    elif not bundle.get("genes"):
+        out.append("None submitted.")
     else:
         out.append("None. Every submitted gene is addressed by at least one card.")
     out.append("")
@@ -381,7 +389,8 @@ def render_tail(bundle, references, dropped, reference_map):
     if suppressed.get("count"):
         out.append(textwrap.fill(
             f"{suppressed['count']} gene-matched card(s) withheld because their disease "
-            "context does not match the refined disease:",
+            "context matches neither the refined disease nor that category's configured "
+            "retrieval_related diseases:",
             width=WRAP_WIDTH,
         ))
         out.append("")
@@ -389,8 +398,8 @@ def render_tail(bundle, references, dropped, reference_map):
             out.append(f"- {disease}: {count}")
     else:
         out.append(textwrap.fill(
-            "None. A persistently empty block here is evidence that branching retrieval "
-            "was never needed.",
+            "None. No gene-matched card fell outside the refined disease and its "
+            "category-specific retrieval_related scope.",
             width=WRAP_WIDTH,
         ))
     out.append("")
@@ -502,10 +511,8 @@ def main():
         bundle = json.loads(args.bundle.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         sys.exit(f"cannot read bundle: {exc}")
-
     if bundle.get("step") != 4:
         sys.exit("render expects a step 4 bundle from retrieve.py full")
-
     result = render(bundle, args.token_budget)
     if args.format == "json":
         payload = json.dumps(result, indent=2, ensure_ascii=False)

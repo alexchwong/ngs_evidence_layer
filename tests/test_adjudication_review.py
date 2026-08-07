@@ -129,7 +129,7 @@ class AdjudicationReviewTests(unittest.TestCase):
             "refined_disease": "not-a-vocabulary-disease",
         }
         adjudication["downstream_filter_disease"] = "not-a-vocabulary-disease"
-        with self.assertRaisesRegex(ValueError, "outside the vocabulary"):
+        with self.assertRaisesRegex(ValueError, "adjudication downstream_filter_disease 'not-a-vocabulary-disease' is outside the case disease vocabulary"):
             retrieve.validate_adjudication(
                 self.step2,
                 adjudication,
