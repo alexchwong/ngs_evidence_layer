@@ -66,7 +66,7 @@ jobs:
           git fetch --tags --force
           git rev-parse --verify "$TAG^{commit}" >/dev/null
 
-          mapfile -t payload_files < <(grep -vE '^[[:space:]]*$' release/skill.txt)
+          mapfile -t payload_patterns < <(grep -vE '^[[:space:]]*$' release/skill.txt)
           mapfile -t changed_files < <(git diff --name-only "$TAG"..HEAD)
 
           payload_changed=false
@@ -76,8 +76,8 @@ jobs:
               break
             fi
 
-            for payload in "${payload_files[@]}"; do
-              if [[ "$changed" == "$payload" ]]; then
+            for payload in "${payload_patterns[@]}"; do
+              if [[ "$changed" == $payload ]]; then
                 payload_changed=true
                 break 2
               fi
@@ -100,13 +100,30 @@ jobs:
 
           test -s release/skill.txt
 
-          while IFS= read -r file; do
-            test -n "$file" || continue
-            if [[ ! -f "$file" ]]; then
-              echo "Missing release file: $file" >&2
+          resolved_manifest="$RUNNER_TEMP/skill-files.txt"
+          : > "$resolved_manifest"
+
+          while IFS= read -r pattern; do
+            test -n "$pattern" || continue
+
+            mapfile -t matches < <(git ls-files -- "$pattern")
+            if (( ${#matches[@]} == 0 )); then
+              echo "Release manifest pattern matched no tracked files: $pattern" >&2
               exit 1
             fi
+
+            for file in "${matches[@]}"; do
+              if [[ ! -f "$file" ]]; then
+                echo "Release manifest matched a non-file path: $file" >&2
+                exit 1
+              fi
+              printf '%s\n' "$file" >> "$resolved_manifest"
+            done
           done < release/skill.txt
+
+          sort -u -o "$resolved_manifest" "$resolved_manifest"
+          test -s "$resolved_manifest"
+          echo "SKILL_FILES=$resolved_manifest" >> "$GITHUB_ENV"
 
       - name: Build skill-only release ZIP
         if: steps.existing_release.outputs.exists != 'true'
@@ -117,7 +134,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mapfile -t files < <(grep -vE '^[[:space:]]*$' release/skill.txt)
+          mapfile -t files < "$SKILL_FILES"
 
           git archive \
             --format=zip \
@@ -137,7 +154,7 @@ jobs:
           import zipfile
           from pathlib import Path
 
-          manifest = Path("release/skill.txt")
+          manifest = Path(os.environ["SKILL_FILES"])
           prefix = os.environ["ARCHIVE_ROOT"] + "/"
           archive = os.environ["ARCHIVE"]
 
