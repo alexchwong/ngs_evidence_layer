@@ -1,0 +1,182 @@
+name: Release NEL
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nel-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Read release configuration
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="$(tr -d '[:space:]' < release/VERSION)"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "release/VERSION must contain a version such as 0.1.5" >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "archive_root=ngs-evidence-layer-$VERSION" >> "$GITHUB_OUTPUT"
+          echo "archive=ngs-evidence-layer-$VERSION.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether release already exists
+        id: existing_release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.config.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "$TAG already exists."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require version bump after skill payload changes
+        if: steps.existing_release.outputs.exists == 'true'
+        shell: bash
+        env:
+          TAG: ${{ steps.config.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+          git rev-parse --verify "$TAG^{commit}" >/dev/null
+
+          mapfile -t payload_files < <(grep -vE '^[[:space:]]*$' release/skill.txt)
+          mapfile -t changed_files < <(git diff --name-only "$TAG"..HEAD)
+
+          payload_changed=false
+          for changed in "${changed_files[@]}"; do
+            if [[ "$changed" == "release/skill.txt" ]]; then
+              payload_changed=true
+              break
+            fi
+
+            for payload in "${payload_files[@]}"; do
+              if [[ "$changed" == "$payload" ]]; then
+                payload_changed=true
+                break 2
+              fi
+            done
+          done
+
+          if [[ "$payload_changed" == "true" ]]; then
+            echo "Skill release payload changed after $TAG was released." >&2
+            echo "Bump release/VERSION before merging these skill changes to main." >&2
+            exit 1
+          fi
+
+          echo "No skill payload changes since $TAG; nothing to release."
+
+      - name: Validate skill-only manifest
+        if: steps.existing_release.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s release/skill.txt
+
+          while IFS= read -r file; do
+            test -n "$file" || continue
+            if [[ ! -f "$file" ]]; then
+              echo "Missing release file: $file" >&2
+              exit 1
+            fi
+          done < release/skill.txt
+
+      - name: Build skill-only release ZIP
+        if: steps.existing_release.outputs.exists != 'true'
+        shell: bash
+        env:
+          ARCHIVE: ${{ steps.config.outputs.archive }}
+          ARCHIVE_ROOT: ${{ steps.config.outputs.archive_root }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t files < <(grep -vE '^[[:space:]]*$' release/skill.txt)
+
+          git archive \
+            --format=zip \
+            --prefix="$ARCHIVE_ROOT/" \
+            --output="$ARCHIVE" \
+            HEAD -- "${files[@]}"
+
+      - name: Verify exact ZIP contents
+        if: steps.existing_release.outputs.exists != 'true'
+        shell: bash
+        env:
+          ARCHIVE: ${{ steps.config.outputs.archive }}
+          ARCHIVE_ROOT: ${{ steps.config.outputs.archive_root }}
+        run: |
+          python - <<'PY'
+          import os
+          import zipfile
+          from pathlib import Path
+
+          manifest = Path("release/skill.txt")
+          prefix = os.environ["ARCHIVE_ROOT"] + "/"
+          archive = os.environ["ARCHIVE"]
+
+          expected = {
+              prefix + line.strip()
+              for line in manifest.read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          }
+
+          with zipfile.ZipFile(archive) as handle:
+              actual = {
+                  name
+                  for name in handle.namelist()
+                  if not name.endswith("/")
+              }
+
+          missing = sorted(expected - actual)
+          extra = sorted(actual - expected)
+          if missing or extra:
+              raise SystemExit(
+                  "Release ZIP does not match release/skill.txt.\n"
+                  f"Missing: {missing}\n"
+                  f"Extra: {extra}"
+              )
+
+          print(f"Verified {len(actual)} release files; ZIP matches manifest exactly.")
+          PY
+
+      - name: Create GitHub release
+        if: steps.existing_release.outputs.exists != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.config.outputs.version }}
+          TAG: ${{ steps.config.outputs.tag }}
+          ARCHIVE: ${{ steps.config.outputs.archive }}
+        run: |
+          gh release create "$TAG" \
+            "$ARCHIVE#Skill-only release ZIP" \
+            --target "$(git rev-parse HEAD)" \
+            --title "$VERSION" \
+            --generate-notes
