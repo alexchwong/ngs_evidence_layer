@@ -1,5 +1,17 @@
 # NEWS
 
+## 0.1.5
+- Added automatic, manual, full-report, and report-only workflows.
+- Manual mode now allows users to review and correct the integrated diagnosis.
+- Diagnosis evidence can now be found from disease context even when no variants are detected.
+- Evidence lookup can include selected related diseases while preserving the original disease context.
+- Added support for cases with no stated haematological malignancy and no detected variants.
+- Reports now separate evidence drafting from final formatting.
+- Default reports now use numbered citations and a numbered reference list.
+- Added six demonstration cases with expected results for checking workflow behaviour.
+- Temporary working folders are now created automatically in the system temporary location.
+- Simplified the skill instructions and divided complex stages into smaller steps.
+
 ## 0.1.4
 
 - Improved multi-part evidence gathering for ingest phases 2 and 3

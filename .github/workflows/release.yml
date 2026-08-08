@@ -3,7 +3,7 @@ name: Release NEL
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out main
+      - name: Check out master
         uses: actions/checkout@v6
         with:
-          ref: main
+          ref: master
           fetch-depth: 0
 
       - name: Read release configuration
@@ -86,7 +86,7 @@ jobs:
 
           if [[ "$payload_changed" == "true" ]]; then
             echo "Skill release payload changed after $TAG was released." >&2
-            echo "Bump release/VERSION before merging these skill changes to main." >&2
+            echo "Bump release/VERSION before merging these skill changes to master." >&2
             exit 1
           fi
 

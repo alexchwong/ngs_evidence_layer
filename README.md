@@ -1,13 +1,14 @@
 # ngs_evidence_layer
 
 A corpus-grounded evidence layer for myeloid NGS interpretation. It converts
-publications into gene-indexed evidence cards backed by private typed
-evidence bundles of verbatim source fragments, then retrieves and renders a
-deterministic, citable evidence block.
+publications into gene-indexed evidence cards backed by private typed evidence bundles
+of verbatim source fragments, then uses those cards to build a deterministic, citable
+evidence block or a concise NGS report.
 
-It collates what publications state. It does not reconcile classifiers, rank
-findings, make clinical decisions, or draft a report. No model haematology knowledge
-may enter evidence output.
+The evidence layer preserves what publications state rather than filling gaps from
+model haematology knowledge. Report generation is restricted to the supplied case,
+retrieved evidence, and explicit reporting and formatting rules.
+
 ## Setup
 
 ```bash
@@ -17,6 +18,41 @@ python -m pip install -r requirements.txt
 python scripts/vocab.py
 python -m unittest discover -s tests -v
 ```
+
+## Case workflows
+
+`SKILL.md` supports five user-facing modes:
+
+| Mode | Behaviour | Final output |
+|---|---|---|
+| `evidence-block` | Runs case capture, automatic diagnosis adjudication, full retrieval, and rendering. | `block.md` |
+| `evidence-block manual` | As above, but pauses for user review of the proposed integrated diagnosis. | `block.md` |
+| `ngs-report` | Runs the complete automatic workflow, then drafts and formats an NGS report. | `report-final.md` |
+| `evidence-to-report` | Uses an existing completed evidence-block work directory and performs reporting only. | `report-final.md` |
+| `nel-demo example <N>` | Runs a numbered example through the normal automatic report workflow, then shows the expected behaviour. | Case, report, and expected result |
+
+For a new case, the workflow is:
+
+```text
+case → case.md → case-input.json → diagnosis retrieval → diagnosis adjudication
+     → full retrieval → block.md
+```
+
+Report modes then continue:
+
+```text
+case.md + block.md + reporting rules → report-draft.md → formatting prompt
+                                     → report-final.md
+```
+
+Automatic modes use the model's evidence-bounded diagnosis adjudication without asking
+for confirmation. `evidence-block manual` presents the proposed integrated diagnosis
+and lets the user agree or provide a revised diagnosis before full retrieval.
+
+When no work directory is supplied for a new workflow, the skill creates a retained
+secure directory in the system temporary location. `evidence-to-report` requires the
+existing work directory to be supplied or identified.
+
 ## Ingestion v0.1.3
 
 Prompts are committed data under `prompts/`; private folder contents are workflow
@@ -107,13 +143,15 @@ output/reports/build-report.json
 There is no provisional corpus. Membership means a package completed independent audit,
 human adjudication, and deterministic acceptance. See `INGEST.md` for the operator
 runbook and `docs/INPUT.md` for private input metadata.
+
 ## Retrieval
 
-Case handling has two bounded model steps. Step 1 extracts a provisional major
-diagnostic category, variant genes, and structured case facts with stable `fact_id`
-values into `case-input.json`. Step 3 adjudicates those facts against retrieved
-diagnosis cards under `prompts/diagnostic_adjudication_prompt.md`. Steps 2, 4, and 5
-are deterministic, performed by `scripts/run_case.py`.
+Case handling separates model judgement from deterministic retrieval. The supplied case
+is first preserved verbatim in `case.md`, then structured into `case-input.json` with a
+provisional major diagnostic category, variant genes, and stable `fact_id` values.
+Diagnosis evidence is retrieved deterministically before the model adjudicates the
+integrated diagnosis. The completed adjudication is validated before full evidence
+retrieval and rendering.
 
 For example, `case-input.json` may contain:
 ```json
@@ -140,10 +178,12 @@ python scripts/run_case.py diagnosis --work-dir <work-dir>
 python scripts/run_case.py full --work-dir <work-dir>
 ```
 
-The wrapper writes `<work-dir>/bundle.json` and `<work-dir>/block.md`. The sole final
-artifact is `<work-dir>/block.md`; `bundle.json` is an internal deterministic
-intermediate. If no working directory is supplied, `run_case.py` creates a retained
-secure system temporary directory and prints it to stderr.
+At the low-level retrieval layer, `run_case.py` writes `<work-dir>/bundle.json` and
+`<work-dir>/block.md`; `bundle.json` is an internal deterministic intermediate. Skill
+report modes continue from `block.md` to `report-draft.md` and `report-final.md`. If no
+working directory is supplied directly to `run_case.py`, it creates a retained secure
+system temporary directory and prints it to stderr.
+
 Advanced callers may still invoke `scripts/retrieve.py` directly:
 
 ```bash
@@ -160,21 +200,27 @@ python scripts/render.py --bundle <work-dir>/bundle.json --output <work-dir>/blo
 ```
 The legacy `retrieve.py diagnosis` flags (`--genes`, `--provisional-disease`,
 `--case-facts`, `--corpus`, `--index`) remain available as advanced overrides.
-Diagnosis retrieval is gene-based and returns all matching diagnosis cards without a
-disease filter. The adjudicator may compose multiple supplied patient facts against a
-card's source-stated criteria, but may not add criteria or facts from model knowledge.
+Step 2 diagnosis retrieval returns diagnosis cards matching a submitted gene, the
+provisional disease, or a direct diagnosis-specific `retrieval_related` disease. Gene
+matches remain disease-unrestricted, so an unexpected variant can still provide
+diagnostic evidence. Disease matching also allows useful diagnosis evidence to be
+retrieved when no variants are reported.
+
+The adjudicator may compose multiple supplied patient facts against a card's
+source-stated criteria, but may not add criteria or facts from model knowledge.
 Missing required facts are `unknown` and fail closed as `indeterminate`. A card's
 legacy `escalates_to` value remains provenance and is not a runtime decision gate.
 The validated adjudication distinguishes the source-supported specific
-`diagnostic_label` from the closed case-level `refined_disease`. The latter is the
-major category used mechanically by full retrieval. For prognosis, treatment, and
-biomarker cards, Step 4 retrieves gene-matched cards when their exact `diseases`
-contain either the reviewed case disease or a direct category-specific disease listed
-under that case disease in `retrieval_related`; legacy cards with an empty disease
-array remain disease-unspecified, and germline remains gene-only. Related
-retrieval is directional and non-transitive. Thus a `post-PV/post-ET MF` case may
-retrieve configured PMF and MPN evidence without changing the source-grounded disease
-context stored on those cards.
+`diagnostic_label` from the closed case-level `refined_disease`. Automatic modes use
+that refined disease directly; manual mode may replace the downstream disease after
+user review.
+
+Step 4 applies the stricter rule `gene AND (reviewed disease OR retrieval_related)` to
+diagnosis, prognosis, treatment, and biomarker cards. Diagnosis cards are restricted
+to those already available during Step 2. Germline retrieval remains gene-only.
+Related retrieval is directional and non-transitive. Thus a `post-PV/post-ET MF` case
+may retrieve configured PMF and MPN evidence without changing the source-grounded
+disease context stored on those cards.
 A changed major category is rejected unless every required criterion is met and cites
 both retrieved diagnosis cards and supplied case facts. Genes the corpus cannot
 address are named rather than answered from model memory.
@@ -189,6 +235,41 @@ Private evidence bundles never enter retrieval or rendered output. Every rendere
 interpretation is traceable to its cards and deterministic citations through the
 end-of-document `## Refs` card-to-reference map and the numbered `## References`
 bibliography.
+
+## Reporting
+
+NGS reports use two bounded passes:
+
+1. `report-draft.md` answers every reporting rule using only `case.md`, `block.md`, and
+   `rules/agreed_reporting_rules.md`.
+2. `report-final.md` is produced from the draft alone using a selected prompt from
+   `prompts/formatting/`.
+
+The default formatting prompt produces a concise report of no more than 200 words,
+excluding references. It uses full sentences, keeps clinically important conclusions
+and qualifications, and omits negative findings unless they affect prognostic
+interpretation. Citations use Vancouver-style numbering in square brackets, numbered
+in order of first citation, followed by a numbered `References` section.
+
+A custom formatting prompt may be selected from `prompts/formatting/` when the reporting
+workflow is started. Formatting cannot introduce information or citations that were not
+present in `report-draft.md`.
+
+## Demo mode
+
+`nel-demo example <N>` runs one repository case through the same automatic workflow as
+`ngs-report`. The expected result is deliberately not read until the generated report
+is complete.
+
+| Example | Scenario |
+|---|---|
+| `1` | Diagnostic escalation fires |
+| `2` | Diagnostic escalation does not fire |
+| `3` | Ambiguous disease |
+| `4` | Genes the corpus cannot address |
+| `5` | Germline architecture |
+| `6` | SF3B1 diagnostic adjudication |
+
 ## Boundaries
 - PDF conversion is an input-layer operation; Markdown alone is the archived evidence
   path and no card or model phase cites or reads a PDF.
@@ -198,7 +279,11 @@ bibliography.
   cycle-checked taxonomy ancestors, and directional category-specific retrieval
   relationships.
 - Different publications coexist even when they disagree.
-- No live databases, approval-status modelling, cross-publication deduplication, or
-  clinical synthesis.
-- Reporting-rule, vocabulary, or extraction-schema changes require re-ingestion,
-  not a mechanical migration.
+- No live databases, approval-status modelling, or cross-publication deduplication
+  are used during case interpretation.
+- Report synthesis is limited to the supplied case, retrieved evidence, and reporting
+  rules; outside model haematology knowledge is not added.
+- Evidence-card vocabulary or extraction-schema changes require re-ingestion, not a
+  mechanical migration.
+- Reporting-rule and formatting-prompt changes affect reports without changing the
+  evidence corpus.
