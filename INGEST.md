@@ -207,10 +207,11 @@ accept/<publication-key>.census.json
 ```
 
 and moves the complete history from `work/<publication-key>/` to
-`archive/<publication-key>/`. Archives are immutable in v0.1.3; reopening is not
-provided. The internal `paper_id` remains embedded in metadata, census, provisional,
-and final artefacts and must agree across them; users do not use it as a path or CLI
-locator.
+`archive/<publication-key>/`. The archive root remains immutable. An accepted paper may
+be copied back to `work/` only by `prepare_phase5.py` for an additive Phase 5 supplement;
+each completed supplement is archived under `archive/<publication-key>/phase5/NNN/`.
+The internal `paper_id` remains embedded in metadata, census, provisional, and final
+artefacts and must agree across them; users do not use it as a path or CLI locator.
 
 Manual acceptance is possible only by constructing the same accepted envelope and
 setting `acceptance_path` to `manual-or-unverified`. Incorporation cannot recheck
@@ -239,6 +240,70 @@ Evidence bundles and fragment text are never written to distributable output. Ev
 incorporated paper has completed independent Phase 3 audit and human Phase 4
 adjudication, so there is no provisional corpus mode.
 
+## 8. Optional Phase 5 — post-acceptance supplementation
+
+Use Phase 5 when an already accepted paper supports an additional interpretation that
+was missed during the original Phase 1–4 ingest. Phase 5 is additive only: existing
+accepted cards, evidence, census, card IDs, and original audit results cannot change.
+If the missing interpretation requires census expansion, perform a full re-ingest instead.
+
+Restore the archived paper and JSON history into a fresh work folder:
+
+```bash
+python scripts/prepare_phase5.py --key <publication-key>
+```
+
+This copies the archived Phase 1–4 files back to `work/<publication-key>/`, overlays the
+current accepted `paper.final.json` and `paper.census.json`, and creates:
+
+```text
+paper.base.final.json
+paper.base.census.json
+phase5.json
+phase5.existing-cards.json
+```
+
+Start a Phase 5 authoring session with the restored files and `prompts/phase5_prompt.md`.
+The model first asks which missing interpretations to investigate. It checks existing
+cards for semantic overlap, rereads `paper.md` for unmatched requests, and discusses
+proposed new cards with the user. When proposals are ready for audit it writes:
+
+```text
+paper.phase5-provisional.json
+```
+
+Start a fresh session using a different model with exactly `paper.md`,
+`paper.phase5-provisional.json`, and `prompts/phase5_review_prompt.md`. Save its output as:
+
+```text
+paper.phase5-review.json
+```
+
+All proposed cards must pass. If a reviewed card is changed, regenerate the provisional
+file and repeat the focused independent review. After the review passes, return to the
+Phase 5 authoring/finalization session. The user issues `FINALIZE`; the model then writes
+a merged `paper.final.json` containing the unchanged accepted cards plus the reviewed
+new cards.
+
+Confirm with the ordinary command; no Phase 5 flag is used:
+
+```bash
+python scripts/confirm.py --key <publication-key>
+```
+
+`confirm.py` detects `phase5.json`, verifies the current accepted package still matches
+the Phase 5 base hashes, validates the focused review and additive merge, replaces the
+accepted final/census pair atomically, records supplement provenance in the accepted
+envelope, and archives the Phase 5 work snapshot under
+`archive/<publication-key>/phase5/NNN/`. Ordinary confirmation retains its existing
+collision rules when `phase5.json` is absent.
+
+Rebuild the corpus normally:
+
+```bash
+python scripts/incorporate.py
+```
+
 ## Prompt maintenance
 
 Edit prompt prose under `prompts/templates/`, then regenerate one committed prompt:
@@ -248,6 +313,8 @@ python scripts/build_prompts.py --phase 1
 python scripts/build_prompts.py --phase 2
 python scripts/build_prompts.py --phase 3
 python scripts/build_prompts.py --phase 4
+python scripts/build_prompts.py --phase 5
+python scripts/build_prompts.py --phase5-review
 ```
 
 Read `prompts/meta_prompt.md` before changing extraction rules or schemas.

@@ -69,7 +69,13 @@ class CorpusVersioningTests(unittest.TestCase):
         schema = json.loads(
             (ROOT / "schema" / "accepted_package_schema.json").read_text()
         )
-        self.assertEqual(schema["properties"]["schema_version"]["const"], "1.2")
+        self.assertEqual(
+            schema["properties"]["schema_version"]["enum"], ["1.2", "1.3"]
+        )
+        self.assertEqual(
+            schema["allOf"][0]["then"]["properties"]["schema_version"]["const"],
+            "1.3",
+        )
         self.assertIn("accepted_in_version", schema["required"])
         self.assertIn("accepted_in_version", schema["properties"])
 

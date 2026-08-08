@@ -1461,13 +1461,56 @@ if __name__ == "__main__":
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "1.2" },
+    "schema_version": { "enum": ["1.2", "1.3"] },
     "acceptance_path": { "enum": ["confirmed", "manual-or-unverified"] },
     "accepted_at": { "type": "string", "format": "date-time" },
     "accepted_at_source": { "enum": ["confirm", "file-mtime"] },
     "accepted_in_version": { "type": "string", "minLength": 1 },
     "metadata": { "$ref": "metadata_schema.json" },
-    "final": { "$ref": "ingestion_package_schema.json" }
+    "final": { "$ref": "ingestion_package_schema.json" },
+    "supplements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/supplement" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["supplements"] },
+      "then": { "properties": { "schema_version": { "const": "1.3" } } }
+    }
+  ],
+  "$defs": {
+    "supplement": {
+      "type": "object",
+      "required": [
+        "phase",
+        "supplement",
+        "accepted_at",
+        "accepted_in_version",
+        "base_final_sha256",
+        "base_census_sha256",
+        "added_card_ids",
+        "extraction_model",
+        "reviewer_model"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "phase": { "const": 5 },
+        "supplement": { "type": "integer", "minimum": 1 },
+        "accepted_at": { "type": "string", "format": "date-time" },
+        "accepted_in_version": { "type": "string", "minLength": 1 },
+        "base_final_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "base_census_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "added_card_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "extraction_model": { "type": "string", "minLength": 1 },
+        "reviewer_model": { "type": "string", "minLength": 1 }
+      }
+    }
   }
 }
 ```

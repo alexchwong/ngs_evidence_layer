@@ -135,21 +135,35 @@ def render(phase):
     return template + "\n"
 
 
+def render_phase5_review():
+    template = read(ROOT / "prompts" / "templates" / "phase5_review_prompt.md")
+    unresolved = sorted(
+        set(part.split("}}", 1)[0] + "}}" for part in template.split("{{")[1:])
+    )
+    if unresolved:
+        raise ValueError("unresolved prompt markers: " + ", ".join(unresolved))
+    return template + "\n"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", type=int, choices=(1, 2, 3, 4), required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--phase", type=int, choices=(1, 2, 3, 4, 5))
+    mode.add_argument("--phase5-review", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         errors = vocabulary_errors()
         if errors:
             raise ValueError("\n".join(errors))
-        destination = (
-            args.output
-            or ROOT / "prompts" / f"phase{args.phase}_prompt.md"
-        )
+        if args.phase5_review:
+            destination = args.output or ROOT / "prompts" / "phase5_review_prompt.md"
+            content = render_phase5_review()
+        else:
+            destination = args.output or ROOT / "prompts" / f"phase{args.phase}_prompt.md"
+            content = render(args.phase)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(render(args.phase), encoding="utf-8")
+        destination.write_text(content, encoding="utf-8")
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         sys.exit(f"PROMPT BUILD FAILED:\n{exc}")
     print(f"wrote {destination}")
