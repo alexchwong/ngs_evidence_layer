@@ -22,7 +22,7 @@ Use a fresh ChatGPT or Claude conversation for each model phase. Phase 3 must us
 different model from Phase 2.
 
 Private source publications and ingestion state live under `pdf/`, `input/`, `work/`,
-`accept/`, and `archive/`. Do not commit these directories' contents.
+`accept/`, `archive/`, and `curation/`. Do not commit these directories' contents.
 
 ## Setup
 
@@ -37,8 +37,8 @@ python -m pip install -r requirements.txt
 ## Move private corpus state between computers
 
 `scripts/transport.py` packages the ignored private ingestion directories:
-`pdf/`, `input/`, `work/`, `accept/`, and `archive/`. Reproducible committed `output/`
-artefacts are not included.
+`pdf/`, `input/`, `work/`, `accept/`, `archive/`, and `curation/`. Reproducible
+committed `output/` artefacts are not included.
 
 Export:
 
@@ -343,8 +343,8 @@ failure reason and suggested action. The JSON file contains the same information
 machine-readable form.
 
 The command never modifies `archive/`, `accept/`, or `output/`. `curation/` is ignored
-and is not included by `transport.py`; rebuild it after moving private corpus state to
-another computer.
+by Git but is included by `transport.py` when moving private corpus state to another
+computer.
 
 ## 7. Phase 5 — add evidence missed during the original ingest
 
