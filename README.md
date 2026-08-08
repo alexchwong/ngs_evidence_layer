@@ -270,6 +270,53 @@ is complete.
 | `5` | Germline architecture |
 | `6` | SF3B1 diagnostic adjudication |
 
+
+## Corpus papers
+
+The current corpus contains 10 completed papers. Papers are repeated below when they
+materially contribute to more than one category.
+
+### Diagnosis / classification
+
+| DOI | Nickname | Paper title | Contribution to corpus |
+|---|---|---|---|
+| `10.1038/s41375-022-01613-1` | WHO5 | The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms | WHO fifth-edition myeloid classification and diagnostic criteria. |
+| `10.1182/blood.2022015850` | ICC | International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data | ICC myeloid classification and diagnostic criteria. |
+
+### Prognosis
+
+| DOI | Nickname | Paper title | Contribution to corpus |
+|---|---|---|---|
+| `10.1056/evidoa2200310` | CHRS | Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis | CHRS predicts myeloid malignancy risk in clonal haematopoiesis. |
+| `10.1038/bcj.2015.94` | revised IPSET-thrombosis | Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia | Revised IPSET-thrombosis risk model for essential thrombocythaemia. |
+| `10.1182/blood.2024025409` | ELN 2024 Less-Intensive | Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations | ELN genetic risk groups for less-intensive AML therapy. |
+| `10.1200/jco.2018.78.9867` | MIPSS70+ v2.0 | MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis | MIPSS70+ v2.0 prognostic score for primary myelofibrosis. |
+| `10.1182/blood-2016-05-714030` | CPSS-Mol | Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia | CPSS-Mol integrates mutations into CMML prognostic risk. |
+| `10.1056/evidoa2200008` | IPSS-M | Molecular International Prognostic Scoring System for Myelodysplastic Syndromes | IPSS-M molecular prognostic score for myelodysplastic syndromes. |
+| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | ELN AML genetic risk classification and prognostic guidance. |
+
+### Treatment
+
+| DOI | Nickname | Paper title | Contribution to corpus |
+|---|---|---|---|
+| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | AML targeted treatment and management recommendations. |
+| `10.1182/blood.2025031480` | ELN MRD 2025 | 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party | MRD-directed AML management and post-transplant maintenance recommendations. |
+
+### Biomarkers
+
+| DOI | Nickname | Paper title | Contribution to corpus |
+|---|---|---|---|
+| `10.1182/blood.2025031480` | ELN MRD 2025 | 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party | AML MRD assay selection, thresholds, timing, and interpretation. |
+| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | AML molecular testing and MRD biomarker guidance. |
+
+### Germline
+
+| DOI | Nickname | Paper title | Contribution to corpus |
+|---|---|---|---|
+| `10.1038/s41375-022-01613-1` | WHO5 | The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms | WHO germline predisposition framework for myeloid neoplasms. |
+| `10.1182/blood.2022015850` | ICC | International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data | ICC germline predisposition genes and classification framework. |
+| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | Germline testing, counselling, and related-donor guidance. |
+
 ## Boundaries
 - PDF conversion is an input-layer operation; Markdown alone is the archived evidence
   path and no card or model phase cites or reads a PDF.
