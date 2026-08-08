@@ -47,6 +47,11 @@ def write_adjudication(path, disease="myeloid neoplasm, unspecified"):
         "driven_by": [],
         "criterion_assessment": [],
         "reason": "Fixture adjudication.",
+        "user_review": {
+            "decision": "agree",
+            "diagnostic_label": None,
+            "refined_disease": disease,
+        },
     }
     path.write_text(json.dumps(document), encoding="utf-8")
 

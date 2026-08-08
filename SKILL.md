@@ -1,223 +1,204 @@
 ---
 name: ngs-evidence-layer
-description: Produces either a deterministic, citable evidence block for a myeloid NGS case or, when explicitly requested, an NGS report grounded exclusively in an existing evidence block. Evidence-block mode uses model decisions only for case structuring and diagnostic adjudication. Report mode reads only the supplied case, block.md, and agreed reporting rules.
+description: Builds a deterministic evidence block or NGS report for a myeloid NGS case, supports automatic or manual diagnostic adjudication, and can run numbered repository examples in demo mode.
 ---
-
 # NGS evidence layer
-
 ## Purpose
 
-Perform exactly one user-selected task:
+Perform only the mode explicitly requested by the user:
 
-1. **Evidence-block mode** — produce a deterministic, citable evidence block from one supplied case and the released evidence corpus.
-2. **NGS-report mode** — produce an NGS report from the supplied case and an existing `block.md`.
+- `evidence-block` — run Steps 0–5; Step 3 review is automatic. Return `<work-dir>/block.md`.
+- `evidence-block manual` — run Steps 0–5; Step 3B requires user confirmation or revision. Return `<work-dir>/block.md`.
+- `ngs-report` — run Steps 0–7; Step 3 review is automatic and reporting follows Step 5 without stopping. Step 7 renders `<work-dir>/report-final.md` in chat.
+- `evidence-to-report` — run Step 0, verify Step 5 outputs already exist, then run Steps 6A–7 only. Step 7 renders `<work-dir>/report-final.md` in chat.
+- `nel-demo example <N>` — resolve one numbered repository example, run the same automatic Steps 0–7 as `ngs-report`; in Step 7 display the case, generated report, and matching expected behaviour. Do not read the expected file before Step 7.
 
-Do not infer the mode from available files. Determine it from the user's explicit request.
+Do not infer the mode from available files. The skill does not create, edit, audit, or incorporate evidence cards.
 
-Recognise requests to generate, retrieve, build, or render the evidence block as `evidence-block` mode.
+## Workflow
 
-Recognise requests to write, draft, or generate the NGS report as `ngs-report` mode.
+- Step 0 — deterministic/setup: establish workflow state and `<work-dir>`; record `<format-prompt>` when needed.
+- Step 1A — model: capture the supplied clinical case verbatim in `case.md`.
+- Step 1B — model: structure `case.md` into `case-input.json`.
+- Step 2 — deterministic: retrieve diagnosis evidence into `step2.json`.
+- Step 3A — model: adjudicate the diagnosis into `adjudication.json`.
+- Step 3B — model/user: manual review only; finalise review fields in `adjudication.json`.
+- Step 3C — model + deterministic append: append one integrated-diagnosis sentence to `case.md` without model-reading `case.md`.
+- Step 3D — deterministic and compulsory: validate the completed adjudication before Step 4.
+- Step 4 — deterministic: retrieve the full evidence bundle into `bundle.json`.
+- Step 5 — deterministic: render `block.md`.
+- Step 6A — model: answer every reporting rule into `report-draft.md`.
+- Step 6B — model: format `report-draft.md` into `report-final.md`.
+- Step 7 — model: render `report-final.md` in chat; for `nel-demo`, also read and render the case and expected behaviour.
 
-If the user explicitly requests both, complete evidence-block mode first, then run Step 6 in a fresh bounded model session.
+`evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist. Do not rerun skipped steps.
 
-In evidence-block mode, literature-derived assertions must come from corpus evidence. Patient-specific assertions must come from the supplied case.
-
-In NGS-report mode:
-
-- patient-specific assertions must come from the supplied case;
-- all literature-derived, disease-related, prognostic, therapeutic, biomarker, and germline interpretation must come from `block.md`;
-- `block.md` is the exclusive evidentiary source of truth;
-- `rules/agreed_reporting_rules` controls report selection, structure, wording, and handling of evidence but is not an additional clinical evidence source.
-
-The skill does not create, edit, audit, or incorporate evidence cards.
-
-## Workflow modes
-
-### Evidence-block mode
-
-Evidence-block mode has five steps.
-
-Only two steps require model interpretation:
-
-1. Step 1 — read the supplied case and create `case-input.json`.
-2. Step 3 — read `prompts/diagnostic_adjudication_prompt.md` and `<work-dir>/step2.json`, then create `<work-dir>/adjudication.json`.
-
-Steps 2, 4, and 5 are deterministic. The terminal artifact is `<work-dir>/block.md`.
-
-### NGS-report mode
-
-NGS-report mode consists only of optional Step 6.
-
-Step 6 must run in a fresh bounded model session. It reads only:
-
-1. the original case document supplied by the user;
-2. `<work-dir>/block.md`;
-3. `rules/agreed_reporting_rules`.
-
-Its terminal artifact is `<work-dir>/report.md`.
+`ngs-report`, `evidence-to-report`, and `nel-demo` all finish with Step 7. Step 7 is presentation only and must not alter any workflow artifact. For `nel-demo`, Step 7 additionally reads and renders the nominated case and expected behaviour.
 
 ## Mandatory file-access policy
 
-File access is **deny by default**. After reading this skill, at each step read only
-the files listed under that step's **Model-readable inputs**.
+File access is **deny by default**.
 
-Select the operating mode before reading any case-specific input.
+- In each model step, read only its declared model-readable inputs.
+- A path may be selected or recorded without permission to read its contents.
+- Do not list or search directories or inspect undeclared files.
+- Do not supplement inputs with live sources, external tools, or model knowledge.
+- Do not carry information between bounded model steps unless supplied as an allowed input.
+- Deterministic commands may read what their command requires; this does not make those files model-readable.
+- Run only the commands declared below and write only the declared outputs.
+- Do not modify an output written by a deterministic command.
+- If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
 
-- In `evidence-block` mode, follow Steps 1–5 and their file-access boundaries.
-- In `ngs-report` mode, skip Steps 1–5 and follow only Step 6.
-- When both outputs are explicitly requested, complete Steps 1–5, then discard the earlier model context and run Step 6 as a fresh bounded model session.
-
-Do not carry information from Steps 1 or 3 into Step 6. Step 6 receives the original case document again as an explicitly allowed input.
-
-Do not:
-
-- list or search directories;
-- inspect a file merely to check whether it might be useful;
-- read a file consumed by a deterministic command unless the current step also lists
-  it as model-readable;
-- inspect any script, corpus file, index file, source publication, ingestion prompt,
-  schema, documentation, example, expected output, test, log, or prior step output
-  unless the current step explicitly lists that exact file;
-- use live sources, external tools, or model knowledge to supplement an input;
-- carry information read in one bounded model step into another model step unless the
-  later step receives it in an explicitly allowed input.
-
-A deterministic command may read its declared command inputs. That permission applies
-to the command, not to the model. Run only the exact commands declared below.
-
-Each step has one output contract. Do not add commentary, alternate artefacts,
-summaries, or convenience copies. Do not modify an output after a deterministic
-command writes it. If a required input is missing, unreadable, malformed, or
-inconsistent with its contract, stop and report that error. Do not browse for a
-replacement or infer the missing content.
-
-Use a fresh bounded model session for Step 3 and for Step 6. Each session receives exactly the inputs named by its step.
-
-## Working directory
-
-Before Step 1, select the working directory:
-
-1. If the user supplies a directory, use that directory.
-2. Otherwise, create a unique directory using the host platform's secure
-   system-temporary-directory facility.
-
-For report-only mode, the user must supply or identify a working directory containing `block.md`. Do not search for one.
-
-Resolve the selected directory to an absolute path. Create it if necessary. Fail if
-the path exists but is not a directory, or if it is unreadable or unwritable. Never
-silently fall back to another directory after the path has been announced.
-
-Print the absolute resolved directory before reading the case for Step 1:
-
-```text
-Working directory: /absolute/path/to/directory
-```
-
-Retain the directory after success and after failure. Do not perform automatic
-cleanup.
-
-Use the selected directory for case-specific outputs:
-
-- `<work-dir>/case-input.json`
-- `<work-dir>/step2.json`
-- `<work-dir>/adjudication.json`
-- `<work-dir>/bundle.json`
-- `<work-dir>/block.md`
-- `<work-dir>/report.md`, only when Step 6 is requested
-
-## Missing and unreported results
-
-Treat a reported test result as complete unless the case says that it is partial,
-selected, limited, abbreviated, pending, or otherwise incomplete. If an abnormal
-finding is not listed in a complete test result, treat it as negative for that test.
-
-Do not assume that an unmentioned test was performed. Keep every inferred negative
-within the limits of the reported test. A negative sequencing result does not also
-exclude a copy-number change, rearrangement, or other finding unless the case says
-that the test assessed it.
-
-If cytogenetic results are not supplied, assume normal conventional cytogenetics for
-the interpretation. This is a workflow assumption, not a patient result. Record it as
-a `workflow_assumption` fact in Step 1. Do not say that cytogenetics were performed or
-that a specific cytogenetic abnormality was formally excluded.
-
-Do not use the normal-cytogenetics assumption if the case reports an abnormal
-karyotype, FISH result, copy-number result, or another finding that conflicts with it.
-
-## Step 1 — Structure the case
-
-### Model-readable inputs
-
-Read exactly:
-
-1. the one case document supplied by the user;
-2. `schema/disease_vocabulary.json`.
-
-Read nothing else.
+## Step 0 — Establish workflow state
 
 ### Required action
 
-Extract only information stated in the case:
+1. Select the explicit operating mode before reading case-specific inputs.
+   - For `nel-demo example <N>`, require one integer `N` from 1 through 6 and resolve exactly this fixed mapping without listing or searching directories:
 
-- `provisional_disease`: the supplied starting major diagnostic category, represented
-  by one exact allowed value from the disease vocabulary; do not upgrade it from
-  model knowledge;
-- `genes`: genes strictly from the NGS result block, not genes mentioned only in the
-  history, differential, assay description, or another test;
-- `case_facts`: lossless structured patient facts with unique, stable `fact_id`
-  values.
+     ```text
+     1 -> examples/cases/01-escalation-fires.md -> examples/expected/01-escalation-fires.md
+     2 -> examples/cases/02-escalation-does-not-fire.md -> examples/expected/02-escalation-does-not-fire.md
+     3 -> examples/cases/03-ambiguous-disease.md -> examples/expected/03-ambiguous-disease.md
+     4 -> examples/cases/04-genes-the-corpus-cannot-address.md -> examples/expected/04-genes-the-corpus-cannot-address.md
+     5 -> examples/cases/05-germline-architecture.md -> examples/expected/05-germline-architecture.md
+     6 -> examples/cases/06-sf3b1-diagnostic-adjudication.md -> examples/expected/06-sf3b1-diagnostic-adjudication.md
+     ```
 
-Preserve exact variants, values, units, morphology, blood counts, cytogenetic or FISH
-findings, treatment context, assay limitations, and other supplied qualifiers. Do not
-normalise a value into a stronger proposition. Do not infer phase, clonal order,
-allelic state, germline origin, assay coverage, or an unreported clinical feature.
+   - Record the selected paths as `<demo-case>` and `<demo-expected>`.
+   - Do not read either file in Step 0.
+2. Establish `<work-dir>`:
+   - if the user supplies a directory, resolve it to an absolute path and create it if necessary;
+   - otherwise, except for `evidence-to-report`, run exactly:
 
-Apply the rules under **Missing and unreported results**. Record one
-`test_result_status` fact for each supplied test result that is treated as complete.
-Do not create a separate negative fact for every unlisted gene or abnormality. If
-cytogenetic results are not supplied, record the normal-cytogenetics assumption as a
-`workflow_assumption`, not as a patient result.
+     ```bash
+     python scripts/create_work_dir.py
+     ```
+
+     Treat its single output line as `<work-dir>`. Do not substitute another directory.
+   - for `evidence-to-report`, the user must supply or identify the working directory. Do not search for one.
+3. Fail if `<work-dir>` is not a directory or is unreadable or unwritable. Do not fall back to another directory.
+4. Print:
+
+   ```text
+   Working directory: <absolute-path>
+   ```
+
+5. For `ngs-report`, `evidence-to-report`, and `nel-demo`, record `<format-prompt>`:
+   - default: `prompts/formatting/default.md`;
+   - if the user explicitly specifies another file from `prompts/formatting/`, record that path;
+   - do not list or search `prompts/formatting/`;
+   - do not use a formatting prompt outside `prompts/formatting/`;
+   - **record the path only. Do not read `<format-prompt>` until Step 6B.**
+6. For `evidence-to-report`, verify only that `<work-dir>/case.md` exists and `<work-dir>/block.md` exists and is non-empty. Do not read their contents in Step 0.
+7. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
+
+### Exit
+
+- Operating mode is fixed.
+- `<work-dir>` is fixed.
+- If reporting is requested, `<format-prompt>` is fixed but unread.
+- For `evidence-to-report`, the required Step 5 outputs exist.
+- For `nel-demo`, `<demo-case>` and `<demo-expected>` are fixed but unread.
+
+## Step 1A — Capture the case
+
+Run only when Steps 1–5 are required.
+
+Use a fresh bounded model session.
+
+### Model-readable inputs
+
+Read only the one case source:
+
+- normal modes: the one user-designated case source;
+- `nel-demo`: `<demo-case>`.
+
+Do not read any other repository file in Step 1A. In `nel-demo`, `<demo-case>` is the sole permitted repository-file exception.
+
+### Required action
+
+Identify the exact supplied content that constitutes the clinical case and write it to `<work-dir>/case.md`.
+
+`case.md` must:
+- contain only the supplied clinical case, preserving that content verbatim and in its original order;
+- include all supplied patient, specimen, morphology, laboratory, cytogenetic, molecular, treatment, and other clinical case information;
+- exclude workflow instructions, output requests, and other non-case commentary;
+- contain no model interpretation, summary, normalisation, literature information, or added facts.
 
 ### Output
 
-Write exactly one file, `<work-dir>/case-input.json`, containing JSON only with
-exactly these three top-level fields:
+Write only `<work-dir>/case.md`.
 
-```json
-{
-  "provisional_disease": "myeloid neoplasm, unspecified",
-  "genes": ["GENE-A"],
-  "case_facts": [
-    {"fact_id": "F-GENE-A", "type": "variant", "gene": "GENE-A", "classification": "pathogenic"},
-    {"fact_id": "F-NGS-STATUS", "type": "test_result_status", "test": "multigene panel", "complete_reported_findings": true},
-    {"fact_id": "A-CYTO", "type": "workflow_assumption", "finding": "normal conventional cytogenetics assumed because cytogenetic results were not supplied"}
-  ]
-}
-```
+## Step 1B — Structure the case
 
-Do not include explanatory prose or additional top-level fields.
-
-## Step 2 — Retrieve diagnosis evidence
+Use a fresh bounded model session.
 
 ### Model-readable inputs
 
-None.
+Read only:
 
-Do not read `case-input.json` merely to construct command arguments; the wrapper and
-retrieval script consume it. Do not inspect the retrieval script, corpus, index, or
-disease vocabulary.
+- `<work-dir>/case.md`;
+- `schema/disease_vocabulary.json`.
 
-### Command-only inputs
+Do not reread the original case source.
 
-The deterministic command may consume:
+### Missing and unreported results
 
-- `scripts/run_case.py`;
-- `scripts/retrieve.py`;
-- `<work-dir>/case-input.json`;
-- `output/corpus/nel.corpus.json`;
-- `output/corpus/nel.index.json`.
+- Treat a reported test result as complete unless explicitly described as partial, selected, limited, abbreviated, pending, or otherwise incomplete.
+- In a complete test, an unlisted abnormal finding is negative only within that test's scope.
+- Do not assume that an unmentioned test was performed.
+- A negative sequencing result does not exclude copy-number changes, rearrangements, or other findings unless the test assessed them.
+- If cytogenetic results are not supplied, assume normal conventional cytogenetics for interpretation and record this as a `workflow_assumption`, not a patient result.
+- Do not state that cytogenetics were performed or that a specific cytogenetic abnormality was formally excluded.
+- Do not use the normal-cytogenetics assumption when supplied karyotype, FISH, copy-number, or other findings conflict with it.
 
 ### Required action
+
+Create:
+
+- `provisional_disease`
+  - Use the supplied starting major diagnostic category as one exact allowed case-disease value from the vocabulary.
+  - Do not upgrade it from model knowledge.
+  - Use `no_haematological_malignancy` only when the case does not specify a haematological malignancy **and** the NGS result block contains no variants.
+  - Do not use `no_haematological_malignancy` if variants are present.
+
+- `genes`
+  - Include only genes with reported variants in the NGS result block.
+  - Exclude genes mentioned only in history, differential diagnosis, assay description, other tests, or lists of genes tested.
+  - Use `[]` when no NGS variants are reported.
+
+- `case_facts`
+  - Preserve supplied patient facts losslessly with unique, stable `fact_id` values.
+  - Preserve exact variants, values, units, morphology, blood counts, cytogenetic/FISH findings, treatment context, assay limitations, and qualifiers.
+  - Do not strengthen or normalise supplied facts.
+  - Do not infer phase, clonal order, allelic state, germline origin, assay coverage, or unreported clinical features.
+  - Apply **Missing and unreported results** above.
+  - Record one `test_result_status` fact for each supplied test treated as complete.
+  - Do not create separate negative facts for every unlisted gene or abnormality.
+  - Record an assumed normal cytogenetic result as a `workflow_assumption`, not a patient result.
+
+### Output
+
+Write JSON only to `<work-dir>/case-input.json` with exactly these top-level fields:
+
+```json
+{
+  "provisional_disease": "<allowed case disease>",
+  "genes": [],
+  "case_facts": []
+}
+```
+
+Do not add explanatory prose or other top-level fields.
+
+## Step 2 — Retrieve diagnosis evidence
+
+### Entry
+
+`<work-dir>/case-input.json` exists.
+
+### Command
 
 Run exactly:
 
@@ -225,174 +206,349 @@ Run exactly:
 python scripts/run_case.py diagnosis --work-dir <work-dir>
 ```
 
-Do not perform diagnostic selection or interpretation in this step.
+### Exit
 
-### Output
+- The command succeeds.
+- `<work-dir>/step2.json` exists.
 
-The only output is `<work-dir>/step2.json`, exactly as written by the command. Do not
-read, edit, summarize, or supplement it in this step.
+Do not read or modify `step2.json` in this step.
 
 ## Step 3 — Adjudicate the diagnosis
 
+### Step 3A — Model adjudication
+
 Use a fresh bounded model session.
 
-### Model-readable inputs
+#### Model-readable inputs
 
-Read exactly:
+Read only:
 
-1. `prompts/diagnostic_adjudication_prompt.md`;
-2. `<work-dir>/step2.json`.
+- `prompts/diagnostic_adjudication_prompt.md`;
+- `<work-dir>/step2.json`.
 
-Read nothing else. Do not read the original case, `case-input.json`, disease
-vocabulary, corpus, index, reporting rules, scripts, examples, or repository
-documentation.
+#### Required action
 
-### Required action
+Follow `prompts/diagnostic_adjudication_prompt.md` exactly, using `step2.json` as the complete patient-fact and diagnosis-evidence boundary.
 
-Follow `prompts/diagnostic_adjudication_prompt.md` exactly. Treat `<work-dir>/step2.json`
-as the complete patient-fact and diagnosis-evidence boundary. Do not add a fact, rule,
-threshold, exclusion, definition, or qualifier from memory.
+If `diagnosis_cards` is empty:
 
-Apply the recorded `test_result_status` and `workflow_assumption` facts as directed by
-the prompt. Do not make the diagnosis indeterminate only because a card mentions a
-competing diagnosis or precedence rule. Consider the competing diagnosis when a
-supplied mutation, cytogenetic or FISH finding, copy-number result, morphology, blood
-count, or clinical feature suggests that it may be present. Its mention in a card is
-not by itself enough to raise it.
+- do not reclassify;
+- set `status` to `"indeterminate"`;
+- preserve `provisional_disease` as both `refined_disease` and `downstream_filter_disease`;
+- set `diagnostic_label` to null;
+- set `driven_by` and `criterion_assessment` to `[]`;
+- state in `reason` that no corpus diagnosis evidence was retrieved.
 
-### Output
+For `evidence-block`, `ngs-report`, and `nel-demo`:
+- set `user_review` to `"automatic"`;
+- use the model adjudication as final;
+- keep `downstream_filter_disease` equal to `refined_disease`;
+- do not ask for user confirmation;
+- proceed directly to Step 3C.
 
-Write exactly one file, `<work-dir>/adjudication.json`. It must contain JSON only and
-exactly the output shape required by `prompts/diagnostic_adjudication_prompt.md`. Do
-not add prose or extra fields.
+For `evidence-block manual`:
+- write the initial `<work-dir>/adjudication.json` with `user_review.decision: "pending"`;
+- proceed to Step 3B.
 
-## Steps 4 and 5 — Retrieve the full evidence bundle and render the evidence block
+#### Output
 
-### Model-readable inputs
+Write only `<work-dir>/adjudication.json` using the adjudication fields allowed by `prompts/diagnostic_adjudication_prompt.md` and the mode-specific `user_review` state above.
 
-None.
+### Step 3B — Manual user review
 
-Do not read `step2.json`, `adjudication.json`, `bundle.json`, `block.md`, the corpus,
-the index, or the retrieval or rendering scripts. Their paths are sufficient to run
-the fixed command.
+Run only for `evidence-block manual`.
 
-### Command-only inputs
+Use a fresh bounded model session.
 
-The deterministic command may consume:
+#### Model-readable inputs
 
-- `scripts/run_case.py`;
-- `scripts/retrieve.py`;
-- `scripts/render.py`;
-- `<work-dir>/step2.json`;
+Read only:
+
 - `<work-dir>/adjudication.json`;
-- the corpus and index identified by `<work-dir>/step2.json`.
+- the user's agree/disagree response and, when disagreeing, supplied revised diagnosis.
 
-### Required action
+Do not reread `step2.json`, the adjudication prompt, `case.md`, or any other file.
+
+#### Required action
+
+1. Present the proposed integrated diagnosis and one concise evidence-bounded argument, or a short list for several distinct reasons, before requesting the user's decision.
+2. Ask the user to agree or disagree.
+3. After the user's response, update only `user_review` and `downstream_filter_disease`:
+   - **agree:** set `decision` to `"agree"` and copy the model's `diagnostic_label` and `refined_disease` exactly;
+   - **disagree:** require a revised diagnostic label and one exact downstream category, then set `decision` to `"disagree"`; Step 3D will validate that category against Step 2.
+4. Do not alter the model's original top-level adjudication fields after user review.
+5. Set `downstream_filter_disease` to `user_review.refined_disease`.
+6. Do not require a separate continuation word.
+
+#### Output
+
+Update only `<work-dir>/adjudication.json`.
+
+### Step 3C — Append the integrated diagnosis
+
+This step is compulsory for all modes that run Step 3.
+
+Use a fresh bounded model session.
+
+#### Model-readable inputs
+
+Read only:
+
+- `<work-dir>/step2.json`;
+- `<work-dir>/adjudication.json`.
+
+**Do not read `<work-dir>/case.md`.** The deterministic append command may access it.
+
+#### Required action
+
+Determine the final integrated diagnosis from the completed adjudication:
+- automatic review: use the final top-level `diagnostic_label`; if null, use `downstream_filter_disease`;
+- completed manual review: use `user_review.diagnostic_label`; if null, use `user_review.refined_disease`.
+
+Create a specific reason of 20 words or fewer using only the allowed inputs. Use one supporting diagnosis-card citation as `<Author et al, year>`. If no diagnosis card supports the final integrated diagnosis, use `no citation required`.
 
 Run exactly:
 
 ```bash
-python scripts/run_case.py full --work-dir <work-dir>
+python scripts/append_integrated_diagnosis.py \
+  --case <work-dir>/case.md \
+  --diagnosis "<final integrated diagnosis>" \
+  --reason "<specific reason, 20 words or fewer>" \
+  --citation "<Author et al, year OR no citation required>"
 ```
 
-The wrapper deterministically writes:
+Do not otherwise modify `case.md`.
 
-- `<work-dir>/bundle.json`;
-- `<work-dir>/block.md`.
+#### Exit
 
-Do not perform retrieval, filtering, validation, ordering, collapsing, truncation,
-citation numbering, or formatting manually. Do not read, post-process, summarize, or
-rewrite either file.
+The command succeeds and appends exactly one sentence:
 
-### Output
+`Integrated diagnosis: <diagnosis>, based on <specific reason, 20 words or fewer>. (<Author et al, year>).`
 
-The terminal output is `<work-dir>/block.md`, exactly as written by the command.
-`bundle.json` remains an internal deterministic intermediate.
+### Step 3D — Validate the completed adjudication
+
+This deterministic validation is **compulsory** after Step 3C and before Step 4.
+
+Run exactly:
+
+```bash
+python scripts/validate_adjudication.py \
+  --diagnosis-result <work-dir>/step2.json \
+  --adjudication-result <work-dir>/adjudication.json
+```
+
+#### Exit
+
+- The command succeeds.
+- If validation fails, stop. Do not proceed to Step 4.
+
+Do not model-read `step2.json` or `adjudication.json` in Step 3D.
+
+Do not create a separate review, approval, diagnosis, or override file.
+
+## Step 4 — Retrieve the full evidence bundle
+### Entry
+
+Step 3D succeeded.
+
+### Command
+
+Run exactly:
+
+```bash
+python scripts/retrieve.py full \
+  --diagnosis-result <work-dir>/step2.json \
+  --adjudication-result <work-dir>/adjudication.json \
+  --output <work-dir>/bundle.json
+```
+
+### Exit
+
+- The command succeeds.
+- `<work-dir>/bundle.json` exists.
+
+Do not read or modify `bundle.json` in this step.
+
+## Step 5 — Render the evidence block
+
+### Entry
+
+Step 4 succeeded and `<work-dir>/bundle.json` exists.
+
+### Command
+
+Run exactly:
+
+```bash
+python scripts/render.py \
+  --bundle <work-dir>/bundle.json \
+  --output <work-dir>/block.md
+```
+
+### Exit
+
+- The command succeeds.
+- `<work-dir>/block.md` exists.
+
+Do not read or modify `block.md` in this step.
 
 ## Step 6 — Write the NGS report
 
-Run this step only when the user explicitly requests an NGS report.
+Run only for `ngs-report`, `evidence-to-report`, or `nel-demo`.
+
+For `ngs-report` and `nel-demo`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
+
+For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md` and a non-empty `<work-dir>/block.md`; do not rerun Steps 1A–5.
+
+### Step 6A — Answer the reporting rules
+
+Use a fresh bounded model session.
+
+#### Model-readable inputs
+
+Read only:
+
+- `<work-dir>/case.md`;
+- `<work-dir>/block.md`;
+- `rules/agreed_reporting_rules.md`.
+
+If any required input is missing, unreadable, or malformed, stop and report the error.
+
+#### Source hierarchy
+
+- **`case.md`:** sole source of truth for patient identity, specimen information, clinical context, test results, variants, measurements, other patient-specific facts, and the final integrated diagnosis.
+- Use the `Integrated diagnosis:` sentence in `case.md` as the final diagnosis. Do not re-adjudicate it in Step 6A.
+- **`block.md`:** exclusive source for literature-derived classification, prognosis, treatment, biomarkers, germline interpretation, clinical associations, and references.
+- **Reporting rules:** questions and constraints to apply; they do not establish patient facts or clinical assertions.
+- Do not strengthen, reconcile, or resolve interpretations beyond `block.md`.
+- Preserve material uncertainty, disagreement, limitations, and qualifiers.
+- Do not copy workflow metadata into the report draft unless a reporting rule requires it.
+- If `case.md` and `block.md` conflict, do not silently repair the inconsistency.
+
+#### Required action
+
+Answer every numbered rule under R1–R5 in `rules/agreed_reporting_rules.md`.
+
+For each rule:
+
+- identify it by rule number;
+- give a 1–3 sentence case-specific answer;
+- answer the rule even when it is not applicable or the result is negative;
+- end every sentence with one citation marker:
+  - one or more supporting citations in parentheses, e.g. `(Smith et al, 2024; Jones et al, 2023)`; or
+  - `(no citation required)`;
+- use only literature citations supported by `block.md`;
+- use `(no citation required)` only when the sentence does not require literature support.
+
+Do not omit a rule because it is unlikely to appear in the final report.
+
+#### Output
+
+Write only:
+
+`<work-dir>/report-draft.md`
+
+### Step 6B — Format the final report
+
+Use a fresh bounded model session.
+
+#### Model-readable inputs
+
+Read only:
+
+- `<format-prompt>`;
+- `<work-dir>/report-draft.md`.
+
+Do not read `case.md`, `block.md`, `rules/agreed_reporting_rules.md`, the original case document, or any other file. Do not use information carried from Step 6A except `report-draft.md`.
+
+If either required input is missing, unreadable, or malformed, stop and report the error.
+
+#### Required action
+
+Follow `<format-prompt>` exactly, using `report-draft.md` as the sole source of report content.
+
+Do not introduce a clinical assertion, qualification, citation, or patient fact that is absent from `report-draft.md`.
+
+#### Output
+
+Write only:
+
+`<work-dir>/report-final.md`
+
+The file must contain the final report only. Do not include process commentary, rule numbers, source-audit notes, confidence commentary, alternative drafts, or an additional summary.
+
+After `report-final.md` is complete, proceed directly to Step 7. For `nel-demo`, do not read or render `<demo-expected>` in Step 6B.
+
+## Step 7 — Render the final report
+
+Run for `ngs-report`, `evidence-to-report`, and `nel-demo`, and only after Step 6B succeeds.
 
 Use a fresh bounded model session.
 
 ### Model-readable inputs
 
-Read exactly:
+For `ngs-report` and `evidence-to-report`, read only:
 
-1. the original case document supplied by the user;
-2. `<work-dir>/block.md`;
-3. `rules/agreed_reporting_rules`.
+- `<work-dir>/report-final.md`.
 
-Read nothing else.
+For `nel-demo`, read only:
 
-Do not read `case-input.json`, `step2.json`, `adjudication.json`, `bundle.json`, the corpus, index, disease vocabulary, prompts, scripts, schemas, source publications, examples, tests, documentation, live sources, or external references.
+- `<demo-case>`;
+- `<work-dir>/report-final.md`;
+- `<demo-expected>`.
 
-If any required input is missing, unreadable, or malformed, stop and report that error. Do not reconstruct `block.md`, rerun retrieval, browse for evidence, or substitute model knowledge.
-
-### Source hierarchy
-
-Apply the following boundaries:
-
-- Use the supplied case only for patient identity, specimen information, clinical context, test results, variants, measurements, and other patient-specific facts.
-- Use `block.md` as the exclusive source for interpretation of diagnosis, classification, prognosis, treatment, biomarkers, germline implications, and literature-derived claims.
-- Use `rules/agreed_reporting_rules` only to decide what should be reported and how the report should be structured and worded.
-- A reporting rule does not establish a patient fact or clinical assertion.
-- Never add a clinical assertion, association, threshold, recommendation, drug, trial, classification rule, or citation from model knowledge.
-- Do not strengthen, reconcile, or resolve statements beyond what `block.md` supports.
-- Preserve uncertainty, disagreement, limitations, and qualifiers stated in `block.md`.
-- Do not report an interpretation merely because it appears in the case document unless it is independently supported by `block.md`.
-- Do not copy evidence-layer workflow metadata into the clinical report unless the reporting rules explicitly require it.
-
-When the case and `block.md` appear inconsistent, do not silently repair the inconsistency. Represent only the interpretation supported by `block.md` and state the relevant limitation when required by the reporting rules.
+Do not read any other file. For `nel-demo`, this is the first step permitted to read `<demo-expected>`.
 
 ### Required action
 
-Write a complete NGS report that follows `rules/agreed_reporting_rules`.
+For `ngs-report` and `evidence-to-report`, display `<work-dir>/report-final.md` in chat unchanged.
 
-The report must:
+For `nel-demo`, display these three sections in chat, preserving each file unchanged:
 
-- describe only the supplied patient and specimen;
-- include only findings present in the supplied case;
-- base every interpretative statement exclusively on `block.md`;
-- distinguish patient findings from literature-derived interpretation;
-- retain clinically material qualifications and uncertainty;
-- include only citations or references available in `block.md`;
-- omit unsupported sections or state that no supported interpretation is available, as directed by the reporting rules.
+```text
+## Case
+<demo-case contents>
 
-### Output
+## NEL report
+<work-dir>/report-final.md contents
 
-Write exactly one file:
+## Expected
+<demo-expected contents>
+```
 
-`<work-dir>/report.md`
+For `nel-demo`, do not use `<demo-expected>` to alter `case.md`, `case-input.json`, `adjudication.json`, `bundle.json`, `block.md`, `report-draft.md`, `report-final.md`, or any other workflow artifact.
 
-The file must contain the report only. Do not include process commentary, source-audit notes, confidence commentary, alternative drafts, or a summary outside the report.
+### Exit
+
+- `report-final.md` has been rendered in chat.
+- For `nel-demo`, the case and expected behaviour have also been rendered in chat.
+- No workflow artifact has been modified.
 
 ## Final delivery contract
 
-Deliver only the artifact requested by the user.
+Deliver only the artifact or artifacts explicitly requested by the user.
 
 ### Evidence-block mode
 
-After `run_case.py full` succeeds:
-
-- return `<work-dir>/block.md`;
-- do not independently regenerate, summarize, or modify it;
-- normal UI text may identify the delivered filename.
+For `evidence-block` and `evidence-block manual`, return `<work-dir>/block.md` unchanged.
 
 ### NGS-report mode
 
-After Step 6 succeeds:
+For `ngs-report` and `evidence-to-report`, Step 7 performs final delivery by rendering `<work-dir>/report-final.md` in chat unchanged.
 
-- return `<work-dir>/report.md`;
-- do not also return `block.md` unless the user explicitly requested both;
-- do not append commentary or an additional interpretation outside the report;
-- normal UI text may identify the delivered filename.
+Do not also return `block.md` unless explicitly requested and do not perform an additional rendering pass after Step 7.
+
+### Demo mode
+
+For `nel-demo`, Step 7 performs final delivery by rendering the case, `<work-dir>/report-final.md`, and expected behaviour. Do not read or render `<demo-expected>` anywhere else and do not perform an additional rendering pass after Step 7.
+
+Do not return `block.md` unless explicitly requested.
 
 ### Both outputs explicitly requested
 
-Return:
+Use `ngs-report` and return separately:
 
 1. `<work-dir>/block.md`;
-2. `<work-dir>/report.md`.
+2. `<work-dir>/report-final.md`.
 
-Do not combine them into one file.
+Do not combine them.

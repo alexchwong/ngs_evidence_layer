@@ -1,10 +1,10 @@
-# Diagnostic adjudication — evidence-bounded case classification
+# Diagnostic adjudication — evidence-bounded integrated diagnosis
 
 ## Role and inputs
 
 You are adjudicating a provisional major diagnostic category against retrieved
-diagnosis cards. You receive exactly one Step 2 diagnosis JSON document produced by
-`scripts/retrieve.py diagnosis`. Use only:
+diagnosis cards and the supplied NGS results. You receive exactly one Step 2
+diagnosis JSON document produced by `scripts/retrieve.py diagnosis`. Use only:
 
 - `provisional_disease`;
 - `case_facts`, including their exact `fact_id` values;
@@ -44,9 +44,10 @@ Examples:
 
 ## Required judgment
 
-Assess whether the supplied case facts satisfy a diagnostic classification stated by
-one or more retrieved cards. Complex criteria may require composition of several case
-facts, such as a molecular finding, its VAF, morphology, and an exclusion. For every
+Decide the integrated diagnosis by assessing whether the supplied case facts,
+including the NGS results, satisfy a diagnostic classification stated by one or more
+retrieved cards. Complex criteria may require composition of several case facts,
+such as a molecular finding, its VAF, morphology, and an exclusion. For every
 material required criterion, record one criterion assessment as `met`, `not_met`, or
 `unknown`.
 
@@ -72,26 +73,43 @@ every exclusion raised by the case is resolved and met. A source-supported subty
 may be returned as free text in `diagnostic_label`, but `refined_disease` must be one
 exact value from `allowed_refined_diseases`.
 
+## Model adjudication and review boundary
+
+The top-level diagnostic fields preserve the model's evidence-bounded adjudication.
+The surrounding Step 3 workflow selects one review mode:
+
+- **automatic:** set `user_review` to `"automatic"` and keep
+  `downstream_filter_disease` identical to the model's `refined_disease`;
+- **manual, initial output:** set `user_review.decision` to `"pending"`, set
+  `user_review.diagnostic_label` and `user_review.refined_disease` to null, and keep
+  `downstream_filter_disease` identical to the model's `refined_disease`.
+
+For manual review, do not anticipate, infer, or fabricate the user's decision. After
+the user agrees or supplies a revised diagnosis, the surrounding workflow updates
+only `user_review` and `downstream_filter_disease`. The model's top-level `status`,
+`refined_disease`, `diagnostic_label`, `driven_by`, `criterion_assessment`, and
+`reason` must remain unchanged.
+
 ## Downstream retrieval invariant
 
-`refined_disease` is not merely a display label. It is the **major diagnostic
-category that the deterministic next step will use to retrieve and suppress
-prognosis, treatment, and biomarker cards**. Set `downstream_filter_disease` to the
-same exact value. If the evidence changes the major category, change both fields.
+The top-level `refined_disease` is the model-proposed major diagnostic category.
+`downstream_filter_disease` is the major category that the deterministic next step
+will use to retrieve and suppress diagnosis, prognosis, treatment, and biomarker
+cards. In automatic mode it must equal `refined_disease`. After completed manual
+review it must equal `user_review.refined_disease`.
 
 For example, a source-supported conclusion of `Entity-A subtype` may use that text as
-`diagnostic_label` and its allowed major category as `refined_disease`. The major
-category is then used for downstream card calling.
+`diagnostic_label` and its allowed major category as `refined_disease`.
 
 Do not reconcile conflicting classifiers. If retrieved cards support different
 classifier-specific conclusions, select only a conclusion fully supported under one
 identified card set and explain the conflict concisely in `reason`, or return
-`indeterminate` when the requested single downstream category cannot be selected
+`indeterminate` when the requested single model-proposed category cannot be selected
 without reconciliation.
 
 ## Output contract
 
-Return JSON only, with exactly this shape:
+Return JSON only, with exactly these top-level fields:
 
 ```json
 {
@@ -110,15 +128,34 @@ Return JSON only, with exactly this shape:
       "case_fact_ids": ["<supplied fact_id>"]
     }
   ],
-  "reason": "<concise explanation bounded to the cited cards and facts>"
+  "reason": "<concise argument for the integrated diagnosis, bounded to the cited cards and facts>",
+  "user_review": "automatic"
 }
 ```
 
-Allowed `status` values are `criteria_met`, `criteria_not_met`, and `indeterminate`.
-Allowed criterion `status` values are `met`, `not_met`, and `unknown`.
-`diagnostic_label` may be null. Every ID must be copied exactly from the input.
+For initial manual mode, `user_review` is instead exactly:
 
-Before returning, verify privately that a changed major category has
+```json
+{
+  "decision": "pending",
+  "diagnostic_label": null,
+  "refined_disease": null
+}
+```
+
+After manual review, only that object and `downstream_filter_disease` may be updated
+as directed by the surrounding Step 3 workflow.
+
+Allowed top-level `status` values are `criteria_met`, `criteria_not_met`, and
+`indeterminate`. Allowed criterion `status` values are `met`, `not_met`, and
+`unknown`. `user_review` is either the exact string `"automatic"` or a manual-review
+object. Allowed manual `user_review.decision` values are `pending`, `agree`, and
+`disagree`. `diagnostic_label` may be null. Every ID must be copied exactly from the
+input.
+
+Before returning, verify privately that a changed model-proposed major category has
 `status: "criteria_met"`, at least one driving card, at least one required criterion,
-no required `unknown` or `not_met` criterion, and identical `refined_disease` and
-`downstream_filter_disease` values.
+no required `unknown` or `not_met` criterion, and identical initial
+`refined_disease` and `downstream_filter_disease` values. Also verify that
+`user_review` matches the workflow mode: `"automatic"` for automatic mode, or a
+pending object with null diagnosis values for initial manual mode.

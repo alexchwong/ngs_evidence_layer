@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Single source of truth for the closed vocabularies.
+"""Single source of truth for closed disease vocabularies and retrieval relations.
 
-Every script that names a disease, a category or an evidence tier loads it from
-here. Duplicating the lists inline is how the retriever and the validator end up
-disagreeing about what a legal disease is, which surfaces as cards that validate
-and then never retrieve.
-
-The data lives in schema/disease_vocabulary.json; the enum in the merged ingestion
-package schema is checked against it by check_vocabulary_consistency().
+Evidence-card diseases, case-only disease options, taxonomy, categories and evidence
+ranks all live in ``schema/disease_vocabulary.json``. ``umbrella`` remains taxonomy
+only. ``retrieval_related`` is a separate, directional, category-specific relation
+used only by case retrieval.
 """
 import json
 from pathlib import Path
@@ -17,20 +14,28 @@ VOCAB_PATH = SCHEMA_DIR / "disease_vocabulary.json"
 PACKAGE_SCHEMA_PATH = SCHEMA_DIR / "ingestion_package_schema.json"
 
 _VOCAB = json.loads(VOCAB_PATH.read_text(encoding="utf-8"))
-
 DISEASES = list(_VOCAB["diseases"])
 DISEASE_SET = set(DISEASES)
+CASE_ONLY_DISEASES = list(_VOCAB.get("case_only_diseases", []))
+CASE_ONLY_DISEASE_SET = set(CASE_ONLY_DISEASES)
+CASE_DISEASES = DISEASES + CASE_ONLY_DISEASES
+CASE_DISEASE_SET = set(CASE_DISEASES)
+CASE_ONLY_USAGE = dict(_VOCAB.get("case_only_usage", {}))
 UMBRELLA = {k: list(v) for k, v in _VOCAB["umbrella"].items()}
+RETRIEVAL_RELATED = {
+    disease: {category: list(targets) for category, targets in categories.items()}
+    for disease, categories in _VOCAB.get("retrieval_related", {}).items()
+}
 CATEGORIES = list(_VOCAB["categories"])
 EVIDENCE_TIERS = list(_VOCAB["evidence_tiers_strongest_first"])
 PUBLICATION_TYPES = list(_VOCAB["publication_types"])
 DISEASE_NAMING_EXPECTED = set(_VOCAB["disease_naming_expected"])
-
 # Render and truncation order. Strongest tier first; truncation eats the tail.
 TIER_RANK = {tier: i for i, tier in enumerate(EVIDENCE_TIERS)}
 CATEGORY_RANK = {category: i for i, category in enumerate(CATEGORIES)}
 
 UNSPECIFIED_DISEASE = "myeloid neoplasm, unspecified"
+NO_HAEMATOLOGICAL_MALIGNANCY = "no_haematological_malignancy"
 
 
 def disease_ancestors(diseases):
@@ -59,6 +64,15 @@ def disease_ancestors(diseases):
     return [disease for disease in DISEASES if disease in ancestors]
 
 
+def retrieval_related_diseases(disease, category):
+    """Return direct related diseases configured for one case disease/category.
+
+    This relation is intentionally non-transitive and directional. Taxonomic
+    ``umbrella`` ancestors are not consulted.
+    """
+    return list(RETRIEVAL_RELATED.get(disease, {}).get(category, []))
+
+
 def missing_umbrellas(diseases):
     """Backward-compatible alias for ancestors absent from an expanded tag set."""
     tagged = set(diseases)
@@ -66,7 +80,7 @@ def missing_umbrellas(diseases):
 
 
 def check_vocabulary_consistency():
-    """Fail loudly if the JSON Schema enum has drifted from the vocabulary file."""
+    """Fail loudly if schemas or configured relationships drift from the vocabulary."""
     schema = json.loads(PACKAGE_SCHEMA_PATH.read_text(encoding="utf-8"))
     enum = schema["$defs"]["disease"]["enum"]
     problems = []
@@ -74,6 +88,17 @@ def check_vocabulary_consistency():
         problems.append(
             "ingestion_package_schema.json disease enum differs from disease_vocabulary.json"
         )
+    overlap = DISEASE_SET & CASE_ONLY_DISEASE_SET
+    if overlap:
+        problems.append(
+            "case-only diseases overlap evidence-card diseases: " + ", ".join(sorted(overlap))
+        )
+    for disease in CASE_ONLY_DISEASES:
+        if disease not in CASE_ONLY_USAGE:
+            problems.append(f"case-only disease {disease!r} has no usage rule")
+    for disease in CASE_ONLY_USAGE:
+        if disease not in CASE_ONLY_DISEASE_SET:
+            problems.append(f"case-only usage rule {disease!r} has no case-only disease")
     for term in UMBRELLA:
         if term not in DISEASE_SET:
             problems.append(f"umbrella key {term!r} is not in the disease vocabulary")
@@ -86,6 +111,32 @@ def check_vocabulary_consistency():
             disease_ancestors([disease])
         except ValueError as exc:
             problems.append(str(exc))
+    for disease, categories in RETRIEVAL_RELATED.items():
+        if disease not in DISEASE_SET:
+            problems.append(
+                f"retrieval_related key {disease!r} is not an evidence-card disease"
+            )
+        if not isinstance(categories, dict):
+            problems.append(f"retrieval_related[{disease!r}] must be an object")
+            continue
+        for category, targets in categories.items():
+            if category not in DISEASE_NAMING_EXPECTED:
+                problems.append(
+                    f"retrieval_related[{disease!r}] category {category!r} is not disease-filtered"
+                )
+            if len(targets) != len(set(targets)):
+                problems.append(
+                    f"retrieval_related[{disease!r}][{category!r}] contains duplicates"
+                )
+            for target in targets:
+                if target not in DISEASE_SET:
+                    problems.append(
+                        f"retrieval_related target {target!r} is not an evidence-card disease"
+                    )
+                if target == disease:
+                    problems.append(
+                        f"retrieval_related[{disease!r}][{category!r}] contains itself"
+                    )
     return problems
 
 
@@ -95,7 +146,13 @@ if __name__ == "__main__":
         for issue in issues:
             print("  -", issue)
         raise SystemExit(1)
+    relation_count = sum(
+        len(targets)
+        for categories in RETRIEVAL_RELATED.values()
+        for targets in categories.values()
+    )
     print(
-        f"OK: {len(DISEASES)} diseases, {len(CATEGORIES)} categories, "
-        f"{len(EVIDENCE_TIERS)} evidence tiers"
+        f"OK: {len(DISEASES)} evidence-card diseases, "
+        f"{len(CASE_ONLY_DISEASES)} case-only diseases, {len(CATEGORIES)} categories, "
+        f"{len(EVIDENCE_TIERS)} evidence tiers, {relation_count} retrieval relations"
     )

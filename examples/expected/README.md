@@ -1,40 +1,24 @@
-# Expected outputs
+# Expected demo behaviour
 
-This directory is empty on purpose.
+Each numbered file in this directory corresponds to the same-numbered clinical
+case in `examples/cases/`.
 
-An expected output is a rendered block captured from a real corpus at the moment
-a human last reviewed it. It is a diff target for catching unintended changes to
-ordering, collapse or citation numbering — **not** a gold standard. Section 9 of
-the build spec records that gold-standard cases were declined, and nothing in
-this directory should be described as one.
+These files contain human-reviewed expectations and case commentary for
+`nel-demo`. They are comparison material, not clinical case input and not a gold
+standard for exact report wording.
 
-Files here cannot be written before the pilot ingestion, because a rendered block
-generated against an empty corpus would consist of nothing but `not_assessed`
-lines, and a rendered block generated against invented cards would be fabricated
-evidence wearing the format of real evidence. Either would be worse than an empty
-directory.
+`nel-demo example <N>` must run the complete `ngs-report` workflow without reading
+the matching expected file. Step 7 begins only after Step 6B has produced
+`report-final.md`. Step 7 renders `report-final.md` for every report-producing mode;
+for `nel-demo`, it is also the first point at which the expected file may be read
+and displayed beside the case and generated report.
 
-## How to populate it
+Expected files should describe behaviour that matters for the example, such as:
+- diagnostic-category refinement or preservation;
+- evidence-bounded uncertainty;
+- retrieval or suppression behaviour;
+- handling of genes not represented in the corpus;
+- report conclusions that should or should not follow from available evidence.
 
-After WHO-5 is ingested and the corpus is built, for each case in
-`examples/cases/`:
-
-1. Run step 1 by hand or with a model: read the case and emit
-   `provisional_disease`, NGS `genes`, and structured `case_facts` with unique
-   `fact_id` values. Genes come strictly from the NGS result block; facts preserve
-   only supplied case information.
-2. Save the facts array in `case-facts.json`, then run
-   `scripts/retrieve.py diagnosis --genes ... --provisional-disease ... --case-facts case-facts.json --output step2.json`.
-3. In a fresh model session, apply `prompts/diagnostic_adjudication_prompt.md` to
-   `step2.json` and save the JSON result as `adjudication.json`. The adjudicated
-   `refined_disease` is the major category used for downstream card calling; a more
-   specific source-supported entity belongs in `diagnostic_label`.
-4. `scripts/retrieve.py full --diagnosis-result step2.json --adjudication-result adjudication.json --output bundle.json`
-5. `scripts/render.py --bundle bundle.json --output examples/expected/<case>.md`
-6. **Read it.** Commit it only once a human has looked at it and agreed it is
-   what the corpus should be saying. Committing an unreviewed block turns a diff
-   target into a record of a mistake.
-
-Re-capture after any deliberate change to ordering, collapse or numbering, and
-say so in the commit message. An unexplained diff here means something moved that
-nobody meant to move.
+Do not store patient facts only in this directory. Any fact required by the
+workflow belongs in the corresponding file under `examples/cases/`.
