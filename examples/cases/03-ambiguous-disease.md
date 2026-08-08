@@ -1,9 +1,6 @@
-# Case 3 — ambiguous disease
+# Case 3
 
-Exercises: `myeloid neoplasm, unspecified` as the provisional disease; whether
-disease-agnostic diagnosis cards carry the CHIP/CCUS distinction into retrieval.
-
----
+Provisional diagnosis: myeloid neoplasm, unspecified.
 
 61M, incidental finding. Neutrophils 1.4, Hb 128 g/L, platelets 178. The
 neutropenia has been present on three counts over eight months. B12, folate,
