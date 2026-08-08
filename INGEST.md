@@ -15,6 +15,7 @@ PDF
 → Phase 4
 → confirm
 → incorporate
+→ rebuild secondary-source curation backlog
 ```
 
 Use a fresh ChatGPT or Claude conversation for each model phase. Phase 3 must use a
@@ -308,6 +309,42 @@ output/reports/build-report.json
 
 `incorporate.py` reads from `accept/`. Invalid accepted packages are reported and
 excluded; valid accepted papers are incorporated.
+
+### Rebuild the secondary-source curation backlog
+
+After incorporation, rebuild the curator backlog from the archived Phase 1–4 audit
+history and the current corpus:
+
+```bash
+python scripts/build_secondary_source_backlog.py
+```
+
+The script looks for provisional cards that:
+
+- Phase 3 marked `fail`;
+- were removed from `paper.final.json`; and
+- carried a non-null `secondary_citation`.
+
+It groups those removed interpretations by the cited source paper. If the cited source
+already exists in the current corpus, that source and its removed cards are excluded
+from the outstanding backlog. Matching is conservative: DOI is used when available;
+otherwise the normalized title and year must match exactly.
+
+Outputs are private generated curator files:
+
+```text
+curation/secondary-source-backlog.json
+curation/secondary-source-backlog.md
+```
+
+The Markdown file is the human-readable paper-curation queue. Each entry preserves the
+removed provisional interpretation, its originating curated paper, and the Phase 3
+failure reason and suggested action. The JSON file contains the same information in a
+machine-readable form.
+
+The command never modifies `archive/`, `accept/`, or `output/`. `curation/` is ignored
+and is not included by `transport.py`; rebuild it after moving private corpus state to
+another computer.
 
 ## 7. Phase 5 — add evidence missed during the original ingest
 
