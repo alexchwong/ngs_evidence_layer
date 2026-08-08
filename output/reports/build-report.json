@@ -1,5 +1,5 @@
 {
-  "corpus_sha256": "441bb094f27dcff4ac8a13f0f14ad5b84ad8015565b3b045d0f1205165a6c453",
+  "corpus_sha256": "0e97fc58226272b5e8549ce4c3b1bab0ca14fab2a11d2913979ea2baf427bf55",
   "counts": {
     "cards": 118,
     "census_entries": 495,
@@ -7,7 +7,7 @@
     "rejected_papers": 0
   },
   "extraction_ratio": 0.24,
-  "generated_at": "2026-08-06T13:26:56.079801+00:00",
+  "generated_at": "2026-08-08T12:35:10.009351+00:00",
   "rejected": {},
   "status": "ok"
 }

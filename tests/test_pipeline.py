@@ -55,8 +55,9 @@ def write_accept(accept_dir, stem, mutate=None, accepted_at="2026-01-01T00:00:00
         mutate(metadata, census, package)
     publication_key = metadata["publication_key"]
     envelope = {
-        "schema_version": "1.1", "acceptance_path": "confirmed",
+        "schema_version": "1.2", "acceptance_path": "confirmed",
         "accepted_at": accepted_at, "accepted_at_source": "confirm",
+        "accepted_in_version": "0.1.5",
         "metadata": metadata, "final": package,
     }
     (accept_dir / f"{publication_key}.final.json").write_text(json.dumps(envelope), encoding="utf-8")
@@ -470,7 +471,7 @@ class IncorporationTests(unittest.TestCase):
             corpus, index = read(corpus_path), read(index_path)
             self.assertEqual(corpus["corpus_version"], "1.2")
             self.assertEqual(corpus["schema_version"], "3.1")
-            self.assertEqual(index["index_version"], "1.2")
+            self.assertEqual(index["index_version"], "1.3")
             self.assertEqual(corpus["counts"]["cards"], 10)
             self.assertNotIn("by_escalates_to", index)
             self.assertNotIn("escalates_to", json.dumps(index))

@@ -68,7 +68,7 @@ def normalize_accepted_at(final_path):
     if envelope.get("acceptance_path") != "manual-or-unverified":
         raise ValueError("accepted_at is missing from a non-manual accepted package")
     accepted_at = datetime.fromtimestamp(final_path.stat().st_mtime, timezone.utc).isoformat()
-    envelope["schema_version"] = "1.1"
+    envelope["schema_version"] = "1.2"
     envelope["accepted_at"] = accepted_at
     envelope["accepted_at_source"] = "file-mtime"
     atomic_json(final_path, envelope)
@@ -76,11 +76,13 @@ def normalize_accepted_at(final_path):
 
 def build(args):
     final_paths = sorted(args.accept_dir.glob("*.final.json"))
-    census_paths = {path.name.removesuffix(".census.json"): path for path in args.accept_dir.glob("*.census.json")}
+    census_paths = {
+        path.name.removesuffix(".census.json"): path
+        for path in args.accept_dir.glob("*.census.json")
+    }
     final_ids = {path.name.removesuffix(".final.json") for path in final_paths}
     rejected = {}
     accepted = []
-
     for orphan in sorted(set(census_paths) - final_ids):
         rejected[orphan] = ["accepted census has no paired final package"]
     for final_path in final_paths:
@@ -96,7 +98,9 @@ def build(args):
             rejected[publication_key] = str(exc).splitlines()
             continue
         if envelope["metadata"]["publication_key"] != publication_key:
-            rejected[publication_key] = ["accepted filename does not match metadata publication_key"]
+            rejected[publication_key] = [
+                "accepted filename does not match metadata publication_key"
+            ]
             continue
         accepted.append((publication_key, envelope, census, warnings, report))
 
@@ -107,6 +111,7 @@ def build(args):
         _publication_key, envelope, _census, _warnings, _report = item
         key = envelope["metadata"]["publication_key"]
         key_groups[key].append(item)
+
     selected = []
     for key, group in sorted(key_groups.items()):
         ranked = sorted(
@@ -118,23 +123,40 @@ def build(args):
         selected.append(winner)
         for loser in ranked[1:]:
             loser_id = loser[0]
-            rejected[loser_id] = [f"duplicate publication_key {key}: superseded by {winner_id}"]
-            print(f"warning: duplicate publication_key {key}: {loser_id} superseded by {winner_id}", file=sys.stderr)
+            rejected[loser_id] = [
+                f"duplicate publication_key {key}: superseded by {winner_id}"
+            ]
+            print(
+                f"warning: duplicate publication_key {key}: "
+                f"{loser_id} superseded by {winner_id}",
+                file=sys.stderr,
+            )
+
     for publication_key, envelope, _census, _warnings, _report in selected:
         for card in envelope["final"]["cards"]:
             card_id = card["card_id"]
             if card_id in card_owners:
-                global_errors.append(f"duplicate card_id {card_id}: {card_owners[card_id]} and {publication_key}")
+                global_errors.append(
+                    f"duplicate card_id {card_id}: "
+                    f"{card_owners[card_id]} and {publication_key}"
+                )
             card_owners[card_id] = publication_key
     if global_errors:
         raise ValueError("\n".join(global_errors))
 
-    by_gene, by_disease, by_category = defaultdict(list), defaultdict(list), defaultdict(list)
+    by_gene, by_disease, by_category = (
+        defaultdict(list),
+        defaultdict(list),
+        defaultdict(list),
+    )
     by_tier, by_year, by_type = (defaultdict(list) for _ in range(3))
+    by_accepted_in_version = defaultdict(list)
     publications, paper_index, card_index = [], {}, {}
     census_total = 0
+
     for publication_key, envelope, census, warnings, report in selected:
         metadata, package = envelope["metadata"], envelope["final"]
+        accepted_in_version = envelope["accepted_in_version"]
         cards = sorted(package["cards"], key=lambda card: card["card_id"])
         document = {
             "publication_key": metadata["publication_key"],
@@ -155,51 +177,96 @@ def build(args):
             card["disease_ancestors"] = disease_ancestors
             card_ids.append(card_id)
             card_index[card_id] = {
-                "input_id": metadata["paper_id"], "publication_key": metadata["publication_key"],
-                "genes": sorted(card["genes"]), "diseases": sorted(exact_diseases),
+                "input_id": metadata["paper_id"],
+                "publication_key": metadata["publication_key"],
+                "genes": sorted(card["genes"]),
+                "diseases": sorted(exact_diseases),
                 "disease_ancestors": disease_ancestors,
-                "category": card["category"], "evidence_tier": card["evidence_tier"],
+                "category": card["category"],
+                "evidence_tier": card["evidence_tier"],
             }
-            for gene in card["genes"]: add(by_gene, gene, card_id)
+            for gene in card["genes"]:
+                add(by_gene, gene, card_id)
             for disease in (*exact_diseases, *disease_ancestors):
                 add(by_disease, disease, card_id)
             add(by_category, card["category"], card_id)
             add(by_tier, card["evidence_tier"], card_id)
+
         year = metadata["citation"].get("year")
-        if year is not None: add(by_year, str(year), metadata["publication_key"])
+        if year is not None:
+            add(by_year, str(year), metadata["publication_key"])
         add(by_type, package["publication_type"], metadata["publication_key"])
+        add(
+            by_accepted_in_version,
+            accepted_in_version,
+            metadata["publication_key"],
+        )
         source = {
-            "input_id": metadata["paper_id"], "source_filename": metadata["source_filename"],
-            "source_sha256": metadata["source_sha256"], "markdown_sha256": metadata["markdown_sha256"],
+            "input_id": metadata["paper_id"],
+            "source_filename": metadata["source_filename"],
+            "source_sha256": metadata["source_sha256"],
+            "markdown_sha256": metadata["markdown_sha256"],
             "acceptance_path": envelope["acceptance_path"],
-            "audit": package["audit"], "extraction": report, "warnings": warnings,
+            "audit": package["audit"],
+            "extraction": report,
+            "warnings": warnings,
         }
         publications.append({"source": source, "document": document})
         paper_index[publication_key] = {
-            "status": "completed", "publication_key": metadata["publication_key"],
-            "citation_display": metadata["citation"]["display"], "genes": sorted(package["genes_covered"]),
-            "diseases": sorted(package["diseases_covered"]), "card_ids": card_ids,
-            "census_entries": len(census["entries"]), "cards": len(card_ids),
+            "status": "completed",
+            "publication_key": metadata["publication_key"],
+            "accepted_in_version": accepted_in_version,
+            "citation_display": metadata["citation"]["display"],
+            "genes": sorted(package["genes_covered"]),
+            "diseases": sorted(package["diseases_covered"]),
+            "card_ids": card_ids,
+            "census_entries": len(census["entries"]),
+            "cards": len(card_ids),
         }
         census_total += len(census["entries"])
 
     generated_at = args.generated_at or datetime.now(timezone.utc).isoformat()
-    counts = {"completed_papers": len(publications), "rejected_papers": len(rejected), "cards": len(card_index), "census_entries": census_total}
-    corpus = {"corpus_version": "1.2", "schema_version": "3.1", "generated_at": generated_at, "counts": counts, "publications": sorted(publications, key=lambda item: item["source"]["input_id"])}
+    counts = {
+        "completed_papers": len(publications),
+        "rejected_papers": len(rejected),
+        "cards": len(card_index),
+        "census_entries": census_total,
+    }
+    corpus = {
+        "corpus_version": "1.2",
+        "schema_version": "3.1",
+        "generated_at": generated_at,
+        "counts": counts,
+        "publications": sorted(
+            publications, key=lambda item: item["source"]["input_id"]
+        ),
+    }
     digest = hashlib.sha256(canonical_bytes(corpus)).hexdigest()
     index = {
-        "index_version": "1.2", "generated_at": generated_at, "corpus_sha256": digest, "counts": counts,
+        "index_version": "1.3",
+        "generated_at": generated_at,
+        "corpus_sha256": digest,
+        "counts": counts,
         "papers": {key: paper_index[key] for key in sorted(paper_index)},
         "cards": {key: card_index[key] for key in sorted(card_index)},
-        "by_gene": postings(by_gene), "by_disease": postings(by_disease), "by_category": postings(by_category),
+        "by_gene": postings(by_gene),
+        "by_disease": postings(by_disease),
+        "by_category": postings(by_category),
         "by_evidence_tier": postings(by_tier),
-        "by_year": postings(by_year), "by_publication_type": postings(by_type),
+        "by_year": postings(by_year),
+        "by_publication_type": postings(by_type),
+        "by_accepted_in_version": postings(by_accepted_in_version),
         "rejected": {key: rejected[key] for key in sorted(rejected)},
     }
     report = {
-        "status": "ok", "generated_at": generated_at, "counts": counts,
-        "rejected": index["rejected"], "corpus_sha256": digest,
-        "extraction_ratio": round(counts["cards"] / census_total, 2) if census_total else None,
+        "status": "ok",
+        "generated_at": generated_at,
+        "counts": counts,
+        "rejected": index["rejected"],
+        "corpus_sha256": digest,
+        "extraction_ratio": (
+            round(counts["cards"] / census_total, 2) if census_total else None
+        ),
     }
     return corpus, index, report
 
@@ -208,7 +275,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--accept-dir", type=Path, default=Path("accept"))
     parser.add_argument("--output-dir", type=Path, default=Path("output/corpus"))
-    parser.add_argument("--report", type=Path, default=Path("output/reports/build-report.json"))
+    parser.add_argument(
+        "--report", type=Path, default=Path("output/reports/build-report.json")
+    )
     parser.add_argument("--generated-at", help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
@@ -218,7 +287,10 @@ def main():
         atomic_json(args.report, report)
     except (OSError, ValueError) as exc:
         sys.exit(f"INCORPORATION FAILED:\n{exc}")
-    print(f"INCORPORATED: {report['counts']['completed_papers']} paper(s), {report['counts']['cards']} card(s)")
+    print(
+        f"INCORPORATED: {report['counts']['completed_papers']} paper(s), "
+        f"{report['counts']['cards']} card(s)"
+    )
     print(f"Rejected: {report['counts']['rejected_papers']}")
 
 

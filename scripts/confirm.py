@@ -12,6 +12,24 @@ from pathlib import Path
 import final_validation
 import package_validation as validation
 
+ROOT = Path(__file__).resolve().parent.parent
+VERSION_FILE = ROOT / "release" / "VERSION"
+
+
+def read_nel_version():
+    try:
+        lines = [
+            line.strip()
+            for line in VERSION_FILE.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except OSError as exc:
+        raise ValueError(f"cannot read NEL version from {VERSION_FILE}: {exc}") from exc
+    if len(lines) != 1:
+        raise ValueError(f"{VERSION_FILE} must contain exactly one non-empty version line")
+    return lines[0]
+
+
 
 def confirm(args):
     working = args.work_dir / args.publication_key
@@ -53,7 +71,6 @@ def confirm(args):
         )
     if errors:
         raise ValueError("\n".join(errors))
-
     provisional = validation.read_json(
         provisional_path, "approved provisional package"
     )
@@ -70,7 +87,6 @@ def confirm(args):
     )
     errors.extend(f"phase 1: {error}" for error in phase_1_errors)
     warnings.extend(f"phase 1: {warning}" for warning in phase_1_warnings)
-
     # The approved provisional is immutable history. Confirmation still checks
     # its schema and internal structure, but does not source-validate its quotes:
     # Phase 4 may have corrected a source defect in paper.final.json.
@@ -87,7 +103,6 @@ def confirm(args):
     warnings.extend(
         f"provisional: {warning}" for warning in provisional_warnings
     )
-
     phase_3_errors, phase_3_warnings, _phase_3_report = (
         final_validation.validate_phase_files(
             phase=3,
@@ -97,7 +112,6 @@ def confirm(args):
     )
     errors.extend(f"phase 3: {error}" for error in phase_3_errors)
     warnings.extend(f"phase 3: {warning}" for warning in phase_3_warnings)
-
     phase_4_errors, phase_4_warnings, report = (
         final_validation.validate_phase_files(
             phase=4,
@@ -111,9 +125,11 @@ def confirm(args):
     )
     errors.extend(f"phase 4: {error}" for error in phase_4_errors)
     warnings.extend(f"phase 4: {warning}" for warning in phase_4_warnings)
-
     if errors:
         raise ValueError("\n".join(errors))
+
+    accepted_version = read_nel_version()
+
     final_destination = args.accept_dir / f"{args.publication_key}.final.json"
     census_destination = args.accept_dir / f"{args.publication_key}.census.json"
     archive_destination = args.archive_dir / args.publication_key
@@ -134,10 +150,11 @@ def confirm(args):
     staged_final = staging / final_destination.name
     staged_census = staging / census_destination.name
     accepted = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "acceptance_path": "confirmed",
         "accepted_at": datetime.now(timezone.utc).isoformat(),
         "accepted_at_source": "confirm",
+        "accepted_in_version": accepted_version,
         "metadata": metadata,
         "final": final,
     }
