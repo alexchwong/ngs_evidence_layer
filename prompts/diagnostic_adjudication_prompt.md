@@ -73,34 +73,33 @@ every exclusion raised by the case is resolved and met. A source-supported subty
 may be returned as free text in `diagnostic_label`, but `refined_disease` must be one
 exact value from `allowed_refined_diseases`.
 
-## Model adjudication and human-review boundary
+## Model adjudication and review boundary
 
 The top-level diagnostic fields preserve the model's evidence-bounded adjudication.
-Do not anticipate, infer, or fabricate the user's decision. For the initial output:
+The surrounding Step 3 workflow selects one review mode:
 
-- set `user_review.decision` to `"pending"`;
-- set `user_review.diagnostic_label` to null;
-- set `user_review.refined_disease` to null; and
-- set `downstream_filter_disease` to the same value as the model's
-  `refined_disease`.
+- **automatic:** set `user_review` to `"automatic"` and keep
+  `downstream_filter_disease` identical to the model's `refined_disease`;
+- **manual, initial output:** set `user_review.decision` to `"pending"`, set
+  `user_review.diagnostic_label` and `user_review.refined_disease` to null, and keep
+  `downstream_filter_disease` identical to the model's `refined_disease`.
 
-The surrounding Step 3 workflow will present the model's integrated diagnosis and
-argument to the user. It will then update only `user_review` and
-`downstream_filter_disease` after the user agrees or supplies a revised diagnosis.
-The model's top-level `status`, `refined_disease`, `diagnostic_label`, `driven_by`,
-`criterion_assessment`, and `reason` must remain unchanged after that review.
+For manual review, do not anticipate, infer, or fabricate the user's decision. After
+the user agrees or supplies a revised diagnosis, the surrounding workflow updates
+only `user_review` and `downstream_filter_disease`. The model's top-level `status`,
+`refined_disease`, `diagnostic_label`, `driven_by`, `criterion_assessment`, and
+`reason` must remain unchanged.
 
 ## Downstream retrieval invariant
 
 The top-level `refined_disease` is the model-proposed major diagnostic category.
 `downstream_filter_disease` is the major category that the deterministic next step
-will use to retrieve and suppress prognosis, treatment, and biomarker cards.
-Initially they are identical. After completed user review,
-`downstream_filter_disease` must equal `user_review.refined_disease`.
+will use to retrieve and suppress diagnosis, prognosis, treatment, and biomarker
+cards. In automatic mode it must equal `refined_disease`. After completed manual
+review it must equal `user_review.refined_disease`.
 
 For example, a source-supported conclusion of `Entity-A subtype` may use that text as
-`diagnostic_label` and its allowed major category as `refined_disease`. The initial
-major category is then presented for user review before downstream card calling.
+`diagnostic_label` and its allowed major category as `refined_disease`.
 
 Do not reconcile conflicting classifiers. If retrieved cards support different
 classifier-specific conclusions, select only a conclusion fully supported under one
@@ -110,7 +109,7 @@ without reconciliation.
 
 ## Output contract
 
-Return JSON only, with exactly this shape:
+Return JSON only, with exactly these top-level fields:
 
 ```json
 {
@@ -130,22 +129,33 @@ Return JSON only, with exactly this shape:
     }
   ],
   "reason": "<concise argument for the integrated diagnosis, bounded to the cited cards and facts>",
-  "user_review": {
-    "decision": "pending",
-    "diagnostic_label": null,
-    "refined_disease": null
-  }
+  "user_review": "automatic"
 }
 ```
 
+For initial manual mode, `user_review` is instead exactly:
+
+```json
+{
+  "decision": "pending",
+  "diagnostic_label": null,
+  "refined_disease": null
+}
+```
+
+After manual review, only that object and `downstream_filter_disease` may be updated
+as directed by the surrounding Step 3 workflow.
+
 Allowed top-level `status` values are `criteria_met`, `criteria_not_met`, and
 `indeterminate`. Allowed criterion `status` values are `met`, `not_met`, and
-`unknown`. Allowed `user_review.decision` values are `pending`, `agree`, and
-`disagree`; the initial output must use `pending`. `diagnostic_label` may be null.
-Every ID must be copied exactly from the input.
+`unknown`. `user_review` is either the exact string `"automatic"` or a manual-review
+object. Allowed manual `user_review.decision` values are `pending`, `agree`, and
+`disagree`. `diagnostic_label` may be null. Every ID must be copied exactly from the
+input.
 
 Before returning, verify privately that a changed model-proposed major category has
 `status: "criteria_met"`, at least one driving card, at least one required criterion,
-no required `unknown` or `not_met` criterion, identical initial `refined_disease` and
-`downstream_filter_disease` values, and a pending `user_review` with null diagnosis
-values.
+no required `unknown` or `not_met` criterion, and identical initial
+`refined_disease` and `downstream_filter_disease` values. Also verify that
+`user_review` matches the workflow mode: `"automatic"` for automatic mode, or a
+pending object with null diagnosis values for initial manual mode.

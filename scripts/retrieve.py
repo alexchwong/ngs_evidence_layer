@@ -34,7 +34,6 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
 
@@ -43,10 +42,8 @@ DEFAULT_CORPUS = REPO_ROOT / "output/corpus/nel.corpus.json"
 DEFAULT_INDEX = REPO_ROOT / "output/corpus/nel.index.json"
 DISEASE_FILTERED = ("diagnosis", "prognosis", "treatment", "biomarker")
 
-
 def canonical_bytes(document):
     return (json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
-
 
 def load_corpus(corpus_path, index_path):
     """Load the corpus and refuse a stale index.
@@ -63,7 +60,6 @@ def load_corpus(corpus_path, index_path):
             f"{index.get('corpus_sha256')}. Rebuild before retrieving."
         )
     return corpus, index, digest
-
 
 def flatten(corpus):
     """One record per card, carrying what render needs and nothing more."""
@@ -88,10 +84,8 @@ def flatten(corpus):
             })
     return cards
 
-
 def match_genes(card, wanted):
     return sorted({gene.upper() for gene in card["genes"]} & wanted)
-
 
 def provenance(corpus, corpus_path, index_path, digest, card_ids):
     return {
@@ -103,7 +97,6 @@ def provenance(corpus, corpus_path, index_path, digest, card_ids):
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
         "card_ids": sorted(card_ids),
     }
-
 
 def validate_case_facts(case_facts):
     if not isinstance(case_facts, list):
@@ -120,7 +113,6 @@ def validate_case_facts(case_facts):
         raise ValueError("case fact IDs must be unique")
     return case_facts
 
-
 def _normalise_genes(genes, *, field="genes"):
     if not isinstance(genes, list):
         raise ValueError(f"{field} must be a JSON array")
@@ -136,7 +128,6 @@ def _normalise_genes(genes, *, field="genes"):
         normalised.append(upper)
     return normalised
 
-
 def _validate_case_disease(disease, genes, *, field):
     """Validate one case-level disease against the submitted variant genes.
     ``no_haematological_malignancy`` is deliberately case-only and is legal only
@@ -150,7 +141,6 @@ def _validate_case_disease(disease, genes, *, field):
             f"{field} {vocab.NO_HAEMATOLOGICAL_MALIGNANCY!r} requires no reported variants"
         )
     return disease
-
 
 def validate_case_input(path):
     """Validate and return the structured case input produced by Step 1."""
@@ -180,7 +170,6 @@ def validate_case_input(path):
         "genes": genes,
         "case_facts": case_facts,
     }
-
 
 def step2(cards, genes, provisional_disease, case_facts=None):
     case_facts = validate_case_facts(case_facts or [])
@@ -220,36 +209,38 @@ def step2(cards, genes, provisional_disease, case_facts=None):
         "genes_with_no_diagnosis_card": sorted(wanted - genes_with_diagnosis_card),
     }
 
-
 def _validate_user_review(
     adjudication, genes, allowed_refined_diseases, *, require_completed_review
 ):
-    """Validate the human review state and return the completed review or ``None``.
-    Legacy model-only adjudications remain valid for direct internal validation so
-    existing callers can inspect the model decision. ``run_full`` always requests a
-    completed review and therefore cannot enter Step 4 through that compatibility
-    path.
-    """
+    """Validate automatic or manual Step 3 review state."""
     review = adjudication.get("user_review")
     model_refined = adjudication["refined_disease"]
     model_label = adjudication["diagnostic_label"]
     downstream = adjudication["downstream_filter_disease"]
+
+    if review == "automatic":
+        if downstream != model_refined:
+            raise ValueError(
+                "automatic user_review requires downstream_filter_disease to exactly "
+                "equal refined_disease"
+            )
+        return review
+
     if review is None:
         if require_completed_review:
-            raise ValueError(
-                "user_review is required before Step 4; present the adjudication JSON "
-                "to the user and obtain PROCEED_TO_STEP_4"
-            )
+            raise ValueError("user_review is required before Step 4")
         if downstream != model_refined:
             raise ValueError(
                 "without user_review, downstream_filter_disease must exactly equal "
                 "refined_disease"
             )
         return None
+
     review_keys = {"decision", "diagnostic_label", "refined_disease"}
     if not isinstance(review, dict) or set(review) != review_keys:
         raise ValueError(
-            "user_review must contain exactly: " + ", ".join(sorted(review_keys))
+            "user_review must be 'automatic' or contain exactly: "
+            + ", ".join(sorted(review_keys))
         )
     decision = review["decision"]
     if decision not in {"pending", "agree", "disagree"}:
@@ -302,7 +293,6 @@ def _validate_user_review(
             "a disagreeing user_review requires the user's integrated diagnostic_label"
         )
     return review
-
 
 def validate_adjudication(step2_result, adjudication, *, require_completed_review=False):
     base_keys = {
@@ -403,7 +393,6 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     )
     return adjudication
 
-
 def step4(cards, genes, refined_disease, diagnosis_cards):
     normalised_genes = _normalise_genes(list(genes), field="genes")
     _validate_case_disease(refined_disease, normalised_genes, field="refined_disease")
@@ -414,14 +403,12 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
         category: vocab.retrieval_related_diseases(refined_disease, category)
         for category in DISEASE_FILTERED
     }
-
     # Step 2 intentionally retrieves diagnosis cards broadly using
     # gene OR disease OR retrieval_related. Step 4 is stricter: diagnosis cards,
     # like prognosis/treatment/biomarker cards, require both a gene match and a
     # disease-scope match. Use the Step-2 card set as the diagnosis source so Step 4
     # cannot introduce diagnosis evidence that was unavailable to adjudication.
     diagnosis_ids = {card["card_id"] for card in diagnosis_cards}
-
     for card in cards:
         category = card["category"]
         if category == "diagnosis" and card["card_id"] not in diagnosis_ids:
@@ -437,7 +424,6 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
                 hit["retrieval_match"] = "gene_only"
                 retrieved.append(hit)
             continue
-
         if category not in DISEASE_FILTERED:
             continue
 
@@ -448,12 +434,10 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
             if matched:
                 suppressed.append(hit)
             continue
-
         exact_match = refined_disease in diseases
         related = set(retrieval_scope.get(category, []))
         related_matches = [disease for disease in diseases if disease in related]
         disease_matched = exact_match or bool(related_matches)
-
         # Step 4 rule: gene AND (exact disease OR retrieval_related disease).
         if matched and disease_matched:
             if exact_match:
@@ -463,11 +447,9 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
                 hit["matched_retrieval_related_diseases"] = related_matches
             retrieved.append(hit)
             continue
-
         # A gene-matched card outside disease scope was considered but suppressed.
         if matched:
             suppressed.append(hit)
-
     assessed = {gene for hit in retrieved for gene in hit["matched_genes"]}
     assessed |= {gene for hit in suppressed for gene in hit["matched_genes"]}
     not_assessed = sorted(wanted - assessed)
@@ -505,7 +487,6 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
             for gene in not_assessed
         ],
     }
-
 
 def run_diagnosis(args):
     corpus, _index, digest = load_corpus(args.corpus, args.index)
@@ -551,11 +532,10 @@ def run_diagnosis(args):
     result["step3_instruction"] = (
         "Use prompts/diagnostic_adjudication_prompt.md to compare only case_facts with "
         "the retrieved diagnosis_cards. refined_disease is the model-proposed major "
-        "category; downstream_filter_disease becomes the completed user-reviewed major "
-        "category before Step 4."
+        "category; downstream_filter_disease is the automatic or completed manually "
+        "reviewed major category before Step 4."
     )
     return result
-
 
 def run_full(args):
     step2_result = json.loads(Path(args.diagnosis_result).read_text(encoding="utf-8"))
@@ -586,7 +566,6 @@ def run_full(args):
         [card["card_id"] for card in result["retrieved"]],
     )
     return result
-
 
 def main():
     parser = argparse.ArgumentParser(

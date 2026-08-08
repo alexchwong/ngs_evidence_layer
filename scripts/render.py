@@ -13,7 +13,6 @@ deterministic card order, so the same corpus and case produce the same block,
 and every number points at a reference contributed by a rendered card.
 Order: category, then gene, then evidence tier strongest first, then publication
 year descending, then card ID.
-
 Usage:
   render.py --bundle bundle.json > block.md
   render.py --bundle bundle.json --token-budget 120000 --format json
@@ -24,7 +23,6 @@ import re
 import sys
 import textwrap
 from pathlib import Path
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
 DEFAULT_TOKEN_BUDGET = 120_000
@@ -43,7 +41,6 @@ CATEGORY_HEADINGS = {
     "germline": "Possible germline predisposition",
 }
 
-
 def sort_key(card):
     return (
         vocab.CATEGORY_RANK.get(card["category"], len(vocab.CATEGORY_RANK)),
@@ -52,7 +49,6 @@ def sort_key(card):
         -(card.get("publication_year") or 0),
         card["card_id"],
     )
-
 
 def card_lines(cards):
     """Return one render record per card, preserving deterministic card order.
@@ -69,7 +65,6 @@ def card_lines(cards):
         }
         for card in cards
     ]
-
 
 def citation_entries(card):
     """The reference-list entries this card contributes, primary first."""
@@ -89,7 +84,6 @@ def citation_entries(card):
             "kind": "secondary",
         })
     return entries
-
 
 def assign_references(lines):
     """Assign numbers in order of first appearance and record per-card roles.
@@ -121,7 +115,6 @@ def assign_references(lines):
         mapping["secondary_refs"].sort()
     return references, card_map
 
-
 def estimate_tokens(text):
     return max(1, (len(text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN)
 
@@ -133,13 +126,11 @@ def inline_text(value, fallback="not specified"):
     text = " ".join(str(value).split())
     return text or fallback
 
-
 def list_text(values, fallback="none specified"):
     """Render a sequence as a comma-separated inline value."""
     cleaned = [inline_text(value, "") for value in (values or [])]
     cleaned = [value for value in cleaned if value]
     return ", ".join(cleaned) if cleaned else fallback
-
 
 def format_field(label, value):
     """Format one wrapped Markdown bullet without breaking hyphenated terms."""
@@ -153,11 +144,9 @@ def format_field(label, value):
         break_on_hyphens=False,
     )
 
-
 def card_label(card):
     """Return the human-readable card label, falling back to the stable ID."""
     return inline_text(card.get("locator"), inline_text(card["card_id"]))
-
 
 def format_card(card):
     """Render one complete evidence card as structured Markdown."""
@@ -183,7 +172,6 @@ def format_card(card):
     if card.get("escalates_to"):
         out.append(format_field("Escalates to", card["escalates_to"]))
     return out
-
 
 def build_card_reference_map(lines, card_map, sorted_cards):
     """Group cards by identical ordered reference signature.
@@ -230,7 +218,6 @@ def build_card_reference_map(lines, card_map, sorted_cards):
         for group in ordered
     ]
 
-
 def format_refs(reference_map):
     """Render the terminal card-to-reference mapping section."""
     if not reference_map:
@@ -249,7 +236,6 @@ def format_refs(reference_map):
         out.append(f"{ids}: {'; '.join(parts)}")
     out.append("")
     return out
-
 
 def serialise_card(card):
     """Return the loss-minimising card representation exposed in JSON output."""
@@ -271,7 +257,6 @@ def serialise_card(card):
         "card_ids": [card["card_id"]],
     }
 
-
 def render_body(lines):
     out = []
     current_category = None
@@ -289,12 +274,17 @@ def render_body(lines):
         rendered_cards.append(serialise_card(card))
     return out, rendered_cards
 
-
 def render_header(bundle):
     provenance = bundle.get("provenance", {})
     adjudication = bundle.get("diagnostic_adjudication", {})
-    review = adjudication.get("user_review") or {}
-    decision = review.get("decision")
+    review = adjudication.get("user_review")
+    if review == "automatic":
+        decision = "automatic"
+        reviewed_label = None
+    else:
+        review = review or {}
+        decision = review.get("decision")
+        reviewed_label = review.get("diagnostic_label")
     model_refined = adjudication.get("refined_disease")
     reviewed_refined = bundle.get("refined_disease")
     out = [
@@ -316,7 +306,6 @@ def render_header(bundle):
         ),
     ]
     model_label = adjudication.get("diagnostic_label")
-    reviewed_label = review.get("diagnostic_label")
     if model_label:
         out.append(f"Source-supported diagnostic label: {model_label}")
     if decision == "disagree" and reviewed_label:
@@ -361,7 +350,6 @@ def render_header(bundle):
         f"retrieved {provenance.get('retrieved_at')}"
     )
     return out
-
 
 def render_tail(bundle, references, dropped, reference_map):
     out = []
@@ -432,7 +420,6 @@ def render_tail(bundle, references, dropped, reference_map):
         out.append("None; no cards were retrieved.")
     return out
 
-
 def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
     cards = list(bundle.get("retrieved", []))
     dropped = []
@@ -497,7 +484,6 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
         "card_reference_map": reference_map,
     }
 
-
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -534,7 +520,6 @@ def main():
         f"{result['token_budget']}",
         file=sys.stderr,
     )
-
 
 if __name__ == "__main__":
     main()

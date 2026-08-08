@@ -1,15 +1,16 @@
 ---
 name: ngs-evidence-layer
-description: Builds a deterministic evidence block for a myeloid NGS case or writes an NGS report from an existing block.md. Use for evidence-block generation or NGS report writing.
+description: Builds a deterministic evidence block for a myeloid NGS case, with automatic or manual diagnostic adjudication, or writes an NGS report from a new or completed evidence workflow.
 ---
 # NGS evidence layer
 ## Purpose
 
 Perform the task explicitly requested by the user:
 
-- `evidence-block` — build `<work-dir>/block.md` from one supplied case and the released evidence corpus.
-- `ngs-report` — build `<work-dir>/report.md` from the supplied case and an existing `block.md`.
-- both — complete evidence-block mode first, then run Step 6 in a fresh bounded model session.
+- `evidence-block` — run Steps 1–5; Step 3 is automatic. Return `<work-dir>/block.md`.
+- `evidence-block manual` — run Steps 1–5; Step 3 requires user confirmation. Return `<work-dir>/block.md`.
+- `ngs-report` — run Steps 1–6; Step 3 is automatic and Step 6 follows Step 5 without stopping. Return `<work-dir>/report.md`.
+- `evidence-to-report` — verify Step 5 has already produced `<work-dir>/block.md`, then run Step 6 only. Return `<work-dir>/report.md`.
 
 Do not infer the mode from available files.
 
@@ -19,17 +20,21 @@ The skill does not create, edit, audit, or incorporate evidence cards.
 
 ### Evidence-block mode
 
-1. Step 1 — model: structure the case into `case-input.json`.
+`evidence-block` and `evidence-block manual` run:
+
+1. Step 1 — model: write the supplied clinical case to `case.md` and structure it into `case-input.json`.
 2. Step 2 — deterministic: retrieve diagnosis evidence into `step2.json`.
-3. Step 3 — model: adjudicate the diagnosis and obtain mandatory user review.
+3. Step 3 — model: adjudicate the diagnosis and append the integrated diagnosis to `case.md`.
 4. Step 4 — deterministic: retrieve the full evidence bundle into `bundle.json`.
 5. Step 5 — deterministic: render `block.md`.
 
-Step 4 is blocked until Step 3 user review is complete and the user issues the exact continuation word `PROCEED_TO_STEP_4`.
+For `evidence-block`, Step 3 is automatic and proceeds directly to Step 4.
+For `evidence-block manual`, Step 3 requires one user confirmation or revision before Step 4.
 
 ### NGS-report mode
 
-Step 6 only: write `<work-dir>/report.md` in a fresh bounded model session.
+- `ngs-report` — run Steps 1–6. Step 3 is automatic. After Step 5 succeeds, start Step 6 immediately in a fresh bounded model session.
+- `evidence-to-report` — verify `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist, skip Steps 1–5, and run Step 6 only.
 
 ## Mandatory file-access policy
 
@@ -45,7 +50,7 @@ File access is **deny by default**.
 - Do not modify an output written by a deterministic command.
 - If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
 
-Step 3 may present its diagnosis argument and `adjudication.json` in chat. Steps 3 and 6 use fresh bounded model sessions.
+Step 3 may present its diagnosis argument and `adjudication.json` in chat in `evidence-block manual`. Steps 3 and 6 use fresh bounded model sessions.
 
 ## Working directory
 
@@ -70,7 +75,7 @@ Before Step 1:
 
 - Retain the directory after success or failure. Do not clean it up automatically.
 
-For report-only mode, the user must supply or identify a working directory containing `block.md`. Do not search for one.
+For `evidence-to-report`, the user must supply or identify a working directory containing `case.md` and `block.md`. Do not search for one.
 
 ## Missing and unreported results
 
@@ -92,6 +97,14 @@ Read only:
 - `schema/disease_vocabulary.json`.
 
 ### Required action
+
+First identify the exact user-supplied content that constitutes the clinical case and write it to `<work-dir>/case.md`.
+
+`case.md` must:
+- contain only the supplied clinical case, preserving that content verbatim and in its original order;
+- include all supplied patient, specimen, morphology, laboratory, cytogenetic, molecular, treatment, and other clinical case information;
+- exclude workflow instructions, output requests, and other non-case commentary;
+- contain no model interpretation, summary, normalisation, literature information, or added facts.
 
 Create:
 
@@ -117,6 +130,8 @@ Create:
   - Record an assumed normal cytogenetic result as a `workflow_assumption`, not a patient result.
 
 ### Output
+
+Write `<work-dir>/case.md` as specified above.
 
 Write JSON only to `<work-dir>/case-input.json` with exactly these top-level fields:
 
@@ -173,42 +188,61 @@ If `diagnosis_cards` is empty:
 - preserve `provisional_disease` as both `refined_disease` and `downstream_filter_disease`;
 - set `diagnostic_label` to null;
 - set `driven_by` and `criterion_assessment` to `[]`;
-- state in `reason` that no corpus diagnosis evidence was retrieved;
-- continue to mandatory user review.
+- state in `reason` that no corpus diagnosis evidence was retrieved.
 
-### Mandatory user review
+For `evidence-block` and `ngs-report`:
+- set `user_review` to `"automatic"`;
+- use the model adjudication as final;
+- keep `downstream_filter_disease` equal to `refined_disease`;
+- do not ask for user confirmation.
 
-1. Write the initial `<work-dir>/adjudication.json` with `user_review.decision: "pending"` as required by the adjudication prompt.
-2. Present:
-   - the proposed integrated diagnosis;
-   - one concise evidence-bounded paragraph defending it, or a short list if there are several distinct reasons.
+For `evidence-block manual`, complete the manual user review below.
+
+After the final integrated diagnosis is determined, append exactly one sentence to `<work-dir>/case.md`:
+
+`Integrated diagnosis: <diagnosis>, based on <specific reason, 20 words or fewer>. (<Author et al, year>).`
+
+- Use the final integrated diagnostic label; if none exists, use the final major diagnostic category.
+- Base the reason only on supplied case facts and retrieved diagnosis cards.
+- Use the citation of a supporting diagnosis card.
+- If no diagnosis card supports the final integrated diagnosis, use `(no citation required)` instead.
+- Do not otherwise modify `case.md`.
+
+### Manual user review
+
+Apply only to `evidence-block manual`.
+
+1. Write the initial `<work-dir>/adjudication.json` with `user_review.decision: "pending"`.
+2. Present the proposed integrated diagnosis and one concise evidence-bounded argument, or a short list for several distinct reasons.
 3. Ask the user to agree or disagree.
 4. Update `user_review`:
    - **agree:** set `decision` to `"agree"` and copy the model's `diagnostic_label` and `refined_disease` exactly;
    - **disagree:** require a revised diagnostic label and one exact downstream category from `allowed_refined_diseases`, then set `decision` to `"disagree"`.
 5. Do not alter the model's original top-level adjudication fields after user review.
 6. Set `downstream_filter_disease` to `user_review.refined_disease`.
-7. Present the complete updated `adjudication.json` and ask the user to reply with the exact word `PROCEED_TO_STEP_4`.
-
-Do not begin Step 4 in the response that presents the updated JSON. Any other response leaves Step 4 blocked.
+7. Append the required integrated-diagnosis sentence to `case.md` and proceed to Step 4. Do not require a separate continuation word.
 
 ### Output
 
-Write only `<work-dir>/adjudication.json`, using the exact output shape required by `prompts/diagnostic_adjudication_prompt.md`.
+Finalise `<work-dir>/adjudication.json` using the exact output shape allowed by `prompts/diagnostic_adjudication_prompt.md`.
 
-Before Step 4, `user_review.decision` must be `"agree"` or `"disagree"` with the corresponding reviewed diagnosis. Do not create a separate review, approval, or override file.
+Append exactly one integrated-diagnosis sentence to `<work-dir>/case.md` as specified above. Do not otherwise modify `case.md`.
+
+Before Step 4, `user_review` must be either:
+- `"automatic"`; or
+- a completed review object with `decision` equal to `"agree"` or `"disagree"`.
+
+Do not create a separate review, approval, diagnosis, or override file.
 
 ## Step 4 — Retrieve the full evidence bundle
-
 ### Entry
 
 All must be true:
 
-- `adjudication.json` records `user_review.decision` as `"agree"` or `"disagree"`;
-- the complete updated `adjudication.json` was presented to the user;
-- the user subsequently replied exactly `PROCEED_TO_STEP_4`.
-
-Do not accept similar wording or a continuation word given before the updated JSON was presented.
+- Step 3 completed;
+- `user_review` is `"automatic"` or records `decision` as `"agree"` or `"disagree"`;
+- if `user_review` is `"automatic"`, `downstream_filter_disease` equals `refined_disease`;
+- if `user_review` is an object, `downstream_filter_disease` equals `user_review.refined_disease`.
 
 ### Command
 
@@ -253,35 +287,43 @@ Do not read or modify `block.md` in this step.
 
 ## Step 6 — Write the NGS report
 
-Run only when explicitly requested, using a fresh bounded model session.
+Run only for `ngs-report` or `evidence-to-report`, using a fresh bounded model session.
+
+For `ngs-report`, begin Step 6 immediately after Step 5 succeeds. Do not stop for user input.
+
+For `evidence-to-report`, first verify `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist. If not, stop and report that Step 5 has not been completed for that working directory. Do not rerun Steps 1–5.
 
 ### Model-readable inputs
 
 Read only:
 
-- the original case document supplied by the user;
+- `<work-dir>/case.md`;
 - `<work-dir>/block.md`;
 - `rules/agreed_reporting_rules`.
+
+Do not read the original case document in Step 6.
 
 If any required input is missing, unreadable, or malformed, stop and report the error.
 
 ### Source hierarchy
 
-- **Case:** patient identity, specimen information, clinical context, test results, variants, measurements, and other patient-specific facts only.
-- **`block.md`:** exclusive source for diagnosis, classification, prognosis, treatment, biomarkers, germline interpretation, literature claims, and references.
+- **`case.md`:** sole source of truth for patient identity, specimen information, clinical context, test results, variants, measurements, other patient-specific facts, and the final integrated diagnosis.
+- Use the `Integrated diagnosis:` sentence in `case.md` as the final diagnosis. Do not re-adjudicate it in Step 6.
+- **`block.md`:** exclusive source for literature-derived classification, prognosis, treatment, biomarkers, germline interpretation, clinical associations, and references.
 - **Reporting rules:** selection, structure, and wording only; they do not establish patient facts or clinical assertions.
 - Do not strengthen, reconcile, or resolve interpretations beyond `block.md`.
 - Preserve material uncertainty, disagreement, limitations, and qualifiers.
-- Do not treat an interpretation stated only in the case as evidence unless `block.md` independently supports it.
+- Include a literature citation only when it is supported by `block.md`.
 - Do not copy workflow metadata into the clinical report unless the reporting rules require it.
-- If the case and `block.md` conflict, do not silently repair the inconsistency.
+- If `case.md` and `block.md` conflict, do not silently repair the inconsistency.
 
 ### Required action
 
 Write a complete NGS report following `rules/agreed_reporting_rules` and the source hierarchy above.
 
-- Include only supplied patient findings.
-- Include only interpretations and references supported by `block.md`.
+- Include only patient findings present in `case.md`.
+- Use the integrated diagnosis recorded in `case.md`.
+- Include only literature-derived interpretations and references supported by `block.md`.
 - Retain clinically material qualifications and uncertainty.
 - Handle unsupported sections as directed by the reporting rules.
 
@@ -299,17 +341,17 @@ Deliver only the artifact or artifacts explicitly requested by the user.
 
 ### Evidence-block mode
 
-Return `<work-dir>/block.md` unchanged.
+For `evidence-block` and `evidence-block manual`, return `<work-dir>/block.md` unchanged.
 
 ### NGS-report mode
 
-Return `<work-dir>/report.md`.
+For `ngs-report` and `evidence-to-report`, return `<work-dir>/report.md`.
 
 Do not also return `block.md` unless explicitly requested.
 
 ### Both outputs explicitly requested
 
-Return separately:
+Use `ngs-report` and return separately:
 
 1. `<work-dir>/block.md`;
 2. `<work-dir>/report.md`.
