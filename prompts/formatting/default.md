@@ -14,3 +14,14 @@ Write a concise final clinical NGS report.
 - Preserve the citations supporting each retained statement.
 - Do not add facts, interpretations, recommendations, or citations that are not present in `report-draft.md`.
 - Do not mention reporting rules, the evidence block, or the drafting process.
+
+## Referencing
+
+After the above is drafted, do an audit pass as follows:
+- use Vancouver-style numbered citations in square brackets in the report text, e.g. [1] or [1,2]
+- assign reference numbers in order of first citation
+- reuse the same reference number whenever a publication is cited again
+- after the report text, render a `References` section
+- list each cited publication once, in numerical order, formatted in Vancouver style
+- the References section is excluded from the word limit
+- `(no citation required)` does not generate a reference entry
