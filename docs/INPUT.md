@@ -11,11 +11,15 @@ input/<corpus>/
   index/papers.csv                regenerated read-only view
   citations/                      DOI and manual repair files
 ```
-
 Run `scripts/parse_pdfs.py --corpus <name>` to convert pending PDFs with locked
 OpenDataLoader settings. Identity is UUIDv5 over the PDF SHA-256, so identical PDF
 bytes always receive the same paper ID. Conversion publishes Markdown atomically;
 no structured JSON or images are retained.
+
+The human-readable `publication_key` is the normalized stem of the original PDF
+filename. For example, `2020_kraft_germline_variants.pdf` becomes
+`2020-kraft-germline-variants`. Choose a meaningful, unique source filename before
+parsing; two different PDFs whose filenames normalize to the same key are rejected.
 
 ## Index contract
 
@@ -30,9 +34,9 @@ canonical `publication_key`, and parse diagnostics. Status is one of:
 `citation_source` is `crossref-doi`, `model-supplied-doi`, or `operator`.
 `papers.csv` is regenerated after every index update and is never an input.
 
-Parse-time publication-key collisions warn but retain both records. Fan-out
-recomputes the key, rejects stored-key mismatches, and aborts if the selected corpus
-contains duplicate publication keys.
+Filename-derived publication-key collisions are rejected before conversion. Fan-out
+recomputes the key from `source_filename`, rejects stored-key mismatches, and aborts
+if the selected corpus contains duplicate publication keys.
 
 ## Citation resolution
 
@@ -41,18 +45,17 @@ The parser detects a DOI only in front and back matter and uses Crossref only wh
 Citation failure does not roll back valid Markdown.
 
 Repair pending records with:
-
 ```bash
 python scripts/citations.py request --corpus <name>
 python scripts/citations.py apply --corpus <name> --response response.json
 python scripts/citations.py manual-export --corpus <name>
 python scripts/citations.py manual-apply --corpus <name> --csv worksheet.csv
 ```
-
 The model path accepts DOI candidates only, re-resolves them through Crossref, and
 checks title overlap. The manual path accepts a batch-atomic CSV; authors are
-semicolon-separated and DOI may be empty. Derived displays and publication keys are
-always rebuilt by code.
+semicolon-separated and DOI may be empty. Citation displays are always rebuilt by
+code, while `publication_key` remains derived solely from the original source
+filename and is not changed by citation repair.
 
 ## Evidence boundary and reparsing
 
