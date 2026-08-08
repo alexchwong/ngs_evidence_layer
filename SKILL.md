@@ -9,8 +9,8 @@ Perform the task explicitly requested by the user:
 
 - `evidence-block` — run Steps 1–5; Step 3 is automatic. Return `<work-dir>/block.md`.
 - `evidence-block manual` — run Steps 1–5; Step 3 requires user confirmation. Return `<work-dir>/block.md`.
-- `ngs-report` — run Steps 1–6; Step 3 is automatic and Step 6 follows Step 5 without stopping. Return `<work-dir>/report.md`.
-- `evidence-to-report` — verify Step 5 has already produced `<work-dir>/block.md`, then run Step 6 only. Return `<work-dir>/report.md`.
+- `ngs-report` — run Steps 1–6; Step 3 is automatic and Step 6 follows Step 5 without stopping. Return `<work-dir>/report-final.md`.
+- `evidence-to-report` — verify Step 5 has already produced `<work-dir>/block.md`, then run Step 6 only. Return `<work-dir>/report-final.md`.
 
 Do not infer the mode from available files.
 
@@ -33,8 +33,20 @@ For `evidence-block manual`, Step 3 requires one user confirmation or revision b
 
 ### NGS-report mode
 
-- `ngs-report` — run Steps 1–6. Step 3 is automatic. After Step 5 succeeds, start Step 6 immediately in a fresh bounded model session.
+- `ngs-report` — run Steps 1–6. Step 3 is automatic. After Step 5 succeeds, start Step 6 immediately.
 - `evidence-to-report` — verify `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist, skip Steps 1–5, and run Step 6 only.
+
+### Report format
+
+For `ngs-report` and `evidence-to-report`, select the formatting prompt before report generation:
+
+- Default: `prompts/formatting/default.md`.
+- If the user explicitly specifies another file from `prompts/formatting/`, use that file.
+- Do not list or search `prompts/formatting/` to choose a file.
+- Do not use a formatting prompt outside `prompts/formatting/`.
+- Retain the selected path as `<format-prompt>` for Step 6.
+
+For `ngs-report`, select `<format-prompt>` before Step 1. For `evidence-to-report`, select it before Step 6.
 
 ## Mandatory file-access policy
 
@@ -50,7 +62,7 @@ File access is **deny by default**.
 - Do not modify an output written by a deterministic command.
 - If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
 
-Step 3 may present its diagnosis argument and `adjudication.json` in chat in `evidence-block manual`. Steps 3 and 6 use fresh bounded model sessions.
+Step 3 may present its diagnosis argument and `adjudication.json` in chat in `evidence-block manual`. Step 3 uses a fresh bounded model session. Step 6 uses two fresh bounded model sessions; Pass 2 receives no information from Pass 1 except `<work-dir>/report-draft.md`.
 
 ## Working directory
 
@@ -287,53 +299,88 @@ Do not read or modify `block.md` in this step.
 
 ## Step 6 — Write the NGS report
 
-Run only for `ngs-report` or `evidence-to-report`, using a fresh bounded model session.
+Run only for `ngs-report` or `evidence-to-report`.
 
 For `ngs-report`, begin Step 6 immediately after Step 5 succeeds. Do not stop for user input.
 
 For `evidence-to-report`, first verify `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist. If not, stop and report that Step 5 has not been completed for that working directory. Do not rerun Steps 1–5.
 
-### Model-readable inputs
+### Pass 1 — Answer the reporting rules
+
+Use a fresh bounded model session.
+
+#### Model-readable inputs
 
 Read only:
 
 - `<work-dir>/case.md`;
 - `<work-dir>/block.md`;
-- `rules/agreed_reporting_rules`.
-
-Do not read the original case document in Step 6.
+- `rules/agreed_reporting_rules.md`.
 
 If any required input is missing, unreadable, or malformed, stop and report the error.
 
-### Source hierarchy
+#### Source hierarchy
 
 - **`case.md`:** sole source of truth for patient identity, specimen information, clinical context, test results, variants, measurements, other patient-specific facts, and the final integrated diagnosis.
 - Use the `Integrated diagnosis:` sentence in `case.md` as the final diagnosis. Do not re-adjudicate it in Step 6.
 - **`block.md`:** exclusive source for literature-derived classification, prognosis, treatment, biomarkers, germline interpretation, clinical associations, and references.
-- **Reporting rules:** selection, structure, and wording only; they do not establish patient facts or clinical assertions.
+- **Reporting rules:** questions and constraints to apply; they do not establish patient facts or clinical assertions.
 - Do not strengthen, reconcile, or resolve interpretations beyond `block.md`.
 - Preserve material uncertainty, disagreement, limitations, and qualifiers.
-- Include a literature citation only when it is supported by `block.md`.
-- Do not copy workflow metadata into the clinical report unless the reporting rules require it.
+- Do not copy workflow metadata into the report draft unless a reporting rule requires it.
 - If `case.md` and `block.md` conflict, do not silently repair the inconsistency.
 
-### Required action
+#### Required action
 
-Write a complete NGS report following `rules/agreed_reporting_rules` and the source hierarchy above.
+Answer every numbered rule under R1–R5 in `rules/agreed_reporting_rules.md`.
 
-- Include only patient findings present in `case.md`.
-- Use the integrated diagnosis recorded in `case.md`.
-- Include only literature-derived interpretations and references supported by `block.md`.
-- Retain clinically material qualifications and uncertainty.
-- Handle unsupported sections as directed by the reporting rules.
+For each rule:
 
-### Output
+- identify it by rule number;
+- give a 1–3 sentence case-specific answer;
+- answer the rule even when it is not applicable or the result is negative;
+- end every sentence with one citation marker:
+  - one or more supporting citations in parentheses, e.g. `(Smith et al, 2024; Jones et al, 2023)`; or
+  - `(no citation required)`;
+- use only literature citations supported by `block.md`;
+- use `(no citation required)` only when the sentence does not require literature support.
 
-Write exactly one file:
+Do not omit a rule because it is unlikely to appear in the final report.
 
-`<work-dir>/report.md`
+#### Output
 
-The file must contain the report only. Do not include process commentary, source-audit notes, confidence commentary, alternative drafts, or an additional summary.
+Write only:
+
+`<work-dir>/report-draft.md`
+
+### Pass 2 — Format the final report
+
+Use a fresh bounded model session.
+
+#### Model-readable inputs
+
+Read only:
+
+- `<format-prompt>`;
+- `<work-dir>/report-draft.md`.
+
+Do not read `case.md`, `block.md`, `rules/agreed_reporting_rules.md`, the original case document, or any other file. Do not use information carried from Pass 1 except `report-draft.md`.
+
+If either required input is missing, unreadable, or malformed, stop and report the error.
+
+#### Required action
+
+Follow `<format-prompt>` exactly, using `report-draft.md` as the sole source of report content.
+
+Do not introduce a clinical assertion, qualification, citation, or patient fact that is absent from `report-draft.md`.
+
+#### Output
+
+Write only:
+
+`<work-dir>/report-final.md`
+
+The file must contain the final report only. Do not include process commentary, rule numbers, source-audit notes, confidence commentary, alternative drafts, or an additional summary.
 
 ## Final delivery contract
 
@@ -345,7 +392,7 @@ For `evidence-block` and `evidence-block manual`, return `<work-dir>/block.md` u
 
 ### NGS-report mode
 
-For `ngs-report` and `evidence-to-report`, return `<work-dir>/report.md`.
+For `ngs-report` and `evidence-to-report`, return `<work-dir>/report-final.md`.
 
 Do not also return `block.md` unless explicitly requested.
 
@@ -354,6 +401,6 @@ Do not also return `block.md` unless explicitly requested.
 Use `ngs-report` and return separately:
 
 1. `<work-dir>/block.md`;
-2. `<work-dir>/report.md`.
+2. `<work-dir>/report-final.md`.
 
 Do not combine them.
