@@ -11,6 +11,8 @@ venv/
 /work/
 /archive/
 /accept/
+/curation/
+/temp/
 
 # Working files from a retrieval session. The rendered block is the deliverable;
 # the intermediate JSON is not worth keeping.

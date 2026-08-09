@@ -55,7 +55,9 @@ def load_index(path):
 
 
 def metadata_for(record, corpus, source, created_at):
-    built = make_key.build_citation(record["citation"])
+    built = make_key.build_citation(
+        record["citation"], source_filename=record["source_filename"]
+    )
     citation = dict(built["citation"])
     citation["doi"] = record["citation"].get("doi", "")
     return {
@@ -84,7 +86,6 @@ def fanout(args):
         records = [record for record in records if record.get("publication_key") == args.publication_key]
         if not records:
             raise ValueError(f"publication key not found: {args.publication_key}")
-
     created_at = args.created_at or datetime.now(timezone.utc).isoformat()
     planned = []
     keys = {}
@@ -97,7 +98,7 @@ def fanout(args):
         if stored_key and stored_key != metadata["publication_key"]:
             raise ValueError(
                 f"{record['id']}: stored publication_key {stored_key} does not match "
-                f"computed {metadata['publication_key']}"
+                f"filename-derived {metadata['publication_key']}"
             )
         errors = validation.validate_metadata(metadata)
         if errors:
@@ -107,7 +108,6 @@ def fanout(args):
             raise ValueError(f"duplicate publication_key {key}: {keys[key]} and {record['id']}")
         keys[key] = record["id"]
         planned.append((record, source, metadata))
-
     args.work_dir.mkdir(parents=True, exist_ok=True)
     created = []
     skipped = []

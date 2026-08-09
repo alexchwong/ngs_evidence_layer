@@ -1,292 +1,141 @@
 # ngs_evidence_layer
 
-A corpus-grounded evidence layer for myeloid NGS interpretation. It converts
-publications into gene-indexed evidence cards backed by private typed evidence bundles
-of verbatim source fragments, then uses those cards to build a deterministic, citable
-evidence block or a concise NGS report.
+A corpus-grounded evidence layer for myeloid NGS interpretation.
 
-The evidence layer preserves what publications state rather than filling gaps from
-model haematology knowledge. Report generation is restricted to the supplied case,
-retrieved evidence, and explicit reporting and formatting rules.
+NEL uses `SKILL.md` to combine a supplied clinical case with the committed evidence
+corpus and produce either a citable evidence block or a concise NGS report. Reporting
+is bounded to the supplied case, retrieved corpus evidence, and explicit reporting
+rules; the model is not permitted to fill evidence gaps from general haematology
+knowledge.
 
-## Setup
+## NGS reporting
 
-```bash
-python3 -m venv .env
-. .env/bin/activate
-python -m pip install -r requirements.txt
-python scripts/vocab.py
-python -m unittest discover -s tests -v
-```
+Use one of the modes defined in `SKILL.md`.
 
-## Case workflows
-
-`SKILL.md` supports five user-facing modes:
-
-| Mode | Behaviour | Final output |
+| Mode | Use when | Output |
 |---|---|---|
-| `evidence-block` | Runs case capture, automatic diagnosis adjudication, full retrieval, and rendering. | `block.md` |
-| `evidence-block manual` | As above, but pauses for user review of the proposed integrated diagnosis. | `block.md` |
-| `ngs-report` | Runs the complete automatic workflow, then drafts and formats an NGS report. | `report-final.md` |
-| `evidence-to-report` | Uses an existing completed evidence-block work directory and performs reporting only. | `report-final.md` |
-| `nel-demo example <N>` | Runs a numbered example through the normal automatic report workflow, then shows the expected behaviour. | Case, report, and expected result |
+| `ngs-report` | You want a complete NGS report from a new case. | `report-final.md` rendered in chat |
+| `evidence-block` | You want the retrieved evidence without a final report. | `block.md` |
+| `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `block.md` |
+| `evidence-to-report` | You already have a completed evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
+| `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
+| `nel-validate <case-id>` | You want to run a bundled validation case and score the generated report. | Generated report and marking result |
 
-For a new case, the workflow is:
+### Generate a report
 
-```text
-case → case.md → case-input.json → diagnosis retrieval → diagnosis adjudication
-     → full retrieval → block.md
-```
-
-Report modes then continue:
+Ask the model to run:
 
 ```text
-case.md + block.md + reporting rules → report-draft.md → formatting prompt
-                                     → report-final.md
+ngs-report
+
+<clinical case>
 ```
 
-Automatic modes use the model's evidence-bounded diagnosis adjudication without asking
-for confirmation. `evidence-block manual` presents the proposed integrated diagnosis
-and lets the user agree or provide a revised diagnosis before full retrieval.
+The case can contain the available clinical context, morphology, blood counts,
+cytogenetics, molecular findings, treatment context, and other information relevant to
+interpretation.
 
-When no work directory is supplied for a new workflow, the skill creates a retained
-secure directory in the system temporary location. `evidence-to-report` requires the
-existing work directory to be supplied or identified.
+NEL will:
 
-## Ingestion v0.1.3
+1. preserve the supplied case;
+2. structure the case for deterministic retrieval;
+3. retrieve diagnosis evidence;
+4. adjudicate an integrated diagnosis;
+5. retrieve the full evidence set;
+6. build a citable evidence block;
+7. draft and format the final report.
 
-Prompts are committed data under `prompts/`; private folder contents are workflow
-state. Papers are independent and may be in flight concurrently.
+Automatic `ngs-report` does not pause for diagnosis confirmation. Use
+`evidence-block manual` when you want to review the proposed integrated diagnosis
+before downstream retrieval.
 
-```bash
-# Convert queued PDFs to deterministic Markdown and resolve citations.
-# Input PDFs live in `pdf/[corpus]`
-# Output markdowns to `input/[corpus]`
-python scripts/parse_pdfs.py --corpus <name> --mailto <email>
+### Report format
 
-########
-# DOI and citation retrieval
-# Step 1 (DOI path): build a recovery request from citation-pending index records and
-# parsed Markdown; outputs input/<name>/citations/request-<UTC>.md.
-python scripts/citations.py request --corpus <name>
+The default final report:
 
-# Step 2 (DOI path): provide a JSON array of paper_id, title_seen, and doi entries;
-# verifies each DOI via Crossref and updates valid records to ingested in the index.
-python scripts/citations.py apply --corpus <name> --response <file>
-# Alternative step 1 (manual path): export pending paper IDs to a citation worksheet;
-# outputs input/<name>/citations/manual-<UTC>.csv for the operator to complete.
-python scripts/citations.py manual-export --corpus <name>
+- is no more than 200 words, excluding references;
+- uses full sentences;
+- prioritises clinically important conclusions and qualifications;
+- uses Vancouver-style citations in square brackets;
+- numbers references in order of first citation.
 
-# Alternative step 2 (manual path): provide the completed CSV worksheet;
-# validates the entire batch, then stores citations and marks its records ingested.
-python scripts/citations.py manual-apply --corpus <name> --csv <file>
-######
-# Create work/<publication-key>/paper.md and metadata.json.
-python scripts/fanout.py --corpus <name>
+For `ngs-report` or `evidence-to-report`, a different formatting prompt may be
+specified at the start of the workflow if that prompt is present under
+`prompts/formatting/`.
 
-# Run Phases 1–4 in fresh model sessions using prompts/phaseN_prompt.md,
-# saving outputs directly in each paper's work folder.
+### Evidence-only use
 
-# Deterministically accept one fully audited paper.
-python scripts/confirm.py --key <publication-key>
-# Build release artefacts from accept/ only.
-python scripts/incorporate.py
-```
-
-The lifecycle is:
+Use:
 
 ```text
-pdf → parse/index → input → fanout → work → model phases → confirm → accept + archive → incorporate → output
-```
-### Pipeline directories
-| Directory | Purpose |
-|---|---|
-| `pdf/` | Private incoming queue. Place source publications under `pdf/<corpus>/` before parsing. |
-| `pdf/archive/` | Private storage for source PDFs moved after successful parsing. This leaves each incoming corpus folder containing only pending work. |
-| `input/` | Private parsed corpus state under `input/<corpus>/`, including evidence Markdown, publication indexes, and citation-repair files. Model phases use the Markdown, not the original PDF. |
-| `work/` | Private per-publication work in progress under `work/<publication-key>/`, including source Markdown, metadata, census, provisional packages, and independent audit files. The content-derived `paper_id` remains internal identity metadata. |
-| `accept/` | Private, deterministically accepted packages. This is the only input from which `incorporate.py` builds release artefacts. |
-| `archive/` | Private completed work folders retained with their source-aware model-phase files and audit trail after confirmation. |
-| `output/corpus/` | Committed release corpus and index artefacts: `nel.corpus.json` and `nel.index.json`. |
-| `output/reports/` | Committed incorporation reports, including `build-report.json` with accepted and rejected paper outcomes. |
-The private runtime directories remain ignored by Git. Their tracked `.gitkeep` files
-have no runtime meaning; they only ensure that a fresh clone contains the required
-empty directory structure.
+evidence-block
 
-The content-derived `paper_id` provides stable internal identity from PDF checksum.
-Once a citation is resolved, the human-readable `publication_key` identifies the work
-folder and prefixes its card IDs. Fan-out recomputes the key and rejects index or
-folder collisions before model work begins.
-Each model phase has a strict, mutually exclusive output contract. Phase 1 alone
-writes the census and assigns `publication_type` with a source-supported basis. Phase
-2 either critiques a materially deficient census or writes the single complete
-provisional package; it must preserve every source qualifier and maintain exactly one
-typed evidence bundle per card. A bundle is `contiguous_text`, `composite_text`, or
-`table_relation`; every fragment remains independently verbatim and locatable. Phase 3
-independently audits publication type, every card/bundle pair, cross-fragment scope,
-table reconstruction, and evidence laundering, then writes one complete review with a
-pass/fail result for every card. Phase 4 presents every card and its review to the human,
-applies the final source-supported adjudication, and alone writes `paper.final.json`.
-Mandatory pre-output gates prevent a phase from overwriting its inputs or returning
-another phase's artefact.
-`confirm` is the last source-aware gate: it verifies every evidence fragment against `paper.md`
-and validates the complete Phase 3 review, Phase 4 final audit, and final package lineage
-to the independently audited provisional. Phase 4 may amend source-supported extraction
-content during human adjudication. `incorporate` excludes invalid individual accepted
-pairs, strips all private evidence bundles and fragment text, and writes:
+<clinical case>
+```
+
+to return `block.md` without generating a final NGS report.
+
+Use:
+
 ```text
-output/corpus/nel.corpus.json
-output/corpus/nel.index.json
-output/reports/build-report.json
+evidence-block manual
+
+<clinical case>
 ```
 
-There is no provisional corpus. Membership means a package completed independent audit,
-human adjudication, and deterministic acceptance. See `INGEST.md` for the operator
-runbook and `docs/INPUT.md` for private input metadata.
+when you want the model to present its proposed integrated diagnosis for review before
+full evidence retrieval.
 
-## Retrieval
+### Convert an existing evidence block to a report
 
-Case handling separates model judgement from deterministic retrieval. The supplied case
-is first preserved verbatim in `case.md`, then structured into `case-input.json` with a
-provisional major diagnostic category, variant genes, and stable `fact_id` values.
-Diagnosis evidence is retrieved deterministically before the model adjudicates the
-integrated diagnosis. The completed adjudication is validated before full evidence
-retrieval and rendering.
+If Steps 1–5 have already been completed, provide the retained work directory and run:
 
-For example, `case-input.json` may contain:
-```json
-{
-  "provisional_disease": "myeloid neoplasm, unspecified",
-  "genes": ["SF3B1"],
-  "case_facts": [
-    {"fact_id": "F-SF3B1", "type": "variant", "gene": "SF3B1", "vaf_percent": 30},
-    {"fact_id": "F-RS", "type": "morphology", "ring_sideroblast_percent": 7}
-  ]
-}
+```text
+evidence-to-report
 ```
 
-When the stem does not specify a haematological malignancy and the NGS result contains
-no variants, Step 1 instead uses the case-only disease
-`no_haematological_malignancy` with `"genes": []`. This term is not a legal evidence-
-card disease and cannot be used during ingestion.
+NEL verifies that the required `case.md` and `block.md` are present, then performs only
+the reporting steps.
 
-```bash
-python scripts/run_case.py diagnosis --work-dir <work-dir>
-# Run a fresh model session with <work-dir>/step2.json and
-# prompts/diagnostic_adjudication_prompt.md, saving <work-dir>/adjudication.json.
+### Demo mode
 
-python scripts/run_case.py full --work-dir <work-dir>
+Run:
+
+```text
+nel-demo example 1
 ```
 
-At the low-level retrieval layer, `run_case.py` writes `<work-dir>/bundle.json` and
-`<work-dir>/block.md`; `bundle.json` is an internal deterministic intermediate. Skill
-report modes continue from `block.md` to `report-draft.md` and `report-final.md`. If no
-working directory is supplied directly to `run_case.py`, it creates a retained secure
-system temporary directory and prints it to stderr.
+through:
 
-Advanced callers may still invoke `scripts/retrieve.py` directly:
-
-```bash
-python scripts/retrieve.py diagnosis \
-  --case-input <work-dir>/case-input.json \
-  --output <work-dir>/step2.json
-
-python scripts/retrieve.py full \
-  --diagnosis-result <work-dir>/step2.json \
-  --adjudication-result <work-dir>/adjudication.json \
-  --output <work-dir>/bundle.json
-
-python scripts/render.py --bundle <work-dir>/bundle.json --output <work-dir>/block.md
+```text
+nel-demo example 6
 ```
-The legacy `retrieve.py diagnosis` flags (`--genes`, `--provisional-disease`,
-`--case-facts`, `--corpus`, `--index`) remain available as advanced overrides.
-Step 2 diagnosis retrieval returns diagnosis cards matching a submitted gene, the
-provisional disease, or a direct diagnosis-specific `retrieval_related` disease. Gene
-matches remain disease-unrestricted, so an unexpected variant can still provide
-diagnostic evidence. Disease matching also allows useful diagnosis evidence to be
-retrieved when no variants are reported.
 
-The adjudicator may compose multiple supplied patient facts against a card's
-source-stated criteria, but may not add criteria or facts from model knowledge.
-Missing required facts are `unknown` and fail closed as `indeterminate`. A card's
-legacy `escalates_to` value remains provenance and is not a runtime decision gate.
-The validated adjudication distinguishes the source-supported specific
-`diagnostic_label` from the closed case-level `refined_disease`. Automatic modes use
-that refined disease directly; manual mode may replace the downstream disease after
-user review.
+to execute a bundled example through the normal reporting workflow. The expected result
+is not read until the generated report is complete.
 
-Step 4 applies the stricter rule `gene AND (reviewed disease OR retrieval_related)` to
-diagnosis, prognosis, treatment, and biomarker cards. Diagnosis cards are restricted
-to those already available during Step 2. Germline retrieval remains gene-only.
-Related retrieval is directional and non-transitive. Thus a `post-PV/post-ET MF` case
-may retrieve configured PMF and MPN evidence without changing the source-grounded
-disease context stored on those cards.
-A changed major category is rejected unless every required criterion is met and cites
-both retrieved diagnosis cards and supplied case facts. Genes the corpus cannot
-address are named rather than answered from model memory.
-Card `diseases` continue to contain only source-grounded exact clinical applicability.
-`disease_ancestors` remain deterministic direct and transitive parents from
-`schema/disease_vocabulary.json`; incorporation uses them for broad corpus indexing
-without making a subtype card clinically applicable to its parent categories.
-`umbrella` is not used for retrieval expansion. `diseases_covered` likewise remains
-the union of exact card diseases only. The independent `retrieval_related` map controls
-case-time evidence borrowing without changing card applicability or taxonomy.
-Private evidence bundles never enter retrieval or rendered output. Every rendered
-interpretation is traceable to its cards and deterministic citations through the
-end-of-document `## Refs` card-to-reference map and the numbered `## References`
-bibliography.
+### Validation mode
 
-## Reporting
+Run `nel-validate <case-id>` (for example, `nel-validate 1A`) to execute a bundled
+validation case. Marking criteria are withheld until the report is complete, then used
+to score the generated report. Available case IDs are:
 
-NGS reports use two bounded passes:
+`1A`, `1B`, `1C`, `1D`; `2A`, `2B`, `2C`; `3A`, `3B`, `3C`; `4A`, `4B`, `4C`;
+`5A`, `5B`, `5C`; `6A`, `6B`, `6C`; `7A`, `7B`, `7C`; `8A`, `8B`, `8C`;
+`9A`, `9B`, `9C`; `10A`, `10B`, `10C`; `11A`, `11B`, `11C`.
 
-1. `report-draft.md` answers every reporting rule using only `case.md`, `block.md`, and
-   `rules/agreed_reporting_rules.md`.
-2. `report-final.md` is produced from the draft alone using a selected prompt from
-   `prompts/formatting/`.
+## Current corpus
 
-The default formatting prompt produces a concise report of no more than 200 words,
-excluding references. It uses full sentences, keeps clinically important conclusions
-and qualifications, and omits negative findings unless they affect prognostic
-interpretation. Citations use Vancouver-style numbering in square brackets, numbered
-in order of first citation, followed by a numbered `References` section.
+The current corpus contains 23 completed publications: 10 introduced in v0.1.5 and 13
+introduced in v0.1.6. The release in which each paper first entered the corpus is stored
+in `nel.index.json` as `accepted_in_version`.
 
-A custom formatting prompt may be selected from `prompts/formatting/` when the reporting
-workflow is started. Formatting cannot introduce information or citations that were not
-present in `report-draft.md`.
-
-## Demo mode
-
-`nel-demo example <N>` runs one repository case through the same automatic workflow as
-`ngs-report`. The expected result is deliberately not read until the generated report
-is complete.
-
-| Example | Scenario |
-|---|---|
-| `1` | Diagnostic escalation fires |
-| `2` | Diagnostic escalation does not fire |
-| `3` | Ambiguous disease |
-| `4` | Genes the corpus cannot address |
-| `5` | Germline architecture |
-| `6` | SF3B1 diagnostic adjudication |
-
-
-## Corpus papers
-
-The current corpus contains 10 completed papers. Papers are repeated below when they
-materially contribute to more than one category.
-
-### Diagnosis / classification
+### v0.1.5
 
 | DOI | Nickname | Paper title | Contribution to corpus |
 |---|---|---|---|
 | `10.1038/s41375-022-01613-1` | WHO5 | The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms | WHO fifth-edition myeloid classification and diagnostic criteria. |
 | `10.1182/blood.2022015850` | ICC | International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data | ICC myeloid classification and diagnostic criteria. |
-
-### Prognosis
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
 | `10.1056/evidoa2200310` | CHRS | Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis | CHRS predicts myeloid malignancy risk in clonal haematopoiesis. |
 | `10.1038/bcj.2015.94` | revised IPSET-thrombosis | Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia | Revised IPSET-thrombosis risk model for essential thrombocythaemia. |
 | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive | Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations | ELN genetic risk groups for less-intensive AML therapy. |
@@ -294,43 +143,36 @@ materially contribute to more than one category.
 | `10.1182/blood-2016-05-714030` | CPSS-Mol | Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia | CPSS-Mol integrates mutations into CMML prognostic risk. |
 | `10.1056/evidoa2200008` | IPSS-M | Molecular International Prognostic Scoring System for Myelodysplastic Syndromes | IPSS-M molecular prognostic score for myelodysplastic syndromes. |
 | `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | ELN AML genetic risk classification and prognostic guidance. |
-
-### Treatment
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
-| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | AML targeted treatment and management recommendations. |
 | `10.1182/blood.2025031480` | ELN MRD 2025 | 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party | MRD-directed AML management and post-transplant maintenance recommendations. |
 
-### Biomarkers
+### v0.1.6
 
 | DOI | Nickname | Paper title | Contribution to corpus |
 |---|---|---|---|
-| `10.1182/blood.2025031480` | ELN MRD 2025 | 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party | AML MRD assay selection, thresholds, timing, and interpretation. |
-| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | AML molecular testing and MRD biomarker guidance. |
+| `10.1182/blood.2019003988` | VEN genotype response | Molecular patterns of response and treatment failure after frontline venetoclax combinations in older patients with AML | Genotype-specific response and resistance to frontline venetoclax combinations. |
+| `10.1182/blood.2019002697` | NPM1/FLT3-ITD | Impact of NPM1/FLT3-ITD genotypes defined by the 2017 European LeukemiaNet in patients with acute myeloid leukemia | Prognostic interaction of NPM1 and FLT3-ITD in AML. |
+| `10.1182/bloodadvances.2021006489` | ADMIRAL molecular | Molecular profile of FLT3-mutated relapsed/refractory patients with AML in the phase 3 ADMIRAL study of gilteritinib | Molecular predictors and resistance patterns during gilteritinib therapy. |
+| `10.1038/s41467-021-22874-x` | IDH inhibitor resistance | Leukemia stemness and co-occurring mutations drive resistance to IDH inhibitors in acute myeloid leukemia | Co-mutation and stemness modifiers of IDH-inhibitor response and resistance. |
+| `10.1038/leu.2014.3` | PMF driver genotype | CALR vs JAK2 vs MPL-mutated or triple-negative myelofibrosis: clinical, cytogenetic and molecular comparisons | Driver genotype and adverse molecular features in myelofibrosis. |
+| `10.1182/bloodadvances.2021004856` | MPN interferon genomics | Genomic profiling of a randomized trial of interferon-α vs hydroxyurea in MPN reveals mutation-specific responses | Mutation-specific response to interferon versus hydroxyurea in MPN. |
+| `10.1038/leu.2017.169` | MYSEC-PM | A clinical-molecular prognostic model to predict survival in patients with post polycythemia vera and post essential thrombocythemia myelofibrosis | MYSEC-PM prognosis for post-PV and post-ET myelofibrosis. |
+| `10.1016/S1470-2045(17)30615-0` | PACE-MDS | Luspatercept for the treatment of anaemia in patients with lower-risk myelodysplastic syndromes (PACE-MDS): a multicentre, open-label phase 2 dose-finding study with long-term extension study | SF3B1-associated response to luspatercept in lower-risk MDS. |
+| `10.1182/bloodadvances.2020003734` | R/R AML venetoclax | Clinical and molecular predictors of response and survival following venetoclax therapy in relapsed/refractory AML | Molecular predictors of venetoclax response and survival in R/R AML. |
+| `10.1038/s41375-018-0107-z` | GIPSS | GIPSS: genetically inspired prognostic scoring system for primary myelofibrosis | Genetics-only prognostic score for primary myelofibrosis. |
+| `10.1111/bjh.16380` | MIPSS-ET/PV | Mutation-enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera | Mutation-enhanced survival models for ET and PV. |
+| `10.1182/blood-2014-06-582809` | TET2 HMA response | TET2 mutations predict response to hypomethylating agents in myelodysplastic syndrome patients | TET2 and co-mutation effects on HMA response in MDS. |
+| `10.1182/blood-2015-11-679167` | MDS clonal dynamics | Mutational hierarchies in myelodysplastic syndromes dynamically adapt and evolve upon therapy response and failure | Therapy-associated clonal dynamics, including TP53 and lenalidomide. |
 
-### Germline
+## Important boundaries
 
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
-| `10.1038/s41375-022-01613-1` | WHO5 | The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms | WHO germline predisposition framework for myeloid neoplasms. |
-| `10.1182/blood.2022015850` | ICC | International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data | ICC germline predisposition genes and classification framework. |
-| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | Germline testing, counselling, and related-donor guidance. |
+- NEL reports only what the supplied case and retrieved corpus support.
+- Different publications can coexist in the corpus even when their recommendations differ.
+- NEL does not query live approval, drug, guideline, or other external databases during case interpretation.
+- Evidence that is absent from the corpus is not supplied from model memory.
+- The evidence corpus is distinct from reporting rules and formatting prompts: changing report formatting does not change corpus evidence.
 
-## Boundaries
-- PDF conversion is an input-layer operation; Markdown alone is the archived evidence
-  path and no card or model phase cites or reads a PDF.
-- Crossref is used only to resolve a detected DOI; model-assisted repair supplies a
-  DOI candidate that is re-resolved and recorded with provenance.
-- Closed evidence-card disease vocabulary with separate case-only disease options,
-  cycle-checked taxonomy ancestors, and directional category-specific retrieval
-  relationships.
-- Different publications coexist even when they disagree.
-- No live databases, approval-status modelling, or cross-publication deduplication
-  are used during case interpretation.
-- Report synthesis is limited to the supplied case, retrieved evidence, and reporting
-  rules; outside model haematology knowledge is not added.
-- Evidence-card vocabulary or extraction-schema changes require re-ingestion, not a
-  mechanical migration.
-- Reporting-rule and formatting-prompt changes affect reports without changing the
-  evidence corpus.
+## Other documentation
+
+- [`INGEST.md`](INGEST.md) — add, review, accept, and re-ingest publications.
+- [`DEVEL.md`](DEVEL.md) — prompt maintenance, testing, versioning, and releases.
+- [`NEWS.md`](NEWS.md) — changelog.

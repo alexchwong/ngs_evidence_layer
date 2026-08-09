@@ -48,7 +48,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.source = self.corpus / "markdown" / f"{STEM}.md"
         self.record = {
             "id": PAPER_ID, "markdown_path": f"markdown/{STEM}.md",
-            "source_filename": "fixture-alpha.md",
+            "source_filename": "fixture-2020-fixture-journal-1-1.pdf",
             "sha256": hashlib.sha256(self.source.read_bytes()).hexdigest(),
             "status": "ingested", "citation_source": "operator",
             "citation_resolved_at": "2026-08-02T00:00:00+00:00",

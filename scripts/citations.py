@@ -69,6 +69,11 @@ def similarity(left, right):
     return len(first & second) / len(first | second) if first | second else 0.0
 
 
+def source_publication_key(record):
+    """Canonical corpus key; citation repair must never rename a source paper."""
+    return make_key.build_source_key(record.get("source_filename"))
+
+
 def apply_response(args, records):
     try:
         response = json.loads(args.response.read_text(encoding="utf-8"))
@@ -102,7 +107,7 @@ def apply_response(args, records):
                 record.update(
                     citation=citation, citation_source="model-supplied-doi",
                     citation_resolved_at=datetime.now(timezone.utc).isoformat(),
-                    publication_key=make_key.build_key(citation), status="ingested",
+                    publication_key=source_publication_key(record), status="ingested",
                 )
                 record["parse"]["error"] = ""
             except Exception as exc:
@@ -175,7 +180,7 @@ def manual_apply(args, records):
     for record, citation in prepared:
         record.update(
             citation=citation, citation_source="operator", citation_resolved_at=resolved_at,
-            publication_key=make_key.build_key(citation), status="ingested",
+            publication_key=source_publication_key(record), status="ingested",
         )
         record["parse"]["error"] = ""
     index_store.write(args.corpus, records, args.input_dir)
@@ -185,7 +190,7 @@ def manual_apply(args, records):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=Path("input"))
-    parser.add_argument("--mailto", default=os.environ.get("NEL_CROSSREF_MAILTO"))
+    parser.add_argument("--mailto", default=os.environ.get("NEL_CROSSREF_MAILTO", "noreply@example.org"))
     subparsers = parser.add_subparsers(dest="command", required=True)
     request_parser = subparsers.add_parser("request"); request_parser.add_argument("--corpus", required=True)
     apply_parser = subparsers.add_parser("apply"); apply_parser.add_argument("--corpus", required=True); apply_parser.add_argument("--response", type=Path, required=True)

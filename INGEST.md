@@ -1,10 +1,32 @@
-# Ingestion operations — v0.1.3
+# Ingesting publications
 
-This is the operator runbook. One publication occupies one independent working
-folder; folder contents are its state. Any number of papers may be in flight in
-separate fresh model sessions.
+This is the operator guide for adding papers to the NEL corpus.
+
+The normal workflow is:
+
+```text
+PDF
+→ parse
+→ DOI/citation curation
+→ fanout
+→ Phase 1
+→ Phase 2
+→ Phase 3
+→ Phase 4
+→ confirm
+→ incorporate
+→ rebuild secondary-source curation backlog
+```
+
+Use a fresh ChatGPT or Claude conversation for each model phase. Phase 3 must use a
+different model from Phase 2.
+
+Private source publications and ingestion state live under `pdf/`, `input/`, `work/`,
+`accept/`, `archive/`, and `curation/`. Do not commit these directories' contents.
 
 ## Setup
+
+From the repository root:
 
 ```bash
 python3 -m venv .env
@@ -12,67 +34,128 @@ python3 -m venv .env
 python -m pip install -r requirements.txt
 ```
 
-Inputs follow `docs/INPUT.md`. They are private operator data.
+## Move private corpus state between computers
 
-## Transport private state between computers
+`scripts/transport.py` packages the ignored private ingestion directories:
+`pdf/`, `input/`, `work/`, `accept/`, `archive/`, and `curation/`. Reproducible
+committed `output/` artefacts are not included.
 
-The ignored pre-corpus directories can be exported as one compressed, verified
-archive. The bundle includes `pdf/`, `input/`, `work/`, `accept/`, and `archive/`;
-committed and reproducible `output/` artefacts are not included.
-
-On the source computer:
+Export:
 
 ```bash
 python scripts/transport.py export --output nel-private-state.tar.gz
 ```
 
-Transfer that file using an appropriate private channel. Gzip compression does not
-encrypt the source publications, evidence fragments, or workflow state, so protect
-the bundle as private data. On the destination computer, from the repository root:
+The archive is compressed but **not encrypted**. Transfer it using an appropriate
+private channel.
+
+On the destination computer, inspect the import first:
 
 ```bash
-# Inspect the result without writing anything.
 python scripts/transport.py import nel-private-state.tar.gz --dry-run
+```
 
-# Import after the dry run succeeds.
+Then import:
+
+```bash
 python scripts/transport.py import nel-private-state.tar.gz
 ```
 
-Every archived file is recorded in a versioned manifest with its size and SHA-256.
-Import rejects malformed paths, unsupported entries, and files that fail verification.
-It adds missing files and skips byte-identical files. If any destination path already
-contains different content, the complete import is refused without overwriting or
-partially merging the bundle. Export likewise refuses to overwrite an existing bundle;
-choose a new output filename for each snapshot.
+Import adds missing files and skips byte-identical files. If an existing destination
+file has different content, the import is refused rather than overwriting it.
 
-## 0. Parse PDFs and resolve citations
+## 1. Parse PDFs
 
-Drop PDFs in `pdf/<corpus>/`, then run:
+Place source PDFs in:
+
+```text
+pdf/<corpus>/
+```
+
+Use a meaningful PDF filename. Its filename stem becomes the stable `publication_key`
+used for work folders and card IDs.
+
+Parse the corpus:
 
 ```bash
 python scripts/parse_pdfs.py --corpus <name> --mailto <email>
 ```
 
-Successful sources move to `pdf/archive/<corpus>/`; Markdown and synchronized JSONL
-and CSV indexes are written under `input/<corpus>/`. Exit 1 means at least one paper
-needs citation repair or failed conversion. Repair citations with the request/apply
-or manual-export/manual-apply commands documented in `docs/INPUT.md`.
+Successful PDFs are moved to:
 
-The same PDF bytes always receive the same internal `paper_id`. It is a deterministic
-UUID derived from the source SHA-256 and is used only to validate source identity.
-Forced reparsing is blocked when that identity exists in `work/`, `accept/`, or
-`archive/` unless `--allow-reparse` is supplied.
+```text
+pdf/archive/<corpus>/
+```
 
-## 1. Fan out indexed papers
+Parsed Markdown and citation/index state are written under:
+
+```text
+input/<corpus>/
+```
+
+The model phases use `paper.md` generated from this Markdown path, not the original PDF.
+
+If parsing succeeds but citation metadata cannot be resolved, curate the DOI before
+fanout.
+
+## 2. Curate missing DOI/citation metadata
+
+There are two supported paths.
+
+### Model-assisted DOI curation
+
+Create a request for unresolved papers:
+
+```bash
+python scripts/citations.py request --corpus <name>
+```
+
+This writes a request under:
+
+```text
+input/<name>/citations/
+```
+
+Give that request to ChatGPT or Claude and ask it to identify the DOI for each listed
+paper. Save the resulting JSON response, then apply it:
+
+```bash
+python scripts/citations.py apply --corpus <name> --response <file>
+```
+
+The script verifies candidate DOIs against Crossref before accepting them.
+
+### Manual DOI curation
+
+Export a worksheet:
+
+```bash
+python scripts/citations.py manual-export --corpus <name>
+```
+
+Complete the generated CSV, then apply it:
+
+```bash
+python scripts/citations.py manual-apply --corpus <name> --csv <file>
+```
+
+Do not proceed to fanout until the selected paper has resolved citation metadata.
+
+## 3. Fan out papers
+
+Create one working folder per publication:
 
 ```bash
 python scripts/fanout.py --corpus <name>
-# or one paper
+```
+
+Or fan out one paper:
+
+```bash
 python scripts/fanout.py --corpus <name> --key <publication-key>
 ```
 
-The command preflights the complete selected set before writing, allocates stable
-publication keys, hashes the Markdown, and creates:
+Each new paper receives:
 
 ```text
 work/<publication-key>/
@@ -80,154 +163,143 @@ work/<publication-key>/
   metadata.json
 ```
 
-Existing folders are never changed.
+Existing work folders are not modified.
 
-## 2. Phase 1 — census
+## 4. Run Phases 1–4
 
-Start a fresh model session with exactly:
+Run each phase in a fresh chat. Save the model's returned JSON file into the same
+`work/<publication-key>/` folder before starting the next phase.
+
+| Phase | Chat/session | Give the model | Prompt | Save output as |
+|---|---|---|---|---|
+| 1 — census | Fresh ChatGPT or Claude chat | `paper.md`, `metadata.json` | `prompts/phase1_prompt.md` | `paper.census.json` |
+| 2 — carding | Fresh chat | `paper.md`, `metadata.json`, `paper.census.json` | `prompts/phase2_prompt.md` | `paper.provisional-001.json` |
+| 3 — independent review | Fresh chat using a **different model from Phase 2** | `paper.md`, `paper.provisional-001.json` | `prompts/phase3_prompt.md` | `paper.review-001.json` |
+| 4 — human adjudication | Fresh chat | `paper.md`, `metadata.json`, `paper.census.json`, `paper.provisional-001.json`, `paper.review-001.json` | `prompts/phase4_prompt.md` | `paper.final.json` |
+
+### Phase 1 — census
+
+Start a fresh chat and provide exactly:
 
 - `work/<publication-key>/paper.md`
 - `work/<publication-key>/metadata.json`
 - `prompts/phase1_prompt.md`
 
-Save its output as `work/<publication-key>/paper.census.json`. Phase 1 may overwrite that
-file when correcting a Phase 2 census critique. Do not start Phase 2 in the same
-session.
+Save the output as:
 
-## 3. Phase 2 — carding
+```text
+work/<publication-key>/paper.census.json
+```
 
-Start a fresh extraction session with:
+Do not run Phase 2 in the same conversation.
 
-- `paper.md`, `metadata.json`, `paper.census.json`
+### Phase 2 — carding
+
+Start a fresh chat with:
+
+- `paper.md`
+- `metadata.json`
+- `paper.census.json`
 - `prompts/phase2_prompt.md`
 
-If the census is materially deficient, Phase 2 writes the next
-`paper.census-critique-NNN.md` and stops. Return that critique to a fresh Phase 1
-session.
-
-Otherwise Phase 2 writes a complete package:
+Normally save the output as:
 
 ```text
 paper.provisional-001.json
 ```
 
-The filename round and package `round` are always 001/1. Phase 2 is not repeated
-after audit.
+If Phase 2 instead returns a census critique such as:
 
-For each card, `diseases` records only source-grounded exact clinical applicability.
-`disease_ancestors` records the canonical direct and transitive parents derived from
-the `umbrella` graph in `schema/disease_vocabulary.json`, excluding exact values.
-Ancestors support broad corpus indexing but never widen case retrieval;
-`diseases_covered` is therefore the unique union of exact `diseases` only.
+```text
+paper.census-critique-001.md
+```
 
-## 4. Phase 3 — independent audit
+stop Phase 2. Start a fresh Phase 1 conversation, provide the critique with the Phase 1
+inputs, regenerate `paper.census.json`, then start Phase 2 again in a new conversation.
+Once a provisional package has been produced, do not repeat Phase 2 after audit.
 
-Use a different model in a fresh session with exactly:
+### Phase 3 — independent review
+
+Use a **different model** from the one used for Phase 2.
+
+For example:
+
+```text
+Phase 2: ChatGPT
+Phase 3: Claude
+```
+
+Start a fresh chat with exactly:
 
 - `paper.md`
 - `paper.provisional-001.json`
 - `prompts/phase3_prompt.md`
 
-Do not supply rules, vocabulary, schema, census, or another publication.
+Do not provide the census, schemas, vocabulary, reporting rules, or another publication.
 
-- Always save `paper.review-001.json`; Phase 3 never writes a final.
-- The review contains one pass/fail result for every card. Passed cards contain only
-  their ID and verdict. Failed cards additionally include the failure type, precise
-  reason, defensibility statement, and structured suggested action.
-- A quote failure must restate the quote read by Phase 3 in its review details.
+Save:
 
-Phase 3 never edits extraction content and is not repeated.
-
-For every typed evidence bundle, Phase 3 must independently verify that contextual
-fragments structurally govern the claim, table relations reconstruct all applicable
-headers and qualifiers, and provenance metadata does not assign meaning absent from
-the verbatim fragments.
-
-Publication type uses the six-value semantic taxonomy defined in
-`schema/publication_type_vocabulary.json`. Publisher labels such as “special report”
-are not additional values. Phase 3 passes any package value defensible under the
-taxonomy and requests a change only when that value clearly fails its definition
-and exactly one other allowed value is better supported. This ambiguity rule keeps
-fresh audit sessions from alternating between equally plausible labels.
-
-Failed-card reviews use these suggested-action categories:
-
-- `narrow_disease_scope`
-- `replace_evidence`
-- `change_category`
-- `rewrite_interpretation`
-- `split_card`
-- `delete_card`
-- `add_or_correct_qualifier`
-
-Validate the complete review against its provisional package:
-
-```bash
-python scripts/validate_review.py \
-  --review work/<publication-key>/paper.review-001.json \
-  --provisional work/<publication-key>/paper.provisional-001.json
+```text
+paper.review-001.json
 ```
 
-The validator checks `schema/review_schema.json` plus cross-artefact identity,
-round, model, complete card coverage and ordering, counts, card IDs, conditional
-failure details, and publication-type invariants.
+Phase 3 reviews the proposed cards; it does not edit them and does not create the final
+package.
 
-## 5. Phase 4 — human adjudication and finalization
+### Phase 4 — human adjudication
 
-Start a fresh finalization session with:
+Start a fresh chat with:
 
-- `paper.md`, `metadata.json`, `paper.census.json`
-- `paper.provisional-001.json`, `paper.review-001.json`
+- `paper.md`
+- `metadata.json`
+- `paper.census.json`
+- `paper.provisional-001.json`
+- `paper.review-001.json`
 - `prompts/phase4_prompt.md`
 
-Phase 4 presents every card to the human, including Phase 3-passed cards. The human
-chooses the final action for each card. Phase 4 applies source-supported decisions
-and writes `paper.final.json`; it never creates another provisional package or sends
-cards back to Phase 3. All resulting cards receive passing entries in the existing
-final audit shape because the human review and action taken are final.
+Phase 4 presents the cards and review findings for human adjudication. Discuss the cards
+with the model and make the final source-supported decisions.
 
-## 6. Confirm one paper
+Save the final output as:
+
+```text
+paper.final.json
+```
+
+## 5. Confirm the paper
+
+After Phase 4 is complete:
 
 ```bash
 python scripts/confirm.py --key <publication-key>
 ```
 
-Confirmation checks schemas, IDs, vocabulary, canonical disease ancestors, census reconciliation,
-one-to-one card/evidence-bundle pairing, independently source-verbatim fragments,
-bundle references and role constraints, complete Phase 3 review, complete passing
-final audit, different model identities, and lineage to the approved provisional
-round. Phase 4's adjudicated extraction content may differ from the provisional.
-Failure changes nothing.
+`confirm.py` is the deterministic acceptance gate. If validation fails, nothing is
+accepted.
 
-Success writes:
+On success it writes the accepted final/census pair under `accept/`, stamps the accepted
+package with the current `release/VERSION` as `accepted_in_version`, and moves the full
+working history from:
 
 ```text
-accept/<publication-key>.final.json
-accept/<publication-key>.census.json
+work/<publication-key>/
 ```
 
-and moves the complete history from `work/<publication-key>/` to
-`archive/<publication-key>/`. Archives are immutable in v0.1.3; reopening is not
-provided. The internal `paper_id` remains embedded in metadata, census, provisional,
-and final artefacts and must agree across them; users do not use it as a path or CLI
-locator.
+to:
 
-Manual acceptance is possible only by constructing the same accepted envelope and
-setting `acceptance_path` to `manual-or-unverified`. Incorporation cannot recheck
-evidence fragments against source Markdown on that path.
+```text
+archive/<publication-key>/
+```
 
-## 7. Incorporate all accepted pairs
+## 6. Incorporate accepted papers
+
+Rebuild the distributable corpus from accepted papers:
 
 ```bash
 python scripts/incorporate.py
 ```
 
-The command reads `accept/` only. Invalid individual pairs are recorded under
-`rejected` and excluded while valid papers build. Accepted filenames are keyed by
-`publication_key`, so a mismatched filename and embedded key is rejected. Duplicate
-card IDs remain fatal.
-
-Outputs:
+The main outputs are:
 
 ```text
 output/corpus/nel.corpus.json
@@ -235,19 +307,166 @@ output/corpus/nel.index.json
 output/reports/build-report.json
 ```
 
-Evidence bundles and fragment text are never written to distributable output. Every
-incorporated paper has completed independent Phase 3 audit and human Phase 4
-adjudication, so there is no provisional corpus mode.
+`incorporate.py` reads from `accept/`. Invalid accepted packages are reported and
+excluded; valid accepted papers are incorporated. `nel.index.json` exposes papers by
+`accepted_in_version`, allowing corpus additions to be traced to a release.
 
-## Prompt maintenance
+### Rebuild the secondary-source curation backlog
 
-Edit prompt prose under `prompts/templates/`, then regenerate one committed prompt:
+After incorporation, rebuild the curator backlog from the archived Phase 1–4 audit
+history and the current corpus:
 
 ```bash
-python scripts/build_prompts.py --phase 1
-python scripts/build_prompts.py --phase 2
-python scripts/build_prompts.py --phase 3
-python scripts/build_prompts.py --phase 4
+python scripts/build_secondary_source_backlog.py
 ```
 
-Read `prompts/meta_prompt.md` before changing extraction rules or schemas.
+The script looks for provisional cards that:
+
+- Phase 3 marked `fail`;
+- were removed from `paper.final.json`; and
+- carried a non-null `secondary_citation`.
+
+It groups those removed interpretations by the cited source paper. If the cited source
+already exists in the current corpus, that source and its removed cards are excluded
+from the outstanding backlog. Matching is conservative: DOI is used when available;
+otherwise the normalized title and year must match exactly.
+
+Outputs are private generated curator files:
+
+```text
+curation/secondary-source-backlog.json
+curation/secondary-source-backlog.md
+```
+
+The Markdown file is the human-readable paper-curation queue. Each entry preserves the
+removed provisional interpretation, its originating curated paper, and the Phase 3
+failure reason and suggested action. The JSON file contains the same information in a
+machine-readable form.
+
+The command never modifies `archive/`, `accept/`, or `output/`. `curation/` is ignored
+by Git but is included by `transport.py` when moving private corpus state to another
+computer.
+
+## 7. Phase 5 — add evidence missed during the original ingest
+
+Use Phase 5 when an already accepted paper supports an additional interpretation that
+was missed during Phases 1–4.
+
+Phase 5 is **additive only**. It cannot modify or delete existing accepted cards or
+change the census. If the missing interpretation requires census expansion, perform a
+full re-ingest instead.
+
+### Prepare the accepted paper
+
+Restore the archived paper and ingestion history into a new work folder:
+
+```bash
+python scripts/prepare_phase5.py --key <publication-key>
+```
+
+This copies the archived Phase 1–4 files back into:
+
+```text
+work/<publication-key>/
+```
+
+and overlays the current accepted final/census state. It also creates:
+
+```text
+paper.base.final.json
+paper.base.census.json
+phase5.json
+phase5.existing-cards.json
+```
+
+The original archive remains in place.
+
+### Phase 5 authoring
+
+Start a fresh ChatGPT or Claude conversation with:
+
+- `paper.md`
+- `metadata.json`
+- `paper.census.json`
+- `paper.base.final.json`
+- `phase5.json`
+- `phase5.existing-cards.json`
+- `prompts/phase5_prompt.md`
+
+The model first asks which interpretation or interpretations you believe the paper
+supports but the accepted cards missed.
+
+For each requested interpretation, it checks for existing equivalent cards, rereads the
+paper for support, and discusses any proposed new cards with you.
+
+When the additions are ready for independent review, save:
+
+```text
+paper.phase5-provisional.json
+```
+
+### Independent Phase 5 review
+
+Start a fresh conversation using a **different model** from the Phase 5 authoring model.
+
+Provide exactly:
+
+- `paper.md`
+- `paper.phase5-provisional.json`
+- `prompts/phase5_review_prompt.md`
+
+Save:
+
+```text
+paper.phase5-review.json
+```
+
+Every proposed card must pass. If a reviewed card is changed, regenerate the provisional
+file and repeat the independent review.
+
+### Finalize the supplement
+
+Return to the Phase 5 authoring/finalization conversation and provide the completed
+`paper.phase5-review.json`.
+
+When satisfied, send:
+
+```text
+FINALIZE
+```
+
+The model writes a merged:
+
+```text
+paper.final.json
+```
+
+containing the unchanged accepted cards plus the independently reviewed new cards.
+
+### Confirm and re-incorporate
+
+Confirm Phase 5 with the normal command:
+
+```bash
+python scripts/confirm.py --key <publication-key>
+```
+
+There is **no `--phase5` flag**. `confirm.py` detects `phase5.json` and applies the Phase
+5 validation path automatically.
+
+On success it updates the accepted package and archives the completed supplement under:
+
+```text
+archive/<publication-key>/phase5/NNN/
+```
+
+Finally rebuild the corpus:
+
+```bash
+python scripts/incorporate.py
+```
+
+## Development and prompt maintenance
+
+Developer procedures, prompt regeneration, tests, versioning, and release housekeeping
+are documented in [`DEVEL.md`](DEVEL.md).

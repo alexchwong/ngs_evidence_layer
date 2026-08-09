@@ -4,13 +4,13 @@ This directory contains the standalone validation corpus used to test NGS Eviden
 
 - `case_summary.md` contains shared stems, per-variant clinical information, NEL tasks, and evaluator marking criteria.
 - `cases.py` provides helpers to retrieve case inputs and marking criteria.
-- Marking criteria are evaluator-only and must not be supplied to NEL during case execution.
+- `marking_prompt.md` defines categorical marking of `nel-validate` final reports.
+- Marking criteria are evaluator-only and must not be supplied to NEL before `report-final.md` is complete.
 
 Typical Python usage:
 
 ```python
 from validation.cases import retrieve_case, retrieve_MC
-
 retrieve_case("1")   # shared stem only
 retrieve_case("1A")  # shared stem + variant clinical information
 retrieve_MC("1A")    # evaluator marking criteria only
@@ -21,7 +21,6 @@ Command-line usage:
 ```bash
 # List all available case IDs
 python validation/retrieve_cli.py list
-
 # Retrieve clinical information for a case variant
 python validation/retrieve_cli.py case 1A
 
@@ -37,3 +36,5 @@ python validation/retrieve_cli.py case --help
 python validation/retrieve_cli.py MC --help
 python validation/retrieve_cli.py list --help
 ```
+
+`nel-validate <case-id>` retrieves only clinical case content before report generation. Step 7 then retrieves evaluator marking criteria and marks the completed `report-final.md`.

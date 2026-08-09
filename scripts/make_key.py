@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Derive publication keys and Vancouver display strings deterministically.
 
-Compute these here rather than by hand. Hand-built keys drift between runs, and a
-drifted key silently creates a second copy of a publication in the corpus instead
-of overwriting the first.
+Corpus publication keys are human-readable identifiers derived from the original
+source PDF filename. Bibliographic keys remain available for deduplicating secondary
+citations that are not themselves corpus publications.
 
-Two modes:
+Two citation modes:
 
   primary    the publication being ingested. Authors, title and year are required,
              because a publication we are reading in full has no excuse for them.
-
   secondary  an upstream source cited by the publication but never itself ingested
              (decision 20). Built from whatever the publication's reference list
              supplies, which is frequently not much. Nothing is required beyond a
@@ -17,11 +16,11 @@ Two modes:
              citation_incomplete and carried, visible, into the reference list.
              This mode must not invent an author, a year or a journal to make the
              string look finished.
-
 Usage:
-  make_key.py --citation citation.json
+  make_key.py --citation citation.json --source-filename paper.pdf
   make_key.py --authors "Dohner H" "Wei AH" --title "..." --journal Blood \\
-              --year 2022 --volume 140 --issue 12 --pages 1345-1377
+              --year 2022 --volume 140 --issue 12 --pages 1345-1377 \\
+              --source-filename 2022_dohner_eln_aml.pdf
   make_key.py --secondary --authors "Falini B" --title "Cytoplasmic nucleophosmin" \\
               --journal "N Engl J Med" --year 2005 --volume 352 --pages 254-266
 """
@@ -30,7 +29,6 @@ import json
 import re
 import sys
 from pathlib import Path
-
 MAX_LISTED_AUTHORS = 6
 CITATION_FIELDS = ("authors", "title", "journal", "year", "volume", "issue", "pages")
 
@@ -40,6 +38,17 @@ def slugify(value):
         return "na"
     slug = re.sub(r"[^a-z0-9]+", "-", str(value).lower())
     return slug.strip("-") or "na"
+
+
+def build_source_key(source_filename):
+    """Return the canonical corpus key from the original source filename stem."""
+    if source_filename is None or str(source_filename).strip() == "":
+        raise ValueError("source_filename is required for a corpus publication key")
+    stem = Path(str(source_filename)).stem
+    key = slugify(stem)
+    if key == "na":
+        raise ValueError("source_filename must contain a usable filename stem")
+    return key
 
 
 def first_surname(authors):
@@ -61,7 +70,6 @@ def build_display(citation):
         author_str = ", ".join(authors[:MAX_LISTED_AUTHORS]) + ", et al"
     else:
         author_str = ", ".join(authors)
-
     title = (citation.get("title") or "").rstrip(".")
     journal = citation.get("journal")
     year = citation.get("year")
@@ -76,7 +84,6 @@ def build_display(citation):
         parts.append(title + ".")
     if journal:
         parts.append(str(journal).rstrip(".") + ".")
-
     tail = ""
     if year:
         tail = str(year)
@@ -111,6 +118,7 @@ def title_slug(title, words=3):
 
 
 def build_key(citation):
+    """Build a bibliographic key, used for non-corpus secondary citations."""
     volume = slugify(citation.get("volume"))
     page = slugify(start_page(citation.get("pages")))
     stem = [
@@ -133,8 +141,12 @@ def missing_elements(citation):
     return absent
 
 
-def build_citation(raw, secondary=False):
-    """Return {publication_key, citation} for a primary or secondary source."""
+def build_citation(raw, secondary=False, source_filename=None):
+    """Return {publication_key, citation} for a primary or secondary source.
+
+    Primary corpus callers should supply source_filename; secondary citations use a
+    bibliographic dedup key because no local source PDF exists.
+    """
     if secondary:
         if not any(raw.get(field) not in (None, "", []) for field in CITATION_FIELDS):
             raise ValueError(
@@ -145,7 +157,6 @@ def build_citation(raw, secondary=False):
         for field in ("authors", "title", "year"):
             if raw.get(field) in (None, "", []):
                 raise ValueError("authors, title and year are required for a primary citation")
-
     citation = {field: raw[field] for field in CITATION_FIELDS if field in raw}
     display = build_display(raw)
     if not display:
@@ -154,7 +165,15 @@ def build_citation(raw, secondary=False):
         display = "[reference incomplete in source publication]"
     citation["display"] = display
     citation["citation_incomplete"] = missing_elements(raw)
-    return {"publication_key": build_key(raw), "citation": citation}
+    if secondary:
+        publication_key = build_key(raw)
+    elif source_filename is not None:
+        publication_key = build_source_key(source_filename)
+    else:
+        # Backward-compatible helper behaviour. Corpus ingestion does not use this
+        # fallback; parse, citation repair, and fan-out all use build_source_key().
+        publication_key = build_key(raw)
+    return {"publication_key": publication_key, "citation": citation}
 
 
 def main():
@@ -164,6 +183,8 @@ def main():
     parser.add_argument("--citation", help="path to a JSON file of citation fields")
     parser.add_argument("--secondary", action="store_true",
                         help="build an upstream citation from partial reference-list data")
+    parser.add_argument("--source-filename",
+                        help="original PDF filename; defines the primary corpus publication key")
     parser.add_argument("--authors", nargs="+")
     parser.add_argument("--title")
     parser.add_argument("--journal")
@@ -172,7 +193,6 @@ def main():
     parser.add_argument("--issue")
     parser.add_argument("--pages")
     args = parser.parse_args()
-
     if args.citation:
         raw = json.loads(Path(args.citation).read_text(encoding="utf-8"))
     else:
@@ -181,12 +201,12 @@ def main():
             "year": args.year, "volume": args.volume, "issue": args.issue,
             "pages": args.pages,
         }.items() if value not in (None, "", [])}
-
     try:
-        result = build_citation(raw, secondary=args.secondary)
+        result = build_citation(
+            raw, secondary=args.secondary, source_filename=args.source_filename
+        )
     except ValueError as exc:
         sys.exit(str(exc))
-
     if args.secondary:
         # A secondary source is never a corpus publication, so its key is only a
         # dedup handle for the reference list. Emit it, but emit the citation

@@ -18,6 +18,16 @@ Phase 4 is final. Do not create another provisional package, another Phase 3 rev
 or another audit round. Do not send any card back to Phase 3.
 ## Entry validation
 
+Before any adjudication or finalization, recreate the deterministic validation bundle
+provided below and run:
+```bash
+python validation_bundle/scripts/final_validation.py --phase 3 \
+  --provisional paper.provisional-001.json \
+  --review paper.review-001.json
+```
+A non-zero exit means the Phase 3 product is invalid. Stop without adjudicating or
+creating a file. Do not repair or replace the Phase 3 review in Phase 4.
+
 Require a well-formed round-1 provisional package and its matching complete Phase 3
 review. Their `paper_id`, `round`, extraction-model identity, card IDs, and card
 counts must match. The review must contain exactly one pass/fail result for every
@@ -207,21 +217,23 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 2. **Link therapy to the exact actionable alteration and disease setting.** Specify the relevant mutation, fusion or pathway, the treatment phase where necessary, and whether the implication is established, optional or investigational.
 
-3. **Do not overstate sensitivity or resistance.** Use qualified wording when evidence is limited, variant-specific or based on small series. “May be sensitive” is appropriate when a definitive response cannot be predicted.
+3. **Report treatment-specific molecular modifiers.** For a therapy relevant to the patient, report detected alterations that are supported to modify response, resistance, relapse risk or survival. Do not extrapolate treatment-specific effects to overall prognosis.
 
-4. **State approval and access context when relevant.** Distinguish approved frontline, relapsed/refractory, trial-only and jurisdiction-dependent uses without turning the report into a treatment protocol.
+4. **Do not overstate sensitivity or resistance.** Use qualified wording when evidence is limited, variant-specific or based on small series. “May be sensitive” is appropriate when a definitive response cannot be predicted.
 
-5. **Do not invent actionability.** When the detected variants do not select an approved mutation-specific therapy, say so only if this is clinically useful; otherwise omit therapy commentary.
+5. **State approval and access context when relevant.** Distinguish approved frontline, relapsed/refractory, trial-only and jurisdiction-dependent uses without turning the report into a treatment protocol.
 
-6. **Keep diagnostic, prognostic and predictive roles separate.** A mutation may define the disease or worsen prognosis without selecting a targeted drug. Conversely, a therapeutically actionable mutation may not define the diagnostic entity.
+6. **Do not invent actionability.** When the detected variants do not select an approved mutation-specific therapy, say so only if this is clinically useful; otherwise omit therapy commentary.
 
-7. **Recommend transplant assessment only when the molecular finding materially alters risk, donor selection or therapeutic strategy.** Do not recommend transplantation solely because a mutation is present.
+7. **Keep diagnostic, prognostic and predictive roles separate.** A mutation may define the disease or worsen prognosis without selecting a targeted drug. Conversely, a therapeutically actionable mutation may not define the diagnostic entity.
 
-8. **For kinase alterations, interpret the precise molecular class.** Different variants in the same gene can have different pathway activation and drug sensitivity; do not apply one mutation’s treatment logic to another.
+8. **Recommend transplant assessment only when the molecular finding materially alters risk, donor selection or therapeutic strategy.** Do not recommend transplantation solely because a mutation is present.
 
-9. **For cytogenetically defined actionable disease, recognise that the treatment implication may arise outside the NGS panel.** Integrate defining fusions, rearrangements or deletions detected by cytogenetics or FISH.
+9. **For kinase alterations, interpret the precise molecular class.** Different variants in the same gene can have different pathway activation and drug sensitivity; do not apply one mutation’s treatment logic to another.
 
-10. **When possible germline predisposition is identified, separate immediate disease treatment from genetic counselling, constitutional confirmation and donor-selection implications.**
+10. **For cytogenetically defined actionable disease, recognise that the treatment implication may arise outside the NGS panel.** Integrate defining fusions, rearrangements or deletions detected by cytogenetics or FISH.
+
+11. **When possible germline predisposition is identified, separate immediate disease treatment from genetic counselling, constitutional confirmation and donor-selection implications.**
 
 # R4 — MRD interpretation
 
@@ -1331,15 +1343,67 @@ if __name__ == "__main__":
   "title": "Portable accepted evidence package",
   "description": "The confirm-produced envelope consumed by incorporation. Manual submissions must use this same shape.",
   "type": "object",
-  "required": ["schema_version", "acceptance_path", "accepted_at", "accepted_at_source", "metadata", "final"],
+  "required": [
+    "schema_version",
+    "acceptance_path",
+    "accepted_at",
+    "accepted_at_source",
+    "accepted_in_version",
+    "metadata",
+    "final"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "1.1" },
+    "schema_version": { "enum": ["1.2", "1.3"] },
     "acceptance_path": { "enum": ["confirmed", "manual-or-unverified"] },
     "accepted_at": { "type": "string", "format": "date-time" },
     "accepted_at_source": { "enum": ["confirm", "file-mtime"] },
+    "accepted_in_version": { "type": "string", "minLength": 1 },
     "metadata": { "$ref": "metadata_schema.json" },
-    "final": { "$ref": "ingestion_package_schema.json" }
+    "final": { "$ref": "ingestion_package_schema.json" },
+    "supplements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/supplement" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["supplements"] },
+      "then": { "properties": { "schema_version": { "const": "1.3" } } }
+    }
+  ],
+  "$defs": {
+    "supplement": {
+      "type": "object",
+      "required": [
+        "phase",
+        "supplement",
+        "accepted_at",
+        "accepted_in_version",
+        "base_final_sha256",
+        "base_census_sha256",
+        "added_card_ids",
+        "extraction_model",
+        "reviewer_model"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "phase": { "const": 5 },
+        "supplement": { "type": "integer", "minimum": 1 },
+        "accepted_at": { "type": "string", "format": "date-time" },
+        "accepted_in_version": { "type": "string", "minLength": 1 },
+        "base_final_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "base_census_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "added_card_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "extraction_model": { "type": "string", "minLength": 1 },
+        "reviewer_model": { "type": "string", "minLength": 1 }
+      }
+    }
   }
 }
 ```

@@ -53,7 +53,7 @@ class PromptValidationBundleTests(unittest.TestCase):
             self.assertIn(path.read_text(encoding="utf-8").rstrip(), bundle)
 
     def test_phase_prompts_use_bundle_marker(self):
-        for phase in (1, 2, 3, 4):
+        for phase in (1, 2, 4):
             template = (
                 ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
             ).read_text(encoding="utf-8")

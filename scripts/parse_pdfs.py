@@ -18,7 +18,6 @@ from pathlib import Path
 
 import index_store
 import make_key
-
 PAPER_NAMESPACE = uuid.UUID("6f1c2a34-8d5b-4e77-9a03-5c7e2b8f1d94")
 DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", re.IGNORECASE)
 
@@ -142,9 +141,27 @@ def reparse_conflicts(paper_id, work_dir, accept_dir, archive_dir):
     return conflicts
 
 
+def source_key_collision(source, checksum, records):
+    """Reject two different PDFs whose original filenames normalize to one key."""
+    publication_key = make_key.build_source_key(source.name)
+    for other in records:
+        if other.get("sha256") == checksum:
+            continue
+        other_filename = other.get("source_filename")
+        if not other_filename:
+            continue
+        if make_key.build_source_key(other_filename) == publication_key:
+            raise ValueError(
+                f"publication_key {publication_key} collision between "
+                f"{other_filename} and {source.name}; rename one source PDF"
+            )
+    return publication_key
+
+
 def parse_one(source, args, records):
     checksum = sha256(source)
     paper_id = paper_uuid(checksum)
+    publication_key = source_key_collision(source, checksum, records)
     stem = f"{safe_stem(source.stem)}--{paper_id[:8]}"
     existing = next((record for record in records if record["sha256"] == checksum), None)
     if existing and existing["status"] != "failed" and not args.force:
@@ -164,10 +181,10 @@ def parse_one(source, args, records):
         "id": paper_id, "markdown_path": markdown_rel, "source_filename": source.name,
         "sha256": checksum, "status": "failed", "citation": {},
         "citation_source": None, "citation_resolved_at": None,
-        "publication_key": None, "parse": parse,
+        "publication_key": publication_key, "parse": parse,
     }
     if args.dry_run:
-        return records, f"would parse {source} as {paper_id}"
+        return records, f"would parse {source} as {paper_id} ({publication_key})"
     try:
         with tempfile.TemporaryDirectory(prefix="nel-pdf-") as temporary:
             temporary_path = Path(temporary)
@@ -192,7 +209,6 @@ def parse_one(source, args, records):
                 base["citation"] = citation
                 base["citation_source"] = "crossref-doi"
                 base["citation_resolved_at"] = now()
-                base["publication_key"] = make_key.build_key(citation)
                 base["status"] = "ingested"
             except (ValueError, OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
                 parse["error"] = str(exc)
@@ -206,9 +222,6 @@ def parse_one(source, args, records):
     except Exception as exc:
         parse["error"] = str(exc)
         base["markdown_path"] = ""
-    for other in records:
-        if base["publication_key"] and other.get("publication_key") == base["publication_key"] and other["sha256"] != checksum:
-            print(f"warning: publication_key {base['publication_key']} collision: {other['id']} ({other['source_filename']}) and {paper_id} ({source.name})", file=sys.stderr)
     records = index_store.replace(records, base)
     index_store.write(args.corpus, records, args.input_dir)
     return records, base["status"]

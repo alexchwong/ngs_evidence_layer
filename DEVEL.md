@@ -1,0 +1,160 @@
+# Developer guide
+
+This file is for repository maintenance. User reporting is documented in `README.md`;
+paper ingestion is documented in `INGEST.md`.
+
+## Development setup
+
+From the repository root:
+
+```bash
+python3 -m venv .env
+. .env/bin/activate
+python -m pip install -r requirements.txt
+```
+
+## Regenerate ingestion prompts
+
+The committed Phase 1–5 prompts are generated artefacts.
+
+Edit their canonical prose under:
+
+```text
+prompts/templates/
+```
+
+and edit rules, vocabularies, or schemas only at their canonical source paths. Read
+`prompts/meta_prompt.md` before changing extraction rules or schemas.
+
+Regenerate the affected prompt:
+
+```bash
+python scripts/build_prompts.py --phase 1
+python scripts/build_prompts.py --phase 2
+python scripts/build_prompts.py --phase 3
+python scripts/build_prompts.py --phase 4
+python scripts/build_prompts.py --phase 5
+python scripts/build_prompts.py --phase5-review
+```
+
+The canonical Phase 5 sources are:
+
+```text
+prompts/templates/phase5_prompt.md
+prompts/templates/phase5_review_prompt.md
+```
+
+The generated committed outputs are:
+
+```text
+prompts/phase5_prompt.md
+prompts/phase5_review_prompt.md
+```
+
+Do not edit generated phase prompts directly. Edit the corresponding template or other
+canonical source, regenerate the prompt, inspect the diff, and commit the generated
+prompt with its source change.
+
+## Run tests
+
+Run the full unittest suite:
+
+```bash
+python -m unittest discover -s tests -v 2>&1
+```
+
+Run this after code, schema, vocabulary, prompt-generation, retrieval, ingestion, or
+release-workflow changes.
+
+## Release configuration
+
+Release configuration is intentionally small.
+
+### Version
+
+The release version is stored in:
+
+```text
+release/VERSION
+```
+
+It must contain exactly one semantic version in `X.Y.Z` form, for example:
+
+```text
+0.1.6
+```
+
+The release workflow uses this value to create the tag, release title, archive root, and
+ZIP filename.
+
+If the current version has already been released and the skill payload changes, bump
+`release/VERSION` before merging the payload change to `master`.
+
+### Skill release contents
+
+The skill-only release payload is defined by:
+
+```text
+release/skill.txt
+```
+
+Each non-empty line is a tracked path or glob pattern. Globs are supported.
+
+When `SKILL.md` gains a new runtime dependency, add that file or a suitable glob to
+`release/skill.txt`. Remove entries that are no longer required.
+
+The GitHub Action fails if a manifest pattern matches no tracked files and verifies that
+the finished ZIP contains exactly the resolved manifest contents.
+
+### Release action
+
+The release workflow is:
+
+```text
+.github/workflows/release.yml
+```
+
+It runs:
+
+- automatically on pushes to `master`;
+- manually via `workflow_dispatch`.
+
+For a new version it builds the skill-only ZIP and creates the GitHub release. If the
+version tag already exists, skill-payload changes require a version bump.
+
+## Pre-release housekeeping
+
+Before merging a release to `master`:
+
+1. Regenerate every affected generated prompt.
+2. Inspect generated prompt diffs for unintended changes.
+3. Run the full unittest suite.
+4. Update `NEWS.md` with the user-visible changes for the release.
+5. Update the `README.md` corpus tables if corpus contents changed.
+6. Check `README.md`, `INGEST.md`, and `DEVEL.md` still match current user/developer commands.
+7. Set `release/VERSION` to the intended release version.
+8. Review `release/skill.txt` and ensure every file required by `SKILL.md` is included.
+9. Check that no private files from `pdf/`, `input/`, `work/`, `accept/`, or `archive/` are staged.
+10. Run the full unittest suite again after final release-file changes.
+11. Merge to `master` or manually run the release workflow.
+
+## Post-release check
+
+After the release action completes:
+
+1. confirm the expected GitHub tag and release exist;
+2. confirm the ZIP filename and top-level directory use the intended version;
+3. confirm the release ZIP contains only the skill payload;
+4. extract the release ZIP and smoke-test at least one `ngs-report` or `nel-demo` workflow.
+
+## Documentation ownership
+
+Keep documentation separated by audience:
+
+- `README.md` — end-user NGS reporting and current corpus contents;
+- `INGEST.md` — corpus-curation workflow;
+- `DEVEL.md` — developer and release maintenance;
+- `NEWS.md` — changelog.
+
+Do not move implementation-level retrieval or schema commentary back into `README.md`
+unless an end user needs it to operate the reporting workflow.

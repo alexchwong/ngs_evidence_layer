@@ -81,21 +81,23 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 2. **Link therapy to the exact actionable alteration and disease setting.** Specify the relevant mutation, fusion or pathway, the treatment phase where necessary, and whether the implication is established, optional or investigational.
 
-3. **Do not overstate sensitivity or resistance.** Use qualified wording when evidence is limited, variant-specific or based on small series. “May be sensitive” is appropriate when a definitive response cannot be predicted.
+3. **Report treatment-specific molecular modifiers.** For a therapy relevant to the patient, report detected alterations that are supported to modify response, resistance, relapse risk or survival. Do not extrapolate treatment-specific effects to overall prognosis.
 
-4. **State approval and access context when relevant.** Distinguish approved frontline, relapsed/refractory, trial-only and jurisdiction-dependent uses without turning the report into a treatment protocol.
+4. **Do not overstate sensitivity or resistance.** Use qualified wording when evidence is limited, variant-specific or based on small series. “May be sensitive” is appropriate when a definitive response cannot be predicted.
 
-5. **Do not invent actionability.** When the detected variants do not select an approved mutation-specific therapy, say so only if this is clinically useful; otherwise omit therapy commentary.
+5. **State approval and access context when relevant.** Distinguish approved frontline, relapsed/refractory, trial-only and jurisdiction-dependent uses without turning the report into a treatment protocol.
 
-6. **Keep diagnostic, prognostic and predictive roles separate.** A mutation may define the disease or worsen prognosis without selecting a targeted drug. Conversely, a therapeutically actionable mutation may not define the diagnostic entity.
+6. **Do not invent actionability.** When the detected variants do not select an approved mutation-specific therapy, say so only if this is clinically useful; otherwise omit therapy commentary.
 
-7. **Recommend transplant assessment only when the molecular finding materially alters risk, donor selection or therapeutic strategy.** Do not recommend transplantation solely because a mutation is present.
+7. **Keep diagnostic, prognostic and predictive roles separate.** A mutation may define the disease or worsen prognosis without selecting a targeted drug. Conversely, a therapeutically actionable mutation may not define the diagnostic entity.
 
-8. **For kinase alterations, interpret the precise molecular class.** Different variants in the same gene can have different pathway activation and drug sensitivity; do not apply one mutation’s treatment logic to another.
+8. **Recommend transplant assessment only when the molecular finding materially alters risk, donor selection or therapeutic strategy.** Do not recommend transplantation solely because a mutation is present.
 
-9. **For cytogenetically defined actionable disease, recognise that the treatment implication may arise outside the NGS panel.** Integrate defining fusions, rearrangements or deletions detected by cytogenetics or FISH.
+9. **For kinase alterations, interpret the precise molecular class.** Different variants in the same gene can have different pathway activation and drug sensitivity; do not apply one mutation’s treatment logic to another.
 
-10. **When possible germline predisposition is identified, separate immediate disease treatment from genetic counselling, constitutional confirmation and donor-selection implications.**
+10. **For cytogenetically defined actionable disease, recognise that the treatment implication may arise outside the NGS panel.** Integrate defining fusions, rearrangements or deletions detected by cytogenetics or FISH.
+
+11. **When possible germline predisposition is identified, separate immediate disease treatment from genetic counselling, constitutional confirmation and donor-selection implications.**
 
 # R4 — MRD interpretation
 
