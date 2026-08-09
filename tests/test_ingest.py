@@ -40,6 +40,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.input_dir = self.root / "input"
         self.corpus = self.input_dir / "fixtures"
         self.work = self.root / "work"
+        self.quarantine = self.root / "quarantine"
         self.accept = self.root / "accept"
         self.archive = self.root / "archive"
         (self.corpus / "index").mkdir(parents=True)
@@ -84,7 +85,8 @@ class FolderStateWorkflowTests(unittest.TestCase):
     def fanout(self):
         return self.run_script(
             "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
-            "--work-dir", self.work, "--created-at", "2026-08-02T00:00:00+00:00",
+            "--work-dir", self.work, "--quarantine-dir", self.quarantine,
+            "--created-at", "2026-08-02T00:00:00+00:00",
         )
 
     def prepare_complete_work(self):
@@ -136,6 +138,20 @@ class FolderStateWorkflowTests(unittest.TestCase):
         first = (working / "metadata.json").read_bytes()
         self.assertIn("left 1 existing", self.fanout())
         self.assertEqual((working / "metadata.json").read_bytes(), first)
+
+    def test_fanout_does_not_recreate_quarantined_paper(self):
+        self.fanout()
+        self.quarantine.mkdir()
+        shutil.move(
+            str(self.work / PUBLICATION_KEY),
+            str(self.quarantine / PUBLICATION_KEY),
+        )
+
+        output = self.fanout()
+
+        self.assertIn("skipped 1 quarantined", output)
+        self.assertFalse((self.work / PUBLICATION_KEY).exists())
+        self.assertTrue((self.quarantine / PUBLICATION_KEY / "paper.md").is_file())
 
     def test_fanout_preflight_prevents_partial_work(self):
         invalid = dict(self.record)

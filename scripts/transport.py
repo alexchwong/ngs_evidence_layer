@@ -14,7 +14,9 @@ from pathlib import Path, PurePosixPath
 
 FORMAT = "ngs-evidence-layer-private-state"
 FORMAT_VERSION = 1
-ROOT_NAMES = ("pdf", "input", "work", "accept", "archive", "curation")
+ROOT_NAMES = (
+    "pdf", "input", "work", "quarantine", "accept", "archive", "curation"
+)
 
 
 def sha256(path):

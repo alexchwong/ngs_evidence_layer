@@ -2,6 +2,68 @@
 
 This is the operator guide for adding papers to the NEL corpus.
 
+## Quick start
+
+From the repository root, create the local environment once:
+
+```bash
+python3 -m venv .env
+. .env/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Activate it in each new shell, then run the normal ingestion sequence:
+
+```bash
+. .env/bin/activate
+
+# Parse source PDFs and resolve any pending citations.
+python scripts/parse_pdfs.py --corpus <name> --mailto <email>
+python scripts/citations.py request --corpus <name>
+python scripts/citations.py apply --corpus <name> --response <file>
+
+# Alternatively, resolve pending citations with a manual worksheet.
+python scripts/citations.py manual-export --corpus <name>
+python scripts/citations.py manual-apply --corpus <name> --csv <file>
+
+# Create all work folders, or select one paper.
+python scripts/fanout.py --corpus <name>
+python scripts/fanout.py --corpus <name> --key <publication-key>
+
+# After manually completing Phases 1–4, accept and incorporate the paper.
+python scripts/confirm.py --key <publication-key>
+python scripts/incorporate.py
+python scripts/build_secondary_source_backlog.py
+```
+
+Quarantine commands for a paper that must remain outside the corpus:
+
+```bash
+# Uses the default reason "Out of scope for the corpus".
+python scripts/quarantine.py hold --key <publication-key>
+# Override the reason when a more specific explanation is useful.
+python scripts/quarantine.py hold --key <publication-key> --reason "<reason>"
+python scripts/quarantine.py list
+python scripts/quarantine.py review --key <publication-key> --note "<review-note>"
+```
+
+Phase 5 commands for adding missed evidence to an accepted paper:
+
+```bash
+python scripts/prepare_phase5.py --key <publication-key>
+# Complete the Phase 5 authoring and independent review steps described below.
+python scripts/confirm.py --key <publication-key>
+python scripts/incorporate.py
+```
+
+Move all private ingestion state between computers:
+
+```bash
+python scripts/transport.py export --output nel-private-state.tar.gz
+python scripts/transport.py import nel-private-state.tar.gz --dry-run
+python scripts/transport.py import nel-private-state.tar.gz
+```
+
 The normal workflow is:
 
 ```text
@@ -22,7 +84,8 @@ Use a fresh ChatGPT or Claude conversation for each model phase. Phase 3 must us
 different model from Phase 2.
 
 Private source publications and ingestion state live under `pdf/`, `input/`, `work/`,
-`accept/`, `archive/`, and `curation/`. Do not commit these directories' contents.
+`quarantine/`, `accept/`, `archive/`, and `curation/`. Do not commit these directories'
+contents.
 
 ## Setup
 
@@ -37,8 +100,8 @@ python -m pip install -r requirements.txt
 ## Move private corpus state between computers
 
 `scripts/transport.py` packages the ignored private ingestion directories:
-`pdf/`, `input/`, `work/`, `accept/`, `archive/`, and `curation/`. Reproducible
-committed `output/` artefacts are not included.
+`pdf/`, `input/`, `work/`, `quarantine/`, `accept/`, `archive/`, and `curation/`.
+Reproducible committed `output/` artefacts are not included.
 
 Export:
 
@@ -164,6 +227,60 @@ work/<publication-key>/
 ```
 
 Existing work folders are not modified.
+
+## Quarantine a paper before acceptance
+
+If fanout has occurred but a partially or fully processed paper must not enter the
+corpus, move its complete working history out of the active pipeline:
+
+```bash
+python scripts/quarantine.py hold \
+  --key <publication-key>
+```
+
+The default reason is `Out of scope for the corpus`. Supply `--reason "<reason>"` to
+record a more specific explanation.
+
+This atomically moves:
+
+```text
+work/<publication-key>/
+```
+
+to:
+
+```text
+quarantine/<publication-key>/
+```
+
+The paper's existing phase files are preserved. A `quarantine.json` file records the
+reason and timestamp. `confirm.py` only reads `work/`, and `incorporate.py` only reads
+`accept/`, so the quarantined paper cannot enter the corpus through the normal workflow.
+Subsequent fanout runs recognize the quarantined key and do not recreate it under
+`work/`.
+
+List held papers:
+
+```bash
+python scripts/quarantine.py list
+```
+
+Return a paper to `work/` for further review:
+
+```bash
+python scripts/quarantine.py review \
+  --key <publication-key> \
+  --note "Reconsider after scope-policy update"
+```
+
+The complete folder moves back unchanged, including `quarantine.json`; the return event
+is appended to its audit history. Resume review from the appropriate existing phase. The
+commands refuse to merge or overwrite folders when both source and destination state
+exist.
+
+Quarantine is a pre-acceptance action. It refuses papers that already have final or
+census state under `accept/`; removing an accepted paper from the corpus requires a
+separate withdrawal or corpus-versioning procedure.
 
 ## 4. Run Phases 1–4
 

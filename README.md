@@ -8,6 +8,28 @@ is bounded to the supplied case, retrieved corpus evidence, and explicit reporti
 rules; the model is not permitted to fill evidence gaps from general haematology
 knowledge.
 
+## Quick start for end users
+
+1. Open the repository's GitHub **Releases** tab and download the latest release or
+   pre-release ZIP file.
+2. Make the downloaded skill available to your preferred chat application using one of
+   these options:
+   - `Claude`: upload the zip file as a skill in Claude;
+   - `Any UI that supports skills.md`: use it as a skill in any UI that supports `SKILL.md` skills; or
+   - `ChatGPT`: create a ChatGPT project and upload the ZIP file to the project as a source
+     document. For ChatGPT, also add a source document named `master-prompt.txt` containing:
+
+     ```text
+     If the user requests `ngs-*`, treat the attached zip file "ngs_evidence_layer*.zip" as a skill.
+     Read the skill.md to understand the skill
+     ```
+
+3. Start a chat session in one of these ways:
+   - paste the clinical and morphological details and the NGS result, then add
+     `ngs-report` on a line by itself;
+   - run the first demonstration case with `nel-demo example 1`; or
+   - run the first validation case with `nel-validate 1A`.
+
 ## NGS reporting
 
 Use one of the modes defined in `SKILL.md`.

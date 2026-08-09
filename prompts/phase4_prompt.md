@@ -187,29 +187,21 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 # R2 — Prognostic interpretation
 
-1. **Use the disease- and treatment-appropriate prognostic framework.** Examples include ELN for AML, IPSS-M for MDS, CHRS for CHIP/CCUS, CPSS-Mol for CMML, revised IPSET-thrombosis for ET, and an appropriate PMF model for confirmed PMF.
+1. **Use the appropriate disease-specific prognostic framework.** Prefer a validated disease-specific prognostic system where one exists. For findings not addressed by that system, use high-quality disease-specific prognostic evidence.
 
-2. **Do not calculate a complete score or assign a tier unless every required input is available.** When inputs are incomplete, report only the molecular contribution of the detected variants and identify the additional variables required.
+2. **Assign a prognostic contribution to each detected pathogenic variant.** For each pathogenic or likely pathogenic variant, state whether it has a favourable, adverse or no established prognostic contribution in the relevant disease. Use the applicable prognostic system first; if it does not address the variant, use high-quality disease-specific evidence.
 
-3. **Use ELN 2024 Less-Intensive as the preferred AML framework when a less-intensive regimen is documented.** ELN 2022 may be presented first without penalty if the clinically relevant conclusion is correct. Report a secondary classifier only when it materially changes the category; when categories differ, state both.
+3. **Report molecular contributions rather than composite clinical scores.** When a prognostic system incorporates non-molecular variables, report how the detected molecular findings contribute to prognosis without calculating the complete score or assigning its overall risk tier.
 
-4. **Do not transfer a prognostic model between diseases.** In particular, do not apply IPSS-M to MDS/MPN, an MDS model to CMML, or an AML risk system to a case classified as MDS solely because the molecular features appear similar.
+4. **Use ELN 2022 as the primary AML risk classification.** ELN 2024 Less-Intensive may additionally be reported when it gives a materially different risk category. Reporting ELN 2024 Less-Intensive is mandatory when the patient is already receiving less-intensive treatment or is explicitly unsuitable for intensive therapy. Reporting ELN 2022 is optional if and only if ELN 2024 is mandatory.
 
-5. **State only the prognostic effect supported in the relevant disease.** A mutation that is adverse in one neoplasm may have uncertain or different significance in another. Where evidence is limited, use language such as “potentially adverse,” “biologically concerning” or “uncertain disease-specific effect” rather than assigning a formal tier.
+5. **Do not transfer prognostic effects between diseases or models.** Apply a prognostic system only to the disease for which it is validated, and do not assign a variant a prognostic effect based solely on evidence from another disease.
 
-6. **Separate formal risk classification from descriptive prognosis.** When no validated molecular score applies, give a concise disease-specific interpretation without inventing a risk category.
+6. **Apply negative panel findings when required by the prognostic model.** When a gene is included in the NGS panel and no reportable variant is identified, treat it as wild-type for the purpose of the selected prognostic system. Do not extend this inference beyond the validated scope of the assay.
 
-7. **Explain which detected findings drive the risk conclusion.** Do not infer prognosis from absent mutations unless their absence is itself a defined component of the selected model.
+7. **Apply TP53 prognostic effects according to allelic state.** Distinguish monoallelic TP53 alterations from TP53 multi-hit disease and apply the prognostic effect appropriate to the established allelic state.
 
-8. **Preserve favourable classifications unless the applicable system explicitly changes them.** Do not downgrade a favourable category because of a co-mutation that the chosen framework does not recognise as an adverse modifier in that setting.
-
-9. **Distinguish monoallelic TP53 from TP53 multi-hit disease.** Do not assign the major adverse weight of TP53 multi-hit disease to a small or isolated monoallelic TP53 clone.
-
-10. **Use CHRS for either CHIP or CCUS when the required variables are available.** Include the applicable mutation class, clone size, age, blood-count status, red-cell indices and other required inputs; do not estimate the score when a required variable is missing.
-
-11. **For MPNs, select the framework only after the diagnosis is established.** Do not apply ET thrombosis scoring to suspected hereditary thrombocytosis, or PMF scoring before PMF and the necessary clinical inputs are confirmed.
-
-12. **Avoid epidemiological detail that does not change the individual report.** Mutation prevalence, historical comparisons and academic background should be omitted unless needed to explain a diagnostic or prognostic conclusion.
+8. **Include only clinically relevant prognostic evidence.** Omit prevalence, epidemiological background and prognostic associations that do not contribute to the patient-level prognostic interpretation.
 
 # R3 — Clinical actionability
 

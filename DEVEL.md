@@ -3,6 +3,34 @@
 This file is for repository maintenance. User reporting is documented in `README.md`;
 paper ingestion is documented in `INGEST.md`.
 
+## Quick start
+
+From the repository root, create the local environment once:
+
+```bash
+python3 -m venv .env
+. .env/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Activate it in each new shell, then run the normal development checks:
+
+```bash
+. .env/bin/activate
+
+# Regenerate any prompt affected by canonical template, rule, vocabulary, or schema changes.
+python scripts/build_prompts.py --phase <1|2|3|4|5>
+python scripts/build_prompts.py --phase5-review
+
+# Run the full test suite.
+python -m unittest discover -s tests -v 2>&1
+```
+
+Before release, also update `NEWS.md`, verify the documentation and corpus tables, set
+`release/VERSION`, review `release/skill.txt`, and confirm that no private ingestion files
+are staged. See [Pre-release housekeeping](#pre-release-housekeeping) for the complete
+checklist.
+
 ## Development setup
 
 From the repository root:

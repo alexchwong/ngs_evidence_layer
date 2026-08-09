@@ -111,11 +111,37 @@ def fanout(args):
     args.work_dir.mkdir(parents=True, exist_ok=True)
     created = []
     skipped = []
+    quarantined = []
     staging = Path(tempfile.mkdtemp(prefix=".fanout-", dir=args.work_dir))
     try:
         for record, source, metadata in planned:
             key = metadata["publication_key"]
             destination = args.work_dir / key
+            quarantine_destination = args.quarantine_dir / key
+            if quarantine_destination.exists():
+                if destination.exists():
+                    raise ValueError(
+                        f"paper exists in both work and quarantine: {key}"
+                    )
+                quarantine_metadata_path = quarantine_destination / "metadata.json"
+                if not quarantine_destination.is_dir() or quarantine_destination.is_symlink():
+                    raise ValueError(
+                        f"quarantined paper is not a real directory: {quarantine_destination}"
+                    )
+                if not quarantine_metadata_path.is_file():
+                    raise ValueError(
+                        f"quarantined paper has no metadata: {quarantine_destination}"
+                    )
+                quarantine_metadata = validation.read_json(
+                    quarantine_metadata_path, "quarantined metadata"
+                )
+                if quarantine_metadata.get("paper_id") != record["id"]:
+                    raise ValueError(
+                        f"{key}: quarantined folder belongs to paper_id "
+                        f"{quarantine_metadata.get('paper_id')}, not {record['id']}"
+                    )
+                quarantined.append(key)
+                continue
             if destination.exists():
                 existing_metadata_path = destination / "metadata.json"
                 if not existing_metadata_path.is_file():
@@ -142,7 +168,7 @@ def fanout(args):
                 created.append(key)
     finally:
         shutil.rmtree(staging, ignore_errors=True)
-    return created, skipped
+    return created, skipped, quarantined
 
 
 def main():
@@ -151,17 +177,23 @@ def main():
     parser.add_argument("--key", dest="publication_key")
     parser.add_argument("--input-dir", type=Path, default=Path("input"))
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
+    parser.add_argument("--quarantine-dir", type=Path, default=Path("quarantine"))
     parser.add_argument("--created-at", help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
-        created, skipped = fanout(args)
+        created, skipped, quarantined = fanout(args)
     except (OSError, ValueError) as exc:
         sys.exit(f"FAN-OUT FAILED:\n{exc}")
-    print(f"Created {len(created)} working folder(s); left {len(skipped)} existing folder(s) unchanged.")
+    print(
+        f"Created {len(created)} working folder(s); left {len(skipped)} existing "
+        f"folder(s) unchanged; skipped {len(quarantined)} quarantined paper(s)."
+    )
     for publication_key in created:
         print(f"created: {args.work_dir / publication_key}")
     for publication_key in skipped:
         print(f"unchanged: {args.work_dir / publication_key}")
+    for publication_key in quarantined:
+        print(f"quarantined: {args.quarantine_dir / publication_key}")
 
 
 if __name__ == "__main__":

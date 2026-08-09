@@ -12,7 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "transport.py"
-ROOT_NAMES = ("pdf", "input", "work", "accept", "archive", "curation")
+ROOT_NAMES = (
+    "pdf", "input", "work", "quarantine", "accept", "archive", "curation"
+)
 
 
 class TransportTests(unittest.TestCase):
@@ -28,6 +30,10 @@ class TransportTests(unittest.TestCase):
         (self.source / "input" / "fixture" / "papers.jsonl").write_text('{"status":"ingested"}\n', encoding="utf-8")
         (self.source / "work" / "paper-key").mkdir(parents=True)
         (self.source / "work" / "paper-key" / "paper.md").write_text("# Evidence\n", encoding="utf-8")
+        (self.source / "quarantine" / "held-key").mkdir(parents=True)
+        (self.source / "quarantine" / "held-key" / "quarantine.json").write_text(
+            '{"status":"quarantined"}\n', encoding="utf-8"
+        )
         (self.source / "accept").mkdir()
         (self.source / "accept" / "paper-key.final.json").write_text("{}\n", encoding="utf-8")
         (self.source / "archive" / "paper-key").mkdir(parents=True)
@@ -66,13 +72,13 @@ class TransportTests(unittest.TestCase):
 
     def test_round_trip_and_identical_files_are_idempotent(self):
         output = self.export()
-        self.assertIn("Exported 6 files", output)
+        self.assertIn("Exported 7 files", output)
         self.assertTrue(self.bundle.is_file())
 
         output = self.run_transport(
             "import", self.bundle, *self.root_arguments(self.destination)
         )
-        self.assertIn("Imported 6 files; 0 identical files skipped", output)
+        self.assertIn("Imported 7 files; 0 identical files skipped", output)
         for name in ROOT_NAMES:
             source_files = sorted(path.relative_to(self.source / name) for path in (self.source / name).rglob("*") if path.is_file())
             destination_files = sorted(path.relative_to(self.destination / name) for path in (self.destination / name).rglob("*") if path.is_file())
@@ -86,14 +92,14 @@ class TransportTests(unittest.TestCase):
         output = self.run_transport(
             "import", self.bundle, *self.root_arguments(self.destination)
         )
-        self.assertIn("Imported 0 files; 6 identical files skipped", output)
+        self.assertIn("Imported 0 files; 7 identical files skipped", output)
 
     def test_dry_run_does_not_write(self):
         self.export()
         output = self.run_transport(
             "import", self.bundle, "--dry-run", *self.root_arguments(self.destination)
         )
-        self.assertIn("Would import 6 files", output)
+        self.assertIn("Would import 7 files", output)
         self.assertFalse(self.destination.exists())
 
     def test_conflict_aborts_without_partial_import(self):
