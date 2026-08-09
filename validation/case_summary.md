@@ -14,6 +14,7 @@ NEL is not asked to derive a morphological diagnosis from a clinical vignette or
 - Complete prognostic scores are not required unless every input is supplied. Otherwise, report only the molecular contribution.
 - Negative findings are retained only when they change diagnosis, allelic state, assay interpretation or management.
 - Bulk VAF does not establish mutation order, phase, shared clonality or germline status.
+- Negative instructions in NEL tasks are guard conditions: they are assessed only if the report makes the prohibited claim and do not require a negative sentence.
 
 ### Germline-screening convention
 
@@ -50,8 +51,8 @@ Confirm that the molecular result refines the supplied diagnosis to MDS with low
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.3:** State **MDS with low blasts and SF3B1 mutation (MDS-SF3B1)**. The qualifying SF3B1 variant confirms the entity in the supplied low-blast MDS context.
-- **R2C1 — R2.2, R2.7:** State that isolated SF3B1 is a favourable molecular contribution. Do not calculate a complete IPSS-M tier.
+- **R1C1:** State **MDS with low blasts and SF3B1 mutation (MDS-SF3B1)**. The qualifying SF3B1 variant confirms the entity in the supplied low-blast MDS context.
+- **R2C1:** State that isolated SF3B1 is a favourable molecular contribution.
 
 ## Case 1B — SF3B1-wild-type ring-sideroblast MDS
 
@@ -69,9 +70,9 @@ Avoid substituting SRSF2 for SF3B1, preserve the appropriate WHO-5 ring-siderobl
 
 ### Marking criteria
 
-- **R1C1 — R1.2, R1.3, R1.7:** State **WHO-5 MDS with low blasts and ring sideroblasts**, not MDS-SF3B1. Under ICC, classify as **MDS, NOS**.
-- **R1C2 — R1.3:** Explain that absence of SF3B1 prevents use of the SF3B1-defined entity despite 22% ring sideroblasts; SRSF2 is not a substitute.
-- **R2C1 — R2.2, R2.5:** Report SRSF2 as an adverse molecular contribution without calculating a complete IPSS-M tier.
+- **R1C1:** State **WHO-5 MDS with low blasts and ring sideroblasts**, not MDS-SF3B1. Under ICC, classify as **MDS, NOS**.
+- **R1C2:** Explain that absence of SF3B1 prevents use of the SF3B1-defined entity despite 22% ring sideroblasts; SRSF2 is not a substitute.
+- **R2C1:** Report SRSF2 as an adverse molecular contribution.
 
 ## Case 1C — WHO-5/ICC divergence from RUNX1
 
@@ -88,9 +89,8 @@ Apply WHO-5 as primary, identify the material ICC exclusion created by RUNX1, se
 
 ### Marking criteria
 
-- **R1C1 — R1.2–R1.4:** State **WHO-5 MDS-SF3B1**. State the materially different ICC classification of **MDS, NOS**, because RUNX1 excludes the ICC SF3B1 entity.
-- **R1C2 — R1.8:** Do not infer founding or secondary status from the 36% and 20% bulk VAFs.
-- **R2C1 — R2.2, R2.5:** Report RUNX1 as an adverse molecular contribution that attenuates the isolated-SF3B1 favourable profile; do not calculate a complete IPSS-M tier.
+- **R1C1:** State **WHO-5 MDS-SF3B1**. State the materially different ICC classification of **MDS, NOS**, because RUNX1 excludes the ICC SF3B1 entity.
+- **R2C1:** Report RUNX1 as an adverse molecular contribution.
 
 ## Case 1D — CCUS, not MDS
 
@@ -107,9 +107,8 @@ Classify a small clone in an explicitly unexplained cytopenia as CCUS and avoid 
 
 ### Marking criteria
 
-- **R1C1 — R1.5:** State **CCUS**, because cytopenia is persistent and otherwise unexplained and the marrow does not establish a myeloid neoplasm.
-- **R1C2 — R1.8, R1.10:** A 4% SF3B1 clone supports clonal haematopoiesis but does not establish MDS.
-- **R2C1 — R2.2, R2.10:** Do not calculate CHRS unless every required variable, including RDW, is supplied.
+- **R1C1:** State **CCUS**, because cytopenia is persistent and otherwise unexplained and the marrow does not establish a myeloid neoplasm.
+- **R1C2:** A 4% SF3B1 clone supports clonal haematopoiesis but does not establish MDS.
 
 ---
 
@@ -133,9 +132,8 @@ Recognise CHIP when a small clone is present but the supplied cytopenia has an a
 
 ### Marking criteria
 
-- **R1C1 — R1.5:** State **CHIP**, not CCUS or MDS, while iron deficiency adequately explains the anaemia.
-- **R1C2 — R1.8:** A 4% SRSF2 clone is small and must not independently establish a myeloid neoplasm.
-- **R2C1 — R2.2, R2.10:** Do not calculate CHRS without all required variables.
+- **R1C1:** State **CHIP**, not CCUS or MDS, while iron deficiency adequately explains the anaemia.
+- **R1C2:** A 4% SRSF2 clone is small and must not independently establish a myeloid neoplasm.
 
 ## Case 2B — Molecular qualification of supplied MDS
 
@@ -152,9 +150,8 @@ Confirm the supplied MDS diagnosis, recognise that a CMML-like genotype cannot o
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.6:** Confirm **MDS with low blasts**. Do not diagnose CMML from the genotype when qualifying monocytosis is explicitly absent.
-- **R1C2 — R1.8:** Large VAFs support substantial clonal populations but do not establish mutation order.
-- **R2C1 — R2.2, R2.5:** Report SRSF2 and ASXL1 as adverse molecular contributions without calculating a complete IPSS-M tier.
+- **R1C1:** Confirm **MDS with low blasts**. Do not diagnose CMML from the genotype when qualifying monocytosis is explicitly absent.
+- **R2C1:** Report SRSF2 and ASXL1 as adverse molecular contributions.
 
 ## Case 2C — Blast-range divergence and possible germline RUNX1
 
@@ -171,9 +168,9 @@ State the WHO-5/ICC blast-range divergence, report adverse molecular findings, a
 
 ### Marking criteria
 
-- **R1C1 — R1.2, R1.3:** State **WHO-5 MDS-IB2** and the materially different ICC entity **MDS/AML with myelodysplasia-related gene mutations**.
-- **R2C1 — R2.2:** Report SRSF2, RUNX1 if somatic, and ASXL1 as adverse molecular contributions; do not calculate a complete IPSS-M tier.
-- **R5C1 — R5.1–R5.5:** Flag **possible germline RUNX1**. The truncating variant at 48% VAF is in the near-heterozygous range; the longstanding platelet phenotype strengthens suspicion. Recommend genetic counselling and confirmation in a validated non-haematopoietic specimen.
+- **R1C1:** State **WHO-5 MDS-IB2** and the materially different ICC entity **MDS/AML with myelodysplasia-related gene mutations**.
+- **R2C1:** Report SRSF2, RUNX1 if somatic, and ASXL1 as adverse molecular contributions.
+- **R5C1:** Flag **possible germline RUNX1**. The truncating variant at 48% VAF is in the near-heterozygous range; the longstanding platelet phenotype strengthens suspicion. Recommend genetic counselling and confirmation in a validated non-haematopoietic specimen.
 
 ---
 
@@ -198,9 +195,9 @@ Avoid overcalling biallelic or multi-hit TP53 disease and avoid assigning its ma
 
 ### Marking criteria
 
-- **R1C1 — R1.9:** State **MDS with low blasts**, not MDS with biallelic TP53 inactivation.
-- **R1C2 — R1.8, R1.9:** A single 12% TP53 mutation without a qualifying second hit does not establish biallelic disease.
-- **R2C1 — R2.2, R2.9:** Do not assign the major adverse TP53-multihit molecular weight.
+- **R1C1:** State **MDS with low blasts**, not MDS with biallelic TP53 inactivation.
+- **R1C2:** A single 12% TP53 mutation without a qualifying second hit does not establish biallelic disease.
+- **R2C1:** Interpret the TP53 finding as monoallelic rather than TP53-multihit and do not assign the multihit adverse weight.
 
 ## Case 3B — Two qualifying TP53 mutations
 
@@ -217,8 +214,8 @@ Recognise two qualifying TP53 mutations as multi-hit/biallelic disease and repor
 
 ### Marking criteria
 
-- **R1C1 — R1.3, R1.9:** State **MDS with biallelic TP53 inactivation** under the supplied classification criteria.
-- **R2C1 — R2.2, R2.9:** State that TP53-multihit is the dominant adverse molecular feature; do not calculate a complete IPSS-M tier.
+- **R1C1:** State **MDS with biallelic TP53 inactivation** under the supplied classification criteria.
+- **R2C1:** State that TP53-multihit is the dominant adverse molecular feature.
 
 ## Case 3C — Mutation plus 17p deletion
 
@@ -235,10 +232,9 @@ Integrate NGS with the supplied cytogenetic second hit, apply WHO-5/ICC divergen
 
 ### Marking criteria
 
-- **R1C1 — R1.9, R1.11:** Mutation plus del(17p) supports **multi-hit/biallelic TP53** disease.
-- **R1C2 — R1.2:** State **WHO-5 MDS with biallelic TP53 inactivation** and the materially different ICC entity **MDS/AML with mutated TP53**.
-- **R1C3 — R1.8, R5.1, R5.9:** Do not infer germline TP53 solely from 46% VAF. The concurrent 17p loss provides a plausible somatic explanation for the allele burden; germline evaluation depends on broader gene-, variant- and clinical context.
-- **R2C1 — R2.2, R2.9:** Report the major adverse TP53-multihit molecular contribution without calculating a complete score.
+- **R1C1:** Mutation plus del(17p) supports **multi-hit/biallelic TP53** disease.
+- **R1C2:** State **WHO-5 MDS with biallelic TP53 inactivation** and the materially different ICC entity **MDS/AML with mutated TP53**.
+- **R2C1:** Report the major adverse TP53-multihit molecular contribution.
 
 ---
 
@@ -260,10 +256,10 @@ Assign the NPM1-defined AML entity, apply the appropriate ELN category, identify
 
 ### Marking criteria
 
-- **R1C1 — R1.3:** State **AML with mutated NPM1**.
-- **R2C1 — R2.1, R2.7:** Apply ELN 2022 and assign the applicable favourable category; DNMT3A does not downgrade it.
-- **R3C1 — R3.2–R3.4:** State the NPM1/menin-pathway treatment implication in the eligible relapsed/refractory setting, with approval and jurisdiction qualified.
-- **R4C1 — R4.3, R4.4:** Identify the exact NPM1 mutation as the preferred high-sensitivity molecular MRD target. DNMT3A must not determine MRD status.
+- **R1C1:** State **AML with mutated NPM1**.
+- **R2C1:** Apply ELN 2022 and assign the applicable favourable category; DNMT3A does not downgrade it.
+- **R3C1:** State the NPM1/menin-pathway treatment implication in the eligible relapsed/refractory setting, with approval and jurisdiction qualified.
+- **R4C1:** Identify the exact NPM1 mutation as the preferred high-sensitivity molecular MRD target.
 
 ## Case 4B — NPM1 with FLT3-ITD
 
@@ -277,10 +273,10 @@ Keep the NPM1 entity, apply the current FLT3-ITD risk rule without using allelic
 
 ### Marking criteria
 
-- **R1C1 — R1.3, R1.4:** State **AML with mutated NPM1**; FLT3-ITD changes prognosis and therapy, not entity assignment.
-- **R2C1 — R2.1, R2.7:** Apply ELN 2022 and assign the applicable intermediate category. Do not use the former low-allelic-ratio rule.
-- **R3C1 — R3.2, R3.4:** State the FLT3-directed treatment implications in the relevant frontline and relapsed/refractory settings.
-- **R4C1 — R4.3, R4.6:** Use NPM1 as the primary molecular MRD target; FLT3-ITD is complementary within a validated high-sensitivity strategy.
+- **R1C1:** State **AML with mutated NPM1**; FLT3-ITD changes prognosis and therapy, not entity assignment.
+- **R2C1:** Apply ELN 2022 and assign the applicable intermediate category.
+- **R3C1:** State the FLT3-directed treatment implications in the relevant frontline and relapsed/refractory settings.
+- **R4C1:** Use NPM1 as the primary molecular MRD target; FLT3-ITD is complementary within a validated high-sensitivity strategy.
 
 ## Case 4C — NPM1 with myelodysplasia-related co-mutations
 
@@ -294,10 +290,9 @@ Respect NPM1 diagnostic precedence, keep entity assignment separate from co-muta
 
 ### Marking criteria
 
-- **R1C1 — R1.4:** State **AML with mutated NPM1**; the NPM1 entity takes precedence over the MR-gene qualifier.
-- **R2C1 — R2.8:** Preserve the applicable ELN 2022 favourable category because the selected framework does not use these co-mutations to override it in this setting.
-- **R3C1 — R3.5, R3.6:** SRSF2 and STAG2 do not select an approved mutation-specific therapy; keep this separate from NPM1-related actionability.
-- **R4C1 — R4.3, R4.7:** Use NPM1 as the preferred MRD marker. Do not use SRSF2 or STAG2 as validated stand-alone MRD markers.
+- **R1C1:** State **AML with mutated NPM1**; the NPM1 entity takes precedence over the MR-gene qualifier.
+- **R2C1:** Preserve the applicable ELN 2022 favourable category because the selected framework does not use these co-mutations to override it in this setting.
+- **R4C1:** Use NPM1 as the preferred MRD marker.
 
 ---
 
@@ -322,9 +317,8 @@ Confirm the supplied CMML diagnosis, explain the molecular support and prolifera
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.6:** Confirm **MP-CMML-1** because the mandatory monocytosis and exclusion facts are supplied; the genotype is supportive rather than independently diagnostic.
-- **R2C1 — R2.1, R2.2, R2.5:** Report ASXL1 and NRAS as adverse molecular contributions in the CMML framework. Do not calculate a complete CPSS-Mol score unless all inputs are supplied.
-- **R3C1 — R3.5, R3.6:** The listed variants do not select an approved mutation-specific CMML therapy; their principal roles are diagnostic and prognostic.
+- **R1C1:** Confirm **MP-CMML-1** because the mandatory monocytosis and exclusion facts are supplied; the genotype is supportive rather than independently diagnostic.
+- **R2C1:** Report ASXL1 and NRAS as adverse molecular contributions in the CMML framework.
 
 ## Case 5B — CMML-like genotype without qualifying monocytosis
 
@@ -341,9 +335,8 @@ Avoid diagnosing CMML from a characteristic genotype when a mandatory relative-m
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.6:** Confirm **MDS/MPN, NOS**. Do not diagnose CMML because the relative monocytosis threshold is not met.
-- **R2C1 — R2.4–R2.6:** Do not apply IPSS-M. Give only cautious disease-specific molecular commentary.
-- **R3C1 — R3.5:** The detected variants do not select an approved mutation-specific therapy.
+- **R1C1:** Confirm **MDS/MPN, NOS**. Do not diagnose CMML because the relative monocytosis threshold is not met.
+- **R2C1:** Give only cautious disease-specific molecular commentary.
 
 ---
 
@@ -367,8 +360,8 @@ Confirm molecular clonality in an explicitly diagnosed ET case and apply the sup
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.3:** Confirm **CALR-mutated ET** in the supplied ET morphology.
-- **R2C1 — R2.1, R2.11:** Apply revised IPSET-thrombosis using age under 60, no previous thrombosis and JAK2-unmutated status; assign the applicable very-low-risk group.
+- **R1C1:** Confirm **CALR-mutated ET** in the supplied ET morphology.
+- **R2C1:** Apply revised IPSET-thrombosis using age under 60, no previous thrombosis and JAK2-unmutated status; assign the applicable very-low-risk group.
 
 ## Case 6B — Confirmed prefibrotic PMF
 
@@ -385,9 +378,8 @@ Confirm molecular support for the supplied prefibrotic-PMF diagnosis and report 
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.3:** Confirm **prefibrotic/early PMF** in the supplied diagnostic context.
-- **R1C2 — R1.8:** Do not infer clonal order from the CALR and ASXL1 VAFs.
-- **R2C1 — R2.2, R2.11:** Report ASXL1 as a high-molecular-risk finding. Do not assign a complete MIPSS70+ v2.0 tier without all required inputs.
+- **R1C1:** Confirm **prefibrotic/early PMF** in the supplied diagnostic context.
+- **R2C1:** Report ASXL1 as a high-molecular-risk finding.
 
 ## Case 6C — Possible hereditary MPL thrombocytosis
 
@@ -404,9 +396,8 @@ Recognise possible germline MPL-related hereditary thrombocytosis, avoid automat
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.12:** State that acquired ET cannot be finalised until possible hereditary `MPL` p.(Ser505Asn) thrombocytosis is excluded.
-- **R2C1 — R2.11:** Do not apply revised IPSET-thrombosis unless acquired ET is confirmed.
-- **R5C1 — R5.1–R5.5:** Flag **possible germline MPL**. The recognised predisposition variant at 49% VAF warrants constitutional confirmation even without relying on phenotype; thrombocytosis from adolescence strengthens suspicion.
+- **R1C1:** State that acquired ET cannot be finalised until possible hereditary `MPL` p.(Ser505Asn) thrombocytosis is excluded.
+- **R5C1:** Flag **possible germline MPL**. The recognised predisposition variant at 49% VAF warrants constitutional review; thrombocytosis from adolescence strengthens suspicion. Recommend genetic counselling and validated non-haematopoietic testing.
 
 ---
 
@@ -430,8 +421,8 @@ Avoid dismissing an established diagnosis because KIT D816V has a low allele bur
 
 ### Marking criteria
 
-- **R1C1 — R1.3, R1.10:** Confirm the supplied **indolent systemic mastocytosis** diagnosis. A 2% KIT D816V VAF is compatible with low mast-cell representation and does not argue against the diagnosis.
-- **R3C1 — R3.2–R3.4:** State the KIT-directed treatment implication for symptomatic indolent disease where approved and available.
+- **R1C1:** Confirm the supplied **indolent systemic mastocytosis** diagnosis. A 2% KIT D816V VAF is compatible with low mast-cell representation and does not argue against the diagnosis.
+- **R3C1:** State the KIT-directed treatment implication for symptomatic indolent disease where approved and available.
 
 ## Case 7B — SM with independently confirmed CMML
 
@@ -447,10 +438,9 @@ Confirm the supplied dual entity, keep molecular support separate from the indep
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.6:** State **SM with an associated haematological neoplasm, CMML**. The genotype supports but does not independently establish CMML.
-- **R1C2 — R1.8:** Similar bulk VAFs do not establish shared or separate clones.
-- **R2C1 — R2.5, R2.6:** Report SRSF2 and ASXL1 as adverse molecular findings in advanced SM.
-- **R3C1 — R3.2, R3.6:** State the KIT D816V-directed treatment implication and keep management of the associated CMML separate.
+- **R1C1:** State **SM with an associated haematological neoplasm, CMML**. The genotype supports but does not independently establish CMML.
+- **R2C1:** Report SRSF2 and ASXL1 as adverse molecular findings in advanced SM.
+- **R3C1:** State the KIT D816V-directed treatment implication and keep management of the associated CMML separate.
 
 ## Case 7C — Non-D816V KIT and possible germline origin
 
@@ -466,9 +456,9 @@ Interpret the exact non-D816V KIT variant, avoid applying D816V-specific treatme
 
 ### Marking criteria
 
-- **R1C1 — R1.12:** State systemic mastocytosis with an atypical non-D816V KIT mutation; do not apply D816V-specific assumptions.
-- **R3C1 — R3.3, R3.8:** Any imatinib-sensitivity statement must be cautious and variant-specific.
-- **R5C1 — R5.1–R5.5:** Flag **possible germline KIT**. The recognised activating variant at 49% VAF is sufficient to trigger constitutional review; the childhood phenotype strengthens suspicion. Recommend genetic counselling and validated non-haematopoietic testing.
+- **R1C1:** State systemic mastocytosis with an atypical non-D816V KIT mutation.
+- **R3C1:** Any imatinib-sensitivity statement must be cautious and variant-specific.
+- **R5C1:** Flag **possible germline KIT**. The recognised activating variant at 49% VAF is sufficient to trigger constitutional review; the childhood phenotype strengthens suspicion. Recommend genetic counselling and validated non-haematopoietic testing.
 
 ---
 
@@ -493,9 +483,9 @@ Recognise a characteristic possible germline-plus-somatic DDX41 architecture, av
 
 ### Marking criteria
 
-- **R1C1 — R1.1:** Preserve the supplied MDS diagnosis and qualify it with **possible germline DDX41 predisposition**.
-- **R2C1 — R2.2, R5.8:** Keep disease-specific DDX41 prognostic context separate from a complete IPSS-M score and conditional on constitutional confirmation.
-- **R5C1 — R5.1–R5.7:** Flag the 48% loss-of-function variant as possible/presumed germline pending confirmation and the 9% R525H as compatible with an acquired second event. Do not infer phase. Recommend counselling, constitutional testing and related-donor review.
+- **R1C1:** Preserve the supplied MDS diagnosis and qualify it with **possible germline DDX41 predisposition**.
+- **R2C1:** Keep any disease-specific DDX41 prognostic statement separate from IPSS-M and conditional on constitutional confirmation.
+- **R5C1:** Flag the 48% loss-of-function variant as possible/presumed germline pending confirmation and the 9% R525H as compatible with an acquired second event. Recommend counselling, constitutional testing and related-donor review.
 
 ## Case 8B — Isolated low-VAF DDX41 R525H
 
@@ -512,8 +502,8 @@ Recognise that absence of a near-heterozygous DDX41 variant on the myeloid panel
 
 ### Marking criteria
 
-- **R5C1 — R5.6:** State that low-VAF DDX41 R525H is compatible with a somatic clone but can justify dedicated constitutional DDX41 analysis, including copy-number assessment.
-- **R5C2 — R5.2, R5.4:** Do not assign germline status from tumour-only testing; recommend validated non-haematopoietic confirmation and counselling.
+- **R5C1:** State that low-VAF DDX41 R525H is compatible with a somatic clone but can justify dedicated constitutional DDX41 analysis, including copy-number assessment.
+- **R5C2:** Recommend genetic counselling and dedicated constitutional DDX41 analysis in a validated non-haematopoietic specimen.
 
 ## Case 8C — CEBPA-defined AML with possible germline architecture
 
@@ -530,9 +520,9 @@ Assign the CEBPA-defined AML entity, apply the relevant ELN category, and flag p
 
 ### Marking criteria
 
-- **R1C1 — R1.3, R1.12:** State **AML with CEBPA mutation** because the in-frame bZIP alteration is the qualifying lesion.
-- **R2C1 — R2.1, R2.7:** Apply ELN 2022 and assign the applicable favourable category.
-- **R1C2/R5C1 — R1.8, R5.1–R5.5:** Two variants at 44% and 46% VAF trigger possible germline CEBPA review, but bulk VAF does not establish phase or identify which allele is constitutional. Recommend counselling and constitutional testing.
+- **R1C1:** State **AML with CEBPA mutation** because the in-frame bZIP alteration is the qualifying lesion.
+- **R2C1:** Apply ELN 2022 and assign the applicable favourable category.
+- **R1C2/R5C1:** Two variants at 44% and 46% VAF trigger possible germline CEBPA review. Recommend counselling and constitutional testing.
 
 ---
 
@@ -557,9 +547,8 @@ Confirm the supplied CNL diagnosis with its defining molecular driver, report it
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.3, R1.6:** Confirm **CNL**; CSF3R T618I is diagnostic support in the supplied clinicomorphological context.
-- **R2C1 — R2.2:** Report only the molecular prognostic contribution; do not calculate a complete Mayo CNL score.
-- **R3C1 — R3.2, R3.3:** State that JAK-pathway inhibition may be considered on the basis of CSF3R T618I, with response uncertainty acknowledged.
+- **R1C1:** Confirm **CNL**; CSF3R T618I is diagnostic support in the supplied clinicomorphological context.
+- **R3C1:** State that JAK-pathway inhibition may be considered on the basis of CSF3R T618I, with response uncertainty acknowledged.
 
 ## Case 9B — MDS/MPN with neutrophilia
 
@@ -576,9 +565,7 @@ Support the supplied diagnosis without treating SETBP1 as independently diagnost
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.6:** Confirm **MDS/MPN with neutrophilia** in the supplied morphology. SETBP1 is supportive, not independently diagnostic.
-- **R1C2 — R1.12:** Do not treat ETNK1 p.(Gly82Arg) as a canonical supporting hotspot without variant-level evidence.
-- **R3C1 — R3.2, R3.8:** CSF3R-wild-type status means there is no CSF3R-mutation-based rationale for ruxolitinib; the listed variants do not select an approved targeted therapy.
+- **R1C1:** Confirm **MDS/MPN with neutrophilia** in the supplied morphology. SETBP1 is supportive, not independently diagnostic.
 
 ## Case 9C — CNL with adverse co-mutation
 
@@ -595,9 +582,9 @@ Preserve the CNL diagnosis despite co-mutations, report the disease-specific ASX
 
 ### Marking criteria
 
-- **R1C1 — R1.3, R1.4:** Confirm **CNL**; co-mutations do not displace the CSF3R-defined diagnosis in the supplied morphology.
-- **R2C1 — R2.2, R2.5:** Report ASXL1 as an adverse molecular contribution under the relevant CNL model; do not calculate a complete score or assign SETBP1 an unsupported model weight.
-- **R3C1 — R3.2, R3.6:** Link potential ruxolitinib use to CSF3R T618I, not to SETBP1 or ASXL1.
+- **R1C1:** Confirm **CNL**; co-mutations do not displace the CSF3R-defined diagnosis in the supplied morphology.
+- **R2C1:** Report ASXL1 as an adverse molecular contribution under the relevant CNL model.
+- **R3C1:** Link potential ruxolitinib use to CSF3R T618I, not to SETBP1 or ASXL1.
 
 ---
 
@@ -619,8 +606,8 @@ Show that a negative panel does not alter an explicitly supplied cytogenetically
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.11:** Preserve **MDS with low blasts and isolated del(5q)**. A negative SNV/indel panel does not negate the cytogenetic diagnosis.
-- **R2C1 — R2.2, R2.7:** State that no adverse molecular contribution is detected in the tested genes; do not calculate a complete IPSS-M tier.
+- **R1C1:** Preserve **MDS with low blasts and isolated del(5q)**. A negative SNV/indel panel does not negate the cytogenetic diagnosis.
+- **R2C1:** State that no TP53-multihit molecular feature is identified.
 
 ## Case 10B — Small monoallelic TP53 clone
 
@@ -636,9 +623,9 @@ Preserve the del(5q) entity, distinguish a small monoallelic TP53 clone from mul
 
 ### Marking criteria
 
-- **R1C1 — R1.9:** State **MDS with low blasts and isolated del(5q), with a small monoallelic TP53 clone**; do not call MDS-biTP53.
-- **R2C1 — R2.9:** Do not assign the major adverse TP53-multihit weight.
-- **R3C1 — R3.3:** The clone may warrant surveillance but does not by itself prove lenalidomide resistance or mandate a specific treatment strategy.
+- **R1C1:** State **MDS with low blasts and isolated del(5q), with a small monoallelic TP53 clone**; do not call MDS-biTP53.
+- **R2C1:** Interpret the TP53 finding as monoallelic rather than TP53-multihit disease.
+- **R3C1:** The clone may warrant surveillance but does not by itself prove lenalidomide resistance or mandate a specific treatment strategy.
 
 ## Case 10C — Multi-hit TP53 overrides del(5q)
 
@@ -654,9 +641,9 @@ Apply TP53 diagnostic precedence, replace the favourable isolated-del(5q) framin
 
 ### Marking criteria
 
-- **R1C1 — R1.4, R1.9:** State **MDS with biallelic TP53 inactivation**; this takes precedence over the del(5q) category.
-- **R2C1 — R2.2, R2.9:** Report TP53-multihit as the dominant adverse molecular feature; do not calculate a complete IPSS-M tier.
-- **R3C1 — R3.1, R3.7:** State that the result removes the favourable del(5q)-directed framing and supports high-risk treatment and transplant assessment in the overall clinical context, without prescribing a full regimen.
+- **R1C1:** State **MDS with biallelic TP53 inactivation**; this takes precedence over the del(5q) category.
+- **R2C1:** Report TP53-multihit as the dominant adverse molecular feature.
+- **R3C1:** State that TP53-multihit removes the favourable del(5q) framing and may alter therapeutic strategy, including transplant assessment where clinically appropriate.
 
 ---
 
@@ -678,10 +665,10 @@ Assign the NPM1 entity, report IDH1-directed frontline actionability in the supp
 
 ### Marking criteria
 
-- **R1C1 — R1.3, R3.6:** State **AML with mutated NPM1**; IDH1 is actionable but not entity-defining.
-- **R2C1 — R2.1, R2.7:** Apply the appropriate ELN category; IDH1 and DNMT3A do not downgrade the NPM1-driven category under the selected framework.
-- **R3C1 — R3.2–R3.4:** State the IDH1-directed frontline implication for an older or unfit patient, subject to local approval and access.
-- **R4C1 — R4.3–R4.5:** Use the exact NPM1 mutation as the validated molecular MRD target. Do not assign MRD status from DNMT3A or IDH1.
+- **R1C1:** State **AML with mutated NPM1**; IDH1 is actionable but not entity-defining.
+- **R2C1:** Apply ELN 2022 and assign the applicable favourable category.
+- **R3C1:** State the IDH1-directed frontline implication for an older or unfit patient, subject to local approval and access.
+- **R4C1:** Use the exact NPM1 mutation as the validated molecular MRD target.
 
 ## Case 11B — Treatment-dependent prognostic divergence
 
@@ -697,10 +684,10 @@ Assign AML with myelodysplasia-related molecular features, report materially dif
 
 ### Marking criteria
 
-- **R1C1 — R1.3:** State **AML, myelodysplasia-related**, because SRSF2 is a qualifying MR-gene mutation.
-- **R2C1 — R2.1, R2.3:** Report both materially different categories: the applicable ELN 2022 category and ELN 2024 Less-Intensive category.
-- **R3C1 — R3.2–R3.4:** State the IDH2-directed treatment implication in the appropriate disease phase and jurisdiction.
-- **R4C1 — R4.5, R4.8:** No validated leukaemia-specific molecular MRD marker is supplied. Do not use IDH2 or SRSF2 alone to assign MRD status.
+- **R1C1:** State **AML, myelodysplasia-related**, because SRSF2 is a qualifying MR-gene mutation.
+- **R2C1:** Report both materially different categories: the applicable ELN 2022 category and ELN 2024 Less-Intensive category.
+- **R3C1:** State the IDH2-directed treatment implication in the appropriate disease phase and jurisdiction.
+- **R4C1:** No validated leukaemia-specific molecular MRD marker is supplied. Do not use IDH2 or SRSF2 alone to assign MRD status.
 
 ## Case 11C — Routine-panel non-detection is not MRD negativity
 
@@ -716,10 +703,10 @@ Distinguish routine-panel sensitivity from dedicated NPM1 MRD testing and avoid 
 
 ### Marking criteria
 
-- **R1C1 — R1.1:** State **AML in morphologic remission**; residual IDH1 does not create a new diagnosis.
-- **R4C1 — R4.2:** NPM1 non-detection means below the routine assay's 3% threshold, not biological absence or molecular remission.
-- **R4C2 — R4.3:** Recommend dedicated high-sensitivity testing for the exact baseline NPM1 mutation.
-- **R4C3 — R4.5, R4.9, R4.10:** IDH1 is not a stand-alone MRD marker and must not independently establish molecular relapse or trigger treatment escalation.
+- **R1C1:** State **AML in morphologic remission**; residual IDH1 does not create a new diagnosis.
+- **R4C1:** NPM1 non-detection means below the routine assay's 3% threshold, not biological absence or molecular remission.
+- **R4C2:** Recommend dedicated high-sensitivity testing for the exact baseline NPM1 mutation.
+- **R4C3:** IDH1 is not a stand-alone MRD marker and must not independently establish molecular relapse or trigger treatment escalation.
 
 ---
 
@@ -744,9 +731,7 @@ Refine the supplied overlap diagnosis to the SF3B1-defined thrombocytosis entity
 
 ### Marking criteria
 
-- **R1C1 — R1.1, R1.3:** State **MDS/MPN with SF3B1 mutation and thrombocytosis**. SF3B1 defines the entity and JAK2 supports the proliferative component.
-- **R1C2 — R1.8:** Do not infer that JAK2 was acquired later solely from the lower bulk VAF.
-- **R2C1 — R2.4–R2.6:** Give only supported disease-specific descriptive prognosis; do not apply IPSS-M or invent a formal tier.
+- **R1C1:** State **MDS/MPN with SF3B1 mutation and thrombocytosis**. SF3B1 defines the entity and JAK2 supports the proliferative component.
 
 ## Case 12C — Monoallelic TP53 and ASXL1 co-mutations
 
@@ -763,16 +748,14 @@ Preserve the SF3B1-defined overlap entity, distinguish monoallelic TP53 from mul
 
 ### Marking criteria
 
-- **R1C1 — R1.4, R1.9:** State **MDS/MPN with SF3B1 mutation and thrombocytosis**, with TP53 and ASXL1 co-mutations. A single 18% TP53 mutation does not create a TP53-defined entity.
-- **R1C2 — R1.8:** Do not infer founding or subclonal order from the VAF pattern.
-- **R2C1 — R2.4–R2.6, R2.9:** Describe TP53 and ASXL1 as potentially adverse or biologically concerning, while stating that their independent prognostic effect in this entity is uncertain. Do not apply IPSS-M or assign a formal adverse tier.
+- **R1C1:** State **MDS/MPN with SF3B1 mutation and thrombocytosis**, with TP53 and ASXL1 co-mutations. A single 18% TP53 mutation does not create a TP53-defined entity.
+- **R2C1:** State that the disease-specific prognostic significance of TP53 and ASXL1 is uncertain in this entity.
 
 ---
 
 # Source notes
 
 - Case content was revised from `cases_summary_final_sol_v3.md`.
-- Reporting-rule references use `rules/agreed_reporting_rules.md` from the NGS Evidence Layer repository, branch `v0.1.4-devel`.
 - Germline VAF convention:
   - Kraft IL, Godley LA. *Identifying potential germline variants from sequencing hematopoietic malignancies.* Blood. 2020;136:2498–2506. A known predisposition variant detected on tumour-only testing at VAF greater than 0.30 should prompt germline testing.
   - Baliakas P, et al. *Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults.* HemaSphere. 2019;3:e321. Near-heterozygous VAF of approximately 40–60% or near-homozygous VAF above 90% can suggest germline origin.
