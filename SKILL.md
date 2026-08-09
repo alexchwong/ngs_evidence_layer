@@ -1,6 +1,6 @@
 ---
 name: ngs-evidence-layer
-description: Builds a deterministic evidence block or NGS report for a myeloid NGS case, supports automatic or manual diagnostic adjudication, and can run numbered repository examples in demo mode.
+description: Builds a deterministic evidence block or NGS report for a myeloid NGS case, supports automatic or manual diagnostic adjudication, and can run repository examples or validation cases.
 ---
 # NGS evidence layer
 ## Purpose
@@ -9,9 +9,10 @@ Perform only the mode explicitly requested by the user:
 
 - `evidence-block` — run Steps 0–5; diagnosis review is automatic (skip 3B). Return `<work-dir>/block.md`.
 - `evidence-block manual` — run Steps 0–5; Step 3B requires user confirmation or revision. Return `<work-dir>/block.md`.
-- `ngs-report` — run Steps 0–6; diagnosis review is automatic (skip 3B) and reporting follows Step 5 without stopping. Step 6B renders `<work-dir>/report-final.md` in chat.
-- `evidence-to-report` — run Step 0, verify Step 5 outputs already exist, then run Steps 6A–6B only. Step 6B renders `<work-dir>/report-final.md` in chat.
-- `nel-demo example <N>` — resolve one numbered repository example, run the same automatic Steps 0–6 as `ngs-report`; in Step 6B display the case, generated report, and matching expected behaviour. Do not read the expected file before `report-final.md` is complete.
+- `ngs-report` — run Steps 0–6; diagnosis review is automatic (skip 3B) and reporting follows Step 5 without stopping. Step 7 renders `<work-dir>/report-final.md` in chat.
+- `evidence-to-report` — run Step 0, verify Step 5 outputs already exist, then run Steps 6A–6B only. Step 7 renders `<work-dir>/report-final.md` in chat.
+- `nel-demo example <N>` — resolve one numbered repository example and run the same automatic Steps 0–6 as `ngs-report`; Step 7 displays the case, generated report, and matching expected behaviour. Do not read the expected file before `report-final.md` is complete.
+- `nel-validate <case-id>` — retrieve one validation case without its marking criteria, run the same automatic Steps 0–6 as `ngs-report`, then in Step 7 retrieve the criteria and mark `report-final.md`.
 
 Do not infer the mode from available files. The skill does not create, edit, audit, or incorporate evidence cards.
 
@@ -26,7 +27,8 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3C — model + deterministic append: append one integrated-diagnosis sentence to `case.md` without model-reading `case.md`; automatic review performs this in Step 3A, manual review after Step 3B.
 - Steps 3D–5 — deterministic: validate the completed adjudication, retrieve the full evidence bundle into `bundle.json`, and render `block.md`.
 - Step 6A — model: audit every reporting rule and write only reportable statements into `report-draft.md`.
-- Step 6B — model: format `report-draft.md` into `report-final.md` and perform final presentation.
+- Step 6B — model: format `report-draft.md` into `report-final.md`.
+- Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md`.
 
 `evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist. Do not rerun skipped steps.
 
@@ -44,6 +46,7 @@ File access is **deny by default**.
 - Run only the commands declared below and write only the declared outputs.
 - Do not modify an output written by a deterministic command.
 - If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
+- For `nel-validate`, do not model-read `validation/case_summary.md`, `validation/marking_prompt.md`, or marking criteria before Step 7.
 
 ## Step 0 — Establish workflow state
 
@@ -58,6 +61,7 @@ File access is **deny by default**.
 
    - Record the command's first output line as `<demo-case>` and second as `<demo-expected>`.
    - Do not read either file in Step 0.
+   - For `nel-validate <case-id>`, require one case variant identifier such as `1A` and record it as `<validation-case>`. Do not retrieve the case or read any validation file in Step 0.
 2. Establish `<work-dir>`:
    - if the user supplies a directory, resolve it to an absolute path and create it if necessary;
    - otherwise, except for `evidence-to-report`, run exactly:
@@ -75,7 +79,7 @@ File access is **deny by default**.
    Working directory: <absolute-path>
    ```
 
-5. For `ngs-report`, `evidence-to-report`, and `nel-demo`, record `<format-prompt>`:
+5. For `ngs-report`, `evidence-to-report`, `nel-demo`, and `nel-validate`, record `<format-prompt>`:
    - default: `prompts/formatting/default.md`;
    - if the user explicitly specifies another file from `prompts/formatting/`, record that path;
    - do not list or search `prompts/formatting/`;
@@ -91,12 +95,21 @@ File access is **deny by default**.
 - If reporting is requested, `<format-prompt>` is fixed but unread.
 - For `evidence-to-report`, the required Step 5 outputs exist.
 - For `nel-demo`, `<demo-case>` and `<demo-expected>` are fixed but unread.
+- For `nel-validate`, `<validation-case>` is fixed and validation files remain unread.
 
 ## Step 1A — Capture the case
 
 Run only when Steps 1–5 are required.
 
-Use a fresh bounded model session.
+For `nel-validate`, run exactly:
+
+```bash
+python validation/retrieve_cli.py case <validation-case> > <work-dir>/case.md
+```
+
+The command must succeed. Do not model-read `validation/case_summary.md` or any marking criteria. Proceed directly to Step 1B.
+
+For all other modes, use a fresh bounded model session.
 
 ### Model-readable inputs
 
@@ -105,7 +118,7 @@ Read only the one case source:
 - normal modes: the one user-designated case source;
 - `nel-demo`: `<demo-case>`.
 
-Do not read any other repository file in Step 1A. In `nel-demo`, `<demo-case>` is the sole permitted repository-file exception.
+Do not read any other repository file in model Step 1A. In `nel-demo`, `<demo-case>` is the sole permitted repository-file exception.
 
 ### Required action
 
@@ -230,7 +243,7 @@ If `diagnosis_cards` is empty:
 - set `driven_by` and `criterion_assessment` to `[]`;
 - state in `reason` that no corpus diagnosis evidence was retrieved.
 
-For `evidence-block`, `ngs-report`, and `nel-demo`:
+For `evidence-block`, `ngs-report`, `nel-demo`, and `nel-validate`:
 - set `user_review` to `"automatic"`;
 - use the model adjudication as final;
 - keep `downstream_filter_disease` equal to `refined_disease`;
@@ -335,9 +348,9 @@ Do not create a separate review, approval, diagnosis, or override file.
 
 ## Step 6 — Write the NGS report
 
-Run only for `ngs-report`, `evidence-to-report`, or `nel-demo`.
+Run only for `ngs-report`, `evidence-to-report`, `nel-demo`, or `nel-validate`.
 
-For `ngs-report` and `nel-demo`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
+For `ngs-report`, `nel-demo`, and `nel-validate`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
 
 For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md` and a non-empty `<work-dir>/block.md`; do not rerun Steps 1A–5.
 
@@ -419,22 +432,48 @@ Write only:
 
 The file must contain the final report only. Do not include process commentary, rule numbers, source-audit notes, confidence commentary, alternative drafts, or an additional summary.
 
-After `report-final.md` is complete:
+## Step 7 — Post-report delivery and validation
 
-- for `ngs-report` and `evidence-to-report`, display it in chat unchanged without another model session;
-- for `nel-demo`, only now read `<demo-case>` and `<demo-expected>`; this is the first point permitted to read `<demo-expected>`. Then display these three sections in chat, preserving each artifact unchanged:
+Run after `report-final.md` is complete.
+
+- For `ngs-report` and `evidence-to-report`, display `<work-dir>/report-final.md` in chat unchanged without another model session.
+- For `nel-demo`, only now read `<demo-case>` and `<demo-expected>`; this is the first point permitted to read `<demo-expected>`. Display the case, `<work-dir>/report-final.md`, and expected behaviour unchanged. Do not use `<demo-expected>` to alter any workflow artifact.
+- For `nel-validate`, run exactly:
+
+  ```bash
+  python validation/retrieve_cli.py case <validation-case> > <work-dir>/validation-case.md
+  python validation/retrieve_cli.py MC <validation-case> > <work-dir>/marking-criteria.md
+  ```
+
+  Both commands must succeed. Then use a fresh bounded model session and read only:
+  - `<validation-case>`;
+  - `validation/marking_prompt.md`;
+  - `<work-dir>/validation-case.md`;
+  - `<work-dir>/report-final.md`;
+  - `<work-dir>/marking-criteria.md`;
+  - `<work-dir>/block.md`.
+
+  Follow `validation/marking_prompt.md` exactly. Treat `report-final.md` as the candidate answer and write only `<work-dir>/validation-mark.md`. Do not alter any earlier workflow artifact.
+
+Display mode outputs in these forms:
 
 ```text
+nel-demo:
 ## Case
 <demo-case contents>
-
 ## NEL report
 <work-dir>/report-final.md contents
 ## Expected
 <demo-expected contents>
-```
 
-For `nel-demo`, do not use `<demo-expected>` to alter any workflow artifact.
+nel-validate:
+## Case
+<work-dir>/validation-case.md contents
+## NEL report
+<work-dir>/report-final.md contents
+## Validation
+<work-dir>/validation-mark.md contents
+```
 
 ## Final delivery contract
 
@@ -446,13 +485,19 @@ For `evidence-block` and `evidence-block manual`, return `<work-dir>/block.md` u
 
 ### NGS-report mode
 
-For `ngs-report` and `evidence-to-report`, Step 6B performs final delivery by rendering `<work-dir>/report-final.md` in chat unchanged.
+For `ngs-report` and `evidence-to-report`, Step 7 performs final delivery by rendering `<work-dir>/report-final.md` in chat unchanged.
 
-Do not also return `block.md` unless explicitly requested and do not perform an additional rendering pass after Step 6B.
+Do not also return `block.md` unless explicitly requested and do not perform an additional rendering pass after Step 7.
 
 ### Demo mode
 
-For `nel-demo`, Step 6B performs final delivery by rendering the case, `<work-dir>/report-final.md`, and expected behaviour. Do not read or render `<demo-expected>` before `report-final.md` is complete and do not perform an additional rendering pass after Step 6B.
+For `nel-demo`, Step 7 performs final delivery by rendering the case, `<work-dir>/report-final.md`, and expected behaviour. Do not read or render `<demo-expected>` before `report-final.md` is complete and do not perform an additional rendering pass after Step 7.
+
+Do not return `block.md` unless explicitly requested.
+
+### Validation mode
+
+For `nel-validate`, Step 7 renders the validation case, `<work-dir>/report-final.md`, and `<work-dir>/validation-mark.md`. Do not retrieve or read marking criteria before `report-final.md` is complete.
 
 Do not return `block.md` unless explicitly requested.
 
