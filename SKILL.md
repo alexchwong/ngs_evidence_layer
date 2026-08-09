@@ -389,19 +389,17 @@ If any required input is missing, unreadable, or malformed, stop and report the 
 
 Evaluate every numbered rule under R1–R5 in `rules/agreed_reporting_rules.md`. Every rule number must appear exactly once in `report-draft.md`.
 
-For each rule that yields a reportable case-specific statement under its own instructions:
-
+For each rule:
 - identify it by rule number;
 - give a 1–3 sentence case-specific answer;
+- answer the rule even when it is not applicable or the result is negative;
 - end every sentence with one citation marker:
   - one or more supporting citations in parentheses, e.g. `(Smith et al, 2024; Jones et al, 2023)`; or
   - `(no citation required)`;
 - use only literature citations supported by `block.md`;
 - use `(no citation required)` only when the sentence does not require literature support.
 
-For every remaining rule, do not write an explanatory sentence. List its rule number under a single `No reportable statement` heading. This includes rules that are not applicable or yield a negative result unless that rule itself requires the negative result to be reported.
-
-Do not omit any rule number because it is unlikely to appear in the final report.
+Do not omit a rule because it is unlikely to appear in the final report.
 
 #### Output
 
