@@ -15,7 +15,7 @@ python -m pip install -r requirements.txt
 
 ## Regenerate ingestion prompts
 
-The committed Phase 1–4 prompts are generated artefacts.
+The committed Phase 1–5 prompts are generated artefacts.
 
 Edit their canonical prose under:
 
@@ -126,7 +126,7 @@ version tag already exists, skill-payload changes require a version bump.
 
 Before merging a release to `master`:
 
-1. Regenerate every Phase 1–4 prompt affected by canonical prompt/schema/rule changes.
+1. Regenerate every affected generated prompt.
 2. Inspect generated prompt diffs for unintended changes.
 3. Run the full unittest suite.
 4. Update `NEWS.md` with the user-visible changes for the release.

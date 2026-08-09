@@ -115,20 +115,16 @@ is not read until the generated report is complete.
 
 ## Current corpus
 
-The current corpus contains 10 completed publications. A publication is repeated below
-when it materially contributes to more than one category.
+The current corpus contains 23 completed publications: 10 introduced in v0.1.5 and 13
+introduced in v0.1.6. The release in which each paper first entered the corpus is stored
+in `nel.index.json` as `accepted_in_version`.
 
-### Diagnosis / classification
+### v0.1.5
 
 | DOI | Nickname | Paper title | Contribution to corpus |
 |---|---|---|---|
 | `10.1038/s41375-022-01613-1` | WHO5 | The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms | WHO fifth-edition myeloid classification and diagnostic criteria. |
 | `10.1182/blood.2022015850` | ICC | International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data | ICC myeloid classification and diagnostic criteria. |
-
-### Prognosis
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
 | `10.1056/evidoa2200310` | CHRS | Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis | CHRS predicts myeloid malignancy risk in clonal haematopoiesis. |
 | `10.1038/bcj.2015.94` | revised IPSET-thrombosis | Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia | Revised IPSET-thrombosis risk model for essential thrombocythaemia. |
 | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive | Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations | ELN genetic risk groups for less-intensive AML therapy. |
@@ -136,28 +132,25 @@ when it materially contributes to more than one category.
 | `10.1182/blood-2016-05-714030` | CPSS-Mol | Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia | CPSS-Mol integrates mutations into CMML prognostic risk. |
 | `10.1056/evidoa2200008` | IPSS-M | Molecular International Prognostic Scoring System for Myelodysplastic Syndromes | IPSS-M molecular prognostic score for myelodysplastic syndromes. |
 | `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | ELN AML genetic risk classification and prognostic guidance. |
-
-### Treatment
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
-| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | AML targeted treatment and management recommendations. |
 | `10.1182/blood.2025031480` | ELN MRD 2025 | 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party | MRD-directed AML management and post-transplant maintenance recommendations. |
 
-### Biomarkers
+### v0.1.6
 
 | DOI | Nickname | Paper title | Contribution to corpus |
 |---|---|---|---|
-| `10.1182/blood.2025031480` | ELN MRD 2025 | 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party | AML MRD assay selection, thresholds, timing, and interpretation. |
-| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | AML molecular testing and MRD biomarker guidance. |
-
-### Germline
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
-| `10.1038/s41375-022-01613-1` | WHO5 | The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms | WHO germline predisposition framework for myeloid neoplasms. |
-| `10.1182/blood.2022015850` | ICC | International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data | ICC germline predisposition genes and classification framework. |
-| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | Germline testing, counselling, and related-donor guidance. |
+| `10.1182/blood.2019003988` | VEN genotype response | Molecular patterns of response and treatment failure after frontline venetoclax combinations in older patients with AML | Genotype-specific response and resistance to frontline venetoclax combinations. |
+| `10.1182/blood.2019002697` | NPM1/FLT3-ITD | Impact of NPM1/FLT3-ITD genotypes defined by the 2017 European LeukemiaNet in patients with acute myeloid leukemia | Prognostic interaction of NPM1 and FLT3-ITD in AML. |
+| `10.1182/bloodadvances.2021006489` | ADMIRAL molecular | Molecular profile of FLT3-mutated relapsed/refractory patients with AML in the phase 3 ADMIRAL study of gilteritinib | Molecular predictors and resistance patterns during gilteritinib therapy. |
+| `10.1038/s41467-021-22874-x` | IDH inhibitor resistance | Leukemia stemness and co-occurring mutations drive resistance to IDH inhibitors in acute myeloid leukemia | Co-mutation and stemness modifiers of IDH-inhibitor response and resistance. |
+| `10.1038/leu.2014.3` | PMF driver genotype | CALR vs JAK2 vs MPL-mutated or triple-negative myelofibrosis: clinical, cytogenetic and molecular comparisons | Driver genotype and adverse molecular features in myelofibrosis. |
+| `10.1182/bloodadvances.2021004856` | MPN interferon genomics | Genomic profiling of a randomized trial of interferon-α vs hydroxyurea in MPN reveals mutation-specific responses | Mutation-specific response to interferon versus hydroxyurea in MPN. |
+| `10.1038/leu.2017.169` | MYSEC-PM | A clinical-molecular prognostic model to predict survival in patients with post polycythemia vera and post essential thrombocythemia myelofibrosis | MYSEC-PM prognosis for post-PV and post-ET myelofibrosis. |
+| `10.1016/S1470-2045(17)30615-0` | PACE-MDS | Luspatercept for the treatment of anaemia in patients with lower-risk myelodysplastic syndromes (PACE-MDS): a multicentre, open-label phase 2 dose-finding study with long-term extension study | SF3B1-associated response to luspatercept in lower-risk MDS. |
+| `10.1182/bloodadvances.2020003734` | R/R AML venetoclax | Clinical and molecular predictors of response and survival following venetoclax therapy in relapsed/refractory AML | Molecular predictors of venetoclax response and survival in R/R AML. |
+| `10.1038/s41375-018-0107-z` | GIPSS | GIPSS: genetically inspired prognostic scoring system for primary myelofibrosis | Genetics-only prognostic score for primary myelofibrosis. |
+| `10.1111/bjh.16380` | MIPSS-ET/PV | Mutation-enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera | Mutation-enhanced survival models for ET and PV. |
+| `10.1182/blood-2014-06-582809` | TET2 HMA response | TET2 mutations predict response to hypomethylating agents in myelodysplastic syndrome patients | TET2 and co-mutation effects on HMA response in MDS. |
+| `10.1182/blood-2015-11-679167` | MDS clonal dynamics | Mutational hierarchies in myelodysplastic syndromes dynamically adapt and evolve upon therapy response and failure | Therapy-associated clonal dynamics, including TP53 and lenalidomide. |
 
 ## Important boundaries
 

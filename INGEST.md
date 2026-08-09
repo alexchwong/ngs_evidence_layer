@@ -72,8 +72,8 @@ Place source PDFs in:
 pdf/<corpus>/
 ```
 
-Use meaningful PDF filenames where possible; the original filename is preserved as
-operator-facing provenance.
+Use a meaningful PDF filename. Its filename stem becomes the stable `publication_key`
+used for work folders and card IDs.
 
 Parse the corpus:
 
@@ -216,7 +216,6 @@ paper.census-critique-001.md
 
 stop Phase 2. Start a fresh Phase 1 conversation, provide the critique with the Phase 1
 inputs, regenerate `paper.census.json`, then start Phase 2 again in a new conversation.
-
 Once a provisional package has been produced, do not repeat Phase 2 after audit.
 
 ### Phase 3 — independent review
@@ -278,7 +277,8 @@ python scripts/confirm.py --key <publication-key>
 `confirm.py` is the deterministic acceptance gate. If validation fails, nothing is
 accepted.
 
-On success it writes the accepted final/census pair under `accept/` and moves the full
+On success it writes the accepted final/census pair under `accept/`, stamps the accepted
+package with the current `release/VERSION` as `accepted_in_version`, and moves the full
 working history from:
 
 ```text
@@ -308,7 +308,8 @@ output/reports/build-report.json
 ```
 
 `incorporate.py` reads from `accept/`. Invalid accepted packages are reported and
-excluded; valid accepted papers are incorporated.
+excluded; valid accepted papers are incorporated. `nel.index.json` exposes papers by
+`accepted_in_version`, allowing corpus additions to be traced to a release.
 
 ### Rebuild the secondary-source curation backlog
 
