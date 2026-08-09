@@ -1,11 +1,13 @@
 # NEWS
 ## 0.1.6
+- Expanded the corpus with the v0.1.6 evidence tranche, including additional treatment, prognosis, germline, and clonal haematopoiesis evidence.
+- Added nel-validate: cases can be run then scored against marking criteria
 - Added Phase 5 ingestion: extract missed evidence from already accepted papers without altering existing accepted cards.
 - Corpus papers now record the NEL version in which they were accepted, with version-based indexing.
 - Added a curator backlog for useful secondary sources found in rejected cards but not already represented in the corpus.
 - Reports now include patient-relevant molecular modifiers of treatment response, resistance, relapse risk, or survival.
 - Publication keys now follow PDF filenames, giving papers stable operator-facing names independent of citation metadata.
-- Expanded the corpus with the v0.1.6 evidence tranche, including additional treatment, prognosis, germline, and clonal haematopoiesis evidence.
+- Slightly optimized skill.md pipeline
 
 
 ## 0.1.5

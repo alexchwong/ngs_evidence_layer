@@ -19,6 +19,7 @@ Use one of the modes defined in `SKILL.md`.
 | `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `block.md` |
 | `evidence-to-report` | You already have a completed evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
 | `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
+| `nel-validate <case-id>` | You want to run a bundled validation case and score the generated report. | Generated report and marking result |
 
 ### Generate a report
 
@@ -112,6 +113,16 @@ nel-demo example 6
 
 to execute a bundled example through the normal reporting workflow. The expected result
 is not read until the generated report is complete.
+
+### Validation mode
+
+Run `nel-validate <case-id>` (for example, `nel-validate 1A`) to execute a bundled
+validation case. Marking criteria are withheld until the report is complete, then used
+to score the generated report. Available case IDs are:
+
+`1A`, `1B`, `1C`, `1D`; `2A`, `2B`, `2C`; `3A`, `3B`, `3C`; `4A`, `4B`, `4C`;
+`5A`, `5B`, `5C`; `6A`, `6B`, `6C`; `7A`, `7B`, `7C`; `8A`, `8B`, `8C`;
+`9A`, `9B`, `9C`; `10A`, `10B`, `10C`; `11A`, `11B`, `11C`.
 
 ## Current corpus
 
