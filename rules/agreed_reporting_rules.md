@@ -81,9 +81,9 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 2. **Link therapy to the exact actionable alteration and disease setting.** Specify the relevant mutation, fusion or pathway, the treatment phase where necessary, and whether the implication is established, optional or investigational.
 
-3. **Do not overstate sensitivity or resistance.** Use qualified wording when evidence is limited, variant-specific or based on small series. “May be sensitive” is appropriate when a definitive response cannot be predicted.
+3. **Report treatment-specific molecular modifiers.** For a therapy relevant to the patient, report detected alterations that are supported to modify response, resistance, relapse risk or survival. Do not extrapolate treatment-specific effects to overall prognosis.
 
-4. **Report treatment-specific molecular modifiers.** When a detected alteration is supported to modify response, resistance, relapse risk or survival with a specific therapy or regimen, state that treatment-specific effect even if the alteration is not itself directly targetable. Do not generalise a treatment-specific association into overall prognosis.
+4. **Do not overstate sensitivity or resistance.** Use qualified wording when evidence is limited, variant-specific or based on small series. “May be sensitive” is appropriate when a definitive response cannot be predicted.
 
 5. **State approval and access context when relevant.** Distinguish approved frontline, relapsed/refractory, trial-only and jurisdiction-dependent uses without turning the report into a treatment protocol.
 
