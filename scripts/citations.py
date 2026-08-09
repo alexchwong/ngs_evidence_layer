@@ -190,7 +190,7 @@ def manual_apply(args, records):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=Path("input"))
-    parser.add_argument("--mailto", default=os.environ.get("NEL_CROSSREF_MAILTO"))
+    parser.add_argument("--mailto", default=os.environ.get("NEL_CROSSREF_MAILTO", "noreply@example.org"))
     subparsers = parser.add_subparsers(dest="command", required=True)
     request_parser = subparsers.add_parser("request"); request_parser.add_argument("--corpus", required=True)
     apply_parser = subparsers.add_parser("apply"); apply_parser.add_argument("--corpus", required=True); apply_parser.add_argument("--response", type=Path, required=True)
