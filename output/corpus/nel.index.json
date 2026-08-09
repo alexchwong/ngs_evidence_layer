@@ -11,6 +11,21 @@
       "khoury-2022-leukemia-36-1703",
       "tefferi-2018-journal-of-clinical-oncology-36-1769",
       "weeks-2023-nejm-evidence-2-na"
+    ],
+    "0.1.6": [
+      "dinardo-2020-genotype-specific-venetoclax",
+      "dohner-2020-npm1-flt3-interaction",
+      "flt3-ras-gilteritinib-resistance",
+      "idh-comutations-inhibitor-resistance",
+      "mf-genomics-ruxolitinib-response",
+      "mpn-genomics-interferon-response",
+      "passamonti-2017-mysec-pm-secondary",
+      "sf3b1-luspatercept-response",
+      "stahl-2021-independent-treatment-context",
+      "tefferi-2018-genomics-only-pmf",
+      "tefferi-2020-mipss-et-pv",
+      "tet2-asxl1-hma-response",
+      "tp53-lenalidomide-clonal-dynamics"
     ]
   },
   "by_category": {
@@ -27,6 +42,15 @@
       "d-hner-2022-blood-140-1345-C0011",
       "d-hner-2022-blood-140-1345-C0012",
       "d-hner-2022-blood-140-1345-C0015",
+      "dinardo-2020-genotype-specific-venetoclax-C0003",
+      "dinardo-2020-genotype-specific-venetoclax-C0008",
+      "dohner-2020-npm1-flt3-interaction-C0005",
+      "dohner-2020-npm1-flt3-interaction-C0006",
+      "dohner-2020-npm1-flt3-interaction-C0007",
+      "idh-comutations-inhibitor-resistance-C0007",
+      "tp53-lenalidomide-clonal-dynamics-C0001",
+      "tp53-lenalidomide-clonal-dynamics-C0002",
+      "tp53-lenalidomide-clonal-dynamics-C0003",
       "weeks-2023-nejm-evidence-2-na-C0004"
     ],
     "diagnosis": [
@@ -58,7 +82,8 @@
       "khoury-2022-leukemia-36-1703-C0018",
       "khoury-2022-leukemia-36-1703-C0019",
       "khoury-2022-leukemia-36-1703-C0023",
-      "khoury-2022-leukemia-36-1703-C0024"
+      "khoury-2022-leukemia-36-1703-C0024",
+      "passamonti-2017-mysec-pm-secondary-C0001"
     ],
     "germline": [
       "arber-2022-blood-140-1200-C0013",
@@ -110,16 +135,41 @@
       "d-hner-2024-blood-144-2169-C0012",
       "d-hner-2024-blood-144-2169-C0013",
       "d-hner-2024-blood-144-2169-C0014",
+      "dinardo-2020-genotype-specific-venetoclax-C0002",
+      "dinardo-2020-genotype-specific-venetoclax-C0004",
+      "dohner-2020-npm1-flt3-interaction-C0001",
+      "dohner-2020-npm1-flt3-interaction-C0002",
+      "dohner-2020-npm1-flt3-interaction-C0008",
+      "dohner-2020-npm1-flt3-interaction-C0009",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
       "elena-2016-blood-128-1408-C0003",
+      "flt3-ras-gilteritinib-resistance-C0006",
+      "flt3-ras-gilteritinib-resistance-C0010",
+      "idh-comutations-inhibitor-resistance-C0008",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0005",
       "khoury-2022-leukemia-36-1703-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0020",
+      "mf-genomics-ruxolitinib-response-C0001",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0002",
+      "tefferi-2018-genomics-only-pmf-C0003",
+      "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0006",
+      "tet2-asxl1-hma-response-C0004",
+      "tet2-asxl1-hma-response-C0005",
+      "tet2-asxl1-hma-response-C0006",
       "weeks-2023-nejm-evidence-2-na-C0001",
       "weeks-2023-nejm-evidence-2-na-C0002",
       "weeks-2023-nejm-evidence-2-na-C0003"
@@ -138,9 +188,60 @@
       "d-hner-2022-blood-140-1345-C0020",
       "d-hner-2024-blood-144-2169-C0016",
       "d-hner-2024-blood-144-2169-C0017",
+      "dinardo-2020-genotype-specific-venetoclax-C0001",
+      "dinardo-2020-genotype-specific-venetoclax-C0005",
+      "dinardo-2020-genotype-specific-venetoclax-C0006",
+      "dinardo-2020-genotype-specific-venetoclax-C0007",
+      "dinardo-2020-genotype-specific-venetoclax-C0009",
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "dinardo-2020-genotype-specific-venetoclax-C0011",
+      "dinardo-2020-genotype-specific-venetoclax-C0012",
+      "dohner-2020-npm1-flt3-interaction-C0003",
+      "dohner-2020-npm1-flt3-interaction-C0004",
+      "flt3-ras-gilteritinib-resistance-C0001",
+      "flt3-ras-gilteritinib-resistance-C0002",
+      "flt3-ras-gilteritinib-resistance-C0003",
+      "flt3-ras-gilteritinib-resistance-C0004",
+      "flt3-ras-gilteritinib-resistance-C0005",
+      "flt3-ras-gilteritinib-resistance-C0007",
+      "flt3-ras-gilteritinib-resistance-C0008",
+      "flt3-ras-gilteritinib-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0001",
+      "idh-comutations-inhibitor-resistance-C0002",
+      "idh-comutations-inhibitor-resistance-C0003",
+      "idh-comutations-inhibitor-resistance-C0004",
+      "idh-comutations-inhibitor-resistance-C0005",
+      "idh-comutations-inhibitor-resistance-C0006",
+      "idh-comutations-inhibitor-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0010",
+      "idh-comutations-inhibitor-resistance-C0011",
+      "idh-comutations-inhibitor-resistance-C0012",
+      "idh-comutations-inhibitor-resistance-C0013",
       "khoury-2022-leukemia-36-1703-C0025",
       "khoury-2022-leukemia-36-1703-C0026",
-      "khoury-2022-leukemia-36-1703-C0027"
+      "khoury-2022-leukemia-36-1703-C0027",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "mpn-genomics-interferon-response-C0001",
+      "mpn-genomics-interferon-response-C0002",
+      "mpn-genomics-interferon-response-C0003",
+      "mpn-genomics-interferon-response-C0004",
+      "mpn-genomics-interferon-response-C0005",
+      "sf3b1-luspatercept-response-C0001",
+      "stahl-2021-independent-treatment-context-C0001",
+      "stahl-2021-independent-treatment-context-C0002",
+      "stahl-2021-independent-treatment-context-C0003",
+      "stahl-2021-independent-treatment-context-C0004",
+      "stahl-2021-independent-treatment-context-C0005",
+      "stahl-2021-independent-treatment-context-C0006",
+      "tet2-asxl1-hma-response-C0001",
+      "tet2-asxl1-hma-response-C0002",
+      "tet2-asxl1-hma-response-C0003",
+      "tet2-asxl1-hma-response-C0007",
+      "tet2-asxl1-hma-response-C0008",
+      "tp53-lenalidomide-clonal-dynamics-C0004",
+      "tp53-lenalidomide-clonal-dynamics-C0005"
     ]
   },
   "by_disease": {
@@ -194,13 +295,63 @@
       "d-hner-2024-blood-144-2169-C0014",
       "d-hner-2024-blood-144-2169-C0016",
       "d-hner-2024-blood-144-2169-C0017",
+      "dinardo-2020-genotype-specific-venetoclax-C0001",
+      "dinardo-2020-genotype-specific-venetoclax-C0002",
+      "dinardo-2020-genotype-specific-venetoclax-C0003",
+      "dinardo-2020-genotype-specific-venetoclax-C0004",
+      "dinardo-2020-genotype-specific-venetoclax-C0005",
+      "dinardo-2020-genotype-specific-venetoclax-C0006",
+      "dinardo-2020-genotype-specific-venetoclax-C0007",
+      "dinardo-2020-genotype-specific-venetoclax-C0008",
+      "dinardo-2020-genotype-specific-venetoclax-C0009",
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "dinardo-2020-genotype-specific-venetoclax-C0011",
+      "dinardo-2020-genotype-specific-venetoclax-C0012",
+      "dohner-2020-npm1-flt3-interaction-C0001",
+      "dohner-2020-npm1-flt3-interaction-C0002",
+      "dohner-2020-npm1-flt3-interaction-C0003",
+      "dohner-2020-npm1-flt3-interaction-C0004",
+      "dohner-2020-npm1-flt3-interaction-C0005",
+      "dohner-2020-npm1-flt3-interaction-C0006",
+      "dohner-2020-npm1-flt3-interaction-C0007",
+      "dohner-2020-npm1-flt3-interaction-C0008",
+      "dohner-2020-npm1-flt3-interaction-C0009",
+      "flt3-ras-gilteritinib-resistance-C0001",
+      "flt3-ras-gilteritinib-resistance-C0002",
+      "flt3-ras-gilteritinib-resistance-C0003",
+      "flt3-ras-gilteritinib-resistance-C0004",
+      "flt3-ras-gilteritinib-resistance-C0005",
+      "flt3-ras-gilteritinib-resistance-C0006",
+      "flt3-ras-gilteritinib-resistance-C0007",
+      "flt3-ras-gilteritinib-resistance-C0008",
+      "flt3-ras-gilteritinib-resistance-C0009",
+      "flt3-ras-gilteritinib-resistance-C0010",
+      "idh-comutations-inhibitor-resistance-C0001",
+      "idh-comutations-inhibitor-resistance-C0002",
+      "idh-comutations-inhibitor-resistance-C0003",
+      "idh-comutations-inhibitor-resistance-C0004",
+      "idh-comutations-inhibitor-resistance-C0005",
+      "idh-comutations-inhibitor-resistance-C0006",
+      "idh-comutations-inhibitor-resistance-C0007",
+      "idh-comutations-inhibitor-resistance-C0008",
+      "idh-comutations-inhibitor-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0010",
+      "idh-comutations-inhibitor-resistance-C0011",
+      "idh-comutations-inhibitor-resistance-C0012",
+      "idh-comutations-inhibitor-resistance-C0013",
       "khoury-2022-leukemia-36-1703-C0014",
       "khoury-2022-leukemia-36-1703-C0015",
       "khoury-2022-leukemia-36-1703-C0016",
       "khoury-2022-leukemia-36-1703-C0017",
       "khoury-2022-leukemia-36-1703-C0018",
       "khoury-2022-leukemia-36-1703-C0019",
-      "khoury-2022-leukemia-36-1703-C0020"
+      "khoury-2022-leukemia-36-1703-C0020",
+      "stahl-2021-independent-treatment-context-C0001",
+      "stahl-2021-independent-treatment-context-C0002",
+      "stahl-2021-independent-treatment-context-C0003",
+      "stahl-2021-independent-treatment-context-C0004",
+      "stahl-2021-independent-treatment-context-C0005",
+      "stahl-2021-independent-treatment-context-C0006"
     ],
     "APL": [
       "cloos-2026-blood-147-1147-C0006"
@@ -239,7 +390,11 @@
       "barbui-2015-blood-cancer-journal-5-e369-C0004",
       "barbui-2015-blood-cancer-journal-5-e369-C0005",
       "barbui-2015-blood-cancer-journal-5-e369-C0006",
-      "barbui-2015-blood-cancer-journal-5-e369-C0007"
+      "barbui-2015-blood-cancer-journal-5-e369-C0007",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0006"
     ],
     "JMML": [
       "khoury-2022-leukemia-36-1703-C0004",
@@ -272,7 +427,21 @@
       "khoury-2022-leukemia-36-1703-C0011",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0013",
-      "khoury-2022-leukemia-36-1703-C0020"
+      "khoury-2022-leukemia-36-1703-C0020",
+      "sf3b1-luspatercept-response-C0001",
+      "tet2-asxl1-hma-response-C0001",
+      "tet2-asxl1-hma-response-C0002",
+      "tet2-asxl1-hma-response-C0003",
+      "tet2-asxl1-hma-response-C0004",
+      "tet2-asxl1-hma-response-C0005",
+      "tet2-asxl1-hma-response-C0006",
+      "tet2-asxl1-hma-response-C0007",
+      "tet2-asxl1-hma-response-C0008",
+      "tp53-lenalidomide-clonal-dynamics-C0001",
+      "tp53-lenalidomide-clonal-dynamics-C0002",
+      "tp53-lenalidomide-clonal-dynamics-C0003",
+      "tp53-lenalidomide-clonal-dynamics-C0004",
+      "tp53-lenalidomide-clonal-dynamics-C0005"
     ],
     "MDS/AML": [
       "arber-2022-blood-140-1200-C0011",
@@ -315,19 +484,52 @@
       "khoury-2022-leukemia-36-1703-C0004",
       "khoury-2022-leukemia-36-1703-C0005",
       "khoury-2022-leukemia-36-1703-C0013",
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "mpn-genomics-interferon-response-C0001",
+      "mpn-genomics-interferon-response-C0002",
+      "mpn-genomics-interferon-response-C0003",
+      "mpn-genomics-interferon-response-C0004",
+      "mpn-genomics-interferon-response-C0005",
+      "passamonti-2017-mysec-pm-secondary-C0001",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0002",
+      "tefferi-2018-genomics-only-pmf-C0003",
+      "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0006"
     ],
     "PMF": [
       "arber-2022-blood-140-1200-C0001",
       "khoury-2022-leukemia-36-1703-C0003",
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0002",
+      "tefferi-2018-genomics-only-pmf-C0003",
+      "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
     ],
     "PV": [
       "arber-2022-blood-140-1200-C0001",
       "arber-2022-blood-140-1200-C0002",
-      "khoury-2022-leukemia-36-1703-C0002"
+      "khoury-2022-leukemia-36-1703-C0002",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0006"
     ],
     "aCML": [
       "arber-2022-blood-140-1200-C0009"
@@ -372,6 +574,15 @@
       "khoury-2022-leukemia-36-1703-C0023",
       "khoury-2022-leukemia-36-1703-C0024",
       "khoury-2022-leukemia-36-1703-C0025"
+    ],
+    "post-PV/post-ET MF": [
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "passamonti-2017-mysec-pm-secondary-C0001",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003"
     ]
   },
   "by_evidence_tier": {
@@ -450,10 +661,32 @@
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
       "bernard-2022-nejm-evidence-1-na-C0007",
+      "dohner-2020-npm1-flt3-interaction-C0001",
+      "dohner-2020-npm1-flt3-interaction-C0004",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
+      "idh-comutations-inhibitor-resistance-C0007",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "sf3b1-luspatercept-response-C0001",
+      "stahl-2021-independent-treatment-context-C0001",
+      "stahl-2021-independent-treatment-context-C0002",
+      "stahl-2021-independent-treatment-context-C0004",
+      "stahl-2021-independent-treatment-context-C0005",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0002",
+      "tefferi-2018-genomics-only-pmf-C0003",
+      "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0006",
+      "tet2-asxl1-hma-response-C0001",
+      "tet2-asxl1-hma-response-C0003",
+      "tet2-asxl1-hma-response-C0005",
       "weeks-2023-nejm-evidence-2-na-C0001",
       "weeks-2023-nejm-evidence-2-na-C0002"
     ],
@@ -474,6 +707,9 @@
       "d-hner-2024-blood-144-2169-C0007",
       "d-hner-2024-blood-144-2169-C0016",
       "d-hner-2024-blood-144-2169-C0017",
+      "dohner-2020-npm1-flt3-interaction-C0005",
+      "dohner-2020-npm1-flt3-interaction-C0009",
+      "idh-comutations-inhibitor-resistance-C0001",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0005",
       "khoury-2022-leukemia-36-1703-C0012",
@@ -481,7 +717,9 @@
       "khoury-2022-leukemia-36-1703-C0021",
       "khoury-2022-leukemia-36-1703-C0025",
       "khoury-2022-leukemia-36-1703-C0026",
-      "khoury-2022-leukemia-36-1703-C0027"
+      "khoury-2022-leukemia-36-1703-C0027",
+      "passamonti-2017-mysec-pm-secondary-C0001",
+      "passamonti-2017-mysec-pm-secondary-C0003"
     ],
     "univariable or descriptive": [
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
@@ -497,7 +735,66 @@
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
       "bernard-2022-nejm-evidence-1-na-C0010",
+      "dinardo-2020-genotype-specific-venetoclax-C0001",
+      "dinardo-2020-genotype-specific-venetoclax-C0002",
+      "dinardo-2020-genotype-specific-venetoclax-C0003",
+      "dinardo-2020-genotype-specific-venetoclax-C0004",
+      "dinardo-2020-genotype-specific-venetoclax-C0005",
+      "dinardo-2020-genotype-specific-venetoclax-C0006",
+      "dinardo-2020-genotype-specific-venetoclax-C0007",
+      "dinardo-2020-genotype-specific-venetoclax-C0008",
+      "dinardo-2020-genotype-specific-venetoclax-C0009",
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "dinardo-2020-genotype-specific-venetoclax-C0011",
+      "dinardo-2020-genotype-specific-venetoclax-C0012",
+      "dohner-2020-npm1-flt3-interaction-C0002",
+      "dohner-2020-npm1-flt3-interaction-C0003",
+      "dohner-2020-npm1-flt3-interaction-C0006",
+      "dohner-2020-npm1-flt3-interaction-C0007",
+      "dohner-2020-npm1-flt3-interaction-C0008",
       "elena-2016-blood-128-1408-C0003",
+      "flt3-ras-gilteritinib-resistance-C0001",
+      "flt3-ras-gilteritinib-resistance-C0002",
+      "flt3-ras-gilteritinib-resistance-C0003",
+      "flt3-ras-gilteritinib-resistance-C0004",
+      "flt3-ras-gilteritinib-resistance-C0005",
+      "flt3-ras-gilteritinib-resistance-C0006",
+      "flt3-ras-gilteritinib-resistance-C0007",
+      "flt3-ras-gilteritinib-resistance-C0008",
+      "flt3-ras-gilteritinib-resistance-C0009",
+      "flt3-ras-gilteritinib-resistance-C0010",
+      "idh-comutations-inhibitor-resistance-C0002",
+      "idh-comutations-inhibitor-resistance-C0003",
+      "idh-comutations-inhibitor-resistance-C0004",
+      "idh-comutations-inhibitor-resistance-C0005",
+      "idh-comutations-inhibitor-resistance-C0006",
+      "idh-comutations-inhibitor-resistance-C0008",
+      "idh-comutations-inhibitor-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0010",
+      "idh-comutations-inhibitor-resistance-C0011",
+      "idh-comutations-inhibitor-resistance-C0012",
+      "idh-comutations-inhibitor-resistance-C0013",
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mpn-genomics-interferon-response-C0001",
+      "mpn-genomics-interferon-response-C0002",
+      "mpn-genomics-interferon-response-C0003",
+      "mpn-genomics-interferon-response-C0004",
+      "mpn-genomics-interferon-response-C0005",
+      "stahl-2021-independent-treatment-context-C0003",
+      "stahl-2021-independent-treatment-context-C0006",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tet2-asxl1-hma-response-C0002",
+      "tet2-asxl1-hma-response-C0004",
+      "tet2-asxl1-hma-response-C0006",
+      "tet2-asxl1-hma-response-C0007",
+      "tet2-asxl1-hma-response-C0008",
+      "tp53-lenalidomide-clonal-dynamics-C0001",
+      "tp53-lenalidomide-clonal-dynamics-C0002",
+      "tp53-lenalidomide-clonal-dynamics-C0003",
+      "tp53-lenalidomide-clonal-dynamics-C0004",
+      "tp53-lenalidomide-clonal-dynamics-C0005",
       "weeks-2023-nejm-evidence-2-na-C0003",
       "weeks-2023-nejm-evidence-2-na-C0004"
     ]
@@ -513,6 +810,9 @@
       "khoury-2022-leukemia-36-1703-C0024",
       "khoury-2022-leukemia-36-1703-C0025"
     ],
+    "AKR1C3": [
+      "idh-comutations-inhibitor-resistance-C0007"
+    ],
     "ALK": [
       "khoury-2022-leukemia-36-1703-C0027"
     ],
@@ -523,6 +823,9 @@
     ],
     "ARAF": [
       "khoury-2022-leukemia-36-1703-C0026"
+    ],
+    "ARHGAP22": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "ASXL1": [
       "arber-2022-blood-140-1200-C0009",
@@ -535,11 +838,26 @@
       "d-hner-2022-blood-140-1345-C0008",
       "d-hner-2022-blood-140-1345-C0012",
       "d-hner-2024-blood-144-2169-C0016",
+      "dohner-2020-npm1-flt3-interaction-C0008",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001"
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "mpn-genomics-interferon-response-C0004",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0003",
+      "tefferi-2018-genomics-only-pmf-C0004",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tet2-asxl1-hma-response-C0002",
+      "tet2-asxl1-hma-response-C0007",
+      "tp53-lenalidomide-clonal-dynamics-C0002"
+    ],
+    "ATM": [
+      "tp53-lenalidomide-clonal-dynamics-C0004"
     ],
     "BCL2": [
       "d-hner-2022-blood-140-1345-C0013"
@@ -551,6 +869,8 @@
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
+      "idh-comutations-inhibitor-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0013",
       "khoury-2022-leukemia-36-1703-C0019"
     ],
     "BCORL1": [
@@ -578,6 +898,13 @@
       "arber-2022-blood-140-1200-C0010",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "khoury-2022-leukemia-36-1703-C0013",
+      "mpn-genomics-interferon-response-C0002",
+      "mpn-genomics-interferon-response-C0004",
+      "passamonti-2017-mysec-pm-secondary-C0001",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
     ],
     "CBFB": [
@@ -589,7 +916,11 @@
     ],
     "CBL": [
       "bernard-2022-nejm-evidence-1-na-C0007",
-      "khoury-2022-leukemia-36-1703-C0005"
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "flt3-ras-gilteritinib-resistance-C0007",
+      "khoury-2022-leukemia-36-1703-C0005",
+      "tet2-asxl1-hma-response-C0003",
+      "tp53-lenalidomide-clonal-dynamics-C0001"
     ],
     "CD117": [
       "cloos-2026-blood-147-1147-C0011"
@@ -619,7 +950,8 @@
     ],
     "CD34": [
       "cloos-2026-blood-147-1147-C0011",
-      "cloos-2026-blood-147-1147-C0012"
+      "cloos-2026-blood-147-1147-C0012",
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "CD36": [
       "cloos-2026-blood-147-1147-C0011"
@@ -647,6 +979,9 @@
     "CD7": [
       "cloos-2026-blood-147-1147-C0011"
     ],
+    "CDK6": [
+      "idh-comutations-inhibitor-resistance-C0007"
+    ],
     "CEBPA": [
       "arber-2022-blood-140-1200-C0013",
       "bernard-2022-nejm-evidence-1-na-C0007",
@@ -657,6 +992,8 @@
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0010",
       "d-hner-2022-blood-140-1345-C0018",
+      "dohner-2020-npm1-flt3-interaction-C0009",
+      "idh-comutations-inhibitor-resistance-C0005",
       "khoury-2022-leukemia-36-1703-C0014",
       "khoury-2022-leukemia-36-1703-C0017"
     ],
@@ -665,6 +1002,9 @@
     ],
     "CLEC12A": [
       "cloos-2026-blood-147-1147-C0012"
+    ],
+    "CPXM1": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "CSF3R": [
       "arber-2022-blood-140-1200-C0003",
@@ -690,7 +1030,25 @@
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
       "d-hner-2022-blood-140-1345-C0012",
+      "dinardo-2020-genotype-specific-venetoclax-C0001",
+      "flt3-ras-gilteritinib-resistance-C0001",
+      "flt3-ras-gilteritinib-resistance-C0002",
+      "mpn-genomics-interferon-response-C0003",
+      "mpn-genomics-interferon-response-C0004",
+      "stahl-2021-independent-treatment-context-C0002",
+      "stahl-2021-independent-treatment-context-C0003",
+      "tp53-lenalidomide-clonal-dynamics-C0002",
+      "tp53-lenalidomide-clonal-dynamics-C0004",
       "weeks-2023-nejm-evidence-2-na-C0002"
+    ],
+    "DNMT3B": [
+      "idh-comutations-inhibitor-resistance-C0007"
+    ],
+    "DPYSL3": [
+      "idh-comutations-inhibitor-resistance-C0007"
+    ],
+    "EMP1": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "ETNK1": [
       "bernard-2022-nejm-evidence-1-na-C0007"
@@ -703,7 +1061,9 @@
       "cloos-2026-blood-147-1147-C0010",
       "khoury-2022-leukemia-36-1703-C0023",
       "khoury-2022-leukemia-36-1703-C0024",
-      "khoury-2022-leukemia-36-1703-C0025"
+      "khoury-2022-leukemia-36-1703-C0025",
+      "tet2-asxl1-hma-response-C0007",
+      "tp53-lenalidomide-clonal-dynamics-C0001"
     ],
     "EZH2": [
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -714,7 +1074,14 @@
       "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001"
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "stahl-2021-independent-treatment-context-C0005",
+      "tefferi-2018-genomics-only-pmf-C0002",
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tet2-asxl1-hma-response-C0007"
     ],
     "FGFR1": [
       "khoury-2022-leukemia-36-1703-C0025"
@@ -738,6 +1105,20 @@
       "d-hner-2024-blood-144-2169-C0009",
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0013",
+      "dinardo-2020-genotype-specific-venetoclax-C0005",
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "dohner-2020-npm1-flt3-interaction-C0001",
+      "dohner-2020-npm1-flt3-interaction-C0002",
+      "dohner-2020-npm1-flt3-interaction-C0003",
+      "dohner-2020-npm1-flt3-interaction-C0004",
+      "dohner-2020-npm1-flt3-interaction-C0006",
+      "dohner-2020-npm1-flt3-interaction-C0007",
+      "dohner-2020-npm1-flt3-interaction-C0008",
+      "flt3-ras-gilteritinib-resistance-C0004",
+      "flt3-ras-gilteritinib-resistance-C0005",
+      "flt3-ras-gilteritinib-resistance-C0006",
+      "flt3-ras-gilteritinib-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0004",
       "khoury-2022-leukemia-36-1703-C0024",
       "khoury-2022-leukemia-36-1703-C0025",
       "weeks-2023-nejm-evidence-2-na-C0001"
@@ -745,10 +1126,14 @@
     "GATA2": [
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0009",
-      "cloos-2026-blood-147-1147-C0010"
+      "cloos-2026-blood-147-1147-C0010",
+      "idh-comutations-inhibitor-resistance-C0005"
     ],
     "GNB1": [
       "bernard-2022-nejm-evidence-1-na-C0007"
+    ],
+    "GPR56": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "HLA-DR": [
       "cloos-2026-blood-147-1147-C0011"
@@ -759,7 +1144,20 @@
       "d-hner-2022-blood-140-1345-C0014",
       "d-hner-2022-blood-140-1345-C0015",
       "d-hner-2024-blood-144-2169-C0011",
+      "dinardo-2020-genotype-specific-venetoclax-C0001",
+      "dinardo-2020-genotype-specific-venetoclax-C0004",
+      "dinardo-2020-genotype-specific-venetoclax-C0011",
+      "flt3-ras-gilteritinib-resistance-C0003",
+      "idh-comutations-inhibitor-resistance-C0001",
+      "idh-comutations-inhibitor-resistance-C0008",
+      "idh-comutations-inhibitor-resistance-C0012",
       "khoury-2022-leukemia-36-1703-C0003",
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "stahl-2021-independent-treatment-context-C0001",
+      "tefferi-2018-genomics-only-pmf-C0002",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "weeks-2023-nejm-evidence-2-na-C0001"
     ],
@@ -769,7 +1167,20 @@
       "d-hner-2024-blood-144-2169-C0005",
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0017",
+      "dinardo-2020-genotype-specific-venetoclax-C0001",
+      "dinardo-2020-genotype-specific-venetoclax-C0002",
+      "dinardo-2020-genotype-specific-venetoclax-C0011",
+      "flt3-ras-gilteritinib-resistance-C0003",
+      "idh-comutations-inhibitor-resistance-C0001",
+      "idh-comutations-inhibitor-resistance-C0008",
+      "idh-comutations-inhibitor-resistance-C0010",
+      "idh-comutations-inhibitor-resistance-C0012",
       "khoury-2022-leukemia-36-1703-C0003",
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "tefferi-2018-genomics-only-pmf-C0002",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "weeks-2023-nejm-evidence-2-na-C0001"
     ],
@@ -791,13 +1202,25 @@
       "khoury-2022-leukemia-36-1703-C0013",
       "khoury-2022-leukemia-36-1703-C0024",
       "khoury-2022-leukemia-36-1703-C0025",
+      "mpn-genomics-interferon-response-C0001",
+      "mpn-genomics-interferon-response-C0004",
+      "mpn-genomics-interferon-response-C0005",
+      "passamonti-2017-mysec-pm-secondary-C0001",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
+      "tefferi-2020-mipss-et-pv-C0006",
+      "tp53-lenalidomide-clonal-dynamics-C0001",
       "weeks-2023-nejm-evidence-2-na-C0001"
+    ],
+    "KIAA0125": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "KIF5B": [
       "khoury-2022-leukemia-36-1703-C0027"
     ],
     "KIT": [
       "arber-2022-blood-140-1200-C0006",
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
       "khoury-2022-leukemia-36-1703-C0006",
       "khoury-2022-leukemia-36-1703-C0007"
     ],
@@ -820,7 +1243,16 @@
       "d-hner-2024-blood-144-2169-C0009",
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0013",
-      "khoury-2022-leukemia-36-1703-C0026"
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "flt3-ras-gilteritinib-resistance-C0007",
+      "flt3-ras-gilteritinib-resistance-C0008",
+      "idh-comutations-inhibitor-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0010",
+      "khoury-2022-leukemia-36-1703-C0026",
+      "stahl-2021-independent-treatment-context-C0004"
+    ],
+    "LAPTM4B": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "MAP2K1": [
       "khoury-2022-leukemia-36-1703-C0026"
@@ -833,11 +1265,17 @@
     "MLLT3": [
       "d-hner-2022-blood-140-1345-C0011"
     ],
+    "MMRN1": [
+      "idh-comutations-inhibitor-resistance-C0007"
+    ],
     "MPL": [
       "arber-2022-blood-140-1200-C0001",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0010",
-      "khoury-2022-leukemia-36-1703-C0013"
+      "khoury-2022-leukemia-36-1703-C0013",
+      "passamonti-2017-mysec-pm-secondary-C0001",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003"
     ],
     "MYH11": [
       "cloos-2026-blood-147-1147-C0001",
@@ -849,6 +1287,9 @@
     "NF1": [
       "bernard-2022-nejm-evidence-1-na-C0007",
       "khoury-2022-leukemia-36-1703-C0005"
+    ],
+    "NGFRAP1": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "NPM1": [
       "arber-2022-blood-140-1200-C0007",
@@ -869,7 +1310,20 @@
       "d-hner-2024-blood-144-2169-C0004",
       "d-hner-2024-blood-144-2169-C0009",
       "d-hner-2024-blood-144-2169-C0017",
-      "khoury-2022-leukemia-36-1703-C0016"
+      "dinardo-2020-genotype-specific-venetoclax-C0001",
+      "dinardo-2020-genotype-specific-venetoclax-C0002",
+      "dinardo-2020-genotype-specific-venetoclax-C0003",
+      "dinardo-2020-genotype-specific-venetoclax-C0012",
+      "dohner-2020-npm1-flt3-interaction-C0001",
+      "dohner-2020-npm1-flt3-interaction-C0002",
+      "dohner-2020-npm1-flt3-interaction-C0003",
+      "dohner-2020-npm1-flt3-interaction-C0004",
+      "dohner-2020-npm1-flt3-interaction-C0005",
+      "dohner-2020-npm1-flt3-interaction-C0008",
+      "flt3-ras-gilteritinib-resistance-C0002",
+      "flt3-ras-gilteritinib-resistance-C0010",
+      "khoury-2022-leukemia-36-1703-C0016",
+      "stahl-2021-independent-treatment-context-C0001"
     ],
     "NRAS": [
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -880,15 +1334,25 @@
       "d-hner-2024-blood-144-2169-C0009",
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0013",
+      "dinardo-2020-genotype-specific-venetoclax-C0010",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
-      "khoury-2022-leukemia-36-1703-C0026"
+      "flt3-ras-gilteritinib-resistance-C0007",
+      "flt3-ras-gilteritinib-resistance-C0008",
+      "idh-comutations-inhibitor-resistance-C0003",
+      "idh-comutations-inhibitor-resistance-C0009",
+      "idh-comutations-inhibitor-resistance-C0010",
+      "khoury-2022-leukemia-36-1703-C0026",
+      "stahl-2021-independent-treatment-context-C0004"
     ],
     "NUP214": [
       "d-hner-2022-blood-140-1345-C0011"
     ],
     "NUP98": [
       "khoury-2022-leukemia-36-1703-C0015"
+    ],
+    "NYNRIN": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "PALB2": [
       "d-hner-2022-blood-140-1345-C0019"
@@ -921,7 +1385,14 @@
     ],
     "PTPN11": [
       "bernard-2022-nejm-evidence-1-na-C0007",
-      "khoury-2022-leukemia-36-1703-C0005"
+      "flt3-ras-gilteritinib-resistance-C0007",
+      "flt3-ras-gilteritinib-resistance-C0008",
+      "khoury-2022-leukemia-36-1703-C0005",
+      "tet2-asxl1-hma-response-C0005",
+      "tet2-asxl1-hma-response-C0008"
+    ],
+    "RAD21": [
+      "idh-comutations-inhibitor-resistance-C0006"
     ],
     "RARA": [
       "cloos-2026-blood-147-1147-C0001",
@@ -945,10 +1416,18 @@
       "d-hner-2022-blood-140-1345-C0008",
       "d-hner-2022-blood-140-1345-C0011",
       "d-hner-2022-blood-140-1345-C0018",
+      "dinardo-2020-genotype-specific-venetoclax-C0009",
+      "dohner-2020-npm1-flt3-interaction-C0008",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
+      "idh-comutations-inhibitor-resistance-C0002",
+      "idh-comutations-inhibitor-resistance-C0005",
+      "idh-comutations-inhibitor-resistance-C0009",
       "khoury-2022-leukemia-36-1703-C0018",
       "khoury-2022-leukemia-36-1703-C0022",
+      "tet2-asxl1-hma-response-C0007",
+      "tp53-lenalidomide-clonal-dynamics-C0001",
+      "tp53-lenalidomide-clonal-dynamics-C0003",
       "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "RUNX1T1": [
@@ -981,7 +1460,21 @@
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0010",
       "khoury-2022-leukemia-36-1703-C0019",
+      "sf3b1-luspatercept-response-C0001",
+      "stahl-2021-independent-treatment-context-C0004",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tp53-lenalidomide-clonal-dynamics-C0005",
       "weeks-2023-nejm-evidence-2-na-C0001"
+    ],
+    "SMC1A": [
+      "idh-comutations-inhibitor-resistance-C0006"
+    ],
+    "SMIM24": [
+      "idh-comutations-inhibitor-resistance-C0007"
+    ],
+    "SOCS2": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "SRSF2": [
       "bernard-2022-nejm-evidence-1-na-C0006",
@@ -991,7 +1484,18 @@
       "d-hner-2022-blood-140-1345-C0008",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
+      "mf-genomics-ruxolitinib-response-C0001",
+      "mf-genomics-ruxolitinib-response-C0002",
+      "mf-genomics-ruxolitinib-response-C0003",
+      "mf-genomics-ruxolitinib-response-C0004",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0003",
+      "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
       "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "STAG2": [
@@ -1001,12 +1505,21 @@
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "idh-comutations-inhibitor-resistance-C0006",
+      "khoury-2022-leukemia-36-1703-C0019",
+      "stahl-2021-independent-treatment-context-C0006"
     ],
     "TET2": [
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
-      "d-hner-2022-blood-140-1345-C0012"
+      "d-hner-2022-blood-140-1345-C0012",
+      "idh-comutations-inhibitor-resistance-C0011",
+      "mpn-genomics-interferon-response-C0004",
+      "tet2-asxl1-hma-response-C0001",
+      "tet2-asxl1-hma-response-C0002",
+      "tet2-asxl1-hma-response-C0004",
+      "tp53-lenalidomide-clonal-dynamics-C0002",
+      "tp53-lenalidomide-clonal-dynamics-C0004"
     ],
     "TP53": [
       "arber-2022-blood-140-1200-C0011",
@@ -1029,11 +1542,23 @@
       "d-hner-2024-blood-144-2169-C0011",
       "d-hner-2024-blood-144-2169-C0013",
       "d-hner-2024-blood-144-2169-C0014",
+      "dinardo-2020-genotype-specific-venetoclax-C0006",
+      "dinardo-2020-genotype-specific-venetoclax-C0007",
+      "dinardo-2020-genotype-specific-venetoclax-C0008",
+      "dohner-2020-npm1-flt3-interaction-C0008",
+      "idh-comutations-inhibitor-resistance-C0004",
       "khoury-2022-leukemia-36-1703-C0008",
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0011",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0020",
+      "stahl-2021-independent-treatment-context-C0004",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tet2-asxl1-hma-response-C0005",
+      "tet2-asxl1-hma-response-C0006",
+      "tet2-asxl1-hma-response-C0008",
+      "tp53-lenalidomide-clonal-dynamics-C0005",
       "weeks-2023-nejm-evidence-2-na-C0003"
     ],
     "U2AF1": [
@@ -1044,13 +1569,21 @@
       "d-hner-2022-blood-140-1345-C0008",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
+      "tefferi-2018-genomics-only-pmf-C0001",
+      "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0004",
       "weeks-2023-nejm-evidence-2-na-C0004"
     ],
     "WT1": [
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0001",
-      "d-hner-2022-blood-140-1345-C0011"
+      "d-hner-2022-blood-140-1345-C0011",
+      "flt3-ras-gilteritinib-resistance-C0003"
+    ],
+    "ZBTB46": [
+      "idh-comutations-inhibitor-resistance-C0007"
     ],
     "ZRSR2": [
       "d-hner-2022-blood-140-1345-C0004",
@@ -1073,26 +1606,60 @@
     "primary study": [
       "barbui-2015-blood-cancer-journal-5-e369",
       "bernard-2022-nejm-evidence-1-na",
+      "dinardo-2020-genotype-specific-venetoclax",
+      "dohner-2020-npm1-flt3-interaction",
       "elena-2016-blood-128-1408",
+      "flt3-ras-gilteritinib-resistance",
+      "idh-comutations-inhibitor-resistance",
+      "mf-genomics-ruxolitinib-response",
+      "mpn-genomics-interferon-response",
+      "passamonti-2017-mysec-pm-secondary",
+      "sf3b1-luspatercept-response",
+      "stahl-2021-independent-treatment-context",
+      "tefferi-2018-genomics-only-pmf",
       "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "tefferi-2020-mipss-et-pv",
+      "tet2-asxl1-hma-response",
+      "tp53-lenalidomide-clonal-dynamics",
       "weeks-2023-nejm-evidence-2-na"
     ]
   },
   "by_year": {
+    "2014": [
+      "mf-genomics-ruxolitinib-response",
+      "tet2-asxl1-hma-response"
+    ],
     "2015": [
       "barbui-2015-blood-cancer-journal-5-e369"
     ],
     "2016": [
-      "elena-2016-blood-128-1408"
+      "elena-2016-blood-128-1408",
+      "tp53-lenalidomide-clonal-dynamics"
+    ],
+    "2017": [
+      "passamonti-2017-mysec-pm-secondary",
+      "sf3b1-luspatercept-response"
     ],
     "2018": [
+      "tefferi-2018-genomics-only-pmf",
       "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    ],
+    "2020": [
+      "dinardo-2020-genotype-specific-venetoclax",
+      "dohner-2020-npm1-flt3-interaction",
+      "tefferi-2020-mipss-et-pv"
+    ],
+    "2021": [
+      "idh-comutations-inhibitor-resistance",
+      "stahl-2021-independent-treatment-context"
     ],
     "2022": [
       "arber-2022-blood-140-1200",
       "bernard-2022-nejm-evidence-1-na",
       "d-hner-2022-blood-140-1345",
-      "khoury-2022-leukemia-36-1703"
+      "flt3-ras-gilteritinib-resistance",
+      "khoury-2022-leukemia-36-1703",
+      "mpn-genomics-interferon-response"
     ],
     "2023": [
       "weeks-2023-nejm-evidence-2-na"
@@ -2426,6 +2993,296 @@
       "input_id": "ad2131a7-b225-5a2a-badc-1fb730ce9e70",
       "publication_key": "d-hner-2024-blood-144-2169"
     },
+    "dinardo-2020-genotype-specific-venetoclax-C0001": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A",
+        "IDH1",
+        "IDH2",
+        "NPM1"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "IDH2",
+        "NPM1"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0003": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "NPM1"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "IDH1"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0005": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0006": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0007": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0008": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0009": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0010": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "CBL",
+        "FLT3",
+        "KIT",
+        "KRAS",
+        "NRAS"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0011": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "IDH1",
+        "IDH2"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dinardo-2020-genotype-specific-venetoclax-C0012": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "NPM1"
+      ],
+      "input_id": "d852d6c5-ab98-588d-8535-b7159f6cf1e6",
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "FLT3",
+        "NPM1"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3",
+        "NPM1"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0003": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3",
+        "NPM1"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "FLT3",
+        "NPM1"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0005": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NPM1"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0006": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0007": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0008": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "FLT3",
+        "NPM1",
+        "RUNX1",
+        "TP53"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
+    "dohner-2020-npm1-flt3-interaction-C0009": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
+      "publication_key": "dohner-2020-npm1-flt3-interaction"
+    },
     "elena-2016-blood-128-1408-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -2482,6 +3339,342 @@
       ],
       "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
       "publication_key": "elena-2016-blood-128-1408"
+    },
+    "flt3-ras-gilteritinib-resistance-C0001": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0002": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A",
+        "NPM1"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0003": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "IDH1",
+        "IDH2",
+        "WT1"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0005": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0006": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0007": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "CBL",
+        "KRAS",
+        "NRAS",
+        "PTPN11"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0008": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "KRAS",
+        "NRAS",
+        "PTPN11"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0009": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "flt3-ras-gilteritinib-resistance-C0010": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "NPM1"
+      ],
+      "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
+      "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0001": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "IDH1",
+        "IDH2"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0002": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0003": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "NRAS"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3",
+        "TP53"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0005": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "CEBPA",
+        "GATA2",
+        "RUNX1"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0006": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "RAD21",
+        "SMC1A",
+        "STAG2"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0007": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "AKR1C3",
+        "ARHGAP22",
+        "CD34",
+        "CDK6",
+        "CPXM1",
+        "DNMT3B",
+        "DPYSL3",
+        "EMP1",
+        "GPR56",
+        "KIAA0125",
+        "LAPTM4B",
+        "MMRN1",
+        "NGFRAP1",
+        "NYNRIN",
+        "SMIM24",
+        "SOCS2",
+        "ZBTB46"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0008": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "IDH1",
+        "IDH2"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0009": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "BCOR",
+        "KRAS",
+        "NRAS",
+        "RUNX1"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0010": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "IDH2",
+        "KRAS",
+        "NRAS"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0011": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TET2"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0012": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "IDH1",
+        "IDH2"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "idh-comutations-inhibitor-resistance-C0013": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "BCOR"
+      ],
+      "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
+      "publication_key": "idh-comutations-inhibitor-resistance"
     },
     "khoury-2022-leukemia-36-1703-C0001": {
       "category": "diagnosis",
@@ -2889,6 +4082,370 @@
       "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
       "publication_key": "khoury-2022-leukemia-36-1703"
     },
+    "mf-genomics-ruxolitinib-response-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF",
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2"
+      ],
+      "input_id": "ad6536da-8d90-5eb5-8de1-a497493c5ed7",
+      "publication_key": "mf-genomics-ruxolitinib-response"
+    },
+    "mf-genomics-ruxolitinib-response-C0002": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF",
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2"
+      ],
+      "input_id": "ad6536da-8d90-5eb5-8de1-a497493c5ed7",
+      "publication_key": "mf-genomics-ruxolitinib-response"
+    },
+    "mf-genomics-ruxolitinib-response-C0003": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF",
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2"
+      ],
+      "input_id": "ad6536da-8d90-5eb5-8de1-a497493c5ed7",
+      "publication_key": "mf-genomics-ruxolitinib-response"
+    },
+    "mf-genomics-ruxolitinib-response-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF",
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2"
+      ],
+      "input_id": "ad6536da-8d90-5eb5-8de1-a497493c5ed7",
+      "publication_key": "mf-genomics-ruxolitinib-response"
+    },
+    "mpn-genomics-interferon-response-C0001": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "9a63aa81-93c0-5e1b-9a24-a6b936b32580",
+      "publication_key": "mpn-genomics-interferon-response"
+    },
+    "mpn-genomics-interferon-response-C0002": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "CALR"
+      ],
+      "input_id": "9a63aa81-93c0-5e1b-9a24-a6b936b32580",
+      "publication_key": "mpn-genomics-interferon-response"
+    },
+    "mpn-genomics-interferon-response-C0003": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "9a63aa81-93c0-5e1b-9a24-a6b936b32580",
+      "publication_key": "mpn-genomics-interferon-response"
+    },
+    "mpn-genomics-interferon-response-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "CALR",
+        "DNMT3A",
+        "JAK2",
+        "TET2"
+      ],
+      "input_id": "9a63aa81-93c0-5e1b-9a24-a6b936b32580",
+      "publication_key": "mpn-genomics-interferon-response"
+    },
+    "mpn-genomics-interferon-response-C0005": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "9a63aa81-93c0-5e1b-9a24-a6b936b32580",
+      "publication_key": "mpn-genomics-interferon-response"
+    },
+    "passamonti-2017-mysec-pm-secondary-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "c2657466-3239-56b6-8632-218dcb727a4c",
+      "publication_key": "passamonti-2017-mysec-pm-secondary"
+    },
+    "passamonti-2017-mysec-pm-secondary-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "c2657466-3239-56b6-8632-218dcb727a4c",
+      "publication_key": "passamonti-2017-mysec-pm-secondary"
+    },
+    "passamonti-2017-mysec-pm-secondary-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "c2657466-3239-56b6-8632-218dcb727a4c",
+      "publication_key": "passamonti-2017-mysec-pm-secondary"
+    },
+    "sf3b1-luspatercept-response-C0001": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "6975106f-dd36-5c51-8671-0c311e7208e7",
+      "publication_key": "sf3b1-luspatercept-response"
+    },
+    "stahl-2021-independent-treatment-context-C0001": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "IDH1",
+        "NPM1"
+      ],
+      "input_id": "7572cfd4-9ba0-5f81-b0af-7d57423baf47",
+      "publication_key": "stahl-2021-independent-treatment-context"
+    },
+    "stahl-2021-independent-treatment-context-C0002": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "7572cfd4-9ba0-5f81-b0af-7d57423baf47",
+      "publication_key": "stahl-2021-independent-treatment-context"
+    },
+    "stahl-2021-independent-treatment-context-C0003": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "7572cfd4-9ba0-5f81-b0af-7d57423baf47",
+      "publication_key": "stahl-2021-independent-treatment-context"
+    },
+    "stahl-2021-independent-treatment-context-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "KRAS",
+        "NRAS",
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "7572cfd4-9ba0-5f81-b0af-7d57423baf47",
+      "publication_key": "stahl-2021-independent-treatment-context"
+    },
+    "stahl-2021-independent-treatment-context-C0005": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "EZH2"
+      ],
+      "input_id": "7572cfd4-9ba0-5f81-b0af-7d57423baf47",
+      "publication_key": "stahl-2021-independent-treatment-context"
+    },
+    "stahl-2021-independent-treatment-context-C0006": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "STAG2"
+      ],
+      "input_id": "7572cfd4-9ba0-5f81-b0af-7d57423baf47",
+      "publication_key": "stahl-2021-independent-treatment-context"
+    },
+    "tefferi-2018-genomics-only-pmf-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "CALR",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "474482e7-a518-5ec6-b04a-10d0d477b785",
+      "publication_key": "tefferi-2018-genomics-only-pmf"
+    },
+    "tefferi-2018-genomics-only-pmf-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "EZH2",
+        "IDH1",
+        "IDH2"
+      ],
+      "input_id": "474482e7-a518-5ec6-b04a-10d0d477b785",
+      "publication_key": "tefferi-2018-genomics-only-pmf"
+    },
+    "tefferi-2018-genomics-only-pmf-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "SRSF2"
+      ],
+      "input_id": "474482e7-a518-5ec6-b04a-10d0d477b785",
+      "publication_key": "tefferi-2018-genomics-only-pmf"
+    },
+    "tefferi-2018-genomics-only-pmf-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "CALR",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "474482e7-a518-5ec6-b04a-10d0d477b785",
+      "publication_key": "tefferi-2018-genomics-only-pmf"
+    },
     "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -2923,6 +4480,285 @@
       ],
       "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
       "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    },
+    "tefferi-2020-mipss-et-pv-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SRSF2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1",
+        "SRSF2",
+        "TP53",
+        "U2AF1"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SRSF2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0006": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET",
+        "PV"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tet2-asxl1-hma-response-C0001": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TET2"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tet2-asxl1-hma-response-C0002": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "TET2"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tet2-asxl1-hma-response-C0003": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "CBL"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tet2-asxl1-hma-response-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TET2"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tet2-asxl1-hma-response-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "PTPN11",
+        "TP53"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tet2-asxl1-hma-response-C0006": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tet2-asxl1-hma-response-C0007": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "ETV6",
+        "EZH2",
+        "RUNX1"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tet2-asxl1-hma-response-C0008": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "PTPN11",
+        "TP53"
+      ],
+      "input_id": "aec28122-410e-5aec-b37d-db7577017f70",
+      "publication_key": "tet2-asxl1-hma-response"
+    },
+    "tp53-lenalidomide-clonal-dynamics-C0001": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "CBL",
+        "ETV6",
+        "JAK2",
+        "RUNX1"
+      ],
+      "input_id": "332823f3-11f9-563a-ab9a-a4fc47713bff",
+      "publication_key": "tp53-lenalidomide-clonal-dynamics"
+    },
+    "tp53-lenalidomide-clonal-dynamics-C0002": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "332823f3-11f9-563a-ab9a-a4fc47713bff",
+      "publication_key": "tp53-lenalidomide-clonal-dynamics"
+    },
+    "tp53-lenalidomide-clonal-dynamics-C0003": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "332823f3-11f9-563a-ab9a-a4fc47713bff",
+      "publication_key": "tp53-lenalidomide-clonal-dynamics"
+    },
+    "tp53-lenalidomide-clonal-dynamics-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ATM",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "332823f3-11f9-563a-ab9a-a4fc47713bff",
+      "publication_key": "tp53-lenalidomide-clonal-dynamics"
+    },
+    "tp53-lenalidomide-clonal-dynamics-C0005": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "332823f3-11f9-563a-ab9a-a4fc47713bff",
+      "publication_key": "tp53-lenalidomide-clonal-dynamics"
     },
     "weeks-2023-nejm-evidence-2-na-C0001": {
       "category": "prognosis",
@@ -2988,14 +4824,14 @@
       "publication_key": "weeks-2023-nejm-evidence-2-na"
     }
   },
-  "corpus_sha256": "0e97fc58226272b5e8549ce4c3b1bab0ca14fab2a11d2913979ea2baf427bf55",
+  "corpus_sha256": "860d9eec3d33856b45929c4c5e54296542cf64dc367320862ad5310cb0eb492c",
   "counts": {
-    "cards": 118,
-    "census_entries": 495,
-    "completed_papers": 10,
+    "cards": 204,
+    "census_entries": 778,
+    "completed_papers": 23,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-08T12:35:10.009351+00:00",
+  "generated_at": "2026-08-09T03:54:30.147335+00:00",
   "index_version": "1.3",
   "papers": {
     "arber-2022-blood-140-1200": {
@@ -3328,6 +5164,74 @@
       "publication_key": "d-hner-2024-blood-144-2169",
       "status": "completed"
     },
+    "dinardo-2020-genotype-specific-venetoclax": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "dinardo-2020-genotype-specific-venetoclax-C0001",
+        "dinardo-2020-genotype-specific-venetoclax-C0002",
+        "dinardo-2020-genotype-specific-venetoclax-C0003",
+        "dinardo-2020-genotype-specific-venetoclax-C0004",
+        "dinardo-2020-genotype-specific-venetoclax-C0005",
+        "dinardo-2020-genotype-specific-venetoclax-C0006",
+        "dinardo-2020-genotype-specific-venetoclax-C0007",
+        "dinardo-2020-genotype-specific-venetoclax-C0008",
+        "dinardo-2020-genotype-specific-venetoclax-C0009",
+        "dinardo-2020-genotype-specific-venetoclax-C0010",
+        "dinardo-2020-genotype-specific-venetoclax-C0011",
+        "dinardo-2020-genotype-specific-venetoclax-C0012"
+      ],
+      "cards": 12,
+      "census_entries": 33,
+      "citation_display": "DiNardo CD, Tiong IS, Quaglieri A, MacRaild S, Loghavi S, Brown FC, et al. Molecular patterns of response and treatment failure after frontline venetoclax combinations in older patients with AML. Blood. 2020;135(11):791-803.",
+      "diseases": [
+        "AML"
+      ],
+      "genes": [
+        "CBL",
+        "DNMT3A",
+        "FLT3",
+        "IDH1",
+        "IDH2",
+        "KIT",
+        "KRAS",
+        "NPM1",
+        "NRAS",
+        "RUNX1",
+        "TP53"
+      ],
+      "publication_key": "dinardo-2020-genotype-specific-venetoclax",
+      "status": "completed"
+    },
+    "dohner-2020-npm1-flt3-interaction": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "dohner-2020-npm1-flt3-interaction-C0001",
+        "dohner-2020-npm1-flt3-interaction-C0002",
+        "dohner-2020-npm1-flt3-interaction-C0003",
+        "dohner-2020-npm1-flt3-interaction-C0004",
+        "dohner-2020-npm1-flt3-interaction-C0005",
+        "dohner-2020-npm1-flt3-interaction-C0006",
+        "dohner-2020-npm1-flt3-interaction-C0007",
+        "dohner-2020-npm1-flt3-interaction-C0008",
+        "dohner-2020-npm1-flt3-interaction-C0009"
+      ],
+      "cards": 9,
+      "census_entries": 6,
+      "citation_display": "Döhner K, Thiede C, Jahn N, Panina E, Gambietz A, Larson RA, et al. Impact of NPM1/FLT3-ITD genotypes defined by the 2017 European LeukemiaNet in patients with acute myeloid leukemia. Blood. 2020;135(5):371-380.",
+      "diseases": [
+        "AML"
+      ],
+      "genes": [
+        "ASXL1",
+        "CEBPA",
+        "FLT3",
+        "NPM1",
+        "RUNX1",
+        "TP53"
+      ],
+      "publication_key": "dohner-2020-npm1-flt3-interaction",
+      "status": "completed"
+    },
     "elena-2016-blood-128-1408": {
       "accepted_in_version": "0.1.5",
       "card_ids": [
@@ -3349,6 +5253,100 @@
         "SETBP1"
       ],
       "publication_key": "elena-2016-blood-128-1408",
+      "status": "completed"
+    },
+    "flt3-ras-gilteritinib-resistance": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "flt3-ras-gilteritinib-resistance-C0001",
+        "flt3-ras-gilteritinib-resistance-C0002",
+        "flt3-ras-gilteritinib-resistance-C0003",
+        "flt3-ras-gilteritinib-resistance-C0004",
+        "flt3-ras-gilteritinib-resistance-C0005",
+        "flt3-ras-gilteritinib-resistance-C0006",
+        "flt3-ras-gilteritinib-resistance-C0007",
+        "flt3-ras-gilteritinib-resistance-C0008",
+        "flt3-ras-gilteritinib-resistance-C0009",
+        "flt3-ras-gilteritinib-resistance-C0010"
+      ],
+      "cards": 10,
+      "census_entries": 19,
+      "citation_display": "Smith CC, Levis MJ, Perl AE, Hill JE, Rosales M, Bahceci E. Molecular profile of <i>FLT3</i>-mutated relapsed/refractory patients with AML in the phase 3 ADMIRAL study of gilteritinib. Blood Advances. 2022;6(7):2144-2155.",
+      "diseases": [
+        "AML"
+      ],
+      "genes": [
+        "CBL",
+        "DNMT3A",
+        "FLT3",
+        "IDH1",
+        "IDH2",
+        "KRAS",
+        "NPM1",
+        "NRAS",
+        "PTPN11",
+        "WT1"
+      ],
+      "publication_key": "flt3-ras-gilteritinib-resistance",
+      "status": "completed"
+    },
+    "idh-comutations-inhibitor-resistance": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "idh-comutations-inhibitor-resistance-C0001",
+        "idh-comutations-inhibitor-resistance-C0002",
+        "idh-comutations-inhibitor-resistance-C0003",
+        "idh-comutations-inhibitor-resistance-C0004",
+        "idh-comutations-inhibitor-resistance-C0005",
+        "idh-comutations-inhibitor-resistance-C0006",
+        "idh-comutations-inhibitor-resistance-C0007",
+        "idh-comutations-inhibitor-resistance-C0008",
+        "idh-comutations-inhibitor-resistance-C0009",
+        "idh-comutations-inhibitor-resistance-C0010",
+        "idh-comutations-inhibitor-resistance-C0011",
+        "idh-comutations-inhibitor-resistance-C0012",
+        "idh-comutations-inhibitor-resistance-C0013"
+      ],
+      "cards": 13,
+      "census_entries": 33,
+      "citation_display": "Wang F, Morita K, DiNardo CD, Furudate K, Tanaka T, Yan Y, et al. Leukemia stemness and co-occurring mutations drive resistance to IDH inhibitors in acute myeloid leukemia. Nature Communications. 2021;12(1).",
+      "diseases": [
+        "AML"
+      ],
+      "genes": [
+        "AKR1C3",
+        "ARHGAP22",
+        "BCOR",
+        "CD34",
+        "CDK6",
+        "CEBPA",
+        "CPXM1",
+        "DNMT3B",
+        "DPYSL3",
+        "EMP1",
+        "FLT3",
+        "GATA2",
+        "GPR56",
+        "IDH1",
+        "IDH2",
+        "KIAA0125",
+        "KRAS",
+        "LAPTM4B",
+        "MMRN1",
+        "NGFRAP1",
+        "NRAS",
+        "NYNRIN",
+        "RAD21",
+        "RUNX1",
+        "SMC1A",
+        "SMIM24",
+        "SOCS2",
+        "STAG2",
+        "TET2",
+        "TP53",
+        "ZBTB46"
+      ],
+      "publication_key": "idh-comutations-inhibitor-resistance",
       "status": "completed"
     },
     "khoury-2022-leukemia-36-1703": {
@@ -3445,6 +5443,150 @@
       "publication_key": "khoury-2022-leukemia-36-1703",
       "status": "completed"
     },
+    "mf-genomics-ruxolitinib-response": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "mf-genomics-ruxolitinib-response-C0001",
+        "mf-genomics-ruxolitinib-response-C0002",
+        "mf-genomics-ruxolitinib-response-C0003",
+        "mf-genomics-ruxolitinib-response-C0004"
+      ],
+      "cards": 4,
+      "census_entries": 19,
+      "citation_display": "Tefferi A, Lasho TL, Finke CM, Knudson RA, Ketterling R, Hanson CH, et al. CALR vs JAK2 vs MPL-mutated or triple-negative myelofibrosis: clinical, cytogenetic and molecular comparisons. Leukemia. 2014;28(7):1472-1477.",
+      "diseases": [
+        "PMF",
+        "post-PV/post-ET MF"
+      ],
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2"
+      ],
+      "publication_key": "mf-genomics-ruxolitinib-response",
+      "status": "completed"
+    },
+    "mpn-genomics-interferon-response": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "mpn-genomics-interferon-response-C0001",
+        "mpn-genomics-interferon-response-C0002",
+        "mpn-genomics-interferon-response-C0003",
+        "mpn-genomics-interferon-response-C0004",
+        "mpn-genomics-interferon-response-C0005"
+      ],
+      "cards": 5,
+      "census_entries": 29,
+      "citation_display": "Knudsen TA, Skov V, Stevenson K, Werner L, Duke W, Laurore C, et al. Genomic profiling of a randomized trial of interferon-α vs hydroxyurea in MPN reveals mutation-specific responses. Blood Advances. 2022;6(7):2107-2119.",
+      "diseases": [
+        "MPN"
+      ],
+      "genes": [
+        "ASXL1",
+        "CALR",
+        "DNMT3A",
+        "JAK2",
+        "TET2"
+      ],
+      "publication_key": "mpn-genomics-interferon-response",
+      "status": "completed"
+    },
+    "passamonti-2017-mysec-pm-secondary": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "passamonti-2017-mysec-pm-secondary-C0001",
+        "passamonti-2017-mysec-pm-secondary-C0002",
+        "passamonti-2017-mysec-pm-secondary-C0003"
+      ],
+      "cards": 3,
+      "census_entries": 8,
+      "citation_display": "Passamonti F, Giorgino T, Mora B, Guglielmelli P, Rumi E, Maffioli M, et al. A clinical-molecular prognostic model to predict survival in patients with post polycythemia vera and post essential thrombocythemia myelofibrosis. Leukemia. 2017;31(12):2726-2731.",
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "publication_key": "passamonti-2017-mysec-pm-secondary",
+      "status": "completed"
+    },
+    "sf3b1-luspatercept-response": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "sf3b1-luspatercept-response-C0001"
+      ],
+      "cards": 1,
+      "census_entries": 5,
+      "citation_display": "Platzbecker U, Germing U, Götze KS, Kiewe P, Mayer K, Chromik J, et al. Luspatercept for the treatment of anaemia in patients with lower-risk myelodysplastic syndromes (PACE-MDS): a multicentre, open-label phase 2 dose-finding study with long-term extension study. The Lancet Oncology. 2017;18(10):1338-1347.",
+      "diseases": [
+        "MDS"
+      ],
+      "genes": [
+        "SF3B1"
+      ],
+      "publication_key": "sf3b1-luspatercept-response",
+      "status": "completed"
+    },
+    "stahl-2021-independent-treatment-context": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "stahl-2021-independent-treatment-context-C0001",
+        "stahl-2021-independent-treatment-context-C0002",
+        "stahl-2021-independent-treatment-context-C0003",
+        "stahl-2021-independent-treatment-context-C0004",
+        "stahl-2021-independent-treatment-context-C0005",
+        "stahl-2021-independent-treatment-context-C0006"
+      ],
+      "cards": 6,
+      "census_entries": 31,
+      "citation_display": "Stahl M, Menghrajani K, Derkach A, Chan A, Xiao W, Glass J, et al. Clinical and molecular predictors of response and survival following venetoclax therapy in relapsed/refractory AML. Blood Advances. 2021;5(5):1552-1564.",
+      "diseases": [
+        "AML"
+      ],
+      "genes": [
+        "DNMT3A",
+        "EZH2",
+        "IDH1",
+        "KRAS",
+        "NPM1",
+        "NRAS",
+        "SF3B1",
+        "STAG2",
+        "TP53"
+      ],
+      "publication_key": "stahl-2021-independent-treatment-context",
+      "status": "completed"
+    },
+    "tefferi-2018-genomics-only-pmf": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "tefferi-2018-genomics-only-pmf-C0001",
+        "tefferi-2018-genomics-only-pmf-C0002",
+        "tefferi-2018-genomics-only-pmf-C0003",
+        "tefferi-2018-genomics-only-pmf-C0004"
+      ],
+      "cards": 4,
+      "census_entries": 12,
+      "citation_display": "Tefferi A, Guglielmelli P, Nicolosi M, Mannelli F, Mudireddy M, Bartalucci N, et al. GIPSS: genetically inspired prognostic scoring system for primary myelofibrosis. Leukemia. 2018;32(7):1631-1642.",
+      "diseases": [
+        "PMF"
+      ],
+      "genes": [
+        "ASXL1",
+        "CALR",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "publication_key": "tefferi-2018-genomics-only-pmf",
+      "status": "completed"
+    },
     "tefferi-2018-journal-of-clinical-oncology-36-1769": {
       "accepted_in_version": "0.1.5",
       "card_ids": [
@@ -3467,6 +5609,94 @@
         "U2AF1"
       ],
       "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "status": "completed"
+    },
+    "tefferi-2020-mipss-et-pv": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "tefferi-2020-mipss-et-pv-C0001",
+        "tefferi-2020-mipss-et-pv-C0002",
+        "tefferi-2020-mipss-et-pv-C0003",
+        "tefferi-2020-mipss-et-pv-C0004",
+        "tefferi-2020-mipss-et-pv-C0005",
+        "tefferi-2020-mipss-et-pv-C0006"
+      ],
+      "cards": 6,
+      "census_entries": 17,
+      "citation_display": "Tefferi A, Guglielmelli P, Lasho TL, Coltro G, Finke CM, Loscocco GG, et al. Mutation‐enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera. British Journal of Haematology. 2020;189(2):291-302.",
+      "diseases": [
+        "ET",
+        "PV"
+      ],
+      "genes": [
+        "JAK2",
+        "SF3B1",
+        "SRSF2",
+        "TP53",
+        "U2AF1"
+      ],
+      "publication_key": "tefferi-2020-mipss-et-pv",
+      "status": "completed"
+    },
+    "tet2-asxl1-hma-response": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "tet2-asxl1-hma-response-C0001",
+        "tet2-asxl1-hma-response-C0002",
+        "tet2-asxl1-hma-response-C0003",
+        "tet2-asxl1-hma-response-C0004",
+        "tet2-asxl1-hma-response-C0005",
+        "tet2-asxl1-hma-response-C0006",
+        "tet2-asxl1-hma-response-C0007",
+        "tet2-asxl1-hma-response-C0008"
+      ],
+      "cards": 8,
+      "census_entries": 21,
+      "citation_display": "Bejar R, Lord A, Stevenson K, Bar-Natan M, Pérez-Ladaga A, Zaneveld J, et al. TET2 mutations predict response to hypomethylating agents in myelodysplastic syndrome patients. Blood. 2014;124(17):2705-2712.",
+      "diseases": [
+        "MDS"
+      ],
+      "genes": [
+        "ASXL1",
+        "CBL",
+        "ETV6",
+        "EZH2",
+        "PTPN11",
+        "RUNX1",
+        "TET2",
+        "TP53"
+      ],
+      "publication_key": "tet2-asxl1-hma-response",
+      "status": "completed"
+    },
+    "tp53-lenalidomide-clonal-dynamics": {
+      "accepted_in_version": "0.1.6",
+      "card_ids": [
+        "tp53-lenalidomide-clonal-dynamics-C0001",
+        "tp53-lenalidomide-clonal-dynamics-C0002",
+        "tp53-lenalidomide-clonal-dynamics-C0003",
+        "tp53-lenalidomide-clonal-dynamics-C0004",
+        "tp53-lenalidomide-clonal-dynamics-C0005"
+      ],
+      "cards": 5,
+      "census_entries": 50,
+      "citation_display": "Mossner M, Jann J, Wittig J, Nolte F, Fey S, Nowak V, et al. Mutational hierarchies in myelodysplastic syndromes dynamically adapt and evolve upon therapy response and failure. Blood. 2016;128(9):1246-1259.",
+      "diseases": [
+        "MDS"
+      ],
+      "genes": [
+        "ASXL1",
+        "ATM",
+        "CBL",
+        "DNMT3A",
+        "ETV6",
+        "JAK2",
+        "RUNX1",
+        "SF3B1",
+        "TET2",
+        "TP53"
+      ],
+      "publication_key": "tp53-lenalidomide-clonal-dynamics",
       "status": "completed"
     },
     "weeks-2023-nejm-evidence-2-na": {
