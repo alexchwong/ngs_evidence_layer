@@ -208,29 +208,6 @@ once for every provisional card in the same order:
 A passing card result contains only `card_id` and `verdict`. Failure details are
 present only for failed cards. A `quote_error` failure adds `quote_restatement` to
 its `details` object.
-
-## Deterministic exit validation
-
-All required inputs and the complete validation bundle are provided in this chat.
-Do not search for, access, clone, or inspect any repository or external source.
-
-The bundle below contains the canonical repository validator and every
-repository-owned dependency it requires. Recreate every file verbatim under
-`validation_bundle/`, preserving all displayed relative paths. The bundled schemas
-and vocabularies are validator dependencies only and are not Phase 3 authoring
-context. Do not modify, summarize, reinterpret, combine, or replace any file or
-check.
-
-{{PHASE_VALIDATION_BUNDLE}}
-
-After writing `paper.review-001.json`, recreate the bundle and run:
-```bash
-python validation_bundle/scripts/final_validation.py --phase 3 \
-  --provisional paper.provisional-001.json \
-  --review paper.review-001.json
-```
-A non-zero exit means the Phase 3 product is invalid. Repair it and rerun until
-successful. Do not edit the output after the successful run.
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:

@@ -63,6 +63,31 @@ class PromptIntegrationTests(unittest.TestCase):
             prompt,
         )
 
+    def test_phase3_omits_deterministic_validation_bundle(self):
+        prompt = BUILD_PROMPTS.render(3)
+        self.assertNotIn("{{PHASE_VALIDATION_BUNDLE}}", prompt)
+        self.assertNotIn("<!-- BEGIN VERBATIM scripts/final_validation.py -->", prompt)
+        self.assertNotIn("validation_bundle/scripts/final_validation.py", prompt)
+        self.assertNotIn("## Deterministic exit validation", prompt)
+
+    def test_validation_occurs_at_phase2_exit_and_phase4_entry(self):
+        phase2 = BUILD_PROMPTS.render(2)
+        self.assertIn("## Deterministic exit validation", phase2)
+        self.assertIn(
+            "python validation_bundle/scripts/final_validation.py --phase 2",
+            phase2,
+        )
+
+        phase4 = BUILD_PROMPTS.render(4)
+        entry = phase4.split("## Entry validation", 1)[1].split(
+            "## Mandatory human adjudication", 1
+        )[0]
+        self.assertIn(
+            "python validation_bundle/scripts/final_validation.py --phase 3",
+            entry,
+        )
+        self.assertIn("Before any adjudication or finalization", entry)
+
     def test_phase4_embeds_canonical_final_validator_verbatim(self):
         rendered = BUILD_PROMPTS.render(4)
         start_marker = "<!-- BEGIN VERBATIM scripts/final_validation.py -->\n```python\n"

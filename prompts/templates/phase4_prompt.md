@@ -18,6 +18,16 @@ Phase 4 is final. Do not create another provisional package, another Phase 3 rev
 or another audit round. Do not send any card back to Phase 3.
 ## Entry validation
 
+Before any adjudication or finalization, recreate the deterministic validation bundle
+provided below and run:
+```bash
+python validation_bundle/scripts/final_validation.py --phase 3 \
+  --provisional paper.provisional-001.json \
+  --review paper.review-001.json
+```
+A non-zero exit means the Phase 3 product is invalid. Stop without adjudicating or
+creating a file. Do not repair or replace the Phase 3 review in Phase 4.
+
 Require a well-formed round-1 provisional package and its matching complete Phase 3
 review. Their `paper_id`, `round`, extraction-model identity, card IDs, and card
 counts must match. The review must contain exactly one pass/fail result for every
