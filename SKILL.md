@@ -64,13 +64,19 @@ File access is **deny by default**.
    - For `nel-validate <case-id>`, require one case variant identifier such as `1A` and record it as `<validation-case>`. Do not retrieve the case or read any validation file in Step 0.
 2. Establish `<work-dir>`:
    - if the user supplies a directory, resolve it to an absolute path and create it if necessary;
+   - if the invocation contains the exact modifier `->project`, except for `evidence-to-report`, run exactly:
+
+     ```bash
+     python scripts/create_work_dir.py --project
+     ```
+
    - otherwise, except for `evidence-to-report`, run exactly:
 
      ```bash
      python scripts/create_work_dir.py
      ```
 
-     Treat its single output line as `<work-dir>`. Do not substitute another directory.
+   - Treat the command's single output line as `<work-dir>`. Do not substitute another directory. Do not infer `->project` from natural-language requests.
    - for `evidence-to-report`, the user must supply or identify the working directory. Do not search for one.
 3. Fail if `<work-dir>` is not a directory or is unreadable or unwritable. Do not fall back to another directory.
 4. Print:
