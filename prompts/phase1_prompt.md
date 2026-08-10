@@ -1648,6 +1648,7 @@ if __name__ == "__main__":
         "title": { "type": "string", "minLength": 1 },
         "journal": { "type": "string" },
         "year": { "type": "integer", "minimum": 1950, "maximum": 2100 },
+        "month": { "type": "string" },
         "volume": { "type": "string" },
         "issue": { "type": "string" },
         "pages": { "type": "string" },

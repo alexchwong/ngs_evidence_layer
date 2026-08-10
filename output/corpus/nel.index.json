@@ -2413,11 +2413,11 @@
     "2014": [
       "bluteau-2014-ankrd26",
       "mf-genomics-ruxolitinib-response",
-      "noetzli-2015-etv6-phenotype",
       "tet2-asxl1-hma-response"
     ],
     "2015": [
-      "barbui-2015-blood-cancer-journal-5-e369"
+      "barbui-2015-blood-cancer-journal-5-e369",
+      "noetzli-2015-etv6-phenotype"
     ],
     "2016": [
       "elena-2016-blood-128-1408",
@@ -7379,14 +7379,14 @@
       "publication_key": "xie-2024-ccrs-ccus"
     }
   },
-  "corpus_sha256": "fc953b731062ef1e86315d9250d6fac1d11f9ccc004b29668c335cfe651f7ef0",
+  "corpus_sha256": "c71429bbd1c4ad61bb98f14852afc1159a7a59b7ce5760dae30cdb1803fb74b3",
   "counts": {
     "cards": 329,
     "census_entries": 1346,
     "completed_papers": 43,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-10T12:57:39.688626+00:00",
+  "generated_at": "2026-08-10T13:14:54.526988+00:00",
   "index_version": "1.3",
   "papers": {
     "abelson-2018-predict-aml": {
@@ -8225,7 +8225,7 @@
       ],
       "cards": 13,
       "census_entries": 33,
-      "citation_display": "Wang F, Morita K, DiNardo CD, Furudate K, Tanaka T, Yan Y, et al. Leukemia stemness and co-occurring mutations drive resistance to IDH inhibitors in acute myeloid leukemia. Nature Communications. 2021;12(1).",
+      "citation_display": "Wang F, Morita K, DiNardo CD, Furudate K, Tanaka T, Yan Y, et al. Leukemia stemness and co-occurring mutations drive resistance to IDH inhibitors in acute myeloid leukemia. Nature Communications. 2021 May 10;12(1):2607.",
       "diseases": [
         "AML"
       ],
@@ -8592,7 +8592,7 @@
       ],
       "cards": 2,
       "census_entries": 1,
-      "citation_display": "Love MI, Huber W, Anders S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. 2014.",
+      "citation_display": "Noetzli L, Lo RW, Lee-Sherick AB, Callaghan M, Noris P, Savoia A, et al. Germline mutations in ETV6 are associated with thrombocytopenia, red cell macrocytosis and predisposition to lymphoblastic leukemia. Nat Genet. 2015 May;47(5):535-538.",
       "diseases": [],
       "genes": [
         "ETV6"
@@ -8816,7 +8816,7 @@
       ],
       "cards": 4,
       "census_entries": 20,
-      "citation_display": "Weeks LD, Niroula A, Neuberg D, Wong W, Lindsley RC, Luskin MR, et al. Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis. NEJM Evidence. 2023;2(5).",
+      "citation_display": "Weeks LD, Niroula A, Neuberg D, Wong W, Lindsley RC, Luskin MR, et al. Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis. NEJM Evidence. 2023 May;2(5):10.1056/EVIDoa2200310.",
       "diseases": [
         "CCUS",
         "CHIP"
