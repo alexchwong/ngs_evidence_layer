@@ -25,6 +25,23 @@ For each card determine whether:
 - table evidence reconstructs the applicable value, headers and qualifiers;
 - the card is independently useful rather than materially redundant with another card in this provisional supplement.
 
+### Source disease alias policy
+
+Treat a configured source alias as valid grounding for its canonical card disease under
+this policy:
+
+A source-stated disease may ground a canonical card disease when it exactly
+matches one of these reviewed aliases (case-insensitive):
+
+- `clonal haematopoiesis` → `CHIP`
+- `clonal haemopoiesis` → `CHIP`
+
+Emit only the canonical target in `diseases`, but preserve the source's
+actual disease or population wording in evidence and interpretation. Alias
+matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation
+substitution, semantic inference, or nearest-term mapping. A source term that is
+neither canonical nor listed above remains outside the controlled vocabulary.
+
 A passed card contains only its `card_id` and `verdict: "pass"`. A failed card must use the existing review failure-details structure and a precise suggested action.
 
 Use the existing Phase 3 review JSON shape:

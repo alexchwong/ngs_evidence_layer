@@ -149,8 +149,22 @@ candidate before output or omit it:
 4. **Distinct output:** identify the distinct sentence this card would add to a
    concise clinical report. If no independently useful sentence exists beyond
    another card, omit it.
-5. **Vocabulary fit:** if the source-stated disease is absent from the controlled
-   vocabulary, omit the card rather than mapping it to the nearest allowed disease.
+5. **Vocabulary fit:** apply the source disease alias policy below. If the source-stated
+   disease is neither canonical nor an explicit alias, omit the card.
+
+### Source disease alias policy
+
+A source-stated disease may ground a canonical card disease when it exactly
+matches one of these reviewed aliases (case-insensitive):
+
+- `clonal haematopoiesis` → `CHIP`
+- `clonal haemopoiesis` → `CHIP`
+
+Emit only the canonical target in `diseases`, but preserve the source's
+actual disease or population wording in evidence and interpretation. Alias
+matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation
+substitution, semantic inference, or nearest-term mapping. A source term that is
+neither canonical nor listed above remains outside the controlled vocabulary.
 
 Apply these category entailment tests before creating a card:
 
@@ -369,8 +383,12 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 ```json
 {
-  "vocabulary_version": "1.4",
+  "vocabulary_version": "1.5",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
+  "source_disease_aliases": {
+    "clonal haematopoiesis": "CHIP",
+    "clonal haemopoiesis": "CHIP"
+  },
   "diseases": [
     "CHIP",
     "CCUS",
@@ -1279,9 +1297,10 @@ def validate_final_against_provisional(final, provisional):
 """Single source of truth for closed disease vocabularies and retrieval relations.
 
 Evidence-card diseases, case-only disease options, taxonomy, categories and evidence
-ranks all live in ``schema/disease_vocabulary.json``. ``umbrella`` remains taxonomy
-only. ``retrieval_related`` is a separate, directional, category-specific relation
-used only by case retrieval.
+ranks all live in ``schema/disease_vocabulary.json``. Explicit source aliases may map
+source wording to a canonical evidence-card disease; they do not extend the output
+vocabulary. ``umbrella`` remains taxonomy only. ``retrieval_related`` is a separate,
+directional, category-specific relation used only by case retrieval.
 """
 import json
 from pathlib import Path
@@ -1293,6 +1312,12 @@ PACKAGE_SCHEMA_PATH = SCHEMA_DIR / "ingestion_package_schema.json"
 _VOCAB = json.loads(VOCAB_PATH.read_text(encoding="utf-8"))
 DISEASES = list(_VOCAB["diseases"])
 DISEASE_SET = set(DISEASES)
+SOURCE_DISEASE_ALIASES = dict(_VOCAB.get("source_disease_aliases", {}))
+_NORMALIZED_SOURCE_DISEASE_ALIASES = {
+    alias.strip().casefold(): target
+    for alias, target in SOURCE_DISEASE_ALIASES.items()
+    if isinstance(alias, str) and alias.strip() and isinstance(target, str)
+}
 CASE_ONLY_DISEASES = list(_VOCAB.get("case_only_diseases", []))
 CASE_ONLY_DISEASE_SET = set(CASE_ONLY_DISEASES)
 CASE_DISEASES = DISEASES + CASE_ONLY_DISEASES
@@ -1313,6 +1338,21 @@ CATEGORY_RANK = {category: i for i, category in enumerate(CATEGORIES)}
 
 UNSPECIFIED_DISEASE = "myeloid neoplasm, unspecified"
 NO_HAEMATOLOGICAL_MALIGNANCY = "no_haematological_malignancy"
+
+
+def canonical_source_disease(term):
+    """Resolve a canonical disease or an exact configured source alias.
+
+    Alias matching ignores surrounding whitespace and letter case only. It does not
+    perform fuzzy matching, stemming, punctuation changes, or nearest-term mapping.
+    ``None`` means the source term is outside the controlled vocabulary and aliases.
+    """
+    if not isinstance(term, str):
+        return None
+    normalized = term.strip()
+    if normalized in DISEASE_SET:
+        return normalized
+    return _NORMALIZED_SOURCE_DISEASE_ALIASES.get(normalized.casefold())
 
 
 def disease_ancestors(diseases):
@@ -1365,6 +1405,26 @@ def check_vocabulary_consistency():
         problems.append(
             "ingestion_package_schema.json disease enum differs from disease_vocabulary.json"
         )
+    normalized_aliases = set()
+    canonical_casefold = {disease.casefold() for disease in DISEASES}
+    for alias, target in SOURCE_DISEASE_ALIASES.items():
+        if not isinstance(alias, str) or not alias.strip():
+            problems.append("source disease aliases must be non-empty strings")
+            continue
+        normalized_alias = alias.strip().casefold()
+        if normalized_alias in normalized_aliases:
+            problems.append(
+                f"source disease alias {alias!r} duplicates another alias after normalization"
+            )
+        normalized_aliases.add(normalized_alias)
+        if normalized_alias in canonical_casefold:
+            problems.append(
+                f"source disease alias {alias!r} collides with a canonical disease"
+            )
+        if target not in DISEASE_SET:
+            problems.append(
+                f"source disease alias {alias!r} targets non-canonical disease {target!r}"
+            )
     overlap = DISEASE_SET & CASE_ONLY_DISEASE_SET
     if overlap:
         problems.append(
@@ -1617,8 +1677,12 @@ if __name__ == "__main__":
 <!-- BEGIN VERBATIM schema/disease_vocabulary.json -->
 ```json
 {
-  "vocabulary_version": "1.4",
+  "vocabulary_version": "1.5",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
+  "source_disease_aliases": {
+    "clonal haematopoiesis": "CHIP",
+    "clonal haemopoiesis": "CHIP"
+  },
   "diseases": [
     "CHIP",
     "CCUS",

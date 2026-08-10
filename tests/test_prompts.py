@@ -52,6 +52,29 @@ class PromptIntegrationTests(unittest.TestCase):
             "Include one `claim` fragment and only necessary", prompt
         )
 
+    def test_all_card_handling_prompts_use_canonical_source_disease_alias_policy(self):
+        prompts = {
+            f"phase{phase}": BUILD_PROMPTS.render(phase)
+            for phase in (2, 3, 4, 5)
+        }
+        prompts["phase5-review"] = BUILD_PROMPTS.render_phase5_review()
+        for name, rendered in prompts.items():
+            with self.subTest(prompt=name):
+                prompt = " ".join(rendered.split())
+                self.assertIn("`clonal haematopoiesis` → `CHIP`", prompt)
+                self.assertIn("`clonal haemopoiesis` → `CHIP`", prompt)
+                self.assertIn(
+                    "Do not use fuzzy matching, stemming, punctuation substitution, "
+                    "semantic inference, or nearest-term mapping.",
+                    prompt,
+                )
+                self.assertNotIn("{{SOURCE_DISEASE_ALIAS_POLICY}}", rendered)
+
+    def test_phase1_does_not_apply_card_disease_alias_policy(self):
+        prompt = BUILD_PROMPTS.render(1)
+        self.assertNotIn("Source disease alias policy", prompt)
+        self.assertNotIn("`clonal haematopoiesis` → `CHIP`", prompt)
+
     def test_phase3_audits_multi_claim_composites_without_auto_failure(self):
         prompt = " ".join(BUILD_PROMPTS.render(3).split())
         self.assertIn("Multiple `claim` fragments are valid.", prompt)

@@ -102,6 +102,12 @@ Set `publication_type_verified_by_phase3` to true: Phase 3 supplied the independ
 assessment and the human adjudication is final, including when it retains or corrects
 a Phase 3 failure.
 
+### Source disease alias policy
+
+Apply this policy when retaining or amending any card disease:
+
+{{SOURCE_DISEASE_ALIAS_POLICY}}
+
 For audit identity fields, copy strings exactly and do not infer substitutes:
 - `audit.audit_model` must be copied verbatim from the Phase 3 review's top-level
   `reviewer_model`. It records the Phase 3 model identity, not the Phase 4 model.

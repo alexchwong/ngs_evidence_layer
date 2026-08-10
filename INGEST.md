@@ -335,6 +335,22 @@ stop Phase 2. Start a fresh Phase 1 conversation, provide the critique with the 
 inputs, regenerate `paper.census.json`, then start Phase 2 again in a new conversation.
 Once a provisional package has been produced, do not repeat Phase 2 after audit.
 
+#### Source disease aliases
+
+Phase 2 normally omits a card when the source-stated disease is outside the closed
+evidence-card vocabulary. A small reviewed allowlist in
+`schema/disease_vocabulary.json` under `source_disease_aliases` provides explicit
+exceptions. For example, source wording `clonal haematopoiesis` or `clonal
+haemopoiesis` is stored as canonical disease `CHIP`; the source wording must still be
+preserved in the evidence and interpretation.
+
+Aliases are case-insensitive but otherwise exact. They do not enable fuzzy matching,
+stemming, punctuation substitution, semantic inference, or mapping to a nearest term.
+To add an alias, map the complete source phrase to an existing canonical `diseases`
+value, regenerate the affected prompts, and run the full test suite. Do not use aliases
+to encode taxonomic ancestry or retrieval relationships; those remain separate
+`umbrella` and `retrieval_related` configuration.
+
 ### Phase 3 — independent review
 
 Use a **different model** from the one used for Phase 2.

@@ -54,6 +54,29 @@ def publication_type_rubric(phase):
     return "\n".join(lines)
 
 
+def source_disease_alias_policy():
+    """Render the strict source-to-canonical disease alias policy."""
+    vocabulary = json.loads(read(ROOT / "schema" / "disease_vocabulary.json"))
+    aliases = vocabulary.get("source_disease_aliases", {})
+    lines = [
+        "A source-stated disease may ground a canonical card disease when it exactly",
+        "matches one of these reviewed aliases (case-insensitive):",
+        "",
+    ]
+    lines.extend(f'- `{alias}` → `{target}`' for alias, target in aliases.items())
+    lines.extend(
+        [
+            "",
+            "Emit only the canonical target in `diseases`, but preserve the source's",
+            "actual disease or population wording in evidence and interpretation. Alias",
+            "matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation",
+            "substitution, semantic inference, or nearest-term mapping. A source term that is",
+            "neither canonical nor listed above remains outside the controlled vocabulary.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def validation_bundle_paths():
     """Return every repository-owned file needed by final_validation.py."""
     paths = list(VALIDATION_BUNDLE_FILES)
@@ -90,6 +113,8 @@ def render(phase):
     replacements = {
         "{{PHASE_VALIDATION_BUNDLE}}": validation_bundle(),
     }
+    if phase in (2, 3, 4, 5):
+        replacements["{{SOURCE_DISEASE_ALIAS_POLICY}}"] = source_disease_alias_policy()
     if phase in (1, 3):
         replacements["{{PUBLICATION_TYPE_RUBRIC}}"] = publication_type_rubric(phase)
     if phase in (1, 2, 4):
@@ -137,6 +162,9 @@ def render(phase):
 
 def render_phase5_review():
     template = read(ROOT / "prompts" / "templates" / "phase5_review_prompt.md")
+    template = template.replace(
+        "{{SOURCE_DISEASE_ALIAS_POLICY}}", source_disease_alias_policy()
+    )
     unresolved = sorted(
         set(part.split("}}", 1)[0] + "}}" for part in template.split("{{")[1:])
     )

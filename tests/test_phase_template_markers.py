@@ -6,9 +6,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 EXPECTED = {
     1: {"PUBLICATION_TYPE_RUBRIC", "REPORTING_RULES", "CENSUS_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
-    2: {"REPORTING_RULES", "DISEASE_VOCABULARY", "PACKAGE_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
-    3: {"PUBLICATION_TYPE_RUBRIC"},
-    4: {"REPORTING_RULES", "DISEASE_VOCABULARY", "PACKAGE_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
+    2: {"SOURCE_DISEASE_ALIAS_POLICY", "REPORTING_RULES", "DISEASE_VOCABULARY", "PACKAGE_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
+    3: {"SOURCE_DISEASE_ALIAS_POLICY", "PUBLICATION_TYPE_RUBRIC"},
+    4: {"SOURCE_DISEASE_ALIAS_POLICY", "REPORTING_RULES", "DISEASE_VOCABULARY", "PACKAGE_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
+    5: {"SOURCE_DISEASE_ALIAS_POLICY"},
 }
 
 class PhaseTemplateMarkerTests(unittest.TestCase):
@@ -18,10 +19,17 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
             markers = set(re.findall(r"{{([^{}]+)}}", text))
             self.assertEqual(markers, expected, f"phase {phase}")
             self.assertNotIn("PHASE_VALIDATION_SCRIPT", markers)
-            expected_bundle_count = 0 if phase == 3 else 1
+            expected_bundle_count = 1 if phase in (1, 2, 4) else 0
             self.assertEqual(
                 text.count("{{PHASE_VALIDATION_BUNDLE}}"), expected_bundle_count
             )
+
+    def test_phase5_review_uses_source_disease_alias_policy_marker(self):
+        text = (
+            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
+        ).read_text(encoding="utf-8")
+        markers = set(re.findall(r"{{([^{}]+)}}", text))
+        self.assertEqual(markers, {"SOURCE_DISEASE_ALIAS_POLICY"})
 
 if __name__ == "__main__":
     unittest.main()

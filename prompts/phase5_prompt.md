@@ -42,6 +42,20 @@ New cards must follow the exact card/evidence shapes already used in `paper.base
 - New `card_id` values must use the publication's existing ID pattern and the next unused numeric suffix. Never renumber existing cards.
 - Do not create an exact or semantic duplicate of another card from the same publication.
 
+### Source disease alias policy
+
+A source-stated disease may ground a canonical card disease when it exactly
+matches one of these reviewed aliases (case-insensitive):
+
+- `clonal haematopoiesis` → `CHIP`
+- `clonal haemopoiesis` → `CHIP`
+
+Emit only the canonical target in `diseases`, but preserve the source's
+actual disease or population wording in evidence and interpretation. Alias
+matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation
+substitution, semantic inference, or nearest-term mapping. A source term that is
+neither canonical nor listed above remains outside the controlled vocabulary.
+
 ## Preparing the focused independent review
 
 When the user indicates the proposed additions are ready for audit, write exactly one file: `paper.phase5-provisional.json`.
