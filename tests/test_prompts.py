@@ -70,6 +70,12 @@ class PromptIntegrationTests(unittest.TestCase):
                 )
                 self.assertNotIn("{{SOURCE_DISEASE_ALIAS_POLICY}}", rendered)
 
+    def test_source_disease_alias_policy_partial_renders_canonical_alias_data(self):
+        policy = BUILD_PROMPTS.source_disease_alias_policy()
+        self.assertIn("`clonal haematopoiesis` → `CHIP`", policy)
+        self.assertIn("`clonal haemopoiesis` → `CHIP`", policy)
+        self.assertNotRegex(policy, r"\{\{[^{}]+\}\}")
+
     def test_phase1_does_not_apply_card_disease_alias_policy(self):
         prompt = BUILD_PROMPTS.render(1)
         self.assertNotIn("Source disease alias policy", prompt)

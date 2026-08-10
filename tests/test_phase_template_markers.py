@@ -31,5 +31,12 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
         markers = set(re.findall(r"{{([^{}]+)}}", text))
         self.assertEqual(markers, {"SOURCE_DISEASE_ALIAS_POLICY"})
 
+    def test_source_disease_alias_policy_partial_uses_alias_data_marker(self):
+        text = (
+            ROOT / "prompts" / "templates" / "source_disease_alias_policy.md"
+        ).read_text(encoding="utf-8")
+        markers = set(re.findall(r"{{([^{}]+)}}", text))
+        self.assertEqual(markers, {"SOURCE_DISEASE_ALIASES"})
+
 if __name__ == "__main__":
     unittest.main()

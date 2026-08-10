@@ -58,23 +58,16 @@ def source_disease_alias_policy():
     """Render the strict source-to-canonical disease alias policy."""
     vocabulary = json.loads(read(ROOT / "schema" / "disease_vocabulary.json"))
     aliases = vocabulary.get("source_disease_aliases", {})
-    lines = [
-        "A source-stated disease may ground a canonical card disease when it exactly",
-        "matches one of these reviewed aliases (case-insensitive):",
-        "",
-    ]
-    lines.extend(f'- `{alias}` → `{target}`' for alias, target in aliases.items())
-    lines.extend(
-        [
-            "",
-            "Emit only the canonical target in `diseases`, but preserve the source's",
-            "actual disease or population wording in evidence and interpretation. Alias",
-            "matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation",
-            "substitution, semantic inference, or nearest-term mapping. A source term that is",
-            "neither canonical nor listed above remains outside the controlled vocabulary.",
-        ]
+    rendered_aliases = "\n".join(
+        f'- `{alias}` → `{target}`' for alias, target in aliases.items()
     )
-    return "\n".join(lines)
+    template = read(
+        ROOT / "prompts" / "templates" / "source_disease_alias_policy.md"
+    )
+    template = template.replace("{{SOURCE_DISEASE_ALIASES}}", rendered_aliases)
+    if "{{" in template or "}}" in template:
+        raise ValueError("unresolved source disease alias policy marker")
+    return template
 
 
 def validation_bundle_paths():
