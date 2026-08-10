@@ -7379,14 +7379,14 @@
       "publication_key": "xie-2024-ccrs-ccus"
     }
   },
-  "corpus_sha256": "83bbeb8c66577b8a3c048205478ab9364634012362b273779860eb818a965503",
+  "corpus_sha256": "fc953b731062ef1e86315d9250d6fac1d11f9ccc004b29668c335cfe651f7ef0",
   "counts": {
     "cards": 329,
     "census_entries": 1346,
     "completed_papers": 43,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-10T07:03:05.239006+00:00",
+  "generated_at": "2026-08-10T12:57:39.688626+00:00",
   "index_version": "1.3",
   "papers": {
     "abelson-2018-predict-aml": {
@@ -7609,7 +7609,7 @@
       ],
       "cards": 10,
       "census_entries": 32,
-      "citation_display": "Bernard E, Tuechler H, Greenberg PL, Hasserjian RP, Arango Ossa JE, Nannya Y, et al. Molecular International Prognostic Scoring System for Myelodysplastic Syndromes. NEJM Evidence. 2022;1(7).",
+      "citation_display": "Bernard E, Tuechler H, Greenberg PL, Hasserjian RP, Arango Ossa JE, Nannya Y, et al. Molecular International Prognostic Scoring System for Myelodysplastic Syndromes. NEJM Evidence. 2022 Jul;1(7):EVIDoa2200008.",
       "diseases": [
         "MDS"
       ],

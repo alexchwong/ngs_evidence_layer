@@ -6,7 +6,7 @@
     "completed_papers": 43,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-10T07:03:05.239006+00:00",
+  "generated_at": "2026-08-10T12:57:39.688626+00:00",
   "publications": [
     {
       "document": {
@@ -16684,14 +16684,13 @@
             "Hellström-Lindberg E",
             "Papaemmanuil E"
           ],
-          "citation_incomplete": [
-            "pages"
-          ],
-          "display": "Bernard E, Tuechler H, Greenberg PL, Hasserjian RP, Arango Ossa JE, Nannya Y, et al. Molecular International Prognostic Scoring System for Myelodysplastic Syndromes. NEJM Evidence. 2022;1(7).",
+          "citation_incomplete": [],
+          "display": "Bernard E, Tuechler H, Greenberg PL, Hasserjian RP, Arango Ossa JE, Nannya Y, et al. Molecular International Prognostic Scoring System for Myelodysplastic Syndromes. NEJM Evidence. 2022 Jul;1(7):EVIDoa2200008.",
           "doi": "10.1056/evidoa2200008",
           "issue": "7",
           "journal": "NEJM Evidence",
-          "pages": "",
+          "month": "Jul",
+          "pages": "EVIDoa2200008",
           "title": "Molecular International Prognostic Scoring System for Myelodysplastic Syndromes",
           "volume": "1",
           "year": 2022
