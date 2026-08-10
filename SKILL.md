@@ -360,7 +360,7 @@ For `ngs-report`, `nel-demo`, and `nel-validate`, begin Step 6A immediately afte
 
 For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md` and a non-empty `<work-dir>/block.md`; do not rerun Steps 1A–5.
 
-### Step 6A — Sparse reporting-rule audit
+### Step 6A — Reporting-rule audit
 
 Use a fresh bounded model session.
 
@@ -394,9 +394,9 @@ For each rule:
 - give a 1–3 sentence case-specific answer;
 - answer the rule even when it is not applicable or the result is negative;
 - end every sentence with one citation marker:
-  - one or more supporting citations in parentheses, e.g. `(Smith et al, 2024; Jones et al, 2023)`; or
+  - one or more supporting `block.md` reference numbers, e.g. `(refs: 2)` or `(refs: 2,4)`; or
   - `(no citation required)`;
-- use only literature citations supported by `block.md`;
+- copy reference numbers only from the terminal `## References` section of `block.md`;
 - use `(no citation required)` only when the sentence does not require literature support.
 
 Do not omit a rule because it is unlikely to appear in the final report.
@@ -406,6 +406,19 @@ Do not omit a rule because it is unlikely to appear in the final report.
 Write only:
 
 `<work-dir>/report-draft.md`
+
+Then run exactly:
+
+```bash
+python scripts/report_citations.py prepare \
+  --draft <work-dir>/report-draft.md \
+  --block <work-dir>/block.md
+```
+
+The command must succeed before Step 6B. It deterministically replaces the
+source-reference markers with Vancouver-style square-bracket citations, numbers
+references in order of first citation, and appends the cited bibliography to
+`report-draft.md`. Do not otherwise modify `report-draft.md` after this command.
 
 ### Step 6B — Format the final report
 
@@ -428,6 +441,10 @@ Follow `<format-prompt>` exactly, using `report-draft.md` as the sole source of 
 
 Do not introduce a clinical assertion, qualification, citation, or patient fact that is absent from `report-draft.md`.
 
+Preserve each square-bracket citation attached to a retained statement. Copy the
+corresponding supplied reference entries exactly; do not reconstruct, add, or
+renumber citations or references.
+
 #### Output
 
 Write only:
@@ -435,6 +452,18 @@ Write only:
 `<work-dir>/report-final.md`
 
 The file must contain the final report only. Do not include process commentary, rule numbers, source-audit notes, confidence commentary, alternative drafts, or an additional summary.
+
+Then run exactly:
+
+```bash
+python scripts/report_citations.py finalize \
+  --report <work-dir>/report-final.md
+```
+
+The command must succeed before Step 7. It deterministically validates all
+citations, removes bibliography entries omitted with draft statements, and
+renumbers retained references in order of first citation. Do not otherwise modify
+`report-final.md` after this command.
 
 ## Step 7 — Post-report delivery and validation
 
