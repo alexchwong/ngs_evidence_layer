@@ -18,36 +18,38 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 1. **Interpret variants in the supplied clinicopathological context.** Do not diagnose a myeloid neoplasm from mutation number, mutation identity or VAF alone. Treat the stated morphological diagnosis as the starting point and explain only how the molecular result confirms, changes, excludes or qualifies it.
 
-2. **Use WHO-5 as the primary diagnostic classifier.** Mention ICC only when it gives a materially different diagnostic entity for the same findings. Do not report ICC when it is concordant or merely uses a different name for the same disease.
+2. **Use WHO-5 as the primary diagnostic classifier.** State the WHO-5 diagnosis.
 
-3. **State the integrated diagnosis when a detected alteration is entity-defining.** Apply the required blast range, morphology, cytogenetic findings, variant class, VAF threshold and exclusion criteria. Do not substitute a biologically related mutation for the mutation required by the entity definition.
+3. **Assess ICC separately.** State the ICC diagnosis. Then assess whether it is materially the same as the WHO-5 diagnosis.
 
-4. **Respect diagnostic precedence.** When more than one molecular or cytogenetic feature is present, assign the entity with the appropriate classification precedence rather than listing competing diagnoses. Keep entity assignment separate from prognostic effects of co-mutations.
+4. **State the integrated diagnosis when a detected alteration is entity-defining.** Apply the required blast range, morphology, cytogenetic findings, variant class, VAF threshold and exclusion criteria. Do not substitute a biologically related mutation for the mutation required by the entity definition.
 
-5. **Distinguish clonal haematopoiesis from a myeloid neoplasm.** When morphology is non-diagnostic, classify a qualifying clone as:
+5. **Respect diagnostic precedence.** When more than one molecular or cytogenetic feature is present, assign the entity with the appropriate classification precedence rather than listing competing diagnoses. Keep entity assignment separate from prognostic effects of co-mutations.
+
+6. **Distinguish clonal haematopoiesis from a myeloid neoplasm.** When morphology is non-diagnostic, classify a qualifying clone as:
    - **CHIP** when cytopenia is absent or an adequate external cause explains the cytopenia; or
    - **CCUS** when cytopenia is persistent, otherwise unexplained and no myeloid neoplasm is established.
 
    A small clone must not be used to overcall MDS, MPN or another neoplasm.
 
-6. **Actively assess relevant competing diagnoses.** A genotype may suggest a differential but does not override mandatory clinical or morphological criteria. Check the decisive variables, such as absolute and relative monocytosis, eosinophilia, dysgranulopoiesis, blast percentage, fibrosis, reactive causes and defining rearrangements.
+7. **Actively assess relevant competing diagnoses.** A genotype may suggest a differential but does not override mandatory clinical or morphological criteria. Check the decisive variables, such as absolute and relative monocytosis, eosinophilia, dysgranulopoiesis, blast percentage, fibrosis, reactive causes and defining rearrangements.
 
-7. **Report negative molecular findings only when they are diagnostically informative.** Mention absence only when the alteration is ordinarily expected in the relevant differential, directly changes the diagnostic label, establishes triple-negative status, or helps determine allelic state. Do not list unrelated absent genes.
+8. **Report negative molecular findings only when they are diagnostically informative.** Mention absence only when the alteration is ordinarily expected in the relevant differential, directly changes the diagnostic label, establishes triple-negative status, or helps determine allelic state. Do not list unrelated absent genes.
 
-8. **Interpret VAF conservatively.** VAF may support a small, substantial or dominant clonal population, but bulk sequencing does not establish:
+9. **Interpret VAF conservatively.** VAF may support a small, substantial or dominant clonal population, but bulk sequencing does not establish:
    - founding versus secondary status;
    - chronological order;
    - whether variants occur in the same cells;
    - cis/trans phase; or
    - germline origin.
 
-9. **Apply TP53 allelic-state rules explicitly.** Distinguish a single monoallelic mutation from multi-hit or biallelic disease. A single mutation without a qualifying second hit must not be called biallelic. Two qualifying TP53 mutations, or a mutation with a qualifying deletion/copy-neutral loss of heterozygosity, support multi-hit status under the applicable classifier.
+10. **Apply TP53 allelic-state rules explicitly.** Distinguish a single monoallelic mutation from multi-hit or biallelic disease. A single mutation without a qualifying second hit must not be called biallelic. Two qualifying TP53 mutations, or a mutation with a qualifying deletion/copy-neutral loss of heterozygosity, support multi-hit status under the applicable classifier.
 
-10. **Do not use a low VAF to dismiss an otherwise established diagnosis when low allele burden is biologically expected.** Conversely, do not use a high VAF as a substitute for missing diagnostic criteria.
+11. **Do not use a low VAF to dismiss an otherwise established diagnosis when low allele burden is biologically expected.** Conversely, do not use a high VAF as a substitute for missing diagnostic criteria.
 
-11. **Account for assay scope.** A negative SNV/indel panel does not exclude rearrangements, copy-number changes or variants outside validated coverage. Integrate cytogenetics, FISH, fusion testing and other assays where relevant.
+12. **Account for assay scope.** A negative SNV/indel panel does not exclude rearrangements, copy-number changes or variants outside validated coverage. Integrate cytogenetics, FISH, fusion testing and other assays where relevant.
 
-12. **Use precise variant-level interpretation.** Therapeutic or diagnostic implications may depend on the exact exon, codon, alteration type or fusion partner rather than merely the gene name.
+13. **Use precise variant-level interpretation.** Therapeutic or diagnostic implications may depend on the exact exon, codon, alteration type or fusion partner rather than merely the gene name.
 
 # R2 — Prognostic interpretation
 
