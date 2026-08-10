@@ -49,7 +49,11 @@ including the NGS results, satisfy a diagnostic classification stated by one or 
 retrieved cards. Complex criteria may require composition of several case facts,
 such as a molecular finding, its VAF, morphology, and an exclusion. For every
 material required criterion, record one criterion assessment as `met`, `not_met`, or
-`unknown`.
+`unknown`. 
+
+Every criterion assessment must cite at least one retrieved diagnosis card
+in card_ids. Every assessment other than unknown must cite at least one supplied case 
+fact in case_fact_ids.
 
 Do not make the result indeterminate only because a card mentions a competing
 diagnosis or a precedence rule. Consider the competing diagnosis when a supplied
