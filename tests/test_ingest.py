@@ -71,6 +71,12 @@ class FolderStateWorkflowTests(unittest.TestCase):
             "".join(json.dumps(record) + "\n" for record in records), encoding="utf-8"
         )
 
+    def write_accepted_doi(self, publication_key, doi):
+        self.accept.mkdir(parents=True, exist_ok=True)
+        (self.accept / f"{publication_key}.final.json").write_text(
+            json.dumps({"metadata": {"citation": {"doi": doi}}}), encoding="utf-8"
+        )
+
     def run_script(self, script, *arguments, success=True):
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / script), *map(str, arguments)],
@@ -86,6 +92,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         return self.run_script(
             "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
             "--work-dir", self.work, "--quarantine-dir", self.quarantine,
+            "--accept-dir", self.accept,
             "--created-at", "2026-08-02T00:00:00+00:00",
         )
 
@@ -140,6 +147,8 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertEqual((working / "metadata.json").read_bytes(), first)
 
     def test_fanout_does_not_recreate_quarantined_paper(self):
+        self.record["citation"]["doi"] = "10.1000/fixture"
+        self.write_index([self.record])
         self.fanout()
         self.quarantine.mkdir()
         shutil.move(
@@ -153,6 +162,28 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertFalse((self.work / PUBLICATION_KEY).exists())
         self.assertTrue((self.quarantine / PUBLICATION_KEY / "paper.md").is_file())
 
+    def test_fanout_rejects_doi_owned_by_different_quarantined_paper(self):
+        self.record["citation"]["doi"] = "https://doi.org/10.1000/fixture"
+        self.write_index([self.record])
+        quarantined = self.quarantine / "different-paper"
+        quarantined.mkdir(parents=True)
+        (quarantined / "metadata.json").write_text(
+            json.dumps({
+                "paper_id": "bbbbbbbb-0000-0000-0000-000000000002",
+                "citation": {"doi": "DOI:10.1000/Fixture"},
+            }),
+            encoding="utf-8",
+        )
+
+        output = self.run_script(
+            "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
+            "--work-dir", self.work, "--quarantine-dir", self.quarantine,
+            "--accept-dir", self.accept, success=False,
+        )
+
+        self.assertIn("DOI 10.1000/fixture is already quarantined as different-paper", output)
+        self.assertFalse((self.work / PUBLICATION_KEY).exists())
+
     def test_fanout_preflight_prevents_partial_work(self):
         invalid = dict(self.record)
         invalid.update(id="bbbbbbbb-0000-0000-0000-000000000002", markdown_path="markdown/missing--bbbbbbbb.md")
@@ -164,6 +195,44 @@ class FolderStateWorkflowTests(unittest.TestCase):
         )
         self.assertIn("indexed Markdown not found", output)
         self.assertFalse((self.work / PUBLICATION_KEY).exists())
+
+    def test_fanout_rejects_doi_already_in_accepted_package(self):
+        self.record["citation"]["doi"] = "10.1000/fixture"
+        self.write_index([self.record])
+        self.write_accepted_doi("already-accepted", "10.1000/fixture")
+
+        output = self.run_script(
+            "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
+            "--work-dir", self.work, "--quarantine-dir", self.quarantine,
+            "--accept-dir", self.accept, success=False,
+        )
+
+        self.assertIn("DOI 10.1000/fixture is already accepted as already-accepted", output)
+        self.assertFalse((self.work / PUBLICATION_KEY).exists())
+
+    def test_fanout_normalizes_doi_before_accepted_duplicate_check(self):
+        self.record["citation"]["doi"] = "  HTTPS://DOI.ORG/10.1000/Fixture  "
+        self.write_index([self.record])
+        self.write_accepted_doi("already-accepted", "doi:10.1000/fixture")
+
+        output = self.run_script(
+            "fanout.py", "--corpus", "fixtures", "--input-dir", self.input_dir,
+            "--work-dir", self.work, "--quarantine-dir", self.quarantine,
+            "--accept-dir", self.accept, success=False,
+        )
+
+        self.assertIn("DOI 10.1000/fixture is already accepted as already-accepted", output)
+        self.assertFalse((self.work / PUBLICATION_KEY).exists())
+
+    def test_fanout_allows_doi_not_in_accepted_packages(self):
+        self.record["citation"]["doi"] = "10.1000/new"
+        self.write_index([self.record])
+        self.write_accepted_doi("already-accepted", "10.1000/existing")
+
+        output = self.fanout()
+
+        self.assertIn("Created 1", output)
+        self.assertTrue((self.work / PUBLICATION_KEY).is_dir())
 
     def test_confirm_accepts_approved_round_and_archives(self):
         self.prepare_complete_work()
