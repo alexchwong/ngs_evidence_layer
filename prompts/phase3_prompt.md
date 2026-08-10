@@ -39,7 +39,8 @@ Apply these calibrations consistently:
 
 - **Disease grounding:**
   - Each specific disease asserted by the card must be named or unambiguously
-    identified in the paired evidence bundle.
+    identified in the paired evidence bundle, or be the canonical target of an exact
+    reviewed source alias under the policy below.
   - A `scope_heading` may supply disease context only when the claim occurs within
     that heading's section and no intervening heading or section boundary changes
     scope. Fail a heading that is merely nearby or broadly related.
@@ -47,6 +48,21 @@ Apply these calibrations consistently:
     interpretation beyond the exact source-supported disease.
   - Fail a disease value when it adds unsupported narrower, sibling, or otherwise
     distinct disease scope.
+
+### Source disease alias policy
+
+A source-stated disease may ground a canonical card disease when it exactly
+matches one of these reviewed aliases (case-insensitive):
+
+- `clonal haematopoiesis` → `CHIP`
+- `clonal haemopoiesis` → `CHIP`
+
+Emit only the canonical target in `diseases`, but preserve the source's
+actual disease or population wording in evidence and interpretation. Alias
+matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation
+substitution, semantic inference, or nearest-term mapping. A source term that is
+neither canonical nor listed above remains outside the controlled vocabulary.
+
 - For `germline predisposition syndrome`, a named genetic disorder or constitutional
   abnormality is sufficient grounding. This includes inherited or de novo disorders,
   constitutional chromosomal abnormalities, and constitutional mosaicism, but

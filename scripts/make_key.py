@@ -73,6 +73,7 @@ def build_display(citation):
     title = (citation.get("title") or "").rstrip(".")
     journal = citation.get("journal")
     year = citation.get("year")
+    month = citation.get("month")
     volume = citation.get("volume")
     issue = citation.get("issue")
     pages = citation.get("pages")
@@ -87,6 +88,8 @@ def build_display(citation):
     tail = ""
     if year:
         tail = str(year)
+        if month:
+            tail += f" {month}"
         if volume:
             tail += f";{volume}"
             if issue:

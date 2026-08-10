@@ -25,6 +25,13 @@ For each card determine whether:
 - table evidence reconstructs the applicable value, headers and qualifiers;
 - the card is independently useful rather than materially redundant with another card in this provisional supplement.
 
+### Source disease alias policy
+
+Treat a configured source alias as valid grounding for its canonical card disease under
+this policy:
+
+{{SOURCE_DISEASE_ALIAS_POLICY}}
+
 A passed card contains only its `card_id` and `verdict: "pass"`. A failed card must use the existing review failure-details structure and a precise suggested action.
 
 Use the existing Phase 3 review JSON shape:

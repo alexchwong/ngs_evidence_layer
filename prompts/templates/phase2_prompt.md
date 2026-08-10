@@ -149,8 +149,12 @@ candidate before output or omit it:
 4. **Distinct output:** identify the distinct sentence this card would add to a
    concise clinical report. If no independently useful sentence exists beyond
    another card, omit it.
-5. **Vocabulary fit:** if the source-stated disease is absent from the controlled
-   vocabulary, omit the card rather than mapping it to the nearest allowed disease.
+5. **Vocabulary fit:** apply the source disease alias policy below. If the source-stated
+   disease is neither canonical nor an explicit alias, omit the card.
+
+### Source disease alias policy
+
+{{SOURCE_DISEASE_ALIAS_POLICY}}
 
 Apply these category entailment tests before creating a card:
 

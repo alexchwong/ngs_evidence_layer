@@ -1,6 +1,10 @@
 {
-  "vocabulary_version": "1.4",
+  "vocabulary_version": "1.5",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
+  "source_disease_aliases": {
+    "clonal haematopoiesis": "CHIP",
+    "clonal haemopoiesis": "CHIP"
+  },
   "diseases": [
     "CHIP",
     "CCUS",

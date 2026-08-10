@@ -101,6 +101,17 @@ class VocabularyAndKeyTests(unittest.TestCase):
         self.assertEqual(vocab.disease_ancestors(["acute leukaemia of ambiguous lineage"]), [])
         self.assertEqual(vocab.disease_ancestors(["haematological malignancy, other"]), [])
 
+    def test_source_disease_aliases_resolve_to_canonical_chip(self):
+        self.assertEqual(vocab.canonical_source_disease("clonal haematopoiesis"), "CHIP")
+        self.assertEqual(vocab.canonical_source_disease("clonal haemopoiesis"), "CHIP")
+        self.assertEqual(vocab.canonical_source_disease("Clonal Haematopoiesis"), "CHIP")
+        self.assertEqual(vocab.canonical_source_disease("  CHIP  "), "CHIP")
+
+    def test_source_disease_aliases_do_not_enable_nearest_term_mapping(self):
+        self.assertIsNone(vocab.canonical_source_disease("clonal hematopoiesis"))
+        self.assertIsNone(vocab.canonical_source_disease("age-related clonal haematopoiesis"))
+        self.assertIsNone(vocab.canonical_source_disease(None))
+
     def test_umbrella_cycle_is_rejected(self):
         original = copy.deepcopy(vocab.UMBRELLA)
         try:

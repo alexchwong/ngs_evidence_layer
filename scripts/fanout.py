@@ -16,6 +16,39 @@ import package_validation as validation
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def normalize_doi(value):
+    text = str(value or "").strip().lower()
+    for prefix in ("https://doi.org/", "http://doi.org/", "doi:"):
+        if text.startswith(prefix):
+            text = text[len(prefix):].strip()
+    return text
+
+
+def accepted_dois(accept_dir):
+    owners = {}
+    for final_path in sorted(accept_dir.glob("*.final.json")):
+        publication_key = final_path.name.removesuffix(".final.json")
+        package = validation.read_json(final_path, "accepted package")
+        metadata = package.get("metadata") or {}
+        citation = metadata.get("citation") or {}
+        doi = normalize_doi(citation.get("doi"))
+        if doi:
+            owners.setdefault(doi, publication_key)
+    return owners
+
+
+def quarantined_dois(quarantine_dir):
+    owners = {}
+    for metadata_path in sorted(quarantine_dir.glob("*/metadata.json")):
+        publication_key = metadata_path.parent.name
+        metadata = validation.read_json(metadata_path, "quarantined metadata")
+        citation = metadata.get("citation") or {}
+        doi = normalize_doi(citation.get("doi"))
+        if doi:
+            owners.setdefault(doi, (publication_key, metadata.get("paper_id")))
+    return owners
+
+
 def load_index(path):
     records = []
     seen_ids = set()
@@ -86,6 +119,8 @@ def fanout(args):
         records = [record for record in records if record.get("publication_key") == args.publication_key]
         if not records:
             raise ValueError(f"publication key not found: {args.publication_key}")
+    doi_owners = accepted_dois(args.accept_dir)
+    quarantine_doi_owners = quarantined_dois(args.quarantine_dir)
     created_at = args.created_at or datetime.now(timezone.utc).isoformat()
     planned = []
     keys = {}
@@ -104,6 +139,17 @@ def fanout(args):
         if errors:
             raise ValueError("\n".join(errors))
         key = metadata["publication_key"]
+        doi = normalize_doi(metadata["citation"].get("doi"))
+        if doi in doi_owners:
+            raise ValueError(
+                f"{record['id']}: DOI {doi} is already accepted as {doi_owners[doi]}"
+            )
+        if doi in quarantine_doi_owners:
+            quarantine_key, quarantine_paper_id = quarantine_doi_owners[doi]
+            if quarantine_paper_id != record["id"]:
+                raise ValueError(
+                    f"{record['id']}: DOI {doi} is already quarantined as {quarantine_key}"
+                )
         if key in keys:
             raise ValueError(f"duplicate publication_key {key}: {keys[key]} and {record['id']}")
         keys[key] = record["id"]
@@ -111,11 +157,37 @@ def fanout(args):
     args.work_dir.mkdir(parents=True, exist_ok=True)
     created = []
     skipped = []
+    quarantined = []
     staging = Path(tempfile.mkdtemp(prefix=".fanout-", dir=args.work_dir))
     try:
         for record, source, metadata in planned:
             key = metadata["publication_key"]
             destination = args.work_dir / key
+            quarantine_destination = args.quarantine_dir / key
+            if quarantine_destination.exists():
+                if destination.exists():
+                    raise ValueError(
+                        f"paper exists in both work and quarantine: {key}"
+                    )
+                quarantine_metadata_path = quarantine_destination / "metadata.json"
+                if not quarantine_destination.is_dir() or quarantine_destination.is_symlink():
+                    raise ValueError(
+                        f"quarantined paper is not a real directory: {quarantine_destination}"
+                    )
+                if not quarantine_metadata_path.is_file():
+                    raise ValueError(
+                        f"quarantined paper has no metadata: {quarantine_destination}"
+                    )
+                quarantine_metadata = validation.read_json(
+                    quarantine_metadata_path, "quarantined metadata"
+                )
+                if quarantine_metadata.get("paper_id") != record["id"]:
+                    raise ValueError(
+                        f"{key}: quarantined folder belongs to paper_id "
+                        f"{quarantine_metadata.get('paper_id')}, not {record['id']}"
+                    )
+                quarantined.append(key)
+                continue
             if destination.exists():
                 existing_metadata_path = destination / "metadata.json"
                 if not existing_metadata_path.is_file():
@@ -142,7 +214,7 @@ def fanout(args):
                 created.append(key)
     finally:
         shutil.rmtree(staging, ignore_errors=True)
-    return created, skipped
+    return created, skipped, quarantined
 
 
 def main():
@@ -151,17 +223,24 @@ def main():
     parser.add_argument("--key", dest="publication_key")
     parser.add_argument("--input-dir", type=Path, default=Path("input"))
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
+    parser.add_argument("--quarantine-dir", type=Path, default=Path("quarantine"))
+    parser.add_argument("--accept-dir", type=Path, default=Path("accept"))
     parser.add_argument("--created-at", help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
-        created, skipped = fanout(args)
+        created, skipped, quarantined = fanout(args)
     except (OSError, ValueError) as exc:
         sys.exit(f"FAN-OUT FAILED:\n{exc}")
-    print(f"Created {len(created)} working folder(s); left {len(skipped)} existing folder(s) unchanged.")
+    print(
+        f"Created {len(created)} working folder(s); left {len(skipped)} existing "
+        f"folder(s) unchanged; skipped {len(quarantined)} quarantined paper(s)."
+    )
     for publication_key in created:
         print(f"created: {args.work_dir / publication_key}")
     for publication_key in skipped:
         print(f"unchanged: {args.work_dir / publication_key}")
+    for publication_key in quarantined:
+        print(f"quarantined: {args.quarantine_dir / publication_key}")
 
 
 if __name__ == "__main__":
