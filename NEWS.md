@@ -1,4 +1,14 @@
 # NEWS
+## 0.1.7
+- Expanded the corpus by 20 papers covering clonal haematopoiesis, CCUS, germline predisposition, TP53 allelic state, and inherited myeloid risk.
+- Added quarantine workflow for holding and reviewing pre-acceptance papers outside the normal incorporation path.
+- Fanout now rejects DOI duplicates already present in accepted or quarantined papers.
+- Added reviewed source-disease aliases with one centralized policy for generated ingestion prompts.
+- Reports now open with a structured variant summary using exact hotspot and biomarker naming where relevant.
+- Vancouver citations are now prepared and finalized deterministically around the report-formatting model step.
+- Prognostic reporting now emphasizes disease-specific variant contributions and avoids unsupported transfer between diseases or models.
+- Reporting-rule audit now evaluates every rule before final report formatting.
+
 ## 0.1.6
 - Expanded the corpus with the v0.1.6 evidence tranche, including additional treatment, prognosis, germline, and clonal haematopoiesis evidence.
 - Added nel-validate: cases can be run then scored against marking criteria

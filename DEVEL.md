@@ -162,7 +162,8 @@ Before merging a release to `master`:
 6. Check `README.md`, `INGEST.md`, and `DEVEL.md` still match current user/developer commands.
 7. Set `release/VERSION` to the intended release version.
 8. Review `release/skill.txt` and ensure every file required by `SKILL.md` is included.
-9. Check that no private files from `pdf/`, `input/`, `work/`, `accept/`, or `archive/` are staged.
+9. Check that no private files from `pdf/`, `input/`, `work/`, `quarantine/`, `accept/`,
+   `archive/`, `curation/`, or `temp/` are staged.
 10. Run the full unittest suite again after final release-file changes.
 11. Merge to `master` or manually run the release workflow.
 

@@ -1,11 +1,13 @@
 SKILL.md
 scripts/create_work_dir.py
+scripts/resolve_demo.py
 scripts/run_case.py
 scripts/retrieve.py
 scripts/render.py
 scripts/vocab.py
 scripts/append_integrated_diagnosis.py
 scripts/validate_adjudication.py
+scripts/report_citations.py
 schema/disease_vocabulary.json
 schema/ingestion_package_schema.json
 output/corpus/nel.corpus.json

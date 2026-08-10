@@ -71,12 +71,31 @@ Automatic `ngs-report` does not pause for diagnosis confirmation. Use
 `evidence-block manual` when you want to review the proposed integrated diagnosis
 before downstream retrieval.
 
+### Working directory
+
+By default, NEL creates a unique system temporary working directory and retains it after
+the workflow finishes. To keep a new workflow under the repository's ignored `temp/`
+directory instead, include the exact modifier `->project`, for example:
+
+```text
+ngs-report ->project
+
+<clinical case>
+```
+
+NEL does not infer `->project` from natural-language requests. You may also explicitly
+supply another working directory. `evidence-to-report` always requires an existing work
+directory containing the completed evidence-block outputs.
+
 ### Report format
 
 The default final report:
 
 - is no more than 200 words, excluding references;
 - uses full sentences;
+- opens with the detected genes in alphabetical order, with variant type or recognised
+  hotspot name and VAF;
+- gives the exact variant when a gene is being reported as a biomarker;
 - prioritises clinically important conclusions and qualifications;
 - uses Vancouver-style citations in square brackets;
 - numbers references in order of first citation.

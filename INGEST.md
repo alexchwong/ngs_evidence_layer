@@ -226,7 +226,10 @@ work/<publication-key>/
   metadata.json
 ```
 
-Existing work folders are not modified.
+Existing work folders are not modified. Before creating any work folders, `fanout.py`
+preflights DOI collisions against accepted and quarantined papers. It refuses a DOI that
+is already accepted or belongs to a different quarantined paper, preventing duplicate
+ingestion before work begins.
 
 ## Quarantine a paper before acceptance
 
