@@ -26,10 +26,36 @@
       "tefferi-2020-mipss-et-pv",
       "tet2-asxl1-hma-response",
       "tp53-lenalidomide-clonal-dynamics"
+    ],
+    "0.1.7": [
+      "abelson-2018-predict-aml",
+      "andrade-2018-tp53-gnomad",
+      "baliakas-2019-operational-germline-testing",
+      "bernard-2020-tp53-mds",
+      "bluteau-2014-ankrd26",
+      "bolton-2020-chemo-ch",
+      "davidsson-2018-samd9-samd9l",
+      "drazer-2018-germline-vaf",
+      "fabre-2022-chip-dnmt3a",
+      "feurstein-2021-myeloid-germline",
+      "galera-2018-gata2-germline",
+      "galli-2021-clone-metrics-ccus",
+      "grief-2012-gata-cebpa",
+      "hsu-2011-gata2-momomac",
+      "kessler-2022-large-biobank-genetics",
+      "kraft-godley-2020-germline-guide",
+      "malcovati-2017-ccus-foundation",
+      "noetzli-2015-etv6-phenotype",
+      "wlodarski-2016-gata2",
+      "xie-2024-ccrs-ccus"
     ]
   },
   "by_category": {
     "biomarker": [
+      "abelson-2018-predict-aml-C0001",
+      "baliakas-2019-operational-germline-testing-C0008",
+      "bernard-2020-tp53-mds-C0001",
+      "bernard-2020-tp53-mds-C0006",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0002",
       "cloos-2026-blood-147-1147-C0006",
@@ -47,11 +73,14 @@
       "dohner-2020-npm1-flt3-interaction-C0005",
       "dohner-2020-npm1-flt3-interaction-C0006",
       "dohner-2020-npm1-flt3-interaction-C0007",
+      "grief-2012-gata-cebpa-C0005",
       "idh-comutations-inhibitor-resistance-C0007",
+      "kessler-2022-large-biobank-genetics-C0016",
       "tp53-lenalidomide-clonal-dynamics-C0001",
       "tp53-lenalidomide-clonal-dynamics-C0002",
       "tp53-lenalidomide-clonal-dynamics-C0003",
-      "weeks-2023-nejm-evidence-2-na-C0004"
+      "weeks-2023-nejm-evidence-2-na-C0004",
+      "wlodarski-2016-gata2-C0005"
     ],
     "diagnosis": [
       "arber-2022-blood-140-1200-C0001",
@@ -66,6 +95,8 @@
       "d-hner-2022-blood-140-1345-C0003",
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
+      "grief-2012-gata-cebpa-C0001",
+      "grief-2012-gata-cebpa-C0002",
       "khoury-2022-leukemia-36-1703-C0001",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0004",
@@ -83,23 +114,96 @@
       "khoury-2022-leukemia-36-1703-C0019",
       "khoury-2022-leukemia-36-1703-C0023",
       "khoury-2022-leukemia-36-1703-C0024",
-      "passamonti-2017-mysec-pm-secondary-C0001"
+      "malcovati-2017-ccus-foundation-C0001",
+      "malcovati-2017-ccus-foundation-C0002",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
+      "passamonti-2017-mysec-pm-secondary-C0001",
+      "wlodarski-2016-gata2-C0002",
+      "xie-2024-ccrs-ccus-C0001"
     ],
     "germline": [
+      "abelson-2018-predict-aml-C0006",
+      "andrade-2018-tp53-gnomad-C0001",
+      "andrade-2018-tp53-gnomad-C0002",
+      "andrade-2018-tp53-gnomad-C0003",
+      "andrade-2018-tp53-gnomad-C0004",
+      "andrade-2018-tp53-gnomad-C0005",
+      "andrade-2018-tp53-gnomad-C0006",
       "arber-2022-blood-140-1200-C0013",
       "arber-2022-blood-140-1200-C0014",
       "arber-2022-blood-140-1200-C0015",
       "arber-2022-blood-140-1200-C0016",
       "arber-2022-blood-140-1200-C0017",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0005",
+      "baliakas-2019-operational-germline-testing-C0006",
+      "baliakas-2019-operational-germline-testing-C0007",
       "bernard-2022-nejm-evidence-1-na-C0005",
+      "bluteau-2014-ankrd26-C0001",
       "d-hner-2022-blood-140-1345-C0017",
       "d-hner-2022-blood-140-1345-C0018",
       "d-hner-2022-blood-140-1345-C0019",
       "d-hner-2024-blood-144-2169-C0015",
+      "davidsson-2018-samd9-samd9l-C0001",
+      "davidsson-2018-samd9-samd9l-C0002",
+      "davidsson-2018-samd9-samd9l-C0003",
+      "davidsson-2018-samd9-samd9l-C0004",
+      "davidsson-2018-samd9-samd9l-C0005",
+      "drazer-2018-germline-vaf-C0001",
+      "drazer-2018-germline-vaf-C0002",
+      "drazer-2018-germline-vaf-C0003",
+      "feurstein-2021-myeloid-germline-C0001",
+      "feurstein-2021-myeloid-germline-C0002",
+      "feurstein-2021-myeloid-germline-C0003",
+      "feurstein-2021-myeloid-germline-C0004",
+      "feurstein-2021-myeloid-germline-C0005",
+      "feurstein-2021-myeloid-germline-C0006",
+      "feurstein-2021-myeloid-germline-C0007",
+      "feurstein-2021-myeloid-germline-C0008",
+      "galera-2018-gata2-germline-C0003",
+      "galera-2018-gata2-germline-C0004",
+      "grief-2012-gata-cebpa-C0006",
+      "hsu-2011-gata2-momomac-C0001",
+      "hsu-2011-gata2-momomac-C0002",
+      "hsu-2011-gata2-momomac-C0004",
+      "hsu-2011-gata2-momomac-C0005",
+      "hsu-2011-gata2-momomac-C0006",
+      "kessler-2022-large-biobank-genetics-C0001",
+      "kessler-2022-large-biobank-genetics-C0002",
+      "kessler-2022-large-biobank-genetics-C0003",
+      "kessler-2022-large-biobank-genetics-C0004",
+      "kessler-2022-large-biobank-genetics-C0005",
+      "kessler-2022-large-biobank-genetics-C0006",
       "khoury-2022-leukemia-36-1703-C0021",
-      "khoury-2022-leukemia-36-1703-C0022"
+      "khoury-2022-leukemia-36-1703-C0022",
+      "kraft-godley-2020-germline-guide-C0001",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0003",
+      "kraft-godley-2020-germline-guide-C0004",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0007",
+      "kraft-godley-2020-germline-guide-C0008",
+      "kraft-godley-2020-germline-guide-C0009",
+      "kraft-godley-2020-germline-guide-C0010",
+      "kraft-godley-2020-germline-guide-C0011",
+      "kraft-godley-2020-germline-guide-C0012",
+      "kraft-godley-2020-germline-guide-C0013",
+      "kraft-godley-2020-germline-guide-C0016",
+      "kraft-godley-2020-germline-guide-C0017",
+      "noetzli-2015-etv6-phenotype-C0001",
+      "noetzli-2015-etv6-phenotype-C0002",
+      "wlodarski-2016-gata2-C0001"
     ],
     "prognosis": [
+      "abelson-2018-predict-aml-C0002",
+      "abelson-2018-predict-aml-C0003",
+      "abelson-2018-predict-aml-C0004",
+      "abelson-2018-predict-aml-C0005",
       "arber-2022-blood-140-1200-C0002",
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0012",
@@ -108,6 +212,12 @@
       "barbui-2015-blood-cancer-journal-5-e369-C0003",
       "barbui-2015-blood-cancer-journal-5-e369-C0004",
       "barbui-2015-blood-cancer-journal-5-e369-C0005",
+      "bernard-2020-tp53-mds-C0002",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0008",
+      "bernard-2020-tp53-mds-C0009",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -117,6 +227,8 @@
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
       "bernard-2022-nejm-evidence-1-na-C0010",
+      "bolton-2020-chemo-ch-C0001",
+      "bolton-2020-chemo-ch-C0002",
       "cloos-2026-blood-147-1147-C0003",
       "cloos-2026-blood-147-1147-C0005",
       "cloos-2026-blood-147-1147-C0009",
@@ -135,6 +247,7 @@
       "d-hner-2024-blood-144-2169-C0012",
       "d-hner-2024-blood-144-2169-C0013",
       "d-hner-2024-blood-144-2169-C0014",
+      "davidsson-2018-samd9-samd9l-C0006",
       "dinardo-2020-genotype-specific-venetoclax-C0002",
       "dinardo-2020-genotype-specific-venetoclax-C0004",
       "dohner-2020-npm1-flt3-interaction-C0001",
@@ -144,14 +257,34 @@
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
       "elena-2016-blood-128-1408-C0003",
+      "fabre-2022-chip-dnmt3a-C0001",
       "flt3-ras-gilteritinib-resistance-C0006",
       "flt3-ras-gilteritinib-resistance-C0010",
+      "galera-2018-gata2-germline-C0001",
+      "galli-2021-clone-metrics-ccus-C0001",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "galli-2021-clone-metrics-ccus-C0003",
+      "galli-2021-clone-metrics-ccus-C0004",
+      "galli-2021-clone-metrics-ccus-C0005",
+      "grief-2012-gata-cebpa-C0003",
+      "grief-2012-gata-cebpa-C0004",
+      "grief-2012-gata-cebpa-C0007",
+      "hsu-2011-gata2-momomac-C0003",
       "idh-comutations-inhibitor-resistance-C0008",
+      "kessler-2022-large-biobank-genetics-C0007",
+      "kessler-2022-large-biobank-genetics-C0008",
+      "kessler-2022-large-biobank-genetics-C0009",
+      "kessler-2022-large-biobank-genetics-C0010",
+      "kessler-2022-large-biobank-genetics-C0011",
+      "kessler-2022-large-biobank-genetics-C0012",
+      "kessler-2022-large-biobank-genetics-C0017",
+      "kessler-2022-large-biobank-genetics-C0018",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0005",
       "khoury-2022-leukemia-36-1703-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0020",
+      "malcovati-2017-ccus-foundation-C0005",
       "mf-genomics-ruxolitinib-response-C0001",
       "passamonti-2017-mysec-pm-secondary-C0002",
       "passamonti-2017-mysec-pm-secondary-C0003",
@@ -172,13 +305,20 @@
       "tet2-asxl1-hma-response-C0006",
       "weeks-2023-nejm-evidence-2-na-C0001",
       "weeks-2023-nejm-evidence-2-na-C0002",
-      "weeks-2023-nejm-evidence-2-na-C0003"
+      "weeks-2023-nejm-evidence-2-na-C0003",
+      "wlodarski-2016-gata2-C0003",
+      "xie-2024-ccrs-ccus-C0002",
+      "xie-2024-ccrs-ccus-C0003",
+      "xie-2024-ccrs-ccus-C0004"
     ],
     "treatment": [
       "arber-2022-blood-140-1200-C0004",
       "arber-2022-blood-140-1200-C0005",
+      "baliakas-2019-operational-germline-testing-C0009",
+      "baliakas-2019-operational-germline-testing-C0010",
       "barbui-2015-blood-cancer-journal-5-e369-C0006",
       "barbui-2015-blood-cancer-journal-5-e369-C0007",
+      "bernard-2020-tp53-mds-C0007",
       "cloos-2026-blood-147-1147-C0004",
       "cloos-2026-blood-147-1147-C0008",
       "cloos-2026-blood-147-1147-C0016",
@@ -188,6 +328,8 @@
       "d-hner-2022-blood-140-1345-C0020",
       "d-hner-2024-blood-144-2169-C0016",
       "d-hner-2024-blood-144-2169-C0017",
+      "davidsson-2018-samd9-samd9l-C0007",
+      "davidsson-2018-samd9-samd9l-C0008",
       "dinardo-2020-genotype-specific-venetoclax-C0001",
       "dinardo-2020-genotype-specific-venetoclax-C0005",
       "dinardo-2020-genotype-specific-venetoclax-C0006",
@@ -206,6 +348,7 @@
       "flt3-ras-gilteritinib-resistance-C0007",
       "flt3-ras-gilteritinib-resistance-C0008",
       "flt3-ras-gilteritinib-resistance-C0009",
+      "galera-2018-gata2-germline-C0002",
       "idh-comutations-inhibitor-resistance-C0001",
       "idh-comutations-inhibitor-resistance-C0002",
       "idh-comutations-inhibitor-resistance-C0003",
@@ -217,6 +360,9 @@
       "idh-comutations-inhibitor-resistance-C0011",
       "idh-comutations-inhibitor-resistance-C0012",
       "idh-comutations-inhibitor-resistance-C0013",
+      "kessler-2022-large-biobank-genetics-C0013",
+      "kessler-2022-large-biobank-genetics-C0014",
+      "kessler-2022-large-biobank-genetics-C0015",
       "khoury-2022-leukemia-36-1703-C0025",
       "khoury-2022-leukemia-36-1703-C0026",
       "khoury-2022-leukemia-36-1703-C0027",
@@ -241,15 +387,32 @@
       "tet2-asxl1-hma-response-C0007",
       "tet2-asxl1-hma-response-C0008",
       "tp53-lenalidomide-clonal-dynamics-C0004",
-      "tp53-lenalidomide-clonal-dynamics-C0005"
+      "tp53-lenalidomide-clonal-dynamics-C0005",
+      "wlodarski-2016-gata2-C0004"
     ]
   },
   "by_disease": {
     "AML": [
+      "abelson-2018-predict-aml-C0001",
+      "abelson-2018-predict-aml-C0002",
+      "abelson-2018-predict-aml-C0003",
+      "abelson-2018-predict-aml-C0004",
+      "abelson-2018-predict-aml-C0005",
+      "abelson-2018-predict-aml-C0006",
       "arber-2022-blood-140-1200-C0011",
       "arber-2022-blood-140-1200-C0012",
       "arber-2022-blood-140-1200-C0013",
       "arber-2022-blood-140-1200-C0017",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0006",
+      "baliakas-2019-operational-germline-testing-C0008",
+      "baliakas-2019-operational-germline-testing-C0009",
+      "baliakas-2019-operational-germline-testing-C0010",
+      "bolton-2020-chemo-ch-C0001",
+      "bolton-2020-chemo-ch-C0002",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0002",
       "cloos-2026-blood-147-1147-C0003",
@@ -316,6 +479,8 @@
       "dohner-2020-npm1-flt3-interaction-C0007",
       "dohner-2020-npm1-flt3-interaction-C0008",
       "dohner-2020-npm1-flt3-interaction-C0009",
+      "feurstein-2021-myeloid-germline-C0001",
+      "feurstein-2021-myeloid-germline-C0002",
       "flt3-ras-gilteritinib-resistance-C0001",
       "flt3-ras-gilteritinib-resistance-C0002",
       "flt3-ras-gilteritinib-resistance-C0003",
@@ -326,6 +491,19 @@
       "flt3-ras-gilteritinib-resistance-C0008",
       "flt3-ras-gilteritinib-resistance-C0009",
       "flt3-ras-gilteritinib-resistance-C0010",
+      "galera-2018-gata2-germline-C0001",
+      "galera-2018-gata2-germline-C0002",
+      "galera-2018-gata2-germline-C0003",
+      "galera-2018-gata2-germline-C0004",
+      "grief-2012-gata-cebpa-C0001",
+      "grief-2012-gata-cebpa-C0002",
+      "grief-2012-gata-cebpa-C0003",
+      "grief-2012-gata-cebpa-C0004",
+      "grief-2012-gata-cebpa-C0005",
+      "grief-2012-gata-cebpa-C0006",
+      "hsu-2011-gata2-momomac-C0002",
+      "hsu-2011-gata2-momomac-C0005",
+      "hsu-2011-gata2-momomac-C0006",
       "idh-comutations-inhibitor-resistance-C0001",
       "idh-comutations-inhibitor-resistance-C0002",
       "idh-comutations-inhibitor-resistance-C0003",
@@ -357,18 +535,48 @@
       "cloos-2026-blood-147-1147-C0006"
     ],
     "CCUS": [
+      "galli-2021-clone-metrics-ccus-C0001",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "galli-2021-clone-metrics-ccus-C0003",
+      "galli-2021-clone-metrics-ccus-C0004",
+      "galli-2021-clone-metrics-ccus-C0005",
+      "malcovati-2017-ccus-foundation-C0002",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
       "weeks-2023-nejm-evidence-2-na-C0001",
       "weeks-2023-nejm-evidence-2-na-C0002",
       "weeks-2023-nejm-evidence-2-na-C0003",
-      "weeks-2023-nejm-evidence-2-na-C0004"
+      "weeks-2023-nejm-evidence-2-na-C0004",
+      "xie-2024-ccrs-ccus-C0002",
+      "xie-2024-ccrs-ccus-C0003",
+      "xie-2024-ccrs-ccus-C0004"
     ],
     "CHIP": [
+      "fabre-2022-chip-dnmt3a-C0001",
+      "kessler-2022-large-biobank-genetics-C0001",
+      "kessler-2022-large-biobank-genetics-C0002",
+      "kessler-2022-large-biobank-genetics-C0003",
+      "kessler-2022-large-biobank-genetics-C0004",
+      "kessler-2022-large-biobank-genetics-C0005",
+      "kessler-2022-large-biobank-genetics-C0006",
+      "kessler-2022-large-biobank-genetics-C0008",
+      "kessler-2022-large-biobank-genetics-C0009",
+      "kessler-2022-large-biobank-genetics-C0010",
+      "kessler-2022-large-biobank-genetics-C0011",
+      "kessler-2022-large-biobank-genetics-C0012",
+      "kessler-2022-large-biobank-genetics-C0013",
+      "kessler-2022-large-biobank-genetics-C0014",
+      "kessler-2022-large-biobank-genetics-C0015",
+      "kessler-2022-large-biobank-genetics-C0016",
+      "kessler-2022-large-biobank-genetics-C0017",
+      "kessler-2022-large-biobank-genetics-C0018",
       "weeks-2023-nejm-evidence-2-na-C0001",
       "weeks-2023-nejm-evidence-2-na-C0002",
       "weeks-2023-nejm-evidence-2-na-C0003",
       "weeks-2023-nejm-evidence-2-na-C0004"
     ],
     "CML": [
+      "grief-2012-gata-cebpa-C0007",
       "khoury-2022-leukemia-36-1703-C0001"
     ],
     "CMML": [
@@ -408,6 +616,21 @@
       "arber-2022-blood-140-1200-C0011",
       "arber-2022-blood-140-1200-C0012",
       "arber-2022-blood-140-1200-C0017",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0006",
+      "baliakas-2019-operational-germline-testing-C0008",
+      "bernard-2020-tp53-mds-C0001",
+      "bernard-2020-tp53-mds-C0002",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0006",
+      "bernard-2020-tp53-mds-C0007",
+      "bernard-2020-tp53-mds-C0008",
+      "bernard-2020-tp53-mds-C0009",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -418,9 +641,27 @@
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
       "bernard-2022-nejm-evidence-1-na-C0010",
+      "bolton-2020-chemo-ch-C0001",
+      "bolton-2020-chemo-ch-C0002",
+      "davidsson-2018-samd9-samd9l-C0002",
+      "davidsson-2018-samd9-samd9l-C0003",
+      "davidsson-2018-samd9-samd9l-C0006",
+      "davidsson-2018-samd9-samd9l-C0007",
+      "davidsson-2018-samd9-samd9l-C0008",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
       "elena-2016-blood-128-1408-C0003",
+      "feurstein-2021-myeloid-germline-C0001",
+      "galera-2018-gata2-germline-C0001",
+      "galera-2018-gata2-germline-C0002",
+      "galera-2018-gata2-germline-C0003",
+      "galera-2018-gata2-germline-C0004",
+      "grief-2012-gata-cebpa-C0006",
+      "hsu-2011-gata2-momomac-C0002",
+      "hsu-2011-gata2-momomac-C0003",
+      "hsu-2011-gata2-momomac-C0005",
+      "hsu-2011-gata2-momomac-C0006",
+      "kessler-2022-large-biobank-genetics-C0007",
       "khoury-2022-leukemia-36-1703-C0008",
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0010",
@@ -428,6 +669,10 @@
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0013",
       "khoury-2022-leukemia-36-1703-C0020",
+      "malcovati-2017-ccus-foundation-C0001",
+      "malcovati-2017-ccus-foundation-C0002",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
       "sf3b1-luspatercept-response-C0001",
       "tet2-asxl1-hma-response-C0001",
       "tet2-asxl1-hma-response-C0002",
@@ -441,11 +686,23 @@
       "tp53-lenalidomide-clonal-dynamics-C0002",
       "tp53-lenalidomide-clonal-dynamics-C0003",
       "tp53-lenalidomide-clonal-dynamics-C0004",
-      "tp53-lenalidomide-clonal-dynamics-C0005"
+      "tp53-lenalidomide-clonal-dynamics-C0005",
+      "wlodarski-2016-gata2-C0001",
+      "wlodarski-2016-gata2-C0002",
+      "wlodarski-2016-gata2-C0003",
+      "wlodarski-2016-gata2-C0004",
+      "wlodarski-2016-gata2-C0005"
     ],
     "MDS/AML": [
       "arber-2022-blood-140-1200-C0011",
-      "arber-2022-blood-140-1200-C0012"
+      "arber-2022-blood-140-1200-C0012",
+      "galera-2018-gata2-germline-C0001",
+      "galera-2018-gata2-germline-C0002",
+      "galera-2018-gata2-germline-C0003",
+      "galera-2018-gata2-germline-C0004",
+      "hsu-2011-gata2-momomac-C0002",
+      "hsu-2011-gata2-momomac-C0005",
+      "hsu-2011-gata2-momomac-C0006"
     ],
     "MDS/MPN": [
       "arber-2022-blood-140-1200-C0007",
@@ -478,6 +735,7 @@
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
       "elena-2016-blood-128-1408-C0003",
+      "grief-2012-gata-cebpa-C0007",
       "khoury-2022-leukemia-36-1703-C0001",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
@@ -566,7 +824,8 @@
       "arber-2022-blood-140-1200-C0014",
       "arber-2022-blood-140-1200-C0015",
       "arber-2022-blood-140-1200-C0016",
-      "khoury-2022-leukemia-36-1703-C0021"
+      "khoury-2022-leukemia-36-1703-C0021",
+      "xie-2024-ccrs-ccus-C0001"
     ],
     "myeloid/lymphoid neoplasm with eosinophilia and TK fusion": [
       "arber-2022-blood-140-1200-C0004",
@@ -596,6 +855,14 @@
       "arber-2022-blood-140-1200-C0015",
       "arber-2022-blood-140-1200-C0016",
       "arber-2022-blood-140-1200-C0017",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0006",
+      "baliakas-2019-operational-germline-testing-C0007",
+      "baliakas-2019-operational-germline-testing-C0008",
+      "baliakas-2019-operational-germline-testing-C0009",
+      "baliakas-2019-operational-germline-testing-C0010",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0002",
       "cloos-2026-blood-147-1147-C0003",
@@ -658,6 +925,11 @@
       "khoury-2022-leukemia-36-1703-C0024"
     ],
     "multivariable-adjusted": [
+      "abelson-2018-predict-aml-C0001",
+      "abelson-2018-predict-aml-C0002",
+      "abelson-2018-predict-aml-C0003",
+      "abelson-2018-predict-aml-C0004",
+      "bernard-2020-tp53-mds-C0002",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
       "bernard-2022-nejm-evidence-1-na-C0007",
@@ -665,7 +937,24 @@
       "dohner-2020-npm1-flt3-interaction-C0004",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "galli-2021-clone-metrics-ccus-C0003",
+      "galli-2021-clone-metrics-ccus-C0004",
       "idh-comutations-inhibitor-resistance-C0007",
+      "kessler-2022-large-biobank-genetics-C0001",
+      "kessler-2022-large-biobank-genetics-C0002",
+      "kessler-2022-large-biobank-genetics-C0003",
+      "kessler-2022-large-biobank-genetics-C0004",
+      "kessler-2022-large-biobank-genetics-C0005",
+      "kessler-2022-large-biobank-genetics-C0006",
+      "kessler-2022-large-biobank-genetics-C0008",
+      "kessler-2022-large-biobank-genetics-C0009",
+      "kessler-2022-large-biobank-genetics-C0010",
+      "kessler-2022-large-biobank-genetics-C0011",
+      "kessler-2022-large-biobank-genetics-C0012",
+      "kessler-2022-large-biobank-genetics-C0015",
+      "kessler-2022-large-biobank-genetics-C0018",
+      "malcovati-2017-ccus-foundation-C0001",
       "mf-genomics-ruxolitinib-response-C0004",
       "passamonti-2017-mysec-pm-secondary-C0002",
       "sf3b1-luspatercept-response-C0001",
@@ -691,6 +980,9 @@
       "weeks-2023-nejm-evidence-2-na-C0002"
     ],
     "restated secondary": [
+      "abelson-2018-predict-aml-C0005",
+      "andrade-2018-tp53-gnomad-C0001",
+      "andrade-2018-tp53-gnomad-C0002",
       "arber-2022-blood-140-1200-C0002",
       "arber-2022-blood-140-1200-C0003",
       "arber-2022-blood-140-1200-C0004",
@@ -699,7 +991,11 @@
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0012",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0005",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
+      "bernard-2020-tp53-mds-C0008",
+      "bernard-2020-tp53-mds-C0009",
       "d-hner-2022-blood-140-1345-C0019",
       "d-hner-2022-blood-140-1345-C0020",
       "d-hner-2024-blood-144-2169-C0004",
@@ -707,9 +1003,33 @@
       "d-hner-2024-blood-144-2169-C0007",
       "d-hner-2024-blood-144-2169-C0016",
       "d-hner-2024-blood-144-2169-C0017",
+      "davidsson-2018-samd9-samd9l-C0001",
+      "davidsson-2018-samd9-samd9l-C0002",
+      "davidsson-2018-samd9-samd9l-C0003",
+      "davidsson-2018-samd9-samd9l-C0004",
+      "davidsson-2018-samd9-samd9l-C0005",
+      "davidsson-2018-samd9-samd9l-C0006",
+      "davidsson-2018-samd9-samd9l-C0007",
+      "davidsson-2018-samd9-samd9l-C0008",
       "dohner-2020-npm1-flt3-interaction-C0005",
       "dohner-2020-npm1-flt3-interaction-C0009",
+      "fabre-2022-chip-dnmt3a-C0001",
+      "feurstein-2021-myeloid-germline-C0002",
+      "feurstein-2021-myeloid-germline-C0003",
+      "galera-2018-gata2-germline-C0001",
+      "galera-2018-gata2-germline-C0004",
+      "grief-2012-gata-cebpa-C0001",
+      "grief-2012-gata-cebpa-C0003",
+      "grief-2012-gata-cebpa-C0005",
+      "grief-2012-gata-cebpa-C0006",
+      "grief-2012-gata-cebpa-C0007",
+      "hsu-2011-gata2-momomac-C0002",
+      "hsu-2011-gata2-momomac-C0005",
+      "hsu-2011-gata2-momomac-C0006",
       "idh-comutations-inhibitor-resistance-C0001",
+      "kessler-2022-large-biobank-genetics-C0007",
+      "kessler-2022-large-biobank-genetics-C0013",
+      "kessler-2022-large-biobank-genetics-C0014",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0005",
       "khoury-2022-leukemia-36-1703-C0012",
@@ -718,16 +1038,41 @@
       "khoury-2022-leukemia-36-1703-C0025",
       "khoury-2022-leukemia-36-1703-C0026",
       "khoury-2022-leukemia-36-1703-C0027",
+      "kraft-godley-2020-germline-guide-C0001",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0003",
+      "kraft-godley-2020-germline-guide-C0004",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0007",
+      "kraft-godley-2020-germline-guide-C0008",
+      "kraft-godley-2020-germline-guide-C0009",
+      "kraft-godley-2020-germline-guide-C0010",
+      "kraft-godley-2020-germline-guide-C0013",
+      "kraft-godley-2020-germline-guide-C0016",
+      "kraft-godley-2020-germline-guide-C0017",
       "passamonti-2017-mysec-pm-secondary-C0001",
-      "passamonti-2017-mysec-pm-secondary-C0003"
+      "passamonti-2017-mysec-pm-secondary-C0003",
+      "xie-2024-ccrs-ccus-C0001"
     ],
     "univariable or descriptive": [
+      "abelson-2018-predict-aml-C0006",
+      "andrade-2018-tp53-gnomad-C0003",
+      "andrade-2018-tp53-gnomad-C0004",
+      "andrade-2018-tp53-gnomad-C0005",
+      "andrade-2018-tp53-gnomad-C0006",
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
       "barbui-2015-blood-cancer-journal-5-e369-C0003",
       "barbui-2015-blood-cancer-journal-5-e369-C0004",
       "barbui-2015-blood-cancer-journal-5-e369-C0005",
       "barbui-2015-blood-cancer-journal-5-e369-C0006",
       "barbui-2015-blood-cancer-journal-5-e369-C0007",
+      "bernard-2020-tp53-mds-C0001",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0006",
+      "bernard-2020-tp53-mds-C0007",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0004",
       "bernard-2022-nejm-evidence-1-na-C0005",
@@ -735,6 +1080,9 @@
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
       "bernard-2022-nejm-evidence-1-na-C0010",
+      "bluteau-2014-ankrd26-C0001",
+      "bolton-2020-chemo-ch-C0001",
+      "bolton-2020-chemo-ch-C0002",
       "dinardo-2020-genotype-specific-venetoclax-C0001",
       "dinardo-2020-genotype-specific-venetoclax-C0002",
       "dinardo-2020-genotype-specific-venetoclax-C0003",
@@ -752,7 +1100,16 @@
       "dohner-2020-npm1-flt3-interaction-C0006",
       "dohner-2020-npm1-flt3-interaction-C0007",
       "dohner-2020-npm1-flt3-interaction-C0008",
+      "drazer-2018-germline-vaf-C0001",
+      "drazer-2018-germline-vaf-C0002",
+      "drazer-2018-germline-vaf-C0003",
       "elena-2016-blood-128-1408-C0003",
+      "feurstein-2021-myeloid-germline-C0001",
+      "feurstein-2021-myeloid-germline-C0004",
+      "feurstein-2021-myeloid-germline-C0005",
+      "feurstein-2021-myeloid-germline-C0006",
+      "feurstein-2021-myeloid-germline-C0007",
+      "feurstein-2021-myeloid-germline-C0008",
       "flt3-ras-gilteritinib-resistance-C0001",
       "flt3-ras-gilteritinib-resistance-C0002",
       "flt3-ras-gilteritinib-resistance-C0003",
@@ -763,6 +1120,15 @@
       "flt3-ras-gilteritinib-resistance-C0008",
       "flt3-ras-gilteritinib-resistance-C0009",
       "flt3-ras-gilteritinib-resistance-C0010",
+      "galera-2018-gata2-germline-C0002",
+      "galera-2018-gata2-germline-C0003",
+      "galli-2021-clone-metrics-ccus-C0001",
+      "galli-2021-clone-metrics-ccus-C0005",
+      "grief-2012-gata-cebpa-C0002",
+      "grief-2012-gata-cebpa-C0004",
+      "hsu-2011-gata2-momomac-C0001",
+      "hsu-2011-gata2-momomac-C0003",
+      "hsu-2011-gata2-momomac-C0004",
       "idh-comutations-inhibitor-resistance-C0002",
       "idh-comutations-inhibitor-resistance-C0003",
       "idh-comutations-inhibitor-resistance-C0004",
@@ -774,6 +1140,14 @@
       "idh-comutations-inhibitor-resistance-C0011",
       "idh-comutations-inhibitor-resistance-C0012",
       "idh-comutations-inhibitor-resistance-C0013",
+      "kessler-2022-large-biobank-genetics-C0016",
+      "kessler-2022-large-biobank-genetics-C0017",
+      "kraft-godley-2020-germline-guide-C0011",
+      "kraft-godley-2020-germline-guide-C0012",
+      "malcovati-2017-ccus-foundation-C0002",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
       "mf-genomics-ruxolitinib-response-C0001",
       "mf-genomics-ruxolitinib-response-C0002",
       "mf-genomics-ruxolitinib-response-C0003",
@@ -782,6 +1156,8 @@
       "mpn-genomics-interferon-response-C0003",
       "mpn-genomics-interferon-response-C0004",
       "mpn-genomics-interferon-response-C0005",
+      "noetzli-2015-etv6-phenotype-C0001",
+      "noetzli-2015-etv6-phenotype-C0002",
       "stahl-2021-independent-treatment-context-C0003",
       "stahl-2021-independent-treatment-context-C0006",
       "tefferi-2020-mipss-et-pv-C0002",
@@ -796,7 +1172,15 @@
       "tp53-lenalidomide-clonal-dynamics-C0004",
       "tp53-lenalidomide-clonal-dynamics-C0005",
       "weeks-2023-nejm-evidence-2-na-C0003",
-      "weeks-2023-nejm-evidence-2-na-C0004"
+      "weeks-2023-nejm-evidence-2-na-C0004",
+      "wlodarski-2016-gata2-C0001",
+      "wlodarski-2016-gata2-C0002",
+      "wlodarski-2016-gata2-C0003",
+      "wlodarski-2016-gata2-C0004",
+      "wlodarski-2016-gata2-C0005",
+      "xie-2024-ccrs-ccus-C0002",
+      "xie-2024-ccrs-ccus-C0003",
+      "xie-2024-ccrs-ccus-C0004"
     ]
   },
   "by_gene": {
@@ -818,8 +1202,14 @@
     ],
     "ANKRD26": [
       "arber-2022-blood-140-1200-C0016",
+      "baliakas-2019-operational-germline-testing-C0005",
+      "bluteau-2014-ankrd26-C0001",
       "cloos-2026-blood-147-1147-C0009",
-      "cloos-2026-blood-147-1147-C0010"
+      "cloos-2026-blood-147-1147-C0010",
+      "drazer-2018-germline-vaf-C0001",
+      "feurstein-2021-myeloid-germline-C0006",
+      "feurstein-2021-myeloid-germline-C0008",
+      "kraft-godley-2020-germline-guide-C0006"
     ],
     "ARAF": [
       "khoury-2022-leukemia-36-1703-C0026"
@@ -827,8 +1217,12 @@
     "ARHGAP22": [
       "idh-comutations-inhibitor-resistance-C0007"
     ],
+    "ARID1A": [
+      "kraft-godley-2020-germline-guide-C0008"
+    ],
     "ASXL1": [
       "arber-2022-blood-140-1200-C0009",
+      "bernard-2020-tp53-mds-C0009",
       "bernard-2022-nejm-evidence-1-na-C0003",
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0009",
@@ -841,8 +1235,17 @@
       "dohner-2020-npm1-flt3-interaction-C0008",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
+      "galli-2021-clone-metrics-ccus-C0001",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "galli-2021-clone-metrics-ccus-C0005",
+      "kessler-2022-large-biobank-genetics-C0010",
+      "kessler-2022-large-biobank-genetics-C0011",
+      "kessler-2022-large-biobank-genetics-C0012",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
       "mf-genomics-ruxolitinib-response-C0001",
       "mf-genomics-ruxolitinib-response-C0002",
       "mf-genomics-ruxolitinib-response-C0003",
@@ -854,9 +1257,16 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tet2-asxl1-hma-response-C0002",
       "tet2-asxl1-hma-response-C0007",
-      "tp53-lenalidomide-clonal-dynamics-C0002"
+      "tp53-lenalidomide-clonal-dynamics-C0002",
+      "xie-2024-ccrs-ccus-C0001",
+      "xie-2024-ccrs-ccus-C0004"
+    ],
+    "ATG2B": [
+      "kraft-godley-2020-germline-guide-C0009"
     ],
     "ATM": [
+      "kessler-2022-large-biobank-genetics-C0002",
+      "kraft-godley-2020-germline-guide-C0005",
       "tp53-lenalidomide-clonal-dynamics-C0004"
     ],
     "BCL2": [
@@ -871,7 +1281,8 @@
       "d-hner-2022-blood-140-1345-C0008",
       "idh-comutations-inhibitor-resistance-C0009",
       "idh-comutations-inhibitor-resistance-C0013",
-      "khoury-2022-leukemia-36-1703-C0019"
+      "khoury-2022-leukemia-36-1703-C0019",
+      "malcovati-2017-ccus-foundation-C0004"
     ],
     "BCORL1": [
       "bernard-2022-nejm-evidence-1-na-C0006",
@@ -883,20 +1294,36 @@
       "khoury-2022-leukemia-36-1703-C0001",
       "khoury-2022-leukemia-36-1703-C0014"
     ],
+    "BLM": [
+      "kraft-godley-2020-germline-guide-C0009"
+    ],
     "BRAF": [
+      "feurstein-2021-myeloid-germline-C0003",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0026"
     ],
     "BRCA1": [
-      "d-hner-2022-blood-140-1345-C0019"
+      "d-hner-2022-blood-140-1345-C0019",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0009",
+      "kraft-godley-2020-germline-guide-C0010",
+      "kraft-godley-2020-germline-guide-C0012"
     ],
     "BRCA2": [
-      "d-hner-2022-blood-140-1345-C0019"
+      "d-hner-2022-blood-140-1345-C0019",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0009",
+      "kraft-godley-2020-germline-guide-C0010",
+      "kraft-godley-2020-germline-guide-C0012"
     ],
     "CALR": [
       "arber-2022-blood-140-1200-C0001",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0010",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0013",
       "mpn-genomics-interferon-response-C0002",
       "mpn-genomics-interferon-response-C0004",
@@ -907,6 +1334,9 @@
       "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002"
     ],
+    "CARD11": [
+      "feurstein-2021-myeloid-germline-C0003"
+    ],
     "CBFB": [
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0005",
@@ -915,10 +1345,15 @@
       "d-hner-2022-blood-140-1345-C0011"
     ],
     "CBL": [
+      "bernard-2020-tp53-mds-C0009",
       "bernard-2022-nejm-evidence-1-na-C0007",
       "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "feurstein-2021-myeloid-germline-C0003",
       "flt3-ras-gilteritinib-resistance-C0007",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0005",
+      "kraft-godley-2020-germline-guide-C0009",
+      "malcovati-2017-ccus-foundation-C0004",
       "tet2-asxl1-hma-response-C0003",
       "tp53-lenalidomide-clonal-dynamics-C0001"
     ],
@@ -984,6 +1419,8 @@
     ],
     "CEBPA": [
       "arber-2022-blood-140-1200-C0013",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0009",
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
@@ -993,12 +1430,25 @@
       "d-hner-2022-blood-140-1345-C0010",
       "d-hner-2022-blood-140-1345-C0018",
       "dohner-2020-npm1-flt3-interaction-C0009",
+      "drazer-2018-germline-vaf-C0001",
+      "feurstein-2021-myeloid-germline-C0002",
+      "galera-2018-gata2-germline-C0004",
+      "grief-2012-gata-cebpa-C0001",
+      "grief-2012-gata-cebpa-C0002",
+      "grief-2012-gata-cebpa-C0003",
+      "grief-2012-gata-cebpa-C0004",
+      "grief-2012-gata-cebpa-C0005",
+      "hsu-2011-gata2-momomac-C0005",
       "idh-comutations-inhibitor-resistance-C0005",
       "khoury-2022-leukemia-36-1703-C0014",
-      "khoury-2022-leukemia-36-1703-C0017"
+      "khoury-2022-leukemia-36-1703-C0017",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0013"
     ],
     "CHEK2": [
-      "d-hner-2022-blood-140-1345-C0019"
+      "d-hner-2022-blood-140-1345-C0019",
+      "kessler-2022-large-biobank-genetics-C0001",
+      "kraft-godley-2020-germline-guide-C0005"
     ],
     "CLEC12A": [
       "cloos-2026-blood-147-1147-C0012"
@@ -1008,10 +1458,20 @@
     ],
     "CSF3R": [
       "arber-2022-blood-140-1200-C0003",
-      "arber-2022-blood-140-1200-C0009"
+      "arber-2022-blood-140-1200-C0009",
+      "kessler-2022-large-biobank-genetics-C0016"
+    ],
+    "CTC1": [
+      "kessler-2022-large-biobank-genetics-C0003"
+    ],
+    "CUX1": [
+      "malcovati-2017-ccus-foundation-C0004"
     ],
     "DDX41": [
       "arber-2022-blood-140-1200-C0014",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0006",
+      "baliakas-2019-operational-germline-testing-C0010",
       "bernard-2022-nejm-evidence-1-na-C0004",
       "bernard-2022-nejm-evidence-1-na-C0005",
       "bernard-2022-nejm-evidence-1-na-C0010",
@@ -1020,12 +1480,32 @@
       "d-hner-2022-blood-140-1345-C0017",
       "d-hner-2024-blood-144-2169-C0007",
       "d-hner-2024-blood-144-2169-C0012",
-      "d-hner-2024-blood-144-2169-C0015"
+      "d-hner-2024-blood-144-2169-C0015",
+      "drazer-2018-germline-vaf-C0001",
+      "drazer-2018-germline-vaf-C0002",
+      "drazer-2018-germline-vaf-C0003",
+      "feurstein-2021-myeloid-germline-C0001",
+      "galera-2018-gata2-germline-C0004",
+      "kraft-godley-2020-germline-guide-C0001",
+      "kraft-godley-2020-germline-guide-C0003",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0006"
     ],
     "DEK": [
       "d-hner-2022-blood-140-1345-C0011"
     ],
+    "DIS3": [
+      "kraft-godley-2020-germline-guide-C0008"
+    ],
+    "DKC1": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
+    "DNAJC21": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
     "DNMT3A": [
+      "abelson-2018-predict-aml-C0001",
+      "abelson-2018-predict-aml-C0003",
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
@@ -1033,13 +1513,27 @@
       "dinardo-2020-genotype-specific-venetoclax-C0001",
       "flt3-ras-gilteritinib-resistance-C0001",
       "flt3-ras-gilteritinib-resistance-C0002",
+      "galli-2021-clone-metrics-ccus-C0001",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "kessler-2022-large-biobank-genetics-C0010",
+      "kessler-2022-large-biobank-genetics-C0011",
+      "kessler-2022-large-biobank-genetics-C0012",
+      "kessler-2022-large-biobank-genetics-C0014",
+      "kessler-2022-large-biobank-genetics-C0016",
+      "kessler-2022-large-biobank-genetics-C0017",
+      "kessler-2022-large-biobank-genetics-C0018",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
       "mpn-genomics-interferon-response-C0003",
       "mpn-genomics-interferon-response-C0004",
       "stahl-2021-independent-treatment-context-C0002",
       "stahl-2021-independent-treatment-context-C0003",
       "tp53-lenalidomide-clonal-dynamics-C0002",
       "tp53-lenalidomide-clonal-dynamics-C0004",
-      "weeks-2023-nejm-evidence-2-na-C0002"
+      "weeks-2023-nejm-evidence-2-na-C0002",
+      "xie-2024-ccrs-ccus-C0001",
+      "xie-2024-ccrs-ccus-C0003",
+      "xie-2024-ccrs-ccus-C0004"
     ],
     "DNMT3B": [
       "idh-comutations-inhibitor-resistance-C0007"
@@ -1047,21 +1541,40 @@
     "DPYSL3": [
       "idh-comutations-inhibitor-resistance-C0007"
     ],
+    "EFL1": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
+    "ELANE": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
     "EMP1": [
       "idh-comutations-inhibitor-resistance-C0007"
     ],
+    "ERCC6L2": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
     "ETNK1": [
-      "bernard-2022-nejm-evidence-1-na-C0007"
+      "bernard-2022-nejm-evidence-1-na-C0007",
+      "kessler-2022-large-biobank-genetics-C0016"
     ],
     "ETV6": [
       "arber-2022-blood-140-1200-C0005",
       "arber-2022-blood-140-1200-C0016",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0005",
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
+      "drazer-2018-germline-vaf-C0001",
+      "feurstein-2021-myeloid-germline-C0003",
+      "feurstein-2021-myeloid-germline-C0005",
+      "feurstein-2021-myeloid-germline-C0007",
       "khoury-2022-leukemia-36-1703-C0023",
       "khoury-2022-leukemia-36-1703-C0024",
       "khoury-2022-leukemia-36-1703-C0025",
+      "kraft-godley-2020-germline-guide-C0006",
+      "noetzli-2015-etv6-phenotype-C0001",
+      "noetzli-2015-etv6-phenotype-C0002",
       "tet2-asxl1-hma-response-C0007",
       "tp53-lenalidomide-clonal-dynamics-C0001"
     ],
@@ -1074,6 +1587,7 @@
       "elena-2016-blood-128-1408-C0003",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
+      "malcovati-2017-ccus-foundation-C0004",
       "mf-genomics-ruxolitinib-response-C0001",
       "mf-genomics-ruxolitinib-response-C0002",
       "mf-genomics-ruxolitinib-response-C0003",
@@ -1124,16 +1638,57 @@
       "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "GATA2": [
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0007",
+      "baliakas-2019-operational-germline-testing-C0008",
       "bernard-2022-nejm-evidence-1-na-C0007",
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
-      "idh-comutations-inhibitor-resistance-C0005"
+      "davidsson-2018-samd9-samd9l-C0002",
+      "drazer-2018-germline-vaf-C0001",
+      "drazer-2018-germline-vaf-C0002",
+      "feurstein-2021-myeloid-germline-C0004",
+      "feurstein-2021-myeloid-germline-C0008",
+      "galera-2018-gata2-germline-C0001",
+      "galera-2018-gata2-germline-C0002",
+      "galera-2018-gata2-germline-C0003",
+      "grief-2012-gata-cebpa-C0002",
+      "grief-2012-gata-cebpa-C0004",
+      "grief-2012-gata-cebpa-C0006",
+      "grief-2012-gata-cebpa-C0007",
+      "hsu-2011-gata2-momomac-C0001",
+      "hsu-2011-gata2-momomac-C0002",
+      "hsu-2011-gata2-momomac-C0003",
+      "hsu-2011-gata2-momomac-C0004",
+      "idh-comutations-inhibitor-resistance-C0005",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0006",
+      "wlodarski-2016-gata2-C0001",
+      "wlodarski-2016-gata2-C0002",
+      "wlodarski-2016-gata2-C0003",
+      "wlodarski-2016-gata2-C0004",
+      "wlodarski-2016-gata2-C0005"
+    ],
+    "GFI1": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
+    "GNAS": [
+      "kessler-2022-large-biobank-genetics-C0016"
     ],
     "GNB1": [
-      "bernard-2022-nejm-evidence-1-na-C0007"
+      "bernard-2022-nejm-evidence-1-na-C0007",
+      "kessler-2022-large-biobank-genetics-C0016"
     ],
     "GPR56": [
       "idh-comutations-inhibitor-resistance-C0007"
+    ],
+    "GSKIP": [
+      "kraft-godley-2020-germline-guide-C0009"
+    ],
+    "HAX1": [
+      "kraft-godley-2020-germline-guide-C0007"
     ],
     "HLA-DR": [
       "cloos-2026-blood-147-1147-C0011"
@@ -1152,6 +1707,7 @@
       "idh-comutations-inhibitor-resistance-C0008",
       "idh-comutations-inhibitor-resistance-C0012",
       "khoury-2022-leukemia-36-1703-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
       "mf-genomics-ruxolitinib-response-C0001",
       "mf-genomics-ruxolitinib-response-C0002",
       "mf-genomics-ruxolitinib-response-C0003",
@@ -1175,7 +1731,9 @@
       "idh-comutations-inhibitor-resistance-C0008",
       "idh-comutations-inhibitor-resistance-C0010",
       "idh-comutations-inhibitor-resistance-C0012",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
       "mf-genomics-ruxolitinib-response-C0001",
       "mf-genomics-ruxolitinib-response-C0002",
       "mf-genomics-ruxolitinib-response-C0003",
@@ -1185,7 +1743,11 @@
       "weeks-2023-nejm-evidence-2-na-C0001"
     ],
     "IKZF1": [
-      "arber-2022-blood-140-1200-C0017"
+      "arber-2022-blood-140-1200-C0017",
+      "feurstein-2021-myeloid-germline-C0003"
+    ],
+    "IL6R": [
+      "kessler-2022-large-biobank-genetics-C0015"
     ],
     "JAK2": [
       "arber-2022-blood-140-1200-C0001",
@@ -1198,10 +1760,12 @@
       "barbui-2015-blood-cancer-journal-5-e369-C0005",
       "barbui-2015-blood-cancer-journal-5-e369-C0006",
       "barbui-2015-blood-cancer-journal-5-e369-C0007",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0013",
       "khoury-2022-leukemia-36-1703-C0024",
       "khoury-2022-leukemia-36-1703-C0025",
+      "malcovati-2017-ccus-foundation-C0003",
       "mpn-genomics-interferon-response-C0001",
       "mpn-genomics-interferon-response-C0004",
       "mpn-genomics-interferon-response-C0005",
@@ -1211,6 +1775,9 @@
       "tefferi-2020-mipss-et-pv-C0006",
       "tp53-lenalidomide-clonal-dynamics-C0001",
       "weeks-2023-nejm-evidence-2-na-C0001"
+    ],
+    "KDM1A": [
+      "kraft-godley-2020-germline-guide-C0008"
     ],
     "KIAA0125": [
       "idh-comutations-inhibitor-resistance-C0007"
@@ -1244,23 +1811,36 @@
       "d-hner-2024-blood-144-2169-C0010",
       "d-hner-2024-blood-144-2169-C0013",
       "dinardo-2020-genotype-specific-venetoclax-C0010",
+      "feurstein-2021-myeloid-germline-C0003",
       "flt3-ras-gilteritinib-resistance-C0007",
       "flt3-ras-gilteritinib-resistance-C0008",
       "idh-comutations-inhibitor-resistance-C0009",
       "idh-comutations-inhibitor-resistance-C0010",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0026",
+      "kraft-godley-2020-germline-guide-C0009",
       "stahl-2021-independent-treatment-context-C0004"
     ],
     "LAPTM4B": [
       "idh-comutations-inhibitor-resistance-C0007"
     ],
+    "LY75": [
+      "kessler-2022-large-biobank-genetics-C0005",
+      "kessler-2022-large-biobank-genetics-C0014"
+    ],
     "MAP2K1": [
       "khoury-2022-leukemia-36-1703-C0026"
+    ],
+    "MBD4": [
+      "kraft-godley-2020-germline-guide-C0006"
     ],
     "MECOM": [
       "cloos-2026-blood-147-1147-C0001",
       "d-hner-2022-blood-140-1345-C0002",
       "khoury-2022-leukemia-36-1703-C0015"
+    ],
+    "MLH1": [
+      "kraft-godley-2020-germline-guide-C0016"
     ],
     "MLLT3": [
       "d-hner-2022-blood-140-1345-C0011"
@@ -1272,10 +1852,21 @@
       "arber-2022-blood-140-1200-C0001",
       "arber-2022-blood-140-1200-C0009",
       "arber-2022-blood-140-1200-C0010",
+      "feurstein-2021-myeloid-germline-C0003",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0013",
       "passamonti-2017-mysec-pm-secondary-C0001",
       "passamonti-2017-mysec-pm-secondary-C0002",
       "passamonti-2017-mysec-pm-secondary-C0003"
+    ],
+    "MSH2": [
+      "kraft-godley-2020-germline-guide-C0016"
+    ],
+    "MSH6": [
+      "kraft-godley-2020-germline-guide-C0016"
+    ],
+    "MUTYH": [
+      "kraft-godley-2020-germline-guide-C0005"
     ],
     "MYH11": [
       "cloos-2026-blood-147-1147-C0001",
@@ -1284,9 +1875,13 @@
       "d-hner-2022-blood-140-1345-C0006",
       "d-hner-2022-blood-140-1345-C0011"
     ],
+    "NAF1": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
     "NF1": [
       "bernard-2022-nejm-evidence-1-na-C0007",
-      "khoury-2022-leukemia-36-1703-C0005"
+      "khoury-2022-leukemia-36-1703-C0005",
+      "kraft-godley-2020-germline-guide-C0009"
     ],
     "NGFRAP1": [
       "idh-comutations-inhibitor-resistance-C0007"
@@ -1323,6 +1918,7 @@
       "flt3-ras-gilteritinib-resistance-C0002",
       "flt3-ras-gilteritinib-resistance-C0010",
       "khoury-2022-leukemia-36-1703-C0016",
+      "kraft-godley-2020-germline-guide-C0007",
       "stahl-2021-independent-treatment-context-C0001"
     ],
     "NRAS": [
@@ -1337,11 +1933,13 @@
       "dinardo-2020-genotype-specific-venetoclax-C0010",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
+      "feurstein-2021-myeloid-germline-C0003",
       "flt3-ras-gilteritinib-resistance-C0007",
       "flt3-ras-gilteritinib-resistance-C0008",
       "idh-comutations-inhibitor-resistance-C0003",
       "idh-comutations-inhibitor-resistance-C0009",
       "idh-comutations-inhibitor-resistance-C0010",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0026",
       "stahl-2021-independent-treatment-context-C0004"
     ],
@@ -1357,6 +1955,11 @@
     "PALB2": [
       "d-hner-2022-blood-140-1345-C0019"
     ],
+    "PARP1": [
+      "kessler-2022-large-biobank-genetics-C0004",
+      "kessler-2022-large-biobank-genetics-C0007",
+      "kessler-2022-large-biobank-genetics-C0013"
+    ],
     "PAX5": [
       "arber-2022-blood-140-1200-C0017"
     ],
@@ -1369,30 +1972,45 @@
       "khoury-2022-leukemia-36-1703-C0025"
     ],
     "PHF6": [
-      "bernard-2022-nejm-evidence-1-na-C0007"
+      "bernard-2022-nejm-evidence-1-na-C0007",
+      "kessler-2022-large-biobank-genetics-C0016"
     ],
     "PML": [
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0006",
       "d-hner-2022-blood-140-1345-C0001"
     ],
+    "PMS2": [
+      "kraft-godley-2020-germline-guide-C0016"
+    ],
     "PPM1D": [
       "bernard-2022-nejm-evidence-1-na-C0007",
+      "kessler-2022-large-biobank-genetics-C0009",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0021"
     ],
     "PRPF8": [
-      "bernard-2022-nejm-evidence-1-na-C0007"
+      "bernard-2022-nejm-evidence-1-na-C0007",
+      "kessler-2022-large-biobank-genetics-C0016"
     ],
     "PTPN11": [
       "bernard-2022-nejm-evidence-1-na-C0007",
+      "feurstein-2021-myeloid-germline-C0003",
       "flt3-ras-gilteritinib-resistance-C0007",
       "flt3-ras-gilteritinib-resistance-C0008",
       "khoury-2022-leukemia-36-1703-C0005",
+      "kraft-godley-2020-germline-guide-C0009",
       "tet2-asxl1-hma-response-C0005",
       "tet2-asxl1-hma-response-C0008"
     ],
     "RAD21": [
       "idh-comutations-inhibitor-resistance-C0006"
+    ],
+    "RAD51": [
+      "feurstein-2021-myeloid-germline-C0003"
+    ],
+    "RAD51C": [
+      "kraft-godley-2020-germline-guide-C0007"
     ],
     "RARA": [
       "cloos-2026-blood-147-1147-C0001",
@@ -1400,8 +2018,21 @@
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0002"
     ],
+    "RIT1": [
+      "feurstein-2021-myeloid-germline-C0003"
+    ],
+    "RTEL1": [
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
     "RUNX1": [
+      "abelson-2018-predict-aml-C0006",
       "arber-2022-blood-140-1200-C0016",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0005",
+      "baliakas-2019-operational-germline-testing-C0007",
+      "baliakas-2019-operational-germline-testing-C0008",
+      "bernard-2020-tp53-mds-C0009",
       "bernard-2022-nejm-evidence-1-na-C0003",
       "bernard-2022-nejm-evidence-1-na-C0006",
       "bernard-2022-nejm-evidence-1-na-C0007",
@@ -1418,13 +2049,21 @@
       "d-hner-2022-blood-140-1345-C0018",
       "dinardo-2020-genotype-specific-venetoclax-C0009",
       "dohner-2020-npm1-flt3-interaction-C0008",
+      "drazer-2018-germline-vaf-C0001",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0002",
+      "galera-2018-gata2-germline-C0004",
+      "hsu-2011-gata2-momomac-C0006",
       "idh-comutations-inhibitor-resistance-C0002",
       "idh-comutations-inhibitor-resistance-C0005",
       "idh-comutations-inhibitor-resistance-C0009",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0018",
       "khoury-2022-leukemia-36-1703-C0022",
+      "kraft-godley-2020-germline-guide-C0004",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0013",
+      "malcovati-2017-ccus-foundation-C0004",
       "tet2-asxl1-hma-response-C0007",
       "tp53-lenalidomide-clonal-dynamics-C0001",
       "tp53-lenalidomide-clonal-dynamics-C0003",
@@ -1438,10 +2077,31 @@
       "d-hner-2022-blood-140-1345-C0011"
     ],
     "SAMD9": [
-      "arber-2022-blood-140-1200-C0017"
+      "arber-2022-blood-140-1200-C0017",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "davidsson-2018-samd9-samd9l-C0001",
+      "davidsson-2018-samd9-samd9l-C0002",
+      "davidsson-2018-samd9-samd9l-C0003",
+      "davidsson-2018-samd9-samd9l-C0004",
+      "davidsson-2018-samd9-samd9l-C0005",
+      "davidsson-2018-samd9-samd9l-C0006",
+      "kraft-godley-2020-germline-guide-C0006"
     ],
     "SAMD9L": [
-      "arber-2022-blood-140-1200-C0017"
+      "arber-2022-blood-140-1200-C0017",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "davidsson-2018-samd9-samd9l-C0001",
+      "davidsson-2018-samd9-samd9l-C0002",
+      "davidsson-2018-samd9-samd9l-C0003",
+      "davidsson-2018-samd9-samd9l-C0004",
+      "davidsson-2018-samd9-samd9l-C0005",
+      "davidsson-2018-samd9-samd9l-C0006",
+      "davidsson-2018-samd9-samd9l-C0007",
+      "davidsson-2018-samd9-samd9l-C0008",
+      "kraft-godley-2020-germline-guide-C0006"
+    ],
+    "SBDS": [
+      "kraft-godley-2020-germline-guide-C0007"
     ],
     "SETBP1": [
       "arber-2022-blood-140-1200-C0009",
@@ -1451,15 +2111,22 @@
     ],
     "SF3B1": [
       "arber-2022-blood-140-1200-C0010",
+      "bernard-2020-tp53-mds-C0008",
       "bernard-2022-nejm-evidence-1-na-C0006",
       "bernard-2022-nejm-evidence-1-na-C0007",
+      "bolton-2020-chemo-ch-C0002",
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "galli-2021-clone-metrics-ccus-C0003",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0008",
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0010",
       "khoury-2022-leukemia-36-1703-C0019",
+      "malcovati-2017-ccus-foundation-C0001",
+      "malcovati-2017-ccus-foundation-C0002",
       "sf3b1-luspatercept-response-C0001",
       "stahl-2021-independent-treatment-context-C0004",
       "tefferi-2020-mipss-et-pv-C0001",
@@ -1476,14 +2143,26 @@
     "SOCS2": [
       "idh-comutations-inhibitor-resistance-C0007"
     ],
+    "SRP72": [
+      "drazer-2018-germline-vaf-C0001",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
     "SRSF2": [
+      "abelson-2018-predict-aml-C0001",
+      "abelson-2018-predict-aml-C0004",
       "bernard-2022-nejm-evidence-1-na-C0006",
       "bernard-2022-nejm-evidence-1-na-C0007",
+      "bolton-2020-chemo-ch-C0002",
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
+      "fabre-2022-chip-dnmt3a-C0001",
+      "galli-2021-clone-metrics-ccus-C0004",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
+      "malcovati-2017-ccus-foundation-C0003",
       "mf-genomics-ruxolitinib-response-C0001",
       "mf-genomics-ruxolitinib-response-C0002",
       "mf-genomics-ruxolitinib-response-C0003",
@@ -1496,7 +2175,9 @@
       "tefferi-2020-mipss-et-pv-C0003",
       "tefferi-2020-mipss-et-pv-C0004",
       "tefferi-2020-mipss-et-pv-C0005",
-      "weeks-2023-nejm-evidence-2-na-C0001"
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "xie-2024-ccrs-ccus-C0002",
+      "xie-2024-ccrs-ccus-C0004"
     ],
     "STAG2": [
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1509,27 +2190,79 @@
       "khoury-2022-leukemia-36-1703-C0019",
       "stahl-2021-independent-treatment-context-C0006"
     ],
+    "STAT3": [
+      "feurstein-2021-myeloid-germline-C0003"
+    ],
+    "SUZ12": [
+      "kessler-2022-large-biobank-genetics-C0016"
+    ],
+    "TCL1A": [
+      "kessler-2022-large-biobank-genetics-C0006"
+    ],
+    "TERC": [
+      "baliakas-2019-operational-germline-testing-C0004",
+      "feurstein-2021-myeloid-germline-C0008",
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
+    "TERT": [
+      "drazer-2018-germline-vaf-C0001",
+      "kraft-godley-2020-germline-guide-C0007"
+    ],
     "TET2": [
+      "abelson-2018-predict-aml-C0001",
+      "abelson-2018-predict-aml-C0003",
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
       "d-hner-2022-blood-140-1345-C0012",
+      "galli-2021-clone-metrics-ccus-C0001",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "galli-2021-clone-metrics-ccus-C0005",
       "idh-comutations-inhibitor-resistance-C0011",
+      "kessler-2022-large-biobank-genetics-C0008",
+      "kessler-2022-large-biobank-genetics-C0010",
+      "kessler-2022-large-biobank-genetics-C0012",
+      "kessler-2022-large-biobank-genetics-C0013",
+      "kessler-2022-large-biobank-genetics-C0016",
+      "kraft-godley-2020-germline-guide-C0006",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
       "mpn-genomics-interferon-response-C0004",
       "tet2-asxl1-hma-response-C0001",
       "tet2-asxl1-hma-response-C0002",
       "tet2-asxl1-hma-response-C0004",
       "tp53-lenalidomide-clonal-dynamics-C0002",
-      "tp53-lenalidomide-clonal-dynamics-C0004"
+      "tp53-lenalidomide-clonal-dynamics-C0004",
+      "xie-2024-ccrs-ccus-C0001",
+      "xie-2024-ccrs-ccus-C0002",
+      "xie-2024-ccrs-ccus-C0004"
     ],
     "TP53": [
+      "abelson-2018-predict-aml-C0001",
+      "abelson-2018-predict-aml-C0002",
+      "abelson-2018-predict-aml-C0005",
+      "andrade-2018-tp53-gnomad-C0001",
+      "andrade-2018-tp53-gnomad-C0002",
+      "andrade-2018-tp53-gnomad-C0003",
+      "andrade-2018-tp53-gnomad-C0004",
+      "andrade-2018-tp53-gnomad-C0005",
+      "andrade-2018-tp53-gnomad-C0006",
       "arber-2022-blood-140-1200-C0011",
       "arber-2022-blood-140-1200-C0012",
       "arber-2022-blood-140-1200-C0015",
       "arber-2022-blood-140-1200-C0017",
+      "baliakas-2019-operational-germline-testing-C0001",
+      "bernard-2020-tp53-mds-C0001",
+      "bernard-2020-tp53-mds-C0002",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0006",
+      "bernard-2020-tp53-mds-C0007",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0007",
       "bernard-2022-nejm-evidence-1-na-C0009",
+      "bolton-2020-chemo-ch-C0001",
       "cloos-2026-blood-147-1147-C0009",
       "cloos-2026-blood-147-1147-C0010",
       "cloos-2026-blood-147-1147-C0015",
@@ -1546,12 +2279,24 @@
       "dinardo-2020-genotype-specific-venetoclax-C0007",
       "dinardo-2020-genotype-specific-venetoclax-C0008",
       "dohner-2020-npm1-flt3-interaction-C0008",
+      "drazer-2018-germline-vaf-C0001",
+      "drazer-2018-germline-vaf-C0002",
+      "feurstein-2021-myeloid-germline-C0003",
+      "galli-2021-clone-metrics-ccus-C0002",
+      "galli-2021-clone-metrics-ccus-C0003",
       "idh-comutations-inhibitor-resistance-C0004",
+      "kessler-2022-large-biobank-genetics-C0016",
       "khoury-2022-leukemia-36-1703-C0008",
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0011",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0020",
+      "kraft-godley-2020-germline-guide-C0004",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0009",
+      "kraft-godley-2020-germline-guide-C0011",
+      "kraft-godley-2020-germline-guide-C0017",
+      "malcovati-2017-ccus-foundation-C0004",
       "stahl-2021-independent-treatment-context-C0004",
       "tefferi-2020-mipss-et-pv-C0002",
       "tefferi-2020-mipss-et-pv-C0004",
@@ -1562,19 +2307,29 @@
       "weeks-2023-nejm-evidence-2-na-C0003"
     ],
     "U2AF1": [
+      "abelson-2018-predict-aml-C0001",
+      "abelson-2018-predict-aml-C0002",
+      "abelson-2018-predict-aml-C0005",
       "bernard-2022-nejm-evidence-1-na-C0003",
       "bernard-2022-nejm-evidence-1-na-C0007",
+      "bolton-2020-chemo-ch-C0002",
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
+      "fabre-2022-chip-dnmt3a-C0001",
+      "galli-2021-clone-metrics-ccus-C0003",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0019",
+      "malcovati-2017-ccus-foundation-C0003",
       "tefferi-2018-genomics-only-pmf-C0001",
       "tefferi-2018-genomics-only-pmf-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2020-mipss-et-pv-C0001",
       "tefferi-2020-mipss-et-pv-C0004",
       "weeks-2023-nejm-evidence-2-na-C0004"
+    ],
+    "USP45": [
+      "kraft-godley-2020-germline-guide-C0008"
     ],
     "WT1": [
       "bernard-2022-nejm-evidence-1-na-C0007",
@@ -1590,12 +2345,15 @@
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0008",
       "khoury-2022-leukemia-36-1703-C0019",
-      "weeks-2023-nejm-evidence-2-na-C0001"
+      "malcovati-2017-ccus-foundation-C0004",
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "xie-2024-ccrs-ccus-C0002"
     ]
   },
   "by_publication_type": {
     "consensus statement": [
       "arber-2022-blood-140-1200",
+      "baliakas-2019-operational-germline-testing",
       "d-hner-2022-blood-140-1345",
       "d-hner-2024-blood-144-2169",
       "khoury-2022-leukemia-36-1703"
@@ -1603,16 +2361,35 @@
     "guideline": [
       "cloos-2026-blood-147-1147"
     ],
+    "narrative review": [
+      "davidsson-2018-samd9-samd9l",
+      "kraft-godley-2020-germline-guide"
+    ],
     "primary study": [
+      "abelson-2018-predict-aml",
+      "andrade-2018-tp53-gnomad",
       "barbui-2015-blood-cancer-journal-5-e369",
+      "bernard-2020-tp53-mds",
       "bernard-2022-nejm-evidence-1-na",
+      "bluteau-2014-ankrd26",
+      "bolton-2020-chemo-ch",
       "dinardo-2020-genotype-specific-venetoclax",
       "dohner-2020-npm1-flt3-interaction",
+      "drazer-2018-germline-vaf",
       "elena-2016-blood-128-1408",
+      "fabre-2022-chip-dnmt3a",
+      "feurstein-2021-myeloid-germline",
       "flt3-ras-gilteritinib-resistance",
+      "galera-2018-gata2-germline",
+      "galli-2021-clone-metrics-ccus",
+      "grief-2012-gata-cebpa",
+      "hsu-2011-gata2-momomac",
       "idh-comutations-inhibitor-resistance",
+      "kessler-2022-large-biobank-genetics",
+      "malcovati-2017-ccus-foundation",
       "mf-genomics-ruxolitinib-response",
       "mpn-genomics-interferon-response",
+      "noetzli-2015-etv6-phenotype",
       "passamonti-2017-mysec-pm-secondary",
       "sf3b1-luspatercept-response",
       "stahl-2021-independent-treatment-context",
@@ -1621,12 +2398,22 @@
       "tefferi-2020-mipss-et-pv",
       "tet2-asxl1-hma-response",
       "tp53-lenalidomide-clonal-dynamics",
-      "weeks-2023-nejm-evidence-2-na"
+      "weeks-2023-nejm-evidence-2-na",
+      "wlodarski-2016-gata2",
+      "xie-2024-ccrs-ccus"
     ]
   },
   "by_year": {
+    "2011": [
+      "hsu-2011-gata2-momomac"
+    ],
+    "2012": [
+      "grief-2012-gata-cebpa"
+    ],
     "2014": [
+      "bluteau-2014-ankrd26",
       "mf-genomics-ruxolitinib-response",
+      "noetzli-2015-etv6-phenotype",
       "tet2-asxl1-hma-response"
     ],
     "2015": [
@@ -1634,22 +2421,36 @@
     ],
     "2016": [
       "elena-2016-blood-128-1408",
-      "tp53-lenalidomide-clonal-dynamics"
+      "tp53-lenalidomide-clonal-dynamics",
+      "wlodarski-2016-gata2"
     ],
     "2017": [
+      "malcovati-2017-ccus-foundation",
       "passamonti-2017-mysec-pm-secondary",
       "sf3b1-luspatercept-response"
     ],
     "2018": [
+      "abelson-2018-predict-aml",
+      "andrade-2018-tp53-gnomad",
+      "davidsson-2018-samd9-samd9l",
+      "drazer-2018-germline-vaf",
+      "galera-2018-gata2-germline",
       "tefferi-2018-genomics-only-pmf",
       "tefferi-2018-journal-of-clinical-oncology-36-1769"
     ],
+    "2019": [
+      "baliakas-2019-operational-germline-testing"
+    ],
     "2020": [
+      "bernard-2020-tp53-mds",
+      "bolton-2020-chemo-ch",
       "dinardo-2020-genotype-specific-venetoclax",
       "dohner-2020-npm1-flt3-interaction",
+      "kraft-godley-2020-germline-guide",
       "tefferi-2020-mipss-et-pv"
     ],
     "2021": [
+      "galli-2021-clone-metrics-ccus",
       "idh-comutations-inhibitor-resistance",
       "stahl-2021-independent-treatment-context"
     ],
@@ -1657,7 +2458,10 @@
       "arber-2022-blood-140-1200",
       "bernard-2022-nejm-evidence-1-na",
       "d-hner-2022-blood-140-1345",
+      "fabre-2022-chip-dnmt3a",
+      "feurstein-2021-myeloid-germline",
       "flt3-ras-gilteritinib-resistance",
+      "kessler-2022-large-biobank-genetics",
       "khoury-2022-leukemia-36-1703",
       "mpn-genomics-interferon-response"
     ],
@@ -1665,13 +2469,165 @@
       "weeks-2023-nejm-evidence-2-na"
     ],
     "2024": [
-      "d-hner-2024-blood-144-2169"
+      "d-hner-2024-blood-144-2169",
+      "xie-2024-ccrs-ccus"
     ],
     "2026": [
       "cloos-2026-blood-147-1147"
     ]
   },
   "cards": {
+    "abelson-2018-predict-aml-C0001": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "DNMT3A",
+        "SRSF2",
+        "TET2",
+        "TP53",
+        "U2AF1"
+      ],
+      "input_id": "05ef92df-b28a-57db-9c1f-d98ff03028c7",
+      "publication_key": "abelson-2018-predict-aml"
+    },
+    "abelson-2018-predict-aml-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53",
+        "U2AF1"
+      ],
+      "input_id": "05ef92df-b28a-57db-9c1f-d98ff03028c7",
+      "publication_key": "abelson-2018-predict-aml"
+    },
+    "abelson-2018-predict-aml-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "05ef92df-b28a-57db-9c1f-d98ff03028c7",
+      "publication_key": "abelson-2018-predict-aml"
+    },
+    "abelson-2018-predict-aml-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SRSF2"
+      ],
+      "input_id": "05ef92df-b28a-57db-9c1f-d98ff03028c7",
+      "publication_key": "abelson-2018-predict-aml"
+    },
+    "abelson-2018-predict-aml-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53",
+        "U2AF1"
+      ],
+      "input_id": "05ef92df-b28a-57db-9c1f-d98ff03028c7",
+      "publication_key": "abelson-2018-predict-aml"
+    },
+    "abelson-2018-predict-aml-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "05ef92df-b28a-57db-9c1f-d98ff03028c7",
+      "publication_key": "abelson-2018-predict-aml"
+    },
+    "andrade-2018-tp53-gnomad-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "9042b118-9ef8-5b98-8d22-4406378948e7",
+      "publication_key": "andrade-2018-tp53-gnomad"
+    },
+    "andrade-2018-tp53-gnomad-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "9042b118-9ef8-5b98-8d22-4406378948e7",
+      "publication_key": "andrade-2018-tp53-gnomad"
+    },
+    "andrade-2018-tp53-gnomad-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "9042b118-9ef8-5b98-8d22-4406378948e7",
+      "publication_key": "andrade-2018-tp53-gnomad"
+    },
+    "andrade-2018-tp53-gnomad-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "9042b118-9ef8-5b98-8d22-4406378948e7",
+      "publication_key": "andrade-2018-tp53-gnomad"
+    },
+    "andrade-2018-tp53-gnomad-C0005": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "9042b118-9ef8-5b98-8d22-4406378948e7",
+      "publication_key": "andrade-2018-tp53-gnomad"
+    },
+    "andrade-2018-tp53-gnomad-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "9042b118-9ef8-5b98-8d22-4406378948e7",
+      "publication_key": "andrade-2018-tp53-gnomad"
+    },
     "arber-2022-blood-140-1200-C0001": {
       "category": "diagnosis",
       "disease_ancestors": [
@@ -1948,6 +2904,149 @@
       "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
       "publication_key": "arber-2022-blood-140-1200"
     },
+    "baliakas-2019-operational-germline-testing-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CEBPA",
+        "ETV6",
+        "GATA2",
+        "RUNX1",
+        "TP53"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "GATA2",
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "RUNX1",
+        "TERC"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0005": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ANKRD26",
+        "ETV6",
+        "RUNX1"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0007": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "GATA2",
+        "RUNX1"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0008": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "GATA2",
+        "RUNX1"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0009": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0010": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
     "barbui-2015-blood-cancer-journal-5-e369-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -2052,6 +3151,125 @@
       ],
       "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
       "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "bernard-2020-tp53-mds-C0001": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0006": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0007": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0008": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0009": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ASXL1",
+        "CBL",
+        "RUNX1"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
     },
     "bernard-2022-nejm-evidence-1-na-C0001": {
       "category": "prognosis",
@@ -2227,6 +3445,47 @@
       ],
       "input_id": "f6f179da-542a-5f28-a3ba-e12798579924",
       "publication_key": "bernard-2022-nejm-evidence-1-na"
+    },
+    "bluteau-2014-ankrd26-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ANKRD26"
+      ],
+      "input_id": "03db9293-37ef-5b64-8157-728640f19dbe",
+      "publication_key": "bluteau-2014-ankrd26"
+    },
+    "bolton-2020-chemo-ch-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "91ed79e3-7b88-569a-956a-1a0ac2084d31",
+      "publication_key": "bolton-2020-chemo-ch"
+    },
+    "bolton-2020-chemo-ch-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "SF3B1",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "91ed79e3-7b88-569a-956a-1a0ac2084d31",
+      "publication_key": "bolton-2020-chemo-ch"
     },
     "cloos-2026-blood-147-1147-C0001": {
       "category": "biomarker",
@@ -2993,6 +4252,111 @@
       "input_id": "ad2131a7-b225-5a2a-badc-1fb730ce9e70",
       "publication_key": "d-hner-2024-blood-144-2169"
     },
+    "davidsson-2018-samd9-samd9l-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
+    "davidsson-2018-samd9-samd9l-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2",
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
+    "davidsson-2018-samd9-samd9l-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
+    "davidsson-2018-samd9-samd9l-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
+    "davidsson-2018-samd9-samd9l-C0005": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
+    "davidsson-2018-samd9-samd9l-C0006": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
+    "davidsson-2018-samd9-samd9l-C0007": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
+    "davidsson-2018-samd9-samd9l-C0008": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9L"
+      ],
+      "input_id": "35297c38-2b12-5e41-be83-4455e00970de",
+      "publication_key": "davidsson-2018-samd9-samd9l"
+    },
     "dinardo-2020-genotype-specific-venetoclax-C0001": {
       "category": "treatment",
       "disease_ancestors": [],
@@ -3283,6 +4647,49 @@
       "input_id": "844c1f2e-ffe1-5d53-89a5-26d067cc70c9",
       "publication_key": "dohner-2020-npm1-flt3-interaction"
     },
+    "drazer-2018-germline-vaf-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ANKRD26",
+        "CEBPA",
+        "DDX41",
+        "ETV6",
+        "GATA2",
+        "RUNX1",
+        "SRP72",
+        "TERT",
+        "TP53"
+      ],
+      "input_id": "0a7e0048-9c18-5ff4-a19a-a95d6ce4a1aa",
+      "publication_key": "drazer-2018-germline-vaf"
+    },
+    "drazer-2018-germline-vaf-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DDX41",
+        "GATA2",
+        "TP53"
+      ],
+      "input_id": "0a7e0048-9c18-5ff4-a19a-a95d6ce4a1aa",
+      "publication_key": "drazer-2018-germline-vaf"
+    },
+    "drazer-2018-germline-vaf-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "0a7e0048-9c18-5ff4-a19a-a95d6ce4a1aa",
+      "publication_key": "drazer-2018-germline-vaf"
+    },
     "elena-2016-blood-128-1408-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -3339,6 +4746,127 @@
       ],
       "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
       "publication_key": "elena-2016-blood-128-1408"
+    },
+    "fabre-2022-chip-dnmt3a-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "c097a517-ed2e-5abd-96de-ac18cb851f2a",
+      "publication_key": "fabre-2022-chip-dnmt3a"
+    },
+    "feurstein-2021-myeloid-germline-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
+    },
+    "feurstein-2021-myeloid-germline-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
+    },
+    "feurstein-2021-myeloid-germline-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRAF",
+        "CARD11",
+        "CBL",
+        "ETV6",
+        "IKZF1",
+        "KRAS",
+        "MPL",
+        "NRAS",
+        "PTPN11",
+        "RAD51",
+        "RIT1",
+        "STAT3",
+        "TP53"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
+    },
+    "feurstein-2021-myeloid-germline-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
+    },
+    "feurstein-2021-myeloid-germline-C0005": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ETV6"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
+    },
+    "feurstein-2021-myeloid-germline-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ANKRD26"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
+    },
+    "feurstein-2021-myeloid-germline-C0007": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ETV6"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
+    },
+    "feurstein-2021-myeloid-germline-C0008": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ANKRD26",
+        "GATA2",
+        "TERC"
+      ],
+      "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+      "publication_key": "feurstein-2021-myeloid-germline"
     },
     "flt3-ras-gilteritinib-resistance-C0001": {
       "category": "treatment",
@@ -3477,6 +5005,325 @@
       ],
       "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
       "publication_key": "flt3-ras-gilteritinib-resistance"
+    },
+    "galera-2018-gata2-germline-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "1094c036-e930-59ee-860b-184b55fe6a8b",
+      "publication_key": "galera-2018-gata2-germline"
+    },
+    "galera-2018-gata2-germline-C0002": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "1094c036-e930-59ee-860b-184b55fe6a8b",
+      "publication_key": "galera-2018-gata2-germline"
+    },
+    "galera-2018-gata2-germline-C0003": {
+      "category": "germline",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "1094c036-e930-59ee-860b-184b55fe6a8b",
+      "publication_key": "galera-2018-gata2-germline"
+    },
+    "galera-2018-gata2-germline-C0004": {
+      "category": "germline",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA",
+        "DDX41",
+        "RUNX1"
+      ],
+      "input_id": "1094c036-e930-59ee-860b-184b55fe6a8b",
+      "publication_key": "galera-2018-gata2-germline"
+    },
+    "galli-2021-clone-metrics-ccus-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "f97719ae-120f-5baa-b048-9c55bd0c01e1",
+      "publication_key": "galli-2021-clone-metrics-ccus"
+    },
+    "galli-2021-clone-metrics-ccus-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "SF3B1",
+        "TET2",
+        "TP53"
+      ],
+      "input_id": "f97719ae-120f-5baa-b048-9c55bd0c01e1",
+      "publication_key": "galli-2021-clone-metrics-ccus"
+    },
+    "galli-2021-clone-metrics-ccus-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1",
+        "TP53",
+        "U2AF1"
+      ],
+      "input_id": "f97719ae-120f-5baa-b048-9c55bd0c01e1",
+      "publication_key": "galli-2021-clone-metrics-ccus"
+    },
+    "galli-2021-clone-metrics-ccus-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SRSF2"
+      ],
+      "input_id": "f97719ae-120f-5baa-b048-9c55bd0c01e1",
+      "publication_key": "galli-2021-clone-metrics-ccus"
+    },
+    "galli-2021-clone-metrics-ccus-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "TET2"
+      ],
+      "input_id": "f97719ae-120f-5baa-b048-9c55bd0c01e1",
+      "publication_key": "galli-2021-clone-metrics-ccus"
+    },
+    "grief-2012-gata-cebpa-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "a54f7a84-411c-54b3-8f49-e1850774e9da",
+      "publication_key": "grief-2012-gata-cebpa"
+    },
+    "grief-2012-gata-cebpa-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "CEBPA",
+        "GATA2"
+      ],
+      "input_id": "a54f7a84-411c-54b3-8f49-e1850774e9da",
+      "publication_key": "grief-2012-gata-cebpa"
+    },
+    "grief-2012-gata-cebpa-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "a54f7a84-411c-54b3-8f49-e1850774e9da",
+      "publication_key": "grief-2012-gata-cebpa"
+    },
+    "grief-2012-gata-cebpa-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "CEBPA",
+        "GATA2"
+      ],
+      "input_id": "a54f7a84-411c-54b3-8f49-e1850774e9da",
+      "publication_key": "grief-2012-gata-cebpa"
+    },
+    "grief-2012-gata-cebpa-C0005": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "a54f7a84-411c-54b3-8f49-e1850774e9da",
+      "publication_key": "grief-2012-gata-cebpa"
+    },
+    "grief-2012-gata-cebpa-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "a54f7a84-411c-54b3-8f49-e1850774e9da",
+      "publication_key": "grief-2012-gata-cebpa"
+    },
+    "grief-2012-gata-cebpa-C0007": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "a54f7a84-411c-54b3-8f49-e1850774e9da",
+      "publication_key": "grief-2012-gata-cebpa"
+    },
+    "hsu-2011-gata2-momomac-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "e94acb9d-00a7-5a98-83e9-739ecc004663",
+      "publication_key": "hsu-2011-gata2-momomac"
+    },
+    "hsu-2011-gata2-momomac-C0002": {
+      "category": "germline",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "e94acb9d-00a7-5a98-83e9-739ecc004663",
+      "publication_key": "hsu-2011-gata2-momomac"
+    },
+    "hsu-2011-gata2-momomac-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "e94acb9d-00a7-5a98-83e9-739ecc004663",
+      "publication_key": "hsu-2011-gata2-momomac"
+    },
+    "hsu-2011-gata2-momomac-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "e94acb9d-00a7-5a98-83e9-739ecc004663",
+      "publication_key": "hsu-2011-gata2-momomac"
+    },
+    "hsu-2011-gata2-momomac-C0005": {
+      "category": "germline",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "e94acb9d-00a7-5a98-83e9-739ecc004663",
+      "publication_key": "hsu-2011-gata2-momomac"
+    },
+    "hsu-2011-gata2-momomac-C0006": {
+      "category": "germline",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "e94acb9d-00a7-5a98-83e9-739ecc004663",
+      "publication_key": "hsu-2011-gata2-momomac"
     },
     "idh-comutations-inhibitor-resistance-C0001": {
       "category": "treatment",
@@ -3675,6 +5522,269 @@
       ],
       "input_id": "9431314e-3e51-5f84-ac03-31aeb16912c0",
       "publication_key": "idh-comutations-inhibitor-resistance"
+    },
+    "kessler-2022-large-biobank-genetics-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "CHEK2"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ATM"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "CTC1"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "PARP1"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0005": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "LY75"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TCL1A"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0007": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PARP1"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0008": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TET2"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0009": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "PPM1D"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0010": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0011": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "DNMT3A"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0012": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0013": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PARP1",
+        "TET2"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0014": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DNMT3A",
+        "LY75"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0015": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "IL6R"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0016": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "BRAF",
+        "CALR",
+        "CBL",
+        "CSF3R",
+        "DNMT3A",
+        "ETNK1",
+        "GNAS",
+        "GNB1",
+        "IDH2",
+        "JAK2",
+        "KRAS",
+        "MPL",
+        "NRAS",
+        "PHF6",
+        "PPM1D",
+        "PRPF8",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "SUZ12",
+        "TET2",
+        "TP53"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0017": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
+    },
+    "kessler-2022-large-biobank-genetics-C0018": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "7f58cea1-cd18-5c7a-8e95-5b85fe026f68",
+      "publication_key": "kessler-2022-large-biobank-genetics"
     },
     "khoury-2022-leukemia-36-1703-C0001": {
       "category": "diagnosis",
@@ -4082,6 +6192,305 @@
       "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
       "publication_key": "khoury-2022-leukemia-36-1703"
     },
+    "kraft-godley-2020-germline-guide-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRCA1",
+        "BRCA2",
+        "GATA2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "RUNX1",
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0005": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ATM",
+        "BRCA1",
+        "BRCA2",
+        "CHEK2",
+        "DDX41",
+        "GATA2",
+        "MUTYH",
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ANKRD26",
+        "CEBPA",
+        "DDX41",
+        "ETV6",
+        "GATA2",
+        "MBD4",
+        "RUNX1",
+        "SAMD9",
+        "SAMD9L",
+        "SRP72",
+        "TET2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0007": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DKC1",
+        "DNAJC21",
+        "EFL1",
+        "ELANE",
+        "ERCC6L2",
+        "GFI1",
+        "HAX1",
+        "NAF1",
+        "NPM1",
+        "RAD51C",
+        "RTEL1",
+        "SBDS",
+        "SRP72",
+        "TERC",
+        "TERT"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0008": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ARID1A",
+        "DIS3",
+        "KDM1A",
+        "USP45"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0009": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ATG2B",
+        "BLM",
+        "BRCA1",
+        "BRCA2",
+        "CBL",
+        "GSKIP",
+        "KRAS",
+        "NF1",
+        "PTPN11",
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0010": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRCA1",
+        "BRCA2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0011": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0012": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "BRCA1",
+        "BRCA2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0013": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA",
+        "RUNX1"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0016": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "PMS2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0017": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "malcovati-2017-ccus-foundation-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0003": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0004": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "DNMT3A",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "RUNX1",
+        "TET2",
+        "TP53",
+        "ZRSR2"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
     "mf-genomics-ruxolitinib-response-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -4230,6 +6639,28 @@
       ],
       "input_id": "9a63aa81-93c0-5e1b-9a24-a6b936b32580",
       "publication_key": "mpn-genomics-interferon-response"
+    },
+    "noetzli-2015-etv6-phenotype-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ETV6"
+      ],
+      "input_id": "4ff3a111-d133-5675-8b34-ebed1d58a49e",
+      "publication_key": "noetzli-2015-etv6-phenotype"
+    },
+    "noetzli-2015-etv6-phenotype-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ETV6"
+      ],
+      "input_id": "4ff3a111-d133-5675-8b34-ebed1d58a49e",
+      "publication_key": "noetzli-2015-etv6-phenotype"
     },
     "passamonti-2017-mysec-pm-secondary-C0001": {
       "category": "diagnosis",
@@ -4822,18 +7253,189 @@
       ],
       "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
       "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "wlodarski-2016-gata2-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "8429e6f8-3922-58d6-b74c-e7ad68433bdb",
+      "publication_key": "wlodarski-2016-gata2"
+    },
+    "wlodarski-2016-gata2-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "8429e6f8-3922-58d6-b74c-e7ad68433bdb",
+      "publication_key": "wlodarski-2016-gata2"
+    },
+    "wlodarski-2016-gata2-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "8429e6f8-3922-58d6-b74c-e7ad68433bdb",
+      "publication_key": "wlodarski-2016-gata2"
+    },
+    "wlodarski-2016-gata2-C0004": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "8429e6f8-3922-58d6-b74c-e7ad68433bdb",
+      "publication_key": "wlodarski-2016-gata2"
+    },
+    "wlodarski-2016-gata2-C0005": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "8429e6f8-3922-58d6-b74c-e7ad68433bdb",
+      "publication_key": "wlodarski-2016-gata2"
+    },
+    "xie-2024-ccrs-ccus-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid neoplasm, unspecified"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "0a6db08f-b8cf-5604-bb5f-464f4a21575c",
+      "publication_key": "xie-2024-ccrs-ccus"
+    },
+    "xie-2024-ccrs-ccus-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "SRSF2",
+        "TET2",
+        "ZRSR2"
+      ],
+      "input_id": "0a6db08f-b8cf-5604-bb5f-464f4a21575c",
+      "publication_key": "xie-2024-ccrs-ccus"
+    },
+    "xie-2024-ccrs-ccus-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "0a6db08f-b8cf-5604-bb5f-464f4a21575c",
+      "publication_key": "xie-2024-ccrs-ccus"
+    },
+    "xie-2024-ccrs-ccus-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "SRSF2",
+        "TET2"
+      ],
+      "input_id": "0a6db08f-b8cf-5604-bb5f-464f4a21575c",
+      "publication_key": "xie-2024-ccrs-ccus"
     }
   },
-  "corpus_sha256": "860d9eec3d33856b45929c4c5e54296542cf64dc367320862ad5310cb0eb492c",
+  "corpus_sha256": "83bbeb8c66577b8a3c048205478ab9364634012362b273779860eb818a965503",
   "counts": {
-    "cards": 204,
-    "census_entries": 778,
-    "completed_papers": 23,
+    "cards": 329,
+    "census_entries": 1346,
+    "completed_papers": 43,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-09T03:54:30.147335+00:00",
+  "generated_at": "2026-08-10T07:03:05.239006+00:00",
   "index_version": "1.3",
   "papers": {
+    "abelson-2018-predict-aml": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "abelson-2018-predict-aml-C0001",
+        "abelson-2018-predict-aml-C0002",
+        "abelson-2018-predict-aml-C0003",
+        "abelson-2018-predict-aml-C0004",
+        "abelson-2018-predict-aml-C0005",
+        "abelson-2018-predict-aml-C0006"
+      ],
+      "cards": 6,
+      "census_entries": 32,
+      "citation_display": "Abelson S, Collord G, Ng SWK, Weissbrod O, Mendelson Cohen N, Niemeyer E, et al. Prediction of acute myeloid leukaemia risk in healthy individuals. Nature. 2018;559(7714):400-404.",
+      "diseases": [
+        "AML"
+      ],
+      "genes": [
+        "DNMT3A",
+        "RUNX1",
+        "SRSF2",
+        "TET2",
+        "TP53",
+        "U2AF1"
+      ],
+      "publication_key": "abelson-2018-predict-aml",
+      "status": "completed"
+    },
+    "andrade-2018-tp53-gnomad": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "andrade-2018-tp53-gnomad-C0001",
+        "andrade-2018-tp53-gnomad-C0002",
+        "andrade-2018-tp53-gnomad-C0003",
+        "andrade-2018-tp53-gnomad-C0004",
+        "andrade-2018-tp53-gnomad-C0005",
+        "andrade-2018-tp53-gnomad-C0006"
+      ],
+      "cards": 6,
+      "census_entries": 1,
+      "citation_display": "de Andrade KC, Frone MN, Wegman-Ostrosky T, Khincha PP, Kim J, Amadou A, et al. Variable population prevalence estimates of germline <i>TP53</i>\n variants: A gnomAD-based analysis. Human Mutation. 2018;40(1):97-105.",
+      "diseases": [],
+      "genes": [
+        "TP53"
+      ],
+      "publication_key": "andrade-2018-tp53-gnomad",
+      "status": "completed"
+    },
     "arber-2022-blood-140-1200": {
       "accepted_in_version": "0.1.5",
       "card_ids": [
@@ -4902,6 +7504,42 @@
       "publication_key": "arber-2022-blood-140-1200",
       "status": "completed"
     },
+    "baliakas-2019-operational-germline-testing": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "baliakas-2019-operational-germline-testing-C0001",
+        "baliakas-2019-operational-germline-testing-C0002",
+        "baliakas-2019-operational-germline-testing-C0003",
+        "baliakas-2019-operational-germline-testing-C0004",
+        "baliakas-2019-operational-germline-testing-C0005",
+        "baliakas-2019-operational-germline-testing-C0006",
+        "baliakas-2019-operational-germline-testing-C0007",
+        "baliakas-2019-operational-germline-testing-C0008",
+        "baliakas-2019-operational-germline-testing-C0009",
+        "baliakas-2019-operational-germline-testing-C0010"
+      ],
+      "cards": 10,
+      "census_entries": 70,
+      "citation_display": "Baliakas P, Tesi B, Wartiovaara-Kautto U, Stray-Pedersen A, Friis LS, Dybedal I, et al. Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up. HemaSphere. 2019;3(6):e321.",
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "genes": [
+        "ANKRD26",
+        "CEBPA",
+        "DDX41",
+        "ETV6",
+        "GATA2",
+        "RUNX1",
+        "SAMD9",
+        "SAMD9L",
+        "TERC",
+        "TP53"
+      ],
+      "publication_key": "baliakas-2019-operational-germline-testing",
+      "status": "completed"
+    },
     "barbui-2015-blood-cancer-journal-5-e369": {
       "accepted_in_version": "0.1.5",
       "card_ids": [
@@ -4924,6 +7562,35 @@
         "JAK2"
       ],
       "publication_key": "barbui-2015-blood-cancer-journal-5-e369",
+      "status": "completed"
+    },
+    "bernard-2020-tp53-mds": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "bernard-2020-tp53-mds-C0001",
+        "bernard-2020-tp53-mds-C0002",
+        "bernard-2020-tp53-mds-C0003",
+        "bernard-2020-tp53-mds-C0004",
+        "bernard-2020-tp53-mds-C0005",
+        "bernard-2020-tp53-mds-C0006",
+        "bernard-2020-tp53-mds-C0007",
+        "bernard-2020-tp53-mds-C0008",
+        "bernard-2020-tp53-mds-C0009"
+      ],
+      "cards": 9,
+      "census_entries": 16,
+      "citation_display": "Bernard E, Nannya Y, Hasserjian RP, Devlin SM, Tuechler H, Medina-Martinez JS, et al. Implications of TP53 allelic state for genome stability, clinical presentation and outcomes in myelodysplastic syndromes. Nature Medicine. 2020;26(10):1549-1556.",
+      "diseases": [
+        "MDS"
+      ],
+      "genes": [
+        "ASXL1",
+        "CBL",
+        "RUNX1",
+        "SF3B1",
+        "TP53"
+      ],
+      "publication_key": "bernard-2020-tp53-mds",
       "status": "completed"
     },
     "bernard-2022-nejm-evidence-1-na": {
@@ -4981,6 +7648,43 @@
         "WT1"
       ],
       "publication_key": "bernard-2022-nejm-evidence-1-na",
+      "status": "completed"
+    },
+    "bluteau-2014-ankrd26": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "bluteau-2014-ankrd26-C0001"
+      ],
+      "cards": 1,
+      "census_entries": 4,
+      "citation_display": "Bluteau D, Balduini A, Balayn N, Currao M, Nurden P, Deswarte C, et al. Thrombocytopenia-associated mutations in the ANKRD26 regulatory region induce MAPK hyperactivation. Journal of Clinical Investigation. 2014;124(2):580-591.",
+      "diseases": [],
+      "genes": [
+        "ANKRD26"
+      ],
+      "publication_key": "bluteau-2014-ankrd26",
+      "status": "completed"
+    },
+    "bolton-2020-chemo-ch": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "bolton-2020-chemo-ch-C0001",
+        "bolton-2020-chemo-ch-C0002"
+      ],
+      "cards": 2,
+      "census_entries": 45,
+      "citation_display": "Bolton KL, Ptashkin RN, Gao T, Braunstein L, Devlin SM, Kelly D, et al. Cancer therapy shapes the fitness landscape of clonal hematopoiesis. Nature Genetics. 2020;52(11):1219-1226.",
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "genes": [
+        "SF3B1",
+        "SRSF2",
+        "TP53",
+        "U2AF1"
+      ],
+      "publication_key": "bolton-2020-chemo-ch",
       "status": "completed"
     },
     "cloos-2026-blood-147-1147": {
@@ -5164,6 +7868,32 @@
       "publication_key": "d-hner-2024-blood-144-2169",
       "status": "completed"
     },
+    "davidsson-2018-samd9-samd9l": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "davidsson-2018-samd9-samd9l-C0001",
+        "davidsson-2018-samd9-samd9l-C0002",
+        "davidsson-2018-samd9-samd9l-C0003",
+        "davidsson-2018-samd9-samd9l-C0004",
+        "davidsson-2018-samd9-samd9l-C0005",
+        "davidsson-2018-samd9-samd9l-C0006",
+        "davidsson-2018-samd9-samd9l-C0007",
+        "davidsson-2018-samd9-samd9l-C0008"
+      ],
+      "cards": 8,
+      "census_entries": 5,
+      "citation_display": "Davidsson J, Puschmann A, Tedgård U, Bryder D, Nilsson L, Cammenga J. SAMD9 and SAMD9L in inherited predisposition to ataxia, pancytopenia, and myeloid malignancies. Leukemia. 2018;32(5):1106-1115.",
+      "diseases": [
+        "MDS"
+      ],
+      "genes": [
+        "GATA2",
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "publication_key": "davidsson-2018-samd9-samd9l",
+      "status": "completed"
+    },
     "dinardo-2020-genotype-specific-venetoclax": {
       "accepted_in_version": "0.1.6",
       "card_ids": [
@@ -5232,6 +7962,31 @@
       "publication_key": "dohner-2020-npm1-flt3-interaction",
       "status": "completed"
     },
+    "drazer-2018-germline-vaf": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "drazer-2018-germline-vaf-C0001",
+        "drazer-2018-germline-vaf-C0002",
+        "drazer-2018-germline-vaf-C0003"
+      ],
+      "cards": 3,
+      "census_entries": 9,
+      "citation_display": "Drazer MW, Kadri S, Sukhanova M, Patil SA, West AH, Feurstein S, et al. Prognostic tumor sequencing panels frequently identify germ line variants associated with hereditary hematopoietic malignancies. Blood Advances. 2018;2(2):146-150.",
+      "diseases": [],
+      "genes": [
+        "ANKRD26",
+        "CEBPA",
+        "DDX41",
+        "ETV6",
+        "GATA2",
+        "RUNX1",
+        "SRP72",
+        "TERT",
+        "TP53"
+      ],
+      "publication_key": "drazer-2018-germline-vaf",
+      "status": "completed"
+    },
     "elena-2016-blood-128-1408": {
       "accepted_in_version": "0.1.5",
       "card_ids": [
@@ -5253,6 +8008,66 @@
         "SETBP1"
       ],
       "publication_key": "elena-2016-blood-128-1408",
+      "status": "completed"
+    },
+    "fabre-2022-chip-dnmt3a": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "fabre-2022-chip-dnmt3a-C0001"
+      ],
+      "cards": 1,
+      "census_entries": 17,
+      "citation_display": "Fabre MA, de Almeida JG, Fiorillo E, Mitchell E, Damaskou A, Rak J, et al. The longitudinal dynamics and natural history of clonal haematopoiesis. Nature. 2022;606(7913):335-342.",
+      "diseases": [
+        "CHIP"
+      ],
+      "genes": [
+        "SRSF2",
+        "U2AF1"
+      ],
+      "publication_key": "fabre-2022-chip-dnmt3a",
+      "status": "completed"
+    },
+    "feurstein-2021-myeloid-germline": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "feurstein-2021-myeloid-germline-C0001",
+        "feurstein-2021-myeloid-germline-C0002",
+        "feurstein-2021-myeloid-germline-C0003",
+        "feurstein-2021-myeloid-germline-C0004",
+        "feurstein-2021-myeloid-germline-C0005",
+        "feurstein-2021-myeloid-germline-C0006",
+        "feurstein-2021-myeloid-germline-C0007",
+        "feurstein-2021-myeloid-germline-C0008"
+      ],
+      "cards": 8,
+      "census_entries": 47,
+      "citation_display": "Feurstein S, Hahn CN, Mehta N, Godley LA. A practical guide to interpreting germline variants that drive hematopoietic malignancies, bone marrow failure, and chronic cytopenias. Genetics in Medicine. 2022;24(4):931-954.",
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "genes": [
+        "ANKRD26",
+        "BRAF",
+        "CARD11",
+        "CBL",
+        "CEBPA",
+        "DDX41",
+        "ETV6",
+        "GATA2",
+        "IKZF1",
+        "KRAS",
+        "MPL",
+        "NRAS",
+        "PTPN11",
+        "RAD51",
+        "RIT1",
+        "STAT3",
+        "TERC",
+        "TP53"
+      ],
+      "publication_key": "feurstein-2021-myeloid-germline",
       "status": "completed"
     },
     "flt3-ras-gilteritinib-resistance": {
@@ -5288,6 +8103,107 @@
         "WT1"
       ],
       "publication_key": "flt3-ras-gilteritinib-resistance",
+      "status": "completed"
+    },
+    "galera-2018-gata2-germline": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "galera-2018-gata2-germline-C0001",
+        "galera-2018-gata2-germline-C0002",
+        "galera-2018-gata2-germline-C0003",
+        "galera-2018-gata2-germline-C0004"
+      ],
+      "cards": 4,
+      "census_entries": 7,
+      "citation_display": "Galera P, Hsu AP, Wang W, Droll S, Chen R, Schwartz JR, et al. Donor-derived MDS/AML in families with germline GATA2 mutation. Blood. 2018;132(18):1994-1998.",
+      "diseases": [
+        "MDS/AML"
+      ],
+      "genes": [
+        "CEBPA",
+        "DDX41",
+        "GATA2",
+        "RUNX1"
+      ],
+      "publication_key": "galera-2018-gata2-germline",
+      "status": "completed"
+    },
+    "galli-2021-clone-metrics-ccus": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "galli-2021-clone-metrics-ccus-C0001",
+        "galli-2021-clone-metrics-ccus-C0002",
+        "galli-2021-clone-metrics-ccus-C0003",
+        "galli-2021-clone-metrics-ccus-C0004",
+        "galli-2021-clone-metrics-ccus-C0005"
+      ],
+      "cards": 5,
+      "census_entries": 11,
+      "citation_display": "Gallì A, Todisco G, Catamo E, Sala C, Elena C, Pozzi S, et al. Relationship between clone metrics and clinical outcome in clonal cytopenia. Blood. 2021;138(11):965-976.",
+      "diseases": [
+        "CCUS"
+      ],
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "SF3B1",
+        "SRSF2",
+        "TET2",
+        "TP53",
+        "U2AF1"
+      ],
+      "publication_key": "galli-2021-clone-metrics-ccus",
+      "status": "completed"
+    },
+    "grief-2012-gata-cebpa": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "grief-2012-gata-cebpa-C0001",
+        "grief-2012-gata-cebpa-C0002",
+        "grief-2012-gata-cebpa-C0003",
+        "grief-2012-gata-cebpa-C0004",
+        "grief-2012-gata-cebpa-C0005",
+        "grief-2012-gata-cebpa-C0006",
+        "grief-2012-gata-cebpa-C0007"
+      ],
+      "cards": 7,
+      "census_entries": 32,
+      "citation_display": "Greif PA, Dufour A, Konstandin NP, Ksienzyk B, Zellmeier E, Tizazu B, et al. GATA2 zinc finger 1 mutations associated with biallelic CEBPA mutations define a unique genetic entity of acute myeloid leukemia. Blood. 2012;120(2):395-403.",
+      "diseases": [
+        "AML",
+        "CML",
+        "MDS"
+      ],
+      "genes": [
+        "CEBPA",
+        "GATA2"
+      ],
+      "publication_key": "grief-2012-gata-cebpa",
+      "status": "completed"
+    },
+    "hsu-2011-gata2-momomac": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "hsu-2011-gata2-momomac-C0001",
+        "hsu-2011-gata2-momomac-C0002",
+        "hsu-2011-gata2-momomac-C0003",
+        "hsu-2011-gata2-momomac-C0004",
+        "hsu-2011-gata2-momomac-C0005",
+        "hsu-2011-gata2-momomac-C0006"
+      ],
+      "cards": 6,
+      "census_entries": 6,
+      "citation_display": "Cuellar-Rodriguez J, Gea-Banacloche J, Freeman AF, Hsu AP, Zerbe CS, Calvo KR, et al. Successful allogeneic hematopoietic stem cell transplantation for GATA2 deficiency. Blood. 2011;118(13):3715-3720.",
+      "diseases": [
+        "MDS",
+        "MDS/AML"
+      ],
+      "genes": [
+        "CEBPA",
+        "GATA2",
+        "RUNX1"
+      ],
+      "publication_key": "hsu-2011-gata2-momomac",
       "status": "completed"
     },
     "idh-comutations-inhibitor-resistance": {
@@ -5347,6 +8263,70 @@
         "ZBTB46"
       ],
       "publication_key": "idh-comutations-inhibitor-resistance",
+      "status": "completed"
+    },
+    "kessler-2022-large-biobank-genetics": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "kessler-2022-large-biobank-genetics-C0001",
+        "kessler-2022-large-biobank-genetics-C0002",
+        "kessler-2022-large-biobank-genetics-C0003",
+        "kessler-2022-large-biobank-genetics-C0004",
+        "kessler-2022-large-biobank-genetics-C0005",
+        "kessler-2022-large-biobank-genetics-C0006",
+        "kessler-2022-large-biobank-genetics-C0007",
+        "kessler-2022-large-biobank-genetics-C0008",
+        "kessler-2022-large-biobank-genetics-C0009",
+        "kessler-2022-large-biobank-genetics-C0010",
+        "kessler-2022-large-biobank-genetics-C0011",
+        "kessler-2022-large-biobank-genetics-C0012",
+        "kessler-2022-large-biobank-genetics-C0013",
+        "kessler-2022-large-biobank-genetics-C0014",
+        "kessler-2022-large-biobank-genetics-C0015",
+        "kessler-2022-large-biobank-genetics-C0016",
+        "kessler-2022-large-biobank-genetics-C0017",
+        "kessler-2022-large-biobank-genetics-C0018"
+      ],
+      "cards": 18,
+      "census_entries": 61,
+      "citation_display": "Kessler MD, Damask A, O’Keeffe S, Banerjee N, Li D, Watanabe K, et al. Common and rare variant associations with clonal haematopoiesis phenotypes. Nature. 2022;612(7939):301-309.",
+      "diseases": [
+        "CHIP",
+        "MDS"
+      ],
+      "genes": [
+        "ASXL1",
+        "ATM",
+        "BRAF",
+        "CALR",
+        "CBL",
+        "CHEK2",
+        "CSF3R",
+        "CTC1",
+        "DNMT3A",
+        "ETNK1",
+        "GNAS",
+        "GNB1",
+        "IDH2",
+        "IL6R",
+        "JAK2",
+        "KRAS",
+        "LY75",
+        "MPL",
+        "NRAS",
+        "PARP1",
+        "PHF6",
+        "PPM1D",
+        "PRPF8",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "SUZ12",
+        "TCL1A",
+        "TET2",
+        "TP53"
+      ],
+      "publication_key": "kessler-2022-large-biobank-genetics",
       "status": "completed"
     },
     "khoury-2022-leukemia-36-1703": {
@@ -5443,6 +8423,117 @@
       "publication_key": "khoury-2022-leukemia-36-1703",
       "status": "completed"
     },
+    "kraft-godley-2020-germline-guide": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "kraft-godley-2020-germline-guide-C0001",
+        "kraft-godley-2020-germline-guide-C0002",
+        "kraft-godley-2020-germline-guide-C0003",
+        "kraft-godley-2020-germline-guide-C0004",
+        "kraft-godley-2020-germline-guide-C0005",
+        "kraft-godley-2020-germline-guide-C0006",
+        "kraft-godley-2020-germline-guide-C0007",
+        "kraft-godley-2020-germline-guide-C0008",
+        "kraft-godley-2020-germline-guide-C0009",
+        "kraft-godley-2020-germline-guide-C0010",
+        "kraft-godley-2020-germline-guide-C0011",
+        "kraft-godley-2020-germline-guide-C0012",
+        "kraft-godley-2020-germline-guide-C0013",
+        "kraft-godley-2020-germline-guide-C0016",
+        "kraft-godley-2020-germline-guide-C0017"
+      ],
+      "cards": 15,
+      "census_entries": 101,
+      "citation_display": "Kraft IL, Godley LA. Identifying potential germline variants from sequencing hematopoietic malignancies. Blood. 2020;136(22):2498-2506.",
+      "diseases": [],
+      "genes": [
+        "ANKRD26",
+        "ARID1A",
+        "ATG2B",
+        "ATM",
+        "BLM",
+        "BRCA1",
+        "BRCA2",
+        "CBL",
+        "CEBPA",
+        "CHEK2",
+        "DDX41",
+        "DIS3",
+        "DKC1",
+        "DNAJC21",
+        "EFL1",
+        "ELANE",
+        "ERCC6L2",
+        "ETV6",
+        "GATA2",
+        "GFI1",
+        "GSKIP",
+        "HAX1",
+        "KDM1A",
+        "KRAS",
+        "MBD4",
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "MUTYH",
+        "NAF1",
+        "NF1",
+        "NPM1",
+        "PMS2",
+        "PTPN11",
+        "RAD51C",
+        "RTEL1",
+        "RUNX1",
+        "SAMD9",
+        "SAMD9L",
+        "SBDS",
+        "SRP72",
+        "TERC",
+        "TERT",
+        "TET2",
+        "TP53",
+        "USP45"
+      ],
+      "publication_key": "kraft-godley-2020-germline-guide",
+      "status": "completed"
+    },
+    "malcovati-2017-ccus-foundation": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "malcovati-2017-ccus-foundation-C0001",
+        "malcovati-2017-ccus-foundation-C0002",
+        "malcovati-2017-ccus-foundation-C0003",
+        "malcovati-2017-ccus-foundation-C0004",
+        "malcovati-2017-ccus-foundation-C0005"
+      ],
+      "cards": 5,
+      "census_entries": 38,
+      "citation_display": "Malcovati L, Gallì A, Travaglino E, Ambaglio I, Rizzo E, Molteni E, et al. Clinical significance of somatic mutation in unexplained blood cytopenia. Blood. 2017;129(25):3371-3378.",
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "DNMT3A",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "JAK2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "TET2",
+        "TP53",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "publication_key": "malcovati-2017-ccus-foundation",
+      "status": "completed"
+    },
     "mf-genomics-ruxolitinib-response": {
       "accepted_in_version": "0.1.6",
       "card_ids": [
@@ -5491,6 +8582,22 @@
         "TET2"
       ],
       "publication_key": "mpn-genomics-interferon-response",
+      "status": "completed"
+    },
+    "noetzli-2015-etv6-phenotype": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "noetzli-2015-etv6-phenotype-C0001",
+        "noetzli-2015-etv6-phenotype-C0002"
+      ],
+      "cards": 2,
+      "census_entries": 1,
+      "citation_display": "Love MI, Huber W, Anders S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. 2014.",
+      "diseases": [],
+      "genes": [
+        "ETV6"
+      ],
+      "publication_key": "noetzli-2015-etv6-phenotype",
       "status": "completed"
     },
     "passamonti-2017-mysec-pm-secondary": {
@@ -5728,6 +8835,52 @@
         "ZRSR2"
       ],
       "publication_key": "weeks-2023-nejm-evidence-2-na",
+      "status": "completed"
+    },
+    "wlodarski-2016-gata2": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "wlodarski-2016-gata2-C0001",
+        "wlodarski-2016-gata2-C0002",
+        "wlodarski-2016-gata2-C0003",
+        "wlodarski-2016-gata2-C0004",
+        "wlodarski-2016-gata2-C0005"
+      ],
+      "cards": 5,
+      "census_entries": 4,
+      "citation_display": "Wlodarski MW, Hirabayashi S, Pastor V, Starý J, Hasle H, Masetti R, et al. Prevalence, clinical characteristics, and prognosis of GATA2-related myelodysplastic syndromes in children and adolescents. Blood. 2016;127(11):1387-1397.",
+      "diseases": [
+        "MDS"
+      ],
+      "genes": [
+        "GATA2"
+      ],
+      "publication_key": "wlodarski-2016-gata2",
+      "status": "completed"
+    },
+    "xie-2024-ccrs-ccus": {
+      "accepted_in_version": "0.1.7",
+      "card_ids": [
+        "xie-2024-ccrs-ccus-C0001",
+        "xie-2024-ccrs-ccus-C0002",
+        "xie-2024-ccrs-ccus-C0003",
+        "xie-2024-ccrs-ccus-C0004"
+      ],
+      "cards": 4,
+      "census_entries": 61,
+      "citation_display": "Xie Z, Komrokji R, Al Ali N, Regelson A, Geyer S, Patel A, et al. Risk prediction for clonal cytopenia: multicenter real-world evidence. Blood. 2024;144(19):2033-2044.",
+      "diseases": [
+        "CCUS",
+        "myeloid neoplasm, unspecified"
+      ],
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "SRSF2",
+        "TET2",
+        "ZRSR2"
+      ],
+      "publication_key": "xie-2024-ccrs-ccus",
       "status": "completed"
     }
   },

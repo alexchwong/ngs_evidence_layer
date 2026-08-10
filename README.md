@@ -148,9 +148,9 @@ to score the generated report. Available case IDs are:
 
 ## Current corpus
 
-The current corpus contains 23 completed publications: 10 introduced in v0.1.5 and 13
-introduced in v0.1.6. The release in which each paper first entered the corpus is stored
-in `nel.index.json` as `accepted_in_version`.
+The current corpus contains 43 completed publications: 10 introduced in v0.1.5, 13
+introduced in v0.1.6, and 20 introduced in v0.1.7. The release in which each paper first
+entered the corpus is stored in `nel.index.json` as `accepted_in_version`.
 
 ### v0.1.5
 
@@ -184,6 +184,31 @@ in `nel.index.json` as `accepted_in_version`.
 | `10.1111/bjh.16380` | MIPSS-ET/PV | Mutation-enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera | Mutation-enhanced survival models for ET and PV. |
 | `10.1182/blood-2014-06-582809` | TET2 HMA response | TET2 mutations predict response to hypomethylating agents in myelodysplastic syndrome patients | TET2 and co-mutation effects on HMA response in MDS. |
 | `10.1182/blood-2015-11-679167` | MDS clonal dynamics | Mutational hierarchies in myelodysplastic syndromes dynamically adapt and evolve upon therapy response and failure | Therapy-associated clonal dynamics, including TP53 and lenalidomide. |
+
+### v0.1.7
+
+| DOI | Nickname | Paper title | Contribution to corpus |
+|---|---|---|---|
+| `10.1038/s41586-018-0317-6` | Pre-AML prediction | Prediction of acute myeloid leukaemia risk in healthy individuals | Mutation- and clone-size-based prediction of future AML risk. |
+| `10.1002/humu.23673` | TP53 gnomAD | Variable population prevalence estimates of germline TP53 variants: A gnomAD-based analysis | Population-frequency and clonal-haematopoiesis caveats for germline TP53 interpretation. |
+| `10.1097/hs9.0000000000000321` | Nordic germline guidelines | Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up | Germline referral, testing, surveillance, and transplant guidance for adult myeloid neoplasms. |
+| `10.1038/s41591-020-1008-z` | TP53 allelic state | Implications of TP53 allelic state for genome stability, clinical presentation and outcomes in myelodysplastic syndromes | Multi-hit TP53 assignment and its prognostic and treatment implications in MDS. |
+| `10.1172/jci71861` | ANKRD26 predisposition | Thrombocytopenia-associated mutations in the ANKRD26 regulatory region induce MAPK hyperactivation | ANKRD26 5′ UTR variants in inherited thrombocytopenia with leukaemia predisposition. |
+| `10.1038/s41588-020-00710-0` | Therapy-related CH | Cancer therapy shapes the fitness landscape of clonal hematopoiesis | Therapy-selected clonal haematopoiesis and mutation-specific risk of therapy-related myeloid neoplasms. |
+| `10.1038/s41375-018-0074-4` | SAMD9/SAMD9L | SAMD9 and SAMD9L in inherited predisposition to ataxia, pancytopenia, and myeloid malignancies | Germline SAMD9/SAMD9L syndromes, chromosome 7 abnormalities, surveillance, and transplant considerations. |
+| `10.1182/bloodadvances.2017013037` | Germline VAF | Prognostic tumor sequencing panels frequently identify germ line variants associated with hereditary hematopoietic malignancies | Tumour-only VAF clues and limitations when identifying hereditary haematopoietic malignancy variants. |
+| `10.1038/s41586-022-04785-z` | CH dynamics | The longitudinal dynamics and natural history of clonal haematopoiesis | Longitudinal clone dynamics and high-risk expansion patterns in clonal haematopoiesis. |
+| `10.1016/j.gim.2021.12.008` | Germline variant interpretation | A practical guide to interpreting germline variants that drive hematopoietic malignancies, bone marrow failure, and chronic cytopenias | Gene-specific interpretation criteria for germline myeloid predisposition variants. |
+| `10.1182/blood-2018-07-861070` | GATA2 donor risk | Donor-derived MDS/AML in families with germline GATA2 mutation | GATA2-associated MDS/AML risk and avoidance of mutation-positive related donors. |
+| `10.1182/blood.2021011323` | CCUS clone metrics | Relationship between clone metrics and clinical outcome in clonal cytopenia | Mutation-profile and clone-metric predictors of CCUS progression. |
+| `10.1182/blood-2012-01-403220` | GATA2/CEBPA AML | GATA2 zinc finger 1 mutations associated with biallelic CEBPA mutations define a unique genetic entity of acute myeloid leukemia | Diagnostic and prognostic interaction of GATA2 and biallelic CEBPA mutations in AML. |
+| `10.1182/blood-2011-06-365049` | GATA2 deficiency HSCT | Successful allogeneic hematopoietic stem cell transplantation for GATA2 deficiency | Germline GATA2/MonoMAC recognition and related-donor screening in the transplant setting. |
+| `10.1038/s41586-022-05448-9` | CHIP inherited genetics | Common and rare variant associations with clonal haematopoiesis phenotypes | Germline determinants, subtype associations, and clinical outcomes of clonal haematopoiesis. |
+| `10.1182/blood.2020006910` | Germline detection guide | Identifying potential germline variants from sequencing hematopoietic malignancies | Recognition and confirmation of potential germline variants detected by haematopoietic tumour sequencing. |
+| `10.1182/blood-2017-01-763425` | CCUS mutation patterns | Clinical significance of somatic mutation in unexplained blood cytopenia | Mutation patterns supporting CCUS/MDS assessment and predicting progression from unexplained cytopenia. |
+| `10.1038/ng.3253` | ETV6 predisposition | Germline mutations in ETV6 are associated with thrombocytopenia, red cell macrocytosis and predisposition to lymphoblastic leukemia | Germline ETV6 variants causing inherited thrombocytopenia and leukaemia predisposition. |
+| `10.1182/blood-2015-09-669937` | GATA2-related MDS | Prevalence, clinical characteristics, and prognosis of GATA2-related myelodysplastic syndromes in children and adolescents | Prevalence, diagnosis, prognosis, and transplant outcomes of paediatric GATA2-related MDS. |
+| `10.1182/blood.2024024756` | CCRS | Risk prediction for clonal cytopenia: multicenter real-world evidence | Clonal Cytopenia Risk Score and gene-specific progression and survival associations in CCUS. |
 
 ## Important boundaries
 
