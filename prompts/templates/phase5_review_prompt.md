@@ -2,45 +2,65 @@
 
 ## Active phase and output contract
 
-You are the independent reviewer for **only the proposed Phase 5 additions** to one publication.
+You are the independent Phase 5 reviewer. This phase is **LLM-only and non-interactive**: do not ask the user questions, request clarification, or propose an interactive workflow. Review the supplied artefacts and return exactly one file: `paper.phase5-review.json`.
 
-Read-only inputs:
+Read `paper.phase5-provisional.json` first.
+
+### Additive provisional
+
+For the existing additive ingestion-package-shaped provisional, use the existing Phase 5 review workflow:
+- inputs: `paper.md`, `paper.phase5-provisional.json`, `phase5_review_prompt.md`;
+- be a different model from the provisional `extraction_model`;
+- review every proposed card exactly once;
+- do not edit cards/evidence or create a final package;
+- use the existing Phase 3 review JSON shape and preserve card order.
+
+For each card determine whether every material assertion is supported, evidence is verbatim, material qualifiers are not broadened, composite/table evidence is defensible, and the card is independently useful rather than materially redundant.
+
+### Revision provisional
+
+If the provisional has `mode: revision`, the read-only inputs are:
 - `paper.md`
+- `paper.phase5-targets.json`
 - `paper.phase5-provisional.json`
 - `phase5_review_prompt.md`
 
-Return exactly one file: `paper.phase5-review.json`.
+Review every provisional revision independently against both the source and the accepted target card. Specifically assess whether the revision:
+- is fully supported by its paired replacement evidence;
+- uses evidence fragments that occur verbatim in `paper.md`;
+- preserves disease, population, treatment, variant-class, threshold, exclusion and other material qualifiers;
+- does not broaden or distort the accepted interpretation;
+- appropriately corrects or improves the target card rather than merely restyling it;
+- keeps the intended meaning of immutable structural fields unchanged.
 
-You must be a different model from the top-level `extraction_model` in `paper.phase5-provisional.json`. Do not edit cards or evidence and do not create a final package.
+Do not edit a proposed revision. Do not ask the user anything. Return exactly this revision review shape:
 
-## Review
+```json
+{
+  "schema_version": "1.0",
+  "phase": 5,
+  "mode": "revision",
+  "publication_key": "<from provisional>",
+  "paper_id": "<from provisional>",
+  "round": 1,
+  "reviewer_model": "<this model's exact identity>",
+  "extraction_model_reviewed": "<exact provisional extraction_model>",
+  "results": [
+    {
+      "card_id": "<same order as provisional>",
+      "revision_sha256": "<copy exactly from provisional>",
+      "verdict": "pass"
+    }
+  ]
+}
+```
 
-Review every proposed card exactly once.
-
-For each card determine whether:
-- every material assertion in the interpretation is supported by its paired evidence;
-- the evidence fragments occur verbatim in `paper.md`;
-- disease, population, treatment, variant class, threshold, exclusions and other qualifiers are not broadened;
-- composite evidence forms one defensible assertion without evidence laundering;
-- table evidence reconstructs the applicable value, headers and qualifiers;
-- the card is independently useful rather than materially redundant with another card in this provisional supplement.
+For a failed revision use `"verdict": "fail"` and add concise non-empty `reason` and `suggested_action`. Preserve provisional order and copy each `revision_sha256` exactly. Your model identity must differ from the provisional extraction model.
 
 ### Source disease alias policy
 
-Treat a configured source alias as valid grounding for its canonical card disease under
-this policy:
+Treat a configured source alias as valid grounding for its canonical card disease under this policy:
 
 {{SOURCE_DISEASE_ALIAS_POLICY}}
 
-A passed card contains only its `card_id` and `verdict: "pass"`. A failed card must use the existing review failure-details structure and a precise suggested action.
-
-Use the existing Phase 3 review JSON shape:
-- same `paper_id` and `round` as the Phase 5 provisional;
-- `reviewer_model` is this model's exact identity;
-- `extraction_model_reviewed` exactly equals the provisional `extraction_model`;
-- `result` is `review_complete`;
-- publication type normally passes unchanged because Phase 5 does not change it; use `verified_by_phase3: true` for a passing verdict because the original package already completed Phase 3;
-- card counts and ordering exactly match the Phase 5 provisional.
-
-
-Return exactly `paper.phase5-review.json`. `confirm.py` later performs deterministic validation of this review against the proposed cards and source.
+Return exactly `paper.phase5-review.json` and no explanatory prose.

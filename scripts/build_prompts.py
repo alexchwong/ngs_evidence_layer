@@ -101,6 +101,10 @@ def validation_bundle():
     return "\n".join(lines).rstrip()
 
 
+def phase5_chat_validation():
+    return read(ROOT / "scripts" / "phase5_chat_validation.py")
+
+
 def render(phase):
     template = read(ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md")
     replacements = {
@@ -108,6 +112,8 @@ def render(phase):
     }
     if phase in (2, 3, 4, 5):
         replacements["{{SOURCE_DISEASE_ALIAS_POLICY}}"] = source_disease_alias_policy()
+    if phase == 5:
+        replacements["{{PHASE5_CHAT_VALIDATION}}"] = phase5_chat_validation()
     if phase in (1, 3):
         replacements["{{PUBLICATION_TYPE_RUBRIC}}"] = publication_type_rubric(phase)
     if phase in (1, 2, 4):
@@ -140,8 +146,6 @@ def render(phase):
             '"$schema"',
         )
     ):
-        # The validation bundle necessarily contains schemas and vocabulary data.
-        # Restrict this guard to authoring context outside that verbatim bundle.
         before_bundle = template.split(
             "<!-- BEGIN VERBATIM scripts/final_validation.py -->", 1
         )[0]
