@@ -70,14 +70,13 @@ Source constraints and referencing rules should normally be left unchanged.
 
 ## Referencing
 
-`report-draft.md` already contains deterministically generated Vancouver-style
-square-bracket citations and a matching numbered `References` section.
+`report-draft.md` contains exact card-ID markers attached to its statements.
 
-- Preserve every square-bracket citation attached to a retained statement.
-- Copy each corresponding reference entry exactly as supplied.
-- Include only references supporting statements retained in the final report.
-- Do not add citations or reference entries.
-- Do not reconstruct citations or reference entries.
-- Do not edit citations or reference entries.
-- Do not renumber citations or reference entries.
-- Exclude the References section from the word limit.
+- For every retained statement, copy all associated `[card:<card-id>]` markers
+  verbatim and keep them attached to the facts they support.
+- When combining retained statements, copy all of their supporting card-ID markers
+  verbatim and adjacently.
+- Retain `(no citation required)` for each retained sentence that has that marker.
+- Do not add, reconstruct, edit, replace, parse, or renumber citation markers.
+- Do not write numeric citations or a `References` section; deterministic Step 6C
+  performs citation replacement and bibliography rendering.

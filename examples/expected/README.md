@@ -8,8 +8,8 @@ These files contain human-reviewed expectations and case commentary for
 standard for exact report wording.
 
 `nel-demo example <N>` must run the complete `ngs-report` workflow without reading
-the matching expected file. Step 7 begins only after Step 6B has produced
-`report-final.md`. Step 7 renders `report-final.md` for every report-producing mode;
+the matching expected file. Step 7 begins only after mandatory Step 6C has rendered
+citations and references in `report-final.md`. Step 7 renders `report-final.md` for every report-producing mode;
 for `nel-demo`, it is also the first point at which the expected file may be read
 and displayed beside the case and generated report.
 

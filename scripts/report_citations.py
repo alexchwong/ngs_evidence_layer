@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Deterministically prepare and finalize citations in generated NGS reports.
+"""Validate and render citations in generated NGS reports.
 
-``prepare`` resolves Step 6A ``(refs: N[,N...])`` markers against the numbered
-bibliography in ``block.md``, converts them to report-local square-bracket
-citations in order of first appearance, and appends the cited Vancouver entries.
+``validate`` is a read-only Step 6A/6B exit check. It verifies that a report
+document contains only well-formed card-ID markers that resolve through the
+canonical ``## Refs`` mapping in ``block.md``.
 
-``finalize`` runs after Step 6B. It verifies every square-bracket citation against
-the supplied bibliography, removes uncited entries, and renumbers citations and
-entries in order of first appearance. Both commands replace their output
-atomically and fail without modifying it when validation fails.
+``render`` is mandatory Step 6C processing. It replaces the card-ID markers in
+``report-final.md`` with report-local Vancouver-style numeric citations in order
+of first appearance and appends the cited primary references. Rendering replaces
+its output atomically and fails without modifying it when validation fails.
 """
 
 import argparse
@@ -20,9 +20,18 @@ from pathlib import Path
 
 
 REFERENCES_HEADING = "## References"
+REFS_HEADING = "## Refs"
 REFERENCE_START = re.compile(r"^(\d+)\.\s+(.+)$")
-SOURCE_MARKER = re.compile(r"\(refs:\s*([0-9]+(?:\s*,\s*[0-9]+)*)\)")
+CARD_ID = r"[A-Za-z0-9][A-Za-z0-9._-]*"
+REFS_MAPPING = re.compile(
+    rf"^({CARD_ID}(?:,{CARD_ID})*): primary ref "
+    r"([1-9]\d*(?:,[1-9]\d*)*)"
+    r"(?:; secondary ref ([1-9]\d*(?:,[1-9]\d*)*))?$"
+)
+SOURCE_MARKER = re.compile(rf"\[card:({CARD_ID})\]")
+CARD_MARKER_LIKE = re.compile(r"\[card:[^\[\]\n]*\]")
 REPORT_MARKER = re.compile(r"\[([0-9]+(?:\s*,\s*[0-9]+)*)\]")
+ADJACENT_REPORT_MARKERS = re.compile(r"(?:\[(?:[0-9]+(?:\s*,\s*[0-9]+)*)\]){2,}")
 NO_CITATION_MARKER = re.compile(r"\s*\(no citation required\)")
 
 
@@ -82,6 +91,64 @@ def ordered_unique(numbers):
     return result
 
 
+def parse_card_references(block_text, source_references):
+    """Return the block's validated card-ID-to-primary-reference mapping."""
+    lines = block_text.rstrip().splitlines()
+    headings = [
+        index for index, line in enumerate(lines)
+        if line == REFS_HEADING
+    ]
+    if len(headings) != 1:
+        raise ValueError(
+            f"block must contain exactly one {REFS_HEADING!r} heading"
+        )
+    start = headings[0] + 1
+    end = next(
+        (index for index in range(start, len(lines)) if lines[index].startswith("## ")),
+        len(lines),
+    )
+    mapping = {}
+    used_references = set()
+    for line in lines[start:end]:
+        if not line.strip():
+            continue
+        match = REFS_MAPPING.fullmatch(line)
+        if not match:
+            raise ValueError(f"block has malformed Refs line: {line!r}")
+        card_text, primary_text, secondary_text = match.groups()
+        primary_references = [int(value) for value in primary_text.split(",")]
+        secondary_references = (
+            [int(value) for value in secondary_text.split(",")]
+            if secondary_text else []
+        )
+        if len(primary_references) != 1:
+            raise ValueError(
+                f"block card mapping must have exactly one primary reference: {line!r}"
+            )
+        unknown = [
+            number for number in primary_references + secondary_references
+            if number not in source_references
+        ]
+        if unknown:
+            raise ValueError(
+                "block card mapping cites unknown reference(s): "
+                + ", ".join(map(str, ordered_unique(unknown)))
+            )
+        primary_reference = primary_references[0]
+        for card_id in card_text.split(","):
+            if card_id in mapping:
+                raise ValueError(f"block contains duplicate card mapping {card_id}")
+            mapping[card_id] = primary_reference
+        used_references.update(primary_references + secondary_references)
+    if set(source_references) != used_references:
+        missing = sorted(set(source_references) - used_references)
+        raise ValueError(
+            "block Refs mapping omits reference(s): "
+            + ", ".join(map(str, missing))
+        )
+    return mapping
+
+
 def render_document(body, references):
     lines = [body.rstrip()]
     if references:
@@ -90,69 +157,55 @@ def render_document(body, references):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def prepare(draft_text, block_text):
-    """Resolve Step 6A source-reference markers and append cited entries."""
-    if REFERENCES_HEADING in draft_text.splitlines():
-        raise ValueError("report draft already contains a References section")
+def validate(document_text, block_text, *, source="report document"):
+    """Validate card-ID markers without modifying the supplied document."""
+    if REFERENCES_HEADING in document_text.splitlines():
+        raise ValueError(f"{source} already contains a References section")
+    if REPORT_MARKER.search(document_text):
+        raise ValueError(f"{source} contains a model-generated numeric citation")
     _block_body, source_references = split_references(block_text, source="block")
+    card_to_source = parse_card_references(block_text, source_references)
+
+    for match in SOURCE_MARKER.finditer(document_text):
+        card_id = match.group(1)
+        if card_id not in card_to_source:
+            raise ValueError(f"{source} cites unknown block card {card_id}")
+    if CARD_MARKER_LIKE.search(SOURCE_MARKER.sub("", document_text)):
+        raise ValueError(f"{source} contains a malformed card-ID marker")
+    if "(refs:" in document_text:
+        raise ValueError(f"{source} contains a legacy numeric source marker")
+    return document_text
+
+
+def render(report_text, block_text):
+    """Resolve validated Step 6B card-ID markers and append primary entries."""
+    validate(report_text, block_text, source="final report")
+    _block_body, source_references = split_references(block_text, source="block")
+    card_to_source = parse_card_references(block_text, source_references)
     report_number_by_source = {}
 
     def replace_marker(match):
-        source_numbers = ordered_unique(
-            int(value.strip()) for value in match.group(1).split(",")
-        )
-        unknown = [number for number in source_numbers if number not in source_references]
-        if unknown:
-            raise ValueError(
-                "report draft cites unknown block reference(s): "
-                + ", ".join(map(str, unknown))
-            )
-        report_numbers = []
-        for source_number in source_numbers:
-            if source_number not in report_number_by_source:
-                report_number_by_source[source_number] = len(report_number_by_source) + 1
-            report_numbers.append(report_number_by_source[source_number])
-        return "[" + ",".join(map(str, report_numbers)) + "]"
+        card_id = match.group(1)
+        source_number = card_to_source[card_id]
+        if source_number not in report_number_by_source:
+            report_number_by_source[source_number] = len(report_number_by_source) + 1
+        return f"[{report_number_by_source[source_number]}]"
 
-    prepared = SOURCE_MARKER.sub(replace_marker, draft_text)
-    if "(refs:" in prepared:
-        raise ValueError("report draft contains a malformed (refs: N[,N...]) marker")
-    prepared = NO_CITATION_MARKER.sub("", prepared)
+    rendered = SOURCE_MARKER.sub(replace_marker, report_text)
+    rendered = ADJACENT_REPORT_MARKERS.sub(
+        lambda match: "[" + ",".join(map(str, ordered_unique(
+            int(number)
+            for marker in REPORT_MARKER.findall(match.group(0))
+            for number in marker.split(",")
+        ))) + "]",
+        rendered,
+    )
+    rendered = NO_CITATION_MARKER.sub("", rendered)
     report_references = {
         report_number: source_references[source_number]
         for source_number, report_number in report_number_by_source.items()
     }
-    return render_document(prepared, report_references)
-
-
-def finalize(report_text):
-    """Validate and normalize a Step 6B report's retained citations."""
-    body, supplied_references = split_references(report_text, source="report")
-    new_number_by_old = {}
-
-    def replace_marker(match):
-        old_numbers = ordered_unique(
-            int(value.strip()) for value in match.group(1).split(",")
-        )
-        unknown = [number for number in old_numbers if number not in supplied_references]
-        if unknown:
-            raise ValueError(
-                "report cites unknown supplied reference(s): "
-                + ", ".join(map(str, unknown))
-            )
-        new_numbers = []
-        for old_number in old_numbers:
-            if old_number not in new_number_by_old:
-                new_number_by_old[old_number] = len(new_number_by_old) + 1
-            new_numbers.append(new_number_by_old[old_number])
-        return "[" + ",".join(map(str, new_numbers)) + "]"
-
-    normalized_body = REPORT_MARKER.sub(replace_marker, body)
-    normalized_references = {
-        new_number: supplied_references[old_number]
-        for old_number, new_number in new_number_by_old.items()
-    }
-    return render_document(normalized_body, normalized_references)
+    return render_document(rendered, report_references)
 
 
 def atomic_write(path, text):
@@ -175,25 +228,28 @@ def atomic_write(path, text):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    prepare_parser = subparsers.add_parser("prepare")
-    prepare_parser.add_argument("--draft", type=Path, required=True)
-    prepare_parser.add_argument("--block", type=Path, required=True)
-    prepare_parser.add_argument("--output", type=Path)
-    finalize_parser = subparsers.add_parser("finalize")
-    finalize_parser.add_argument("--report", type=Path, required=True)
-    finalize_parser.add_argument("--output", type=Path)
+    validate_parser = subparsers.add_parser("validate")
+    validate_parser.add_argument("--report", type=Path, required=True)
+    validate_parser.add_argument("--block", type=Path, required=True)
+    render_parser = subparsers.add_parser("render")
+    render_parser.add_argument("--report", type=Path, required=True)
+    render_parser.add_argument("--block", type=Path, required=True)
+    render_parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
-        if args.command == "prepare":
-            result = prepare(
-                args.draft.read_text(encoding="utf-8"),
+        if args.command == "validate":
+            validate(
+                args.report.read_text(encoding="utf-8"),
                 args.block.read_text(encoding="utf-8"),
             )
-            output = args.output or args.draft
+            output = args.report
         else:
-            result = finalize(args.report.read_text(encoding="utf-8"))
+            result = render(
+                args.report.read_text(encoding="utf-8"),
+                args.block.read_text(encoding="utf-8"),
+            )
             output = args.output or args.report
-        atomic_write(output, result)
+            atomic_write(output, result)
     except (OSError, ValueError) as exc:
         print(f"REPORT CITATION {args.command.upper()} FAILED: {exc}", file=sys.stderr)
         return 1

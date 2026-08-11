@@ -20,25 +20,78 @@ BLOCK = """# Evidence block
 
 ## Refs
 
-C1: primary ref 1
-C2: primary ref 2
-C3: primary ref 3
+paper-a-C0001,paper-a-C0002: primary ref 1
+paper-b-C0001: primary ref 2; secondary ref 4
+paper-c-C0001: primary ref 3
 
 ## References
 
 1. Alpha A. First paper. Blood. 2020;1(1):1-2.
 2. Beta B. Second paper. Leukemia. 2021;2(2):3-4.
 3. Gamma C. Third paper. J Clin Oncol. 2022;3(3):5-6.
+4. Delta D. Secondary paper. Nature. 2019;4(4):7-8.
 """
 
 
-class PrepareTests(unittest.TestCase):
-    def test_assigns_numbers_in_first_appearance_order_and_reuses_them(self):
-        draft = (
-            "R1: Second then first. (refs: 2, 1)\n\n"
-            "R2: Second again. (refs: 2)\n"
+class ValidateTests(unittest.TestCase):
+    def test_accepts_known_markers_without_modifying_document(self):
+        document = (
+            "First. [card:paper-b-C0001][card:paper-a-C0001]\n"
+            "Patient fact. (no citation required)\n"
         )
-        result = report_citations.prepare(draft, BLOCK)
+        self.assertEqual(report_citations.validate(document, BLOCK), document)
+
+    def test_unknown_marker_fails(self):
+        with self.assertRaisesRegex(ValueError, "unknown block card"):
+            report_citations.validate("Finding. [card:unknown-C0001]\n", BLOCK)
+
+    def test_malformed_marker_fails(self):
+        with self.assertRaisesRegex(ValueError, "malformed card-ID"):
+            report_citations.validate("Finding. [card:bad card]\n", BLOCK)
+
+    def test_legacy_numeric_source_marker_fails(self):
+        with self.assertRaisesRegex(ValueError, "legacy numeric"):
+            report_citations.validate("Finding. (refs: 1)\n", BLOCK)
+
+    def test_model_generated_numeric_citation_fails(self):
+        with self.assertRaisesRegex(ValueError, "model-generated numeric"):
+            report_citations.validate("Finding. [1]\n", BLOCK)
+
+    def test_references_section_fails(self):
+        with self.assertRaisesRegex(ValueError, "already contains"):
+            report_citations.validate(
+                "Finding.\n\n## References\n\n1. Alpha.\n", BLOCK
+            )
+
+    def test_incomplete_block_refs_mapping_fails(self):
+        block = BLOCK.replace("paper-c-C0001: primary ref 3\n", "")
+        with self.assertRaisesRegex(ValueError, r"omits reference\(s\): 3"):
+            report_citations.validate("Patient fact.\n", block)
+
+    def test_duplicate_card_mapping_fails(self):
+        block = BLOCK.replace(
+            "paper-c-C0001: primary ref 3",
+            "paper-a-C0001: primary ref 3",
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate card mapping"):
+            report_citations.validate("Patient fact.\n", block)
+
+    def test_multiple_primary_references_for_one_card_fail(self):
+        block = BLOCK.replace(
+            "paper-c-C0001: primary ref 3",
+            "paper-c-C0001: primary ref 2,3",
+        )
+        with self.assertRaisesRegex(ValueError, "exactly one primary reference"):
+            report_citations.validate("Patient fact.\n", block)
+
+
+class RenderTests(unittest.TestCase):
+    def test_assigns_numbers_in_first_appearance_order_and_reuses_them(self):
+        report = (
+            "Second then first. [card:paper-b-C0001][card:paper-a-C0001]\n\n"
+            "Second again. [card:paper-b-C0001]\n"
+        )
+        result = report_citations.render(report, BLOCK)
 
         self.assertIn("Second then first. [1,2]", result)
         self.assertIn("Second again. [1]", result)
@@ -47,83 +100,77 @@ class PrepareTests(unittest.TestCase):
         self.assertNotIn("Gamma C", result)
 
     def test_removes_no_citation_required_and_deduplicates_one_marker(self):
-        draft = "R1: Patient fact. (no citation required)\nR2: Finding. (refs: 3,3)\n"
-        result = report_citations.prepare(draft, BLOCK)
+        report = (
+            "Patient fact. (no citation required)\n"
+            "Finding. [card:paper-c-C0001][card:paper-c-C0001]\n"
+        )
+        result = report_citations.render(report, BLOCK)
 
-        self.assertIn("R1: Patient fact.", result)
+        self.assertIn("Patient fact.", result)
         self.assertNotIn("no citation required", result)
-        self.assertIn("R2: Finding. [1]", result)
+        self.assertIn("Finding. [1]", result)
         self.assertEqual(result.count("Gamma C. Third paper."), 1)
 
-    def test_unknown_reference_fails(self):
-        with self.assertRaisesRegex(ValueError, "unknown block reference"):
-            report_citations.prepare("R1: Finding. (refs: 4)\n", BLOCK)
+    def test_two_cards_from_one_publication_deduplicate(self):
+        result = report_citations.render(
+            "Finding. [card:paper-a-C0001][card:paper-a-C0002]\n",
+            BLOCK,
+        )
+        self.assertIn("Finding. [1]", result)
+        self.assertEqual(result.count("Alpha A. First paper."), 1)
 
-    def test_malformed_marker_fails(self):
-        with self.assertRaisesRegex(ValueError, "malformed"):
-            report_citations.prepare("R1: Finding. (refs: 1; 2)\n", BLOCK)
-
-    def test_already_prepared_draft_fails(self):
-        prepared = report_citations.prepare("R1: Finding. (refs: 1)\n", BLOCK)
-        with self.assertRaisesRegex(ValueError, "already contains"):
-            report_citations.prepare(prepared, BLOCK)
-
-
-class FinalizeTests(unittest.TestCase):
-    def test_removes_unused_and_renumbers_retained_references(self):
-        report = """Finding from the third source [3]. Another finding [1,3].
-
-## References
-
-1. Alpha A. First paper. Blood. 2020;1(1):1-2.
-2. Beta B. Second paper. Leukemia. 2021;2(2):3-4.
-3. Gamma C. Third paper. J Clin Oncol. 2022;3(3):5-6.
-"""
-        result = report_citations.finalize(report)
-
-        self.assertIn("third source [1]", result)
-        self.assertIn("Another finding [2,1]", result)
-        self.assertIn("1. Gamma C. Third paper.", result)
-        self.assertIn("2. Alpha A. First paper.", result)
-        self.assertNotIn("Beta B", result)
-
-    def test_unknown_report_reference_fails(self):
-        report = "Finding [2].\n\n## References\n\n1. Alpha A. First paper.\n"
-        with self.assertRaisesRegex(ValueError, "unknown supplied reference"):
-            report_citations.finalize(report)
-
-    def test_repeated_finalization_is_byte_identical(self):
-        report = "Finding [1].\n\n## References\n\n1. Alpha A. First paper.\n"
-        first = report_citations.finalize(report)
-        self.assertEqual(report_citations.finalize(first), first)
+    def test_card_marker_selects_primary_not_secondary_reference(self):
+        result = report_citations.render(
+            "Finding. [card:paper-b-C0001]\n", BLOCK
+        )
+        self.assertIn("1. Beta B. Second paper.", result)
+        self.assertNotIn("Delta D. Secondary paper.", result)
 
 
 class CommandTests(unittest.TestCase):
-    def test_prepare_failure_does_not_overwrite_draft(self):
+    def test_validate_success_does_not_overwrite_report(self):
+        completed, report, original = self.run_command(
+            "validate", "Finding. [card:paper-a-C0001]\n"
+        )
+        self.assertEqual(completed.returncode, 0)
+        self.assertEqual(report, original)
+
+    def test_validate_failure_does_not_overwrite_report(self):
+        completed, report, original = self.run_command(
+            "validate", "Bad citation. [card:unknown-C9999]\n"
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertEqual(report, original)
+
+    def test_render_failure_does_not_overwrite_report(self):
+        completed, report, original = self.run_command(
+            "render", "Bad citation. [card:unknown-C9999]\n"
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertEqual(report, original)
+
+    def run_command(self, command, original):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            draft = root / "report-draft.md"
+            report_path = root / "report.md"
             block = root / "block.md"
-            original = "R1: Bad citation. (refs: 99)\n"
-            draft.write_text(original, encoding="utf-8")
+            report_path.write_text(original, encoding="utf-8")
             block.write_text(BLOCK, encoding="utf-8")
-
             completed = subprocess.run(
                 [
                     sys.executable,
                     str(SCRIPT),
-                    "prepare",
-                    "--draft",
-                    str(draft),
+                    command,
+                    "--report",
+                    str(report_path),
                     "--block",
                     str(block),
                 ],
                 capture_output=True,
                 text=True,
             )
-
-            self.assertNotEqual(completed.returncode, 0)
-            self.assertEqual(draft.read_text(encoding="utf-8"), original)
+            report = report_path.read_text(encoding="utf-8")
+        return completed, report, original
 
 
 if __name__ == "__main__":

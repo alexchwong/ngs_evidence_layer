@@ -29,7 +29,7 @@ def card(
     category="diagnosis",
     year=2020,
     secondary=None,
-    citation="Publication",
+    citation="Alpha A. Publication. Blood. 2020;1(1):1-2.",
     tier="guideline criterion",
     publication_key="pub",
     locator="Fixture label",
@@ -127,7 +127,7 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_one_card_primary_and_secondary(self):
         secondary = {
-            "display": "Secondary publication",
+            "display": "Beta B. Secondary publication. Leukemia. 2021;2(2):3-4.",
             "citation_incomplete": [],
         }
         result = render.render(bundle([
@@ -151,7 +151,7 @@ class RenderMappingTests(unittest.TestCase):
                 "C1-3",
                 "Other text.",
                 publication_key="pub-other",
-                citation="Other publication",
+                citation="Gamma C. Other publication. Blood. 2020;3(3):5-6.",
             ),
         ]
         result = render.render(bundle(cards))
@@ -160,7 +160,7 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_different_secondary_mappings_not_grouped(self):
         secondary = {
-            "display": "Secondary publication",
+            "display": "Beta B. Secondary publication. Leukemia. 2021;2(2):3-4.",
             "citation_incomplete": [],
         }
         cards = [
@@ -176,7 +176,7 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_primary_and_secondary_roles_not_conflated(self):
         secondary = {
-            "display": "Secondary publication",
+            "display": "Beta B. Secondary publication. Leukemia. 2021;2(2):3-4.",
             "citation_incomplete": [],
         }
         cards = [
@@ -212,7 +212,7 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_separate_cards_may_produce_multiple_mapping_lines(self):
         secondary = {
-            "display": "Secondary publication",
+            "display": "Beta B. Secondary publication. Leukemia. 2021;2(2):3-4.",
             "citation_incomplete": [],
         }
         cards = [
@@ -230,22 +230,22 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_reference_numbering_first_appearance_deterministic(self):
         cards = [
-            card("C1-1", "Text A.", citation="Pub A", publication_key="pub-a"),
-            card("C1-2", "Text B.", citation="Pub B", publication_key="pub-b"),
-            card("C1-3", "Text C.", citation="Pub A", publication_key="pub-a"),
+            card("C1-1", "Text A.", citation="Alpha A. Pub A. 2020.", publication_key="pub-a"),
+            card("C1-2", "Text B.", citation="Beta B. Pub B. 2020.", publication_key="pub-b"),
+            card("C1-3", "Text C.", citation="Alpha A. Pub A. 2020.", publication_key="pub-a"),
         ]
         result = render.render(bundle(cards))
         self.assertEqual(
             [reference["number"] for reference in result["references"]],
             [1, 2],
         )
-        self.assertEqual(result["references"][0]["display"], "Pub A")
-        self.assertEqual(result["references"][1]["display"], "Pub B")
+        self.assertEqual(result["references"][0]["display"], "Alpha A. Pub A. 2020.")
+        self.assertEqual(result["references"][1]["display"], "Beta B. Pub B. 2020.")
 
     def test_duplicate_publication_citations_reuse_one_number(self):
         cards = [
-            card("C1-1", "Text A.", citation="Pub A", publication_key="pub-a"),
-            card("C1-2", "Text B.", citation="Pub A", publication_key="pub-a"),
+            card("C1-1", "Text A.", citation="Alpha A. Pub A. 2020.", publication_key="pub-a"),
+            card("C1-2", "Text B.", citation="Alpha A. Pub A. 2020.", publication_key="pub-a"),
         ]
         result = render.render(bundle(cards))
         self.assertEqual(len(result["references"]), 1)
@@ -253,7 +253,7 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_duplicate_secondary_citations_reuse_one_number(self):
         secondary = {
-            "display": "Secondary publication",
+            "display": "Beta B. Secondary publication. Leukemia. 2021;2(2):3-4.",
             "citation_incomplete": [],
         }
         cards = [
@@ -275,7 +275,7 @@ class RenderMappingTests(unittest.TestCase):
             result["references"][0]["display"],
             "[citation missing]",
         )
-        self.assertIn("C1-1: primary ref 1", result["text"])
+        self.assertIn("- Citation marker: [card:C1-1]", result["text"])
 
     def test_truncated_cards_disappear_from_body_and_all_mappings(self):
         cards = [
@@ -295,21 +295,21 @@ class RenderMappingTests(unittest.TestCase):
                 "C1-1",
                 "Guideline text.",
                 tier="guideline criterion",
-                citation="Pub A",
+                citation="Alpha A. Pub A. 2020.",
                 publication_key="pub-a",
             ),
             card(
                 "C1-2",
                 "Restated text.",
                 tier="restated secondary",
-                citation="Pub B",
+                citation="Beta B. Pub B. 2020.",
                 publication_key="pub-b",
             ),
         ]
         result = render.render(bundle(cards), token_budget=100)
         self.assertEqual(
             [reference["display"] for reference in result["references"]],
-            ["Pub A"],
+            ["Alpha A. Pub A. 2020."],
         )
 
     def test_json_rendered_cards_and_map_match_markdown(self):
@@ -352,7 +352,7 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_every_mapped_number_resolves_to_bibliography_entry(self):
         secondary = {
-            "display": "Secondary publication",
+            "display": "Beta B. Secondary publication. Leukemia. 2021;2(2):3-4.",
             "citation_incomplete": [],
         }
         result = render.render(bundle([
@@ -380,7 +380,7 @@ class RenderMappingTests(unittest.TestCase):
                 "C1-2",
                 "Text B.",
                 secondary={
-                    "display": "Secondary",
+                    "display": "Beta B. Secondary. Leukemia. 2021;2(2):3-4.",
                     "citation_incomplete": [],
                 },
             ),
@@ -396,6 +396,37 @@ class RenderMappingTests(unittest.TestCase):
             first["card_reference_map"],
             second["card_reference_map"],
         )
+
+    def test_card_exposes_exact_card_id_marker(self):
+        text = render.render(bundle([card("C1-1", "Text.")]))["text"]
+        self.assertIn("- Citation marker: [card:C1-1]", text)
+        self.assertNotIn("## Citation markers", text)
+
+    def test_same_author_year_references_need_no_marker_disambiguation(self):
+        cards = [
+            card(
+                "C1-1", "First.", publication_key="alpha-a",
+                citation="Döhner H. First. Blood. 2022;1:1-2.",
+                year=2022,
+            ),
+            card(
+                "C1-2", "Second.", publication_key="alpha-b",
+                citation="Döhner H. Second. Blood. 2022;2:3-4.",
+                year=2022,
+            ),
+        ]
+        text = render.render(bundle(cards))["text"]
+        self.assertIn("- Citation marker: [card:C1-1]", text)
+        self.assertIn("- Citation marker: [card:C1-2]", text)
+        self.assertIn("C1-1: primary ref 1", text)
+        self.assertIn("C1-2: primary ref 2", text)
+
+    def test_duplicate_publication_cards_keep_distinct_markers_and_one_reference(self):
+        cards = [card("C1-1", "First."), card("C1-2", "Second.")]
+        text = render.render(bundle(cards))["text"]
+        self.assertIn("- Citation marker: [card:C1-1]", text)
+        self.assertIn("- Citation marker: [card:C1-2]", text)
+        self.assertIn("C1-1,C1-2: primary ref 1", text)
 
 
 if __name__ == "__main__":
