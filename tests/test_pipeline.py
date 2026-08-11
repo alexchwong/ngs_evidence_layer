@@ -75,7 +75,7 @@ def build_fixture_corpus(root):
         sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
         "--output-dir", str(output), "--report", str(report),
         "--generated-at", "2026-01-01T00:00:00+00:00",
-    ], check=True, capture_output=True)
+    ], check=True, capture_output=True, cwd=root)
     return output / "nel.corpus.json", output / "nel.index.json"
 
 
@@ -510,7 +510,7 @@ class IncorporationTests(unittest.TestCase):
                 sys.executable, str(SCRIPTS / "incorporate.py"),
                 "--accept-dir", str(accept), "--output-dir", str(output),
                 "--report", str(root / "report.json"),
-            ], check=True, capture_output=True)
+            ], check=True, capture_output=True, cwd=root)
 
             corpus, index = read(output / "nel.corpus.json"), read(output / "nel.index.json")
             card_id = fixture_package(ALPHA)[2]["cards"][0]["card_id"]
@@ -534,7 +534,7 @@ class IncorporationTests(unittest.TestCase):
             result = subprocess.run([
                 sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
                 "--output-dir", str(root / "corpus"), "--report", str(root / "report.json"),
-            ], capture_output=True, text=True)
+            ], capture_output=True, text=True, cwd=root)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(read(root / "corpus" / "nel.corpus.json")["counts"]["completed_papers"], 1)
             beta_key = fixture_package(BETA)[0]["publication_key"]
@@ -550,7 +550,7 @@ class IncorporationTests(unittest.TestCase):
             result = subprocess.run([
                 sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
                 "--output-dir", str(root / "corpus"), "--report", str(root / "report.json"),
-            ], capture_output=True, text=True)
+            ], capture_output=True, text=True, cwd=root)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             report = read(root / "report.json")
             self.assertIn("wrong-name", report["rejected"])
@@ -571,7 +571,7 @@ class IncorporationTests(unittest.TestCase):
             subprocess.run([
                 sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
                 "--output-dir", str(root / "corpus"), "--report", str(root / "report.json"),
-            ], check=True, capture_output=True)
+            ], check=True, capture_output=True, cwd=root)
             persisted = read(path)
             self.assertEqual(persisted["accepted_at_source"], "file-mtime")
             first = persisted["accepted_at"]
@@ -579,7 +579,7 @@ class IncorporationTests(unittest.TestCase):
             subprocess.run([
                 sys.executable, str(SCRIPTS / "incorporate.py"), "--accept-dir", str(accept),
                 "--output-dir", str(root / "corpus2"), "--report", str(root / "report2.json"),
-            ], check=True, capture_output=True)
+            ], check=True, capture_output=True, cwd=root)
             self.assertEqual(read(path)["accepted_at"], first)
 
 

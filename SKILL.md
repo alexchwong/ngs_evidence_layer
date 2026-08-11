@@ -10,7 +10,7 @@ Perform only the mode explicitly requested by the user:
 - `evidence-block` — run Steps 0–5; diagnosis review is automatic (skip 3B). Return `<work-dir>/block.md`.
 - `evidence-block manual` — run Steps 0–5; Step 3B requires user confirmation or revision. Return `<work-dir>/block.md`.
 - `ngs-report` — run Steps 0–6; diagnosis review is automatic (skip 3B) and reporting follows Step 5 without stopping. Step 7 renders `<work-dir>/report-final.md` in chat.
-- `evidence-to-report` — run Step 0, verify Step 5 outputs already exist, then run Steps 6A–6B only. Step 7 renders `<work-dir>/report-final.md` in chat.
+- `evidence-to-report` — run Step 0, verify Step 5 outputs already exist, then run Steps 6A–6C only. Step 7 renders `<work-dir>/report-final.md` in chat.
 - `nel-demo example <N>` — resolve one numbered repository example and run the same automatic Steps 0–6 as `ngs-report`; Step 7 displays the case, generated report, and matching expected behaviour. Do not read the expected file before `report-final.md` is complete.
 - `nel-validate <case-id>` — retrieve one validation case without its marking criteria, run the same automatic Steps 0–6 as `ngs-report`, then in Step 7 retrieve the criteria and mark `report-final.md`.
 
@@ -26,8 +26,9 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3B — model/user: manual review only; finalise review fields in `adjudication.json`.
 - Step 3C — model + deterministic append: append one integrated-diagnosis sentence to `case.md` without model-reading `case.md`; automatic review performs this in Step 3A, manual review after Step 3B.
 - Steps 3D–5 — deterministic: validate the completed adjudication, retrieve the full evidence bundle into `bundle.json`, and render `block.md`.
-- Step 6A — model: audit every reporting rule and write only reportable statements into `report-draft.md`.
-- Step 6B — model: format `report-draft.md` into `report-final.md`.
+- Step 6A — model + deterministic validation: audit every reporting rule, write only reportable statements into `report-draft.md`, and validate its card-ID markers.
+- Step 6B — model + deterministic validation: format `report-draft.md` into `report-final.md`, copying the exact card-ID markers associated with retained statements, then validate them.
+- Step 6C — deterministic: replace card-ID markers in `report-final.md` with Vancouver-style citations and render its bibliography.
 - Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md`.
 
 `evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist. Do not rerun skipped steps.
@@ -394,9 +395,15 @@ For each rule:
 - give a 1–3 sentence case-specific answer;
 - answer the rule even when it is not applicable or the result is negative;
 - end every sentence with one citation marker:
-  - one or more supporting `block.md` reference numbers, e.g. `(refs: 2)` or `(refs: 2,4)`; or
+  - one or more exact card-ID `Citation marker` values copied from the
+    supporting `block.md` cards, e.g. `[card:arber-2022-aml-C0001]`; or
   - `(no citation required)`;
-- copy reference numbers only from the terminal `## References` section of `block.md`;
+- when several evidence cards support one sentence, copy their markers adjacently,
+  e.g. `[card:arber-2022-aml-C0001][card:khoury-2022-who-C0003]`;
+- each card marker resolves deterministically to that card's primary publication;
+  `secondary ref` metadata is not selectable by a Step 6A card marker;
+- do not create, infer, alter, shorten, or parse a citation marker;
+- do not write numeric citations or use `block.md` reference numbers;
 - use `(no citation required)` only when the sentence does not require literature support.
 
 Do not omit a rule because it is unlikely to appear in the final report.
@@ -410,15 +417,17 @@ Write only:
 Then run exactly:
 
 ```bash
-python scripts/report_citations.py prepare \
-  --draft <work-dir>/report-draft.md \
+python scripts/report_citations.py validate \
+  --report <work-dir>/report-draft.md \
   --block <work-dir>/block.md
 ```
 
-The command must succeed before Step 6B. It deterministically replaces the
-source-reference markers with Vancouver-style square-bracket citations, numbers
-references in order of first citation, and appends the cited bibliography to
-`report-draft.md`. Do not otherwise modify `report-draft.md` after this command.
+The command is read-only and must succeed before Step 6B. It verifies that every
+card-ID marker is well formed and exists in the `block.md` `## Refs` mapping, and
+that the draft contains neither numeric citations nor a bibliography. If it fails,
+use only the validator error and the inputs already allowed in this Step 6A session
+to correct `report-draft.md`, then rerun the exact command until it succeeds. Do not
+replace card-ID markers or append references in Step 6A.
 
 ### Step 6B — Format the final report
 
@@ -441,9 +450,13 @@ Follow `<format-prompt>` exactly, using `report-draft.md` as the sole source of 
 
 Do not introduce a clinical assertion, qualification, citation, or patient fact that is absent from `report-draft.md`.
 
-Preserve each square-bracket citation attached to a retained statement. Copy the
-corresponding supplied reference entries exactly; do not reconstruct, add, or
-renumber citations or references.
+For every retained statement, copy verbatim every exact `[card:<card-id>]` marker
+associated with the supporting facts in `report-draft.md`. Keep the copied markers
+attached to those facts. When combining retained draft statements, copy all of their
+supporting markers verbatim and adjacently. Do not create, infer, alter, shorten,
+parse, replace, or renumber a card-ID marker. Retain `(no citation required)` for a
+retained sentence that has that marker. Do not write numeric citations or a
+`## References` section.
 
 #### Output
 
@@ -456,18 +469,38 @@ The file must contain the final report only. Do not include process commentary, 
 Then run exactly:
 
 ```bash
-python scripts/report_citations.py finalize \
-  --report <work-dir>/report-final.md
+python scripts/report_citations.py validate \
+  --report <work-dir>/report-final.md \
+  --block <work-dir>/block.md
 ```
 
-The command must succeed before Step 7. It deterministically validates all
-citations, removes bibliography entries omitted with draft statements, and
-renumbers retained references in order of first citation. Do not otherwise modify
-`report-final.md` after this command.
+The command is read-only and is the Step 6B exit criterion. It must succeed before
+Step 6C. If it fails, use only the validator error, `<format-prompt>`, and
+`report-draft.md` to correct `report-final.md`, then rerun the exact command until
+it succeeds.
+
+### Step 6C — Render citations and references
+
+This deterministic step is compulsory for every workflow that runs Step 6.
+
+Run exactly:
+
+```bash
+python scripts/report_citations.py render \
+  --report <work-dir>/report-final.md \
+  --block <work-dir>/block.md
+```
+
+The command must succeed before Step 7. It resolves each exact card-ID marker
+through the `block.md` `## Refs` mapping to that card's primary publication,
+replaces markers with Vancouver-style numeric square-bracket citations, merges
+adjacent citations, deduplicates publications, numbers references in order of first
+citation, removes `(no citation required)`, and appends the cited bibliography to
+`report-final.md`. Do not otherwise modify `report-final.md` after this command.
 
 ## Step 7 — Post-report delivery and validation
 
-Run after `report-final.md` is complete.
+Run after Step 6C has completed `report-final.md`.
 
 - For `ngs-report` and `evidence-to-report`, display `<work-dir>/report-final.md` in chat unchanged without another model session.
 - For `nel-demo`, only now read `<demo-case>` and `<demo-expected>`; this is the first point permitted to read `<demo-expected>`. Display the case, `<work-dir>/report-final.md`, and expected behaviour unchanged. Do not use `<demo-expected>` to alter any workflow artifact.

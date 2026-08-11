@@ -423,6 +423,8 @@ class FolderStateWorkflowTests(unittest.TestCase):
         report = self.root / "output" / "reports" / "build-report.json"
         output = self.run_script(
             "incorporate.py", "--accept-dir", self.accept, "--output-dir", output_dir,
+            "--cards-dir", self.root / "cards",
+            "--evidence-dir", self.root / "evidence",
             "--report", report, "--generated-at", "2026-08-02T00:00:00+00:00",
         )
         self.assertIn("Rejected: 1", output)

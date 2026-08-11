@@ -1,8 +1,7 @@
-# Phase 5 — post-acceptance supplementation
-
+# Phase 5 — post-acceptance supplementation or revision
 ## Active phase and scope
 
-Active phase: **Phase 5 only**. This is an additive re-ingest of one already accepted publication.
+Active phase: **Phase 5 only** for one already accepted publication.
 
 Read-only inputs:
 - `paper.md`
@@ -12,13 +11,13 @@ Read-only inputs:
 - `phase5.json`
 - `phase5.existing-cards.json`
 - `phase5_prompt.md`
+- revision mode only: `paper.phase5-targets.json`
 
-Do not alter or delete any existing accepted card or evidence bundle. Do not alter the census. If a requested interpretation requires a gene/category not represented by the existing census, stop that item and tell the user it requires a full re-ingest.
+Read `phase5.json` first. `mode: additive` uses the existing additive workflow. `mode: revision` may change only the cards locally authorised in `target_card_ids`. Never alter the census. If a requested interpretation requires census expansion, stop that item and tell the user it requires a full re-ingest.
 
-## Initial interaction
+## Additive mode
 
-First ask the user what interpretation or interpretations they believe this paper supports but the accepted cards missed.
-
+First ask what interpretation or interpretations the user believes this paper supports but the accepted cards missed.
 For each requested interpretation:
 1. search `phase5.existing-cards.json` semantically for the same or materially similar interpretation;
 2. if the target publication already contains an equivalent card, show its `card_id` and interpretation and do not create a duplicate;
@@ -29,10 +28,7 @@ For each requested interpretation:
 
 Accept free-text discussion over any number of turns. The user may request rewording, narrower scope, different evidence, splitting, or deletion of proposed cards.
 
-## Carding rules
-
 New cards must follow the exact card/evidence shapes already used in `paper.base.final.json`.
-
 - Preserve source-stated disease, population, treatment, variant-class, threshold, exclusion, analysis and other material qualifiers.
 - Use only source-verbatim evidence fragments from `paper.md`.
 - Every card must have exactly one evidence bundle.
@@ -42,44 +38,132 @@ New cards must follow the exact card/evidence shapes already used in `paper.base
 - New `card_id` values must use the publication's existing ID pattern and the next unused numeric suffix. Never renumber existing cards.
 - Do not create an exact or semantic duplicate of another card from the same publication.
 
+When the user indicates the additions are ready for audit, write exactly `paper.phase5-provisional.json` using the existing ingestion-package shape containing only proposed new cards/evidence. Set `paper_id` from the accepted package, `round` to `1`, `extraction_model` to this model's exact identity, publication type fields equal to the accepted package except `publication_type_verified_by_phase3: false`, `census_entries` equal to `paper.census.json`, coverage fields to exact unions of the proposed cards, and `audit: null`.
+
+A different model reviews the provisional using `phase5_review_prompt.md`. If any card fails, discuss it with the user; any changed card/evidence requires a new independent review.
+
+When the user sends `FINALIZE` on its own line, require all cards to pass, then show the exact pending change set using short card IDs:
+- `ADD: 000x,...`
+- `DELETE: none`
+- `MODIFY: none`
+
+Do **not** write `paper.final.json` yet. Ask the user to send `CONFIRM CHANGES` on its own line. Only after that exact confirmation, and only if the reviewed provisional has not changed, merge only the reviewed additions into `paper.base.final.json`, preserve existing cards/evidence and audit metadata, append passing audit results for the new cards, and return exactly `paper.final.json`. Any change after review or confirmation requires a fresh review and confirmation.
+
+## Revision mode — interactive authoring
+
+Revision mode is selected locally with `prepare_phase5.py --key <publication-key> --cards 0001,0003,...` or `--cards all`. `--cards all` releases every accepted card from this publication into the revision allowlist.
+
+At the start:
+1. read `paper.phase5-targets.json`;
+2. present each selected card by short ID, interpretation and current evidence locator;
+3. ask the user what they want changed;
+4. discuss the requested revisions interactively over as many turns as needed.
+
+The selected cards are an **allowlist**, not a requirement to change every selected card. During Phase 5 the user chooses the actual subset to modify or delete. A revision provisional contains only those actual changes. Revision mode does not add cards; use additive Phase 5 for additions.
+
+For each proposed modification:
+- reread the source specifically for the requested correction;
+- explain briefly when the requested change is not source-supported;
+- preserve material qualifiers;
+- use only source-verbatim evidence fragments from `paper.md`;
+- keep these card fields unchanged: `card_id`, `genes`, `diseases`, `disease_ancestors`, `category`, `evidence_tier`, `secondary_citation`;
+- `interpretation`, `locator`, and the paired evidence bundle may change;
+- if a structural field needs changing, tell the user to perform a full re-ingest instead.
+
+For each proposed deletion:
+- delete only an authorised target card;
+- record a concise reason agreed with the user;
+- the deletion removes the accepted card, its paired evidence bundle, and its matching final audit result;
+- do not use deletion to rename/restructure a card that should instead undergo full re-ingest.
+
+When the user sends `PROVISIONAL` on its own line, write exactly `paper.phase5-provisional.json` in this revision shape:
+
+```json
+{
+  "schema_version": "1.1",
+  "phase": 5,
+  "mode": "revision",
+  "publication_key": "<from phase5.json>",
+  "paper_id": "<from paper.phase5-targets.json>",
+  "round": 1,
+  "extraction_model": "<this model's exact identity>",
+  "revisions": [
+    {
+      "card_id": "<full accepted card_id>",
+      "replacement_card": {},
+      "replacement_evidence": {},
+      "revision_sha256": "<revision_sha256(replacement_card, replacement_evidence)>"
+    }
+  ],
+  "deletions": [
+    {
+      "card_id": "<full accepted card_id>",
+      "reason": "<concise user-agreed reason>",
+      "deletion_sha256": "<deletion_sha256(card_id, prepared card hash, prepared evidence hash, reason)>"
+    }
+  ]
+}
+```
+
+`revisions` and `deletions` may each be empty, but at least one actual change is required. A card cannot appear in both arrays.
+
+Before returning the file, execute the embedded `validate_revision_provisional(...)` code below against `phase5.json`, `paper.phase5-targets.json`, the provisional, and `paper.md`. If there are errors, fix the provisional and rerun until it passes. Return the validated provisional only.
+
+## Revision mode — independent review return
+
+Phase 5R is LLM-only and non-interactive. The user will later upload `paper.phase5-review.json` from the independent reviewer into this same Phase 5 conversation.
+
+On receipt:
+1. execute `validate_revision_review(...)` using the current provisional;
+2. do not accept a review whose per-change hash differs from the current provisional;
+3. if any modification or deletion fails, explain the review criticism to the user and resume interactive revision;
+4. after any revision change, generate a new complete provisional and require a fresh Phase 5R review of the batch.
+
+## Revision mode — FINALIZE
+
+Treat all revision discussion as provisional until the user sends `FINALIZE` on its own line.
+
+On `FINALIZE`, require a valid review in which every provisional modification/deletion passes. Do **not** create or edit `paper.final.json` and do **not** write `paper.phase5-revision.json` yet.
+
+Show the exact pending change set using short card IDs:
+- `ADD: none`
+- `DELETE: 000x,...` or `none`
+- `MODIFY: 000x,...` or `none`
+
+Ask the user to send `CONFIRM CHANGES` on its own line. Only after that exact confirmation, and only if the reviewed provisional has not changed, write exactly `paper.phase5-revision.json`:
+
+```json
+{
+  "schema_version": "1.1",
+  "phase": 5,
+  "mode": "revision",
+  "operation": "change_cards",
+  "publication_key": "<from phase5.json>",
+  "paper_id": "<from provisional>",
+  "base_final_sha256": "<from phase5.json>",
+  "base_census_sha256": "<from phase5.json>",
+  "extraction_model": "<from provisional>",
+  "reviewer_model": "<from review>",
+  "revisions": [],
+  "deletions": [],
+  "confirmed_change_set": {
+    "add": [],
+    "delete": ["<full deleted card IDs in provisional order>"],
+    "modify": ["<full modified card IDs in provisional order>"]
+  }
+}
+```
+
+The `revisions` and `deletions` arrays must be exact copies of the reviewed provisional arrays. `confirmed_change_set` must exactly encode the change set the user just confirmed. Execute `validate_revision_asset(...)`. If errors occur, fix the asset and rerun. Return the validated `paper.phase5-revision.json` only. Do not claim that accepted corpus state has changed; local `apply_phase5.py` and `confirm.py` are authoritative.
+
 ### Source disease alias policy
 
 {{SOURCE_DISEASE_ALIAS_POLICY}}
 
-## Preparing the focused independent review
+## Embedded revision validation code
 
-When the user indicates the proposed additions are ready for audit, write exactly one file: `paper.phase5-provisional.json`.
+Execute this code; do not paraphrase or reimplement it.
 
-It is a valid ingestion-package-shaped object containing **only the proposed new cards and their evidence**. Set:
-- `paper_id` from the accepted package;
-- `round` to `1`;
-- `extraction_model` to this model's exact identity;
-- `publication_type` and `publication_type_basis` equal to the accepted package;
-- `publication_type_verified_by_phase3` to `false`;
-- `census_entries` equal to `paper.census.json`;
-- `genes_covered` and `diseases_covered` to the exact unions represented by the proposed cards;
-- `audit` to `null`.
-
-Do not write `paper.final.json` yet. A different model must review the provisional additions using `phase5_review_prompt.md`, producing `paper.phase5-review.json`.
-
-If the review contains any failed card, discuss it with the user. Any change to a reviewed card or evidence invalidates that review: rewrite `paper.phase5-provisional.json` and require a new independent Phase 5 review before finalization.
-
-## FINALIZE
-
-Treat all discussion and candidate cards as provisional until the user sends `FINALIZE` on its own line.
-
-On `FINALIZE`:
-- require `paper.phase5-review.json`;
-- require every proposed Phase 5 card to have a passing review result;
-- require the review model to differ from the Phase 5 extraction model;
-- require the reviewed provisional cards/evidence to be unchanged since review;
-- merge the reviewed new cards/evidence into `paper.base.final.json` without modifying existing cards/evidence;
-- recompute `genes_covered` and `diseases_covered`;
-- preserve all existing top-level final-package fields and existing audit metadata;
-- preserve all existing audit results and append one `{ "card_id": ..., "verdict": "pass" }` result for each new card;
-- write exactly `paper.final.json`.
-
-Do not modify `phase5.json`, `paper.base.final.json`, `paper.base.census.json`, or `paper.census.json`.
-
-
-After `FINALIZE`, return exactly `paper.final.json`. Do not claim acceptance; `confirm.py` is the deterministic source-aware acceptance gate and will reject any malformed or non-additive result.
+```python
+{{PHASE5_CHAT_VALIDATION}}
+```

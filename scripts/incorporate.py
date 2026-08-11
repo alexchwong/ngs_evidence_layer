@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 from collections import defaultdict
@@ -24,6 +25,20 @@ def atomic_json(path, document):
     try:
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(canonical_bytes(document))
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    except Exception:
+        Path(temporary).unlink(missing_ok=True)
+        raise
+
+
+def atomic_text(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
@@ -74,6 +89,147 @@ def normalize_accepted_at(final_path):
     atomic_json(final_path, envelope)
 
 
+def markdown_quote(text):
+    return "\n".join(f"> {line}" if line else ">" for line in text.splitlines())
+
+
+def render_cards_markdown(document):
+    lines = [
+        f"# {document['citation']['display']}",
+        "",
+        f"**Publication key:** `{document['publication_key']}`",
+        "",
+    ]
+    for card in document["cards"]:
+        lines.extend(
+            [
+                f"## {card['card_id']}",
+                "",
+                f"**Category:** {card['category']}",
+                "",
+                f"**Genes:** {', '.join(card['genes'])}",
+                "",
+                f"**Diseases:** {', '.join(card['diseases']) or '—'}",
+                "",
+                f"**Evidence tier:** {card['evidence_tier']}",
+                "",
+                f"**Locator:** {card['locator']}",
+                "",
+            ]
+        )
+        if card.get("secondary_citation"):
+            lines.extend(
+                [
+                    f"**Secondary citation:** {card['secondary_citation']['display']}",
+                    "",
+                ]
+            )
+        lines.extend(["### Interpretation", "", card["interpretation"], ""])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def render_evidence_markdown(document, evidence_by_card):
+    sections = []
+    for card in document["cards"]:
+        evidence = evidence_by_card[card["card_id"]]
+        lines = [
+            f"# {card['card_id']}",
+            "",
+            "## Interpretation",
+            "",
+            card["interpretation"],
+            "",
+            "## Evidence",
+            "",
+        ]
+        for fragment in evidence["fragments"]:
+            lines.extend(
+                [
+                    f"**{fragment['fragment_id']} · {fragment['role']} · {fragment['locator']}**",
+                    "",
+                    markdown_quote(fragment["quote"]),
+                    "",
+                ]
+            )
+        sections.append("\n".join(lines).rstrip())
+    return "\n\n---\n\n".join(sections) + ("\n" if sections else "")
+
+
+def build_markdown_documents(corpus, accept_dir):
+    cards_documents = {}
+    evidence_documents = {}
+    for publication in corpus["publications"]:
+        document = publication["document"]
+        publication_key = document["publication_key"]
+        envelope = validation.read_json(
+            accept_dir / f"{publication_key}.final.json", "accepted package"
+        )
+        package = envelope["final"]
+        package_cards = {card["card_id"]: card for card in package["cards"]}
+        evidence_by_card = {item["card_id"]: item for item in package["evidence"]}
+        for card in document["cards"]:
+            card_id = card["card_id"]
+            accepted_card = package_cards.get(card_id)
+            if accepted_card is None:
+                raise ValueError(f"accepted package is missing incorporated card {card_id}")
+            if accepted_card["interpretation"] != card["interpretation"]:
+                raise ValueError(f"accepted package interpretation differs for {card_id}")
+            if card_id not in evidence_by_card:
+                raise ValueError(f"accepted package is missing evidence for {card_id}")
+        filename = f"{publication_key}.md"
+        cards_documents[filename] = render_cards_markdown(document)
+        evidence_documents[filename] = render_evidence_markdown(
+            document, evidence_by_card
+        )
+    return cards_documents, evidence_documents
+
+
+def replace_markdown_documents(directory, documents):
+    """Replace generated Markdown only after the complete new view is staged."""
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    if not documents:
+        return
+
+    staging = Path(
+        tempfile.mkdtemp(prefix=f".{directory.name}.new.", dir=directory.parent)
+    )
+    backup = None
+    try:
+        for path in directory.iterdir():
+            if path.is_file() and path.suffix == ".md":
+                continue
+            destination = staging / path.name
+            if path.is_dir():
+                shutil.copytree(path, destination)
+            else:
+                shutil.copy2(path, destination)
+
+        for filename, text in sorted(documents.items()):
+            if Path(filename).name != filename:
+                raise ValueError(f"unsafe Markdown output filename: {filename}")
+            atomic_text(staging / filename, text)
+
+        backup = Path(
+            tempfile.mkdtemp(prefix=f".{directory.name}.old.", dir=directory.parent)
+        )
+        backup.rmdir()
+        os.replace(directory, backup)
+        try:
+            os.replace(staging, directory)
+        except Exception:
+            os.replace(backup, directory)
+            backup = None
+            raise
+        shutil.rmtree(backup)
+        backup = None
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+        if backup is not None and backup.exists():
+            shutil.rmtree(backup)
+
+
 def build(args):
     final_paths = sorted(args.accept_dir.glob("*.final.json"))
     census_paths = {
@@ -103,7 +259,6 @@ def build(args):
             ]
             continue
         accepted.append((publication_key, envelope, census, warnings, report))
-
     key_groups = defaultdict(list)
     card_owners = {}
     global_errors = []
@@ -111,7 +266,6 @@ def build(args):
         _publication_key, envelope, _census, _warnings, _report = item
         key = envelope["metadata"]["publication_key"]
         key_groups[key].append(item)
-
     selected = []
     for key, group in sorted(key_groups.items()):
         ranked = sorted(
@@ -131,7 +285,6 @@ def build(args):
                 f"{loser_id} superseded by {winner_id}",
                 file=sys.stderr,
             )
-
     for publication_key, envelope, _census, _warnings, _report in selected:
         for card in envelope["final"]["cards"]:
             card_id = card["card_id"]
@@ -143,7 +296,6 @@ def build(args):
             card_owners[card_id] = publication_key
     if global_errors:
         raise ValueError("\n".join(global_errors))
-
     by_gene, by_disease, by_category = (
         defaultdict(list),
         defaultdict(list),
@@ -153,7 +305,6 @@ def build(args):
     by_accepted_in_version = defaultdict(list)
     publications, paper_index, card_index = [], {}, {}
     census_total = 0
-
     for publication_key, envelope, census, warnings, report in selected:
         metadata, package = envelope["metadata"], envelope["final"]
         accepted_in_version = envelope["accepted_in_version"]
@@ -191,7 +342,6 @@ def build(args):
                 add(by_disease, disease, card_id)
             add(by_category, card["category"], card_id)
             add(by_tier, card["evidence_tier"], card_id)
-
         year = metadata["citation"].get("year")
         if year is not None:
             add(by_year, str(year), metadata["publication_key"])
@@ -224,7 +374,6 @@ def build(args):
             "cards": len(card_ids),
         }
         census_total += len(census["entries"])
-
     generated_at = args.generated_at or datetime.now(timezone.utc).isoformat()
     counts = {
         "completed_papers": len(publications),
@@ -275,6 +424,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--accept-dir", type=Path, default=Path("accept"))
     parser.add_argument("--output-dir", type=Path, default=Path("output/corpus"))
+    parser.add_argument("--cards-dir", type=Path, default=Path("cards"))
+    parser.add_argument("--evidence-dir", type=Path, default=Path("evidence"))
     parser.add_argument(
         "--report", type=Path, default=Path("output/reports/build-report.json")
     )
@@ -282,9 +433,14 @@ def main():
     args = parser.parse_args()
     try:
         corpus, index, report = build(args)
+        cards_documents, evidence_documents = build_markdown_documents(
+            corpus, args.accept_dir
+        )
         atomic_json(args.output_dir / "nel.corpus.json", corpus)
         atomic_json(args.output_dir / "nel.index.json", index)
         atomic_json(args.report, report)
+        replace_markdown_documents(args.cards_dir, cards_documents)
+        replace_markdown_documents(args.evidence_dir, evidence_documents)
     except (OSError, ValueError) as exc:
         sys.exit(f"INCORPORATION FAILED:\n{exc}")
     print(

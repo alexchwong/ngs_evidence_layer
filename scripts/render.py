@@ -5,9 +5,9 @@ accepted ingestion packages.
 The rendered Markdown preserves one visible record per retrieved evidence card.
 Each record includes its stable card ID, human-readable label, category, genes,
 disease context, retrieval match, evidence tier, interpretation, source locator,
-and any escalation target. Citations remain publication-style at the end of the
-block: card IDs map to primary and secondary reference numbers in ``## Refs``,
-followed by the numbered bibliography in ``## References``.
+Citations remain publication-style at the end of the block. Each card exposes
+its exact card-ID citation marker, ``## Refs`` maps card IDs to primary and
+secondary references, and ``## References`` contains the numbered bibliography.
 Citation numbering is scripted rather than modelled. Numbers fall out of the
 deterministic card order, so the same corpus and case produce the same block,
 and every number points at a reference contributed by a rendered card.
@@ -115,6 +115,7 @@ def assign_references(lines):
         mapping["secondary_refs"].sort()
     return references, card_map
 
+
 def estimate_tokens(text):
     return max(1, (len(text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN)
 
@@ -168,6 +169,7 @@ def format_card(card):
         format_field("Evidence tier", card.get("evidence_tier")),
         format_field("Interpretation", card.get("interpretation")),
         format_field("Source locator", card.get("locator")),
+        format_field("Citation marker", f"[card:{inline_text(card['card_id'])}]"),
     ])
     if card.get("escalates_to"):
         out.append(format_field("Escalates to", card["escalates_to"]))
@@ -236,6 +238,7 @@ def format_refs(reference_map):
         out.append(f"{ids}: {'; '.join(parts)}")
     out.append("")
     return out
+
 
 def serialise_card(card):
     """Return the loss-minimising card representation exposed in JSON output."""

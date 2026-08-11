@@ -24,6 +24,9 @@ python scripts/build_prompts.py --phase5-review
 
 # Run the full test suite.
 python -m unittest discover -s tests -v 2>&1
+
+# Build a provisional skill zip package for testing
+python scripts/build_skill_zip.py
 ```
 
 Before release, also update `NEWS.md`, verify the documentation and corpus tables, set
@@ -134,6 +137,14 @@ When `SKILL.md` gains a new runtime dependency, add that file or a suitable glob
 The GitHub Action fails if a manifest pattern matches no tracked files and verifies that
 the finished ZIP contains exactly the resolved manifest contents.
 
+Build and verify the skill ZIP locally from the repository root with:
+
+```bash
+python scripts/build_skill_zip.py
+```
+
+Use `--output <path>` to choose a different output path.
+
 ### Release action
 
 The release workflow is:
@@ -162,10 +173,11 @@ Before merging a release to `master`:
 6. Check `README.md`, `INGEST.md`, and `DEVEL.md` still match current user/developer commands.
 7. Set `release/VERSION` to the intended release version.
 8. Review `release/skill.txt` and ensure every file required by `SKILL.md` is included.
-9. Check that no private files from `pdf/`, `input/`, `work/`, `quarantine/`, `accept/`,
-   `archive/`, `curation/`, or `temp/` are staged.
-10. Run the full unittest suite again after final release-file changes.
-11. Merge to `master` or manually run the release workflow.
+9. (Optional) Build and verify the skill ZIP with `python scripts/build_skill_zip.py`. Test this locally or via Claude/ChatGPT
+10. Check that no private files from `pdf/`, `input/`, `work/`, `quarantine/`, `accept/`,
+    `archive/`, `curation/`, or `temp/` are staged.
+11. Run the full unittest suite again after final release-file changes.
+12. Merge to `master` or manually run the release workflow.
 
 ## Post-release check
 
