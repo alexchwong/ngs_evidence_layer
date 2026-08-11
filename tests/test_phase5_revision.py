@@ -135,7 +135,7 @@ class Phase5ChatValidationTests(unittest.TestCase):
             "revision_sha256": chat_validation.revision_sha256(replacement, evidence),
         }
         provisional = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "phase": 5,
             "mode": "revision",
             "publication_key": "example-paper",
@@ -143,6 +143,7 @@ class Phase5ChatValidationTests(unittest.TestCase):
             "round": 1,
             "extraction_model": "ChatGPT",
             "revisions": [item],
+            "deletions": [],
         }
         return phase5, targets, provisional
 

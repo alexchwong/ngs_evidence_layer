@@ -21,6 +21,13 @@ def _maps(items, key="card_id"):
     return {item.get(key): item for item in items}
 
 
+def _derived_coverage(cards):
+    return (
+        sorted({gene for card in cards for gene in card.get("genes", [])}),
+        sorted({disease for card in cards for disease in card.get("diseases", [])}),
+    )
+
+
 def validate_review_only(source_path, provisional_path, review_path):
     provisional = validation.read_json(provisional_path, "Phase 5 provisional package")
     review = validation.read_json(review_path, "Phase 5 review")
@@ -61,7 +68,6 @@ def _validate_baseline(
     )
     errors.extend(f"base final: {error}" for error in base_errors)
     warnings.extend(f"base final: {warning}" for warning in base_warnings)
-
     if accepted_final_path is not None or accepted_census_path is not None:
         if accepted_final_path is None or accepted_census_path is None:
             errors.append("current accepted final and census must be supplied together")
@@ -125,7 +131,6 @@ def validate_phase5_files(
         errors.append("additive Phase 5 marker has wrong mode")
     if not isinstance(marker.get("supplement"), int) or marker.get("supplement", 0) < 1:
         errors.append("phase5 supplement must be a positive integer")
-
     provisional_errors, provisional_warnings, _ = validation.validate_package(
         provisional, metadata, census, source_text=source_text, require_final=False
     )
@@ -140,7 +145,6 @@ def validate_phase5_files(
     publication_verdict = (review.get("audit") or {}).get("publication_type_verdict") or {}
     if publication_verdict.get("verdict") != "pass":
         errors.append("Phase 5 review publication_type verdict must pass")
-
     final_errors, final_warnings, report = validation.validate_package(
         final, metadata, census, source_text=source_text, require_final=True
     )
@@ -252,7 +256,6 @@ def validate_phase5_revision_files(
     asset = validation.read_json(revision_path, "Phase 5 revision asset")
     final = validation.read_json(final_path, "Phase 5 revised final package")
     source_text = Path(source_path).read_text(encoding="utf-8")
-
     errors, warnings = _validate_baseline(
         metadata=metadata,
         census=census,
@@ -269,7 +272,6 @@ def validate_phase5_revision_files(
         errors.append("phase5 revision must be a positive integer")
     if not marker.get("target_card_ids"):
         errors.append("revision Phase 5 requires target_card_ids")
-
     base_cards_for_targets = _maps(base_final.get("cards", []))
     base_evidence_for_targets = _maps(base_final.get("evidence", []))
     target_records = _maps(targets.get("targets", []))
@@ -298,7 +300,6 @@ def validate_phase5_revision_files(
             errors.append(f"{card_id}: target card hash differs from phase5 marker")
         if target_record.get("evidence_sha256") != marker_target.get("evidence_sha256"):
             errors.append(f"{card_id}: target evidence hash differs from phase5 marker")
-
     errors.extend(
         f"Phase 5 revision provisional: {error}"
         for error in chat_validation.validate_revision_provisional(
@@ -311,7 +312,6 @@ def validate_phase5_revision_files(
             marker, targets, provisional, review, asset
         )
     )
-
     final_errors, final_warnings, report = validation.validate_package(
         final, metadata, census, source_text=source_text, require_final=True
     )
@@ -324,13 +324,20 @@ def validate_phase5_revision_files(
     final_evidence = _maps(final.get("evidence", []))
     revised = _maps(asset.get("revisions", []))
     revised_ids = [item.get("card_id") for item in asset.get("revisions", [])]
-
-    if set(final_cards) != set(base_cards):
-        errors.append("revision Phase 5 may not add, remove, or rename card IDs")
-    if set(final_evidence) != set(base_evidence):
-        errors.append("revision Phase 5 may not add, remove, or rename evidence card IDs")
+    deleted_ids = [item.get("card_id") for item in asset.get("deletions", [])]
+    deleted = set(deleted_ids)
+    expected_ids = set(base_cards) - deleted
+    if set(final_cards) != expected_ids:
+        errors.append("revision Phase 5 final card IDs must equal the base IDs minus reviewed deletions")
+    if set(final_evidence) != expected_ids:
+        errors.append("revision Phase 5 final evidence IDs must equal the base IDs minus reviewed deletions")
     for card_id in base_cards:
-        if card_id in revised:
+        if card_id in deleted:
+            if card_id in final_cards:
+                errors.append(f"deleted card still present: {card_id}")
+            if card_id in final_evidence:
+                errors.append(f"deleted evidence still present: {card_id}")
+        elif card_id in revised:
             if final_cards.get(card_id) != revised[card_id].get("replacement_card"):
                 errors.append(f"{card_id}: final card differs from reviewed revision asset")
             if final_evidence.get(card_id) != revised[card_id].get("replacement_evidence"):
@@ -341,17 +348,38 @@ def validate_phase5_revision_files(
             if final_evidence.get(card_id) != base_evidence.get(card_id):
                 errors.append(f"off-target existing evidence changed: {card_id}")
 
-    for field in set(base_final) - {"cards", "evidence"}:
+    expected_genes, expected_diseases = _derived_coverage(final.get("cards", []))
+    if final.get("genes_covered") != expected_genes:
+        errors.append("revision Phase 5 genes_covered must be recomputed from final cards")
+    if final.get("diseases_covered") != expected_diseases:
+        errors.append("revision Phase 5 diseases_covered must be recomputed from final cards")
+
+    base_audit = base_final.get("audit") or {}
+    final_audit = final.get("audit") or {}
+    for field in set(base_audit) - {"results"}:
+        if final_audit.get(field) != base_audit.get(field):
+            errors.append(f"revision Phase 5 may not change existing audit field: {field}")
+    expected_results = {
+        card_id: result
+        for card_id, result in _maps(base_audit.get("results", [])).items()
+        if card_id not in deleted
+    }
+    if _maps(final_audit.get("results", [])) != expected_results:
+        errors.append("revision Phase 5 audit results must equal base results minus reviewed deletions")
+
+    allowed_top_level_changes = {"cards", "evidence", "audit", "genes_covered", "diseases_covered"}
+    for field in set(base_final) - allowed_top_level_changes:
         if final.get(field) != base_final.get(field):
             errors.append(f"revision Phase 5 may not change final field: {field}")
-
     report = report or {}
     report.update(
         {
             "phase": 5,
             "mode": "revision",
             "revision": marker.get("revision"),
-            "revised_card_ids": revised_ids,
+            "revised_card_ids": revised_ids + deleted_ids,
+            "modified_card_ids": revised_ids,
+            "deleted_card_ids": deleted_ids,
             "phase5_extraction_model": provisional.get("extraction_model"),
             "phase5_reviewer_model": review.get("reviewer_model"),
         }

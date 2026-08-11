@@ -57,8 +57,12 @@ python scripts/prepare_phase5.py --key <publication-key>
 scripts/render_corpus --list
 scripts/render_corpus --key <publication-key> --dest ./temp/corpus
 python scripts/prepare_phase5.py --key <publication-key> --cards 0001,0003,0005
+# Or release every accepted card from the publication into the revision allowlist.
+python scripts/prepare_phase5.py --key <publication-key> --cards all
 
 # Complete the Phase 5 authoring and independent review steps described below.
+# Revision mode: restate exactly the existing cards actually modified/deleted.
+python scripts/apply_phase5.py --key <publication-key> --cards 0001,0003
 python scripts/confirm.py --key <publication-key>
 python scripts/incorporate.py
 ```
@@ -495,7 +499,7 @@ computer.
 Use Phase 5 after a paper has already been accepted. It supports two modes:
 
 - **additive mode** adds evidence-backed cards missed during Phases 1–4;
-- **revision mode** changes the interpretation, locator, or evidence of explicitly selected accepted cards.
+- **revision mode** modifies or deletes explicitly authorised accepted cards.
 
 Neither mode may change the census. Structural changes to an accepted card's identity or
 applicability require a full re-ingest.
@@ -537,18 +541,21 @@ phase5.existing-cards.json
 ```
 
 Continue with the existing additive Phase 5 authoring/review workflow. On `FINALIZE`,
-Phase 5 produces the merged `paper.final.json`, after which use the normal confirm and
-incorporate commands below.
+Phase 5 shows the exact `ADD` / `DELETE` / `MODIFY` set. Additive mode has only `ADD`.
+Send `CONFIRM CHANGES` to approve that set; only then does Phase 5 produce the merged
+`paper.final.json`. Then use the normal confirm and incorporate commands below.
 
 ### Prepare card revision Phase 5
 
-Select up to the accepted cards that may be revised:
+Select the accepted cards that may be modified/deleted, or release all accepted cards:
 
 ```bash
 python scripts/prepare_phase5.py --key <publication-key> --cards 0001,0003,0005
+python scripts/prepare_phase5.py --key <publication-key> --cards all
 ```
 
-The selected IDs are a local allowlist; not every selected card has to change. Preparation
+The selected IDs are a local allowlist; `all` expands to every accepted card in the
+publication. Phase 5 may act on any subset, and not every authorised card has to change. Preparation
 freezes the accepted baseline and additionally creates:
 
 ```text
@@ -571,10 +578,12 @@ Start a fresh ChatGPT conversation with:
 - `phase5.existing-cards.json`
 - `prompts/phase5_prompt.md`
 
-Phase 5 shows the selected cards and asks what should change. Discuss and refine the
-proposed corrections interactively. Revision mode initially permits changes only to the
-card interpretation, locator, and paired evidence. Card ID, genes, diseases, disease
-ancestors, category, evidence tier, and secondary citation remain fixed.
+Phase 5 shows the authorised cards and asks what should change. Discuss and refine the
+actual modifications/deletions interactively. A modification may change only the card
+interpretation, locator, and paired evidence. Card ID, genes, diseases, disease ancestors,
+category, evidence tier, and secondary citation remain fixed. A deletion removes the
+accepted card, its paired evidence, and its matching audit result. Revision mode does not
+add cards; use additive mode for additions.
 
 When ready for independent review, send:
 
@@ -607,20 +616,28 @@ paper.phase5-review.json
 ```
 
 Upload that review to the original Phase 5 ChatGPT conversation. Phase 5 validates that
-the review covers the current per-card revision hashes. If any card fails, discuss and
-revise it in Phase 5, issue a new `PROVISIONAL`, and run a fresh Phase 5R review of the
-current batch.
+the review covers the current per-change hashes. If any change fails, discuss and revise
+it in Phase 5, issue a new `PROVISIONAL`, and run a fresh Phase 5R review of the current
+batch.
 
 ### Finalize a revision transaction
 
-When every proposed revision has a valid passing review, send to the Phase 5 conversation:
+When every proposed modification/deletion has a valid passing review, send to the Phase 5
+conversation:
 
 ```text
 FINALIZE
 ```
 
-Revision mode does **not** let the LLM write `paper.final.json`. Phase 5 instead returns a
-validated transaction asset:
+Phase 5 shows the exact pending `ADD` / `DELETE` / `MODIFY` set. Revision mode has no
+`ADD`. Check it, then send:
+
+```text
+CONFIRM CHANGES
+```
+
+Only after that explicit confirmation does Phase 5 return a validated transaction asset.
+Revision mode does **not** let the LLM write `paper.final.json`:
 
 ```text
 paper.phase5-revision.json
@@ -629,12 +646,15 @@ paper.phase5-revision.json
 Save it under `work/<publication-key>/`, then apply it locally:
 
 ```bash
-python scripts/apply_phase5.py --key <publication-key>
+python scripts/apply_phase5.py --key <publication-key> --cards 0001,0003
 ```
 
-`apply_phase5.py` revalidates the authorised targets, current accepted baseline, reviewed
-replacement hashes, and protected fields. It constructs the new `paper.final.json` from
-the frozen baseline and replaces only the independently reviewed authorised cards.
+`--cards` is mandatory and must exactly equal the existing card IDs actually modified or
+deleted in the reviewed transaction; do not pass the broader preparation allowlist.
+`apply_phase5.py` revalidates that restated change set, the authorised targets, current
+accepted baseline, reviewed hashes, and protected fields. It constructs the new
+`paper.final.json` from the frozen baseline, applies only the reviewed modifications/
+deletions, removes audit results for deleted cards, and recomputes derived coverage fields.
 
 ### Confirm and re-incorporate
 

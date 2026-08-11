@@ -72,7 +72,7 @@ def parse_card_tokens(value):
         match = CARD_TOKEN_RE.fullmatch(raw)
         if not match:
             raise ValueError(
-                f"invalid --cards value {raw!r}; use comma-separated four-digit IDs such as 0001,0003,0005"
+                f"invalid --cards value {raw!r}; use comma-separated four-digit IDs such as 0001,0003,0005, or all"
             )
         short_id = match.group(1)
         if short_id in seen:
@@ -81,6 +81,26 @@ def parse_card_tokens(value):
         tokens.append(short_id)
     if not tokens:
         raise ValueError("--cards must contain at least one card ID")
+    return tokens
+
+
+def all_card_tokens(publication_key, base_final):
+    prefix = f"{publication_key}-C"
+    tokens = []
+    seen = set()
+    for card in base_final.get("cards", []):
+        card_id = card.get("card_id")
+        if not isinstance(card_id, str) or not card_id.startswith(prefix):
+            raise ValueError(f"accepted card has unexpected card_id: {card_id!r}")
+        short_id = card_id[len(prefix) :]
+        if not re.fullmatch(r"[0-9]{4}", short_id):
+            raise ValueError(f"accepted card has unexpected card_id: {card_id!r}")
+        if short_id in seen:
+            raise ValueError(f"accepted final contains duplicate card ID: {card_id}")
+        seen.add(short_id)
+        tokens.append(short_id)
+    if not tokens:
+        raise ValueError("accepted final contains no cards to release for revision")
     return tokens
 
 
@@ -126,7 +146,6 @@ def prepare(args):
         raise ValueError(f"archive folder not found: {archive_source}")
     if not accepted_final_path.is_file() or not accepted_census_path.is_file():
         raise ValueError("accepted final/census pair is required for Phase 5")
-
     envelope = read_json(accepted_final_path, "accepted package")
     census = read_json(accepted_census_path, "accepted census")
     metadata = envelope.get("metadata") or {}
@@ -137,9 +156,12 @@ def prepare(args):
         raise ValueError("Phase 5 requires a deterministically confirmed accepted package")
     if census.get("paper_id") != metadata.get("paper_id"):
         raise ValueError("accepted census paper_id does not match accepted metadata")
-
-    short_ids = parse_card_tokens(getattr(args, "cards", None))
-    revision_mode = bool(short_ids)
+    cards_arg = getattr(args, "cards", None)
+    if isinstance(cards_arg, str) and cards_arg.strip().casefold() == "all":
+        short_ids = all_card_tokens(args.publication_key, base_final)
+    else:
+        short_ids = parse_card_tokens(cards_arg)
+    revision_mode = cards_arg is not None
     if revision_mode:
         previous = envelope.get("revisions") or []
         sequence = max(
@@ -152,7 +174,6 @@ def prepare(args):
             [item.get("supplement", 0) for item in previous if isinstance(item, dict)] or [0]
         ) + 1
         targets = None
-
     try:
         copy_archive_contents(archive_source, work_destination)
         (work_destination / "metadata.json").write_text(
@@ -170,7 +191,6 @@ def prepare(args):
         (work_destination / "paper.base.census.json").write_text(
             json.dumps(census, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
-
         marker = {
             "schema_version": "1.1" if revision_mode else "1.0",
             "phase": 5,
@@ -193,11 +213,9 @@ def prepare(args):
             ]
         else:
             marker["supplement"] = sequence
-
         (work_destination / "phase5.json").write_text(
             json.dumps(marker, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
-
         existing_cards = {
             "schema_version": "1.0",
             "target_publication_key": args.publication_key,
@@ -207,7 +225,6 @@ def prepare(args):
             json.dumps(existing_cards, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
-
         if revision_mode:
             target_document = {
                 "schema_version": "1.0",
@@ -225,7 +242,6 @@ def prepare(args):
     except Exception:
         shutil.rmtree(work_destination, ignore_errors=True)
         raise
-
     return work_destination, sequence
 
 
@@ -234,7 +250,7 @@ def main():
     parser.add_argument("--key", dest="publication_key", required=True)
     parser.add_argument(
         "--cards",
-        help="comma-separated four-digit accepted card IDs (for revision mode), e.g. 0001,0003,0005",
+        help="comma-separated four-digit accepted card IDs, or 'all' (for revision mode), e.g. 0001,0003,0005",
     )
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
     parser.add_argument("--accept-dir", type=Path, default=Path("accept"))

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
@@ -109,6 +110,37 @@ class IncorporateMarkdownTests(unittest.TestCase):
             [f"{self.publication_key}.md"],
         )
         self.assertEqual((directory / "keep.txt").read_text(encoding="utf-8"), "keep")
+
+    def test_replace_with_empty_documents_preserves_existing_files(self):
+        directory = self.root / "cards"
+        directory.mkdir()
+        (directory / "existing.md").write_text("keep me", encoding="utf-8")
+
+        incorporate.replace_markdown_documents(directory, {})
+
+        self.assertTrue((directory / "existing.md").exists())
+        self.assertEqual(
+            (directory / "existing.md").read_text(encoding="utf-8"), "keep me"
+        )
+
+    def test_failed_staging_preserves_existing_markdown_files(self):
+        directory = self.root / "cards"
+        directory.mkdir()
+        existing = directory / "existing.md"
+        existing.write_text("keep me", encoding="utf-8")
+
+        with mock.patch.object(
+            incorporate, "atomic_text", side_effect=OSError("simulated write failure")
+        ):
+            with self.assertRaisesRegex(OSError, "simulated write failure"):
+                incorporate.replace_markdown_documents(
+                    directory, {f"{self.publication_key}.md": "new\n"}
+                )
+
+        self.assertEqual(existing.read_text(encoding="utf-8"), "keep me")
+        self.assertEqual(
+            sorted(path.name for path in directory.glob("*.md")), ["existing.md"]
+        )
 
     def test_zero_card_publication_still_has_one_file_per_publication(self):
         publication_key = "fixture-2020-zero-card"

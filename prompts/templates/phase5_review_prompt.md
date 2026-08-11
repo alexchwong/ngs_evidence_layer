@@ -25,7 +25,7 @@ If the provisional has `mode: revision`, the read-only inputs are:
 - `paper.phase5-provisional.json`
 - `phase5_review_prompt.md`
 
-Review every provisional revision independently against both the source and the accepted target card. Specifically assess whether the revision:
+Review every provisional modification or deletion independently against both the source and the accepted target card. For modifications, assess whether the revision:
 - is fully supported by its paired replacement evidence;
 - uses evidence fragments that occur verbatim in `paper.md`;
 - preserves disease, population, treatment, variant-class, threshold, exclusion and other material qualifiers;
@@ -33,11 +33,13 @@ Review every provisional revision independently against both the source and the 
 - appropriately corrects or improves the target card rather than merely restyling it;
 - keeps the intended meaning of immutable structural fields unchanged.
 
-Do not edit a proposed revision. Do not ask the user anything. Return exactly this revision review shape:
+For deletions, assess whether removal is justified by the source and accepted target, rather than retaining or correcting the card, and whether the recorded deletion reason is coherent.
+
+Do not edit a proposed change. Do not ask the user anything. Return exactly this revision review shape:
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "phase": 5,
   "mode": "revision",
   "publication_key": "<from provisional>",
@@ -47,15 +49,22 @@ Do not edit a proposed revision. Do not ask the user anything. Return exactly th
   "extraction_model_reviewed": "<exact provisional extraction_model>",
   "results": [
     {
-      "card_id": "<same order as provisional>",
+      "operation": "modify",
+      "card_id": "<same order as provisional revisions>",
       "revision_sha256": "<copy exactly from provisional>",
+      "verdict": "pass"
+    },
+    {
+      "operation": "delete",
+      "card_id": "<after all revisions, same order as provisional deletions>",
+      "deletion_sha256": "<copy exactly from provisional>",
       "verdict": "pass"
     }
   ]
 }
 ```
 
-For a failed revision use `"verdict": "fail"` and add concise non-empty `reason` and `suggested_action`. Preserve provisional order and copy each `revision_sha256` exactly. Your model identity must differ from the provisional extraction model.
+Return results in provisional change order: all `revisions`, then all `deletions`. For a failed change use `"verdict": "fail"` and add concise non-empty `reason` and `suggested_action`. Copy the relevant hash exactly. Your model identity must differ from the provisional extraction model.
 
 ### Source disease alias policy
 

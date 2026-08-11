@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 from collections import defaultdict
@@ -184,11 +185,49 @@ def build_markdown_documents(corpus, accept_dir):
 
 
 def replace_markdown_documents(directory, documents):
+    """Replace generated Markdown only after the complete new view is staged."""
+    directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    for path in directory.glob("*.md"):
-        path.unlink()
-    for filename, text in sorted(documents.items()):
-        atomic_text(directory / filename, text)
+    if not documents:
+        return
+
+    staging = Path(
+        tempfile.mkdtemp(prefix=f".{directory.name}.new.", dir=directory.parent)
+    )
+    backup = None
+    try:
+        for path in directory.iterdir():
+            if path.is_file() and path.suffix == ".md":
+                continue
+            destination = staging / path.name
+            if path.is_dir():
+                shutil.copytree(path, destination)
+            else:
+                shutil.copy2(path, destination)
+
+        for filename, text in sorted(documents.items()):
+            if Path(filename).name != filename:
+                raise ValueError(f"unsafe Markdown output filename: {filename}")
+            atomic_text(staging / filename, text)
+
+        backup = Path(
+            tempfile.mkdtemp(prefix=f".{directory.name}.old.", dir=directory.parent)
+        )
+        backup.rmdir()
+        os.replace(directory, backup)
+        try:
+            os.replace(staging, directory)
+        except Exception:
+            os.replace(backup, directory)
+            backup = None
+            raise
+        shutil.rmtree(backup)
+        backup = None
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+        if backup is not None and backup.exists():
+            shutil.rmtree(backup)
 
 
 def build(args):
