@@ -1,4 +1,13 @@
 # NEWS
+## 0.1.8
+- Hardened diagnostic adjudication so each criterion assessment cites diagnosis evidence and non-unknown decisions also cite supplied case facts.
+- Reports now state the WHO-5 diagnosis and separately assess ICC, reporting ICC when it is materially different.
+- Reworked Step 6 citation handling around exact card-ID markers with deterministic validation and Vancouver citation/reference rendering.
+- Refactored the default report-formatting prompt into clearer source, variant-summary, diagnosis, content-selection, and citation rules.
+- Expanded Phase 5 to revise or delete selected accepted cards, including `--cards all`, with explicit change confirmation and deterministic application.
+- Added committed human-readable `cards/` exports of accepted cards while keeping local `evidence/` views ignored.
+- Added `scripts/build_skill_zip.py` to build and verify the skill-only release ZIP from `release/skill.txt`.
+
 ## 0.1.7
 - Expanded the corpus by 20 papers covering clonal haematopoiesis, CCUS, germline predisposition, TP53 allelic state, and inherited myeloid risk.
 - Added quarantine workflow for holding and reviewing pre-acceptance papers outside the normal incorporation path.
