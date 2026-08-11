@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 
 
 FORMAT = "ngs-evidence-layer-private-state"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 ROOT_NAMES = (
     "pdf", "input", "work", "quarantine", "accept", "archive", "curation"
 )
@@ -47,10 +47,12 @@ def collect_files(roots):
                 raise ValueError(f"symbolic links are not supported: {path}")
             if path.is_file():
                 relative = path.relative_to(root)
+                stat = path.stat()
                 files.append({
                     "path": archive_path(root_name, relative),
-                    "size": path.stat().st_size,
+                    "size": stat.st_size,
                     "sha256": sha256(path),
+                    "mtime_ns": stat.st_mtime_ns,
                     "source": path,
                 })
             elif not path.is_dir():
@@ -67,8 +69,9 @@ def export_state(args):
         "format": FORMAT,
         "version": FORMAT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "roots": list(ROOT_NAMES),
         "files": [
-            {key: entry[key] for key in ("path", "size", "sha256")}
+            {key: entry[key] for key in ("path", "size", "sha256", "mtime_ns")}
             for entry in files
         ],
     }
@@ -131,6 +134,16 @@ def inspect_archive(archive):
         raise ValueError(f"invalid manifest.json: {exc}") from exc
     if manifest.get("format") != FORMAT or manifest.get("version") != FORMAT_VERSION:
         raise ValueError("unsupported private-state archive format or version")
+    created_at = manifest.get("created_at")
+    try:
+        created_at_value = datetime.fromisoformat(created_at)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("manifest created_at must be an ISO 8601 date-time") from exc
+    if created_at_value.tzinfo is None:
+        raise ValueError("manifest created_at must include a timezone")
+    roots = manifest.get("roots")
+    if roots != list(ROOT_NAMES):
+        raise ValueError("manifest roots do not identify the complete private state")
     entries = manifest.get("files")
     if not isinstance(entries, list):
         raise ValueError("manifest files must be an array")
@@ -146,17 +159,21 @@ def inspect_archive(archive):
             raise ValueError(f"duplicate manifest path: {name}")
         size = entry.get("size")
         checksum = entry.get("sha256")
+        mtime_ns = entry.get("mtime_ns")
         if not isinstance(size, int) or size < 0:
             raise ValueError(f"invalid size for {name}")
         if not isinstance(checksum, str) or len(checksum) != 64:
             raise ValueError(f"invalid SHA-256 for {name}")
+        if not isinstance(mtime_ns, int) or mtime_ns < 0:
+            raise ValueError(f"invalid mtime_ns for {name}")
         expected[name] = entry
     archive_files = set(members) - {"manifest.json"}
     if archive_files != set(expected):
         missing = sorted(set(expected) - archive_files)
         extra = sorted(archive_files - set(expected))
         raise ValueError(f"archive and manifest differ; missing={missing}, extra={extra}")
-    return members, expected
+    created_at_ns = int(created_at_value.timestamp() * 1_000_000_000)
+    return members, expected, created_at_ns
 
 
 def stage_archive(archive, members, expected, staging):
@@ -188,35 +205,141 @@ def destination_for(name, roots):
     return roots[parts[1]].joinpath(*parts[2:])
 
 
-def install_staged(staging, expected, roots, dry_run):
+def collect_destination_files(roots):
+    files = {}
+    for root_name, root in roots.items():
+        if not root.exists():
+            continue
+        if not root.is_dir() or root.is_symlink():
+            raise ValueError(f"private state root is not a directory: {root}")
+        for path in sorted(root.rglob("*")):
+            if path.is_symlink():
+                raise ValueError(f"symbolic links are not supported: {path}")
+            if path.is_file():
+                relative = path.relative_to(root)
+                files[archive_path(root_name, relative)] = path
+            elif not path.is_dir():
+                raise ValueError(f"unsupported filesystem entry: {path}")
+    return files
+
+
+def classify_import(expected, roots):
     additions = []
     identical = []
-    conflicts = []
+    replacements = []
     for name, entry in expected.items():
         destination = destination_for(name, roots)
         if destination.exists():
-            if destination.is_file() and destination.stat().st_size == entry["size"] and sha256(destination) == entry["sha256"]:
+            if (
+                destination.is_file()
+                and not destination.is_symlink()
+                and destination.stat().st_size == entry["size"]
+                and sha256(destination) == entry["sha256"]
+            ):
                 identical.append(destination)
             else:
-                conflicts.append(destination)
+                replacements.append((name, destination))
         else:
             additions.append((name, destination))
-    if conflicts:
-        rendered = "\n  ".join(str(path) for path in conflicts)
-        raise ValueError(f"import conflicts with existing state:\n  {rendered}")
-    if not dry_run:
-        for name, destination in additions:
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            source = staging.joinpath(*PurePosixPath(name).parts)
-            temporary = destination.with_name(f".{destination.name}.transport-tmp")
+    local_files = collect_destination_files(roots)
+    deletions = [
+        (name, destination)
+        for name, destination in local_files.items()
+        if name not in expected
+    ]
+    return additions, identical, replacements, deletions
+
+
+def render_paths(items):
+    return "\n  ".join(str(item[1]) for item in items)
+
+
+def remove_empty_directories(roots):
+    for root in roots.values():
+        if not root.is_dir():
+            continue
+        directories = sorted(
+            (path for path in root.rglob("*") if path.is_dir()),
+            key=lambda path: len(path.parts),
+            reverse=True,
+        )
+        for directory in directories:
             try:
-                shutil.copyfile(source, temporary)
-                os.replace(temporary, destination)
-            finally:
-                if temporary.exists():
-                    temporary.unlink()
+                directory.rmdir()
+            except OSError:
+                pass
+
+
+def install_staged(staging, expected, roots, created_at_ns, dry_run, overwrite):
+    additions, identical, replacements, deletions = classify_import(expected, roots)
+    if (replacements or deletions) and not overwrite:
+        details = []
+        if replacements:
+            details.append("files requiring overwrite:\n  " + render_paths(replacements))
+        if deletions:
+            details.append("local files absent from manifest:\n  " + render_paths(deletions))
+        raise ValueError("import conflicts with existing state:\n" + "\n".join(details))
+
+    newer = []
+    if overwrite:
+        newer.extend(
+            (name, destination)
+            for name, destination in replacements
+            if destination.stat().st_mtime_ns > expected[name]["mtime_ns"]
+        )
+        newer.extend(
+            (name, destination)
+            for name, destination in deletions
+            if destination.stat().st_mtime_ns > created_at_ns
+        )
+    if newer:
+        raise ValueError(
+            "import --overwrite refused because local files are newer than the transport archive:\n  "
+            + render_paths(newer)
+            + "\nRemove these newer local files manually if you wish to proceed with transport import --overwrite."
+        )
+
+    if not dry_run:
+        changed = additions + replacements
+        with tempfile.TemporaryDirectory(prefix="nel-transport-rollback-") as temporary:
+            rollback = Path(temporary)
+            for name, destination in replacements + deletions:
+                backup = rollback.joinpath(*PurePosixPath(name).parts)
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(destination, backup)
+            written_additions = []
+            try:
+                for name, destination in changed:
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    source = staging.joinpath(*PurePosixPath(name).parts)
+                    temporary_path = destination.with_name(
+                        f".{destination.name}.transport-tmp"
+                    )
+                    try:
+                        shutil.copy2(source, temporary_path)
+                        os.replace(temporary_path, destination)
+                        os.utime(destination, ns=(expected[name]["mtime_ns"], expected[name]["mtime_ns"]))
+                    finally:
+                        if temporary_path.exists():
+                            temporary_path.unlink()
+                    if (name, destination) in additions:
+                        written_additions.append(destination)
+                for _name, destination in deletions:
+                    destination.unlink()
+                remove_empty_directories(roots)
+            except Exception:
+                for destination in written_additions:
+                    destination.unlink(missing_ok=True)
+                for name, destination in replacements + deletions:
+                    backup = rollback.joinpath(*PurePosixPath(name).parts)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(backup, destination)
+                raise
     action = "Would import" if dry_run else "Imported"
-    print(f"{action} {len(additions)} files; {len(identical)} identical files skipped")
+    print(
+        f"{action} {len(additions)} additions, {len(replacements)} overwrites, "
+        f"{len(deletions)} deletions; {len(identical)} identical files skipped"
+    )
 
 
 def import_state(args):
@@ -226,11 +349,13 @@ def import_state(args):
         staging = Path(temporary)
         try:
             with tarfile.open(archive_path_value, "r:gz") as archive:
-                members, expected = inspect_archive(archive)
+                members, expected, created_at_ns = inspect_archive(archive)
                 stage_archive(archive, members, expected, staging)
         except (OSError, tarfile.TarError) as exc:
             raise ValueError(f"could not read archive: {exc}") from exc
-        install_staged(staging, expected, roots, args.dry_run)
+        install_staged(
+            staging, expected, roots, created_at_ns, args.dry_run, args.overwrite
+        )
 
 
 def add_root_arguments(parser):
@@ -250,6 +375,11 @@ def main():
     import_parser = commands.add_parser("import", help="verify and import a private-state archive")
     import_parser.add_argument("archive", type=Path)
     import_parser.add_argument("--dry-run", action="store_true")
+    import_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="reproduce the archive state by replacing and deleting older local files",
+    )
     add_root_arguments(import_parser)
     import_parser.set_defaults(function=import_state)
 

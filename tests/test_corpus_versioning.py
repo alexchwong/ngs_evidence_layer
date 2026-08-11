@@ -63,7 +63,9 @@ class CorpusVersioningTests(unittest.TestCase):
     def test_metadata_schema_does_not_contain_acceptance_version(self):
         schema = json.loads((ROOT / "schema" / "metadata_schema.json").read_text())
         self.assertNotIn("accepted_in_version", schema["properties"])
-        self.assertEqual(schema["title"], "Immutable publication working metadata")
+        self.assertEqual(schema["title"], "Publication metadata")
+        self.assertIn("version_history", schema["properties"])
+        self.assertIn("latest_version", schema["properties"])
 
     def test_accepted_schema_requires_top_level_acceptance_version(self):
         schema = json.loads(
@@ -129,6 +131,114 @@ class CorpusVersioningTests(unittest.TestCase):
             self.assertNotIn("accepted_in_version", accepted["metadata"])
             self.assertEqual(accepted["accepted_in_version"], "9.9.9")
             self.assertEqual(accepted["schema_version"], "1.2")
+
+    def test_confirm_overwrite_preserves_prior_archive_and_stamps_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            key = "fixture-2020-fixture-journal-1-1"
+            working = root / "work" / key
+            archive = root / "archive" / key
+            accept = root / "accept"
+            working.mkdir(parents=True)
+            archive.mkdir(parents=True)
+            accept.mkdir()
+            metadata = metadata_fixture(key)
+            (working / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+            (working / "paper.census.json").write_text('{"generation": 2}', encoding="utf-8")
+            (working / "paper.md").write_text("new source", encoding="utf-8")
+            (working / "paper.final.json").write_text(
+                json.dumps({"audit": {"approved_round": 1}, "generation": 2}),
+                encoding="utf-8",
+            )
+            (working / "paper.provisional-001.json").write_text("{}", encoding="utf-8")
+            (working / "paper.review-001.json").write_text("{}", encoding="utf-8")
+            (archive / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+            (archive / "paper.md").write_text("old source", encoding="utf-8")
+            prior = accepted_fixture(key, version="1.0.0", schema_version="1.2")
+            prior["final"] = {"generation": 1}
+            (accept / f"{key}.final.json").write_text(json.dumps(prior), encoding="utf-8")
+            (accept / f"{key}.census.json").write_text(
+                '{"generation": 1}', encoding="utf-8"
+            )
+            version_file = root / "VERSION"
+            version_file.write_text("2.0.0\n", encoding="utf-8")
+            args = SimpleNamespace(
+                publication_key=key,
+                work_dir=root / "work",
+                accept_dir=accept,
+                archive_dir=root / "archive",
+                overwrite=True,
+            )
+            with (
+                mock.patch.object(confirm, "VERSION_FILE", version_file),
+                mock.patch.object(
+                    confirm.validation, "validate_package", return_value=([], [], {})
+                ),
+                mock.patch.object(
+                    confirm.final_validation,
+                    "validate_phase_files",
+                    return_value=([], [], {"cards": 0, "ratio": None}),
+                ),
+            ):
+                confirm.confirm(args)
+
+            accepted = json.loads((accept / f"{key}.final.json").read_text())
+            archived_metadata = json.loads((archive / "metadata.json").read_text())
+            self.assertEqual(accepted["version_history"], ["1.0.0", "2.0.0"])
+            self.assertEqual(accepted["latest_version"], "2.0.0")
+            self.assertEqual(accepted["metadata"]["latest_version"], "2.0.0")
+            self.assertEqual(accepted["final"]["generation"], 2)
+            self.assertEqual(archived_metadata["version_history"], ["1.0.0", "2.0.0"])
+            self.assertEqual(archived_metadata["latest_version"], "2.0.0")
+            self.assertEqual((archive / "paper.md").read_text(), "new source")
+            self.assertEqual(
+                (archive / "versions" / "1.0.0" / "paper.md").read_text(),
+                "old source",
+            )
+            self.assertEqual(
+                json.loads((accept / f"{key}.census.json").read_text())["generation"],
+                2,
+            )
+            self.assertFalse(working.exists())
+
+    def test_confirm_collision_still_fails_without_overwrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            key = "fixture-2020-fixture-journal-1-1"
+            working = root / "work" / key
+            working.mkdir(parents=True)
+            (working / "metadata.json").write_text(
+                json.dumps(metadata_fixture(key)), encoding="utf-8"
+            )
+            (working / "paper.census.json").write_text("{}", encoding="utf-8")
+            (working / "paper.md").write_text("source", encoding="utf-8")
+            (working / "paper.final.json").write_text(
+                json.dumps({"audit": {"approved_round": 1}}), encoding="utf-8"
+            )
+            (working / "paper.provisional-001.json").write_text("{}", encoding="utf-8")
+            (working / "paper.review-001.json").write_text("{}", encoding="utf-8")
+            archive = root / "archive" / key
+            archive.mkdir(parents=True)
+            args = SimpleNamespace(
+                publication_key=key,
+                work_dir=root / "work",
+                accept_dir=root / "accept",
+                archive_dir=root / "archive",
+                overwrite=False,
+            )
+            with (
+                mock.patch.object(
+                    confirm.validation, "validate_package", return_value=([], [], {})
+                ),
+                mock.patch.object(
+                    confirm.final_validation,
+                    "validate_phase_files",
+                    return_value=([], [], {"cards": 0, "ratio": None}),
+                ),
+            ):
+                with self.assertRaisesRegex(ValueError, "destination already exists"):
+                    confirm.confirm(args)
+            self.assertTrue(working.is_dir())
 
     def test_backfill_stamps_legacy_accept_as_0_1_5(self):
         with tempfile.TemporaryDirectory() as tmp:

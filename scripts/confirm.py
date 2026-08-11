@@ -123,6 +123,30 @@ def _phase5_required_files(working, mode):
     return required
 
 
+def _copy_directory_contents(source, destination, excluded=()):
+    excluded = set(excluded)
+    destination.mkdir(parents=True, exist_ok=True)
+    for item in source.iterdir():
+        if item.name in excluded:
+            continue
+        target = destination / item.name
+        if item.is_dir():
+            shutil.copytree(item, target)
+        else:
+            shutil.copy2(item, target)
+
+
+def _safe_version_directory(version, label):
+    if (
+        not isinstance(version, str)
+        or not version
+        or version in {".", ".."}
+        or Path(version).name != version
+    ):
+        raise ValueError(f"{label} is not safe for an archive directory: {version!r}")
+    return version
+
+
 def confirm(args):
     working = args.work_dir / args.publication_key
     if not working.is_dir():
@@ -162,9 +186,12 @@ def confirm(args):
     final_destination = args.accept_dir / f"{args.publication_key}.final.json"
     census_destination = args.accept_dir / f"{args.publication_key}.census.json"
     archive_root = args.archive_dir / args.publication_key
+    overwrite = getattr(args, "overwrite", False)
     phase5_report = None
 
     if is_phase5:
+        if overwrite:
+            errors.append("--overwrite cannot be used for Phase 5 confirmation")
         phase5_required = _phase5_required_files(working, phase5_mode)
         missing_phase5 = [str(path) for path in phase5_required.values() if not path.is_file()]
         if missing_phase5:
@@ -216,14 +243,56 @@ def confirm(args):
             for path in (final_destination, census_destination, archive_root)
             if path.exists()
         ]
-        if collisions:
+        if collisions and not overwrite:
             errors.append(
                 "destination already exists:\n" + "\n".join(str(path) for path in collisions)
             )
+        elif overwrite:
+            required_destinations = (final_destination, census_destination, archive_root)
+            missing_destinations = [
+                str(path) for path in required_destinations if not path.exists()
+            ]
+            if missing_destinations:
+                errors.append(
+                    "--overwrite requires the complete current accepted/archive set; missing:\n"
+                    + "\n".join(missing_destinations)
+                )
+            elif not final_destination.is_file() or not census_destination.is_file() or not archive_root.is_dir():
+                errors.append("--overwrite destinations have unexpected file types")
     if errors:
         raise ValueError("\n".join(errors))
 
     accepted_version = read_nel_version()
+    previous_accepted = None
+    version_history = None
+    previous_version = None
+    if overwrite:
+        previous_accepted = validation.read_json(
+            final_destination, "current accepted package"
+        )
+        previous_version = (
+            previous_accepted.get("latest_version")
+            or previous_accepted.get("accepted_in_version")
+        )
+        if not isinstance(previous_version, str) or not previous_version:
+            raise ValueError("current accepted package has no prior version")
+        _safe_version_directory(previous_version, "previous accepted version")
+        _safe_version_directory(accepted_version, "current NEL version")
+        version_history = list(
+            previous_accepted.get("version_history") or [previous_version]
+        )
+        if not all(isinstance(version, str) and version for version in version_history):
+            raise ValueError("current accepted package has an invalid version_history")
+        if len(version_history) != len(set(version_history)):
+            raise ValueError("current accepted package version_history contains duplicates")
+        if previous_version not in version_history:
+            raise ValueError("current accepted package latest_version is absent from version_history")
+        if accepted_version in version_history:
+            raise ValueError(
+                f"current NEL version is already present in version history: {accepted_version}"
+            )
+        version_history.append(accepted_version)
+
     args.accept_dir.mkdir(parents=True, exist_ok=True)
     args.archive_dir.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{args.publication_key}.", dir=args.accept_dir))
@@ -284,33 +353,77 @@ def confirm(args):
         if archive_destination.exists():
             raise ValueError(f"Phase 5 archive destination already exists: {archive_destination}")
     else:
+        accepted_metadata = dict(metadata)
+        if overwrite:
+            accepted_metadata["version_history"] = version_history
+            accepted_metadata["latest_version"] = accepted_version
         accepted = {
             "schema_version": "1.2",
             "acceptance_path": "confirmed",
             "accepted_at": datetime.now(timezone.utc).isoformat(),
             "accepted_at_source": "confirm",
             "accepted_in_version": accepted_version,
-            "metadata": metadata,
+            "metadata": accepted_metadata,
             "final": final,
         }
+        if overwrite:
+            accepted["version_history"] = version_history
+            accepted["latest_version"] = accepted_version
         archive_destination = archive_root
 
     staged_final.write_text(
         json.dumps(accepted, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     shutil.copyfile(paths["census"], staged_census)
-    old_final_bytes = final_destination.read_bytes() if is_phase5 else None
-    old_census_bytes = census_destination.read_bytes() if is_phase5 else None
+    old_final_bytes = final_destination.read_bytes() if (is_phase5 or overwrite) else None
+    old_census_bytes = census_destination.read_bytes() if (is_phase5 or overwrite) else None
+    staged_archive = None
+    archive_backup = None
+    if overwrite:
+        archive_staging_root = Path(
+            tempfile.mkdtemp(prefix=f".{args.publication_key}.archive.", dir=args.archive_dir)
+        )
+        staged_archive = archive_staging_root / args.publication_key
+        _copy_directory_contents(working, staged_archive)
+        archived_metadata_path = staged_archive / "metadata.json"
+        archived_metadata = validation.read_json(archived_metadata_path, "staged archive metadata")
+        archived_metadata["version_history"] = version_history
+        archived_metadata["latest_version"] = accepted_version
+        archived_metadata_path.write_text(
+            json.dumps(archived_metadata, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        existing_versions = archive_root / "versions"
+        if existing_versions.is_dir():
+            shutil.copytree(existing_versions, staged_archive / "versions")
+        previous_snapshot = staged_archive / "versions" / previous_version
+        if previous_snapshot.exists():
+            raise ValueError(f"archive version snapshot already exists: {previous_snapshot}")
+        _copy_directory_contents(archive_root, previous_snapshot, excluded={"versions"})
+        archive_backup = archive_root.with_name(f".{archive_root.name}.overwrite-backup")
+        if archive_backup.exists():
+            raise ValueError(f"stale archive overwrite backup exists: {archive_backup}")
     replaced_final = False
     replaced_census = False
+    archive_backed_up = False
+    replaced_archive = False
     try:
         if is_phase5:
             archive_destination.parent.mkdir(parents=True, exist_ok=True)
+        elif overwrite:
+            os.replace(archive_root, archive_backup)
+            archive_backed_up = True
+            os.replace(staged_archive, archive_root)
+            replaced_archive = True
         os.replace(staged_final, final_destination)
         replaced_final = True
         os.replace(staged_census, census_destination)
         replaced_census = True
-        shutil.move(str(working), str(archive_destination))
+        if overwrite:
+            shutil.rmtree(working, ignore_errors=True)
+            shutil.rmtree(archive_backup, ignore_errors=True)
+        else:
+            shutil.move(str(working), str(archive_destination))
     except Exception:
         if is_phase5:
             if replaced_final:
@@ -319,12 +432,24 @@ def confirm(args):
                 _restore_bytes(census_destination, old_census_bytes)
         else:
             if replaced_final:
-                final_destination.unlink(missing_ok=True)
+                if overwrite:
+                    _restore_bytes(final_destination, old_final_bytes)
+                else:
+                    final_destination.unlink(missing_ok=True)
             if replaced_census:
-                census_destination.unlink(missing_ok=True)
+                if overwrite:
+                    _restore_bytes(census_destination, old_census_bytes)
+                else:
+                    census_destination.unlink(missing_ok=True)
+            if overwrite and archive_backed_up:
+                if replaced_archive:
+                    shutil.rmtree(archive_root, ignore_errors=True)
+                os.replace(archive_backup, archive_root)
         raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
+        if staged_archive is not None:
+            shutil.rmtree(staged_archive.parent, ignore_errors=True)
     return warnings, report, archive_destination, is_phase5, phase5_report
 
 
@@ -334,6 +459,11 @@ def main():
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
     parser.add_argument("--accept-dir", type=Path, default=Path("accept"))
     parser.add_argument("--archive-dir", type=Path, default=Path("archive"))
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="replace the current accepted/archive contents while preserving version history",
+    )
     args = parser.parse_args()
     try:
         warnings, report, archive, is_phase5, phase5_report = confirm(args)

@@ -1,4 +1,9 @@
 # NEWS
+
+## 0.2.0
+- scripts/transport.py now reproduces state of intermediate files identical to that of backup repo
+- scripts/confirm.py allows update of existing corpus papers by versioning in archive/
+
 ## 0.1.8
 - Hardened diagnostic adjudication so each criterion assessment cites diagnosis evidence and non-unknown decisions also cite supplied case facts.
 - Reports now state the WHO-5 diagnosis and separately assess ICC, reporting ICC when it is materially different.

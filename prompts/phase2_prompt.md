@@ -1522,6 +1522,13 @@ if __name__ == "__main__":
     "accepted_at": { "type": "string", "format": "date-time" },
     "accepted_at_source": { "enum": ["confirm", "file-mtime"] },
     "accepted_in_version": { "type": "string", "minLength": 1 },
+    "version_history": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "latest_version": { "type": "string", "minLength": 1 },
     "metadata": { "$ref": "metadata_schema.json" },
     "final": { "$ref": "ingestion_package_schema.json" },
     "supplements": {
@@ -2092,7 +2099,8 @@ if __name__ == "__main__":
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/ngs_evidence_layer/metadata_schema.json",
-  "title": "Immutable publication working metadata",
+  "title": "Publication metadata",
+  "description": "Publication metadata used in working and archived packages. Confirmation overwrite history is optional for working-package compatibility.",
   "type": "object",
   "required": [
     "schema_version",
@@ -2131,7 +2139,14 @@ if __name__ == "__main__":
     "source_filename": { "type": "string", "minLength": 1 },
     "source_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
     "markdown_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "created_at": { "type": "string", "format": "date-time" }
+    "created_at": { "type": "string", "format": "date-time" },
+    "version_history": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "latest_version": { "type": "string", "minLength": 1 }
   },
   "$defs": {
     "citation": {

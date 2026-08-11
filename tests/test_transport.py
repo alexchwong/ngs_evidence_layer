@@ -2,6 +2,7 @@
 """Tests for compressed private-state transport."""
 import io
 import json
+import os
 import subprocess
 import sys
 import tarfile
@@ -74,11 +75,16 @@ class TransportTests(unittest.TestCase):
         output = self.export()
         self.assertIn("Exported 7 files", output)
         self.assertTrue(self.bundle.is_file())
+        with tarfile.open(self.bundle, "r:gz") as archive:
+            manifest = json.load(archive.extractfile("manifest.json"))
+        self.assertEqual(manifest["version"], 2)
+        self.assertEqual(manifest["roots"], list(ROOT_NAMES))
+        self.assertTrue(all("mtime_ns" in entry for entry in manifest["files"]))
 
         output = self.run_transport(
             "import", self.bundle, *self.root_arguments(self.destination)
         )
-        self.assertIn("Imported 7 files; 0 identical files skipped", output)
+        self.assertIn("Imported 7 additions, 0 overwrites, 0 deletions", output)
         for name in ROOT_NAMES:
             source_files = sorted(path.relative_to(self.source / name) for path in (self.source / name).rglob("*") if path.is_file())
             destination_files = sorted(path.relative_to(self.destination / name) for path in (self.destination / name).rglob("*") if path.is_file())
@@ -92,14 +98,15 @@ class TransportTests(unittest.TestCase):
         output = self.run_transport(
             "import", self.bundle, *self.root_arguments(self.destination)
         )
-        self.assertIn("Imported 0 files; 7 identical files skipped", output)
+        self.assertIn("Imported 0 additions, 0 overwrites, 0 deletions", output)
+        self.assertIn("7 identical files skipped", output)
 
     def test_dry_run_does_not_write(self):
         self.export()
         output = self.run_transport(
             "import", self.bundle, "--dry-run", *self.root_arguments(self.destination)
         )
-        self.assertIn("Would import 7 files", output)
+        self.assertIn("Would import 7 additions", output)
         self.assertFalse(self.destination.exists())
 
     def test_conflict_aborts_without_partial_import(self):
@@ -114,6 +121,93 @@ class TransportTests(unittest.TestCase):
         self.assertIn("import conflicts with existing state", output)
         self.assertEqual(conflict.read_text(encoding="utf-8"), "different\n")
         self.assertFalse((self.destination / "accept" / "paper-key.final.json").exists())
+
+    def test_destination_only_file_requires_overwrite_and_is_deleted(self):
+        self.export()
+        extra = self.destination / "work" / "local-only.json"
+        extra.parent.mkdir(parents=True)
+        extra.write_text("old local file\n", encoding="utf-8")
+        os.utime(extra, ns=(1, 1))
+
+        output = self.run_transport(
+            "import", self.bundle, *self.root_arguments(self.destination), success=False
+        )
+        self.assertIn("local files absent from manifest", output)
+        self.assertTrue(extra.exists())
+
+        output = self.run_transport(
+            "import",
+            self.bundle,
+            "--overwrite",
+            *self.root_arguments(self.destination),
+        )
+        self.assertIn("7 additions, 0 overwrites, 1 deletions", output)
+        self.assertFalse(extra.exists())
+
+    def test_overwrite_replaces_older_file_and_dry_run_does_not_mutate(self):
+        self.export()
+        conflict = self.destination / "work" / "paper-key" / "paper.md"
+        conflict.parent.mkdir(parents=True)
+        conflict.write_text("older different\n", encoding="utf-8")
+        os.utime(conflict, ns=(1, 1))
+
+        output = self.run_transport(
+            "import",
+            self.bundle,
+            "--overwrite",
+            "--dry-run",
+            *self.root_arguments(self.destination),
+        )
+        self.assertIn("Would import 6 additions, 1 overwrites", output)
+        self.assertEqual(conflict.read_text(encoding="utf-8"), "older different\n")
+
+        output = self.run_transport(
+            "import",
+            self.bundle,
+            "--overwrite",
+            *self.root_arguments(self.destination),
+        )
+        self.assertIn("Imported 6 additions, 1 overwrites", output)
+        self.assertEqual(conflict.read_text(encoding="utf-8"), "# Evidence\n")
+
+    def test_overwrite_refuses_newer_differing_file(self):
+        self.export()
+        conflict = self.destination / "work" / "paper-key" / "paper.md"
+        conflict.parent.mkdir(parents=True)
+        conflict.write_text("newer different\n", encoding="utf-8")
+        future = 4_000_000_000_000_000_000
+        os.utime(conflict, ns=(future, future))
+
+        output = self.run_transport(
+            "import",
+            self.bundle,
+            "--overwrite",
+            *self.root_arguments(self.destination),
+            success=False,
+        )
+        self.assertIn("local files are newer", output)
+        self.assertIn("Remove these newer local files manually", output)
+        self.assertEqual(conflict.read_text(encoding="utf-8"), "newer different\n")
+        self.assertFalse((self.destination / "accept" / "paper-key.final.json").exists())
+
+    def test_overwrite_refuses_newer_destination_only_file(self):
+        self.export()
+        extra = self.destination / "archive" / "local-only.json"
+        extra.parent.mkdir(parents=True)
+        extra.write_text("newer local file\n", encoding="utf-8")
+        future = 4_000_000_000_000_000_000
+        os.utime(extra, ns=(future, future))
+
+        output = self.run_transport(
+            "import",
+            self.bundle,
+            "--overwrite",
+            *self.root_arguments(self.destination),
+            success=False,
+        )
+        self.assertIn("local files are newer", output)
+        self.assertIn(str(extra), output)
+        self.assertTrue(extra.exists())
 
     def write_archive(self, path, manifest, members):
         with tarfile.open(path, "w:gz") as archive:
@@ -130,12 +224,14 @@ class TransportTests(unittest.TestCase):
         content = b"tampered"
         manifest = {
             "format": "ngs-evidence-layer-private-state",
-            "version": 1,
+            "version": 2,
             "created_at": "2026-08-04T00:00:00+00:00",
+            "roots": list(ROOT_NAMES),
             "files": [{
                 "path": "state/work/paper/file.json",
                 "size": len(content),
                 "sha256": "0" * 64,
+                "mtime_ns": 1,
             }],
         }
         self.write_archive(self.bundle, manifest, [("state/work/paper/file.json", content)])
@@ -150,8 +246,9 @@ class TransportTests(unittest.TestCase):
         content = b"escape"
         manifest = {
             "format": "ngs-evidence-layer-private-state",
-            "version": 1,
+            "version": 2,
             "created_at": "2026-08-04T00:00:00+00:00",
+            "roots": list(ROOT_NAMES),
             "files": [],
         }
         self.write_archive(self.bundle, manifest, [("state/work/../../escape", content)])
