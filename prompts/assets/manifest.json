@@ -1,9 +1,17 @@
 {
   "manifest_version": "1.0",
   "assets": {
-    "REPORTING_RULES": {
+    "CLINICAL_REPORTING_GATE": {
       "type": "file",
-      "path": "rules/agreed_reporting_rules.md"
+      "path": "prompts/assets/clinical_reporting_gate.md"
+    },
+    "EVIDENCE_BUNDLE_RULES": {
+      "type": "file",
+      "path": "prompts/assets/evidence_bundle_rules.md"
+    },
+    "EVIDENCE_REVIEW_RULES": {
+      "type": "file",
+      "path": "prompts/assets/evidence_review_rules.md"
     },
     "CENSUS_SCHEMA": {
       "type": "file",
@@ -32,14 +40,6 @@
     "PUBLICATION_TYPE_AUDIT_POLICY": {
       "type": "file",
       "path": "prompts/assets/publication_type_audit_policy.md"
-    },
-    "CARD_EVIDENCE_CONTRACT": {
-      "type": "file",
-      "path": "prompts/assets/card_evidence_contract.md"
-    },
-    "CARD_UTILITY_GATE": {
-      "type": "file",
-      "path": "prompts/assets/card_utility_gate.md"
     },
     "VALIDATION_BUNDLE_POLICY": {
       "type": "file",

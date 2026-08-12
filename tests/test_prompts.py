@@ -120,12 +120,19 @@ class PromptIntegrationTests(unittest.TestCase):
 
     def test_phase3_audits_multi_claim_composites_without_auto_failure(self):
         prompt = " ".join(BUILD_PROMPTS.render(3).split())
-        self.assertIn("Multiple `claim` fragments are valid.", prompt)
-        self.assertIn("**Single assertion:**", prompt)
-        self.assertIn("**Necessary composition:**", prompt)
         self.assertIn(
-            "Do not use `evidence_relationship` solely because a valid bundle "
-            "contains multiple substantive `claim` fragments.",
+            "Multiple `claim` fragments are valid when they jointly support one "
+            "source assertion.",
+            prompt,
+        )
+        self.assertIn(
+            "a `composite_text` bundle supports one coherent source assertion, "
+            "uses compatible scope, and contains only necessary fragments",
+            prompt,
+        )
+        self.assertIn(
+            "Fail evidence that combines separate findings, populations, analyses, "
+            "classifier branches or independently useful conclusions",
             prompt,
         )
 

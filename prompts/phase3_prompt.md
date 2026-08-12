@@ -11,8 +11,9 @@ whether it passes or fails. Phase 3 never creates `paper.final.json`, never repa
 cards, and is never repeated for this publication.
 You are the independent auditor for exactly one publication. Use only `paper.md`, the
 provisional package, and this prompt. You must be a different model from the
-extraction model named by the package. Do not use reporting rules, census, disease
-vocabulary, schema, another publication, or model knowledge to improve extraction.
+extraction model named by the package. Do not use the full reporting rules, census, disease vocabulary, schema, another
+publication, or model knowledge to improve extraction. Apply only the shared clinical
+reporting and evidence-review standards injected below.
 ## Entry validation
 
 Require a well-formed round-1 provisional package with `audit: null` and exactly one
@@ -21,87 +22,45 @@ evidence bundle per card. Otherwise stop without an output.
 
 Audit every card against both shared standards below.
 
-### Card evidence contract
+### Clinical reporting gate
 
-Every card must have exactly one evidence bundle. The bundle must directly support
-every material assertion in the interpretation using source-verbatim fragments from
-the paper. A locator is navigation metadata, not evidence.
+# Clinical reporting gate
 
-Preserve every material disease, population, treatment, comparator, variant class,
-allelic state, threshold, branch, exclusion, analysis, classifier, certainty, and
-other qualifier stated by the source. Do not use a bibliographic reference-list entry,
-a heading alone, unsupported nearby text, or model knowledge as substantive evidence.
-For germline content, distinguish established inherited or constitutional status from
-possible constitutional origin and from a recommendation or indication for germline
-work-up; a work-up recommendation supports only a conditional interpretation.
+A clinically useful fact is one that could materially contribute to a concise myeloid NGS report by informing:
 
-Use `contiguous_text` when one coherent contiguous passage is sufficient. Its sole
-fragment has role `claim` and may contain multiple contiguous sentences. Start with
-the explicit role claim and expand backward or forward as needed to capture antecedents,
-scope, population, treatment, comparator, analysis, thresholds, exclusions, direction,
-or clinical consequence. Treat contrast words, exceptions, thresholds, unresolved
-pronouns, subgroup distinctions, and a following sentence that changes clinical meaning
-as boundary warnings. Stop only when the fragment supports every material element of
-the interpretation without relying on unquoted context.
+- diagnosis or classification;
+- patient-level prognosis;
+- treatment or management;
+- MRD interpretation; or
+- assessment of possible germline predisposition.
 
-Use `composite_text` only when no single coherent passage contains the minimal
-sufficient evidence. Use two to six independently verbatim fragments. One or more
-`claim` fragments may jointly support one source assertion; add `scope_heading`,
-`legend`, or `footnote` fragments only when they provide necessary governing context.
-Every fragment must contribute material support recorded in `support_map`. All
-fragments must have compatible disease, population, treatment, comparator, analysis,
-and classifier scope. Do not combine separate findings, populations, analyses,
-classifier branches, or independently useful conclusions merely because they mention
-the same gene. Removing any fragment must leave a material assertion unsupported or
-underqualified; otherwise use `contiguous_text`, narrow the interpretation, split the
-card, or omit it.
+The fact must apply to the stated disease, molecular finding and clinical context.
 
-A `scope_heading` is valid only when the substantive passage occurs within that
-heading's section and no intervening heading changes scope. A heading supplies context;
-it does not establish a role claim by itself.
+Background information is not clinically useful by itself, including prevalence, epidemiology, study methodology, molecular mechanism alone, or descriptive associations without a clinical implication.
 
-Use `table_relation` when a table value cannot be interpreted defensibly without its
-governing labels. Quote each required `column_header`, `row_header`, `cell`, `legend`,
-and `footnote` as a separate fragment. Every relation must identify one value fragment,
-all applicable row and column headers, and any marked legend or footnote. Preserve
-spanning or multi-level headers. Omit the card when merged cells, continuation rows,
-conversion damage, or missing markers leave the relation ambiguous. Do not replace
-source labels with model-authored key/value facts.
+A negative or null finding is useful only when its absence or lack of effect is clinically informative.
 
-Before finalizing a card, decompose its interpretation into atomic assertions and map
-each material assertion to explicit source words in `support_map`, including gene or
-alteration class, disease, population, role and direction, treatment or analysis
-context, comparator, certainty, thresholds, branches, and exclusions when applicable.
-If any assertion lacks support, expand the bundle, narrow the interpretation, split the
-card, or omit it. Once sufficient evidence is assembled, do not shorten it merely for
-concision.
+When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
 
-### Card utility gate
+### Evidence review rules
 
-A card must support a distinct, clinically useful sentence that could materially
-contribute to a concise NGS report.
+# Evidence review rules
 
-- Create or retain at most one card for each independently useful, directly supported
-  role from this publication.
-- Do not create or retain a material duplicate of another card from the same
-  publication.
-- Gene presence, mutation frequency, co-occurrence, enrichment, an entity name,
-  molecular mechanism, fusion-partner list, or census category does not by itself
-  establish a diagnostic, prognostic, treatment, biomarker, or germline role.
-- Do not infer prognosis from frequency, treatment from a kinase or fusion list,
-  germline status from tumour findings, or biomarker utility from a diagnostic claim.
-- Diagnosis and biomarker cards may coexist only when the biomarker card states a
-  distinct source-supported testing target, detection strategy, assay limitation,
-  monitoring use, or discrimination use.
+Review every card against its paired evidence bundle and the paper. Confirm that:
 
-For every card answer:
-1. Does the paired evidence bundle satisfy the evidence contract and support every
-   material assertion in the interpretation without generalisation beyond its source
-   scope and qualifiers?
-2. Does the card satisfy the utility gate and remain independently useful rather than
-   materially redundant elsewhere in the package?
+1. every material assertion is explicitly supported by source-verbatim evidence;
+2. disease, population, molecular, treatment, comparator and other material qualifiers are not broadened;
+3. no assertion depends on a locator, unquoted context or model inference;
+4. a `composite_text` bundle supports one coherent source assertion, uses compatible scope, and contains only necessary fragments;
+5. each `scope_heading`, `legend`, or `footnote` actually governs the substantive fragment to which it is applied; and
+6. a `table_relation` preserves all applicable row and column headers, spanning or multi-level headers, legends and marked footnotes needed to reconstruct the claimed relation.
 
-Read every fragment in the paired evidence bundle before deciding. Identical fragment
+Multiple `claim` fragments are valid when they jointly support one source assertion. Fail evidence that combines separate findings, populations, analyses, classifier branches or independently useful conclusions, or creates a relationship, direction, scope or qualifier not stated by the source.
+
+Treat locators as navigation metadata, not evidence. Keep every non-contiguous fragment independently verbatim.
+
+Read every fragment in the paired evidence bundle before deciding. A card must pass
+both the clinical reporting gate and the evidence review rules. Identical fragment
 text alone is not failure when it supports distinct useful roles.
 
 Apply these calibrations consistently:
@@ -141,40 +100,6 @@ Canonical source aliases:
   abnormality is sufficient grounding. This includes inherited or de novo disorders,
   constitutional chromosomal abnormalities, and constitutional mosaicism, but
   excludes acquired or tumour-restricted abnormalities.
-
-For every `composite_text` bundle, also audit:
-1. **Single assertion:** all substantive fragments jointly support one independently
-   useful source assertion.
-2. **Compatible scope:** the fragments use compatible disease, population, treatment,
-   comparator, analysis, and classifier scope.
-3. **Necessary composition:** each fragment supplies material support or qualification
-   not available in one sufficient contiguous passage.
-4. **Structural governance:** each `scope_heading`, `legend`, or `footnote` governs the
-   substantive fragment to which it is applied.
-5. **No evidence laundering:** the interpretation and `support_map` assert no
-   relationship, direction, scope, or qualifier absent from the assembled source text.
-Multiple `claim` fragments are valid. Do not fail a bundle merely because the gene,
-population, role, effect, or qualifier is distributed across non-contiguous passages.
-Fail the bundle when:
-- the fragments describe separate findings or independently useful conclusions;
-- intervening text changes the population, analysis, disease scope, comparator, or
-  conclusion;
-- the interpretation converts co-location or thematic similarity into an unstated
-  relationship; or
-- a material assertion depends on unquoted text, the locator, or model inference.
-
-For every `table_relation` bundle, also audit:
-1. every selected cell is linked to all applicable row and column headers;
-2. spanning or multi-level headers are preserved;
-3. applicable legends and marked footnotes are included; and
-4. the reconstructed relation states nothing absent from the table.
-
-Treat locators as navigation metadata, not evidence. Keep every non-contiguous
-fragment independently verbatim.
-Use `evidence_relationship` when the individual quotations are accurate but the
-bundle combines them into a relationship the source does not establish. Do not use
-`evidence_relationship` solely because a valid bundle contains multiple substantive
-`claim` fragments.
 
 When a card fails, classify its primary defect as one of:
 - `quote_error`: quoted text is wrong, non-verbatim, malformed, materially truncated,

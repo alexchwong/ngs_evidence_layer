@@ -78,20 +78,20 @@ When the user sends `FINALIZE`:
   `FINALIZE`; and
 - otherwise apply the user's instructions and create `paper.final.json`.
 Human instructions direct amendments but are not source evidence. Verify all retained
-or amended content against `paper.md`, the reporting rules, vocabulary, schema, and
-shared card standards below. If an instruction is unsupported, explain the conflict
+or amended content against `paper.md`, the clinical reporting gate, evidence bundle
+rules, vocabulary, and schema. If an instruction is unsupported, explain the conflict
 and continue discussion; do not silently invent or substitute evidence. Do not record
 the user's decisions, discussion, or adjudication history on cards or elsewhere in
 the final package.
 ## Final package construction
 
-### Card evidence contract
+### Clinical reporting gate
 
-{{CARD_EVIDENCE_CONTRACT}}
+{{CLINICAL_REPORTING_GATE}}
 
-### Card utility gate
+### Evidence bundle rules
 
-{{CARD_UTILITY_GATE}}
+{{EVIDENCE_BUNDLE_RULES}}
 
 Start from the complete provisional package and apply the adjudicated outcomes.
 Retain, amend, split, or delete cards as directed. Every resulting card must satisfy
@@ -143,8 +143,6 @@ Keep `round` equal to 1. Populate the existing final `audit` shape:
 Repeat `results` exactly once for every resulting card. All resulting cards are
 marked pass because the human review and action taken are final. Do not add human
 decision fields to the audit; adjudication is represented by the final card content.
-## Reporting rules
-{{REPORTING_RULES}}
 ## Disease vocabulary
 
 ```json

@@ -8,13 +8,13 @@ Read `paper.phase5-provisional.json` first.
 
 ## Shared card standards
 
-### Card evidence contract
+### Clinical reporting gate
 
-{{CARD_EVIDENCE_CONTRACT}}
+{{CLINICAL_REPORTING_GATE}}
 
-### Card utility gate
+### Evidence review rules
 
-{{CARD_UTILITY_GATE}}
+{{EVIDENCE_REVIEW_RULES}}
 
 ### Source disease alias policy
 
@@ -42,7 +42,7 @@ If the provisional has `mode: revision`, the read-only inputs are:
 - `paper.phase5-provisional.json`
 - `phase5_review_prompt.md`
 Review every provisional modification or deletion independently against both the source and the accepted target card. For modifications, assess whether the revision:
-- satisfies the shared evidence contract and utility gate;
+- satisfies the clinical reporting gate and evidence review rules;
 - preserves disease, population, treatment, variant-class, threshold, exclusion and other material qualifiers;
 - does not broaden or distort the accepted interpretation;
 - appropriately corrects or improves the target card rather than merely restyling it;

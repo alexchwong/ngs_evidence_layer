@@ -65,20 +65,30 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
         )
         self.assertFalse({m for m in review_markers if m.endswith("_VALIDATION_BUNDLE")})
 
-    def test_shared_card_assets_are_used_by_all_card_handling_prompts(self):
-        paths = [
-            *(ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md" for phase in (2, 3, 4, 5)),
-            ROOT / "prompts" / "templates" / "phase5_review_prompt.md",
-        ]
-        required = {
-            "CARD_EVIDENCE_CONTRACT",
-            "CARD_UTILITY_GATE",
+    def test_card_handling_prompts_use_phase_appropriate_shared_assets(self):
+        common = {
+            "CLINICAL_REPORTING_GATE",
             "SOURCE_DISEASE_ALIAS_POLICY",
             "SOURCE_DISEASE_ALIASES",
         }
-        for path in paths:
-            with self.subTest(template=path.name):
-                self.assertTrue(required <= self.template_markers(path))
+        expected_evidence_asset = {
+            "phase2_prompt.md": "EVIDENCE_BUNDLE_RULES",
+            "phase3_prompt.md": "EVIDENCE_REVIEW_RULES",
+            "phase4_prompt.md": "EVIDENCE_BUNDLE_RULES",
+            "phase5_prompt.md": "EVIDENCE_BUNDLE_RULES",
+            "phase5_review_prompt.md": "EVIDENCE_REVIEW_RULES",
+        }
+        for name, evidence_asset in expected_evidence_asset.items():
+            path = ROOT / "prompts" / "templates" / name
+            with self.subTest(template=name):
+                markers = self.template_markers(path)
+                self.assertTrue(common | {evidence_asset} <= markers)
+                other_evidence_asset = (
+                    "EVIDENCE_REVIEW_RULES"
+                    if evidence_asset == "EVIDENCE_BUNDLE_RULES"
+                    else "EVIDENCE_BUNDLE_RULES"
+                )
+                self.assertNotIn(other_evidence_asset, markers)
 
 
 if __name__ == "__main__":

@@ -29,9 +29,11 @@ verify it; publication-type verification belongs only to Phase 3.
 
 Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
-## Reporting rules
+## Clinical relevance scope
 
-{{REPORTING_RULES}}
+{{CLINICAL_REPORTING_GATE}}
+
+For Phase 1, use this only to identify potentially relevant claim categories. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all paper-supported gene/category pairs and relevant geneless statements within this scope.
 
 ## Output schema
 

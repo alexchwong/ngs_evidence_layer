@@ -34,7 +34,7 @@ Never manufacture category coverage merely to match the census.
 
 Work evidence-first rather than gene-first:
 1. find the source passage that states the role claim;
-2. assemble the minimal sufficient evidence bundle under the contract below;
+2. assemble the minimal sufficient evidence bundle under the rules below;
 3. freeze the complete candidate evidence bundle before drafting the interpretation;
 4. identify only the role, population, disease, effect, and qualifiers explicitly
    supported by that bundle;
@@ -46,13 +46,13 @@ locators merely because they belong to the same census entry. A card's `locator`
 interpretation, diseases, genes, category, and evidence bundle must describe the
 same source claim.
 
-### Card evidence contract
+### Evidence bundle rules
 
-{{CARD_EVIDENCE_CONTRACT}}
+{{EVIDENCE_BUNDLE_RULES}}
 
-### Card utility gate
+### Clinical reporting gate
 
-{{CARD_UTILITY_GATE}}
+{{CLINICAL_REPORTING_GATE}}
 
 ### Source disease alias policy
 
@@ -109,9 +109,6 @@ For example, a CMML card has exact `diseases: ["CMML"]` and derived ancestors
 Set `diseases_covered` to the exact unique union of the cards' exact `diseases`
 arrays only; do not include `disease_ancestors`. Set `genes_covered` to the exact
 unique union of all card gene arrays.
-## Reporting rules
-
-{{REPORTING_RULES}}
 
 ## Disease vocabulary
 

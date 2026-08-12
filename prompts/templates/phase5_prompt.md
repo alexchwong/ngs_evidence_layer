@@ -16,13 +16,13 @@ Read `phase5.json` first. `mode: additive` uses the existing additive workflow. 
 
 ## Shared card standards
 
-### Card evidence contract
+### Clinical reporting gate
 
-{{CARD_EVIDENCE_CONTRACT}}
+{{CLINICAL_REPORTING_GATE}}
 
-### Card utility gate
+### Evidence bundle rules
 
-{{CARD_UTILITY_GATE}}
+{{EVIDENCE_BUNDLE_RULES}}
 
 ### Source disease alias policy
 
