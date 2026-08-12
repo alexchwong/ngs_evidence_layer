@@ -14,9 +14,11 @@ You are the census model for exactly one publication. Use only `paper.md`,
 `metadata.json`, and this prompt. Do not author evidence cards and do not use model
 knowledge to add facts absent from the paper.
 Walk the complete paper sequentially, including intact tables and footnotes. Record
-every gene about which the paper makes a claim, its claim locations, and all touched
-categories. Record rule-relevant geneless statements and missing supplementary
-values. Do not refuse because a supplement is unavailable.
+each distinct potentially report-relevant source claim separately. For every claim,
+record its participating genes, category, locator, and a concise source-faithful
+summary that distinguishes it from other claims. Use `genes: []` only for geneless
+`diagnosis` or `treatment` claims. Do not merge distinct claims merely because they
+share a gene, category, paragraph, or table. Record missing supplementary values. Do not refuse because a supplement is unavailable.
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
 that judgement. Phase 1 assigns this provisional value but does not independently
@@ -93,7 +95,7 @@ A negative or null finding is useful only when its absence or lack of effect is 
 
 When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
 
-For Phase 1, use this only to identify potentially relevant claim categories. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all paper-supported gene/category pairs and relevant geneless statements within this scope.
+For Phase 1, use this only to identify potentially relevant claims. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`.
 
 ## Output schema
 
@@ -102,7 +104,7 @@ For Phase 1, use this only to identify potentially relevant claim categories. Do
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/ngs_evidence_layer/census_schema.json",
   "title": "Publication census (Phase 1)",
-  "description": "One entry per gene about which the publication makes a claim. The census is the completeness contract: it is what makes under-extraction countable.",
+  "description": "One entry per distinct potentially report-relevant source claim. The census is the completeness contract: it makes under-extraction countable at claim level.",
   "type": "object",
   "required": [
     "schema_version",
@@ -112,15 +114,25 @@ For Phase 1, use this only to identify potentially relevant claim categories. Do
     "publication_type",
     "publication_type_basis",
     "entries",
-    "geneless_statements",
     "validation_unresolved"
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "3.1" },
-    "paper_id": { "type": "string", "format": "uuid" },
-    "census_date": { "type": "string", "format": "date" },
-    "census_model": { "type": "string", "minLength": 1 },
+    "schema_version": {
+      "const": "3.2"
+    },
+    "paper_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "census_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "census_model": {
+      "type": "string",
+      "minLength": 1
+    },
     "publication_type": {
       "enum": [
         "guideline",
@@ -131,69 +143,110 @@ For Phase 1, use this only to identify potentially relevant claim categories. Do
         "other"
       ]
     },
-    "publication_type_basis": { "type": "string", "minLength": 1 },
+    "publication_type_basis": {
+      "type": "string",
+      "minLength": 1
+    },
     "supplement_flags": {
       "type": "array",
       "description": "Critical values referenced by the main text but living in supplementary material. Record, do not refuse.",
       "items": {
         "type": "object",
-        "required": ["locator", "missing_value"],
+        "required": [
+          "locator",
+          "missing_value"
+        ],
         "additionalProperties": false,
         "properties": {
-          "locator": { "type": "string" },
-          "missing_value": { "type": "string" }
+          "locator": {
+            "type": "string"
+          },
+          "missing_value": {
+            "type": "string"
+          }
         }
       }
     },
     "entries": {
       "type": "array",
       "minItems": 1,
+      "description": "One independently reviewable source claim per entry, including eligible geneless diagnosis/treatment claims.",
       "items": {
         "type": "object",
-        "required": ["entry_id", "gene", "locators", "categories"],
+        "required": [
+          "claim_id",
+          "genes",
+          "category",
+          "locator",
+          "summary"
+        ],
         "additionalProperties": false,
         "properties": {
-          "entry_id": { "type": "string", "minLength": 1 },
-          "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
-          "locators": {
-            "type": "array",
-            "minItems": 1,
-            "description": "Sections, tables and table footnotes where the publication makes a claim about this gene.",
-            "items": { "type": "string", "minLength": 1 }
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
           },
-          "categories": {
+          "genes": {
             "type": "array",
-            "minItems": 1,
+            "uniqueItems": true,
             "items": {
-              "enum": [
-                "diagnosis",
-                "prognosis",
-                "treatment",
-                "biomarker",
-                "germline"
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9\\-]*$"
+            }
+          },
+          "category": {
+            "enum": [
+              "diagnosis",
+              "prognosis",
+              "treatment",
+              "biomarker",
+              "germline"
+            ]
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Concise source-faithful discriminator for the claim; not a polished card interpretation."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "category": {
+                  "enum": [
+                    "prognosis",
+                    "biomarker",
+                    "germline"
+                  ]
+                }
+              },
+              "required": [
+                "category"
               ]
+            },
+            "then": {
+              "properties": {
+                "genes": {
+                  "minItems": 1
+                }
+              }
             }
           }
-        }
-      }
-    },
-    "geneless_statements": {
-      "type": "array",
-      "description": "Rule-relevant statements with no gene attached. Recorded for visibility, not for carding.",
-      "items": {
-        "type": "object",
-        "required": ["locator", "summary"],
-        "additionalProperties": false,
-        "properties": {
-          "locator": { "type": "string", "minLength": 1 },
-          "summary": { "type": "string", "minLength": 1 }
-        }
+        ]
       }
     },
     "validation_unresolved": {
       "type": "array",
       "description": "Specific Phase 1 exit-validation defects still unresolved after the third pass.",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   }
 }
@@ -201,8 +254,8 @@ For Phase 1, use this only to identify potentially relevant claim categories. Do
 ## Exit validation
 
 Check that every section and table is accounted for, every entry has a locator,
-genes are valid symbols, IDs and genes are unique, and no rule-covered paper claim
-is absent. Confirm the publication type and basis are supported by the paper. Repair
+genes are valid symbols, claim IDs are unique, distinct claims have not been merged,
+and no rule-covered paper claim is absent. Confirm the publication type and basis are supported by the paper. Repair
 and repeat, at most three passes. If defects remain, list each one
 under `validation_unresolved`; otherwise return an empty list.
 ## Deterministic exit validation
@@ -224,7 +277,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 
 METADATA_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/metadata_schema.json","title":"Publication metadata","description":"Publication metadata used in working and archived packages. Confirmation overwrite history is optional for working-package compatibility.","type":"object","required":["schema_version","paper_id","corpus","stem","publication_key","citation","citation_source","citation_resolved_at","source_filename","source_sha256","markdown_sha256","created_at"],"additionalProperties":false,"properties":{"schema_version":{"const":"1.1"},"paper_id":{"type":"string","format":"uuid"},"corpus":{"type":"string","minLength":1},"stem":{"type":"string","minLength":1},"publication_key":{"type":"string","pattern":"^[a-z0-9]+(-[a-z0-9]+)*$"},"citation":{"$ref":"#/$defs/citation"},"citation_source":{"enum":["crossref-doi","model-supplied-doi","operator"]},"citation_resolved_at":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]},"source_filename":{"type":"string","minLength":1},"source_sha256":{"type":["string","null"],"pattern":"^[a-f0-9]{64}$"},"markdown_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},"created_at":{"type":"string","format":"date-time"},"version_history":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","minLength":1}},"latest_version":{"type":"string","minLength":1}},"$defs":{"citation":{"type":"object","required":["authors","title","journal","year","volume","issue","pages","doi","display","citation_incomplete"],"additionalProperties":false,"properties":{"authors":{"type":"array","minItems":1,"items":{"type":"string","minLength":1}},"title":{"type":"string","minLength":1},"journal":{"type":"string"},"year":{"type":"integer","minimum":1950,"maximum":2100},"month":{"type":"string"},"volume":{"type":"string"},"issue":{"type":"string"},"pages":{"type":"string"},"doi":{"type":"string"},"display":{"type":"string","minLength":1},"citation_incomplete":{"type":"array","uniqueItems":true,"items":{"type":"string","minLength":1}}}}}}''')
-CENSUS_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/census_schema.json","title":"Publication census (Phase 1)","description":"One entry per gene about which the publication makes a claim. The census is the completeness contract: it is what makes under-extraction countable.","type":"object","required":["schema_version","paper_id","census_date","census_model","publication_type","publication_type_basis","entries","geneless_statements","validation_unresolved"],"additionalProperties":false,"properties":{"schema_version":{"const":"3.1"},"paper_id":{"type":"string","format":"uuid"},"census_date":{"type":"string","format":"date"},"census_model":{"type":"string","minLength":1},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"supplement_flags":{"type":"array","description":"Critical values referenced by the main text but living in supplementary material. Record, do not refuse.","items":{"type":"object","required":["locator","missing_value"],"additionalProperties":false,"properties":{"locator":{"type":"string"},"missing_value":{"type":"string"}}}},"entries":{"type":"array","minItems":1,"items":{"type":"object","required":["entry_id","gene","locators","categories"],"additionalProperties":false,"properties":{"entry_id":{"type":"string","minLength":1},"gene":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\-]*$"},"locators":{"type":"array","minItems":1,"description":"Sections, tables and table footnotes where the publication makes a claim about this gene.","items":{"type":"string","minLength":1}},"categories":{"type":"array","minItems":1,"items":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]}}}}},"geneless_statements":{"type":"array","description":"Rule-relevant statements with no gene attached. Recorded for visibility, not for carding.","items":{"type":"object","required":["locator","summary"],"additionalProperties":false,"properties":{"locator":{"type":"string","minLength":1},"summary":{"type":"string","minLength":1}}}},"validation_unresolved":{"type":"array","description":"Specific Phase 1 exit-validation defects still unresolved after the third pass.","items":{"type":"string","minLength":1}}}}''')
+CENSUS_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/census_schema.json","title":"Publication census (Phase 1)","description":"One entry per distinct potentially report-relevant source claim. The census is the completeness contract: it makes under-extraction countable at claim level.","type":"object","required":["schema_version","paper_id","census_date","census_model","publication_type","publication_type_basis","entries","validation_unresolved"],"additionalProperties":false,"properties":{"schema_version":{"const":"3.2"},"paper_id":{"type":"string","format":"uuid"},"census_date":{"type":"string","format":"date"},"census_model":{"type":"string","minLength":1},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"supplement_flags":{"type":"array","description":"Critical values referenced by the main text but living in supplementary material. Record, do not refuse.","items":{"type":"object","required":["locator","missing_value"],"additionalProperties":false,"properties":{"locator":{"type":"string"},"missing_value":{"type":"string"}}}},"entries":{"type":"array","minItems":1,"description":"One independently reviewable source claim per entry, including eligible geneless diagnosis/treatment claims.","items":{"type":"object","required":["claim_id","genes","category","locator","summary"],"additionalProperties":false,"properties":{"claim_id":{"type":"string","minLength":1},"genes":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\-]*$"}},"category":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]},"locator":{"type":"string","minLength":1},"summary":{"type":"string","minLength":1,"description":"Concise source-faithful discriminator for the claim; not a polished card interpretation."}},"allOf":[{"if":{"properties":{"category":{"enum":["prognosis","biomarker","germline"]}},"required":["category"]},"then":{"properties":{"genes":{"minItems":1}}}}]}},"validation_unresolved":{"type":"array","description":"Specific Phase 1 exit-validation defects still unresolved after the third pass.","items":{"type":"string","minLength":1}}}}''')
 
 
 def read_json(path, label="JSON"):
@@ -253,12 +306,9 @@ def validate_metadata(metadata):
 
 def validate_census(census, metadata=None):
     errors = schema_errors(census, CENSUS_SCHEMA, "census")
-    entry_ids = [entry.get("entry_id") for entry in census.get("entries", [])]
-    genes = [entry.get("gene") for entry in census.get("entries", [])]
-    if len(entry_ids) != len(set(entry_ids)):
-        errors.append("census contains duplicate entry_id values")
-    if len(genes) != len(set(genes)):
-        errors.append("census contains duplicate gene entries")
+    claim_ids = [entry.get("claim_id") for entry in census.get("entries", [])]
+    if len(claim_ids) != len(set(claim_ids)):
+        errors.append("census contains duplicate claim_id values")
     if metadata and census.get("paper_id") != metadata.get("paper_id"):
         errors.append("census paper_id does not match metadata")
     return errors
@@ -313,8 +363,7 @@ Before writing, verify privately that:
 2. the filename is exactly `paper.census.json`;
 3. the content conforms to the Phase 1 census schema and its `paper_id` matches
    `metadata.json`;
-4. the file contains `entries`, `geneless_statements`, and
-   `validation_unresolved`; and
+4. the file contains `entries` and `validation_unresolved`; and
 5. the file does not contain `cards`, `evidence`, or `audit`.
 
 If any check fails, repair the output before finalizing. Do not print the checklist,

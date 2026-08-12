@@ -12,7 +12,7 @@ Read-only inputs:
 - `phase5.existing-cards.json`
 - `phase5_prompt.md`
 - revision mode only: `paper.phase5-targets.json`
-Read `phase5.json` first. `mode: additive` uses the existing additive workflow. `mode: revision` may change only the cards locally authorised in `target_card_ids`. Never alter the census. If a requested interpretation requires census expansion, stop that item and tell the user it requires a full re-ingest.
+Read `phase5.json` first. `mode: additive` uses the existing additive workflow. `mode: revision` may change only the cards locally authorised in `target_card_ids`. Never alter the census. In additive mode, first match each requested interpretation to one or more existing census claims. A census claim is a review boundary, not proof that a card should exist. If no existing census claim covers the requested interpretation, stop that item and tell the user it requires a full re-ingest.
 
 ## Shared card standards
 
@@ -35,6 +35,26 @@ Background information is not clinically useful by itself, including prevalence,
 A negative or null finding is useful only when its absence or lack of effect is clinically informative.
 
 When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
+
+### Card content rules
+
+# Card content rules
+
+- One card represents one independently useful, directly supported clinical assertion.
+- `genes` contains only genes participating in that assertion.
+- `genes: []` is permitted only for geneless `diagnosis` or `treatment` assertions.
+- A geneless `diagnosis` card must state an independently useful diagnostic/classification criterion, requirement, exclusion, threshold, or distinction.
+- A geneless `treatment` card must state independently useful disease-level treatment context that informs treatment eligibility, selection, or interpretation of a molecular treatment modifier. Do not card generic treatment background that would not affect an NGS report.
+- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
+- Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
+
+## Category entailment
+
+- `diagnosis`: the passage states a molecular, morphologic, clinical, quantitative, or other criterion that defines, supports, excludes, differentiates, or changes a diagnosis or classification.
+- `prognosis`: the passage explicitly states an outcome, risk, survival, progression, relapse, or named prognostic-model effect.
+- `treatment`: the passage explicitly supports treatment selection, eligibility, standard treatment, sensitivity, resistance, response, or a treatment-specific effect.
+- `biomarker`: the passage explicitly assigns a testing, detection, monitoring, or discrimination role that remains independently useful rather than merely relabelling the same diagnostic assertion. The interpretation must name that independent function.
+- `germline`: the passage explicitly concerns inherited, constitutional, or predisposition status, or germline evaluation. Preserve the source's certainty; a work-up recommendation does not establish constitutional status.
 
 ### Evidence bundle rules
 
@@ -80,12 +100,13 @@ Canonical source aliases:
 ## Additive mode
 First ask what interpretation or interpretations the user believes this paper supports but the accepted cards missed.
 For each requested interpretation:
-1. search `phase5.existing-cards.json` semantically for the same or materially similar interpretation;
-2. if the target publication already contains an equivalent card, show its `card_id` and interpretation and do not create a duplicate;
-3. if only another publication contains a similar card, mention it as context but still assess whether this target paper independently supports the requested interpretation;
-4. reread `paper.md` specifically for the requested interpretation;
-5. if unsupported, say so and do not create a card;
-6. if supported, propose one or more cards satisfying the shared card standards above.
+1. identify the matching claim or claims in `paper.census.json`; if none match, require full re-ingest and stop that item;
+2. search `phase5.existing-cards.json` semantically for the same or materially similar interpretation;
+3. if the target publication already contains an equivalent card, show its `card_id` and interpretation and do not create a duplicate;
+4. if only another publication contains a similar card, mention it as context but still assess whether this target paper independently supports the requested interpretation;
+5. reread `paper.md` specifically for the requested interpretation;
+6. if unsupported, say so and do not create a card;
+7. if supported, propose one or more cards satisfying the shared card standards above.
 Accept free-text discussion over any number of turns. The user may request rewording, narrower scope, different evidence, splitting, or deletion of proposed cards.
 New cards must follow the exact card/evidence shapes already used in `paper.base.final.json`.
 - `diseases` records exact source-supported applicability only.

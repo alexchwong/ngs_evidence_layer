@@ -12,9 +12,15 @@ Read `paper.phase5-provisional.json` first.
 
 {{CLINICAL_REPORTING_GATE}}
 
+### Card content rules
+
+{{CARD_CONTENT_RULES}}
+
 ### Evidence review rules
 
 {{EVIDENCE_REVIEW_RULES}}
+
+A valid `diagnosis` or `treatment` card may have `genes: []` when the supported assertion is genuinely geneless; do not fail it solely for an empty gene array.
 
 ### Source disease alias policy
 

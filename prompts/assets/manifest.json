@@ -5,6 +5,10 @@
       "type": "file",
       "path": "prompts/assets/clinical_reporting_gate.md"
     },
+    "CARD_CONTENT_RULES": {
+      "type": "file",
+      "path": "prompts/assets/card_content_rules.md"
+    },
     "EVIDENCE_BUNDLE_RULES": {
       "type": "file",
       "path": "prompts/assets/evidence_bundle_rules.md"

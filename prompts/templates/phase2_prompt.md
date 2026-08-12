@@ -26,11 +26,13 @@ First validate the census against the paper. If materially deficient, stop and
 write the next `paper.census-critique-NNN.md` with specific gaps; do not card.
 ## Working method
 
-Walk every census gene/category pair as a review obligation, not an output
-obligation. A census pair identifies where to inspect the paper; it does not require
-a card. Emit a card only when one substantive passage directly supports that gene,
-category, and interpretation. If no such passage exists, emit no card for the pair.
-Never manufacture category coverage merely to match the census.
+Walk every census claim as a review obligation, not an output obligation. A census
+claim identifies a source assertion to inspect; it does not require a card. Emit a
+card only when the evidence directly supports a clinically useful interpretation.
+If no such card is warranted, emit none for that claim. Never manufacture category
+coverage merely to match the census. If one census claim materially merges multiple
+independently reviewable assertions, return a census critique rather than silently
+splitting it during carding.
 
 Work evidence-first rather than gene-first:
 1. find the source passage that states the role claim;
@@ -42,7 +44,7 @@ Work evidence-first rather than gene-first:
 6. include only genes participating in that exact assertion.
 
 Do not union assertions, diseases, populations, or qualifiers across separate
-locators merely because they belong to the same census entry. A card's `locator`,
+locators merely because they belong to the same census claim. A card's `locator`,
 interpretation, diseases, genes, category, and evidence bundle must describe the
 same source claim.
 
@@ -54,6 +56,10 @@ same source claim.
 
 {{CLINICAL_REPORTING_GATE}}
 
+### Card content rules
+
+{{CARD_CONTENT_RULES}}
+
 ### Source disease alias policy
 
 {{SOURCE_DISEASE_ALIAS_POLICY}}
@@ -63,26 +69,6 @@ Canonical source aliases:
 ```json
 {{SOURCE_DISEASE_ALIASES}}
 ```
-
-Apply these category entailment tests before creating a card:
-- `diagnosis`: the passage states that the alteration defines, supports, excludes,
-  differentiates, or changes a diagnosis or classification;
-- `prognosis`: the passage explicitly states an outcome, risk, survival,
-  progression, relapse, or named prognostic-model effect;
-- `treatment`: the passage explicitly links the alteration to treatment
-  sensitivity, resistance, eligibility, response, or selection;
-- `biomarker`: the passage explicitly assigns a testing, detection, monitoring, or
-  discrimination role that remains independently useful rather than merely
-  relabelling the same diagnostic assertion. The interpretation must name the
-  independent function: testing target, detection strategy, assay limitation,
-  monitoring use, or discrimination use. Generic wording such as "molecular
-  biomarker" or "reported molecular finding" does not pass this test;
-- `germline`: the passage explicitly concerns inherited, constitutional, or
-  predisposition status, or germline evaluation. Preserve the source's level of
-  certainty by distinguishing established predisposition, possible constitutional
-  origin, and an explicit recommendation or indication for germline work-up. A
-  work-up recommendation supports a conditional germline card but does not establish
-  constitutional status.
 
 For the provisional package, copy `publication_type` and
 `publication_type_basis` verbatim from the census and set

@@ -26,9 +26,15 @@ Audit every card against both shared standards below.
 
 {{CLINICAL_REPORTING_GATE}}
 
+### Card content rules
+
+{{CARD_CONTENT_RULES}}
+
 ### Evidence review rules
 
 {{EVIDENCE_REVIEW_RULES}}
+
+A valid `diagnosis` or `treatment` card may have `genes: []` when the supported assertion is genuinely geneless; do not fail it solely for an empty gene array.
 
 Read every fragment in the paired evidence bundle before deciding. A card must pass
 both the clinical reporting gate and the evidence review rules. Identical fragment

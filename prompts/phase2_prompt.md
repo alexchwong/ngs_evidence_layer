@@ -26,11 +26,13 @@ First validate the census against the paper. If materially deficient, stop and
 write the next `paper.census-critique-NNN.md` with specific gaps; do not card.
 ## Working method
 
-Walk every census gene/category pair as a review obligation, not an output
-obligation. A census pair identifies where to inspect the paper; it does not require
-a card. Emit a card only when one substantive passage directly supports that gene,
-category, and interpretation. If no such passage exists, emit no card for the pair.
-Never manufacture category coverage merely to match the census.
+Walk every census claim as a review obligation, not an output obligation. A census
+claim identifies a source assertion to inspect; it does not require a card. Emit a
+card only when the evidence directly supports a clinically useful interpretation.
+If no such card is warranted, emit none for that claim. Never manufacture category
+coverage merely to match the census. If one census claim materially merges multiple
+independently reviewable assertions, return a census critique rather than silently
+splitting it during carding.
 
 Work evidence-first rather than gene-first:
 1. find the source passage that states the role claim;
@@ -42,7 +44,7 @@ Work evidence-first rather than gene-first:
 6. include only genes participating in that exact assertion.
 
 Do not union assertions, diseases, populations, or qualifiers across separate
-locators merely because they belong to the same census entry. A card's `locator`,
+locators merely because they belong to the same census claim. A card's `locator`,
 interpretation, diseases, genes, category, and evidence bundle must describe the
 same source claim.
 
@@ -86,6 +88,26 @@ A negative or null finding is useful only when its absence or lack of effect is 
 
 When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
 
+### Card content rules
+
+# Card content rules
+
+- One card represents one independently useful, directly supported clinical assertion.
+- `genes` contains only genes participating in that assertion.
+- `genes: []` is permitted only for geneless `diagnosis` or `treatment` assertions.
+- A geneless `diagnosis` card must state an independently useful diagnostic/classification criterion, requirement, exclusion, threshold, or distinction.
+- A geneless `treatment` card must state independently useful disease-level treatment context that informs treatment eligibility, selection, or interpretation of a molecular treatment modifier. Do not card generic treatment background that would not affect an NGS report.
+- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
+- Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
+
+## Category entailment
+
+- `diagnosis`: the passage states a molecular, morphologic, clinical, quantitative, or other criterion that defines, supports, excludes, differentiates, or changes a diagnosis or classification.
+- `prognosis`: the passage explicitly states an outcome, risk, survival, progression, relapse, or named prognostic-model effect.
+- `treatment`: the passage explicitly supports treatment selection, eligibility, standard treatment, sensitivity, resistance, response, or a treatment-specific effect.
+- `biomarker`: the passage explicitly assigns a testing, detection, monitoring, or discrimination role that remains independently useful rather than merely relabelling the same diagnostic assertion. The interpretation must name that independent function.
+- `germline`: the passage explicitly concerns inherited, constitutional, or predisposition status, or germline evaluation. Preserve the source's certainty; a work-up recommendation does not establish constitutional status.
+
 ### Source disease alias policy
 
 A source-stated disease may ground a canonical card disease only when it is already
@@ -106,26 +128,6 @@ Canonical source aliases:
   "clonal haemopoiesis": "CHIP"
 }
 ```
-
-Apply these category entailment tests before creating a card:
-- `diagnosis`: the passage states that the alteration defines, supports, excludes,
-  differentiates, or changes a diagnosis or classification;
-- `prognosis`: the passage explicitly states an outcome, risk, survival,
-  progression, relapse, or named prognostic-model effect;
-- `treatment`: the passage explicitly links the alteration to treatment
-  sensitivity, resistance, eligibility, response, or selection;
-- `biomarker`: the passage explicitly assigns a testing, detection, monitoring, or
-  discrimination role that remains independently useful rather than merely
-  relabelling the same diagnostic assertion. The interpretation must name the
-  independent function: testing target, detection strategy, assay limitation,
-  monitoring use, or discrimination use. Generic wording such as "molecular
-  biomarker" or "reported molecular finding" does not pass this test;
-- `germline`: the passage explicitly concerns inherited, constitutional, or
-  predisposition status, or germline evaluation. Preserve the source's level of
-  certainty by distinguishing established predisposition, possible constitutional
-  origin, and an explicit recommendation or indication for germline work-up. A
-  work-up recommendation supports a conditional germline card but does not establish
-  constitutional status.
 
 For the provisional package, copy `publication_type` and
 `publication_type_basis` verbatim from the census and set
@@ -357,74 +359,345 @@ unique union of all card gene arrays.
   "$id": "https://local/ngs_evidence_layer/ingestion_package_schema.json",
   "title": "Phase 2 provisional or Phase 4 final evidence package",
   "type": "object",
-  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "publication_type", "publication_type_basis", "publication_type_verified_by_phase3", "genes_covered", "diseases_covered", "census_entries", "cards", "evidence", "audit"],
+  "required": [
+    "schema_version",
+    "paper_id",
+    "round",
+    "extraction_date",
+    "extraction_model",
+    "publication_type",
+    "publication_type_basis",
+    "publication_type_verified_by_phase3",
+    "genes_covered",
+    "diseases_covered",
+    "census_entries",
+    "cards",
+    "evidence",
+    "audit"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "5.0" },
-    "paper_id": { "type": "string", "format": "uuid" },
-    "round": { "type": "integer", "minimum": 1 },
-    "extraction_date": { "type": "string", "format": "date" },
-    "extraction_model": { "type": "string", "minLength": 1 },
-    "publication_type": {
-      "enum": ["guideline", "consensus statement", "primary study", "systematic review", "narrative review", "other"]
+    "schema_version": {
+      "const": "5.0"
     },
-    "publication_type_basis": { "type": "string", "minLength": 1 },
-    "publication_type_verified_by_phase3": { "type": "boolean" },
-    "genes_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
-    "diseases_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
-    "census_entries": { "type": "integer", "minimum": 0 },
-    "cards": { "type": "array", "items": { "$ref": "#/$defs/card" } },
-    "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
-    "audit": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/audit" }] }
+    "paper_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "extraction_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "extraction_model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "publication_type": {
+      "enum": [
+        "guideline",
+        "consensus statement",
+        "primary study",
+        "systematic review",
+        "narrative review",
+        "other"
+      ]
+    },
+    "publication_type_basis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "publication_type_verified_by_phase3": {
+      "type": "boolean"
+    },
+    "genes_covered": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/gene"
+      }
+    },
+    "diseases_covered": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/disease"
+      }
+    },
+    "census_entries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cards": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/card"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "audit": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/audit"
+        }
+      ]
+    }
   },
   "$defs": {
-    "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
+    "gene": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9\\-]*$"
+    },
     "disease": {
-      "enum": ["CHIP", "CCUS", "MDS", "MDS/AML", "AML", "APL", "MDS/MPN", "MDS/MPN-U", "CMML", "aCML", "MDS/MPN-SF3B1-T", "JMML", "MPN", "MPN-U", "PV", "ET", "PMF", "post-PV/post-ET MF", "MPN blast phase", "CML", "CNL", "CEL", "mastocytosis", "myeloid/lymphoid neoplasm with eosinophilia and TK fusion", "BPDCN", "germline predisposition syndrome", "myeloid neoplasm, unspecified", "lymphoid neoplasm", "acute leukaemia of ambiguous lineage", "histiocytic/dendritic neoplasm", "haematological malignancy, other"]
+      "enum": [
+        "CHIP",
+        "CCUS",
+        "MDS",
+        "MDS/AML",
+        "AML",
+        "APL",
+        "MDS/MPN",
+        "MDS/MPN-U",
+        "CMML",
+        "aCML",
+        "MDS/MPN-SF3B1-T",
+        "JMML",
+        "MPN",
+        "MPN-U",
+        "PV",
+        "ET",
+        "PMF",
+        "post-PV/post-ET MF",
+        "MPN blast phase",
+        "CML",
+        "CNL",
+        "CEL",
+        "mastocytosis",
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+        "BPDCN",
+        "germline predisposition syndrome",
+        "myeloid neoplasm, unspecified",
+        "lymphoid neoplasm",
+        "acute leukaemia of ambiguous lineage",
+        "histiocytic/dendritic neoplasm",
+        "haematological malignancy, other"
+      ]
     },
     "citation": {
-      "type": "object", "required": ["display"], "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "display"
+      ],
+      "additionalProperties": false,
       "properties": {
-        "authors": { "type": "array", "items": { "type": "string" } }, "title": { "type": "string" },
-        "journal": { "type": "string" }, "year": { "type": "integer", "minimum": 1950, "maximum": 2100 },
-        "volume": { "type": "string" }, "issue": { "type": "string" }, "pages": { "type": "string" },
-        "display": { "type": "string", "minLength": 1 },
-        "citation_incomplete": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "journal": {
+          "type": "string"
+        },
+        "year": {
+          "type": "integer",
+          "minimum": 1950,
+          "maximum": 2100
+        },
+        "volume": {
+          "type": "string"
+        },
+        "issue": {
+          "type": "string"
+        },
+        "pages": {
+          "type": "string"
+        },
+        "display": {
+          "type": "string",
+          "minLength": 1
+        },
+        "citation_incomplete": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "card": {
       "type": "object",
-      "required": ["card_id", "locator", "interpretation", "genes", "diseases", "category", "evidence_tier", "secondary_citation"],
+      "required": [
+        "card_id",
+        "locator",
+        "interpretation",
+        "genes",
+        "diseases",
+        "category",
+        "evidence_tier",
+        "secondary_citation"
+      ],
       "additionalProperties": false,
       "properties": {
-        "card_id": { "type": "string", "minLength": 1 }, "locator": { "type": "string", "minLength": 1 },
-        "interpretation": { "type": "string", "minLength": 1 },
-        "genes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
-        "diseases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
-        "disease_ancestors": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
-        "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker", "germline"] },
-        "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
-        "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
+        "card_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "genes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/gene"
+          }
+        },
+        "diseases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/disease"
+          }
+        },
+        "disease_ancestors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/disease"
+          }
+        },
+        "category": {
+          "enum": [
+            "diagnosis",
+            "prognosis",
+            "treatment",
+            "biomarker",
+            "germline"
+          ]
+        },
+        "evidence_tier": {
+          "enum": [
+            "guideline criterion",
+            "multivariable-adjusted",
+            "univariable or descriptive",
+            "restated secondary"
+          ]
+        },
+        "secondary_citation": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/citation"
+            }
+          ]
+        }
       },
       "allOf": [
         {
           "if": {
-            "properties": { "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker"] } },
-            "required": ["category"]
+            "properties": {
+              "category": {
+                "enum": [
+                  "diagnosis",
+                  "prognosis",
+                  "treatment",
+                  "biomarker"
+                ]
+              }
+            },
+            "required": [
+              "category"
+            ]
           },
-          "then": { "properties": { "diseases": { "minItems": 1 } } }
+          "then": {
+            "properties": {
+              "diseases": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "enum": [
+                  "prognosis",
+                  "biomarker",
+                  "germline"
+                ]
+              }
+            },
+            "required": [
+              "category"
+            ]
+          },
+          "then": {
+            "properties": {
+              "genes": {
+                "minItems": 1
+              }
+            }
+          }
         }
       ]
     },
     "fragment": {
       "type": "object",
-      "required": ["fragment_id", "role", "quote", "locator"],
+      "required": [
+        "fragment_id",
+        "role",
+        "quote",
+        "locator"
+      ],
       "additionalProperties": false,
       "properties": {
-        "fragment_id": { "type": "string", "pattern": "^F[0-9]{2}$" },
-        "role": { "enum": ["claim", "scope_heading", "column_header", "row_header", "cell", "legend", "footnote"] },
-        "quote": { "type": "string", "minLength": 1 },
-        "locator": { "type": "string", "minLength": 1 }
+        "fragment_id": {
+          "type": "string",
+          "pattern": "^F[0-9]{2}$"
+        },
+        "role": {
+          "enum": [
+            "claim",
+            "scope_heading",
+            "column_header",
+            "row_header",
+            "cell",
+            "legend",
+            "footnote"
+          ]
+        },
+        "quote": {
+          "type": "string",
+          "minLength": 1
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "support_map": {
@@ -432,87 +705,277 @@ unique union of all card gene arrays.
       "minProperties": 1,
       "additionalProperties": false,
       "properties": {
-        "gene": { "$ref": "#/$defs/fragment_ids" },
-        "disease": { "$ref": "#/$defs/fragment_ids" },
-        "role": { "$ref": "#/$defs/fragment_ids" },
-        "population": { "$ref": "#/$defs/fragment_ids" },
-        "effect": { "$ref": "#/$defs/fragment_ids" },
-        "qualifier": { "$ref": "#/$defs/fragment_ids" }
+        "gene": {
+          "$ref": "#/$defs/fragment_ids"
+        },
+        "disease": {
+          "$ref": "#/$defs/fragment_ids"
+        },
+        "role": {
+          "$ref": "#/$defs/fragment_ids"
+        },
+        "population": {
+          "$ref": "#/$defs/fragment_ids"
+        },
+        "effect": {
+          "$ref": "#/$defs/fragment_ids"
+        },
+        "qualifier": {
+          "$ref": "#/$defs/fragment_ids"
+        }
       }
     },
     "fragment_ids": {
-      "type": "array", "minItems": 1, "uniqueItems": true,
-      "items": { "type": "string", "pattern": "^F[0-9]{2}$" }
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^F[0-9]{2}$"
+      }
     },
     "table_relation": {
       "type": "object",
-      "required": ["value_fragment_id", "header_fragment_ids", "qualifier_fragment_ids"],
+      "required": [
+        "value_fragment_id",
+        "header_fragment_ids",
+        "qualifier_fragment_ids"
+      ],
       "additionalProperties": false,
       "properties": {
-        "value_fragment_id": { "type": "string", "pattern": "^F[0-9]{2}$" },
-        "header_fragment_ids": { "$ref": "#/$defs/fragment_ids" },
-        "qualifier_fragment_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^F[0-9]{2}$" } }
+        "value_fragment_id": {
+          "type": "string",
+          "pattern": "^F[0-9]{2}$"
+        },
+        "header_fragment_ids": {
+          "$ref": "#/$defs/fragment_ids"
+        },
+        "qualifier_fragment_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^F[0-9]{2}$"
+          }
+        }
       }
     },
     "evidence": {
       "oneOf": [
         {
           "type": "object",
-          "required": ["card_id", "evidence_type", "fragments", "support_map"],
+          "required": [
+            "card_id",
+            "evidence_type",
+            "fragments",
+            "support_map"
+          ],
           "additionalProperties": false,
           "properties": {
-            "card_id": { "type": "string", "minLength": 1 },
-            "evidence_type": { "const": "contiguous_text" },
-            "fragments": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/fragment" } },
-            "support_map": { "$ref": "#/$defs/support_map" }
+            "card_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_type": {
+              "const": "contiguous_text"
+            },
+            "fragments": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": {
+                "$ref": "#/$defs/fragment"
+              }
+            },
+            "support_map": {
+              "$ref": "#/$defs/support_map"
+            }
           }
         },
         {
           "type": "object",
-          "required": ["card_id", "evidence_type", "fragments", "support_map"],
+          "required": [
+            "card_id",
+            "evidence_type",
+            "fragments",
+            "support_map"
+          ],
           "additionalProperties": false,
           "properties": {
-            "card_id": { "type": "string", "minLength": 1 },
-            "evidence_type": { "const": "composite_text" },
-            "fragments": { "type": "array", "minItems": 2, "maxItems": 6, "items": { "$ref": "#/$defs/fragment" } },
-            "support_map": { "$ref": "#/$defs/support_map" }
+            "card_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_type": {
+              "const": "composite_text"
+            },
+            "fragments": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 6,
+              "items": {
+                "$ref": "#/$defs/fragment"
+              }
+            },
+            "support_map": {
+              "$ref": "#/$defs/support_map"
+            }
           }
         },
         {
           "type": "object",
-          "required": ["card_id", "evidence_type", "fragments", "support_map", "table_relations"],
+          "required": [
+            "card_id",
+            "evidence_type",
+            "fragments",
+            "support_map",
+            "table_relations"
+          ],
           "additionalProperties": false,
           "properties": {
-            "card_id": { "type": "string", "minLength": 1 },
-            "evidence_type": { "const": "table_relation" },
-            "fragments": { "type": "array", "minItems": 2, "maxItems": 12, "items": { "$ref": "#/$defs/fragment" } },
-            "support_map": { "$ref": "#/$defs/support_map" },
-            "table_relations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/table_relation" } }
+            "card_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_type": {
+              "const": "table_relation"
+            },
+            "fragments": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 12,
+              "items": {
+                "$ref": "#/$defs/fragment"
+              }
+            },
+            "support_map": {
+              "$ref": "#/$defs/support_map"
+            },
+            "table_relations": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/table_relation"
+              }
+            }
           }
         }
       ]
     },
     "audit": {
-      "type": "object", "required": ["audit_date", "audit_model", "extraction_model_reviewed", "approved_round", "publication_type_verdict", "results"], "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "audit_date",
+        "audit_model",
+        "extraction_model_reviewed",
+        "approved_round",
+        "publication_type_verdict",
+        "results"
+      ],
+      "additionalProperties": false,
       "properties": {
-        "audit_date": { "type": "string", "format": "date" }, "audit_model": { "type": "string", "minLength": 1 },
-        "extraction_model_reviewed": { "type": "string", "minLength": 1 }, "approved_round": { "type": "integer", "minimum": 1 },
+        "audit_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "audit_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extraction_model_reviewed": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approved_round": {
+          "type": "integer",
+          "minimum": 1
+        },
         "publication_type_verdict": {
           "type": "object",
-          "required": ["verdict", "verified_by_phase3"],
+          "required": [
+            "verdict",
+            "verified_by_phase3"
+          ],
           "additionalProperties": false,
           "properties": {
-            "verdict": { "enum": ["pass", "fail"] },
-            "verified_by_phase3": { "const": true },
-            "reason": { "type": "string", "minLength": 1 }
+            "verdict": {
+              "enum": [
+                "pass",
+                "fail"
+              ]
+            },
+            "verified_by_phase3": {
+              "const": true
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
           },
-          "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "verdict": {
+                    "const": "fail"
+                  }
+                },
+                "required": [
+                  "verdict"
+                ]
+              },
+              "then": {
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          ]
         },
         "results": {
-          "type": "array", "items": {
-            "type": "object", "required": ["card_id", "verdict"], "additionalProperties": false,
-            "properties": { "card_id": { "type": "string", "minLength": 1 }, "verdict": { "enum": ["pass", "fail"] }, "reason": { "type": "string", "minLength": 1 } },
-            "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "card_id",
+              "verdict"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "card_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "verdict": {
+                "enum": [
+                  "pass",
+                  "fail"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "fail"
+                    }
+                  },
+                  "required": [
+                    "verdict"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            ]
           }
         }
       }
@@ -559,7 +1022,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-PACKAGE_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/ingestion_package_schema.json","title":"Phase 2 provisional or Phase 4 final evidence package","type":"object","required":["schema_version","paper_id","round","extraction_date","extraction_model","publication_type","publication_type_basis","publication_type_verified_by_phase3","genes_covered","diseases_covered","census_entries","cards","evidence","audit"],"additionalProperties":false,"properties":{"schema_version":{"const":"5.0"},"paper_id":{"type":"string","format":"uuid"},"round":{"type":"integer","minimum":1},"extraction_date":{"type":"string","format":"date"},"extraction_model":{"type":"string","minLength":1},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"publication_type_verified_by_phase3":{"type":"boolean"},"genes_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"census_entries":{"type":"integer","minimum":0},"cards":{"type":"array","items":{"$ref":"#/$defs/card"}},"evidence":{"type":"array","items":{"$ref":"#/$defs/evidence"}},"audit":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/audit"}]}},"$defs":{"gene":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\-]*$"},"disease":{"enum":["CHIP","CCUS","MDS","MDS/AML","AML","APL","MDS/MPN","MDS/MPN-U","CMML","aCML","MDS/MPN-SF3B1-T","JMML","MPN","MPN-U","PV","ET","PMF","post-PV/post-ET MF","MPN blast phase","CML","CNL","CEL","mastocytosis","myeloid/lymphoid neoplasm with eosinophilia and TK fusion","BPDCN","germline predisposition syndrome","myeloid neoplasm, unspecified","lymphoid neoplasm","acute leukaemia of ambiguous lineage","histiocytic/dendritic neoplasm","haematological malignancy, other"]},"citation":{"type":"object","required":["display"],"additionalProperties":false,"properties":{"authors":{"type":"array","items":{"type":"string"}},"title":{"type":"string"},"journal":{"type":"string"},"year":{"type":"integer","minimum":1950,"maximum":2100},"volume":{"type":"string"},"issue":{"type":"string"},"pages":{"type":"string"},"display":{"type":"string","minLength":1},"citation_incomplete":{"type":"array","uniqueItems":true,"items":{"type":"string"}}}},"card":{"type":"object","required":["card_id","locator","interpretation","genes","diseases","category","evidence_tier","secondary_citation"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1},"interpretation":{"type":"string","minLength":1},"genes":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"disease_ancestors":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"category":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]},"evidence_tier":{"enum":["guideline criterion","multivariable-adjusted","univariable or descriptive","restated secondary"]},"secondary_citation":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/citation"}]}},"allOf":[{"if":{"properties":{"category":{"enum":["diagnosis","prognosis","treatment","biomarker"]}},"required":["category"]},"then":{"properties":{"diseases":{"minItems":1}}}}]},"fragment":{"type":"object","required":["fragment_id","role","quote","locator"],"additionalProperties":false,"properties":{"fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"role":{"enum":["claim","scope_heading","column_header","row_header","cell","legend","footnote"]},"quote":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1}}},"support_map":{"type":"object","minProperties":1,"additionalProperties":false,"properties":{"gene":{"$ref":"#/$defs/fragment_ids"},"disease":{"$ref":"#/$defs/fragment_ids"},"role":{"$ref":"#/$defs/fragment_ids"},"population":{"$ref":"#/$defs/fragment_ids"},"effect":{"$ref":"#/$defs/fragment_ids"},"qualifier":{"$ref":"#/$defs/fragment_ids"}}},"fragment_ids":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}},"table_relation":{"type":"object","required":["value_fragment_id","header_fragment_ids","qualifier_fragment_ids"],"additionalProperties":false,"properties":{"value_fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"header_fragment_ids":{"$ref":"#/$defs/fragment_ids"},"qualifier_fragment_ids":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}}}},"evidence":{"oneOf":[{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"contiguous_text"},"fragments":{"type":"array","minItems":1,"maxItems":1,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"composite_text"},"fragments":{"type":"array","minItems":2,"maxItems":6,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map","table_relations"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"table_relation"},"fragments":{"type":"array","minItems":2,"maxItems":12,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"},"table_relations":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/table_relation"}}}}]},"audit":{"type":"object","required":["audit_date","audit_model","extraction_model_reviewed","approved_round","publication_type_verdict","results"],"additionalProperties":false,"properties":{"audit_date":{"type":"string","format":"date"},"audit_model":{"type":"string","minLength":1},"extraction_model_reviewed":{"type":"string","minLength":1},"approved_round":{"type":"integer","minimum":1},"publication_type_verdict":{"type":"object","required":["verdict","verified_by_phase3"],"additionalProperties":false,"properties":{"verdict":{"enum":["pass","fail"]},"verified_by_phase3":{"const":true},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]},"results":{"type":"array","items":{"type":"object","required":["card_id","verdict"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"verdict":{"enum":["pass","fail"]},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]}}}}}}''')
+PACKAGE_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/ingestion_package_schema.json","title":"Phase 2 provisional or Phase 4 final evidence package","type":"object","required":["schema_version","paper_id","round","extraction_date","extraction_model","publication_type","publication_type_basis","publication_type_verified_by_phase3","genes_covered","diseases_covered","census_entries","cards","evidence","audit"],"additionalProperties":false,"properties":{"schema_version":{"const":"5.0"},"paper_id":{"type":"string","format":"uuid"},"round":{"type":"integer","minimum":1},"extraction_date":{"type":"string","format":"date"},"extraction_model":{"type":"string","minLength":1},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"publication_type_verified_by_phase3":{"type":"boolean"},"genes_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"census_entries":{"type":"integer","minimum":0},"cards":{"type":"array","items":{"$ref":"#/$defs/card"}},"evidence":{"type":"array","items":{"$ref":"#/$defs/evidence"}},"audit":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/audit"}]}},"$defs":{"gene":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\-]*$"},"disease":{"enum":["CHIP","CCUS","MDS","MDS/AML","AML","APL","MDS/MPN","MDS/MPN-U","CMML","aCML","MDS/MPN-SF3B1-T","JMML","MPN","MPN-U","PV","ET","PMF","post-PV/post-ET MF","MPN blast phase","CML","CNL","CEL","mastocytosis","myeloid/lymphoid neoplasm with eosinophilia and TK fusion","BPDCN","germline predisposition syndrome","myeloid neoplasm, unspecified","lymphoid neoplasm","acute leukaemia of ambiguous lineage","histiocytic/dendritic neoplasm","haematological malignancy, other"]},"citation":{"type":"object","required":["display"],"additionalProperties":false,"properties":{"authors":{"type":"array","items":{"type":"string"}},"title":{"type":"string"},"journal":{"type":"string"},"year":{"type":"integer","minimum":1950,"maximum":2100},"volume":{"type":"string"},"issue":{"type":"string"},"pages":{"type":"string"},"display":{"type":"string","minLength":1},"citation_incomplete":{"type":"array","uniqueItems":true,"items":{"type":"string"}}}},"card":{"type":"object","required":["card_id","locator","interpretation","genes","diseases","category","evidence_tier","secondary_citation"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1},"interpretation":{"type":"string","minLength":1},"genes":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"disease_ancestors":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"category":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]},"evidence_tier":{"enum":["guideline criterion","multivariable-adjusted","univariable or descriptive","restated secondary"]},"secondary_citation":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/citation"}]}},"allOf":[{"if":{"properties":{"category":{"enum":["diagnosis","prognosis","treatment","biomarker"]}},"required":["category"]},"then":{"properties":{"diseases":{"minItems":1}}}},{"if":{"properties":{"category":{"enum":["prognosis","biomarker","germline"]}},"required":["category"]},"then":{"properties":{"genes":{"minItems":1}}}}]},"fragment":{"type":"object","required":["fragment_id","role","quote","locator"],"additionalProperties":false,"properties":{"fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"role":{"enum":["claim","scope_heading","column_header","row_header","cell","legend","footnote"]},"quote":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1}}},"support_map":{"type":"object","minProperties":1,"additionalProperties":false,"properties":{"gene":{"$ref":"#/$defs/fragment_ids"},"disease":{"$ref":"#/$defs/fragment_ids"},"role":{"$ref":"#/$defs/fragment_ids"},"population":{"$ref":"#/$defs/fragment_ids"},"effect":{"$ref":"#/$defs/fragment_ids"},"qualifier":{"$ref":"#/$defs/fragment_ids"}}},"fragment_ids":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}},"table_relation":{"type":"object","required":["value_fragment_id","header_fragment_ids","qualifier_fragment_ids"],"additionalProperties":false,"properties":{"value_fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"header_fragment_ids":{"$ref":"#/$defs/fragment_ids"},"qualifier_fragment_ids":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}}}},"evidence":{"oneOf":[{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"contiguous_text"},"fragments":{"type":"array","minItems":1,"maxItems":1,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"composite_text"},"fragments":{"type":"array","minItems":2,"maxItems":6,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map","table_relations"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"table_relation"},"fragments":{"type":"array","minItems":2,"maxItems":12,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"},"table_relations":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/table_relation"}}}}]},"audit":{"type":"object","required":["audit_date","audit_model","extraction_model_reviewed","approved_round","publication_type_verdict","results"],"additionalProperties":false,"properties":{"audit_date":{"type":"string","format":"date"},"audit_model":{"type":"string","minLength":1},"extraction_model_reviewed":{"type":"string","minLength":1},"approved_round":{"type":"integer","minimum":1},"publication_type_verdict":{"type":"object","required":["verdict","verified_by_phase3"],"additionalProperties":false,"properties":{"verdict":{"enum":["pass","fail"]},"verified_by_phase3":{"const":true},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]},"results":{"type":"array","items":{"type":"object","required":["card_id","verdict"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"verdict":{"enum":["pass","fail"]},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]}}}}}}''')
 UMBRELLA = json.loads(r'''{"MDS/AML":["MDS","AML"],"APL":["AML"],"MDS/MPN":["MDS","MPN"],"MDS/MPN-U":["MDS/MPN"],"CMML":["MDS/MPN"],"aCML":["MDS/MPN"],"MDS/MPN-SF3B1-T":["MDS/MPN"],"MPN-U":["MPN"],"PV":["MPN"],"ET":["MPN"],"PMF":["MPN"],"post-PV/post-ET MF":["MPN"],"MPN blast phase":["MPN"],"CML":["MPN"],"CNL":["MPN"],"CEL":["MPN"],"JMML":["MPN"],"BPDCN":["histiocytic/dendritic neoplasm"]}''')
 DISEASES = list(PACKAGE_SCHEMA["$defs"]["disease"]["enum"])
 DISEASE_DEPENDENT_CATEGORIES = {"diagnosis", "prognosis", "treatment", "biomarker"}
@@ -744,14 +1207,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             warnings.append(f"{card_id}: evidence is identical to {duplicate}; review independent utility")
         bundle_texts[normalized_bundle] = card_id
 
-    census_pairs = {
-        (entry["gene"], category)
-        for entry in census.get("entries", []) for category in entry.get("categories", [])
-    }
-    card_pairs = {
-        (gene, card["category"])
-        for card in package["cards"] for gene in card["genes"]
-    }
     covered_genes = sorted({gene for card in package["cards"] for gene in card["genes"]})
     covered_diseases = sorted({disease for card in package["cards"] for disease in card["diseases"]})
     if sorted(package["genes_covered"]) != covered_genes:
@@ -790,10 +1245,7 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         "cards": len(card_ids),
         "census_entries": len(census.get("entries", [])),
         "ratio": round(len(card_ids) / len(census["entries"]), 2) if census.get("entries") else None,
-        "gene_category_pairs_with_no_card": [
-            {"gene": gene, "category": category}
-            for gene, category in sorted(census_pairs - card_pairs)
-        ],
+        "census_claims": len(census.get("entries", [])),
     }
     return errors, warnings, report
 

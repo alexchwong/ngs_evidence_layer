@@ -13,8 +13,9 @@ Two subcommands:
               facts into the evidence-bounded adjudication input.
   full        step 4. diagnosis, prognosis, treatment and biomarker cards matching a
               submitted gene AND the reviewed disease or a category-specific
-              retrieval_related disease. Germline cards remain gene-only. Phase-2
-              diagnosis cards are re-filtered under this stricter Step-4 rule.
+              retrieval_related disease. Geneless diagnosis/treatment cards match by
+              disease scope alone. Germline cards remain gene-only. Phase-2 diagnosis
+              cards are re-filtered under this stricter Step-4 rule.
 Nothing is silently dropped. Gene-matched cards excluded by the disease filter
 appear in `suppressed`, counted by disease. Submitted genes with no card anywhere
 appear in `not_assessed`, named individually. A gene that was considered and cleared
@@ -438,12 +439,14 @@ def step4(cards, genes, refined_disease, diagnosis_cards):
         related = set(retrieval_scope.get(category, []))
         related_matches = [disease for disease in diseases if disease in related]
         disease_matched = exact_match or bool(related_matches)
-        # Step 4 rule: gene AND (exact disease OR retrieval_related disease).
-        if matched and disease_matched:
+        # Step 4 rule: gene AND disease scope, except genuinely geneless
+        # diagnosis/treatment cards, which are disease-matched by design.
+        geneless_allowed = not card["genes"] and category in {"diagnosis", "treatment"}
+        if disease_matched and (matched or geneless_allowed):
             if exact_match:
-                hit["retrieval_match"] = "exact"
+                hit["retrieval_match"] = "exact_geneless" if geneless_allowed else "exact"
             else:
-                hit["retrieval_match"] = "related"
+                hit["retrieval_match"] = "related_geneless" if geneless_allowed else "related"
                 hit["matched_retrieval_related_diseases"] = related_matches
             retrieved.append(hit)
             continue

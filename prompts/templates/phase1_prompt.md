@@ -14,9 +14,11 @@ You are the census model for exactly one publication. Use only `paper.md`,
 `metadata.json`, and this prompt. Do not author evidence cards and do not use model
 knowledge to add facts absent from the paper.
 Walk the complete paper sequentially, including intact tables and footnotes. Record
-every gene about which the paper makes a claim, its claim locations, and all touched
-categories. Record rule-relevant geneless statements and missing supplementary
-values. Do not refuse because a supplement is unavailable.
+each distinct potentially report-relevant source claim separately. For every claim,
+record its participating genes, category, locator, and a concise source-faithful
+summary that distinguishes it from other claims. Use `genes: []` only for geneless
+`diagnosis` or `treatment` claims. Do not merge distinct claims merely because they
+share a gene, category, paragraph, or table. Record missing supplementary values. Do not refuse because a supplement is unavailable.
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
 that judgement. Phase 1 assigns this provisional value but does not independently
@@ -33,7 +35,7 @@ Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
 {{CLINICAL_REPORTING_GATE}}
 
-For Phase 1, use this only to identify potentially relevant claim categories. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all paper-supported gene/category pairs and relevant geneless statements within this scope.
+For Phase 1, use this only to identify potentially relevant claims. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`.
 
 ## Output schema
 
@@ -43,8 +45,8 @@ For Phase 1, use this only to identify potentially relevant claim categories. Do
 ## Exit validation
 
 Check that every section and table is accounted for, every entry has a locator,
-genes are valid symbols, IDs and genes are unique, and no rule-covered paper claim
-is absent. Confirm the publication type and basis are supported by the paper. Repair
+genes are valid symbols, claim IDs are unique, distinct claims have not been merged,
+and no rule-covered paper claim is absent. Confirm the publication type and basis are supported by the paper. Repair
 and repeat, at most three passes. If defects remain, list each one
 under `validation_unresolved`; otherwise return an empty list.
 ## Deterministic exit validation
@@ -67,8 +69,7 @@ Before writing, verify privately that:
 2. the filename is exactly `paper.census.json`;
 3. the content conforms to the Phase 1 census schema and its `paper_id` matches
    `metadata.json`;
-4. the file contains `entries`, `geneless_statements`, and
-   `validation_unresolved`; and
+4. the file contains `entries` and `validation_unresolved`; and
 5. the file does not contain `cards`, `evidence`, or `audit`.
 
 If any check fails, repair the output before finalizing. Do not print the checklist,

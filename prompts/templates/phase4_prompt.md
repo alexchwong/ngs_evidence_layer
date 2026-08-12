@@ -89,13 +89,17 @@ the final package.
 
 {{CLINICAL_REPORTING_GATE}}
 
+### Card content rules
+
+{{CARD_CONTENT_RULES}}
+
 ### Evidence bundle rules
 
 {{EVIDENCE_BUNDLE_RULES}}
 
 Start from the complete provisional package and apply the adjudicated outcomes.
 Retain, amend, split, or delete cards as directed. Every resulting card must satisfy
-the shared card standards. Recompute card IDs when splitting, one-to-one evidence
+the shared card standards. Geneless `diagnosis` and `treatment` cards are valid when the shared card-content rules are satisfied. Recompute card IDs when splitting, one-to-one evidence
 pairing, `genes_covered`, `diseases_covered`, and canonical `disease_ancestors`.
 Set `publication_type` and `publication_type_basis` to the adjudicated final values.
 Set `publication_type_verified_by_phase3` to true: Phase 3 supplied the independent
