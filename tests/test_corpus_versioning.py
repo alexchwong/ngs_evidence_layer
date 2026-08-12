@@ -72,18 +72,23 @@ class CorpusVersioningTests(unittest.TestCase):
             (ROOT / "schema" / "accepted_package_schema.json").read_text()
         )
         self.assertEqual(
-            schema["properties"]["schema_version"]["enum"], ["1.2", "1.3", "1.4"]
+            schema["properties"]["schema_version"]["enum"], ["1.2", "1.3", "1.4", "1.5"]
         )
         self.assertEqual(
             schema["allOf"][0]["then"]["properties"]["schema_version"]["enum"],
-            ["1.3", "1.4"],
+            ["1.3", "1.4", "1.5"],
         )
         self.assertEqual(
-            schema["allOf"][1]["then"]["properties"]["schema_version"]["const"],
-            "1.4",
+            schema["allOf"][1]["then"]["properties"]["schema_version"]["enum"],
+            ["1.4", "1.5"],
         )
         self.assertIn("accepted_in_version", schema["required"])
         self.assertIn("accepted_in_version", schema["properties"])
+        self.assertIn("redos", schema["properties"])
+        self.assertEqual(
+            schema["allOf"][2]["then"]["properties"]["schema_version"]["const"],
+            "1.5",
+        )
 
     def test_confirm_stamps_accept_only_and_leaves_archived_metadata_unchanged(self):
         with tempfile.TemporaryDirectory() as tmp:

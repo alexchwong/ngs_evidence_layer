@@ -11,7 +11,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from phase_validation import phase5 as phase5_validation  # noqa: E402
-import prepare_phase5  # noqa: E402
+import prepare_redo  # noqa: E402
 
 
 class PreparePhase5Tests(unittest.TestCase):
@@ -86,11 +86,12 @@ class PreparePhase5Tests(unittest.TestCase):
             paper_key, accept, archive, work, envelope, census = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
-            destination, supplement = prepare_phase5.prepare(args)
+            destination, supplement = prepare_redo.prepare(args)
             self.assertEqual(supplement, 2)
             self.assertEqual(destination, work / paper_key)
             self.assertTrue((destination / "paper.md").is_file())
@@ -116,11 +117,12 @@ class PreparePhase5Tests(unittest.TestCase):
             paper_key, accept, archive, work, _envelope, _census = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
-            destination, _ = prepare_phase5.prepare(args)
+            destination, _ = prepare_redo.prepare(args)
             context = json.loads((destination / "phase5.existing-cards.json").read_text())
             self.assertEqual(context["target_publication_key"], paper_key)
             self.assertEqual(context["cards"][0]["interpretation"], "Existing interpretation")
@@ -131,12 +133,13 @@ class PreparePhase5Tests(unittest.TestCase):
             paper_key, accept, archive, work, envelope, _census = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 cards="all",
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
-            destination, revision = prepare_phase5.prepare(args)
+            destination, revision = prepare_redo.prepare(args)
             self.assertEqual(revision, 1)
             marker = json.loads((destination / "phase5.json").read_text())
             self.assertEqual(marker["mode"], "revision")
@@ -157,12 +160,13 @@ class PreparePhase5Tests(unittest.TestCase):
             (work / paper_key).mkdir(parents=True)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
             with self.assertRaisesRegex(ValueError, "working folder already exists"):
-                prepare_phase5.prepare(args)
+                prepare_redo.prepare(args)
 
 
 class RevisionChangeSetTests(unittest.TestCase):

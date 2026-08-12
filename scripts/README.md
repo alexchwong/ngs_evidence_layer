@@ -26,7 +26,7 @@ Scripts are grouped below by their primary role.
 - `make_key.py`
 - `package_validation.py`
 - `parse_pdfs.py`
-- `prepare_phase5.py`
+- `prepare_redo.py`
 - `quarantine.py`
 - `render_corpus.py`
 - `transport.py`

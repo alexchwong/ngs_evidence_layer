@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Validate one final paper package, accept it, and archive its complete history."""
 import argparse
+import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -29,6 +31,13 @@ def read_nel_version():
     if len(lines) != 1:
         raise ValueError(f"{VERSION_FILE} must contain exactly one non-empty version line")
     return lines[0]
+
+
+def canonical_sha256(document):
+    payload = json.dumps(
+        document, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _restore_bytes(path, payload):
@@ -123,6 +132,13 @@ def _phase5_required_files(working, mode):
     return required
 
 
+def _redo_required_files(working):
+    return {
+        "base final": working / "paper.base.final.json",
+        "base census": working / "paper.base.census.json",
+    }
+
+
 def _copy_directory_contents(source, destination, excluded=()):
     excluded = set(excluded)
     destination.mkdir(parents=True, exist_ok=True)
@@ -147,6 +163,130 @@ def _safe_version_directory(version, label):
     return version
 
 
+def _next_redo_sequence(envelope, archive_root):
+    recorded = [
+        item.get("redo", 0)
+        for item in (envelope.get("redos") or [])
+        if isinstance(item, dict)
+    ]
+    archived = []
+    redo_dir = archive_root / "redo"
+    if redo_dir.is_dir():
+        for item in redo_dir.iterdir():
+            if item.is_dir() and re.fullmatch(r"[0-9]{3}", item.name):
+                archived.append(int(item.name))
+    return max(recorded + archived + [0]) + 1
+
+
+def _validate_redo(
+    *,
+    marker,
+    working,
+    paths,
+    metadata,
+    census,
+    final_destination,
+    census_destination,
+    archive_root,
+):
+    errors = []
+    required = _redo_required_files(working)
+    missing = [str(path) for path in required.values() if not path.is_file()]
+    if missing:
+        errors.append("required redo files missing:\n" + "\n".join(missing))
+        return errors, None
+    if marker.get("schema_version") != "1.0":
+        errors.append("redo.json has unsupported schema_version")
+    if marker.get("publication_key") != metadata.get("publication_key"):
+        errors.append("redo.json publication_key does not match metadata")
+    if marker.get("paper_id") != metadata.get("paper_id"):
+        errors.append("redo.json paper_id does not match metadata")
+    start_phase = marker.get("start_phase")
+    if start_phase not in {1, 2}:
+        errors.append("redo.json start_phase must be 1 or 2")
+    redo_number = marker.get("redo")
+    if not isinstance(redo_number, int) or redo_number < 1:
+        errors.append("redo.json redo must be a positive integer")
+    required_destinations = (final_destination, census_destination, archive_root)
+    missing_destinations = [str(path) for path in required_destinations if not path.exists()]
+    if missing_destinations:
+        errors.append(
+            "redo requires the complete current accepted/archive set; missing:\n"
+            + "\n".join(missing_destinations)
+        )
+        return errors, None
+    if not final_destination.is_file() or not census_destination.is_file() or not archive_root.is_dir():
+        errors.append("redo destinations have unexpected file types")
+        return errors, None
+
+    current_envelope = validation.read_json(final_destination, "current accepted package")
+    current_census = validation.read_json(census_destination, "current accepted census")
+    current_metadata = current_envelope.get("metadata") or {}
+    current_final = current_envelope.get("final") or {}
+    base_final = validation.read_json(required["base final"], "redo base final")
+    base_census = validation.read_json(required["base census"], "redo base census")
+
+    if current_envelope.get("acceptance_path") != "confirmed":
+        errors.append("redo requires a deterministically confirmed current accepted package")
+    if current_metadata.get("publication_key") != marker.get("publication_key"):
+        errors.append("current accepted publication_key differs from redo.json")
+    if current_metadata.get("paper_id") != marker.get("paper_id"):
+        errors.append("current accepted paper_id differs from redo.json")
+    if current_census.get("paper_id") != marker.get("paper_id"):
+        errors.append("current accepted census paper_id differs from redo.json")
+
+    expected_hashes = {
+        "base_final_sha256": canonical_sha256(current_final),
+        "base_census_sha256": canonical_sha256(current_census),
+        "base_metadata_sha256": canonical_sha256(current_metadata),
+    }
+    for field, expected in expected_hashes.items():
+        if marker.get(field) != expected:
+            errors.append(f"redo baseline is stale: {field} does not match current accepted state")
+    if canonical_sha256(base_final) != marker.get("base_final_sha256"):
+        errors.append("paper.base.final.json does not match redo.json")
+    if canonical_sha256(base_census) != marker.get("base_census_sha256"):
+        errors.append("paper.base.census.json does not match redo.json")
+    if canonical_sha256(metadata) != marker.get("base_metadata_sha256"):
+        errors.append("metadata.json changed after redo preparation")
+
+    archived_source = archive_root / "paper.md"
+    if not archived_source.is_file():
+        errors.append("current archive has no paper.md")
+    elif paths["source"].read_bytes() != archived_source.read_bytes():
+        errors.append("paper.md changed after redo preparation or no longer matches current archive")
+
+    if start_phase == 2 and canonical_sha256(census) != marker.get("base_census_sha256"):
+        errors.append("Phase 2 redo must preserve the accepted census exactly")
+
+    if isinstance(redo_number, int):
+        expected_redo = _next_redo_sequence(current_envelope, archive_root)
+        if redo_number != expected_redo:
+            errors.append(
+                f"redo sequence is stale: redo.json requests {redo_number:03d}, current next redo is {expected_redo:03d}"
+            )
+        redo_destination = archive_root / "redo" / f"{redo_number:03d}"
+        if redo_destination.exists():
+            errors.append(f"redo archive destination already exists: {redo_destination}")
+
+    report = {
+        "redo": redo_number,
+        "start_phase": start_phase,
+        "base_final_sha256": marker.get("base_final_sha256"),
+        "base_census_sha256": marker.get("base_census_sha256"),
+        "base_metadata_sha256": marker.get("base_metadata_sha256"),
+    }
+    return errors, report
+
+
+def _phase5_schema_version(current_envelope, mode):
+    if current_envelope.get("schema_version") == "1.5" or current_envelope.get("redos"):
+        return "1.5"
+    if mode == "revision" or current_envelope.get("revisions"):
+        return "1.4"
+    return "1.3"
+
+
 def confirm(args):
     working = args.work_dir / args.publication_key
     if not working.is_dir():
@@ -169,8 +309,13 @@ def confirm(args):
         errors.append("metadata publication_key does not match --key")
 
     phase5_path = working / "phase5.json"
+    redo_path = working / "redo.json"
     is_phase5 = phase5_path.is_file()
+    is_redo = redo_path.is_file()
+    if is_phase5 and is_redo:
+        errors.append("working folder cannot contain both phase5.json and redo.json")
     phase5_marker = validation.read_json(phase5_path, "Phase 5 marker") if is_phase5 else None
+    redo_marker = validation.read_json(redo_path, "redo marker") if is_redo else None
     phase5_mode = (phase5_marker or {}).get("mode") or "additive"
 
     history_paths = dict(paths)
@@ -188,6 +333,7 @@ def confirm(args):
     archive_root = args.archive_dir / args.publication_key
     overwrite = getattr(args, "overwrite", False)
     phase5_report = None
+    redo_report = None
 
     if is_phase5:
         if overwrite:
@@ -237,6 +383,21 @@ def confirm(args):
                 )
             errors.extend(f"phase 5: {error}" for error in phase5_errors)
             warnings.extend(f"phase 5: {warning}" for warning in phase5_warnings)
+    elif is_redo:
+        if overwrite:
+            errors.append("--overwrite cannot be used for redo confirmation")
+        if not errors:
+            redo_errors, redo_report = _validate_redo(
+                marker=redo_marker,
+                working=working,
+                paths=paths,
+                metadata=metadata,
+                census=census,
+                final_destination=final_destination,
+                census_destination=census_destination,
+                archive_root=archive_root,
+            )
+            errors.extend(f"redo: {error}" for error in redo_errors)
     else:
         collisions = [
             path
@@ -298,13 +459,15 @@ def confirm(args):
     staging = Path(tempfile.mkdtemp(prefix=f".{args.publication_key}.", dir=args.accept_dir))
     staged_final = staging / final_destination.name
     staged_census = staging / census_destination.name
+    archive_destination = archive_root
+    current_envelope = None
 
     if is_phase5:
         current_envelope = validation.read_json(final_destination, "current accepted package")
         accepted = dict(current_envelope)
         accepted_at = datetime.now(timezone.utc).isoformat()
+        accepted["schema_version"] = _phase5_schema_version(current_envelope, phase5_mode)
         if phase5_mode == "revision":
-            accepted["schema_version"] = "1.4"
             revisions = list(current_envelope.get("revisions") or [])
             revisions.append(
                 {
@@ -324,7 +487,6 @@ def confirm(args):
                 archive_root / "phase5-revision" / f"{phase5_report['revision']:03d}"
             )
         else:
-            accepted["schema_version"] = "1.4" if current_envelope.get("revisions") else "1.3"
             supplements = list(current_envelope.get("supplements") or [])
             supplements.append(
                 {
@@ -352,6 +514,39 @@ def confirm(args):
             raise ValueError("\n".join(envelope_errors))
         if archive_destination.exists():
             raise ValueError(f"Phase 5 archive destination already exists: {archive_destination}")
+    elif is_redo:
+        current_envelope = validation.read_json(final_destination, "current accepted package")
+        accepted_at = datetime.now(timezone.utc).isoformat()
+        redos = list(current_envelope.get("redos") or [])
+        redos.append(
+            {
+                "redo": redo_report["redo"],
+                "start_phase": redo_report["start_phase"],
+                "accepted_at": accepted_at,
+                "accepted_in_version": accepted_version,
+                "base_final_sha256": redo_report["base_final_sha256"],
+                "base_census_sha256": redo_report["base_census_sha256"],
+                "base_metadata_sha256": redo_report["base_metadata_sha256"],
+            }
+        )
+        accepted = {
+            "schema_version": "1.5",
+            "acceptance_path": "confirmed",
+            "accepted_at": accepted_at,
+            "accepted_at_source": "confirm",
+            "accepted_in_version": current_envelope["accepted_in_version"],
+            "metadata": metadata,
+            "final": final,
+            "redos": redos,
+        }
+        for field in ("version_history", "latest_version"):
+            if field in current_envelope:
+                accepted[field] = current_envelope[field]
+        envelope_errors = validation.schema_errors(
+            accepted, "accepted_package_schema.json", "accepted package"
+        )
+        if envelope_errors:
+            raise ValueError("\n".join(envelope_errors))
     else:
         accepted_metadata = dict(metadata)
         if overwrite:
@@ -369,16 +564,18 @@ def confirm(args):
         if overwrite:
             accepted["version_history"] = version_history
             accepted["latest_version"] = accepted_version
-        archive_destination = archive_root
 
     staged_final.write_text(
         json.dumps(accepted, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     shutil.copyfile(paths["census"], staged_census)
-    old_final_bytes = final_destination.read_bytes() if (is_phase5 or overwrite) else None
-    old_census_bytes = census_destination.read_bytes() if (is_phase5 or overwrite) else None
+    replacing_existing = is_phase5 or is_redo or overwrite
+    old_final_bytes = final_destination.read_bytes() if replacing_existing else None
+    old_census_bytes = census_destination.read_bytes() if replacing_existing else None
     staged_archive = None
     archive_backup = None
+    replace_archive = overwrite or is_redo
+
     if overwrite:
         archive_staging_root = Path(
             tempfile.mkdtemp(prefix=f".{args.publication_key}.archive.", dir=args.archive_dir)
@@ -400,9 +597,35 @@ def confirm(args):
         if previous_snapshot.exists():
             raise ValueError(f"archive version snapshot already exists: {previous_snapshot}")
         _copy_directory_contents(archive_root, previous_snapshot, excluded={"versions"})
-        archive_backup = archive_root.with_name(f".{archive_root.name}.overwrite-backup")
+    elif is_redo:
+        archive_staging_root = Path(
+            tempfile.mkdtemp(prefix=f".{args.publication_key}.archive.", dir=args.archive_dir)
+        )
+        staged_archive = archive_staging_root / args.publication_key
+        _copy_directory_contents(
+            working,
+            staged_archive,
+            excluded={"redo.json", "paper.base.final.json", "paper.base.census.json"},
+        )
+        existing_redos = archive_root / "redo"
+        if existing_redos.is_dir():
+            shutil.copytree(existing_redos, staged_archive / "redo")
+        redo_snapshot = staged_archive / "redo" / f"{redo_report['redo']:03d}"
+        if redo_snapshot.exists():
+            raise ValueError(f"redo archive destination already exists: {redo_snapshot}")
+        _copy_directory_contents(archive_root, redo_snapshot, excluded={"redo"})
+        shutil.copy2(final_destination, redo_snapshot / "accepted.final.json")
+        shutil.copy2(census_destination, redo_snapshot / "accepted.census.json")
+        (redo_snapshot / "replacement.redo.json").write_text(
+            json.dumps(redo_marker, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    if replace_archive:
+        archive_backup = archive_root.with_name(f".{archive_root.name}.confirm-backup")
         if archive_backup.exists():
-            raise ValueError(f"stale archive overwrite backup exists: {archive_backup}")
+            raise ValueError(f"stale archive confirmation backup exists: {archive_backup}")
+
     replaced_final = False
     replaced_census = False
     archive_backed_up = False
@@ -410,7 +633,7 @@ def confirm(args):
     try:
         if is_phase5:
             archive_destination.parent.mkdir(parents=True, exist_ok=True)
-        elif overwrite:
+        elif replace_archive:
             os.replace(archive_root, archive_backup)
             archive_backed_up = True
             os.replace(staged_archive, archive_root)
@@ -419,38 +642,35 @@ def confirm(args):
         replaced_final = True
         os.replace(staged_census, census_destination)
         replaced_census = True
-        if overwrite:
+        if replace_archive:
             shutil.rmtree(working, ignore_errors=True)
             shutil.rmtree(archive_backup, ignore_errors=True)
         else:
             shutil.move(str(working), str(archive_destination))
     except Exception:
-        if is_phase5:
-            if replaced_final:
+        if replaced_final:
+            if replacing_existing:
                 _restore_bytes(final_destination, old_final_bytes)
-            if replaced_census:
+            else:
+                final_destination.unlink(missing_ok=True)
+        if replaced_census:
+            if replacing_existing:
                 _restore_bytes(census_destination, old_census_bytes)
-        else:
-            if replaced_final:
-                if overwrite:
-                    _restore_bytes(final_destination, old_final_bytes)
-                else:
-                    final_destination.unlink(missing_ok=True)
-            if replaced_census:
-                if overwrite:
-                    _restore_bytes(census_destination, old_census_bytes)
-                else:
-                    census_destination.unlink(missing_ok=True)
-            if overwrite and archive_backed_up:
-                if replaced_archive:
-                    shutil.rmtree(archive_root, ignore_errors=True)
-                os.replace(archive_backup, archive_root)
+            else:
+                census_destination.unlink(missing_ok=True)
+        if replace_archive and archive_backed_up:
+            if replaced_archive:
+                shutil.rmtree(archive_root, ignore_errors=True)
+            os.replace(archive_backup, archive_root)
         raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
         if staged_archive is not None:
             shutil.rmtree(staged_archive.parent, ignore_errors=True)
-    return warnings, report, archive_destination, is_phase5, phase5_report
+
+    operation = "phase5" if is_phase5 else "redo" if is_redo else "standard"
+    operation_report = phase5_report if is_phase5 else redo_report if is_redo else None
+    return warnings, report, archive_destination, operation, operation_report
 
 
 def main():
@@ -462,27 +682,32 @@ def main():
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="replace the current accepted/archive contents while preserving version history",
+        help="replace the current accepted/archive contents while preserving version history; not used for redo.json workflows",
     )
     args = parser.parse_args()
     try:
-        warnings, report, archive, is_phase5, phase5_report = confirm(args)
+        warnings, report, archive, operation, operation_report = confirm(args)
     except (OSError, ValueError) as exc:
         sys.exit(f"CONFIRM FAILED:\n{exc}")
     for warning in warnings:
         print(f"warning: {warning}")
     print(f"CONFIRMED: {args.publication_key}")
-    if is_phase5:
-        if phase5_report.get("mode") == "revision":
+    if operation == "phase5":
+        if operation_report.get("mode") == "revision":
             print(
-                f"Phase 5 revision: {phase5_report['revision']:03d}; "
-                f"revised cards: {len(phase5_report['revised_card_ids'])}"
+                f"Phase 5 revision: {operation_report['revision']:03d}; "
+                f"revised cards: {len(operation_report['revised_card_ids'])}"
             )
         else:
             print(
-                f"Phase 5 supplement: {phase5_report['supplement']:03d}; "
-                f"added cards: {len(phase5_report['added_card_ids'])}"
+                f"Phase 5 supplement: {operation_report['supplement']:03d}; "
+                f"added cards: {len(operation_report['added_card_ids'])}"
             )
+    elif operation == "redo":
+        print(
+            f"Redo: {operation_report['redo']:03d}; "
+            f"started from Phase {operation_report['start_phase']}"
+        )
     print(f"Cards: {report['cards']}; census ratio: {report['ratio']}")
     print(f"Accepted: {args.accept_dir}")
     print(f"Archived: {archive}")

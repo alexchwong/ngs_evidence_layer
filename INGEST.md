@@ -47,18 +47,32 @@ python scripts/quarantine.py list
 python scripts/quarantine.py review --key <publication-key> --note "<review-note>"
 ```
 
+Redo commands for re-running an accepted paper from Phase 1 or Phase 2:
+
+```bash
+# Redo the census and all downstream cards.
+python scripts/prepare_redo.py --key <publication-key> --phase 1
+
+# Keep the accepted census and redo cards/review/adjudication.
+python scripts/prepare_redo.py --key <publication-key> --phase 2
+
+# Complete the normal remaining phases, then confirm without --overwrite.
+python scripts/confirm.py --key <publication-key>
+python scripts/incorporate.py
+```
+
 Phase 5 commands for post-acceptance additions or card revisions:
 
 ```bash
 # Add missed evidence.
-python scripts/prepare_phase5.py --key <publication-key>
+python scripts/prepare_redo.py --key <publication-key> --phase 5
 
 # Or inspect the corpus and prepare selected accepted cards for revision.
 scripts/render_corpus --list
 scripts/render_corpus --key <publication-key> --dest ./temp/corpus
-python scripts/prepare_phase5.py --key <publication-key> --cards 0001,0003,0005
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,0005
 # Or release every accepted card from the publication into the revision allowlist.
-python scripts/prepare_phase5.py --key <publication-key> --cards all
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards all
 
 # Complete the Phase 5 authoring and independent review steps described below.
 # Revision mode: restate exactly the existing cards actually modified/deleted.
@@ -494,6 +508,54 @@ The command never modifies `archive/`, `accept/`, or `output/`. `curation/` is i
 by Git but is included by `transport.py` when moving private corpus state to another
 computer.
 
+## 6A. Redo an accepted paper from Phase 1 or Phase 2
+
+Use a full redo when the accepted census or card extraction should be rebuilt rather than
+patched with Phase 5. Preparation creates `work/<publication-key>/` and a `redo.json`
+marker that authorises replacement of the current Phase 1–4 lineage.
+
+Redo the census and every downstream phase:
+
+```bash
+python scripts/prepare_redo.py --key <publication-key> --phase 1
+```
+
+Phase 1 preparation restores `paper.md` and `metadata.json`, plus frozen baseline files
+used only by local confirmation. Generate a new `paper.census.json`, then continue through
+Phases 2–4.
+
+Keep the accepted census and rebuild cards from Phase 2:
+
+```bash
+python scripts/prepare_redo.py --key <publication-key> --phase 2
+```
+
+Phase 2 preparation additionally restores the accepted `paper.census.json`. The census
+must remain equivalent as JSON through confirmation; use `--phase 1` if it needs to
+change. `--cards` is not valid for Phase 1 or Phase 2 redo.
+
+Both modes create:
+
+```text
+paper.base.final.json
+paper.base.census.json
+redo.json
+```
+
+Do not edit these baseline files or `redo.json`. After completing the remaining normal
+phases, confirm normally:
+
+```bash
+python scripts/confirm.py --key <publication-key>
+```
+
+`confirm.py` detects `redo.json`, verifies that the accepted baseline has not changed since
+preparation, validates the complete replacement Phase 1–4 lineage, and replaces the
+accepted final/census and current archive. The superseded accepted envelope, census, and
+archive are retained under `archive/<publication-key>/redo/NNN/`. Repeated redos therefore
+do not require a release-version change. Existing Phase 5 supplement/revision records are
+not carried onto the new current lineage; they remain preserved in the redo snapshot.
+
 ## 7. Phase 5 — post-acceptance additions and card revisions
 
 Use Phase 5 after a paper has already been accepted. It supports two modes:
@@ -502,7 +564,7 @@ Use Phase 5 after a paper has already been accepted. It supports two modes:
 - **revision mode** modifies or deletes explicitly authorised accepted cards.
 
 Neither mode may change the census. Structural changes to an accepted card's identity or
-applicability require a full re-ingest.
+applicability require a redo from Phase 2, or Phase 1 if the census must also change.
 
 ### Browse accepted publications and cards
 
@@ -519,7 +581,7 @@ scripts/render_corpus --key <publication-key> --dest ./temp/corpus
 ```
 
 This writes `./temp/corpus/<publication-key>.md`. Each card is headed by its short numeric
-ID (for example `0001`) so those IDs can be passed directly to `prepare_phase5.py`. The
+ID (for example `0001`) so those IDs can be passed directly to `prepare_redo.py --phase 5 --cards`. The
 renderer is read-only and uses the committed corpus/index outputs.
 
 ### Prepare additive Phase 5
@@ -527,7 +589,7 @@ renderer is read-only and uses the committed corpus/index outputs.
 Restore an accepted paper for an additive supplement:
 
 ```bash
-python scripts/prepare_phase5.py --key <publication-key>
+python scripts/prepare_redo.py --key <publication-key> --phase 5
 ```
 
 This restores the archived Phase 1–4 files into `work/<publication-key>/`, overlays the
@@ -550,8 +612,8 @@ Send `CONFIRM CHANGES` to approve that set; only then does Phase 5 produce the m
 Select the accepted cards that may be modified/deleted, or release all accepted cards:
 
 ```bash
-python scripts/prepare_phase5.py --key <publication-key> --cards 0001,0003,0005
-python scripts/prepare_phase5.py --key <publication-key> --cards all
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,0005
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards all
 ```
 
 The selected IDs are a local allowlist; `all` expands to every accepted card in the

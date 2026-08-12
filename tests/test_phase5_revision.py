@@ -11,7 +11,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from phase_validation import phase5 as chat_validation  # noqa: E402
-import prepare_phase5  # noqa: E402
+import prepare_redo  # noqa: E402
 
 
 class Phase5RevisionPrepareTests(unittest.TestCase):
@@ -66,12 +66,13 @@ class Phase5RevisionPrepareTests(unittest.TestCase):
             paper_key, accept, archive, work, envelope, _ = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 cards="0001",
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
-            destination, revision = prepare_phase5.prepare(args)
+            destination, revision = prepare_redo.prepare(args)
             self.assertEqual(revision, 1)
             marker = json.loads((destination / "phase5.json").read_text())
             self.assertEqual(marker["mode"], "revision")
@@ -86,13 +87,14 @@ class Phase5RevisionPrepareTests(unittest.TestCase):
             paper_key, accept, archive, work, _, _ = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 cards="0002",
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
             with self.assertRaisesRegex(ValueError, "requested card not found"):
-                prepare_phase5.prepare(args)
+                prepare_redo.prepare(args)
 
 
 class Phase5ChatValidationTests(unittest.TestCase):

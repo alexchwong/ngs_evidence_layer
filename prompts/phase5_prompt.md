@@ -12,7 +12,7 @@ Read-only inputs:
 - `phase5.existing-cards.json`
 - `phase5_prompt.md`
 - revision mode only: `paper.phase5-targets.json`
-Read `phase5.json` first. `mode: additive` uses the existing additive workflow. `mode: revision` may change only the cards locally authorised in `target_card_ids`. Never alter the census. In additive mode, first match each requested interpretation to one or more existing census claims. A census claim is a review boundary, not proof that a card should exist. If no existing census claim covers the requested interpretation, stop that item and tell the user it requires a full re-ingest.
+Read `phase5.json` first. `mode: additive` uses the existing additive workflow. `mode: revision` may change only the cards locally authorised in `target_card_ids`. Never alter the census. In additive mode, first match each requested interpretation to one or more existing census claims. A census claim is a review boundary, not proof that a card should exist. If no existing census claim covers the requested interpretation, stop that item and tell the user it requires a redo from Phase 1.
 
 ## Shared card standards
 
@@ -100,7 +100,7 @@ Canonical source aliases:
 ## Additive mode
 First ask what interpretation or interpretations the user believes this paper supports but the accepted cards missed.
 For each requested interpretation:
-1. identify the matching claim or claims in `paper.census.json`; if none match, require full re-ingest and stop that item;
+1. identify the matching claim or claims in `paper.census.json`; if none match, require a redo from Phase 1 and stop that item;
 2. search `phase5.existing-cards.json` semantically for the same or materially similar interpretation;
 3. if the target publication already contains an equivalent card, show its `card_id` and interpretation and do not create a duplicate;
 4. if only another publication contains a similar card, mention it as context but still assess whether this target paper independently supports the requested interpretation;
@@ -123,7 +123,7 @@ When the user sends `FINALIZE` on its own line, require all cards to pass, then 
 Do **not** write `paper.final.json` yet. Ask the user to send `CONFIRM CHANGES` on its own line. Only after that exact confirmation, and only if the reviewed provisional has not changed, merge only the reviewed additions into `paper.base.final.json`, preserve existing cards/evidence and audit metadata, append passing audit results for the new cards, and return exactly `paper.final.json`. Any change after review or confirmation requires a fresh review and confirmation.
 ## Revision mode — interactive authoring
 
-Revision mode is selected locally with `prepare_phase5.py --key <publication-key> --cards 0001,0003,...` or `--cards all`. `--cards all` releases every accepted card from this publication into the revision allowlist.
+Revision mode is selected locally with `prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,...` or `--cards all`. `--cards all` releases every accepted card from this publication into the revision allowlist.
 At the start:
 1. read `paper.phase5-targets.json`;
 2. present each selected card by short ID, interpretation and current evidence locator;
@@ -136,12 +136,12 @@ For each proposed modification:
 - require the replacement interpretation and evidence to satisfy the shared card standards;
 - keep these card fields unchanged: `card_id`, `genes`, `diseases`, `disease_ancestors`, `category`, `evidence_tier`, `secondary_citation`;
 - `interpretation`, `locator`, and the paired evidence bundle may change;
-- if a structural field needs changing, tell the user to perform a full re-ingest instead.
+- if a structural field needs changing, require a redo from Phase 2, or Phase 1 if the census must also change.
 For each proposed deletion:
 - delete only an authorised target card;
 - record a concise reason agreed with the user;
 - the deletion removes the accepted card, its paired evidence bundle, and its matching final audit result;
-- do not use deletion to rename/restructure a card that should instead undergo full re-ingest.
+- do not use deletion to rename/restructure a card that should instead undergo a Phase 2 redo, or Phase 1 if the census must also change.
 
 When the user sends `PROVISIONAL` on its own line, write exactly `paper.phase5-provisional.json` in this revision shape:
 ```json
