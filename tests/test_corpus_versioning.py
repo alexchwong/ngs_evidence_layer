@@ -294,6 +294,7 @@ class CorpusVersioningTests(unittest.TestCase):
                 "publication_type": "guideline",
                 "extraction_date": "2026-08-02",
                 "extraction_model": "fixture-model",
+                "paper_nickname": "Fixture Classifier 2020",
                 "genes_covered": [],
                 "diseases_covered": [],
                 "census_entries": 0,

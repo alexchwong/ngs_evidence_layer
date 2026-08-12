@@ -32,6 +32,7 @@ def card(
     citation="Alpha A. Publication. Blood. 2020;1(1):1-2.",
     tier="guideline criterion",
     publication_key="pub",
+    paper_nickname="Fixture Paper 2020",
     locator="Fixture label",
     genes=None,
     diseases=None,
@@ -46,6 +47,7 @@ def card(
         "interpretation": interpretation,
         "locator": locator,
         "publication_key": publication_key,
+        "paper_nickname": paper_nickname,
         "publication_year": year,
         "citation_display": citation,
         "citation_incomplete": [],
@@ -97,6 +99,7 @@ class RenderMappingTests(unittest.TestCase):
 
         self.assertIn("## Prognostic significance", text)
         self.assertIn("### Named finding", text)
+        self.assertIn("- Paper: Fixture Paper 2020", text)
         self.assertIn("- Category: prognosis", text)
         self.assertIn("- Genes: GENEA, GENEB", text)
         self.assertIn("- Disease context: MDS, AML", text)

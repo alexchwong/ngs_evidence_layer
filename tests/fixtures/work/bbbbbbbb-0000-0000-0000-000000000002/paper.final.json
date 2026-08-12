@@ -4,6 +4,7 @@
   "round": 1,
   "extraction_date": "2026-01-01",
   "extraction_model": "fixture-carding-model",
+  "paper_nickname": "Second Fixture Classifier 2022",
   "publication_type": "consensus statement",
   "publication_type_basis": "The publication states a group consensus classifier.",
   "genes_covered": [

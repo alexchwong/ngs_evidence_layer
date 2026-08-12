@@ -8,10 +8,11 @@ Read-only inputs: `paper.md`, `metadata.json`, `paper.census.json`,
 `paper.provisional-001.json`, `paper.review-001.json`, and `phase4_prompt.md`. Use
 them as inputs only; do not overwrite them.
 Phase 4 has two checkpoints:
-1. if Phase 3 failed any card or publication type, discuss those failed items in chat
-   and create no file until the user finalizes adjudication;
-2. after all failed items are adjudicated, or immediately if nothing failed, return
-   exactly `paper.final.json`.
+1. propose a paper nickname and, if Phase 3 failed any card or publication type,
+   discuss those failed items in chat; create no file until the user confirms or
+   replaces the nickname and finalizes any required adjudication;
+2. after the nickname is settled and all failed items are adjudicated, return exactly
+   `paper.final.json`.
 
 Phase 4 is final. Do not create another provisional package, another Phase 3 review,
 or another audit round. Do not send any card back to Phase 3.
@@ -41,7 +42,20 @@ If either identity is missing, the reviewed identity does not match, or the Phas
 Phase 3 identities are identical, stop and report that Phase 3 must be rerun with a
 different model. A missing, mismatched, incomplete, or malformed artefact stops the
 session.
-## Mandatory human adjudication
+## Mandatory human interaction
+### Paper nickname
+Propose one concise, human-readable nickname for the paper using `metadata.json` and
+the paper title. Prefer an established guideline, classification, trial, cohort, or
+publication name plus year when recognizable; otherwise use a short distinctive title
+phrase plus year. The nickname is a label, not evidence, and must be at most 120
+characters.
+
+Ask the user to confirm the proposed nickname or provide a better one. If the user
+sends `FINALIZE` without supplying a replacement nickname, treat `FINALIZE` as explicit
+confirmation of the most recently proposed nickname. Store the confirmed or
+user-supplied value as top-level `paper_nickname` in `paper.final.json`.
+
+### Human adjudication
 Adjudicate only:
 
 - cards Phase 3 marked `fail`; and
@@ -49,8 +63,9 @@ Adjudicate only:
 
 Retain passed cards unchanged. Do not show them or ask the user about them.
 ### Initial chat output
-Print one numerically ordered section for each failed card directly in chat. Use
-headings and bullet points; do not create a Markdown file. For each failed card,
+First show the proposed paper nickname and ask the user to confirm it or suggest a
+better one. Then print one numerically ordered section for each failed card directly
+in chat. Use headings and bullet points; do not create a Markdown file. For each failed card,
 show:
 1. the exact `card_id`;
 2. the current interpretation and all card fields;
@@ -61,8 +76,8 @@ show:
 Keep Phase 3's and Phase 4's suggestions separate. Neither is the user's decision.
 If publication type failed, add a separate numbered section with its current value
 and basis, Phase 3 findings, Phase 4's independent suggestion, and a request for
-free-text input. If nothing failed, create `paper.final.json` without asking
-questions.
+free-text input. If nothing failed, ask only about the paper nickname and wait for
+its confirmation or replacement.
 ### Discussion and finalization
 - Accept free-text discussion and instructions over any number of chat turns.
 - Answer the user's questions about any failed item.
@@ -70,9 +85,13 @@ questions.
 - Treat all instructions as provisional until the user sends `FINALIZE` on its own
   line.
 - Before `FINALIZE`, do not create or return `paper.final.json`.
+- A user-supplied replacement nickname takes precedence; otherwise `FINALIZE`
+  explicitly confirms the most recently proposed nickname.
 - Never infer or supply the user's decision.
 - Never treat a Phase 3 or Phase 4 suggestion as the user's decision.
 When the user sends `FINALIZE`:
+- use the user-supplied replacement nickname if present; otherwise use the most recently
+  proposed nickname as explicitly confirmed by `FINALIZE`;
 - verify that the user explicitly and unambiguously addressed every failed item;
 - if anything remains unresolved, ask only about those items and wait for another
   `FINALIZE`; and
@@ -145,8 +164,8 @@ Use `table_relation` when a table value cannot be interpreted defensibly without
 
 Map every material assertion in the interpretation to explicit supporting source text in `support_map`. If any assertion is unsupported, expand the bundle, narrow the interpretation, split the card, or omit it. Once sufficient evidence is assembled, do not shorten it merely for concision.
 
-Start from the complete provisional package and apply the adjudicated outcomes.
-Retain, amend, split, or delete cards as directed. Every resulting card must satisfy
+Start from the complete provisional package, add the user-confirmed `paper_nickname`,
+and apply the adjudicated outcomes. Retain, amend, split, or delete cards as directed. Every resulting card must satisfy
 the shared card standards. Geneless `diagnosis` and `treatment` cards are valid when the shared card-content rules are satisfied. Recompute card IDs when splitting, one-to-one evidence
 pairing, `genes_covered`, `diseases_covered`, and canonical `disease_ancestors`.
 Set `publication_type` and `publication_type_basis` to the adjudicated final values.
@@ -445,6 +464,11 @@ decision fields to the audit; adjudication is represented by the final card cont
     "extraction_model": {
       "type": "string",
       "minLength": 1
+    },
+    "paper_nickname": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
     },
     "publication_type": {
       "enum": [
@@ -1052,7 +1076,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-PACKAGE_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/ingestion_package_schema.json","title":"Phase 2 provisional or Phase 4 final evidence package","type":"object","required":["schema_version","paper_id","round","extraction_date","extraction_model","publication_type","publication_type_basis","publication_type_verified_by_phase3","genes_covered","diseases_covered","census_entries","cards","evidence","audit"],"additionalProperties":false,"properties":{"schema_version":{"const":"5.0"},"paper_id":{"type":"string","format":"uuid"},"round":{"type":"integer","minimum":1},"extraction_date":{"type":"string","format":"date"},"extraction_model":{"type":"string","minLength":1},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"publication_type_verified_by_phase3":{"type":"boolean"},"genes_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"census_entries":{"type":"integer","minimum":0},"cards":{"type":"array","items":{"$ref":"#/$defs/card"}},"evidence":{"type":"array","items":{"$ref":"#/$defs/evidence"}},"audit":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/audit"}]}},"$defs":{"gene":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\-]*$"},"disease":{"enum":["CHIP","CCUS","MDS","MDS/AML","AML","APL","MDS/MPN","MDS/MPN-U","CMML","aCML","MDS/MPN-SF3B1-T","JMML","MPN","MPN-U","PV","ET","PMF","post-PV/post-ET MF","MPN blast phase","CML","CNL","CEL","mastocytosis","myeloid/lymphoid neoplasm with eosinophilia and TK fusion","BPDCN","germline predisposition syndrome","myeloid neoplasm, unspecified","lymphoid neoplasm","acute leukaemia of ambiguous lineage","histiocytic/dendritic neoplasm","haematological malignancy, other"]},"citation":{"type":"object","required":["display"],"additionalProperties":false,"properties":{"authors":{"type":"array","items":{"type":"string"}},"title":{"type":"string"},"journal":{"type":"string"},"year":{"type":"integer","minimum":1950,"maximum":2100},"volume":{"type":"string"},"issue":{"type":"string"},"pages":{"type":"string"},"display":{"type":"string","minLength":1},"citation_incomplete":{"type":"array","uniqueItems":true,"items":{"type":"string"}}}},"card":{"type":"object","required":["card_id","locator","interpretation","genes","diseases","category","evidence_tier","secondary_citation"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1},"interpretation":{"type":"string","minLength":1},"genes":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"disease_ancestors":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"category":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]},"evidence_tier":{"enum":["guideline criterion","multivariable-adjusted","univariable or descriptive","restated secondary"]},"secondary_citation":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/citation"}]}},"allOf":[{"if":{"properties":{"category":{"enum":["diagnosis","prognosis","treatment","biomarker"]}},"required":["category"]},"then":{"properties":{"diseases":{"minItems":1}}}},{"if":{"properties":{"category":{"enum":["prognosis","biomarker","germline"]}},"required":["category"]},"then":{"properties":{"genes":{"minItems":1}}}}]},"fragment":{"type":"object","required":["fragment_id","role","quote","locator"],"additionalProperties":false,"properties":{"fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"role":{"enum":["claim","scope_heading","column_header","row_header","cell","legend","footnote"]},"quote":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1}}},"support_map":{"type":"object","minProperties":1,"additionalProperties":false,"properties":{"gene":{"$ref":"#/$defs/fragment_ids"},"disease":{"$ref":"#/$defs/fragment_ids"},"role":{"$ref":"#/$defs/fragment_ids"},"population":{"$ref":"#/$defs/fragment_ids"},"effect":{"$ref":"#/$defs/fragment_ids"},"qualifier":{"$ref":"#/$defs/fragment_ids"}}},"fragment_ids":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}},"table_relation":{"type":"object","required":["value_fragment_id","header_fragment_ids","qualifier_fragment_ids"],"additionalProperties":false,"properties":{"value_fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"header_fragment_ids":{"$ref":"#/$defs/fragment_ids"},"qualifier_fragment_ids":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}}}},"evidence":{"oneOf":[{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"contiguous_text"},"fragments":{"type":"array","minItems":1,"maxItems":1,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"composite_text"},"fragments":{"type":"array","minItems":2,"maxItems":6,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map","table_relations"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"table_relation"},"fragments":{"type":"array","minItems":2,"maxItems":12,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"},"table_relations":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/table_relation"}}}}]},"audit":{"type":"object","required":["audit_date","audit_model","extraction_model_reviewed","approved_round","publication_type_verdict","results"],"additionalProperties":false,"properties":{"audit_date":{"type":"string","format":"date"},"audit_model":{"type":"string","minLength":1},"extraction_model_reviewed":{"type":"string","minLength":1},"approved_round":{"type":"integer","minimum":1},"publication_type_verdict":{"type":"object","required":["verdict","verified_by_phase3"],"additionalProperties":false,"properties":{"verdict":{"enum":["pass","fail"]},"verified_by_phase3":{"const":true},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]},"results":{"type":"array","items":{"type":"object","required":["card_id","verdict"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"verdict":{"enum":["pass","fail"]},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]}}}}}}''')
+PACKAGE_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/ingestion_package_schema.json","title":"Phase 2 provisional or Phase 4 final evidence package","type":"object","required":["schema_version","paper_id","round","extraction_date","extraction_model","publication_type","publication_type_basis","publication_type_verified_by_phase3","genes_covered","diseases_covered","census_entries","cards","evidence","audit"],"additionalProperties":false,"properties":{"schema_version":{"const":"5.0"},"paper_id":{"type":"string","format":"uuid"},"round":{"type":"integer","minimum":1},"extraction_date":{"type":"string","format":"date"},"extraction_model":{"type":"string","minLength":1},"paper_nickname":{"type":"string","minLength":1,"maxLength":120},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"publication_type_verified_by_phase3":{"type":"boolean"},"genes_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"census_entries":{"type":"integer","minimum":0},"cards":{"type":"array","items":{"$ref":"#/$defs/card"}},"evidence":{"type":"array","items":{"$ref":"#/$defs/evidence"}},"audit":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/audit"}]}},"$defs":{"gene":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\-]*$"},"disease":{"enum":["CHIP","CCUS","MDS","MDS/AML","AML","APL","MDS/MPN","MDS/MPN-U","CMML","aCML","MDS/MPN-SF3B1-T","JMML","MPN","MPN-U","PV","ET","PMF","post-PV/post-ET MF","MPN blast phase","CML","CNL","CEL","mastocytosis","myeloid/lymphoid neoplasm with eosinophilia and TK fusion","BPDCN","germline predisposition syndrome","myeloid neoplasm, unspecified","lymphoid neoplasm","acute leukaemia of ambiguous lineage","histiocytic/dendritic neoplasm","haematological malignancy, other"]},"citation":{"type":"object","required":["display"],"additionalProperties":false,"properties":{"authors":{"type":"array","items":{"type":"string"}},"title":{"type":"string"},"journal":{"type":"string"},"year":{"type":"integer","minimum":1950,"maximum":2100},"volume":{"type":"string"},"issue":{"type":"string"},"pages":{"type":"string"},"display":{"type":"string","minLength":1},"citation_incomplete":{"type":"array","uniqueItems":true,"items":{"type":"string"}}}},"card":{"type":"object","required":["card_id","locator","interpretation","genes","diseases","category","evidence_tier","secondary_citation"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1},"interpretation":{"type":"string","minLength":1},"genes":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"disease_ancestors":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"category":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]},"evidence_tier":{"enum":["guideline criterion","multivariable-adjusted","univariable or descriptive","restated secondary"]},"secondary_citation":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/citation"}]}},"allOf":[{"if":{"properties":{"category":{"enum":["diagnosis","prognosis","treatment","biomarker"]}},"required":["category"]},"then":{"properties":{"diseases":{"minItems":1}}}},{"if":{"properties":{"category":{"enum":["prognosis","biomarker","germline"]}},"required":["category"]},"then":{"properties":{"genes":{"minItems":1}}}}]},"fragment":{"type":"object","required":["fragment_id","role","quote","locator"],"additionalProperties":false,"properties":{"fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"role":{"enum":["claim","scope_heading","column_header","row_header","cell","legend","footnote"]},"quote":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1}}},"support_map":{"type":"object","minProperties":1,"additionalProperties":false,"properties":{"gene":{"$ref":"#/$defs/fragment_ids"},"disease":{"$ref":"#/$defs/fragment_ids"},"role":{"$ref":"#/$defs/fragment_ids"},"population":{"$ref":"#/$defs/fragment_ids"},"effect":{"$ref":"#/$defs/fragment_ids"},"qualifier":{"$ref":"#/$defs/fragment_ids"}}},"fragment_ids":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}},"table_relation":{"type":"object","required":["value_fragment_id","header_fragment_ids","qualifier_fragment_ids"],"additionalProperties":false,"properties":{"value_fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"header_fragment_ids":{"$ref":"#/$defs/fragment_ids"},"qualifier_fragment_ids":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}}}},"evidence":{"oneOf":[{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"contiguous_text"},"fragments":{"type":"array","minItems":1,"maxItems":1,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"composite_text"},"fragments":{"type":"array","minItems":2,"maxItems":6,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map","table_relations"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"table_relation"},"fragments":{"type":"array","minItems":2,"maxItems":12,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"},"table_relations":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/table_relation"}}}}]},"audit":{"type":"object","required":["audit_date","audit_model","extraction_model_reviewed","approved_round","publication_type_verdict","results"],"additionalProperties":false,"properties":{"audit_date":{"type":"string","format":"date"},"audit_model":{"type":"string","minLength":1},"extraction_model_reviewed":{"type":"string","minLength":1},"approved_round":{"type":"integer","minimum":1},"publication_type_verdict":{"type":"object","required":["verdict","verified_by_phase3"],"additionalProperties":false,"properties":{"verdict":{"enum":["pass","fail"]},"verified_by_phase3":{"const":true},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]},"results":{"type":"array","items":{"type":"object","required":["card_id","verdict"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"verdict":{"enum":["pass","fail"]},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]}}}}}}''')
 REVIEW_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/review_schema.json","title":"Phase 3 complete card review","type":"object","required":["schema_version","paper_id","round","review_date","reviewer_model","extraction_model_reviewed","result","audit","card_results"],"additionalProperties":false,"properties":{"schema_version":{"const":"5.0"},"paper_id":{"type":"string","format":"uuid"},"round":{"type":"integer","minimum":1},"review_date":{"type":"string","format":"date"},"reviewer_model":{"type":"string","minLength":1},"extraction_model_reviewed":{"type":"string","minLength":1},"result":{"const":"review_complete"},"audit":{"type":"object","required":["publication_type_verdict","cards_total","cards_passed","cards_failed"],"additionalProperties":false,"properties":{"publication_type_verdict":{"$ref":"#/$defs/publication_type_verdict"},"cards_total":{"type":"integer","minimum":0},"cards_passed":{"type":"integer","minimum":0},"cards_failed":{"type":"integer","minimum":0}}},"card_results":{"type":"array","items":{"$ref":"#/$defs/card_result"}}},"$defs":{"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_verdict":{"type":"object","required":["package_value","auditor_value","verdict","verified_by_phase3","basis"],"additionalProperties":false,"properties":{"package_value":{"$ref":"#/$defs/publication_type"},"auditor_value":{"$ref":"#/$defs/publication_type"},"verdict":{"enum":["pass","fail"]},"verified_by_phase3":{"type":"boolean"},"basis":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"pass"}},"required":["verdict"]},"then":{"properties":{"verified_by_phase3":{"const":true}}}},{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"properties":{"verified_by_phase3":{"const":false}}}}]},"card_result":{"type":"object","required":["card_id","verdict"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"verdict":{"enum":["pass","fail"]},"details":{"$ref":"#/$defs/failure_details"}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["details"]},"else":{"not":{"required":["details"]}}}]},"failure_details":{"type":"object","required":["failure_type","reason","defensibility","suggested_action"],"additionalProperties":false,"properties":{"failure_type":{"enum":["quote_error","unsupported_assertion","material_redundancy","scope_or_qualifier","evidence_relationship","other"]},"reason":{"type":"string","minLength":1},"defensibility":{"type":"string","minLength":1},"quote_restatement":{"type":"string","minLength":1},"suggested_action":{"$ref":"#/$defs/suggested_action"}},"allOf":[{"if":{"properties":{"failure_type":{"const":"quote_error"}},"required":["failure_type"]},"then":{"required":["quote_restatement"]},"else":{"not":{"required":["quote_restatement"]}}}]},"suggested_action":{"type":"object","required":["category","detail"],"additionalProperties":false,"properties":{"category":{"enum":["narrow_disease_scope","replace_evidence","change_category","rewrite_interpretation","split_card","delete_card","add_or_correct_qualifier"]},"detail":{"type":"string","minLength":1}}}}}''')
 UMBRELLA = json.loads(r'''{"MDS/AML":["MDS","AML"],"APL":["AML"],"MDS/MPN":["MDS","MPN"],"MDS/MPN-U":["MDS/MPN"],"CMML":["MDS/MPN"],"aCML":["MDS/MPN"],"MDS/MPN-SF3B1-T":["MDS/MPN"],"MPN-U":["MPN"],"PV":["MPN"],"ET":["MPN"],"PMF":["MPN"],"post-PV/post-ET MF":["MPN"],"MPN blast phase":["MPN"],"CML":["MPN"],"CNL":["MPN"],"CEL":["MPN"],"JMML":["MPN"],"BPDCN":["histiocytic/dendritic neoplasm"]}''')
 DISEASES = list(PACKAGE_SCHEMA["$defs"]["disease"]["enum"])
@@ -1171,6 +1195,14 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package paper_id does not match metadata")
     if package["census_entries"] != len(census.get("entries", [])):
         errors.append("package census_entries does not match census")
+    nickname = package.get("paper_nickname")
+    if require_final:
+        if not isinstance(nickname, str) or not nickname.strip():
+            errors.append("final package requires paper_nickname")
+        elif nickname != nickname.strip() or any(char in nickname for char in "\r\n\t"):
+            errors.append("paper_nickname must be a trimmed single-line string")
+    elif "paper_nickname" in package:
+        errors.append("provisional package must not contain paper_nickname")
     if package["round"] == 1 and not require_final:
         if package["publication_type"] != census.get("publication_type"):
             errors.append("first-round package publication_type does not match census")
@@ -1448,8 +1480,9 @@ rerun the validator until successful. Do not edit `paper.final.json` after the
 successful run.
 ## Mandatory pre-output gate
 Before writing, verify privately that:
-1. the active phase is Phase 4, no passed card required adjudication, and every failed
-   item was explicitly adjudicated and finalized by the user;
+1. the active phase is Phase 4, the paper nickname was explicitly confirmed or
+   replaced by the user, no passed card required adjudication, and every failed item
+   was explicitly adjudicated and finalized by the user;
 2. the only file output is `paper.final.json` and no input was overwritten;
 3. every final assertion and evidence fragment is supported verbatim by `paper.md`;
 4. every resulting card has exactly one paired evidence bundle and all paired IDs
@@ -1463,7 +1496,8 @@ Before writing, verify privately that:
    provisional `extraction_model`;
 9. the Phase 3 review's `reviewer_model` differs from the provisional package's
    `extraction_model`; and
-10. the final package conforms to the output schema.
+10. `paper_nickname` is a non-empty single-line string of at most 120 characters; and
+11. the final package conforms to the output schema.
 The final action before returning `paper.final.json` must be a successful run of the
 deterministic validator against the exact file being returned. If any check fails,
 repair the package and rerun it. Do not print the checklist, explanatory prose,

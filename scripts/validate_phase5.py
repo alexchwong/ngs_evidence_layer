@@ -156,6 +156,7 @@ def validate_phase5_files(
         "round",
         "extraction_date",
         "extraction_model",
+        "paper_nickname",
         "publication_type",
         "publication_type_basis",
         "publication_type_verified_by_phase3",

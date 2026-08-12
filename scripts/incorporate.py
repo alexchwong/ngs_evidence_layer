@@ -372,6 +372,8 @@ def build(args):
             "census_entries": package["census_entries"],
             "cards": cards,
         }
+        if package.get("paper_nickname") is not None:
+            document["paper_nickname"] = package["paper_nickname"]
         card_ids = []
         for card in cards:
             card_id = card["card_id"]
@@ -425,6 +427,8 @@ def build(args):
             "census_entries": len(census["entries"]),
             "cards": len(card_ids),
         }
+        if package.get("paper_nickname") is not None:
+            paper_index[publication_key]["paper_nickname"] = package["paper_nickname"]
         census_total += len(census["entries"])
     generated_at = args.generated_at or datetime.now(timezone.utc).isoformat()
     counts = {

@@ -154,13 +154,17 @@ def format_card(card):
     out = [
         f"### {card_label(card)}",
         "",
+    ]
+    if card.get("paper_nickname") is not None:
+        out.append(format_field("Paper", card["paper_nickname"]))
+    out.extend([
         format_field("Category", card.get("category")),
         format_field("Genes", list_text(card.get("genes"))),
         format_field("Disease context", list_text(card.get("diseases"))),
         format_field("Evidence tier", card.get("evidence_tier")),
         format_field("Interpretation", card.get("interpretation")),
         format_field("Citation marker", f"[card:{inline_text(card['card_id'])}]"),
-    ]
+    ])
     if card.get("escalates_to"):
         out.append(format_field("Escalates to", card["escalates_to"]))
     return out

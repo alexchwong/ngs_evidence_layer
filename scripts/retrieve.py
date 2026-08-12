@@ -78,6 +78,7 @@ def flatten(corpus):
                 "interpretation": card["interpretation"],
                 "locator": card["locator"],
                 "publication_key": document.get("publication_key"),
+                "paper_nickname": document.get("paper_nickname"),
                 "publication_year": citation.get("year"),
                 "citation_display": citation.get("display"),
                 "citation_incomplete": citation.get("citation_incomplete") or [],

@@ -265,6 +265,7 @@ class FolderStateWorkflowTests(unittest.TestCase):
         )
 
         final = copy.deepcopy(provisional)
+        final["paper_nickname"] = "Fixture Classifier 2020"
         final["publication_type_verified_by_phase3"] = True
         final["audit"] = {
             "audit_date": "2026-08-02",

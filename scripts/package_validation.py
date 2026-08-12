@@ -133,6 +133,14 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package paper_id does not match metadata")
     if package["census_entries"] != len(census.get("entries", [])):
         errors.append("package census_entries does not match census")
+    nickname = package.get("paper_nickname")
+    if require_final:
+        if not isinstance(nickname, str) or not nickname.strip():
+            errors.append("final package requires paper_nickname")
+        elif nickname != nickname.strip() or any(char in nickname for char in "\r\n\t"):
+            errors.append("paper_nickname must be a trimmed single-line string")
+    elif "paper_nickname" in package:
+        errors.append("provisional package must not contain paper_nickname")
     if package["round"] == 1 and not require_final:
         if package["publication_type"] != census.get("publication_type"):
             errors.append("first-round package publication_type does not match census")

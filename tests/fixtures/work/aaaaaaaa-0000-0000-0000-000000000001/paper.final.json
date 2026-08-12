@@ -4,6 +4,7 @@
   "round": 1,
   "extraction_date": "2026-01-01",
   "extraction_model": "fixture-carding-model",
+  "paper_nickname": "Fixture Classifier 2020",
   "publication_type": "guideline",
   "publication_type_basis": "The publication presents classifier criteria as a guideline.",
   "genes_covered": [

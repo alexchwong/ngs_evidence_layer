@@ -297,6 +297,7 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report["census_claims"], len(census["entries"]))
 
         final = copy.deepcopy(provisional)
+        final["paper_nickname"] = "Fixture Classifier 2020"
         final["publication_type_verified_by_phase3"] = True
         final["audit"] = {
             "audit_date": "2026-01-02",
@@ -594,6 +595,17 @@ class RetrievalAndRenderTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
+
+    def test_paper_nickname_survives_incorporation_and_flattening(self):
+        alpha_cards = [
+            card for card in self.cards
+            if card["publication_key"] == fixture_package(ALPHA)[0]["publication_key"]
+        ]
+        self.assertTrue(alpha_cards)
+        self.assertEqual(
+            {card["paper_nickname"] for card in alpha_cards},
+            {"Fixture Classifier 2020"},
+        )
 
     def bundle(self, genes, provisional, refined=None):
         refined = refined or provisional
