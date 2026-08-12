@@ -34,6 +34,10 @@ python scripts/fanout.py --corpus <name> --key <publication-key>
 python scripts/confirm.py --key <publication-key>
 python scripts/incorporate.py
 python scripts/build_secondary_source_backlog.py
+
+# Inspect the incorporated corpus as human-readable Markdown.
+python scripts/render_corpus.py --list
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
 ```
 
 Quarantine commands for a paper that must remain outside the corpus:
@@ -68,8 +72,8 @@ Phase 5 commands for post-acceptance additions or card revisions:
 python scripts/prepare_redo.py --key <publication-key> --phase 5
 
 # Or inspect the corpus and prepare selected accepted cards for revision.
-scripts/render_corpus --list
-scripts/render_corpus --key <publication-key> --dest ./temp/corpus
+python scripts/render_corpus.py --list
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
 python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,0005
 # Or release every accepted card from the publication into the revision allowlist.
 python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards all
@@ -472,6 +476,46 @@ output/reports/build-report.json
 excluded; valid accepted papers are incorporated. `nel.index.json` exposes papers by
 `accepted_in_version`, allowing corpus additions to be traced to a release.
 
+### Render the incorporated corpus for inspection
+
+`scripts/render_corpus.py` provides a read-only Markdown view of the committed corpus
+outputs. List every publication key, card count, acceptance version, and citation:
+
+```bash
+python scripts/render_corpus.py --list
+```
+
+Render one publication and all of its accepted cards:
+
+```bash
+python scripts/render_corpus.py --key <publication-key>
+```
+
+Both commands print Markdown to standard output by default. To write files instead, pass
+a destination directory:
+
+```bash
+python scripts/render_corpus.py --list --dest ./temp/corpus
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
+```
+
+List mode writes `./temp/corpus/index.md`; publication mode writes
+`./temp/corpus/<publication-key>.md`. Publication output includes each card's full ID,
+short numeric ID, category, genes, diseases, disease ancestors, evidence tier,
+interpretation, locator, and secondary citation. The short IDs (for example `0001`) can
+be passed to `prepare_redo.py --phase 5 --cards` when preparing selected revisions.
+
+By default, the renderer reads:
+
+```text
+output/corpus/nel.index.json
+output/corpus/nel.corpus.json
+```
+
+Use `--index <path>` and `--corpus <path>` to inspect alternate generated files. `--list`
+only requires the index; `--key` requires both files. The renderer does not modify the
+corpus, index, or accepted ingestion state.
+
 ### Rebuild the secondary-source curation backlog
 
 After incorporation, rebuild the curator backlog from the archived Phase 1–4 audit
@@ -571,13 +615,13 @@ applicability require a redo from Phase 2, or Phase 1 if the census must also ch
 List publication keys with their citations:
 
 ```bash
-scripts/render_corpus --list
+python scripts/render_corpus.py --list
 ```
 
 Render one publication's accepted cards to Markdown:
 
 ```bash
-scripts/render_corpus --key <publication-key> --dest ./temp/corpus
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
 ```
 
 This writes `./temp/corpus/<publication-key>.md`. Each card is headed by its short numeric
