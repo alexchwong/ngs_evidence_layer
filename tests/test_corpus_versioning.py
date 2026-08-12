@@ -305,7 +305,16 @@ class CorpusVersioningTests(unittest.TestCase):
                 "acceptance_path": "confirmed",
                 "accepted_at": "2026-08-02T00:00:00+00:00",
                 "accepted_at_source": "confirm",
-                "accepted_in_version": "0.1.6",
+                "accepted_in_version": "0.1.5",
+                "latest_version": "0.1.6",
+                "version_history": ["0.1.5", "0.1.6"],
+                "redos": [
+                    {
+                        "redo": 1,
+                        "accepted_at": "2026-08-12T04:26:15+00:00",
+                        "accepted_in_version": "0.2.0",
+                    }
+                ],
                 "metadata": metadata,
                 "final": package,
             }
@@ -322,11 +331,18 @@ class CorpusVersioningTests(unittest.TestCase):
                 ),
             ):
                 _corpus, index, _report = incorporate.build(args)
-            self.assertEqual(index["index_version"], "1.3")
+            self.assertEqual(index["index_version"], "1.4")
             self.assertEqual(
-                index["papers"][key]["accepted_in_version"], "0.1.6"
+                index["papers"][key]["accepted_in_version"], "0.1.5"
             )
-            self.assertEqual(index["by_accepted_in_version"], {"0.1.6": [key]})
+            self.assertEqual(
+                index["papers"][key]["acceptance_version_history"],
+                ["0.1.5", "0.1.6", "0.2.0"],
+            )
+            self.assertEqual(
+                index["papers"][key]["latest_accepted_in_version"], "0.2.0"
+            )
+            self.assertEqual(index["by_accepted_in_version"], {"0.2.0": [key]})
 
 
 if __name__ == "__main__":

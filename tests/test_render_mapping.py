@@ -97,14 +97,17 @@ class RenderMappingTests(unittest.TestCase):
 
         self.assertIn("## Prognostic significance", text)
         self.assertIn("### Named finding", text)
-        self.assertIn("- Card ID: `C1-1`", text)
         self.assertIn("- Category: prognosis", text)
         self.assertIn("- Genes: GENEA, GENEB", text)
         self.assertIn("- Disease context: MDS, AML", text)
         self.assertIn("- Evidence tier: multivariable-adjusted", text)
         self.assertIn("- Interpretation: Interpretation text.", text)
-        self.assertIn("- Source locator: Named finding", text)
+        self.assertIn("- Citation marker: [card:C1-1]", text)
         self.assertIn("- Escalates to: primary study", text)
+        self.assertNotIn("- Card ID:", text)
+        self.assertNotIn("- Retrieval match:", text)
+        self.assertNotIn("- Matched retrieval_related disease:", text)
+        self.assertNotIn("- Source locator:", text)
 
     def test_card_label_falls_back_to_card_id(self):
         text = render.render(bundle([
@@ -323,7 +326,7 @@ class RenderMappingTests(unittest.TestCase):
         for rendered_card in result["rendered_cards"]:
             self.assertIn(rendered_card["interpretation"], result["text"])
             self.assertIn(
-                f"- Card ID: `{rendered_card['card_id']}`",
+                f"- Citation marker: [card:{rendered_card['card_id']}]",
                 result["text"],
             )
             self.assertIn(

@@ -512,6 +512,32 @@ output/corpus/nel.index.json
 output/corpus/nel.corpus.json
 ```
 
+To inspect a completed but not yet accepted `paper.final.json` directly from the working
+folder, use `--from-work`:
+
+```bash
+python scripts/render_corpus.py --key <publication-key> --from-work
+```
+
+This reads `work/<publication-key>/paper.final.json` and
+`work/<publication-key>/metadata.json`. Because the package has not yet been accepted,
+the rendered acceptance version is `—`.
+
+To inspect the current accepted package directly, without requiring incorporation, use
+`--from-accept`:
+
+```bash
+python scripts/render_corpus.py --key <publication-key> --from-accept
+```
+
+This reads `accept/<publication-key>.final.json`, including the embedded metadata and
+final package. For a Phase 5 supplement/revision or full redo, it reports the acceptance
+version from the newest dated modification record. Otherwise it reports `latest_version`
+for an overwritten paper, falling back to the original `accepted_in_version`.
+
+`--from-work` and `--from-accept` are mutually exclusive, require `--key`, and cannot be
+used with `--list`. Both support `--dest` in the same way as default publication mode.
+
 Use `--index <path>` and `--corpus <path>` to inspect alternate generated files. `--list`
 only requires the index; `--key` requires both files. The renderer does not modify the
 corpus, index, or accepted ingestion state.

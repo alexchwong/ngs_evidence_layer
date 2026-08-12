@@ -55,6 +55,55 @@ def add(mapping, key, value):
     mapping[key].append(value)
 
 
+def acceptance_version_provenance(envelope):
+    """Return original, complete, and latest acceptance-version provenance."""
+    original = envelope["accepted_in_version"]
+    history = []
+
+    def append_version(version, label):
+        if not isinstance(version, str) or not version:
+            raise ValueError(f"accepted package has an invalid {label}")
+        if version not in history:
+            history.append(version)
+
+    append_version(original, "accepted_in_version")
+    recorded_history = envelope.get("version_history") or []
+    if not isinstance(recorded_history, list):
+        raise ValueError("accepted package version_history is not an array")
+    for version in recorded_history:
+        append_version(version, "version_history entry")
+
+    latest_overwrite = envelope.get("latest_version")
+    if latest_overwrite is not None:
+        append_version(latest_overwrite, "latest_version")
+
+    modifications = []
+    for field in ("supplements", "revisions", "redos"):
+        entries = envelope.get(field) or []
+        if not isinstance(entries, list):
+            raise ValueError(f"accepted package {field} is not an array")
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValueError(f"accepted package {field} contains a non-object entry")
+            try:
+                accepted_time = datetime.fromisoformat(entry.get("accepted_at"))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"accepted package {field} entry has an invalid accepted_at"
+                ) from exc
+            modifications.append((accepted_time, field, entry))
+    for _accepted_time, field, entry in sorted(
+        modifications, key=lambda item: (item[0], item[1])
+    ):
+        append_version(entry.get("accepted_in_version"), f"{field} accepted_in_version")
+
+    return {
+        "accepted_in_version": original,
+        "acceptance_version_history": history,
+        "latest_accepted_in_version": history[-1],
+    }
+
+
 def load_pair(final_path, census_path):
     envelope = validation.read_json(final_path, "accepted package")
     census = validation.read_json(census_path, "accepted census")
@@ -307,7 +356,10 @@ def build(args):
     census_total = 0
     for publication_key, envelope, census, warnings, report in selected:
         metadata, package = envelope["metadata"], envelope["final"]
-        accepted_in_version = envelope["accepted_in_version"]
+        acceptance_provenance = acceptance_version_provenance(envelope)
+        latest_accepted_in_version = acceptance_provenance[
+            "latest_accepted_in_version"
+        ]
         cards = sorted(package["cards"], key=lambda card: card["card_id"])
         document = {
             "publication_key": metadata["publication_key"],
@@ -348,7 +400,7 @@ def build(args):
         add(by_type, package["publication_type"], metadata["publication_key"])
         add(
             by_accepted_in_version,
-            accepted_in_version,
+            latest_accepted_in_version,
             metadata["publication_key"],
         )
         source = {
@@ -365,7 +417,7 @@ def build(args):
         paper_index[publication_key] = {
             "status": "completed",
             "publication_key": metadata["publication_key"],
-            "accepted_in_version": accepted_in_version,
+            **acceptance_provenance,
             "citation_display": metadata["citation"]["display"],
             "genes": sorted(package["genes_covered"]),
             "diseases": sorted(package["diseases_covered"]),
@@ -392,7 +444,7 @@ def build(args):
     }
     digest = hashlib.sha256(canonical_bytes(corpus)).hexdigest()
     index = {
-        "index_version": "1.3",
+        "index_version": "1.4",
         "generated_at": generated_at,
         "corpus_sha256": digest,
         "counts": counts,

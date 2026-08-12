@@ -294,7 +294,7 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(warnings, [])
         self.assertEqual(report["cards"], 0)
-        self.assertTrue(report["gene_category_pairs_with_no_card"])
+        self.assertEqual(report["census_claims"], len(census["entries"]))
 
         final = copy.deepcopy(provisional)
         final["publication_type_verified_by_phase3"] = True
@@ -482,7 +482,7 @@ class IncorporationTests(unittest.TestCase):
             corpus, index = read(corpus_path), read(index_path)
             self.assertEqual(corpus["corpus_version"], "1.2")
             self.assertEqual(corpus["schema_version"], "3.1")
-            self.assertEqual(index["index_version"], "1.3")
+            self.assertEqual(index["index_version"], "1.4")
             self.assertEqual(corpus["counts"]["cards"], 10)
             self.assertNotIn("by_escalates_to", index)
             self.assertNotIn("escalates_to", json.dumps(index))

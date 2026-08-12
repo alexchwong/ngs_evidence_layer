@@ -189,7 +189,7 @@ class RetrievalRelatedStep4Tests(unittest.TestCase):
             {"dx"},
         )
 
-    def test_render_exposes_related_match_without_changing_card_disease_context(self):
+    def test_render_keeps_disease_context_but_omits_retrieval_metadata(self):
         pmf = card("pmf-prog", "PMF", "prognosis")
         result = retrieve.step4([pmf], ["ASXL1"], "post-PV/post-ET MF", [])
         bundle = {
@@ -221,8 +221,8 @@ class RetrievalRelatedStep4Tests(unittest.TestCase):
         }
         rendered = render.render(bundle)["text"]
         self.assertIn("Disease context: PMF", rendered)
-        self.assertIn("Retrieval match: related", rendered)
-        self.assertIn("Matched retrieval_related disease: PMF", rendered)
+        self.assertNotIn("Retrieval match:", rendered)
+        self.assertNotIn("Matched retrieval_related disease:", rendered)
 
 
 if __name__ == "__main__":
