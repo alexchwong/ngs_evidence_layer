@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 
 import package_validation as validation
-import phase5_chat_validation as chat_validation
+from phase_validation import phase5 as chat_validation
 
 CARD_TOKEN_RE = re.compile(r"^(?:C)?(\d{4})$", re.IGNORECASE)
 

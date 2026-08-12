@@ -45,20 +45,27 @@
       "type": "file",
       "path": "prompts/assets/validation_bundle_policy.md"
     },
-    "PHASE5_CHAT_VALIDATION": {
-      "type": "file",
-      "path": "scripts/phase5_chat_validation.py"
-    },
-    "PHASE_VALIDATION_BUNDLE": {
+    "PHASE1_VALIDATION_BUNDLE": {
       "type": "bundle",
       "paths": [
-        "scripts/final_validation.py",
-        "scripts/package_validation.py",
-        "scripts/vocab.py"
-      ],
-      "globs": [
-        "schema/*.json"
+        "scripts/phase_validation/phase1.py"
       ]
+    },
+    "PHASE2_VALIDATION_BUNDLE": {
+      "type": "bundle",
+      "paths": [
+        "scripts/phase_validation/phase2.py"
+      ]
+    },
+    "PHASE4_VALIDATION_BUNDLE": {
+      "type": "bundle",
+      "paths": [
+        "scripts/phase_validation/phase4.py"
+      ]
+    },
+    "PHASE5_VALIDATION_BUNDLE": {
+      "type": "file",
+      "path": "scripts/phase_validation/phase5.py"
     }
   }
 }

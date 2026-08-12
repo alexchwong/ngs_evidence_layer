@@ -19,7 +19,7 @@ or another audit round. Do not send any card back to Phase 3.
 Before any adjudication or finalization, recreate the deterministic validation bundle
 provided below and run:
 ```bash
-python validation_bundle/scripts/final_validation.py --phase 3 \
+python validation_bundle/scripts/phase_validation/phase4.py --review-only \
   --provisional paper.provisional-001.json \
   --review paper.review-001.json
 ```
@@ -159,10 +159,10 @@ decision fields to the audit; adjudication is represented by the final card cont
 
 {{VALIDATION_BUNDLE_POLICY}}
 
-{{PHASE_VALIDATION_BUNDLE}}
+{{PHASE4_VALIDATION_BUNDLE}}
 After writing `paper.final.json`, recreate the bundle and run:
 ```bash
-python validation_bundle/scripts/final_validation.py --phase 4 \
+python validation_bundle/scripts/phase_validation/phase4.py \
   --metadata metadata.json \
   --census paper.census.json \
   --source paper.md \

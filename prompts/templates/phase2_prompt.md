@@ -148,10 +148,10 @@ Once the evidence passes these checks, do not shorten it merely for concision.
 
 {{VALIDATION_BUNDLE_POLICY}}
 
-{{PHASE_VALIDATION_BUNDLE}}
+{{PHASE2_VALIDATION_BUNDLE}}
 After writing `paper.provisional-001.json`, recreate the bundle and run:
 ```bash
-python validation_bundle/scripts/final_validation.py --phase 2 \
+python validation_bundle/scripts/phase_validation/phase2.py \
   --metadata metadata.json \
   --census paper.census.json \
   --source paper.md \

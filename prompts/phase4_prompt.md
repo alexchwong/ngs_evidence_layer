@@ -19,7 +19,7 @@ or another audit round. Do not send any card back to Phase 3.
 Before any adjudication or finalization, recreate the deterministic validation bundle
 provided below and run:
 ```bash
-python validation_bundle/scripts/final_validation.py --phase 3 \
+python validation_bundle/scripts/phase_validation/phase4.py --review-only \
   --provisional paper.provisional-001.json \
   --review paper.review-001.json
 ```
@@ -735,212 +735,27 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 ```
 ## Deterministic exit validation
 
-The bundle below contains the canonical repository validator and every repository-owned
-dependency it requires. Recreate every displayed file verbatim under
-`validation_bundle/` at its displayed relative path, preserving directory structure.
-Do not search for or clone the repository, modify a bundled file, summarize or
-reinterpret it, combine files, rewrite imports, or substitute another validator or
-check.
+The bundle below contains the canonical self-contained validator for this phase.
+Recreate every displayed file verbatim under `validation_bundle/` at its displayed
+relative path. Do not search for or clone the repository, modify the bundled file,
+summarize or reinterpret it, rewrite imports, or substitute another validator.
 
-<!-- BEGIN VERBATIM scripts/final_validation.py -->
+<!-- BEGIN VERBATIM scripts/phase_validation/phase4.py -->
 ```python
 #!/usr/bin/env python3
-"""Deterministically validate the output product of one workflow phase."""
+"""Self-contained deterministic validation for Phase 4 entry and final output."""
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
-import package_validation as validation
-
-PHASE_ARGUMENTS = {
-    1: ("metadata", "census"),
-    2: ("metadata", "census", "source", "provisional"),
-    3: ("provisional", "review"),
-    4: ("metadata", "census", "source", "provisional", "review", "final"),
-}
-
-
-def _require_paths(phase, paths):
-    missing = [name for name in PHASE_ARGUMENTS[phase] if paths.get(name) is None]
-    if missing:
-        raise ValueError(
-            f"phase {phase} requires: " + ", ".join(f"--{name}" for name in missing)
-        )
-
-
-def validate_phase_files(
-    *,
-    phase,
-    metadata_path=None,
-    census_path=None,
-    source_path=None,
-    provisional_path=None,
-    review_path=None,
-    final_path=None,
-):
-    """Validate only the product and dependencies owned by ``phase``."""
-    paths = {
-        "metadata": metadata_path,
-        "census": census_path,
-        "source": source_path,
-        "provisional": provisional_path,
-        "review": review_path,
-        "final": final_path,
-    }
-    if phase not in PHASE_ARGUMENTS:
-        raise ValueError(f"unsupported phase: {phase}")
-    _require_paths(phase, paths)
-
-    errors = []
-    warnings = []
-    report = {"phase": phase}
-
-    if phase == 1:
-        metadata = validation.read_json(metadata_path, "metadata")
-        census = validation.read_json(census_path, "census")
-        errors.extend(f"metadata: {error}" for error in validation.validate_metadata(metadata))
-        errors.extend(f"census: {error}" for error in validation.validate_census(census, metadata))
-        report.update({"census_entries": len(census.get("entries", []))})
-        return errors, warnings, report
-
-    if phase == 2:
-        metadata = validation.read_json(metadata_path, "metadata")
-        census = validation.read_json(census_path, "census")
-        provisional = validation.read_json(provisional_path, "provisional package")
-        source_text = Path(source_path).read_text(encoding="utf-8")
-        package_errors, warnings, package_report = validation.validate_package(
-            provisional,
-            metadata,
-            census,
-            source_text=source_text,
-            require_final=False,
-        )
-        errors.extend(f"provisional: {error}" for error in package_errors)
-        report.update(package_report or {})
-        return errors, warnings, report
-
-    if phase == 3:
-        provisional = validation.read_json(provisional_path, "provisional package")
-        review = validation.read_json(review_path, "Phase 3 review")
-        errors.extend(
-            f"review: {error}"
-            for error in validation.validate_review(review, provisional)
-        )
-        report.update(
-            {
-                "cards": len(provisional.get("cards", [])),
-                "review_results": len(review.get("card_results", [])),
-            }
-        )
-        return errors, warnings, report
-
-    metadata = validation.read_json(metadata_path, "metadata")
-    census = validation.read_json(census_path, "census")
-    provisional = validation.read_json(provisional_path, "approved provisional package")
-    review = validation.read_json(review_path, "Phase 3 review")
-    final = validation.read_json(final_path, "final package")
-
-    errors.extend(
-        f"final lineage: {error}"
-        for error in validation.validate_final_against_provisional(final, provisional)
-    )
-    approved_round = (final.get("audit") or {}).get("approved_round")
-    if approved_round != provisional.get("round"):
-        errors.append("final audit approved_round does not match provisional round")
-    if approved_round != review.get("round"):
-        errors.append("final audit approved_round does not match review round")
-    audit = final.get("audit") or {}
-    if audit.get("audit_model") != review.get("reviewer_model"):
-        errors.append("final audit_model does not match Phase 3 reviewer_model")
-    if audit.get("extraction_model_reviewed") != provisional.get("extraction_model"):
-        errors.append(
-            "final extraction_model_reviewed does not match provisional extraction_model"
-        )
-    if review.get("reviewer_model") == provisional.get("extraction_model"):
-        errors.append("Phase 3 reviewer model must differ from Phase 2 extraction model")
-
-    source_text = Path(source_path).read_text(encoding="utf-8")
-    final_errors, warnings, package_report = validation.validate_package(
-        final,
-        metadata,
-        census,
-        source_text=source_text,
-        require_final=True,
-    )
-    errors.extend(f"final: {error}" for error in final_errors)
-    report.update(package_report or {})
-    return errors, warnings, report
-
-
-def validate_final_files(**paths):
-    """Compatibility wrapper for callers that validate a complete Phase 4 set."""
-    return validate_phase_files(phase=4, **paths)
-
-
-def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", type=int, choices=(1, 2, 3, 4), required=True)
-    for name in ("metadata", "census", "source", "provisional", "review", "final"):
-        parser.add_argument(f"--{name}", type=Path)
-    args = parser.parse_args(argv)
-    provided = {
-        name
-        for name in ("metadata", "census", "source", "provisional", "review", "final")
-        if getattr(args, name) is not None
-    }
-    required = set(PHASE_ARGUMENTS[args.phase])
-    missing = sorted(required - provided)
-    if missing:
-        parser.error(
-            f"phase {args.phase} requires " + ", ".join(f"--{name}" for name in missing)
-        )
-    return args
-
-
-def main(argv=None):
-    args = parse_args(argv)
-    try:
-        errors, warnings, report = validate_phase_files(
-            phase=args.phase,
-            metadata_path=args.metadata,
-            census_path=args.census,
-            source_path=args.source,
-            provisional_path=args.provisional,
-            review_path=args.review,
-            final_path=args.final,
-        )
-    except (OSError, ValueError) as exc:
-        sys.exit(f"PHASE {args.phase} VALIDATION FAILED:\n{exc}")
-    if errors:
-        sys.exit(
-            f"PHASE {args.phase} VALIDATION FAILED:\n" + "\n".join(errors)
-        )
-    for warning in warnings:
-        print(f"warning: {warning}", file=sys.stderr)
-    print(json.dumps({"valid": True, **report}, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()
-```
-<!-- END VERBATIM scripts/final_validation.py -->
-
-<!-- BEGIN VERBATIM scripts/package_validation.py -->
-```python
-#!/usr/bin/env python3
-"""Shared deterministic validation for v0.1.3 working and accepted artefacts."""
-import json
-import re
-from pathlib import Path
-
 from jsonschema import Draft202012Validator, FormatChecker
-from referencing import Registry, Resource
 
-import vocab
-
-ROOT = Path(__file__).resolve().parent.parent
-SCHEMAS = ROOT / "schema"
+PACKAGE_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/ingestion_package_schema.json","title":"Phase 2 provisional or Phase 4 final evidence package","type":"object","required":["schema_version","paper_id","round","extraction_date","extraction_model","publication_type","publication_type_basis","publication_type_verified_by_phase3","genes_covered","diseases_covered","census_entries","cards","evidence","audit"],"additionalProperties":false,"properties":{"schema_version":{"const":"5.0"},"paper_id":{"type":"string","format":"uuid"},"round":{"type":"integer","minimum":1},"extraction_date":{"type":"string","format":"date"},"extraction_model":{"type":"string","minLength":1},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"publication_type_verified_by_phase3":{"type":"boolean"},"genes_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases_covered":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"census_entries":{"type":"integer","minimum":0},"cards":{"type":"array","items":{"$ref":"#/$defs/card"}},"evidence":{"type":"array","items":{"$ref":"#/$defs/evidence"}},"audit":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/audit"}]}},"$defs":{"gene":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\-]*$"},"disease":{"enum":["CHIP","CCUS","MDS","MDS/AML","AML","APL","MDS/MPN","MDS/MPN-U","CMML","aCML","MDS/MPN-SF3B1-T","JMML","MPN","MPN-U","PV","ET","PMF","post-PV/post-ET MF","MPN blast phase","CML","CNL","CEL","mastocytosis","myeloid/lymphoid neoplasm with eosinophilia and TK fusion","BPDCN","germline predisposition syndrome","myeloid neoplasm, unspecified","lymphoid neoplasm","acute leukaemia of ambiguous lineage","histiocytic/dendritic neoplasm","haematological malignancy, other"]},"citation":{"type":"object","required":["display"],"additionalProperties":false,"properties":{"authors":{"type":"array","items":{"type":"string"}},"title":{"type":"string"},"journal":{"type":"string"},"year":{"type":"integer","minimum":1950,"maximum":2100},"volume":{"type":"string"},"issue":{"type":"string"},"pages":{"type":"string"},"display":{"type":"string","minLength":1},"citation_incomplete":{"type":"array","uniqueItems":true,"items":{"type":"string"}}}},"card":{"type":"object","required":["card_id","locator","interpretation","genes","diseases","category","evidence_tier","secondary_citation"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1},"interpretation":{"type":"string","minLength":1},"genes":{"type":"array","minItems":1,"uniqueItems":true,"items":{"$ref":"#/$defs/gene"}},"diseases":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"disease_ancestors":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/disease"}},"category":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]},"evidence_tier":{"enum":["guideline criterion","multivariable-adjusted","univariable or descriptive","restated secondary"]},"secondary_citation":{"anyOf":[{"type":"null"},{"$ref":"#/$defs/citation"}]}},"allOf":[{"if":{"properties":{"category":{"enum":["diagnosis","prognosis","treatment","biomarker"]}},"required":["category"]},"then":{"properties":{"diseases":{"minItems":1}}}}]},"fragment":{"type":"object","required":["fragment_id","role","quote","locator"],"additionalProperties":false,"properties":{"fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"role":{"enum":["claim","scope_heading","column_header","row_header","cell","legend","footnote"]},"quote":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1}}},"support_map":{"type":"object","minProperties":1,"additionalProperties":false,"properties":{"gene":{"$ref":"#/$defs/fragment_ids"},"disease":{"$ref":"#/$defs/fragment_ids"},"role":{"$ref":"#/$defs/fragment_ids"},"population":{"$ref":"#/$defs/fragment_ids"},"effect":{"$ref":"#/$defs/fragment_ids"},"qualifier":{"$ref":"#/$defs/fragment_ids"}}},"fragment_ids":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}},"table_relation":{"type":"object","required":["value_fragment_id","header_fragment_ids","qualifier_fragment_ids"],"additionalProperties":false,"properties":{"value_fragment_id":{"type":"string","pattern":"^F[0-9]{2}$"},"header_fragment_ids":{"$ref":"#/$defs/fragment_ids"},"qualifier_fragment_ids":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^F[0-9]{2}$"}}}},"evidence":{"oneOf":[{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"contiguous_text"},"fragments":{"type":"array","minItems":1,"maxItems":1,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"composite_text"},"fragments":{"type":"array","minItems":2,"maxItems":6,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"}}},{"type":"object","required":["card_id","evidence_type","fragments","support_map","table_relations"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"evidence_type":{"const":"table_relation"},"fragments":{"type":"array","minItems":2,"maxItems":12,"items":{"$ref":"#/$defs/fragment"}},"support_map":{"$ref":"#/$defs/support_map"},"table_relations":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/table_relation"}}}}]},"audit":{"type":"object","required":["audit_date","audit_model","extraction_model_reviewed","approved_round","publication_type_verdict","results"],"additionalProperties":false,"properties":{"audit_date":{"type":"string","format":"date"},"audit_model":{"type":"string","minLength":1},"extraction_model_reviewed":{"type":"string","minLength":1},"approved_round":{"type":"integer","minimum":1},"publication_type_verdict":{"type":"object","required":["verdict","verified_by_phase3"],"additionalProperties":false,"properties":{"verdict":{"enum":["pass","fail"]},"verified_by_phase3":{"const":true},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]},"results":{"type":"array","items":{"type":"object","required":["card_id","verdict"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"verdict":{"enum":["pass","fail"]},"reason":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["reason"]}}]}}}}}}''')
+REVIEW_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/review_schema.json","title":"Phase 3 complete card review","type":"object","required":["schema_version","paper_id","round","review_date","reviewer_model","extraction_model_reviewed","result","audit","card_results"],"additionalProperties":false,"properties":{"schema_version":{"const":"5.0"},"paper_id":{"type":"string","format":"uuid"},"round":{"type":"integer","minimum":1},"review_date":{"type":"string","format":"date"},"reviewer_model":{"type":"string","minLength":1},"extraction_model_reviewed":{"type":"string","minLength":1},"result":{"const":"review_complete"},"audit":{"type":"object","required":["publication_type_verdict","cards_total","cards_passed","cards_failed"],"additionalProperties":false,"properties":{"publication_type_verdict":{"$ref":"#/$defs/publication_type_verdict"},"cards_total":{"type":"integer","minimum":0},"cards_passed":{"type":"integer","minimum":0},"cards_failed":{"type":"integer","minimum":0}}},"card_results":{"type":"array","items":{"$ref":"#/$defs/card_result"}}},"$defs":{"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_verdict":{"type":"object","required":["package_value","auditor_value","verdict","verified_by_phase3","basis"],"additionalProperties":false,"properties":{"package_value":{"$ref":"#/$defs/publication_type"},"auditor_value":{"$ref":"#/$defs/publication_type"},"verdict":{"enum":["pass","fail"]},"verified_by_phase3":{"type":"boolean"},"basis":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"verdict":{"const":"pass"}},"required":["verdict"]},"then":{"properties":{"verified_by_phase3":{"const":true}}}},{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"properties":{"verified_by_phase3":{"const":false}}}}]},"card_result":{"type":"object","required":["card_id","verdict"],"additionalProperties":false,"properties":{"card_id":{"type":"string","minLength":1},"verdict":{"enum":["pass","fail"]},"details":{"$ref":"#/$defs/failure_details"}},"allOf":[{"if":{"properties":{"verdict":{"const":"fail"}},"required":["verdict"]},"then":{"required":["details"]},"else":{"not":{"required":["details"]}}}]},"failure_details":{"type":"object","required":["failure_type","reason","defensibility","suggested_action"],"additionalProperties":false,"properties":{"failure_type":{"enum":["quote_error","unsupported_assertion","material_redundancy","scope_or_qualifier","evidence_relationship","other"]},"reason":{"type":"string","minLength":1},"defensibility":{"type":"string","minLength":1},"quote_restatement":{"type":"string","minLength":1},"suggested_action":{"$ref":"#/$defs/suggested_action"}},"allOf":[{"if":{"properties":{"failure_type":{"const":"quote_error"}},"required":["failure_type"]},"then":{"required":["quote_restatement"]},"else":{"not":{"required":["quote_restatement"]}}}]},"suggested_action":{"type":"object","required":["category","detail"],"additionalProperties":false,"properties":{"category":{"enum":["narrow_disease_scope","replace_evidence","change_category","rewrite_interpretation","split_card","delete_card","add_or_correct_qualifier"]},"detail":{"type":"string","minLength":1}}}}}''')
+UMBRELLA = json.loads(r'''{"MDS/AML":["MDS","AML"],"APL":["AML"],"MDS/MPN":["MDS","MPN"],"MDS/MPN-U":["MDS/MPN"],"CMML":["MDS/MPN"],"aCML":["MDS/MPN"],"MDS/MPN-SF3B1-T":["MDS/MPN"],"MPN-U":["MPN"],"PV":["MPN"],"ET":["MPN"],"PMF":["MPN"],"post-PV/post-ET MF":["MPN"],"MPN blast phase":["MPN"],"CML":["MPN"],"CNL":["MPN"],"CEL":["MPN"],"JMML":["MPN"],"BPDCN":["histiocytic/dendritic neoplasm"]}''')
+DISEASES = list(PACKAGE_SCHEMA["$defs"]["disease"]["enum"])
 DISEASE_DEPENDENT_CATEGORIES = {"diagnosis", "prognosis", "treatment", "biomarker"}
 GENERIC_INTERPRETATION_PATTERNS = (
     "application remains dependent on the source-stated disease context",
@@ -949,6 +764,7 @@ GENERIC_INTERPRETATION_PATTERNS = (
     "does not by itself establish germline origin, clonal chronology, or suitability as a stand-alone mrd marker",
 )
 REFERENCE_ENTRY_RE = re.compile(r"^\s*[-*]?\s*\d{1,4}\.\s+.+\b(?:19|20)\d{2}\s*;", re.IGNORECASE)
+
 
 
 def read_json(path, label="JSON"):
@@ -960,26 +776,21 @@ def read_json(path, label="JSON"):
         raise ValueError(f"invalid {label} in {path}: {exc}") from exc
 
 
-def schema_errors(document, schema_name, label):
-    schema = read_json(SCHEMAS / schema_name, "schema")
-    resources = []
-    for path in SCHEMAS.glob("*_schema.json"):
-        referenced_schema = read_json(path, "schema")
-        if "$id" in referenced_schema:
-            resources.append((referenced_schema["$id"], Resource.from_contents(referenced_schema)))
-    registry = Registry().with_resources(resources)
-    errors = sorted(
-        Draft202012Validator(
-            schema,
-            registry=registry,
-            format_checker=FormatChecker(),
-        ).iter_errors(document),
-        key=lambda error: list(error.absolute_path),
-    )
-    return [
-        f"{label} schema: {'/'.join(str(p) for p in error.absolute_path) or '<root>'}: "
-        f"{error.message}" for error in errors
-    ]
+def disease_ancestors(diseases):
+    requested = set(diseases)
+    ancestors = set()
+    def visit(disease, path):
+        if disease in path:
+            cycle = " -> ".join((*path, disease))
+            raise ValueError(f"disease umbrella cycle: {cycle}")
+        next_path = (*path, disease)
+        for parent in UMBRELLA.get(disease, []):
+            ancestors.add(parent)
+            visit(parent, next_path)
+    for disease in requested:
+        visit(disease, ())
+    ancestors -= requested
+    return [disease for disease in DISEASES if disease in ancestors]
 
 
 def normalise(text, markdown=False):
@@ -994,26 +805,20 @@ def normalise(text, markdown=False):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def validate_metadata(metadata):
-    return schema_errors(metadata, "metadata_schema.json", "metadata")
-
-
-def validate_census(census, metadata=None):
-    errors = schema_errors(census, "census_schema.json", "census")
-    entry_ids = [entry.get("entry_id") for entry in census.get("entries", [])]
-    genes = [entry.get("gene") for entry in census.get("entries", [])]
-    if len(entry_ids) != len(set(entry_ids)):
-        errors.append("census contains duplicate entry_id values")
-    if len(genes) != len(set(genes)):
-        errors.append("census contains duplicate gene entries")
-    if metadata and census.get("paper_id") != metadata.get("paper_id"):
-        errors.append("census paper_id does not match metadata")
-    return errors
+def schema_errors(document, schema, label):
+    errors = sorted(
+        Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(document),
+        key=lambda error: list(error.absolute_path),
+    )
+    return [
+        f"{label} schema: {'/'.join(str(p) for p in error.absolute_path) or '<root>'}: "
+        f"{error.message}" for error in errors
+    ]
 
 
 def validate_review(review, provisional):
     """Validate a complete Phase 3 review against its Phase 2 package."""
-    errors = schema_errors(review, "review_schema.json", "review")
+    errors = schema_errors(review, REVIEW_SCHEMA, "review")
     if errors:
         return errors
 
@@ -1057,7 +862,7 @@ def validate_review(review, provisional):
 
 
 def validate_package(package, metadata, census, source_text=None, require_final=False):
-    errors = schema_errors(package, "ingestion_package_schema.json", "package")
+    errors = schema_errors(package, PACKAGE_SCHEMA, "package")
     warnings = []
     if errors:
         return errors, warnings, None
@@ -1098,7 +903,7 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         if any(pattern in interpretation for pattern in GENERIC_INTERPRETATION_PATTERNS):
             warnings.append(f"{card_id}: interpretation contains generic category boilerplate; review direct evidence support")
         if "disease_ancestors" in card:
-            expected_ancestors = vocab.disease_ancestors(card["diseases"])
+            expected_ancestors = disease_ancestors(card["diseases"])
             if set(card["disease_ancestors"]) != set(expected_ancestors):
                 errors.append(
                     f"{card_id}: disease_ancestors must contain exactly the transitive "
@@ -1242,1075 +1047,106 @@ def validate_final_against_provisional(final, provisional):
     if final.get("extraction_model") != provisional.get("extraction_model"):
         errors.append("final and approved provisional extraction_model values differ")
     return errors
-```
-<!-- END VERBATIM scripts/package_validation.py -->
-
-<!-- BEGIN VERBATIM scripts/vocab.py -->
-```python
-#!/usr/bin/env python3
-"""Single source of truth for closed disease vocabularies and retrieval relations.
-Evidence-card diseases, case-only disease options, taxonomy, categories and evidence
-ranks live in ``schema/disease_vocabulary.json``. Explicit source aliases live in
-``schema/source_disease_aliases.json``; they may map source wording to a canonical
-evidence-card disease but do not extend the output vocabulary. ``umbrella`` remains
-taxonomy only. ``retrieval_related`` is a separate, directional, category-specific
-relation used only by case retrieval.
-"""
-import json
-from pathlib import Path
-SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schema"
-VOCAB_PATH = SCHEMA_DIR / "disease_vocabulary.json"
-SOURCE_DISEASE_ALIASES_PATH = SCHEMA_DIR / "source_disease_aliases.json"
-PACKAGE_SCHEMA_PATH = SCHEMA_DIR / "ingestion_package_schema.json"
-_VOCAB = json.loads(VOCAB_PATH.read_text(encoding="utf-8"))
-DISEASES = list(_VOCAB["diseases"])
-DISEASE_SET = set(DISEASES)
-SOURCE_DISEASE_ALIASES = dict(
-    json.loads(SOURCE_DISEASE_ALIASES_PATH.read_text(encoding="utf-8"))
-)
-_NORMALIZED_SOURCE_DISEASE_ALIASES = {
-    alias.strip().casefold(): target
-    for alias, target in SOURCE_DISEASE_ALIASES.items()
-    if isinstance(alias, str) and alias.strip() and isinstance(target, str)
-}
-CASE_ONLY_DISEASES = list(_VOCAB.get("case_only_diseases", []))
-CASE_ONLY_DISEASE_SET = set(CASE_ONLY_DISEASES)
-CASE_DISEASES = DISEASES + CASE_ONLY_DISEASES
-CASE_DISEASE_SET = set(CASE_DISEASES)
-CASE_ONLY_USAGE = dict(_VOCAB.get("case_only_usage", {}))
-UMBRELLA = {k: list(v) for k, v in _VOCAB["umbrella"].items()}
-RETRIEVAL_RELATED = {
-    disease: {category: list(targets) for category, targets in categories.items()}
-    for disease, categories in _VOCAB.get("retrieval_related", {}).items()
-}
-CATEGORIES = list(_VOCAB["categories"])
-EVIDENCE_TIERS = list(_VOCAB["evidence_tiers_strongest_first"])
-PUBLICATION_TYPES = list(_VOCAB["publication_types"])
-DISEASE_NAMING_EXPECTED = set(_VOCAB["disease_naming_expected"])
-# Render and truncation order. Strongest tier first; truncation eats the tail.
-TIER_RANK = {tier: i for i, tier in enumerate(EVIDENCE_TIERS)}
-CATEGORY_RANK = {category: i for i, category in enumerate(CATEGORIES)}
-UNSPECIFIED_DISEASE = "myeloid neoplasm, unspecified"
-NO_HAEMATOLOGICAL_MALIGNANCY = "no_haematological_malignancy"
 
 
-def canonical_source_disease(term):
-    """Resolve a canonical disease or an exact configured source alias.
-    Alias matching ignores surrounding whitespace and letter case only. It does not
-    perform fuzzy matching, stemming, punctuation changes, or nearest-term mapping.
-    ``None`` means the source term is outside the controlled vocabulary and aliases.
-    """
-    if not isinstance(term, str):
-        return None
-    normalized = term.strip()
-    if normalized in DISEASE_SET:
-        return normalized
-    return _NORMALIZED_SOURCE_DISEASE_ALIASES.get(normalized.casefold())
+def validate_review_files(*, provisional_path, review_path):
+    provisional = read_json(provisional_path, "provisional package")
+    review = read_json(review_path, "Phase 3 review")
+    errors = [f"review: {error}" for error in validate_review(review, provisional)]
+    return errors, [], {
+        "phase": 3,
+        "cards": len(provisional.get("cards", [])),
+        "review_results": len(review.get("card_results", [])),
+    }
 
 
-def disease_ancestors(diseases):
-    """Return all broader taxonomic ancestors in canonical vocabulary order.
-
-    Card ``diseases`` are exact clinical applicability values. Ancestors are
-    derived separately for broad corpus indexing so that, for example, a CMML
-    card can be discovered under MDS/MPN, MDS, and MPN without becoming
-    clinically applicable to every generic MDS or MPN case.
-    """
-    requested = set(diseases)
-    ancestors = set()
-    def visit(disease, path):
-        if disease in path:
-            cycle = " -> ".join((*path, disease))
-            raise ValueError(f"disease umbrella cycle: {cycle}")
-        next_path = (*path, disease)
-        for parent in UMBRELLA.get(disease, []):
-            ancestors.add(parent)
-            visit(parent, next_path)
-
-    for disease in requested:
-        visit(disease, ())
-    ancestors -= requested
-    return [disease for disease in DISEASES if disease in ancestors]
-
-
-def retrieval_related_diseases(disease, category):
-    """Return direct related diseases configured for one case disease/category.
-
-    This relation is intentionally non-transitive and directional. Taxonomic
-    ``umbrella`` ancestors are not consulted.
-    """
-    return list(RETRIEVAL_RELATED.get(disease, {}).get(category, []))
-
-
-def missing_umbrellas(diseases):
-    """Backward-compatible alias for ancestors absent from an expanded tag set."""
-    tagged = set(diseases)
-    return [disease for disease in disease_ancestors(diseases) if disease not in tagged]
-
-
-def check_vocabulary_consistency():
-    """Fail loudly if schemas or configured relationships drift from the vocabulary."""
-    schema = json.loads(PACKAGE_SCHEMA_PATH.read_text(encoding="utf-8"))
-    enum = schema["$defs"]["disease"]["enum"]
-    problems = []
-    if list(enum) != DISEASES:
-        problems.append(
-            "ingestion_package_schema.json disease enum differs from disease_vocabulary.json"
+def validate_phase_files(
+    *, metadata_path, census_path, source_path, provisional_path, review_path, final_path
+):
+    metadata = read_json(metadata_path, "metadata")
+    census = read_json(census_path, "census")
+    provisional = read_json(provisional_path, "approved provisional package")
+    review = read_json(review_path, "Phase 3 review")
+    final = read_json(final_path, "final package")
+    errors = [
+        f"final lineage: {error}"
+        for error in validate_final_against_provisional(final, provisional)
+    ]
+    approved_round = (final.get("audit") or {}).get("approved_round")
+    if approved_round != provisional.get("round"):
+        errors.append("final audit approved_round does not match provisional round")
+    if approved_round != review.get("round"):
+        errors.append("final audit approved_round does not match review round")
+    audit = final.get("audit") or {}
+    if audit.get("audit_model") != review.get("reviewer_model"):
+        errors.append("final audit_model does not match Phase 3 reviewer_model")
+    if audit.get("extraction_model_reviewed") != provisional.get("extraction_model"):
+        errors.append(
+            "final extraction_model_reviewed does not match provisional extraction_model"
         )
-    normalized_aliases = set()
-    canonical_casefold = {disease.casefold() for disease in DISEASES}
-    for alias, target in SOURCE_DISEASE_ALIASES.items():
-        if not isinstance(alias, str) or not alias.strip():
-            problems.append("source disease aliases must be non-empty strings")
-            continue
-        normalized_alias = alias.strip().casefold()
-        if normalized_alias in normalized_aliases:
-            problems.append(
-                f"source disease alias {alias!r} duplicates another alias after normalization"
+    if review.get("reviewer_model") == provisional.get("extraction_model"):
+        errors.append("Phase 3 reviewer model must differ from Phase 2 extraction model")
+    source_text = Path(source_path).read_text(encoding="utf-8")
+    final_errors, warnings, report = validate_package(
+        final, metadata, census, source_text=source_text, require_final=True
+    )
+    errors.extend(f"final: {error}" for error in final_errors)
+    phase_report = {"phase": 4}
+    phase_report.update(report or {})
+    return errors, warnings, phase_report
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--review-only", action="store_true")
+    parser.add_argument("--metadata", type=Path)
+    parser.add_argument("--census", type=Path)
+    parser.add_argument("--source", type=Path)
+    parser.add_argument("--provisional", type=Path, required=True)
+    parser.add_argument("--review", type=Path, required=True)
+    parser.add_argument("--final", type=Path)
+    args = parser.parse_args(argv)
+    required = () if args.review_only else ("metadata", "census", "source", "final")
+    missing = [name for name in required if getattr(args, name) is None]
+    if missing:
+        parser.error("Phase 4 exit validation requires " + ", ".join(f"--{name}" for name in missing))
+    return args
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        if args.review_only:
+            errors, warnings, report = validate_review_files(
+                provisional_path=args.provisional, review_path=args.review
             )
-        normalized_aliases.add(normalized_alias)
-        if normalized_alias in canonical_casefold:
-            problems.append(
-                f"source disease alias {alias!r} collides with a canonical disease"
+            label = "PHASE 4 ENTRY"
+        else:
+            errors, warnings, report = validate_phase_files(
+                metadata_path=args.metadata,
+                census_path=args.census,
+                source_path=args.source,
+                provisional_path=args.provisional,
+                review_path=args.review,
+                final_path=args.final,
             )
-        if target not in DISEASE_SET:
-            problems.append(
-                f"source disease alias {alias!r} targets non-canonical disease {target!r}"
-            )
-    overlap = DISEASE_SET & CASE_ONLY_DISEASE_SET
-    if overlap:
-        problems.append(
-            "case-only diseases overlap evidence-card diseases: " + ", ".join(sorted(overlap))
-        )
-    for disease in CASE_ONLY_DISEASES:
-        if disease not in CASE_ONLY_USAGE:
-            problems.append(f"case-only disease {disease!r} has no usage rule")
-    for disease in CASE_ONLY_USAGE:
-        if disease not in CASE_ONLY_DISEASE_SET:
-            problems.append(f"case-only usage rule {disease!r} has no case-only disease")
-    for term in UMBRELLA:
-        if term not in DISEASE_SET:
-            problems.append(f"umbrella key {term!r} is not in the disease vocabulary")
-    for parents in UMBRELLA.values():
-        for parent in parents:
-            if parent not in DISEASE_SET:
-                problems.append(f"umbrella target {parent!r} is not in the vocabulary")
-    for disease in UMBRELLA:
-        try:
-            disease_ancestors([disease])
-        except ValueError as exc:
-            problems.append(str(exc))
-    for disease, categories in RETRIEVAL_RELATED.items():
-        if disease not in DISEASE_SET:
-            problems.append(
-                f"retrieval_related key {disease!r} is not an evidence-card disease"
-            )
-        if not isinstance(categories, dict):
-            problems.append(f"retrieval_related[{disease!r}] must be an object")
-            continue
-        for category, targets in categories.items():
-            if category not in DISEASE_NAMING_EXPECTED:
-                problems.append(
-                    f"retrieval_related[{disease!r}] category {category!r} is not disease-filtered"
-                )
-            if len(targets) != len(set(targets)):
-                problems.append(
-                    f"retrieval_related[{disease!r}][{category!r}] contains duplicates"
-                )
-            for target in targets:
-                if target not in DISEASE_SET:
-                    problems.append(
-                        f"retrieval_related target {target!r} is not an evidence-card disease"
-                    )
-                if target == disease:
-                    problems.append(
-                        f"retrieval_related[{disease!r}][{category!r}] contains itself"
-                    )
-    return problems
+            label = "PHASE 4"
+    except (OSError, ValueError) as exc:
+        sys.exit(f"{label if 'label' in locals() else 'PHASE 4'} VALIDATION FAILED:\n{exc}")
+    if errors:
+        sys.exit(f"{label} VALIDATION FAILED:\n" + "\n".join(errors))
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    print(json.dumps({"valid": True, **report}, sort_keys=True))
 
 
 if __name__ == "__main__":
-    issues = check_vocabulary_consistency()
-    if issues:
-        for issue in issues:
-            print("  -", issue)
-        raise SystemExit(1)
-    relation_count = sum(
-        len(targets)
-        for categories in RETRIEVAL_RELATED.values()
-        for targets in categories.values()
-    )
-    print(
-        f"OK: {len(DISEASES)} evidence-card diseases, "
-        f"{len(CASE_ONLY_DISEASES)} case-only diseases, {len(CATEGORIES)} categories, "
-        f"{len(EVIDENCE_TIERS)} evidence tiers, {relation_count} retrieval relations"
-    )
+    main()
 ```
-<!-- END VERBATIM scripts/vocab.py -->
-
-<!-- BEGIN VERBATIM schema/accepted_package_schema.json -->
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://local/ngs_evidence_layer/accepted_package_schema.json",
-  "title": "Portable accepted evidence package",
-  "description": "The confirm-produced envelope consumed by incorporation. Manual submissions must use this same shape.",
-  "type": "object",
-  "required": [
-    "schema_version",
-    "acceptance_path",
-    "accepted_at",
-    "accepted_at_source",
-    "accepted_in_version",
-    "metadata",
-    "final"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "schema_version": { "enum": ["1.2", "1.3", "1.4"] },
-    "acceptance_path": { "enum": ["confirmed", "manual-or-unverified"] },
-    "accepted_at": { "type": "string", "format": "date-time" },
-    "accepted_at_source": { "enum": ["confirm", "file-mtime"] },
-    "accepted_in_version": { "type": "string", "minLength": 1 },
-    "version_history": {
-      "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": { "type": "string", "minLength": 1 }
-    },
-    "latest_version": { "type": "string", "minLength": 1 },
-    "metadata": { "$ref": "metadata_schema.json" },
-    "final": { "$ref": "ingestion_package_schema.json" },
-    "supplements": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/supplement" }
-    },
-    "revisions": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/revision" }
-    }
-  },
-  "allOf": [
-    {
-      "if": { "required": ["supplements"] },
-      "then": { "properties": { "schema_version": { "enum": ["1.3", "1.4"] } } }
-    },
-    {
-      "if": { "required": ["revisions"] },
-      "then": { "properties": { "schema_version": { "const": "1.4" } } }
-    }
-  ],
-  "$defs": {
-    "supplement": {
-      "type": "object",
-      "required": [
-        "phase",
-        "supplement",
-        "accepted_at",
-        "accepted_in_version",
-        "base_final_sha256",
-        "base_census_sha256",
-        "added_card_ids",
-        "extraction_model",
-        "reviewer_model"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "phase": { "const": 5 },
-        "supplement": { "type": "integer", "minimum": 1 },
-        "accepted_at": { "type": "string", "format": "date-time" },
-        "accepted_in_version": { "type": "string", "minLength": 1 },
-        "base_final_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "base_census_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "added_card_ids": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
-        },
-        "extraction_model": { "type": "string", "minLength": 1 },
-        "reviewer_model": { "type": "string", "minLength": 1 }
-      }
-    },
-    "revision": {
-      "type": "object",
-      "required": [
-        "phase",
-        "revision",
-        "accepted_at",
-        "accepted_in_version",
-        "base_final_sha256",
-        "base_census_sha256",
-        "revised_card_ids",
-        "extraction_model",
-        "reviewer_model"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "phase": { "const": 5 },
-        "revision": { "type": "integer", "minimum": 1 },
-        "accepted_at": { "type": "string", "format": "date-time" },
-        "accepted_in_version": { "type": "string", "minLength": 1 },
-        "base_final_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "base_census_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "revised_card_ids": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
-        },
-        "extraction_model": { "type": "string", "minLength": 1 },
-        "reviewer_model": { "type": "string", "minLength": 1 }
-      }
-    }
-  }
-}
-```
-<!-- END VERBATIM schema/accepted_package_schema.json -->
-
-<!-- BEGIN VERBATIM schema/census_schema.json -->
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://local/ngs_evidence_layer/census_schema.json",
-  "title": "Publication census (Phase 1)",
-  "description": "One entry per gene about which the publication makes a claim. The census is the completeness contract: it is what makes under-extraction countable.",
-  "type": "object",
-  "required": [
-    "schema_version",
-    "paper_id",
-    "census_date",
-    "census_model",
-    "publication_type",
-    "publication_type_basis",
-    "entries",
-    "geneless_statements",
-    "validation_unresolved"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "schema_version": { "const": "3.1" },
-    "paper_id": { "type": "string", "format": "uuid" },
-    "census_date": { "type": "string", "format": "date" },
-    "census_model": { "type": "string", "minLength": 1 },
-    "publication_type": {
-      "enum": [
-        "guideline",
-        "consensus statement",
-        "primary study",
-        "systematic review",
-        "narrative review",
-        "other"
-      ]
-    },
-    "publication_type_basis": { "type": "string", "minLength": 1 },
-    "supplement_flags": {
-      "type": "array",
-      "description": "Critical values referenced by the main text but living in supplementary material. Record, do not refuse.",
-      "items": {
-        "type": "object",
-        "required": ["locator", "missing_value"],
-        "additionalProperties": false,
-        "properties": {
-          "locator": { "type": "string" },
-          "missing_value": { "type": "string" }
-        }
-      }
-    },
-    "entries": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["entry_id", "gene", "locators", "categories"],
-        "additionalProperties": false,
-        "properties": {
-          "entry_id": { "type": "string", "minLength": 1 },
-          "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
-          "locators": {
-            "type": "array",
-            "minItems": 1,
-            "description": "Sections, tables and table footnotes where the publication makes a claim about this gene.",
-            "items": { "type": "string", "minLength": 1 }
-          },
-          "categories": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "enum": [
-                "diagnosis",
-                "prognosis",
-                "treatment",
-                "biomarker",
-                "germline"
-              ]
-            }
-          }
-        }
-      }
-    },
-    "geneless_statements": {
-      "type": "array",
-      "description": "Rule-relevant statements with no gene attached. Recorded for visibility, not for carding.",
-      "items": {
-        "type": "object",
-        "required": ["locator", "summary"],
-        "additionalProperties": false,
-        "properties": {
-          "locator": { "type": "string", "minLength": 1 },
-          "summary": { "type": "string", "minLength": 1 }
-        }
-      }
-    },
-    "validation_unresolved": {
-      "type": "array",
-      "description": "Specific Phase 1 exit-validation defects still unresolved after the third pass.",
-      "items": { "type": "string", "minLength": 1 }
-    }
-  }
-}
-```
-<!-- END VERBATIM schema/census_schema.json -->
-
-<!-- BEGIN VERBATIM schema/disease_vocabulary.json -->
-```json
-{
-  "vocabulary_version": "1.5",
-  "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
-  "diseases": [
-    "CHIP",
-    "CCUS",
-    "MDS",
-    "MDS/AML",
-    "AML",
-    "APL",
-    "MDS/MPN",
-    "MDS/MPN-U",
-    "CMML",
-    "aCML",
-    "MDS/MPN-SF3B1-T",
-    "JMML",
-    "MPN",
-    "MPN-U",
-    "PV",
-    "ET",
-    "PMF",
-    "post-PV/post-ET MF",
-    "MPN blast phase",
-    "CML",
-    "CNL",
-    "CEL",
-    "mastocytosis",
-    "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-    "BPDCN",
-    "germline predisposition syndrome",
-    "myeloid neoplasm, unspecified",
-    "lymphoid neoplasm",
-    "acute leukaemia of ambiguous lineage",
-    "histiocytic/dendritic neoplasm",
-    "haematological malignancy, other"
-  ],
-  "case_only_diseases": [
-    "no_haematological_malignancy"
-  ],
-  "case_only_usage": {
-    "no_haematological_malignancy": "Use only when the case stem does not specify a haematological malignancy and the NGS result block contains no variants."
-  },
-  "umbrella": {
-    "MDS/AML": ["MDS", "AML"],
-    "APL": ["AML"],
-    "MDS/MPN": ["MDS", "MPN"],
-    "MDS/MPN-U": ["MDS/MPN"],
-    "CMML": ["MDS/MPN"],
-    "aCML": ["MDS/MPN"],
-    "MDS/MPN-SF3B1-T": ["MDS/MPN"],
-    "MPN-U": ["MPN"],
-    "PV": ["MPN"],
-    "ET": ["MPN"],
-    "PMF": ["MPN"],
-    "post-PV/post-ET MF": ["MPN"],
-    "MPN blast phase": ["MPN"],
-    "CML": ["MPN"],
-    "CNL": ["MPN"],
-    "CEL": ["MPN"],
-    "JMML": ["MPN"],
-    "BPDCN": ["histiocytic/dendritic neoplasm"]
-  },
-  "retrieval_related": {
-    "MDS": {
-      "diagnosis": ["CCUS", "CHIP"],
-      "prognosis": ["CCUS", "CHIP"],
-      "biomarker": ["CCUS", "CHIP"]
-    },
-    "CCUS": {
-      "diagnosis": ["CHIP", "MDS"],
-      "prognosis": ["CHIP", "MDS"],
-      "biomarker": ["CHIP", "MDS"]
-    },
-    "CHIP": {
-      "diagnosis": ["CCUS"],
-      "biomarker": ["CCUS"]
-    },
-    "MDS/AML": {
-      "diagnosis": ["MDS", "AML"],
-      "prognosis": ["MDS", "AML"],
-      "treatment": ["MDS", "AML"],
-      "biomarker": ["MDS", "AML"]
-    },
-    "APL": {
-      "diagnosis": ["AML"],
-      "biomarker": ["AML"]
-    },
-    "MDS/MPN": {
-      "diagnosis": ["MDS", "MPN"],
-      "prognosis": ["MDS", "MPN"],
-      "treatment": ["MDS", "MPN"],
-      "biomarker": ["MDS", "MPN"]
-    },
-    "MDS/MPN-U": {
-      "diagnosis": ["MDS/MPN", "MDS", "MPN"],
-      "prognosis": ["MDS/MPN", "MDS", "MPN"],
-      "treatment": ["MDS/MPN", "MDS", "MPN"],
-      "biomarker": ["MDS/MPN", "MDS", "MPN"]
-    },
-    "CMML": {
-      "diagnosis": ["MDS/MPN", "MDS"],
-      "prognosis": ["MDS/MPN", "MDS"],
-      "biomarker": ["MDS/MPN", "MDS"]
-    },
-    "aCML": {
-      "diagnosis": ["MDS/MPN", "MPN", "CNL"],
-      "prognosis": ["MDS/MPN", "MPN"],
-      "treatment": ["MDS/MPN", "MPN"],
-      "biomarker": ["MDS/MPN", "MPN", "CNL"]
-    },
-    "MDS/MPN-SF3B1-T": {
-      "diagnosis": ["MDS/MPN", "MDS", "ET"],
-      "prognosis": ["MDS/MPN", "MDS", "ET"],
-      "biomarker": ["MDS/MPN", "MDS", "ET"]
-    },
-    "MPN-U": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
-    },
-    "PV": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
-    },
-    "ET": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
-    },
-    "PMF": {
-      "diagnosis": ["MPN", "post-PV/post-ET MF"],
-      "prognosis": ["MPN", "post-PV/post-ET MF"],
-      "biomarker": ["MPN", "post-PV/post-ET MF"]
-    },
-    "post-PV/post-ET MF": {
-      "diagnosis": ["PMF", "MPN"],
-      "prognosis": ["PMF", "MPN"],
-      "treatment": ["PMF", "MPN"],
-      "biomarker": ["PMF", "MPN"]
-    },
-    "MPN blast phase": {
-      "diagnosis": ["AML", "MPN"],
-      "prognosis": ["AML", "MPN"],
-      "treatment": ["AML", "MPN"],
-      "biomarker": ["AML", "MPN"]
-    },
-    "CNL": {
-      "diagnosis": ["MPN", "aCML"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN", "aCML"]
-    },
-    "CEL": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
-    }
-  },
-  "categories": [
-    "diagnosis",
-    "prognosis",
-    "treatment",
-    "biomarker",
-    "germline"
-  ],
-  "evidence_tiers_strongest_first": [
-    "guideline criterion",
-    "multivariable-adjusted",
-    "univariable or descriptive",
-    "restated secondary"
-  ],
-  "publication_types": [
-    "guideline",
-    "consensus statement",
-    "primary study",
-    "systematic review",
-    "narrative review",
-    "other"
-  ],
-  "disease_naming_expected": [
-    "diagnosis",
-    "prognosis",
-    "treatment",
-    "biomarker"
-  ]
-}
-```
-<!-- END VERBATIM schema/disease_vocabulary.json -->
-
-<!-- BEGIN VERBATIM schema/ingestion_package_schema.json -->
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://local/ngs_evidence_layer/ingestion_package_schema.json",
-  "title": "Phase 2 provisional or Phase 4 final evidence package",
-  "type": "object",
-  "required": ["schema_version", "paper_id", "round", "extraction_date", "extraction_model", "publication_type", "publication_type_basis", "publication_type_verified_by_phase3", "genes_covered", "diseases_covered", "census_entries", "cards", "evidence", "audit"],
-  "additionalProperties": false,
-  "properties": {
-    "schema_version": { "const": "5.0" },
-    "paper_id": { "type": "string", "format": "uuid" },
-    "round": { "type": "integer", "minimum": 1 },
-    "extraction_date": { "type": "string", "format": "date" },
-    "extraction_model": { "type": "string", "minLength": 1 },
-    "publication_type": {
-      "enum": ["guideline", "consensus statement", "primary study", "systematic review", "narrative review", "other"]
-    },
-    "publication_type_basis": { "type": "string", "minLength": 1 },
-    "publication_type_verified_by_phase3": { "type": "boolean" },
-    "genes_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
-    "diseases_covered": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
-    "census_entries": { "type": "integer", "minimum": 0 },
-    "cards": { "type": "array", "items": { "$ref": "#/$defs/card" } },
-    "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } },
-    "audit": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/audit" }] }
-  },
-  "$defs": {
-    "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
-    "disease": {
-      "enum": ["CHIP", "CCUS", "MDS", "MDS/AML", "AML", "APL", "MDS/MPN", "MDS/MPN-U", "CMML", "aCML", "MDS/MPN-SF3B1-T", "JMML", "MPN", "MPN-U", "PV", "ET", "PMF", "post-PV/post-ET MF", "MPN blast phase", "CML", "CNL", "CEL", "mastocytosis", "myeloid/lymphoid neoplasm with eosinophilia and TK fusion", "BPDCN", "germline predisposition syndrome", "myeloid neoplasm, unspecified", "lymphoid neoplasm", "acute leukaemia of ambiguous lineage", "histiocytic/dendritic neoplasm", "haematological malignancy, other"]
-    },
-    "citation": {
-      "type": "object", "required": ["display"], "additionalProperties": false,
-      "properties": {
-        "authors": { "type": "array", "items": { "type": "string" } }, "title": { "type": "string" },
-        "journal": { "type": "string" }, "year": { "type": "integer", "minimum": 1950, "maximum": 2100 },
-        "volume": { "type": "string" }, "issue": { "type": "string" }, "pages": { "type": "string" },
-        "display": { "type": "string", "minLength": 1 },
-        "citation_incomplete": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
-      }
-    },
-    "card": {
-      "type": "object",
-      "required": ["card_id", "locator", "interpretation", "genes", "diseases", "category", "evidence_tier", "secondary_citation"],
-      "additionalProperties": false,
-      "properties": {
-        "card_id": { "type": "string", "minLength": 1 }, "locator": { "type": "string", "minLength": 1 },
-        "interpretation": { "type": "string", "minLength": 1 },
-        "genes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/gene" } },
-        "diseases": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
-        "disease_ancestors": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/disease" } },
-        "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker", "germline"] },
-        "evidence_tier": { "enum": ["guideline criterion", "multivariable-adjusted", "univariable or descriptive", "restated secondary"] },
-        "secondary_citation": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/citation" }] }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": { "category": { "enum": ["diagnosis", "prognosis", "treatment", "biomarker"] } },
-            "required": ["category"]
-          },
-          "then": { "properties": { "diseases": { "minItems": 1 } } }
-        }
-      ]
-    },
-    "fragment": {
-      "type": "object",
-      "required": ["fragment_id", "role", "quote", "locator"],
-      "additionalProperties": false,
-      "properties": {
-        "fragment_id": { "type": "string", "pattern": "^F[0-9]{2}$" },
-        "role": { "enum": ["claim", "scope_heading", "column_header", "row_header", "cell", "legend", "footnote"] },
-        "quote": { "type": "string", "minLength": 1 },
-        "locator": { "type": "string", "minLength": 1 }
-      }
-    },
-    "support_map": {
-      "type": "object",
-      "minProperties": 1,
-      "additionalProperties": false,
-      "properties": {
-        "gene": { "$ref": "#/$defs/fragment_ids" },
-        "disease": { "$ref": "#/$defs/fragment_ids" },
-        "role": { "$ref": "#/$defs/fragment_ids" },
-        "population": { "$ref": "#/$defs/fragment_ids" },
-        "effect": { "$ref": "#/$defs/fragment_ids" },
-        "qualifier": { "$ref": "#/$defs/fragment_ids" }
-      }
-    },
-    "fragment_ids": {
-      "type": "array", "minItems": 1, "uniqueItems": true,
-      "items": { "type": "string", "pattern": "^F[0-9]{2}$" }
-    },
-    "table_relation": {
-      "type": "object",
-      "required": ["value_fragment_id", "header_fragment_ids", "qualifier_fragment_ids"],
-      "additionalProperties": false,
-      "properties": {
-        "value_fragment_id": { "type": "string", "pattern": "^F[0-9]{2}$" },
-        "header_fragment_ids": { "$ref": "#/$defs/fragment_ids" },
-        "qualifier_fragment_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^F[0-9]{2}$" } }
-      }
-    },
-    "evidence": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["card_id", "evidence_type", "fragments", "support_map"],
-          "additionalProperties": false,
-          "properties": {
-            "card_id": { "type": "string", "minLength": 1 },
-            "evidence_type": { "const": "contiguous_text" },
-            "fragments": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/fragment" } },
-            "support_map": { "$ref": "#/$defs/support_map" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["card_id", "evidence_type", "fragments", "support_map"],
-          "additionalProperties": false,
-          "properties": {
-            "card_id": { "type": "string", "minLength": 1 },
-            "evidence_type": { "const": "composite_text" },
-            "fragments": { "type": "array", "minItems": 2, "maxItems": 6, "items": { "$ref": "#/$defs/fragment" } },
-            "support_map": { "$ref": "#/$defs/support_map" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["card_id", "evidence_type", "fragments", "support_map", "table_relations"],
-          "additionalProperties": false,
-          "properties": {
-            "card_id": { "type": "string", "minLength": 1 },
-            "evidence_type": { "const": "table_relation" },
-            "fragments": { "type": "array", "minItems": 2, "maxItems": 12, "items": { "$ref": "#/$defs/fragment" } },
-            "support_map": { "$ref": "#/$defs/support_map" },
-            "table_relations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/table_relation" } }
-          }
-        }
-      ]
-    },
-    "audit": {
-      "type": "object", "required": ["audit_date", "audit_model", "extraction_model_reviewed", "approved_round", "publication_type_verdict", "results"], "additionalProperties": false,
-      "properties": {
-        "audit_date": { "type": "string", "format": "date" }, "audit_model": { "type": "string", "minLength": 1 },
-        "extraction_model_reviewed": { "type": "string", "minLength": 1 }, "approved_round": { "type": "integer", "minimum": 1 },
-        "publication_type_verdict": {
-          "type": "object",
-          "required": ["verdict", "verified_by_phase3"],
-          "additionalProperties": false,
-          "properties": {
-            "verdict": { "enum": ["pass", "fail"] },
-            "verified_by_phase3": { "const": true },
-            "reason": { "type": "string", "minLength": 1 }
-          },
-          "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]
-        },
-        "results": {
-          "type": "array", "items": {
-            "type": "object", "required": ["card_id", "verdict"], "additionalProperties": false,
-            "properties": { "card_id": { "type": "string", "minLength": 1 }, "verdict": { "enum": ["pass", "fail"] }, "reason": { "type": "string", "minLength": 1 } },
-            "allOf": [{ "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] }, "then": { "required": ["reason"] } }]
-          }
-        }
-      }
-    }
-  }
-}
-```
-<!-- END VERBATIM schema/ingestion_package_schema.json -->
-
-<!-- BEGIN VERBATIM schema/metadata_schema.json -->
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://local/ngs_evidence_layer/metadata_schema.json",
-  "title": "Publication metadata",
-  "description": "Publication metadata used in working and archived packages. Confirmation overwrite history is optional for working-package compatibility.",
-  "type": "object",
-  "required": [
-    "schema_version",
-    "paper_id",
-    "corpus",
-    "stem",
-    "publication_key",
-    "citation",
-    "citation_source",
-    "citation_resolved_at",
-    "source_filename",
-    "source_sha256",
-    "markdown_sha256",
-    "created_at"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "schema_version": { "const": "1.1" },
-    "paper_id": { "type": "string", "format": "uuid" },
-    "corpus": { "type": "string", "minLength": 1 },
-    "stem": { "type": "string", "minLength": 1 },
-    "publication_key": {
-      "type": "string",
-      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
-    },
-    "citation": { "$ref": "#/$defs/citation" },
-    "citation_source": {
-      "enum": ["crossref-doi", "model-supplied-doi", "operator"]
-    },
-    "citation_resolved_at": {
-      "anyOf": [
-        { "type": "string", "format": "date-time" },
-        { "type": "null" }
-      ]
-    },
-    "source_filename": { "type": "string", "minLength": 1 },
-    "source_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
-    "markdown_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "created_at": { "type": "string", "format": "date-time" },
-    "version_history": {
-      "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": { "type": "string", "minLength": 1 }
-    },
-    "latest_version": { "type": "string", "minLength": 1 }
-  },
-  "$defs": {
-    "citation": {
-      "type": "object",
-      "required": [
-        "authors",
-        "title",
-        "journal",
-        "year",
-        "volume",
-        "issue",
-        "pages",
-        "doi",
-        "display",
-        "citation_incomplete"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "authors": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "type": "string", "minLength": 1 }
-        },
-        "title": { "type": "string", "minLength": 1 },
-        "journal": { "type": "string" },
-        "year": { "type": "integer", "minimum": 1950, "maximum": 2100 },
-        "month": { "type": "string" },
-        "volume": { "type": "string" },
-        "issue": { "type": "string" },
-        "pages": { "type": "string" },
-        "doi": { "type": "string" },
-        "display": { "type": "string", "minLength": 1 },
-        "citation_incomplete": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
-        }
-      }
-    }
-  }
-}
-```
-<!-- END VERBATIM schema/metadata_schema.json -->
-
-<!-- BEGIN VERBATIM schema/publication_type_vocabulary.json -->
-```json
-{
-  "vocabulary_version": "1.0",
-  "note": "Closed semantic publication taxonomy. Journal article labels are evidence, not additional values.",
-  "types": [
-    {
-      "value": "guideline",
-      "definition": "Formal practice recommendations developed using an explicit guideline process, such as evidence appraisal, recommendation formulation, or recommendation grading.",
-      "excludes": "Do not use solely because an expert group gives advice or classification criteria without a formal guideline-development method."
-    },
-    {
-      "value": "consensus statement",
-      "definition": "An expert group's agreed classification, definitions, criteria, terminology, or recommendations without the formal methodology required for a guideline.",
-      "excludes": "Supporting analyses or literature summaries do not make the paper a primary study or review when the main contribution is the group's agreed position."
-    },
-    {
-      "value": "primary study",
-      "definition": "The principal purpose is to report original empirical data from a cohort, experiment, assay evaluation, or trial.",
-      "excludes": "Do not use for a consensus or guideline paper merely because it contains supporting analyses or examples."
-    },
-    {
-      "value": "systematic review",
-      "definition": "An evidence synthesis with an explicit, reproducible literature-search and study-selection method; a meta-analysis is included when present.",
-      "excludes": "Do not use for an unstructured literature overview."
-    },
-    {
-      "value": "narrative review",
-      "definition": "A literature overview without systematic-review methods and without an authoritative group consensus as its primary purpose.",
-      "excludes": "Do not use when the primary contribution is agreed classification criteria, terminology, or recommendations."
-    },
-    {
-      "value": "other",
-      "definition": "None of the other five semantic types fits the paper's primary purpose.",
-      "excludes": "Use only after applying the definitions and precedence rules; do not use merely because the publisher supplies a different article-format label."
-    }
-  ],
-  "precedence": [
-    "Classify the paper's primary purpose, not merely its journal banner, section name, or publisher article-format label.",
-    "Explicit formal guideline-development methodology takes guideline precedence.",
-    "Group-authored agreed classification, criteria, definitions, or terminology takes consensus statement precedence when formal guideline methodology is absent; expert classification systems such as ICC normally fit here.",
-    "Original empirical research takes primary study precedence only when it is the paper's main contribution.",
-    "An explicit reproducible search and study-selection method identifies a systematic review.",
-    "Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.",
-    "Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods."
-  ]
-}
-```
-<!-- END VERBATIM schema/publication_type_vocabulary.json -->
-
-<!-- BEGIN VERBATIM schema/review_schema.json -->
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://local/ngs_evidence_layer/review_schema.json",
-  "title": "Phase 3 complete card review",
-  "type": "object",
-  "required": ["schema_version", "paper_id", "round", "review_date", "reviewer_model", "extraction_model_reviewed", "result", "audit", "card_results"],
-  "additionalProperties": false,
-  "properties": {
-    "schema_version": { "const": "5.0" },
-    "paper_id": { "type": "string", "format": "uuid" },
-    "round": { "type": "integer", "minimum": 1 },
-    "review_date": { "type": "string", "format": "date" },
-    "reviewer_model": { "type": "string", "minLength": 1 },
-    "extraction_model_reviewed": { "type": "string", "minLength": 1 },
-    "result": { "const": "review_complete" },
-    "audit": {
-      "type": "object",
-      "required": ["publication_type_verdict", "cards_total", "cards_passed", "cards_failed"],
-      "additionalProperties": false,
-      "properties": {
-        "publication_type_verdict": { "$ref": "#/$defs/publication_type_verdict" },
-        "cards_total": { "type": "integer", "minimum": 0 },
-        "cards_passed": { "type": "integer", "minimum": 0 },
-        "cards_failed": { "type": "integer", "minimum": 0 }
-      }
-    },
-    "card_results": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/card_result" }
-    }
-  },
-  "$defs": {
-    "publication_type": {
-      "enum": ["guideline", "consensus statement", "primary study", "systematic review", "narrative review", "other"]
-    },
-    "publication_type_verdict": {
-      "type": "object",
-      "required": ["package_value", "auditor_value", "verdict", "verified_by_phase3", "basis"],
-      "additionalProperties": false,
-      "properties": {
-        "package_value": { "$ref": "#/$defs/publication_type" },
-        "auditor_value": { "$ref": "#/$defs/publication_type" },
-        "verdict": { "enum": ["pass", "fail"] },
-        "verified_by_phase3": { "type": "boolean" },
-        "basis": { "type": "string", "minLength": 1 }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "verdict": { "const": "pass" } }, "required": ["verdict"] },
-          "then": { "properties": { "verified_by_phase3": { "const": true } } }
-        },
-        {
-          "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] },
-          "then": { "properties": { "verified_by_phase3": { "const": false } } }
-        }
-      ]
-    },
-    "card_result": {
-      "type": "object",
-      "required": ["card_id", "verdict"],
-      "additionalProperties": false,
-      "properties": {
-        "card_id": { "type": "string", "minLength": 1 },
-        "verdict": { "enum": ["pass", "fail"] },
-        "details": { "$ref": "#/$defs/failure_details" }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "verdict": { "const": "fail" } }, "required": ["verdict"] },
-          "then": { "required": ["details"] },
-          "else": { "not": { "required": ["details"] } }
-        }
-      ]
-    },
-    "failure_details": {
-      "type": "object",
-      "required": ["failure_type", "reason", "defensibility", "suggested_action"],
-      "additionalProperties": false,
-      "properties": {
-        "failure_type": {
-          "enum": ["quote_error", "unsupported_assertion", "material_redundancy", "scope_or_qualifier", "evidence_relationship", "other"]
-        },
-        "reason": { "type": "string", "minLength": 1 },
-        "defensibility": { "type": "string", "minLength": 1 },
-        "quote_restatement": { "type": "string", "minLength": 1 },
-        "suggested_action": { "$ref": "#/$defs/suggested_action" }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "failure_type": { "const": "quote_error" } }, "required": ["failure_type"] },
-          "then": { "required": ["quote_restatement"] },
-          "else": { "not": { "required": ["quote_restatement"] } }
-        }
-      ]
-    },
-    "suggested_action": {
-      "type": "object",
-      "required": ["category", "detail"],
-      "additionalProperties": false,
-      "properties": {
-        "category": {
-          "enum": ["narrow_disease_scope", "replace_evidence", "change_category", "rewrite_interpretation", "split_card", "delete_card", "add_or_correct_qualifier"]
-        },
-        "detail": { "type": "string", "minLength": 1 }
-      }
-    }
-  }
-}
-```
-<!-- END VERBATIM schema/review_schema.json -->
-
-<!-- BEGIN VERBATIM schema/source_disease_aliases.json -->
-```json
-{
-  "clonal haematopoiesis": "CHIP",
-  "clonal haemopoiesis": "CHIP"
-}
-```
-<!-- END VERBATIM schema/source_disease_aliases.json -->
+<!-- END VERBATIM scripts/phase_validation/phase4.py -->
 After writing `paper.final.json`, recreate the bundle and run:
 ```bash
-python validation_bundle/scripts/final_validation.py --phase 4 \
+python validation_bundle/scripts/phase_validation/phase4.py \
   --metadata metadata.json \
   --census paper.census.json \
   --source paper.md \

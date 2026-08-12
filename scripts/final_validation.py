@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Deterministically validate the output product of one workflow phase."""
+"""Compatibility CLI for phase-scoped deterministic validation."""
 import argparse
 import json
 import sys
 from pathlib import Path
 
-import package_validation as validation
+from phase_validation import phase1, phase2, phase4
 
 PHASE_ARGUMENTS = {
     1: ("metadata", "census"),
@@ -33,7 +33,7 @@ def validate_phase_files(
     review_path=None,
     final_path=None,
 ):
-    """Validate only the product and dependencies owned by ``phase``."""
+    """Dispatch to the canonical validator owned by the active/consuming phase."""
     paths = {
         "metadata": metadata_path,
         "census": census_path,
@@ -45,86 +45,31 @@ def validate_phase_files(
     if phase not in PHASE_ARGUMENTS:
         raise ValueError(f"unsupported phase: {phase}")
     _require_paths(phase, paths)
-
-    errors = []
-    warnings = []
-    report = {"phase": phase}
-
     if phase == 1:
-        metadata = validation.read_json(metadata_path, "metadata")
-        census = validation.read_json(census_path, "census")
-        errors.extend(f"metadata: {error}" for error in validation.validate_metadata(metadata))
-        errors.extend(f"census: {error}" for error in validation.validate_census(census, metadata))
-        report.update({"census_entries": len(census.get("entries", []))})
-        return errors, warnings, report
-
+        return phase1.validate_phase_files(
+            metadata_path=metadata_path, census_path=census_path
+        )
     if phase == 2:
-        metadata = validation.read_json(metadata_path, "metadata")
-        census = validation.read_json(census_path, "census")
-        provisional = validation.read_json(provisional_path, "provisional package")
-        source_text = Path(source_path).read_text(encoding="utf-8")
-        package_errors, warnings, package_report = validation.validate_package(
-            provisional,
-            metadata,
-            census,
-            source_text=source_text,
-            require_final=False,
+        return phase2.validate_phase_files(
+            metadata_path=metadata_path,
+            census_path=census_path,
+            source_path=source_path,
+            provisional_path=provisional_path,
         )
-        errors.extend(f"provisional: {error}" for error in package_errors)
-        report.update(package_report or {})
-        return errors, warnings, report
-
     if phase == 3:
-        provisional = validation.read_json(provisional_path, "provisional package")
-        review = validation.read_json(review_path, "Phase 3 review")
-        errors.extend(
-            f"review: {error}"
-            for error in validation.validate_review(review, provisional)
+        # Phase 3 has no prompt validator. Phase 4 owns deterministic validation
+        # of its incoming Phase 3 review before adjudication/finalization.
+        return phase4.validate_review_files(
+            provisional_path=provisional_path, review_path=review_path
         )
-        report.update(
-            {
-                "cards": len(provisional.get("cards", [])),
-                "review_results": len(review.get("card_results", [])),
-            }
-        )
-        return errors, warnings, report
-
-    metadata = validation.read_json(metadata_path, "metadata")
-    census = validation.read_json(census_path, "census")
-    provisional = validation.read_json(provisional_path, "approved provisional package")
-    review = validation.read_json(review_path, "Phase 3 review")
-    final = validation.read_json(final_path, "final package")
-
-    errors.extend(
-        f"final lineage: {error}"
-        for error in validation.validate_final_against_provisional(final, provisional)
+    return phase4.validate_phase_files(
+        metadata_path=metadata_path,
+        census_path=census_path,
+        source_path=source_path,
+        provisional_path=provisional_path,
+        review_path=review_path,
+        final_path=final_path,
     )
-    approved_round = (final.get("audit") or {}).get("approved_round")
-    if approved_round != provisional.get("round"):
-        errors.append("final audit approved_round does not match provisional round")
-    if approved_round != review.get("round"):
-        errors.append("final audit approved_round does not match review round")
-    audit = final.get("audit") or {}
-    if audit.get("audit_model") != review.get("reviewer_model"):
-        errors.append("final audit_model does not match Phase 3 reviewer_model")
-    if audit.get("extraction_model_reviewed") != provisional.get("extraction_model"):
-        errors.append(
-            "final extraction_model_reviewed does not match provisional extraction_model"
-        )
-    if review.get("reviewer_model") == provisional.get("extraction_model"):
-        errors.append("Phase 3 reviewer model must differ from Phase 2 extraction model")
-
-    source_text = Path(source_path).read_text(encoding="utf-8")
-    final_errors, warnings, package_report = validation.validate_package(
-        final,
-        metadata,
-        census,
-        source_text=source_text,
-        require_final=True,
-    )
-    errors.extend(f"final: {error}" for error in final_errors)
-    report.update(package_report or {})
-    return errors, warnings, report
 
 
 def validate_final_files(**paths):
@@ -167,9 +112,7 @@ def main(argv=None):
     except (OSError, ValueError) as exc:
         sys.exit(f"PHASE {args.phase} VALIDATION FAILED:\n{exc}")
     if errors:
-        sys.exit(
-            f"PHASE {args.phase} VALIDATION FAILED:\n" + "\n".join(errors)
-        )
+        sys.exit(f"PHASE {args.phase} VALIDATION FAILED:\n" + "\n".join(errors))
     for warning in warnings:
         print(f"warning: {warning}", file=sys.stderr)
     print(json.dumps({"valid": True, **report}, sort_keys=True))

@@ -47,13 +47,23 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
                     resolved.extend(matches)
                 self.assertTrue(resolved)
 
-    def test_validation_bundle_marker_scope_is_unchanged(self):
+    def test_phase_specific_validation_bundle_marker_scope(self):
+        expected = {
+            1: "PHASE1_VALIDATION_BUNDLE",
+            2: "PHASE2_VALIDATION_BUNDLE",
+            4: "PHASE4_VALIDATION_BUNDLE",
+            5: "PHASE5_VALIDATION_BUNDLE",
+        }
         for phase in (1, 2, 3, 4, 5):
             path = ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
-            count = path.read_text(encoding="utf-8").count(
-                "{{PHASE_VALIDATION_BUNDLE}}"
-            )
-            self.assertEqual(count, 1 if phase in (1, 2, 4) else 0, f"phase {phase}")
+            markers = self.template_markers(path)
+            validation_markers = {m for m in markers if m.endswith("_VALIDATION_BUNDLE")}
+            wanted = {expected[phase]} if phase in expected else set()
+            self.assertEqual(validation_markers, wanted, f"phase {phase}")
+        review_markers = self.template_markers(
+            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
+        )
+        self.assertFalse({m for m in review_markers if m.endswith("_VALIDATION_BUNDLE")})
 
     def test_shared_card_assets_are_used_by_all_card_handling_prompts(self):
         paths = [

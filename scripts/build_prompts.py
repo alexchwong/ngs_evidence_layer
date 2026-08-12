@@ -54,14 +54,6 @@ def bundle_paths(spec):
     return deduplicated
 
 
-def validation_bundle_paths():
-    manifest = load_manifest()
-    spec = manifest["assets"].get("PHASE_VALIDATION_BUNDLE")
-    if not isinstance(spec, dict) or spec.get("type") != "bundle":
-        raise ValueError("PHASE_VALIDATION_BUNDLE must be a bundle asset")
-    return bundle_paths(spec)
-
-
 def fence_language(path):
     return {
         ".py": "python",
@@ -105,10 +97,6 @@ def asset_content(keyword, manifest=None):
     if asset_type == "bundle":
         return render_bundle(spec)
     raise ValueError(f"unsupported asset type for {keyword}: {asset_type!r}")
-
-
-def validation_bundle():
-    return asset_content("PHASE_VALIDATION_BUNDLE")
 
 
 def template_markers(template):

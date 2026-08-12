@@ -10,7 +10,7 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-import phase5_chat_validation as chat_validation  # noqa: E402
+from phase_validation import phase5 as chat_validation  # noqa: E402
 import prepare_phase5  # noqa: E402
 
 

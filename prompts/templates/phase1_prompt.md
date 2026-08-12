@@ -49,10 +49,10 @@ under `validation_unresolved`; otherwise return an empty list.
 
 {{VALIDATION_BUNDLE_POLICY}}
 
-{{PHASE_VALIDATION_BUNDLE}}
+{{PHASE1_VALIDATION_BUNDLE}}
 After writing `paper.census.json`, recreate the bundle and run:
 ```bash
-python validation_bundle/scripts/final_validation.py --phase 1 \
+python validation_bundle/scripts/phase_validation/phase1.py \
   --metadata metadata.json \
   --census paper.census.json
 ```

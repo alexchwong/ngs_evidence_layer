@@ -156,5 +156,5 @@ The `revisions` and `deletions` arrays must be exact copies of the reviewed prov
 Execute this code; do not paraphrase or reimplement it.
 
 ```python
-{{PHASE5_CHAT_VALIDATION}}
+{{PHASE5_VALIDATION_BUNDLE}}
 ```

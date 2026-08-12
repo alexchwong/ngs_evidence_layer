@@ -68,12 +68,19 @@ class PromptIntegrationTests(unittest.TestCase):
                 with self.subTest(prompt=name, asset=marker):
                     self.assertIn(expected, rendered[name])
 
-    def test_validation_bundle_contains_every_declared_file_whole(self):
-        bundle = BUILD_PROMPTS.validation_bundle()
-        for path in BUILD_PROMPTS.validation_bundle_paths():
-            relative = path.relative_to(ROOT).as_posix()
-            self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", bundle)
-            self.assertIn(path.read_text(encoding="utf-8").rstrip(), bundle)
+    def test_phase_validation_assets_contain_declared_file_whole(self):
+        for phase in (1, 2, 4, 5):
+            keyword = f"PHASE{phase}_VALIDATION_BUNDLE"
+            content = BUILD_PROMPTS.asset_content(keyword)
+            spec = self.manifest[keyword]
+            if spec.get("type") == "bundle":
+                self.assertEqual(len(spec.get("paths", [])), 1)
+                path = ROOT / spec["paths"][0]
+                relative = path.relative_to(ROOT).as_posix()
+                self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
+            else:
+                path = ROOT / spec["path"]
+            self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
 
     def test_phase2_allows_multi_claim_composite_text(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())
@@ -132,16 +139,16 @@ class PromptIntegrationTests(unittest.TestCase):
 
     def test_phase3_omits_deterministic_validation_bundle(self):
         prompt = BUILD_PROMPTS.render(3)
-        self.assertNotIn("{{PHASE_VALIDATION_BUNDLE}}", prompt)
-        self.assertNotIn("<!-- BEGIN VERBATIM scripts/final_validation.py -->", prompt)
-        self.assertNotIn("validation_bundle/scripts/final_validation.py", prompt)
+        self.assertNotIn("_VALIDATION_BUNDLE}}", prompt)
+        self.assertNotIn("<!-- BEGIN VERBATIM scripts/phase_validation/", prompt)
+        self.assertNotIn("validation_bundle/scripts/phase_validation/", prompt)
         self.assertNotIn("## Deterministic exit validation", prompt)
 
     def test_validation_occurs_at_phase2_exit_and_phase4_entry(self):
         phase2 = BUILD_PROMPTS.render(2)
         self.assertIn("## Deterministic exit validation", phase2)
         self.assertIn(
-            "python validation_bundle/scripts/final_validation.py --phase 2",
+            "python validation_bundle/scripts/phase_validation/phase2.py",
             phase2,
         )
         phase4 = BUILD_PROMPTS.render(4)
@@ -149,29 +156,27 @@ class PromptIntegrationTests(unittest.TestCase):
             "## Mandatory human adjudication", 1
         )[0]
         self.assertIn(
-            "python validation_bundle/scripts/final_validation.py --phase 3",
+            "python validation_bundle/scripts/phase_validation/phase4.py --review-only",
             entry,
         )
         self.assertIn("Before any adjudication or finalization", entry)
 
-    def test_phase4_embeds_canonical_final_validator_verbatim(self):
+    def test_phase4_embeds_canonical_phase4_validator_verbatim(self):
         rendered = BUILD_PROMPTS.render(4)
-        start_marker = "<!-- BEGIN VERBATIM scripts/final_validation.py -->\n```python\n"
-        end_marker = "\n```\n<!-- END VERBATIM scripts/final_validation.py -->"
+        relative = "scripts/phase_validation/phase4.py"
+        start_marker = f"<!-- BEGIN VERBATIM {relative} -->\n```python\n"
+        end_marker = f"\n```\n<!-- END VERBATIM {relative} -->"
         embedded = rendered.split(start_marker, 1)[1].split(end_marker, 1)[0]
-        expected = (ROOT / "scripts" / "final_validation.py").read_text(
-            encoding="utf-8"
-        ).rstrip()
+        expected = (ROOT / relative).read_text(encoding="utf-8").rstrip()
         self.assertEqual(embedded, expected)
 
     def test_phase4_requires_successful_validation_as_final_action(self):
         prompt = BUILD_PROMPTS.render(4)
         self.assertIn(
-            "python validation_bundle/scripts/final_validation.py --phase 4",
+            "python validation_bundle/scripts/phase_validation/phase4.py",
             prompt,
         )
-        self.assertNotIn("python final_validation.py --phase 4", prompt)
-        self.assertNotIn("python scripts/final_validation.py", prompt)
+        self.assertNotIn("validation_bundle/scripts/final_validation.py", prompt)
         self.assertIn(
             "The final action before returning `paper.final.json` must be a "
             "successful run",
