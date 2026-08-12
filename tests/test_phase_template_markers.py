@@ -1,42 +1,75 @@
+import json
 from pathlib import Path
 import re
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
+MANIFEST = json.loads(
+    (ROOT / "prompts" / "assets" / "manifest.json").read_text(encoding="utf-8")
+)["assets"]
+MARKER_RE = re.compile(r"{{([^{}]+)}}")
 
-EXPECTED = {
-    1: {"PUBLICATION_TYPE_RUBRIC", "REPORTING_RULES", "CENSUS_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
-    2: {"SOURCE_DISEASE_ALIAS_POLICY", "REPORTING_RULES", "DISEASE_VOCABULARY", "PACKAGE_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
-    3: {"SOURCE_DISEASE_ALIAS_POLICY", "PUBLICATION_TYPE_RUBRIC"},
-    4: {"SOURCE_DISEASE_ALIAS_POLICY", "REPORTING_RULES", "DISEASE_VOCABULARY", "PACKAGE_SCHEMA", "PHASE_VALIDATION_BUNDLE"},
-    5: {"SOURCE_DISEASE_ALIAS_POLICY", "PHASE5_CHAT_VALIDATION"},
-}
 
 class PhaseTemplateMarkerTests(unittest.TestCase):
-    def test_template_markers_match_build_prompts(self):
-        for phase, expected in EXPECTED.items():
-            text = (ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md").read_text(encoding="utf-8")
-            markers = set(re.findall(r"{{([^{}]+)}}", text))
-            self.assertEqual(markers, expected, f"phase {phase}")
-            self.assertNotIn("PHASE_VALIDATION_SCRIPT", markers)
-            expected_bundle_count = 1 if phase in (1, 2, 4) else 0
-            self.assertEqual(
-                text.count("{{PHASE_VALIDATION_BUNDLE}}"), expected_bundle_count
+    def template_markers(self, path):
+        return set(MARKER_RE.findall(path.read_text(encoding="utf-8")))
+
+    def test_every_template_marker_exists_in_manifest(self):
+        templates = sorted((ROOT / "prompts" / "templates").glob("phase*_prompt.md"))
+        self.assertTrue(templates)
+        for path in templates:
+            with self.subTest(template=path.name):
+                markers = self.template_markers(path)
+                self.assertTrue(markers)
+                self.assertEqual(markers - set(MANIFEST), set())
+
+    def test_every_file_asset_exists(self):
+        for keyword, spec in MANIFEST.items():
+            if spec.get("type") != "file":
+                continue
+            with self.subTest(asset=keyword):
+                path = ROOT / spec["path"]
+                self.assertTrue(path.is_file(), spec["path"])
+
+    def test_every_bundle_asset_resolves_files(self):
+        for keyword, spec in MANIFEST.items():
+            if spec.get("type") != "bundle":
+                continue
+            with self.subTest(asset=keyword):
+                resolved = []
+                for relative in spec.get("paths", []):
+                    path = ROOT / relative
+                    self.assertTrue(path.is_file(), relative)
+                    resolved.append(path)
+                for pattern in spec.get("globs", []):
+                    matches = sorted(ROOT.glob(pattern))
+                    self.assertTrue(matches, pattern)
+                    resolved.extend(matches)
+                self.assertTrue(resolved)
+
+    def test_validation_bundle_marker_scope_is_unchanged(self):
+        for phase in (1, 2, 3, 4, 5):
+            path = ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
+            count = path.read_text(encoding="utf-8").count(
+                "{{PHASE_VALIDATION_BUNDLE}}"
             )
+            self.assertEqual(count, 1 if phase in (1, 2, 4) else 0, f"phase {phase}")
 
-    def test_phase5_review_uses_source_disease_alias_policy_marker(self):
-        text = (
-            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
-        ).read_text(encoding="utf-8")
-        markers = set(re.findall(r"{{([^{}]+)}}", text))
-        self.assertEqual(markers, {"SOURCE_DISEASE_ALIAS_POLICY"})
+    def test_shared_card_assets_are_used_by_all_card_handling_prompts(self):
+        paths = [
+            *(ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md" for phase in (2, 3, 4, 5)),
+            ROOT / "prompts" / "templates" / "phase5_review_prompt.md",
+        ]
+        required = {
+            "CARD_EVIDENCE_CONTRACT",
+            "CARD_UTILITY_GATE",
+            "SOURCE_DISEASE_ALIAS_POLICY",
+            "SOURCE_DISEASE_ALIASES",
+        }
+        for path in paths:
+            with self.subTest(template=path.name):
+                self.assertTrue(required <= self.template_markers(path))
 
-    def test_source_disease_alias_policy_partial_uses_alias_data_marker(self):
-        text = (
-            ROOT / "prompts" / "templates" / "source_disease_alias_policy.md"
-        ).read_text(encoding="utf-8")
-        markers = set(re.findall(r"{{([^{}]+)}}", text))
-        self.assertEqual(markers, {"SOURCE_DISEASE_ALIASES"})
 
 if __name__ == "__main__":
     unittest.main()

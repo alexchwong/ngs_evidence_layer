@@ -12,11 +12,105 @@ Read-only inputs:
 - `phase5.existing-cards.json`
 - `phase5_prompt.md`
 - revision mode only: `paper.phase5-targets.json`
-
 Read `phase5.json` first. `mode: additive` uses the existing additive workflow. `mode: revision` may change only the cards locally authorised in `target_card_ids`. Never alter the census. If a requested interpretation requires census expansion, stop that item and tell the user it requires a full re-ingest.
 
-## Additive mode
+## Shared card standards
 
+### Card evidence contract
+
+Every card must have exactly one evidence bundle. The bundle must directly support
+every material assertion in the interpretation using source-verbatim fragments from
+the paper. A locator is navigation metadata, not evidence.
+
+Preserve every material disease, population, treatment, comparator, variant class,
+allelic state, threshold, branch, exclusion, analysis, classifier, certainty, and
+other qualifier stated by the source. Do not use a bibliographic reference-list entry,
+a heading alone, unsupported nearby text, or model knowledge as substantive evidence.
+For germline content, distinguish established inherited or constitutional status from
+possible constitutional origin and from a recommendation or indication for germline
+work-up; a work-up recommendation supports only a conditional interpretation.
+
+Use `contiguous_text` when one coherent contiguous passage is sufficient. Its sole
+fragment has role `claim` and may contain multiple contiguous sentences. Start with
+the explicit role claim and expand backward or forward as needed to capture antecedents,
+scope, population, treatment, comparator, analysis, thresholds, exclusions, direction,
+or clinical consequence. Treat contrast words, exceptions, thresholds, unresolved
+pronouns, subgroup distinctions, and a following sentence that changes clinical meaning
+as boundary warnings. Stop only when the fragment supports every material element of
+the interpretation without relying on unquoted context.
+
+Use `composite_text` only when no single coherent passage contains the minimal
+sufficient evidence. Use two to six independently verbatim fragments. One or more
+`claim` fragments may jointly support one source assertion; add `scope_heading`,
+`legend`, or `footnote` fragments only when they provide necessary governing context.
+Every fragment must contribute material support recorded in `support_map`. All
+fragments must have compatible disease, population, treatment, comparator, analysis,
+and classifier scope. Do not combine separate findings, populations, analyses,
+classifier branches, or independently useful conclusions merely because they mention
+the same gene. Removing any fragment must leave a material assertion unsupported or
+underqualified; otherwise use `contiguous_text`, narrow the interpretation, split the
+card, or omit it.
+
+A `scope_heading` is valid only when the substantive passage occurs within that
+heading's section and no intervening heading changes scope. A heading supplies context;
+it does not establish a role claim by itself.
+
+Use `table_relation` when a table value cannot be interpreted defensibly without its
+governing labels. Quote each required `column_header`, `row_header`, `cell`, `legend`,
+and `footnote` as a separate fragment. Every relation must identify one value fragment,
+all applicable row and column headers, and any marked legend or footnote. Preserve
+spanning or multi-level headers. Omit the card when merged cells, continuation rows,
+conversion damage, or missing markers leave the relation ambiguous. Do not replace
+source labels with model-authored key/value facts.
+
+Before finalizing a card, decompose its interpretation into atomic assertions and map
+each material assertion to explicit source words in `support_map`, including gene or
+alteration class, disease, population, role and direction, treatment or analysis
+context, comparator, certainty, thresholds, branches, and exclusions when applicable.
+If any assertion lacks support, expand the bundle, narrow the interpretation, split the
+card, or omit it. Once sufficient evidence is assembled, do not shorten it merely for
+concision.
+
+### Card utility gate
+
+A card must support a distinct, clinically useful sentence that could materially
+contribute to a concise NGS report.
+
+- Create or retain at most one card for each independently useful, directly supported
+  role from this publication.
+- Do not create or retain a material duplicate of another card from the same
+  publication.
+- Gene presence, mutation frequency, co-occurrence, enrichment, an entity name,
+  molecular mechanism, fusion-partner list, or census category does not by itself
+  establish a diagnostic, prognostic, treatment, biomarker, or germline role.
+- Do not infer prognosis from frequency, treatment from a kinase or fusion list,
+  germline status from tumour findings, or biomarker utility from a diagnostic claim.
+- Diagnosis and biomarker cards may coexist only when the biomarker card states a
+  distinct source-supported testing target, detection strategy, assay limitation,
+  monitoring use, or discrimination use.
+
+### Source disease alias policy
+
+A source-stated disease may ground a canonical card disease only when it is already
+canonical or exactly matches a reviewed alias in the canonical source-alias file,
+ignoring surrounding whitespace and letter case only.
+
+Emit only the canonical target in `diseases`, but preserve the source's actual disease
+or population wording in evidence and interpretation. Do not use fuzzy matching,
+stemming, punctuation substitution, semantic inference, or nearest-term mapping. A
+source term that is neither canonical nor a configured alias remains outside the
+controlled vocabulary.
+
+Canonical source aliases:
+
+```json
+{
+  "clonal haematopoiesis": "CHIP",
+  "clonal haemopoiesis": "CHIP"
+}
+```
+
+## Additive mode
 First ask what interpretation or interpretations the user believes this paper supports but the accepted cards missed.
 For each requested interpretation:
 1. search `phase5.existing-cards.json` semantically for the same or materially similar interpretation;
@@ -24,52 +118,37 @@ For each requested interpretation:
 3. if only another publication contains a similar card, mention it as context but still assess whether this target paper independently supports the requested interpretation;
 4. reread `paper.md` specifically for the requested interpretation;
 5. if unsupported, say so and do not create a card;
-6. if supported, propose one or more minimal independently useful cards with complete paired source-verbatim evidence bundles.
-
+6. if supported, propose one or more cards satisfying the shared card standards above.
 Accept free-text discussion over any number of turns. The user may request rewording, narrower scope, different evidence, splitting, or deletion of proposed cards.
-
 New cards must follow the exact card/evidence shapes already used in `paper.base.final.json`.
-- Preserve source-stated disease, population, treatment, variant-class, threshold, exclusion, analysis and other material qualifiers.
-- Use only source-verbatim evidence fragments from `paper.md`.
-- Every card must have exactly one evidence bundle.
-- Evidence may be `contiguous_text`, `composite_text`, or `table_relation` using the same structure as the accepted package.
 - `diseases` records exact source-supported applicability only.
 - `disease_ancestors` must follow the same canonical values used by the existing accepted package.
 - New `card_id` values must use the publication's existing ID pattern and the next unused numeric suffix. Never renumber existing cards.
-- Do not create an exact or semantic duplicate of another card from the same publication.
-
-When the user indicates the additions are ready for audit, write exactly `paper.phase5-provisional.json` using the existing ingestion-package shape containing only proposed new cards/evidence. Set `paper_id` from the accepted package, `round` to `1`, `extraction_model` to this model's exact identity, publication type fields equal to the accepted package except `publication_type_verified_by_phase3: false`, `census_entries` equal to `paper.census.json`, coverage fields to exact unions of the proposed cards, and `audit: null`.
-
+When the user indicates the additions are ready for audit, write exactly `paper.phase5-provisional.json` using the existing ingestion-package shape containing only proposed new cards/evidence.
+Set `paper_id` from the accepted package, `round` to `1`, `extraction_model` to this model's exact identity, publication type fields equal to the accepted package except `publication_type_verified_by_phase3: false`, `census_entries` equal to `paper.census.json`, coverage fields to exact unions of the proposed cards, and `audit: null`.
 A different model reviews the provisional using `phase5_review_prompt.md`. If any card fails, discuss it with the user; any changed card/evidence requires a new independent review.
 
 When the user sends `FINALIZE` on its own line, require all cards to pass, then show the exact pending change set using short card IDs:
 - `ADD: 000x,...`
 - `DELETE: none`
 - `MODIFY: none`
-
 Do **not** write `paper.final.json` yet. Ask the user to send `CONFIRM CHANGES` on its own line. Only after that exact confirmation, and only if the reviewed provisional has not changed, merge only the reviewed additions into `paper.base.final.json`, preserve existing cards/evidence and audit metadata, append passing audit results for the new cards, and return exactly `paper.final.json`. Any change after review or confirmation requires a fresh review and confirmation.
-
 ## Revision mode — interactive authoring
 
 Revision mode is selected locally with `prepare_phase5.py --key <publication-key> --cards 0001,0003,...` or `--cards all`. `--cards all` releases every accepted card from this publication into the revision allowlist.
-
 At the start:
 1. read `paper.phase5-targets.json`;
 2. present each selected card by short ID, interpretation and current evidence locator;
 3. ask the user what they want changed;
 4. discuss the requested revisions interactively over as many turns as needed.
-
 The selected cards are an **allowlist**, not a requirement to change every selected card. During Phase 5 the user chooses the actual subset to modify or delete. A revision provisional contains only those actual changes. Revision mode does not add cards; use additive Phase 5 for additions.
-
 For each proposed modification:
 - reread the source specifically for the requested correction;
 - explain briefly when the requested change is not source-supported;
-- preserve material qualifiers;
-- use only source-verbatim evidence fragments from `paper.md`;
+- require the replacement interpretation and evidence to satisfy the shared card standards;
 - keep these card fields unchanged: `card_id`, `genes`, `diseases`, `disease_ancestors`, `category`, `evidence_tier`, `secondary_citation`;
 - `interpretation`, `locator`, and the paired evidence bundle may change;
 - if a structural field needs changing, tell the user to perform a full re-ingest instead.
-
 For each proposed deletion:
 - delete only an authorised target card;
 - record a concise reason agreed with the user;
@@ -77,7 +156,6 @@ For each proposed deletion:
 - do not use deletion to rename/restructure a card that should instead undergo full re-ingest.
 
 When the user sends `PROVISIONAL` on its own line, write exactly `paper.phase5-provisional.json` in this revision shape:
-
 ```json
 {
   "schema_version": "1.1",
@@ -104,21 +182,17 @@ When the user sends `PROVISIONAL` on its own line, write exactly `paper.phase5-p
   ]
 }
 ```
-
 `revisions` and `deletions` may each be empty, but at least one actual change is required. A card cannot appear in both arrays.
 
 Before returning the file, execute the embedded `validate_revision_provisional(...)` code below against `phase5.json`, `paper.phase5-targets.json`, the provisional, and `paper.md`. If there are errors, fix the provisional and rerun until it passes. Return the validated provisional only.
-
 ## Revision mode — independent review return
 
 Phase 5R is LLM-only and non-interactive. The user will later upload `paper.phase5-review.json` from the independent reviewer into this same Phase 5 conversation.
-
 On receipt:
 1. execute `validate_revision_review(...)` using the current provisional;
 2. do not accept a review whose per-change hash differs from the current provisional;
 3. if any modification or deletion fails, explain the review criticism to the user and resume interactive revision;
 4. after any revision change, generate a new complete provisional and require a fresh Phase 5R review of the batch.
-
 ## Revision mode — FINALIZE
 
 Treat all revision discussion as provisional until the user sends `FINALIZE` on its own line.
@@ -129,9 +203,7 @@ Show the exact pending change set using short card IDs:
 - `ADD: none`
 - `DELETE: 000x,...` or `none`
 - `MODIFY: 000x,...` or `none`
-
 Ask the user to send `CONFIRM CHANGES` on its own line. Only after that exact confirmation, and only if the reviewed provisional has not changed, write exactly `paper.phase5-revision.json`:
-
 ```json
 {
   "schema_version": "1.1",
@@ -153,22 +225,7 @@ Ask the user to send `CONFIRM CHANGES` on its own line. Only after that exact co
   }
 }
 ```
-
 The `revisions` and `deletions` arrays must be exact copies of the reviewed provisional arrays. `confirmed_change_set` must exactly encode the change set the user just confirmed. Execute `validate_revision_asset(...)`. If errors occur, fix the asset and rerun. Return the validated `paper.phase5-revision.json` only. Do not claim that accepted corpus state has changed; local `apply_phase5.py` and `confirm.py` are authoritative.
-
-### Source disease alias policy
-
-A source-stated disease may ground a canonical card disease when it exactly
-matches one of these reviewed aliases (case-insensitive):
-
-- `clonal haematopoiesis` → `CHIP`
-- `clonal haemopoiesis` → `CHIP`
-
-Emit only the canonical target in `diseases`, but preserve the source's
-actual disease or population wording in evidence and interpretation. Alias
-matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation
-substitution, semantic inference, or nearest-term mapping. A source term that is
-neither canonical nor listed above remains outside the controlled vocabulary.
 
 ## Embedded revision validation code
 

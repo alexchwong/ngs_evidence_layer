@@ -1,0 +1,64 @@
+{
+  "manifest_version": "1.0",
+  "assets": {
+    "REPORTING_RULES": {
+      "type": "file",
+      "path": "rules/agreed_reporting_rules.md"
+    },
+    "CENSUS_SCHEMA": {
+      "type": "file",
+      "path": "schema/census_schema.json"
+    },
+    "PACKAGE_SCHEMA": {
+      "type": "file",
+      "path": "schema/ingestion_package_schema.json"
+    },
+    "DISEASE_VOCABULARY": {
+      "type": "file",
+      "path": "schema/disease_vocabulary.json"
+    },
+    "SOURCE_DISEASE_ALIASES": {
+      "type": "file",
+      "path": "schema/source_disease_aliases.json"
+    },
+    "PUBLICATION_TYPE_VOCABULARY": {
+      "type": "file",
+      "path": "schema/publication_type_vocabulary.json"
+    },
+    "SOURCE_DISEASE_ALIAS_POLICY": {
+      "type": "file",
+      "path": "prompts/assets/source_disease_alias_policy.md"
+    },
+    "PUBLICATION_TYPE_AUDIT_POLICY": {
+      "type": "file",
+      "path": "prompts/assets/publication_type_audit_policy.md"
+    },
+    "CARD_EVIDENCE_CONTRACT": {
+      "type": "file",
+      "path": "prompts/assets/card_evidence_contract.md"
+    },
+    "CARD_UTILITY_GATE": {
+      "type": "file",
+      "path": "prompts/assets/card_utility_gate.md"
+    },
+    "VALIDATION_BUNDLE_POLICY": {
+      "type": "file",
+      "path": "prompts/assets/validation_bundle_policy.md"
+    },
+    "PHASE5_CHAT_VALIDATION": {
+      "type": "file",
+      "path": "scripts/phase5_chat_validation.py"
+    },
+    "PHASE_VALIDATION_BUNDLE": {
+      "type": "bundle",
+      "paths": [
+        "scripts/final_validation.py",
+        "scripts/package_validation.py",
+        "scripts/vocab.py"
+      ],
+      "globs": [
+        "schema/*.json"
+      ]
+    }
+  }
+}

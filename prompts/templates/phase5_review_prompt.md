@@ -6,17 +6,34 @@ You are the independent Phase 5 reviewer. This phase is **LLM-only and non-inter
 
 Read `paper.phase5-provisional.json` first.
 
+## Shared card standards
+
+### Card evidence contract
+
+{{CARD_EVIDENCE_CONTRACT}}
+
+### Card utility gate
+
+{{CARD_UTILITY_GATE}}
+
+### Source disease alias policy
+
+{{SOURCE_DISEASE_ALIAS_POLICY}}
+
+Canonical source aliases:
+
+```json
+{{SOURCE_DISEASE_ALIASES}}
+```
+
 ### Additive provisional
 
 For the existing additive ingestion-package-shaped provisional, use the existing Phase 5 review workflow:
 - inputs: `paper.md`, `paper.phase5-provisional.json`, `phase5_review_prompt.md`;
 - be a different model from the provisional `extraction_model`;
-- review every proposed card exactly once;
+- review every proposed card exactly once against the shared card standards;
 - do not edit cards/evidence or create a final package;
 - use the existing Phase 3 review JSON shape and preserve card order.
-
-For each card determine whether every material assertion is supported, evidence is verbatim, material qualifiers are not broadened, composite/table evidence is defensible, and the card is independently useful rather than materially redundant.
-
 ### Revision provisional
 
 If the provisional has `mode: revision`, the read-only inputs are:
@@ -24,19 +41,15 @@ If the provisional has `mode: revision`, the read-only inputs are:
 - `paper.phase5-targets.json`
 - `paper.phase5-provisional.json`
 - `phase5_review_prompt.md`
-
 Review every provisional modification or deletion independently against both the source and the accepted target card. For modifications, assess whether the revision:
-- is fully supported by its paired replacement evidence;
-- uses evidence fragments that occur verbatim in `paper.md`;
+- satisfies the shared evidence contract and utility gate;
 - preserves disease, population, treatment, variant-class, threshold, exclusion and other material qualifiers;
 - does not broaden or distort the accepted interpretation;
 - appropriately corrects or improves the target card rather than merely restyling it;
 - keeps the intended meaning of immutable structural fields unchanged.
-
 For deletions, assess whether removal is justified by the source and accepted target, rather than retaining or correcting the card, and whether the recorded deletion reason is coherent.
 
 Do not edit a proposed change. Do not ask the user anything. Return exactly this revision review shape:
-
 ```json
 {
   "schema_version": "1.1",
@@ -63,13 +76,6 @@ Do not edit a proposed change. Do not ask the user anything. Return exactly this
   ]
 }
 ```
-
 Return results in provisional change order: all `revisions`, then all `deletions`. For a failed change use `"verdict": "fail"` and add concise non-empty `reason` and `suggested_action`. Copy the relevant hash exactly. Your model identity must differ from the provisional extraction model.
-
-### Source disease alias policy
-
-Treat a configured source alias as valid grounding for its canonical card disease under this policy:
-
-{{SOURCE_DISEASE_ALIAS_POLICY}}
 
 Return exactly `paper.phase5-review.json` and no explanatory prose.

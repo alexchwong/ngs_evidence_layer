@@ -1,5 +1,4 @@
 # Phase 1 — publication census
-
 ## Active phase and output contract
 
 Active phase: **Phase 1 only**. This prompt is the sole authority for this
@@ -11,39 +10,66 @@ inputs only; do not overwrite them.
 The only allowed output is exactly one file named `paper.census.json`. Do not
 create, return, or overwrite a provisional package, review, final package, or any
 other file.
-
 You are the census model for exactly one publication. Use only `paper.md`,
 `metadata.json`, and this prompt. Do not author evidence cards and do not use model
 knowledge to add facts absent from the paper.
-
 Walk the complete paper sequentially, including intact tables and footnotes. Record
 every gene about which the paper makes a claim, its claim locations, and all touched
 categories. Record rule-relevant geneless statements and missing supplementary
 values. Do not refuse because a supplement is unavailable.
-
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
 that judgement. Phase 1 assigns this provisional value but does not independently
 verify it; publication-type verification belongs only to Phase 3.
-
 ### Publication-type taxonomy
 
-Allowed values and operational definitions:
-- `guideline`: Formal practice recommendations developed using an explicit guideline process, such as evidence appraisal, recommendation formulation, or recommendation grading. Do not use solely because an expert group gives advice or classification criteria without a formal guideline-development method.
-- `consensus statement`: An expert group's agreed classification, definitions, criteria, terminology, or recommendations without the formal methodology required for a guideline. Supporting analyses or literature summaries do not make the paper a primary study or review when the main contribution is the group's agreed position.
-- `primary study`: The principal purpose is to report original empirical data from a cohort, experiment, assay evaluation, or trial. Do not use for a consensus or guideline paper merely because it contains supporting analyses or examples.
-- `systematic review`: An evidence synthesis with an explicit, reproducible literature-search and study-selection method; a meta-analysis is included when present. Do not use for an unstructured literature overview.
-- `narrative review`: A literature overview without systematic-review methods and without an authoritative group consensus as its primary purpose. Do not use when the primary contribution is agreed classification criteria, terminology, or recommendations.
-- `other`: None of the other five semantic types fits the paper's primary purpose. Use only after applying the definitions and precedence rules; do not use merely because the publisher supplies a different article-format label.
-
-Apply these precedence rules in order:
-1. Classify the paper's primary purpose, not merely its journal banner, section name, or publisher article-format label.
-2. Explicit formal guideline-development methodology takes guideline precedence.
-3. Group-authored agreed classification, criteria, definitions, or terminology takes consensus statement precedence when formal guideline methodology is absent; expert classification systems such as ICC normally fit here.
-4. Original empirical research takes primary study precedence only when it is the paper's main contribution.
-5. An explicit reproducible search and study-selection method identifies a systematic review.
-6. Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.
-7. Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods.
+```json
+{
+  "vocabulary_version": "1.0",
+  "note": "Closed semantic publication taxonomy. Journal article labels are evidence, not additional values.",
+  "types": [
+    {
+      "value": "guideline",
+      "definition": "Formal practice recommendations developed using an explicit guideline process, such as evidence appraisal, recommendation formulation, or recommendation grading.",
+      "excludes": "Do not use solely because an expert group gives advice or classification criteria without a formal guideline-development method."
+    },
+    {
+      "value": "consensus statement",
+      "definition": "An expert group's agreed classification, definitions, criteria, terminology, or recommendations without the formal methodology required for a guideline.",
+      "excludes": "Supporting analyses or literature summaries do not make the paper a primary study or review when the main contribution is the group's agreed position."
+    },
+    {
+      "value": "primary study",
+      "definition": "The principal purpose is to report original empirical data from a cohort, experiment, assay evaluation, or trial.",
+      "excludes": "Do not use for a consensus or guideline paper merely because it contains supporting analyses or examples."
+    },
+    {
+      "value": "systematic review",
+      "definition": "An evidence synthesis with an explicit, reproducible literature-search and study-selection method; a meta-analysis is included when present.",
+      "excludes": "Do not use for an unstructured literature overview."
+    },
+    {
+      "value": "narrative review",
+      "definition": "A literature overview without systematic-review methods and without an authoritative group consensus as its primary purpose.",
+      "excludes": "Do not use when the primary contribution is agreed classification criteria, terminology, or recommendations."
+    },
+    {
+      "value": "other",
+      "definition": "None of the other five semantic types fits the paper's primary purpose.",
+      "excludes": "Use only after applying the definitions and precedence rules; do not use merely because the publisher supplies a different article-format label."
+    }
+  ],
+  "precedence": [
+    "Classify the paper's primary purpose, not merely its journal banner, section name, or publisher article-format label.",
+    "Explicit formal guideline-development methodology takes guideline precedence.",
+    "Group-authored agreed classification, criteria, definitions, or terminology takes consensus statement precedence when formal guideline methodology is absent; expert classification systems such as ICC normally fit here.",
+    "Original empirical research takes primary study precedence only when it is the paper's main contribution.",
+    "An explicit reproducible search and study-selection method identifies a systematic review.",
+    "Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.",
+    "Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods."
+  ]
+}
+```
 
 Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
@@ -300,7 +326,6 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   }
 }
 ```
-
 ## Exit validation
 
 Check that every section and table is accounted for, every entry has a locator,
@@ -308,18 +333,14 @@ genes are valid symbols, IDs and genes are unique, and no rule-covered paper cla
 is absent. Confirm the publication type and basis are supported by the paper. Repair
 and repeat, at most three passes. If defects remain, list each one
 under `validation_unresolved`; otherwise return an empty list.
-
 ## Deterministic exit validation
 
-The bundle below contains the canonical repository validator and every
-repository-owned dependency it requires. Recreate every file verbatim under
-`validation_bundle/`, preserving all displayed relative paths. Do not search for
-the repository, modify a bundled file, combine files, or substitute another
-validator.
-
-Create a directory named `validation_bundle` and recreate every file below
-at its displayed relative path. Preserve the directory structure and file
-contents verbatim. Do not combine files or rewrite imports.
+The bundle below contains the canonical repository validator and every repository-owned
+dependency it requires. Recreate every displayed file verbatim under
+`validation_bundle/` at its displayed relative path, preserving directory structure.
+Do not search for or clone the repository, modify a bundled file, summarize or
+reinterpret it, combine files, rewrite imports, or substitute another validator or
+check.
 
 <!-- BEGIN VERBATIM scripts/final_validation.py -->
 ```python
@@ -828,24 +849,25 @@ def validate_final_against_provisional(final, provisional):
 ```python
 #!/usr/bin/env python3
 """Single source of truth for closed disease vocabularies and retrieval relations.
-
 Evidence-card diseases, case-only disease options, taxonomy, categories and evidence
-ranks all live in ``schema/disease_vocabulary.json``. Explicit source aliases may map
-source wording to a canonical evidence-card disease; they do not extend the output
-vocabulary. ``umbrella`` remains taxonomy only. ``retrieval_related`` is a separate,
-directional, category-specific relation used only by case retrieval.
+ranks live in ``schema/disease_vocabulary.json``. Explicit source aliases live in
+``schema/source_disease_aliases.json``; they may map source wording to a canonical
+evidence-card disease but do not extend the output vocabulary. ``umbrella`` remains
+taxonomy only. ``retrieval_related`` is a separate, directional, category-specific
+relation used only by case retrieval.
 """
 import json
 from pathlib import Path
-
 SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schema"
 VOCAB_PATH = SCHEMA_DIR / "disease_vocabulary.json"
+SOURCE_DISEASE_ALIASES_PATH = SCHEMA_DIR / "source_disease_aliases.json"
 PACKAGE_SCHEMA_PATH = SCHEMA_DIR / "ingestion_package_schema.json"
-
 _VOCAB = json.loads(VOCAB_PATH.read_text(encoding="utf-8"))
 DISEASES = list(_VOCAB["diseases"])
 DISEASE_SET = set(DISEASES)
-SOURCE_DISEASE_ALIASES = dict(_VOCAB.get("source_disease_aliases", {}))
+SOURCE_DISEASE_ALIASES = dict(
+    json.loads(SOURCE_DISEASE_ALIASES_PATH.read_text(encoding="utf-8"))
+)
 _NORMALIZED_SOURCE_DISEASE_ALIASES = {
     alias.strip().casefold(): target
     for alias, target in SOURCE_DISEASE_ALIASES.items()
@@ -868,14 +890,12 @@ DISEASE_NAMING_EXPECTED = set(_VOCAB["disease_naming_expected"])
 # Render and truncation order. Strongest tier first; truncation eats the tail.
 TIER_RANK = {tier: i for i, tier in enumerate(EVIDENCE_TIERS)}
 CATEGORY_RANK = {category: i for i, category in enumerate(CATEGORIES)}
-
 UNSPECIFIED_DISEASE = "myeloid neoplasm, unspecified"
 NO_HAEMATOLOGICAL_MALIGNANCY = "no_haematological_malignancy"
 
 
 def canonical_source_disease(term):
     """Resolve a canonical disease or an exact configured source alias.
-
     Alias matching ignores surrounding whitespace and letter case only. It does not
     perform fuzzy matching, stemming, punctuation changes, or nearest-term mapping.
     ``None`` means the source term is outside the controlled vocabulary and aliases.
@@ -898,7 +918,6 @@ def disease_ancestors(diseases):
     """
     requested = set(diseases)
     ancestors = set()
-
     def visit(disease, path):
         if disease in path:
             cycle = " -> ".join((*path, disease))
@@ -1258,10 +1277,6 @@ if __name__ == "__main__":
 {
   "vocabulary_version": "1.5",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
-  "source_disease_aliases": {
-    "clonal haematopoiesis": "CHIP",
-    "clonal haemopoiesis": "CHIP"
-  },
   "diseases": [
     "CHIP",
     "CCUS",
@@ -1767,14 +1782,6 @@ if __name__ == "__main__":
     "An explicit reproducible search and study-selection method identifies a systematic review.",
     "Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.",
     "Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods."
-  ],
-  "audit_stability": [
-    "Audit the package value for defensibility under this taxonomy; do not choose a preferred label de novo.",
-    "Pass when the package value is defensible, even if another value could also be defensible.",
-    "Fail only when the package value clearly does not satisfy its definition and exactly one different allowed value is better supported.",
-    "When evidence is mixed or multiple values remain defensible, retain and pass the package value.",
-    "Never fail merely to substitute a near-synonym, a publisher article-format label, or an equally defensible type.",
-    "Any auditor_value must be one of the six allowed values."
   ]
 }
 ```
@@ -1893,6 +1900,14 @@ if __name__ == "__main__":
 ```
 <!-- END VERBATIM schema/review_schema.json -->
 
+<!-- BEGIN VERBATIM schema/source_disease_aliases.json -->
+```json
+{
+  "clonal haematopoiesis": "CHIP",
+  "clonal haemopoiesis": "CHIP"
+}
+```
+<!-- END VERBATIM schema/source_disease_aliases.json -->
 After writing `paper.census.json`, recreate the bundle and run:
 ```bash
 python validation_bundle/scripts/final_validation.py --phase 1 \
@@ -1904,7 +1919,6 @@ successful. Do not edit the output after the successful run.
 ## Mandatory pre-output gate
 
 Before writing, verify privately that:
-
 1. the active phase is Phase 1;
 2. the filename is exactly `paper.census.json`;
 3. the content conforms to the Phase 1 census schema and its `paper_id` matches
@@ -1915,5 +1929,4 @@ Before writing, verify privately that:
 
 If any check fails, repair the output before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences, or a claim that Phase 2 has begun.
-
 Return exactly one file named `paper.census.json`.

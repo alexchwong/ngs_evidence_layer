@@ -41,13 +41,5 @@
     "An explicit reproducible search and study-selection method identifies a systematic review.",
     "Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.",
     "Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods."
-  ],
-  "audit_stability": [
-    "Audit the package value for defensibility under this taxonomy; do not choose a preferred label de novo.",
-    "Pass when the package value is defensible, even if another value could also be defensible.",
-    "Fail only when the package value clearly does not satisfy its definition and exactly one different allowed value is better supported.",
-    "When evidence is mixed or multiple values remain defensible, retain and pass the package value.",
-    "Never fail merely to substitute a near-synonym, a publisher article-format label, or an equally defensible type.",
-    "Any auditor_value must be one of the six allowed values."
   ]
 }

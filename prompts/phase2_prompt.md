@@ -1,5 +1,4 @@
 # Phase 2 — evidence carding
-
 ## Active phase and output contract
 
 Active phase: **Phase 2 only**. This prompt is the sole authority for this
@@ -10,7 +9,6 @@ Read-only inputs: `paper.md`, `metadata.json`, `paper.census.json`, and
 particular, the census is never a Phase 2 output.
 
 Return exactly one file selected from these mutually exclusive branches:
-
 1. materially deficient census: the next `paper.census-critique-NNN.md`;
 2. valid extraction: `paper.provisional-001.json`.
 
@@ -19,16 +17,13 @@ provisional round. Phase 2 is not repeated after Phase 3 review.
 
 Do not create, return, or overwrite `paper.census.json`, `paper.final.json`, a
 Phase 3 review, or any other file.
-
 You are the extraction model for exactly one publication. Use only `paper.md`,
 `metadata.json`, `paper.census.json`, and this prompt. Do not use model knowledge to
 add facts absent from the paper.
-
 ## Entry validation
 
 First validate the census against the paper. If materially deficient, stop and
 write the next `paper.census-critique-NNN.md` with specific gaps; do not card.
-
 ## Working method
 
 Walk every census gene/category pair as a review obligation, not an output
@@ -38,136 +33,114 @@ category, and interpretation. If no such passage exists, emit no card for the pa
 Never manufacture category coverage merely to match the census.
 
 Work evidence-first rather than gene-first:
-
 1. find the source passage that states the role claim;
-2. use one contiguous passage when it contains all material support and qualifiers;
-3. when required support is non-contiguous, use `composite_text` to capture the
-   additional substantive passages or governing context needed for the same assertion;
-4. freeze the complete candidate evidence bundle before drafting the interpretation;
-5. identify only the role, population, disease, effect, and qualifiers explicitly
+2. assemble the minimal sufficient evidence bundle under the contract below;
+3. freeze the complete candidate evidence bundle before drafting the interpretation;
+4. identify only the role, population, disease, effect, and qualifiers explicitly
    supported by that bundle;
-6. create at most one card for each independently useful, directly supported role;
-7. include only genes participating in that exact assertion.
+5. create at most one card for each independently useful, directly supported role;
+6. include only genes participating in that exact assertion.
 
 Do not union assertions, diseases, populations, or qualifiers across separate
 locators merely because they belong to the same census entry. A card's `locator`,
 interpretation, diseases, genes, category, and evidence bundle must describe the
-same source claim. Author comprehensive, independently useful cards with exactly one
-**minimal sufficient evidence bundle** each. Every fragment must be verbatim.
-"Minimal" means exclude unrelated material, not choose the shortest fragment.
-Interpretations must state all source-specified population, disease,
-treatment, allelic/variant, analysis, classifier, threshold, branch, and exclusion
-qualifiers; explicitly state when a material qualifier is not specified. Negative
-facts remain first-class and cite their reporting-rule disposition.
+same source claim.
 
-### Evidence bundle method
+### Card evidence contract
 
-Use `contiguous_text` whenever one coherent passage is sufficient. Its sole fragment
-has role `claim` and may contain multiple contiguous sentences. Start with the
-sentence containing the explicit role claim and inspect the surrounding paragraph or
-list block. Expand that fragment while keeping it contiguous:
+Every card must have exactly one evidence bundle. The bundle must directly support
+every material assertion in the interpretation using source-verbatim fragments from
+the paper. A locator is navigation metadata, not evidence.
 
-1. expand backward for any text needed to identify the gene or alteration, disease
-   or entity, population or cohort, treatment, assay, classifier, comparator, or an
-   antecedent referenced by wording such as "this", "these patients", or "such
-   mutations";
-2. expand forward for any text that limits, conditions, contrasts, quantifies,
-   excludes, or supplies the clinical consequence of the claim;
-3. retain sentences distinguishing a subgroup from the whole cohort, univariable
-   from multivariable analysis, one classifier branch from another, or association
-   from the independently useful clinical conclusion;
-4. stop only when the fragment supports every material element without relying on
-   the locator, census, nearby unquoted text, or general understanding.
+Preserve every material disease, population, treatment, comparator, variant class,
+allelic state, threshold, branch, exclusion, analysis, classifier, certainty, and
+other qualifier stated by the source. Do not use a bibliographic reference-list entry,
+a heading alone, unsupported nearby text, or model knowledge as substantive evidence.
+For germline content, distinguish established inherited or constitutional status from
+possible constitutional origin and from a recommendation or indication for germline
+work-up; a work-up recommendation supports only a conditional interpretation.
 
-Treat `however`, `whereas`, `except`, `unless`, `only`, `independent of`, thresholds,
-exclusions, unresolved pronouns, and a following sentence that explains clinical
-meaning as boundary warnings, not automatic sentence breaks. If one coherent
-contiguous passage is insufficient, use `composite_text`. Never join non-contiguous
-excerpts with ellipses or present them as one quote.
+Use `contiguous_text` when one coherent contiguous passage is sufficient. Its sole
+fragment has role `claim` and may contain multiple contiguous sentences. Start with
+the explicit role claim and expand backward or forward as needed to capture antecedents,
+scope, population, treatment, comparator, analysis, thresholds, exclusions, direction,
+or clinical consequence. Treat contrast words, exceptions, thresholds, unresolved
+pronouns, subgroup distinctions, and a following sentence that changes clinical meaning
+as boundary warnings. Stop only when the fragment supports every material element of
+the interpretation without relying on unquoted context.
 
-For `composite_text`, use two to six independently verbatim fragments:
-
-- use one or more `claim` fragments for substantive prose that jointly supports one
-  source assertion;
-- add `scope_heading`, `legend`, or `footnote` fragments only when they provide
-  necessary governing context;
-- require every fragment to contribute material support recorded in `support_map`;
-- require compatible disease, population, comparator, treatment, analysis, and
-  classifier scope across all fragments;
-- allow different fragments to supply the gene, disease, population, effect, role, or
-  a material qualifier;
-- do not combine separate findings, populations, analyses, classifier branches, or
-  independently useful conclusions;
-- do not combine passages merely because they mention the same gene.
-
-Use `composite_text` only when all of the following are true:
-
-1. no single coherent passage contains the minimal sufficient evidence;
-2. every fragment is required to support or delimit the interpretation;
-3. the fragments can be read together without changing population, analysis, disease
-   scope, or source conclusion;
-4. removing any fragment would leave a material assertion unsupported or materially
-   underqualified.
-
-Otherwise use `contiguous_text`, narrow the interpretation, split the card, or omit it.
+Use `composite_text` only when no single coherent passage contains the minimal
+sufficient evidence. Use two to six independently verbatim fragments. One or more
+`claim` fragments may jointly support one source assertion; add `scope_heading`,
+`legend`, or `footnote` fragments only when they provide necessary governing context.
+Every fragment must contribute material support recorded in `support_map`. All
+fragments must have compatible disease, population, treatment, comparator, analysis,
+and classifier scope. Do not combine separate findings, populations, analyses,
+classifier branches, or independently useful conclusions merely because they mention
+the same gene. Removing any fragment must leave a material assertion unsupported or
+underqualified; otherwise use `contiguous_text`, narrow the interpretation, split the
+card, or omit it.
 
 A `scope_heading` is valid only when the substantive passage occurs within that
-heading's section and no intervening heading changes scope. A heading provides
-context; it does not establish a role claim by itself.
+heading's section and no intervening heading changes scope. A heading supplies context;
+it does not establish a role claim by itself.
 
-For a table whose governing labels are not reasonably captured with its value, use
-`table_relation`. Quote each required `column_header`, `row_header`, `cell`, `legend`,
-and `footnote` as a separate fragment. Every relation must name one cell as
-`value_fragment_id`, all applicable row and column headers in `header_fragment_ids`,
-and any marked legend or footnote in `qualifier_fragment_ids`. Include spanning or
-multi-level headers. Omit the card if merged cells, continuation rows, conversion
-damage, or missing markers leave the relation ambiguous. Never replace source labels
-with convenient model-authored key/value facts.
+Use `table_relation` when a table value cannot be interpreted defensibly without its
+governing labels. Quote each required `column_header`, `row_header`, `cell`, `legend`,
+and `footnote` as a separate fragment. Every relation must identify one value fragment,
+all applicable row and column headers, and any marked legend or footnote. Preserve
+spanning or multi-level headers. Omit the card when merged cells, continuation rows,
+conversion damage, or missing markers leave the relation ambiguous. Do not replace
+source labels with model-authored key/value facts.
 
-After freezing the candidate bundle, decompose the proposed interpretation privately
-into atomic assertions. Map each assertion to explicit words in its fragments, including
-the gene and alteration class, disease, population, role and direction, treatment or
-analysis context, comparator, certainty, thresholds, branches, and exclusions when
-material. Record those links in `support_map` under the applicable closed dimensions.
-If any assertion has no supporting span, expand the bundle, narrow the
-interpretation, split the card, or omit it. Do not draft from paragraph-level memory
-and then attach only the shortest sentence.
+Before finalizing a card, decompose its interpretation into atomic assertions and map
+each material assertion to explicit source words in `support_map`, including gene or
+alteration class, disease, population, role and direction, treatment or analysis
+context, comparator, certainty, thresholds, branches, and exclusions when applicable.
+If any assertion lacks support, expand the bundle, narrow the interpretation, split the
+card, or omit it. Once sufficient evidence is assembled, do not shorten it merely for
+concision.
 
-Before drafting each card, apply these private gates. If any gate fails, repair the
-candidate before output or omit it:
+### Card utility gate
 
-1. **Disease provenance:** every specific disease value must be grounded by exact
-   disease or unambiguous entity wording in the bundle. A governing `scope_heading`
-   may supply disease context only under the structural rule above. Never borrow it
-   from a census entry or a non-governing nearby passage.
-2. **Role verb:** the evidence bundle must establish the claimed diagnostic,
-   prognostic, treatment, biomarker, or germline-evaluation role using explicit
-   source language, not inference from gene presence, frequency, association, or
-   molecular mechanism alone.
-3. **Precise locators:** every fragment has its own exact locator. The card locator
-   concisely identifies the assembled source location without acting as evidence.
-4. **Distinct output:** identify the distinct sentence this card would add to a
-   concise clinical report. If no independently useful sentence exists beyond
-   another card, omit it.
-5. **Vocabulary fit:** apply the source disease alias policy below. If the source-stated
-   disease is neither canonical nor an explicit alias, omit the card.
+A card must support a distinct, clinically useful sentence that could materially
+contribute to a concise NGS report.
+
+- Create or retain at most one card for each independently useful, directly supported
+  role from this publication.
+- Do not create or retain a material duplicate of another card from the same
+  publication.
+- Gene presence, mutation frequency, co-occurrence, enrichment, an entity name,
+  molecular mechanism, fusion-partner list, or census category does not by itself
+  establish a diagnostic, prognostic, treatment, biomarker, or germline role.
+- Do not infer prognosis from frequency, treatment from a kinase or fusion list,
+  germline status from tumour findings, or biomarker utility from a diagnostic claim.
+- Diagnosis and biomarker cards may coexist only when the biomarker card states a
+  distinct source-supported testing target, detection strategy, assay limitation,
+  monitoring use, or discrimination use.
 
 ### Source disease alias policy
 
-A source-stated disease may ground a canonical card disease when it exactly
-matches one of these reviewed aliases (case-insensitive):
+A source-stated disease may ground a canonical card disease only when it is already
+canonical or exactly matches a reviewed alias in the canonical source-alias file,
+ignoring surrounding whitespace and letter case only.
 
-- `clonal haematopoiesis` → `CHIP`
-- `clonal haemopoiesis` → `CHIP`
+Emit only the canonical target in `diseases`, but preserve the source's actual disease
+or population wording in evidence and interpretation. Do not use fuzzy matching,
+stemming, punctuation substitution, semantic inference, or nearest-term mapping. A
+source term that is neither canonical nor a configured alias remains outside the
+controlled vocabulary.
 
-Emit only the canonical target in `diseases`, but preserve the source's
-actual disease or population wording in evidence and interpretation. Alias
-matching is otherwise exact. Do not use fuzzy matching, stemming, punctuation
-substitution, semantic inference, or nearest-term mapping. A source term that is
-neither canonical nor listed above remains outside the controlled vocabulary.
+Canonical source aliases:
+
+```json
+{
+  "clonal haematopoiesis": "CHIP",
+  "clonal haemopoiesis": "CHIP"
+}
+```
 
 Apply these category entailment tests before creating a card:
-
 - `diagnosis`: the passage states that the alteration defines, supports, excludes,
   differentiates, or changes a diagnosis or classification;
 - `prognosis`: the passage explicitly states an outcome, risk, survival,
@@ -187,20 +160,6 @@ Apply these category entailment tests before creating a card:
   work-up recommendation supports a conditional germline card but does not establish
   constitutional status.
 
-Gene presence, mutation frequency, co-occurrence, enrichment, a fusion-partner
-list, an entity name, or a census category does not by itself establish another
-category. In particular, do not infer prognosis from frequency, treatment from a
-kinase/fusion list, germline status from tumour findings, or a second biomarker card
-from an already exhausted diagnostic statement.
-
-An evidence bundle must be self-contained enough to support the interpretation. Do
-not use a bibliographic reference-list entry, heading alone, unsupported sentence
-fragment, or truncated table extraction. A bare list is insufficient unless its
-governing heading and row together explicitly express the claimed relation. A
-bibliographic reference title or reference-list
-entry is a hard stop even if its title appears to describe the desired claim. If no
-valid substantive evidence bundle exists, omit the card.
-
 For the provisional package, copy `publication_type` and
 `publication_type_basis` verbatim from the census and set
 `publication_type_verified_by_phase3` to `false`. Phase 2 does not review,
@@ -208,29 +167,24 @@ reclassify, or independently validate publication type.
 
 Write `paper.provisional-001.json`, set its `round` field to `1`, and set `audit` to
 null.
-
 Use `metadata.publication_key` as the human-readable card namespace. Assign card IDs
 as `<publication_key>-C0001`, `<publication_key>-C0002`, and so on, and use each
 exact same ID in its paired evidence bundle. Never construct card IDs from `paper_id`; that
 content-derived UUID is used only to preserve paper identity across input artefacts.
-
 Use `diseases` only for exact clinical applicability: include each source-grounded
 disease for which the interpretation itself is valid. Do not add broader taxonomy
 terms to `diseases` merely because the vocabulary's `umbrella` graph identifies them
 as ancestors; doing so would make a disease-specific card eligible for unrelated
 cases in downstream retrieval.
-
 For every card, mechanically populate `disease_ancestors` with every direct and
 transitive parent reached through the vocabulary's `umbrella` graph, in canonical
 vocabulary order, excluding values already present in `diseases`. These are derived
 indexing terms, not additional clinical scope, and need not appear in the evidence.
 For example, a CMML card has exact `diseases: ["CMML"]` and derived ancestors
 `["MDS", "MDS/MPN", "MPN"]`; it does not become generally applicable to MDS or MPN.
-
 Set `diseases_covered` to the exact unique union of the cards' exact `diseases`
 arrays only; do not include `disease_ancestors`. Set `genes_covered` to the exact
 unique union of all card gene arrays.
-
 ## Reporting rules
 
 # Agreed reporting rules for interpretative myeloid NGS summaries
@@ -387,10 +341,6 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 {
   "vocabulary_version": "1.5",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
-  "source_disease_aliases": {
-    "clonal haematopoiesis": "CHIP",
-    "clonal haemopoiesis": "CHIP"
-  },
   "diseases": [
     "CHIP",
     "CCUS",
@@ -752,7 +702,6 @@ Do not repeat the clinical history, morphology or standard treatment unless need
   }
 }
 ```
-
 ## Exit self-audit
 
 For every card ask: (1) does its paired evidence bundle support every material assertion,
@@ -760,14 +709,12 @@ and (2) is it independently useful rather than redundant? Repair all failures an
 rerun over the whole package, at most three passes. At the cap, narrow or delete
 remaining failures. Do not return internal verdicts and do not claim independent
 audit.
-
 For every `claim` fragment, inspect the sentence immediately before and after it in
 its source passage. If either sentence materially changes scope, certainty,
 direction, eligibility, exception, analysis, or clinical meaning, expand the fragment
 or bundle, or narrow, split, or delete the card.
 
 For every `composite_text` bundle, also verify that:
-
 1. every `claim` fragment contributes to the same source assertion;
 2. no intervening text changes the population, analysis, comparator, disease scope,
    or conclusion;
@@ -775,20 +722,14 @@ For every `composite_text` bundle, also verify that:
 4. the interpretation does not imply a relationship the source does not state.
 
 Once the evidence passes these checks, do not shorten it merely for concision.
-
 ## Deterministic exit validation
 
-All required inputs and the complete validation bundle are provided in this chat.
-Do not search for, access, clone, or inspect any repository or external source.
-
-The bundle below contains the canonical repository validator and every
-repository-owned dependency it requires. Recreate every file verbatim under
-`validation_bundle/`, preserving all displayed relative paths. Do not modify,
-summarize, reinterpret, combine, or replace any file or check.
-
-Create a directory named `validation_bundle` and recreate every file below
-at its displayed relative path. Preserve the directory structure and file
-contents verbatim. Do not combine files or rewrite imports.
+The bundle below contains the canonical repository validator and every repository-owned
+dependency it requires. Recreate every displayed file verbatim under
+`validation_bundle/` at its displayed relative path, preserving directory structure.
+Do not search for or clone the repository, modify a bundled file, summarize or
+reinterpret it, combine files, rewrite imports, or substitute another validator or
+check.
 
 <!-- BEGIN VERBATIM scripts/final_validation.py -->
 ```python
@@ -1297,24 +1238,25 @@ def validate_final_against_provisional(final, provisional):
 ```python
 #!/usr/bin/env python3
 """Single source of truth for closed disease vocabularies and retrieval relations.
-
 Evidence-card diseases, case-only disease options, taxonomy, categories and evidence
-ranks all live in ``schema/disease_vocabulary.json``. Explicit source aliases may map
-source wording to a canonical evidence-card disease; they do not extend the output
-vocabulary. ``umbrella`` remains taxonomy only. ``retrieval_related`` is a separate,
-directional, category-specific relation used only by case retrieval.
+ranks live in ``schema/disease_vocabulary.json``. Explicit source aliases live in
+``schema/source_disease_aliases.json``; they may map source wording to a canonical
+evidence-card disease but do not extend the output vocabulary. ``umbrella`` remains
+taxonomy only. ``retrieval_related`` is a separate, directional, category-specific
+relation used only by case retrieval.
 """
 import json
 from pathlib import Path
-
 SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schema"
 VOCAB_PATH = SCHEMA_DIR / "disease_vocabulary.json"
+SOURCE_DISEASE_ALIASES_PATH = SCHEMA_DIR / "source_disease_aliases.json"
 PACKAGE_SCHEMA_PATH = SCHEMA_DIR / "ingestion_package_schema.json"
-
 _VOCAB = json.loads(VOCAB_PATH.read_text(encoding="utf-8"))
 DISEASES = list(_VOCAB["diseases"])
 DISEASE_SET = set(DISEASES)
-SOURCE_DISEASE_ALIASES = dict(_VOCAB.get("source_disease_aliases", {}))
+SOURCE_DISEASE_ALIASES = dict(
+    json.loads(SOURCE_DISEASE_ALIASES_PATH.read_text(encoding="utf-8"))
+)
 _NORMALIZED_SOURCE_DISEASE_ALIASES = {
     alias.strip().casefold(): target
     for alias, target in SOURCE_DISEASE_ALIASES.items()
@@ -1337,14 +1279,12 @@ DISEASE_NAMING_EXPECTED = set(_VOCAB["disease_naming_expected"])
 # Render and truncation order. Strongest tier first; truncation eats the tail.
 TIER_RANK = {tier: i for i, tier in enumerate(EVIDENCE_TIERS)}
 CATEGORY_RANK = {category: i for i, category in enumerate(CATEGORIES)}
-
 UNSPECIFIED_DISEASE = "myeloid neoplasm, unspecified"
 NO_HAEMATOLOGICAL_MALIGNANCY = "no_haematological_malignancy"
 
 
 def canonical_source_disease(term):
     """Resolve a canonical disease or an exact configured source alias.
-
     Alias matching ignores surrounding whitespace and letter case only. It does not
     perform fuzzy matching, stemming, punctuation changes, or nearest-term mapping.
     ``None`` means the source term is outside the controlled vocabulary and aliases.
@@ -1367,7 +1307,6 @@ def disease_ancestors(diseases):
     """
     requested = set(diseases)
     ancestors = set()
-
     def visit(disease, path):
         if disease in path:
             cycle = " -> ".join((*path, disease))
@@ -1727,10 +1666,6 @@ if __name__ == "__main__":
 {
   "vocabulary_version": "1.5",
   "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
-  "source_disease_aliases": {
-    "clonal haematopoiesis": "CHIP",
-    "clonal haemopoiesis": "CHIP"
-  },
   "diseases": [
     "CHIP",
     "CCUS",
@@ -2236,14 +2171,6 @@ if __name__ == "__main__":
     "An explicit reproducible search and study-selection method identifies a systematic review.",
     "Otherwise, an unstructured literature synthesis is a narrative review; use other only when none of the preceding definitions fits.",
     "Labels such as special report, special article, white paper, position paper, perspective, or review article are not allowed values. Map them to the semantic taxonomy using purpose and methods."
-  ],
-  "audit_stability": [
-    "Audit the package value for defensibility under this taxonomy; do not choose a preferred label de novo.",
-    "Pass when the package value is defensible, even if another value could also be defensible.",
-    "Fail only when the package value clearly does not satisfy its definition and exactly one different allowed value is better supported.",
-    "When evidence is mixed or multiple values remain defensible, retain and pass the package value.",
-    "Never fail merely to substitute a near-synonym, a publisher article-format label, or an equally defensible type.",
-    "Any auditor_value must be one of the six allowed values."
   ]
 }
 ```
@@ -2362,6 +2289,14 @@ if __name__ == "__main__":
 ```
 <!-- END VERBATIM schema/review_schema.json -->
 
+<!-- BEGIN VERBATIM schema/source_disease_aliases.json -->
+```json
+{
+  "clonal haematopoiesis": "CHIP",
+  "clonal haemopoiesis": "CHIP"
+}
+```
+<!-- END VERBATIM schema/source_disease_aliases.json -->
 After writing `paper.provisional-001.json`, recreate the bundle and run:
 ```bash
 python validation_bundle/scripts/final_validation.py --phase 2 \
@@ -2374,9 +2309,7 @@ A non-zero exit means the Phase 2 product is invalid. Repair it and rerun until
 successful. Do not edit the output after the successful run. The census-critique
 branch has no JSON product validator; its branch and filename checks remain manual.
 ## Mandatory pre-output gate
-
 Before writing, verify privately that:
-
 1. the active phase is Phase 2 and exactly one allowed output branch applies;
 2. the output filename exactly matches that branch and no input file is overwritten;
 3. a census critique is Markdown, uses the next three-digit critique number, names
@@ -2392,7 +2325,6 @@ Before writing, verify privately that:
    card's exact `diseases`, has no overlap with them, and `genes_covered` and
    `diseases_covered` equal the exact unions represented by cards; and
 8. `paper.census.json` was used only as a read-only input.
-
 If any check fails, repair the output before finalizing. Do not print the checklist,
 explanatory prose, Markdown fences around JSON, or more than one file.
 
