@@ -20,20 +20,19 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 
 - Step 0 — deterministic/setup: establish workflow state and `<work-dir>`; record `<format-prompt>` when needed.
 - Step 1A — model: capture the supplied clinical case verbatim in `case.md`.
-- Step 1B — model: structure `case.md` into `case-input.json`.
-- Step 2 — deterministic: retrieve diagnosis evidence into `step2.json`.
-- Step 3A — model: adjudicate the diagnosis into `adjudication.json`; automatic review also performs Step 3C (skip 3B).
-- Step 3B — model/user: manual review only; finalise review fields in `adjudication.json`.
-- Step 3C — model + deterministic append: append one integrated-diagnosis sentence to `case.md` without model-reading `case.md`; automatic review performs this in Step 3A, manual review after Step 3B.
-- Steps 3D–5 — deterministic: validate the completed adjudication, retrieve the full evidence bundle into `bundle.json`, and render equivalent human-readable `block.md` and model-readable `evidence.json` views.
-- Step 6A1 — model + deterministic validation: answer every reporting rule in `report-content.json` without citations.
-- Step 6A2 — model + deterministic validation: copy the answers unchanged into `report-audit.json`, add `card_ids`, and render `report-draft.md` deterministically.
-- Step 6B — model + deterministic validation: format `report-draft.md` into `report-final.md`, copying the exact card-ID markers associated with retained statements, then validate them.
-- Step 6C — deterministic: replace card-ID markers in `report-final.md` with Vancouver-style citations and render its bibliography.
+- Step 1B — deterministic/model: expose only the small case-major-category list, then structure `case.md` into `case-input.json`.
+- Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `step2.json`.
+- Step 3A — model: adjudicate the diagnosis into `adjudication.json`.
+- Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded against `step2.json`.
+- Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
+- Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, render `block.md`, and render card-level `evidence.json` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
+- Step 6A — model + deterministic validation: answer every reporting rule and attach evidence-card tags in one `report-analysis.json` pass, then render `report-draft.md`.
+- Step 6B — model + deterministic validation: format `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
+- Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
 - Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md`.
 
 `evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md`,
-`<work-dir>/evidence.json`, and a non-empty `<work-dir>/block.md` exist. Do not
+`<work-dir>/evidence.json`, `<work-dir>/card-tags.json`, and a non-empty `<work-dir>/block.md` exist. Do not
 rerun skipped steps.
 
 
@@ -95,8 +94,9 @@ File access is **deny by default**.
    - do not list or search `prompts/formatting/`;
    - do not use a formatting prompt outside `prompts/formatting/`;
    - **record the path only. Do not read `<format-prompt>` until Step 6B.**
-6. For `evidence-to-report`, verify only that `<work-dir>/case.md` and
-   `<work-dir>/evidence.json` exist and `<work-dir>/block.md` exists and is non-empty.
+6. For `evidence-to-report`, verify only that `<work-dir>/case.md`,
+   `<work-dir>/evidence.json`, and `<work-dir>/card-tags.json` exist and
+   `<work-dir>/block.md` exists and is non-empty.
    Do not read their contents in Step 0.
 7. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
 
@@ -148,14 +148,20 @@ Write only `<work-dir>/case.md`.
 
 ## Step 1B — Structure the case
 
-Use a fresh bounded model session.
+First run exactly:
+
+```bash
+python scripts/case_major_categories.py --output <work-dir>/case-major-categories.json
+```
+
+Then use a fresh bounded model session.
 
 ### Model-readable inputs
 
 Read only:
 
 - `<work-dir>/case.md`;
-- `schema/disease_vocabulary.json`.
+- `<work-dir>/case-major-categories.json`.
 
 Do not reread the original case source.
 
@@ -173,11 +179,15 @@ Do not reread the original case source.
 
 Create:
 
-- `provisional_disease`
-  - Use the supplied starting major diagnostic category as one exact allowed case-disease value from the vocabulary.
-  - Do not upgrade it from model knowledge.
-  - Use `no_haematological_malignancy` only when the case does not specify a haematological malignancy **and** the NGS result block contains no variants.
+- `case_major_category`
+  - Choose exactly one value from `<work-dir>/case-major-categories.json`.
+  - Represent the supplied starting **clinicomorphological major category**, not a molecularly revised diagnosis.
+  - Use `no_haematological_malignancy` only when the case specifies no haematological malignancy and the NGS result block contains no variants.
   - Do not use `no_haematological_malignancy` if variants are present.
+
+- `provisional_disease`
+  - Preserve the supplied provisional diagnostic wording, including any subtype/entity wording such as `MDS-IB2`.
+  - Do not force it to a controlled-vocabulary term and do not revise it using molecular findings.
 
 - `genes`
   - Include only genes with reported variants in the NGS result block.
@@ -200,7 +210,8 @@ Write JSON only to `<work-dir>/case-input.json` with exactly these top-level fie
 
 ```json
 {
-  "provisional_disease": "<allowed case disease>",
+  "case_major_category": "<exact allowed major category>",
+  "provisional_disease": "<supplied provisional diagnostic wording>",
   "genes": [],
   "case_facts": []
 }
@@ -226,6 +237,9 @@ python scripts/run_case.py diagnosis --work-dir <work-dir>
 
 - The command succeeds.
 - `<work-dir>/step2.json` exists.
+- Diagnosis retrieval includes cards belonging to `case_major_category`, existing direct diagnosis `retrieval_related` scope, or a reported case gene.
+- `provisional_disease` remains the supplied free-text starting diagnosis.
+- `allowed_refined_diseases` is limited to canonical diseases represented by retrieved diagnosis cards plus the selected major category fallback; it is not the full disease vocabulary.
 
 Do not read or modify `step2.json` in this step.
 
@@ -250,98 +264,79 @@ If `diagnosis_cards` is empty:
 
 - do not reclassify;
 - set `status` to `"indeterminate"`;
-- preserve `provisional_disease` as both `refined_disease` and `downstream_filter_disease`;
-- set `diagnostic_label` to null;
+- set `refined_disease` and `downstream_filter_disease` to `case_major_category`;
+- preserve the supplied `provisional_disease` as `diagnostic_label`;
 - set `driven_by` and `criterion_assessment` to `[]`;
 - state in `reason` that no corpus diagnosis evidence was retrieved.
 
 For `evidence-block`, `ngs-report`, `nel-demo`, and `nel-validate`:
 - set `user_review` to `"automatic"`;
-- use the model adjudication as final;
 - keep `downstream_filter_disease` equal to `refined_disease`;
 - do not ask for user confirmation;
-- perform Step 3C in this same model session (skip Step 3B).
+- proceed directly to deterministic Step 3C.
 
 For `evidence-block manual`:
-- write the initial `<work-dir>/adjudication.json` with `user_review.decision: "pending"`;
+- write the initial `<work-dir>/adjudication.json` with `user_review.decision: "pending"` and the exact pending review fields required by the adjudication prompt;
 - proceed to Step 3B.
 
 #### Output
 
-Write only `<work-dir>/adjudication.json` using the adjudication fields allowed by `prompts/diagnostic_adjudication_prompt.md` and the mode-specific `user_review` state above.
+Write only `<work-dir>/adjudication.json`.
 
 ### Step 3B — Manual user review
 
 Run only for `evidence-block manual`.
 
-Use a fresh bounded model session.
+First read only `<work-dir>/adjudication.json`, present the proposed integrated diagnosis and concise model reason, and ask the user to agree or provide a revised diagnostic label and downstream category.
 
-#### Model-readable inputs
+#### If the user agrees
 
-Read only:
+Update only `user_review` and `downstream_filter_disease`:
 
-- `<work-dir>/adjudication.json`;
-- the user's agree/disagree response and, when disagreeing, supplied revised diagnosis.
+- `decision`: `"agree"`;
+- copy top-level `diagnostic_label` to `user_review.diagnostic_label`;
+- copy top-level `refined_disease` to `user_review.refined_disease`;
+- copy top-level `reason` to `user_review.reason`;
+- copy top-level `driven_by` to `user_review.card_ids`;
+- set `downstream_filter_disease` to `user_review.refined_disease`.
 
-Do not reread `step2.json`, the adjudication prompt, `case.md`, or any other file.
+Do not start another model adjudication.
 
-#### Required action
+#### If the user revises the diagnosis
 
-1. Present the proposed integrated diagnosis and one concise evidence-bounded argument, or a short list for several distinct reasons, before requesting the user's decision.
-2. Ask the user to agree or disagree.
-3. After the user's response, update only `user_review` and `downstream_filter_disease`:
-   - **agree:** set `decision` to `"agree"` and copy the model's `diagnostic_label` and `refined_disease` exactly;
-   - **disagree:** require a revised diagnostic label and one exact downstream category, then set `decision` to `"disagree"`; the Steps 3D–5 command will validate that category against Step 2.
-4. Do not alter the model's original top-level adjudication fields after user review.
-5. Set `downstream_filter_disease` to `user_review.refined_disease`.
-6. Do not require a separate continuation word.
-
-#### Output
-
-Update only `<work-dir>/adjudication.json`.
-
-### Step 3C — Append the integrated diagnosis
-
-This step is compulsory for all modes that run Step 3.
-
-For automatic review, perform Step 3C in the Step 3A model session (skip Step 3B), using the already-read `step2.json` and the `adjudication.json` just written. Do not reread them.
-
-For completed manual review, use a fresh bounded model session and read only:
+Use a fresh bounded model session and read only:
 
 - `<work-dir>/step2.json`;
-- `<work-dir>/adjudication.json`.
+- `<work-dir>/adjudication.json`;
+- the user's revised diagnostic label and downstream category.
 
-**Do not read `<work-dir>/case.md`.** The deterministic append command may access it.
+Re-ground the requested revision using only supplied case facts and retrieved diagnosis cards. Do not alter the model's original top-level adjudication fields. Update only:
 
-#### Required action
+- `user_review.decision` to `"disagree"`;
+- `user_review.diagnostic_label` to the grounded revised label;
+- `user_review.refined_disease` to one exact `allowed_refined_diseases` value;
+- `user_review.reason` to a concise evidence-bounded reason;
+- `user_review.card_ids` to one or more exact supporting diagnosis `card_id` values;
+- `downstream_filter_disease` to `user_review.refined_disease`.
 
-Determine the final integrated diagnosis from the completed adjudication:
-- automatic review: use the final top-level `diagnostic_label`; if null, use `downstream_filter_disease`;
-- completed manual review: use `user_review.diagnostic_label`; if null, use `user_review.refined_disease`.
+If the requested revision cannot be grounded in retrieved diagnosis evidence, do not invent support; explain that Step 4 remains blocked until the user supplies a supportable revision or agrees with the model adjudication.
 
-Create a specific reason of 20 words or fewer using only the allowed inputs. Use one supporting diagnosis-card citation as `<Author et al, year>`. If no diagnosis card supports the final integrated diagnosis, use `no citation required`.
+### Step 3C — Deterministically append the integrated diagnosis
+
+This step is compulsory after automatic adjudication or completed manual review. It is not a model step.
 
 Run exactly:
 
 ```bash
 python scripts/append_integrated_diagnosis.py \
   --case <work-dir>/case.md \
-  --diagnosis "<final integrated diagnosis>" \
-  --reason "<specific reason, 20 words or fewer>" \
-  --citation "<Author et al, year OR no citation required>"
+  --diagnosis-result <work-dir>/step2.json \
+  --adjudication-result <work-dir>/adjudication.json
 ```
 
-Do not otherwise modify `case.md`.
+The command validates the completed adjudication and appends exactly one line using the effective automatic or user-reviewed diagnosis. Do not otherwise modify `case.md`.
 
-#### Exit
-
-The command succeeds and appends exactly one sentence:
-
-`Integrated diagnosis: <diagnosis>, based on <specific reason, 20 words or fewer>. (<Author et al, year>).`
-
-### Steps 3D–5 — Validate, retrieve and render
-
-This deterministic command is **compulsory** after Step 3C.
+### Steps 3D–5 — Retrieve and render
 
 Run exactly:
 
@@ -351,13 +346,13 @@ python scripts/run_case.py full --work-dir <work-dir>
 
 #### Exit
 
-- The command succeeds. If validation fails, stop.
-- `<work-dir>/bundle.json`, `<work-dir>/block.md`, and `<work-dir>/evidence.json` exist.
+- The command succeeds. If adjudication validation fails, stop.
+- `<work-dir>/bundle.json`, `<work-dir>/block.md`, `<work-dir>/evidence.json`, and `<work-dir>/card-tags.json` exist.
+- Only diagnosis cards actually cited by Step 3 are carried into the full reporting bundle; prognosis/treatment/biomarker retrieval remains disease-narrow unless adjudication remains broad/indeterminate.
+- `evidence.json` preserves one model-visible record per evidence card but exposes only a six-character runtime `card_tag`, never the stable full `card_id`.
+- `card-tags.json` is the deterministic private tag-to-card-ID map and is not model-readable.
 
-Do not model-read or modify `step2.json`, `adjudication.json`, `bundle.json`,
-`block.md`, or `evidence.json` in Steps 3D–5.
-
-Do not create a separate review, approval, diagnosis, or override file.
+Do not model-read or modify `step2.json`, `adjudication.json`, `bundle.json`, `block.md`, `evidence.json`, or `card-tags.json` in Steps 3D–5.
 
 ## Step 6 — Write the NGS report
 
@@ -365,13 +360,11 @@ Run only for `ngs-report`, `evidence-to-report`, `nel-demo`, or `nel-validate`.
 
 For `ngs-report`, `nel-demo`, and `nel-validate`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
 
-For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md`,
-`<work-dir>/evidence.json`, and a non-empty `<work-dir>/block.md`; do not rerun
-Steps 1A–5.
+For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md`, `<work-dir>/evidence.json`, `<work-dir>/card-tags.json`, and a non-empty `<work-dir>/block.md`; do not rerun Steps 1A–5.
 
-### Step 6A1 — Answer the reporting rules
+### Step 6A — Answer reporting rules and assign evidence cards
 
-Use a fresh bounded model session.
+Use one fresh bounded model session.
 
 Read only:
 
@@ -379,64 +372,45 @@ Read only:
 - `<work-dir>/evidence.json`;
 - `rules/agreed_reporting_rules.md`.
 
-Write `<work-dir>/report-content.json` with this shape:
+Write `<work-dir>/report-analysis.json` with this shape:
 
 ```json
 {
   "schema_version": "1.0",
   "answers": [
-    {"rule_id": "R1.1", "text": "Patient-specific conclusion or drafting instruction."}
+    {
+      "rule_id": "R1.1",
+      "text": "Patient-specific conclusion or drafting instruction.",
+      "citation_status": "cited",
+      "card_tags": ["a1b2c3"]
+    }
   ]
 }
 ```
 
+Requirements:
+
 - Include every rule from `R1.1` through `R5.9` exactly once and in source order.
 - Give each rule a self-contained, case-specific answer.
 - Use the integrated diagnosis in `case.md`; do not re-adjudicate it.
-- Use `evidence.json` for literature-derived claims.
+- Use `evidence.json` as the complete literature-evidence boundary.
+- Keep card-level evidence granularity: cite the exact runtime `card_tag` of every evidence card that directly supports the answer.
+- Use only tags copied exactly from `evidence.json`; never infer, reconstruct, shorten or invent a tag.
+- Set `citation_status` to `"cited"` when one or more cards directly support the answer and include those tags.
+- Set `citation_status` to `"no_citation_required"` with `card_tags: []` when no literature citation is required. This explicit state is compulsory; an empty tag array alone is not sufficient.
 - Use a drafting instruction such as `Omit ...` when a rule has no reportable implication.
-- Do not add `card_ids`, citations, headings, commentary, or fields outside the shown shape.
+- Do not add headings, commentary or fields outside the shown shape.
 
-Run:
-
-```bash
-python scripts/report_audit.py validate-content \
-  --content <work-dir>/report-content.json
-```
-
-Correct `report-content.json` until validation succeeds.
-
-### Step 6A2 — Audit citations
-
-Use a fresh bounded model session.
-
-Read only:
-
-- `<work-dir>/report-content.json`;
-- `<work-dir>/evidence.json`.
-
-Write `<work-dir>/report-audit.json` by copying every `rule_id` and `text` value
-exactly and adding one `card_ids` array to each answer.
-
-- Do not edit, reorder, add, or remove any answer or any character in `rule_id` or `text`.
-- Add the exact `card_id` of every evidence card that directly supports the answer.
-- Use an empty `card_ids` array when no card in `evidence.json` is appropriate.
-- Do not infer, shorten, reconstruct, or alter a card ID.
-- Do not add fields outside `rule_id`, `text`, and `card_ids`.
-
-Run:
+Run exactly:
 
 ```bash
 python scripts/report_audit.py render \
-  --content <work-dir>/report-content.json \
-  --audit <work-dir>/report-audit.json \
+  --analysis <work-dir>/report-analysis.json \
   --evidence <work-dir>/evidence.json \
   --output <work-dir>/report-draft.md
 ```
 
-The command rejects content edits and unknown card IDs, then deterministically creates
-`report-draft.md`. Correct only `card_ids` until it succeeds. Do not edit
-`report-draft.md`.
+The command validates every rule, citation state and runtime card tag, then deterministically creates `report-draft.md`. If validation fails, correct `report-analysis.json` using only the validator error and the already-permitted Step 6A inputs until it succeeds. Unknown tags are reported with the affected rule IDs. Do not edit `report-draft.md`.
 
 ### Step 6B — Format the final report
 
@@ -449,7 +423,7 @@ Read only:
 - `<format-prompt>`;
 - `<work-dir>/report-draft.md`.
 
-Do not read `case.md`, `block.md`, `rules/agreed_reporting_rules.md`, the original case document, or any other file. Do not use information carried from Step 6A except `report-draft.md`.
+Do not read `case.md`, `evidence.json`, `card-tags.json`, `block.md`, `rules/agreed_reporting_rules.md`, the original case document, or any other file. Do not use information carried from Step 6A except `report-draft.md`.
 
 If either required input is missing, unreadable, or malformed, stop and report the error.
 
@@ -457,57 +431,39 @@ If either required input is missing, unreadable, or malformed, stop and report t
 
 Follow `<format-prompt>` exactly, using `report-draft.md` as the sole source of report content.
 
-Treat explicit drafting instructions in `report-draft.md` as constraints on the final report, not as report prose. Apply instructions such as `Omit ...`, `Do not state ...`, and `Do not infer ...`, then omit the instruction itself from `report-final.md`.
+Treat explicit drafting instructions in `report-draft.md` as constraints, not report prose. Apply instructions such as `Omit ...`, `Do not state ...`, and `Do not infer ...`, then omit the instruction itself from `report-final.md`.
 
-Do not introduce a clinical assertion, qualification, citation, or patient fact that is absent from `report-draft.md`.
+Do not introduce a clinical assertion, qualification, citation, or patient fact absent from `report-draft.md`.
 
-For every retained statement, copy verbatim every exact `[card:<card-id>]` marker
-associated with the supporting facts in `report-draft.md`. Keep the copied markers
-attached to those facts. When combining retained draft statements, copy all of their
-supporting markers verbatim and adjacently. Do not create, infer, alter, shorten,
-parse, replace, or renumber a card-ID marker. Retain `(no citation required)` for a
-retained sentence that has that marker. Do not write numeric citations or a
-`## References` section.
+For every retained statement, copy verbatim every exact `[card:<six-character-tag>]` marker associated with its supporting facts. Keep copied markers attached to those facts. When combining retained draft statements, copy all supporting markers verbatim and adjacently. Do not create, infer, alter, shorten, parse, replace, or renumber a card-tag marker. Retain `(no citation required)` for a retained sentence with that marker. Do not write numeric citations or a `## References` section.
 
 #### Output
 
-Write only:
-
-`<work-dir>/report-final.md`
-
-The file must contain the final report only. Do not include process commentary, rule numbers, source-audit notes, confidence commentary, alternative drafts, or an additional summary.
+Write only `<work-dir>/report-final.md`.
 
 Then run exactly:
 
 ```bash
 python scripts/report_citations.py validate \
   --report <work-dir>/report-final.md \
-  --block <work-dir>/block.md
+  --block <work-dir>/block.md \
+  --card-tags <work-dir>/card-tags.json
 ```
 
-The command is read-only and is the Step 6B exit criterion. It must succeed before
-Step 6C. If it fails, use only the validator error, `<format-prompt>`, and
-`report-draft.md` to correct `report-final.md`, then rerun the exact command until
-it succeeds.
+The command is read-only and must succeed before Step 6C. If it fails, use only the validator error, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
 
 ### Step 6C — Render citations and references
-
-This deterministic step is compulsory for every workflow that runs Step 6.
 
 Run exactly:
 
 ```bash
 python scripts/report_citations.py render \
   --report <work-dir>/report-final.md \
-  --block <work-dir>/block.md
+  --block <work-dir>/block.md \
+  --card-tags <work-dir>/card-tags.json
 ```
 
-The command must succeed before Step 7. It resolves each exact card-ID marker
-through the `block.md` `## Refs` mapping to that card's primary publication,
-replaces markers with Vancouver-style numeric square-bracket citations, merges
-adjacent citations, deduplicates publications, numbers references in order of first
-citation, removes `(no citation required)`, and appends the cited bibliography to
-`report-final.md`. Do not otherwise modify `report-final.md` after this command.
+The command deconvolves each runtime tag to its stable card ID, resolves that card through `block.md` to its primary publication, replaces card markers with Vancouver-style numeric square-bracket citations, merges adjacent citations, deduplicates publications, removes `(no citation required)`, and appends the cited bibliography. Do not otherwise modify `report-final.md` after this command.
 
 ## Step 7 — Post-report delivery and validation
 

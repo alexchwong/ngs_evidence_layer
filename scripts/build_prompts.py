@@ -175,6 +175,32 @@ def vocabulary_errors():
         errors.append("disease vocabulary contains duplicate canonical term names")
     canonical = set(names)
     canonical_casefold = {name.casefold() for name in names}
+    case_major_categories = vocabulary.get("case_major_categories", {})
+    if not isinstance(case_major_categories, dict) or not case_major_categories:
+        errors.append("case_major_categories must be a non-empty object")
+        case_major_categories = {}
+    for category, diseases in case_major_categories.items():
+        if not isinstance(category, str) or not category.strip():
+            errors.append("case_major_categories keys must be non-empty strings")
+        if not isinstance(diseases, list):
+            errors.append(f"case_major_categories[{category!r}] must be an array")
+            continue
+        if len(diseases) != len(set(diseases)):
+            errors.append(f"case_major_categories[{category!r}] contains duplicate diseases")
+        for disease in diseases:
+            if disease not in canonical:
+                errors.append(
+                    f"case_major_categories[{category!r}] contains non-canonical disease {disease!r}"
+                )
+    mapped = {
+        disease
+        for diseases in case_major_categories.values()
+        if isinstance(diseases, list)
+        for disease in diseases
+    }
+    for disease in canonical:
+        if disease not in mapped:
+            errors.append(f"disease term {disease!r} maps to no case_major_category")
 
     for term in terms:
         if not isinstance(term, dict) or term.get("name") not in canonical:

@@ -67,11 +67,12 @@ class RetrievalRelatedVocabularyTests(unittest.TestCase):
 
 
 class NoHaematologicalMalignancyTests(unittest.TestCase):
-    def write_case(self, disease, genes):
+    def write_case(self, disease, genes, category=None):
         tmp = tempfile.TemporaryDirectory()
         path = Path(tmp.name) / "case-input.json"
         path.write_text(
             json.dumps({
+                "case_major_category": category or disease,
                 "provisional_disease": disease,
                 "genes": genes,
                 "case_facts": [
@@ -93,7 +94,10 @@ class NoHaematologicalMalignancyTests(unittest.TestCase):
             result = retrieve.validate_case_input(path)
             self.assertEqual(result["genes"], [])
             self.assertEqual(result["provisional_disease"], vocab.NO_HAEMATOLOGICAL_MALIGNANCY)
-            step2 = retrieve.step2([], [], vocab.NO_HAEMATOLOGICAL_MALIGNANCY, result["case_facts"])
+            step2 = retrieve.step2(
+                [], [], result["provisional_disease"], result["case_facts"],
+                case_major_category=result["case_major_category"],
+            )
             self.assertEqual(step2["diagnosis_cards"], [])
             self.assertIn(vocab.NO_HAEMATOLOGICAL_MALIGNANCY, step2["allowed_refined_diseases"])
         finally:
@@ -113,13 +117,52 @@ class NoHaematologicalMalignancyTests(unittest.TestCase):
             result = retrieve.validate_case_input(path)
             self.assertEqual(result["provisional_disease"], "MDS")
             self.assertEqual(result["genes"], [])
-            step2 = retrieve.step2([], [], "MDS", result["case_facts"])
+            step2 = retrieve.step2(
+                [], [], result["provisional_disease"], result["case_facts"],
+                case_major_category=result["case_major_category"],
+            )
             self.assertNotIn(
                 vocab.NO_HAEMATOLOGICAL_MALIGNANCY,
                 step2["allowed_refined_diseases"],
             )
         finally:
             tmp.cleanup()
+
+
+class CaseMajorCategoryStep2Tests(unittest.TestCase):
+    def test_major_category_retrieves_diagnosis_cards_across_entities(self):
+        pmf = card("pmf-dx", "PMF", "diagnosis", gene="ASXL1")
+        cml = card("cml-dx", "CML", "diagnosis", gene="BCR")
+        result = retrieve.step2(
+            [pmf, cml], [], "provisional essential thrombocythaemia", [],
+            case_major_category="MPN",
+        )
+        self.assertEqual(
+            {item["card_id"] for item in result["diagnosis_cards"]},
+            {"pmf-dx", "cml-dx"},
+        )
+
+    def test_gene_match_can_escape_major_category(self):
+        mds = card("mds-dx", "MDS", "diagnosis", gene="TET2")
+        aml = card("aml-dx", "AML", "diagnosis", gene="NPM1")
+        cml = card("cml-dx", "CML", "diagnosis", gene="BCR")
+        result = retrieve.step2(
+            [mds, aml, cml], ["NPM1"], "MDS-IB2", [], case_major_category="MDS"
+        )
+        self.assertEqual(
+            {item["card_id"] for item in result["diagnosis_cards"]},
+            {"mds-dx", "aml-dx"},
+        )
+        self.assertIn("AML", result["allowed_refined_diseases"])
+        self.assertNotIn("CML", result["allowed_refined_diseases"])
+
+    def test_allowed_refined_diseases_are_not_the_full_vocabulary(self):
+        mds = card("mds-dx", "MDS", "diagnosis", gene="TET2")
+        result = retrieve.step2(
+            [mds], [], "MDS-IB2", [], case_major_category="MDS"
+        )
+        self.assertEqual(result["allowed_refined_diseases"], ["MDS"])
+        self.assertLess(len(result["allowed_refined_diseases"]), len(vocab.DISEASES))
 
 
 class RetrievalRelatedStep4Tests(unittest.TestCase):

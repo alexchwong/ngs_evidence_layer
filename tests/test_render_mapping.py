@@ -362,13 +362,16 @@ class RenderMappingTests(unittest.TestCase):
             card("C1-2", "Droppable.", tier="restated secondary"),
         ])
         result = render.render(source_bundle, token_budget=100)
-        evidence = render.evidence_payload(source_bundle, result)
+        tag_map = render.build_card_tags(result["rendered_cards"])
+        evidence = render.evidence_payload(source_bundle, result, tag_map)
 
         self.assertEqual(evidence["schema_version"], "1.0")
         self.assertEqual(
-            [item["card_id"] for item in evidence["cards"]],
-            [item["card_id"] for item in result["rendered_cards"]],
+            [item["card_tag"] for item in evidence["cards"]],
+            [item["card_tag"] for item in tag_map["tags"]],
         )
+        self.assertTrue(all(len(item["card_tag"]) == 6 for item in evidence["cards"]))
+        self.assertTrue(all("card_id" not in item for item in evidence["cards"]))
         self.assertNotIn("text", evidence)
         self.assertNotIn("references", evidence)
         self.assertNotIn("card_ids", evidence["cards"][0])

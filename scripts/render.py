@@ -18,6 +18,7 @@ Usage:
   render.py --bundle bundle.json --token-budget 120000 --format json
 """
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -482,13 +483,43 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
     }
 
 
-def evidence_payload(bundle, result):
-    """Return the compact Step 6 evidence boundary for model consumption."""
+def build_card_tags(rendered_cards):
+    """Assign short opaque runtime tags to rendered cards.
+
+    Tags are six hexadecimal characters derived from the full stable card ID. If a
+    six-character collision occurs within the current rendered set, rehash that
+    card with a deterministic numeric salt until an unused six-character tag is
+    found. The returned mapping is the only deconvolution boundary; full card IDs
+    are not exposed in ``evidence.json``.
+    """
+    used = {}
+    rows = []
+    for card in rendered_cards:
+        card_id = card["card_id"]
+        salt = 0
+        while True:
+            seed = card_id if salt == 0 else f"{card_id}#{salt}"
+            tag = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:6]
+            if tag not in used or used[tag] == card_id:
+                used[tag] = card_id
+                rows.append({"card_tag": tag, "card_id": card_id})
+                break
+            salt += 1
+    return {
+        "schema_version": "1.0",
+        "algorithm": "sha256-6hex-collision-resolved",
+        "tags": rows,
+    }
+
+
+def evidence_payload(bundle, result, tag_map):
+    """Return the compact card-level Step 6 evidence boundary for model consumption."""
+    tag_by_id = {row["card_id"]: row["card_tag"] for row in tag_map["tags"]}
     return {
         "schema_version": "1.0",
         "cards": [
             {
-                "card_id": card["card_id"],
+                "card_tag": tag_by_id[card["card_id"]],
                 "category": card["category"],
                 "genes": card["genes"],
                 "diseases": card["diseases"],
@@ -499,8 +530,14 @@ def evidence_payload(bundle, result):
             for card in result["rendered_cards"]
         ],
         "not_assessed": list(bundle.get("not_assessed") or []),
-        "suppressed": dict(bundle.get("suppressed") or {}),
-        "provenance": dict(bundle.get("provenance") or {}),
+        "suppressed": {
+            "count": (bundle.get("suppressed") or {}).get("count", 0),
+            "by_disease": dict((bundle.get("suppressed") or {}).get("by_disease") or {}),
+        },
+        "provenance": {
+            "corpus_version": (bundle.get("provenance") or {}).get("corpus_version"),
+            "corpus_sha256": (bundle.get("provenance") or {}).get("corpus_sha256"),
+        },
     }
 
 def main():
@@ -516,6 +553,11 @@ def main():
         type=Path,
         help="write compact post-truncation Step 6 evidence JSON",
     )
+    parser.add_argument(
+        "--card-tag-output",
+        type=Path,
+        help="write runtime card-tag to stable-card-ID deconvolution JSON",
+    )
     args = parser.parse_args()
     try:
         bundle = json.loads(args.bundle.read_text(encoding="utf-8"))
@@ -524,6 +566,7 @@ def main():
     if bundle.get("step") != 4:
         sys.exit("render expects a step 4 bundle from retrieve.py full")
     result = render(bundle, args.token_budget)
+    tag_map = build_card_tags(result["rendered_cards"])
     if args.format == "json":
         payload = json.dumps(result, indent=2, ensure_ascii=False)
     else:
@@ -539,8 +582,14 @@ def main():
     if args.evidence_output:
         args.evidence_output.parent.mkdir(parents=True, exist_ok=True)
         args.evidence_output.write_text(
-            json.dumps(evidence_payload(bundle, result), indent=2, ensure_ascii=False)
+            json.dumps(evidence_payload(bundle, result, tag_map), indent=2, ensure_ascii=False)
             + "\n",
+            encoding="utf-8",
+        )
+    if args.card_tag_output:
+        args.card_tag_output.parent.mkdir(parents=True, exist_ok=True)
+        args.card_tag_output.write_text(
+            json.dumps(tag_map, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
     print(

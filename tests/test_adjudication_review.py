@@ -33,8 +33,14 @@ class AdjudicationReviewTests(unittest.TestCase):
             "citation_incomplete": [],
             "secondary_citation": None,
         }
+        self.aml_diagnosis_card = {
+            **self.card,
+            "card_id": "classifier-C0004",
+            "diseases": ["AML"],
+            "interpretation": "Fixture AML diagnostic criterion.",
+        }
         self.step2 = retrieve.step2(
-            [self.card],
+            [self.card, self.aml_diagnosis_card],
             ["SF3B1"],
             "myeloid neoplasm, unspecified",
             [{"fact_id": "F-SF3B1", "type": "variant", "gene": "SF3B1"}],
@@ -59,6 +65,8 @@ class AdjudicationReviewTests(unittest.TestCase):
                 "decision": "pending",
                 "diagnostic_label": None,
                 "refined_disease": None,
+                "reason": None,
+                "card_ids": [],
             },
         }
 
@@ -77,6 +85,8 @@ class AdjudicationReviewTests(unittest.TestCase):
             "decision": "agree",
             "diagnostic_label": "MDS-SF3B1",
             "refined_disease": "MDS",
+            "reason": adjudication["reason"],
+            "card_ids": adjudication["driven_by"],
         }
         retrieve.validate_adjudication(
             self.step2,
@@ -99,6 +109,8 @@ class AdjudicationReviewTests(unittest.TestCase):
             "decision": "disagree",
             "diagnostic_label": "AML with myelodysplasia-related changes",
             "refined_disease": "AML",
+            "reason": "The revised AML diagnosis is supported by the retrieved criterion.",
+            "card_ids": ["classifier-C0004"],
         }
         retrieve.validate_adjudication(
             self.step2,
@@ -115,6 +127,8 @@ class AdjudicationReviewTests(unittest.TestCase):
             "decision": "disagree",
             "diagnostic_label": None,
             "refined_disease": "MDS",
+            "reason": "Fixture reason.",
+            "card_ids": ["classifier-C0001"],
         }
         with self.assertRaisesRegex(ValueError, "requires the user's integrated"):
             retrieve.validate_adjudication(
@@ -127,6 +141,8 @@ class AdjudicationReviewTests(unittest.TestCase):
             "decision": "disagree",
             "diagnostic_label": "Unsupported category",
             "refined_disease": "not-a-vocabulary-disease",
+            "reason": "Fixture reason.",
+            "card_ids": ["classifier-C0001"],
         }
         adjudication["downstream_filter_disease"] = "not-a-vocabulary-disease"
         with self.assertRaisesRegex(ValueError, "adjudication downstream_filter_disease 'not-a-vocabulary-disease' is outside the case disease vocabulary"):
@@ -143,6 +159,8 @@ class AdjudicationReviewTests(unittest.TestCase):
             "decision": "disagree",
             "diagnostic_label": "AML with a user-supplied integrated label",
             "refined_disease": "AML",
+            "reason": "The revised AML diagnosis is supported by the retrieved criterion.",
+            "card_ids": ["classifier-C0004"],
         }
         aml_card = {
             **self.card,
@@ -178,13 +196,31 @@ class AdjudicationReviewTests(unittest.TestCase):
             ), mock.patch.object(
                 retrieve,
                 "flatten",
-                return_value=[self.card, aml_card, mds_card],
+                return_value=[self.card, self.aml_diagnosis_card, aml_card, mds_card],
             ):
                 result = retrieve.run_full(args)
         retrieved_ids = {card["card_id"] for card in result["retrieved"]}
         self.assertEqual(result["refined_disease"], "AML")
         self.assertIn("classifier-C0002", retrieved_ids)
         self.assertNotIn("classifier-C0003", retrieved_ids)
+
+    def test_step4_carries_only_diagnosis_cards_used_by_adjudication(self):
+        adjudication = copy.deepcopy(self.pending)
+        adjudication["user_review"] = "automatic"
+        unused = {**self.card, "card_id": "classifier-C0099"}
+        diagnosis_cards = self.step2["diagnosis_cards"] + [unused]
+        result = retrieve.step4(
+            [self.card, self.aml_diagnosis_card, unused],
+            ["SF3B1"],
+            "MDS",
+            diagnosis_cards,
+            adjudication=adjudication,
+            case_major_category=self.step2["case_major_category"],
+        )
+        ids = {card["card_id"] for card in result["retrieved"]}
+        self.assertIn("classifier-C0001", ids)
+        self.assertNotIn("classifier-C0004", ids)
+        self.assertNotIn("classifier-C0099", ids)
 
     def test_run_full_rejects_pending_before_corpus_access(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -215,6 +251,8 @@ class AdjudicationReviewTests(unittest.TestCase):
             "decision": "disagree",
             "diagnostic_label": "AML with myelodysplasia-related changes",
             "refined_disease": "AML",
+            "reason": "The revised AML diagnosis is supported by the retrieved criterion.",
+            "card_ids": ["classifier-C0001"],
         }
         bundle = {
             "step": 4,

@@ -1,115 +1,91 @@
 # Diagnostic adjudication — evidence-bounded integrated diagnosis
 
-## Role and inputs
+## Role and evidence boundary
 
-You are adjudicating a provisional major diagnostic category against retrieved
-diagnosis cards and the supplied NGS results. You receive exactly one Step 2
+Adjudicate the provisional major diagnostic category using exactly one Step 2
 diagnosis JSON document produced by `scripts/retrieve.py diagnosis`. Use only:
 
-- `provisional_disease`;
-- `case_facts`, including their exact `fact_id` values;
-- `diagnosis_cards`, including their exact `card_id` values and interpretations;
+- `case_major_category`;
+- free-text `provisional_disease`;
+- `case_facts` and exact `fact_id` values;
+- `diagnosis_cards`, their interpretations, and exact `card_id` values;
 - `allowed_refined_diseases`.
 
-The diagnosis cards are the complete hard-evidence boundary for this decision. Do
-not add a diagnostic rule, threshold, exclusion, definition, or qualifier from model
-knowledge. Do not invent, normalise, or reinterpret a patient fact. Apply the rules
-below for complete test results and workflow assumptions. Current cards do not use
-`escalates_to`. If a legacy card contains it, ignore it: it is provenance only, not
-a logic gate or a sufficient reason to change category.
+Diagnosis cards are the complete hard-evidence boundary. Do not add diagnostic
+rules, thresholds, exclusions, definitions, or qualifiers from model knowledge. Do
+not invent, normalise, or reinterpret patient facts. Ignore any legacy
+`escalates_to` field; it is provenance only and never a logic gate.
 
-## Missing and unreported results
+## Test-result semantics
 
-Treat a supplied test result as complete unless a case fact says that it is partial,
-selected, limited, abbreviated, pending, or otherwise incomplete. A
-`test_result_status` fact with `complete_reported_findings: true` confirms that the
-listed findings are complete for that test.
+Treat a supplied test result as complete unless a case fact states that it is
+partial, selected, limited, abbreviated, pending, or otherwise incomplete.
+`test_result_status` with `complete_reported_findings: true` confirms completeness.
 
-An abnormal finding that is not listed in a complete test result is negative for that
-test. Keep the negative within the limits of the test. Do not use a negative
-sequencing result to exclude a copy-number change, rearrangement, or other finding
-unless a case fact says that the test assessed it.
+For a complete test, an abnormal finding not listed is negative only within that
+test's stated scope. Do not use a negative sequencing result to exclude a
+copy-number change, rearrangement, or other finding unless the case facts show that
+the test assessed it.
 
-Do not assume that an unmentioned test was performed. A fact with
-`type: "workflow_assumption"` is an explicit workflow assumption, not a measured
-patient result. Use it only as written. Identify it as an assumption in `reason`.
+Do not assume an unmentioned test was performed. A `workflow_assumption` is not a
+measured patient result; use it only as written and identify it as an assumption in
+`reason`.
 
-Examples:
+## Adjudication rules
 
-- The case facts contain a complete multigene panel result with a pathogenic
-  `GENE-A` variant. Treat unlisted genes as having no reportable abnormality on that
-  panel. Do not assume that the panel excluded findings outside its stated scope.
-- The case facts describe "selected panel findings" that include a pathogenic
-  `GENE-A` variant. The list is incomplete. Do not treat unlisted genes as negative.
+Determine whether the supplied case facts, including NGS results, satisfy a
+diagnostic classification stated by retrieved cards. Criteria may require multiple
+facts, such as a molecular finding, VAF, morphology, and exclusions.
 
-## Required judgment
+For every material required criterion or exclusion assessed:
 
-Decide the integrated diagnosis by assessing whether the supplied case facts,
-including the NGS results, satisfy a diagnostic classification stated by one or more
-retrieved cards. Complex criteria may require composition of several case facts,
-such as a molecular finding, its VAF, morphology, and an exclusion. For every
-material required criterion, record one criterion assessment as `met`, `not_met`, or
-`unknown`. 
+- record `status` as `met`, `not_met`, or `unknown`;
+- cite at least one retrieved diagnosis card in `card_ids`;
+- if `status` is not `unknown`, cite at least one supplied fact in
+  `case_fact_ids`.
 
-Every criterion assessment must cite at least one retrieved diagnosis card
-in card_ids. Every assessment other than unknown must cite at least one supplied case 
-fact in case_fact_ids.
+Assess a competing diagnosis only when supplied case facts raise it; mention in a
+card or precedence rule alone is insufficient. When raised, assess every material
+criterion and exclusion needed to resolve it. Do not add hypothetical exclusion
+assessments for diagnoses not raised by the case.
 
-Do not make the result indeterminate only because a card mentions a competing
-diagnosis or a precedence rule. Consider the competing diagnosis when a supplied
-mutation, cytogenetic or FISH finding, copy-number result, morphology, blood count, or
-clinical feature suggests that it may be present. Its mention in a card is not by
-itself enough to raise it.
+Set the top-level result as follows:
 
-When the case raises a competing diagnosis, assess every material criterion and
-exclusion needed to resolve it. Record each assessment as `met`, `not_met`, or
-`unknown`. If the case does not raise the competing diagnosis, do not add a
-hypothetical exclusion assessment.
+- `indeterminate`: any material required criterion is `unknown`, or a case-raised
+  competing diagnosis cannot be resolved because a needed fact is unknown;
+- `criteria_not_met`: any required criterion is `not_met`;
+- `criteria_met`: every material required criterion and every case-raised exclusion
+  is resolved and met.
 
-Return `status: "indeterminate"` when a material required criterion is unknown, or
-when the case raises a competing diagnosis and a fact needed to resolve it is
-unknown. Never fill the gap from medical knowledge. Return
-`status: "criteria_not_met"` when a required criterion is not met. In either case,
-preserve the provisional major category as `refined_disease`.
+`provisional_disease` is the supplied clinicomorphological starting label and need
+not be a controlled-vocabulary value. `refined_disease` must be one exact value from
+`allowed_refined_diseases`. For `indeterminate` or `criteria_not_met`, keep
+`refined_disease` within the supplied `case_major_category`. Move outside that major
+category only with `criteria_met`. A source-supported or supplied subtype/entity may
+be free text in `diagnostic_label`.
 
-Return `status: "criteria_met"` only when every material required criterion and
-every exclusion raised by the case is resolved and met. A source-supported subtype
-may be returned as free text in `diagnostic_label`, but `refined_disease` must be one
-exact value from `allowed_refined_diseases`.
+Do not reconcile conflicting classifiers. If cards support different
+classifier-specific conclusions, select a conclusion only if it is fully supported
+under one identified card set and explain the conflict concisely in `reason`.
+Otherwise return `indeterminate`.
 
-## Model adjudication and review boundary
+## Review and downstream invariant
 
-The top-level diagnostic fields preserve the model's evidence-bounded adjudication.
-The surrounding Step 3 workflow selects one review mode:
+Top-level diagnostic fields preserve the model adjudication.
 
-- **automatic:** set `user_review` to `"automatic"` and keep
-  `downstream_filter_disease` identical to the model's `refined_disease`;
-- **manual, initial output:** set `user_review.decision` to `"pending"`, set
-  `user_review.diagnostic_label` and `user_review.refined_disease` to null, and keep
-  `downstream_filter_disease` identical to the model's `refined_disease`.
+- **Automatic mode:** `user_review` = `"automatic"` and
+  `downstream_filter_disease` = `refined_disease`.
+- **Initial manual mode:** `user_review.decision` = `"pending"`;
+  `user_review.diagnostic_label`, `user_review.refined_disease`, and
+  `user_review.reason` = null; `user_review.card_ids` = `[]`; and
+  `downstream_filter_disease` = the model's `refined_disease`.
 
-For manual review, do not anticipate, infer, or fabricate the user's decision. After
-the user agrees or supplies a revised diagnosis, the surrounding workflow updates
-only `user_review` and `downstream_filter_disease`. The model's top-level `status`,
-`refined_disease`, `diagnostic_label`, `driven_by`, `criterion_assessment`, and
-`reason` must remain unchanged.
-
-## Downstream retrieval invariant
-
-The top-level `refined_disease` is the model-proposed major diagnostic category.
-`downstream_filter_disease` is the major category that the deterministic next step
-will use to retrieve and suppress diagnosis, prognosis, treatment, and biomarker
-cards. In automatic mode it must equal `refined_disease`. After completed manual
-review it must equal `user_review.refined_disease`.
-
-For example, a source-supported conclusion of `Entity-A subtype` may use that text as
-`diagnostic_label` and its allowed major category as `refined_disease`.
-
-Do not reconcile conflicting classifiers. If retrieved cards support different
-classifier-specific conclusions, select only a conclusion fully supported under one
-identified card set and explain the conflict concisely in `reason`, or return
-`indeterminate` when the requested single model-proposed category cannot be selected
-without reconciliation.
+Do not anticipate a manual-review decision. After manual review, only `user_review`
+and `downstream_filter_disease` may change; top-level `status`,
+`provisional_disease`, `refined_disease`, `diagnostic_label`, `driven_by`,
+`criterion_assessment`, and `reason` remain unchanged.
+After completed manual review, `downstream_filter_disease` must equal
+`user_review.refined_disease`.
 
 ## Output contract
 
@@ -118,7 +94,7 @@ Return JSON only, with exactly these top-level fields:
 ```json
 {
   "status": "criteria_met",
-  "provisional_disease": "myeloid neoplasm, unspecified",
+  "provisional_disease": "myelodysplastic neoplasm with increased blasts-2 (MDS-IB2)",
   "refined_disease": "MDS",
   "downstream_filter_disease": "MDS",
   "diagnostic_label": "Entity-A subtype",
@@ -132,34 +108,32 @@ Return JSON only, with exactly these top-level fields:
       "case_fact_ids": ["<supplied fact_id>"]
     }
   ],
-  "reason": "<concise argument for the integrated diagnosis, bounded to the cited cards and facts>",
+  "reason": "<concise argument bounded to the cited cards and facts>",
   "user_review": "automatic"
 }
 ```
 
-For initial manual mode, `user_review` is instead exactly:
+For initial manual mode, `user_review` is exactly:
 
 ```json
 {
   "decision": "pending",
   "diagnostic_label": null,
-  "refined_disease": null
+  "refined_disease": null,
+  "reason": null,
+  "card_ids": []
 }
 ```
 
-After manual review, only that object and `downstream_filter_disease` may be updated
-as directed by the surrounding Step 3 workflow.
+Allowed top-level `status`: `criteria_met`, `criteria_not_met`, `indeterminate`.
+Allowed criterion `status`: `met`, `not_met`, `unknown`.
+Allowed manual `user_review.decision`: `pending`, `agree`, `disagree`.
+`diagnostic_label` may be null. Copy every ID exactly from the input.
 
-Allowed top-level `status` values are `criteria_met`, `criteria_not_met`, and
-`indeterminate`. Allowed criterion `status` values are `met`, `not_met`, and
-`unknown`. `user_review` is either the exact string `"automatic"` or a manual-review
-object. Allowed manual `user_review.decision` values are `pending`, `agree`, and
-`disagree`. `diagnostic_label` may be null. Every ID must be copied exactly from the
-input.
+Before returning, verify privately:
 
-Before returning, verify privately that a changed model-proposed major category has
-`status: "criteria_met"`, at least one driving card, at least one required criterion,
-no required `unknown` or `not_met` criterion, and identical initial
-`refined_disease` and `downstream_filter_disease` values. Also verify that
-`user_review` matches the workflow mode: `"automatic"` for automatic mode, or a
-pending object with null diagnosis values for initial manual mode.
+- any `refined_disease` outside the supplied `case_major_category` has
+  `criteria_met`, at least one driving card, at least one required criterion, and no
+  required `unknown` or `not_met` criterion;
+- initial `downstream_filter_disease` equals model `refined_disease`;
+- `user_review` matches the workflow mode.

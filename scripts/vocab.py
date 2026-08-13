@@ -2,10 +2,10 @@
 """Single source of truth for closed disease terminology and retrieval relations.
 
 Every evidence-card disease is defined once in ``schema/disease_vocabulary.json``
-under ``terms``. Canonical names, reviewed source aliases, taxonomic parents, and
-directional category-specific retrieval relationships are co-located on that term.
-Runtime views such as ``DISEASES``, ``SOURCE_DISEASE_ALIASES`` and ``UMBRELLA`` are
-derived here; the committed package schema contains no duplicate disease enum.
+under ``terms``. Canonical names, reviewed source aliases, taxonomic parents, broad
+case-major retrieval categories, and directional category-specific retrieval
+relationships are co-located on that term. Runtime views are derived here; the
+committed package schema contains no duplicate disease enum.
 """
 import copy
 import json
@@ -33,7 +33,26 @@ CASE_ONLY_DISEASES = list(_VOCAB.get("case_only_diseases", []))
 CASE_ONLY_DISEASE_SET = set(CASE_ONLY_DISEASES)
 CASE_DISEASES = DISEASES + CASE_ONLY_DISEASES
 CASE_DISEASE_SET = set(CASE_DISEASES)
+_NORMALIZED_CASE_DISEASES = {
+    disease.strip().casefold(): disease
+    for disease in CASE_DISEASES
+    if isinstance(disease, str) and disease.strip()
+}
 CASE_ONLY_USAGE = dict(_VOCAB.get("case_only_usage", {}))
+_CASE_MAJOR_CATEGORY_MAP = _VOCAB.get("case_major_categories", {})
+CASE_MAJOR_CATEGORIES = list(_CASE_MAJOR_CATEGORY_MAP)
+CASE_MAJOR_CATEGORY_SET = set(CASE_MAJOR_CATEGORIES)
+CASE_MAJOR_CATEGORY_DISEASES = {
+    category: list(diseases)
+    for category, diseases in _CASE_MAJOR_CATEGORY_MAP.items()
+}
+TERM_CASE_MAJOR_CATEGORIES = {
+    disease: [
+        category for category in CASE_MAJOR_CATEGORIES
+        if disease in CASE_MAJOR_CATEGORY_DISEASES.get(category, [])
+    ]
+    for disease in DISEASES
+}
 UMBRELLA = {
     term["name"]: list(term.get("parents", []))
     for term in TERMS
@@ -85,6 +104,58 @@ def canonical_source_disease(term):
     if normalized in DISEASE_SET:
         return normalized
     return _NORMALIZED_SOURCE_DISEASE_ALIASES.get(normalized.casefold())
+
+
+def canonical_case_disease(term):
+    """Resolve a case disease from a canonical name or configured source alias.
+
+    Matching ignores surrounding whitespace and letter case only. No fuzzy
+    matching, stemming, punctuation rewriting, or nearest-term mapping is
+    performed. Case-only values are accepted by canonical name. ``None`` means
+    the supplied term cannot be deterministically resolved.
+    """
+    if not isinstance(term, str):
+        return None
+    normalized = term.strip()
+    if not normalized:
+        return None
+    canonical = _NORMALIZED_CASE_DISEASES.get(normalized.casefold())
+    if canonical is not None:
+        return canonical
+    return _NORMALIZED_SOURCE_DISEASE_ALIASES.get(normalized.casefold())
+
+
+def case_major_categories_for_disease(disease):
+    """Return broad reporting-retrieval categories for one canonical disease.
+
+    This relation is intentionally separate from taxonomic ``parents`` and from
+    category-specific ``retrieval_related``. It is used to create a broad
+    diagnosis search space before integrated diagnosis is adjudicated.
+    """
+    if disease == NO_HAEMATOLOGICAL_MALIGNANCY:
+        return [NO_HAEMATOLOGICAL_MALIGNANCY]
+    return list(TERM_CASE_MAJOR_CATEGORIES.get(disease, []))
+
+
+def diseases_for_case_major_category(category):
+    """Return canonical evidence-card diseases belonging to one major category."""
+    if category not in CASE_MAJOR_CATEGORY_SET:
+        return []
+    return [
+        disease for disease in DISEASES
+        if category in TERM_CASE_MAJOR_CATEGORIES.get(disease, [])
+    ]
+
+
+def disease_matches_case_major_category(disease, category):
+    """Return whether a canonical/case-only disease is in a major retrieval bucket."""
+    return category in case_major_categories_for_disease(disease)
+
+
+def preferred_case_major_category(disease):
+    """Return the first configured major category for backward-compatible callers."""
+    categories = case_major_categories_for_disease(disease)
+    return categories[0] if categories else None
 
 
 def disease_ancestors(diseases):
@@ -166,6 +237,21 @@ def check_vocabulary_consistency():
 
     if len(names) != len(set(names)):
         problems.append("disease vocabulary contains duplicate canonical term names")
+    if not isinstance(_CASE_MAJOR_CATEGORY_MAP, dict) or not CASE_MAJOR_CATEGORIES:
+        problems.append("case_major_categories must be a non-empty object")
+    for category, diseases in CASE_MAJOR_CATEGORY_DISEASES.items():
+        if not isinstance(category, str) or not category.strip():
+            problems.append("case_major_categories keys must be non-empty strings")
+        if not isinstance(diseases, list):
+            problems.append(f"case_major_categories[{category!r}] must be an array")
+            continue
+        if len(diseases) != len(set(diseases)):
+            problems.append(f"case_major_categories[{category!r}] contains duplicate diseases")
+        for disease in diseases:
+            if disease not in DISEASE_SET:
+                problems.append(
+                    f"case_major_categories[{category!r}] contains non-canonical disease {disease!r}"
+                )
 
     normalized_aliases = set()
     canonical_casefold = {disease.casefold() for disease in DISEASES}
@@ -195,6 +281,18 @@ def check_vocabulary_consistency():
                     f"source disease alias {alias!r} targets non-canonical disease {target!r}"
                 )
 
+    for disease, categories in TERM_CASE_MAJOR_CATEGORIES.items():
+        if not categories:
+            problems.append(f"disease term {disease!r} has no case_major_categories")
+            continue
+        if len(categories) != len(set(categories)):
+            problems.append(f"disease term {disease!r} case_major_categories contains duplicates")
+        for category in categories:
+            if category not in CASE_MAJOR_CATEGORY_SET:
+                problems.append(
+                    f"disease term {disease!r} case_major_category {category!r} is not allowed"
+                )
+
     overlap = DISEASE_SET & CASE_ONLY_DISEASE_SET
     if overlap:
         problems.append(
@@ -203,6 +301,10 @@ def check_vocabulary_consistency():
     for disease in CASE_ONLY_DISEASES:
         if disease not in CASE_ONLY_USAGE:
             problems.append(f"case-only disease {disease!r} has no usage rule")
+        if disease not in CASE_MAJOR_CATEGORY_SET:
+            problems.append(
+                f"case-only disease {disease!r} must also be an allowed case_major_category"
+            )
     for disease in CASE_ONLY_USAGE:
         if disease not in CASE_ONLY_DISEASE_SET:
             problems.append(f"case-only usage rule {disease!r} has no case-only disease")
@@ -264,6 +366,7 @@ if __name__ == "__main__":
     print(
         f"OK: {len(DISEASES)} evidence-card diseases, "
         f"{len(SOURCE_DISEASE_ALIASES)} source aliases, "
+        f"{len(CASE_MAJOR_CATEGORIES)} case-major categories, "
         f"{len(CASE_ONLY_DISEASES)} case-only diseases, {len(CATEGORIES)} categories, "
         f"{len(EVIDENCE_TIERS)} evidence tiers, {relation_count} retrieval relations"
     )

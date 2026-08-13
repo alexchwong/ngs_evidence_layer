@@ -2,16 +2,17 @@
 """Validate and render citations in generated NGS reports.
 
 ``validate`` is a read-only Step 6A/6B exit check. It verifies that a report
-document contains only well-formed card-ID markers that resolve through the
+document contains only well-formed runtime card-tag markers that deconvolve to cards through `card-tags.json` and resolve through the
 canonical ``## Refs`` mapping in ``block.md``.
 
-``render`` is mandatory Step 6C processing. It replaces the card-ID markers in
+``render`` is mandatory Step 6C processing. It replaces the card-tag markers in
 ``report-final.md`` with report-local Vancouver-style numeric citations in order
 of first appearance and appends the cited primary references. Rendering replaces
 its output atomically and fails without modifying it when validation fails.
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -28,7 +29,7 @@ REFS_MAPPING = re.compile(
     r"([1-9]\d*(?:,[1-9]\d*)*)"
     r"(?:; secondary ref ([1-9]\d*(?:,[1-9]\d*)*))?$"
 )
-SOURCE_MARKER = re.compile(rf"\[card:({CARD_ID})\]")
+SOURCE_MARKER = re.compile(r"\[card:([0-9a-f]{6})\]")
 CARD_MARKER_LIKE = re.compile(r"\[card:[^\[\]\n]*\]")
 REPORT_MARKER = re.compile(r"\[([0-9]+(?:\s*,\s*[0-9]+)*)\]")
 ADJACENT_REPORT_MARKERS = re.compile(r"(?:\[(?:[0-9]+(?:\s*,\s*[0-9]+)*)\]){2,}")
@@ -149,6 +150,41 @@ def parse_card_references(block_text, source_references):
     return mapping
 
 
+def parse_card_tags(card_tags_text):
+    """Return validated runtime card-tag -> stable card-ID mapping."""
+    try:
+        payload = json.loads(card_tags_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"card-tags is not valid JSON: {exc}") from exc
+    if not isinstance(payload, dict) or set(payload) != {"schema_version", "algorithm", "tags"}:
+        raise ValueError("card-tags must contain exactly schema_version, algorithm, and tags")
+    if payload["schema_version"] != "1.0":
+        raise ValueError("card-tags schema_version must be '1.0'")
+    if payload["algorithm"] != "sha256-6hex-collision-resolved":
+        raise ValueError("card-tags algorithm is unsupported")
+    rows = payload["tags"]
+    if not isinstance(rows, list):
+        raise ValueError("card-tags tags must be an array")
+    mapping = {}
+    seen_ids = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or set(row) != {"card_tag", "card_id"}:
+            raise ValueError(f"card-tags tags[{index}] has invalid fields")
+        tag = row["card_tag"]
+        card_id = row["card_id"]
+        if not isinstance(tag, str) or re.fullmatch(r"[0-9a-f]{6}", tag) is None:
+            raise ValueError(f"card-tags tags[{index}].card_tag is invalid")
+        if not isinstance(card_id, str) or re.fullmatch(CARD_ID, card_id) is None:
+            raise ValueError(f"card-tags tags[{index}].card_id is invalid")
+        if tag in mapping:
+            raise ValueError(f"card-tags contains duplicate tag {tag}")
+        if card_id in seen_ids:
+            raise ValueError(f"card-tags contains duplicate card_id {card_id}")
+        mapping[tag] = card_id
+        seen_ids.add(card_id)
+    return mapping
+
+
 def render_document(body, references):
     lines = [body.rstrip()]
     if references:
@@ -157,35 +193,44 @@ def render_document(body, references):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def validate(document_text, block_text, *, source="report document"):
-    """Validate card-ID markers without modifying the supplied document."""
+def validate(document_text, block_text, card_tags_text, *, source="report document"):
+    """Validate runtime card-tag markers without modifying the document."""
     if REFERENCES_HEADING in document_text.splitlines():
         raise ValueError(f"{source} already contains a References section")
     if REPORT_MARKER.search(document_text):
         raise ValueError(f"{source} contains a model-generated numeric citation")
     _block_body, source_references = split_references(block_text, source="block")
     card_to_source = parse_card_references(block_text, source_references)
+    tag_to_card = parse_card_tags(card_tags_text)
+    missing_from_block = sorted(
+        card_id for card_id in tag_to_card.values() if card_id not in card_to_source
+    )
+    if missing_from_block:
+        raise ValueError(
+            "card-tags maps to card(s) absent from block: " + ", ".join(missing_from_block)
+        )
 
     for match in SOURCE_MARKER.finditer(document_text):
-        card_id = match.group(1)
-        if card_id not in card_to_source:
-            raise ValueError(f"{source} cites unknown block card {card_id}")
+        tag = match.group(1)
+        if tag not in tag_to_card:
+            raise ValueError(f"{source} cites unknown runtime card tag {tag}")
     if CARD_MARKER_LIKE.search(SOURCE_MARKER.sub("", document_text)):
-        raise ValueError(f"{source} contains a malformed card-ID marker")
+        raise ValueError(f"{source} contains a malformed card-tag marker")
     if "(refs:" in document_text:
         raise ValueError(f"{source} contains a legacy numeric source marker")
     return document_text
 
 
-def render(report_text, block_text):
-    """Resolve validated Step 6B card-ID markers and append primary entries."""
-    validate(report_text, block_text, source="final report")
+def render(report_text, block_text, card_tags_text):
+    """Resolve validated Step 6B card-tag markers and append primary entries."""
+    validate(report_text, block_text, card_tags_text, source="final report")
     _block_body, source_references = split_references(block_text, source="block")
     card_to_source = parse_card_references(block_text, source_references)
+    tag_to_card = parse_card_tags(card_tags_text)
     report_number_by_source = {}
 
     def replace_marker(match):
-        card_id = match.group(1)
+        card_id = tag_to_card[match.group(1)]
         source_number = card_to_source[card_id]
         if source_number not in report_number_by_source:
             report_number_by_source[source_number] = len(report_number_by_source) + 1
@@ -231,9 +276,11 @@ def main():
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--report", type=Path, required=True)
     validate_parser.add_argument("--block", type=Path, required=True)
+    validate_parser.add_argument("--card-tags", type=Path, required=True)
     render_parser = subparsers.add_parser("render")
     render_parser.add_argument("--report", type=Path, required=True)
     render_parser.add_argument("--block", type=Path, required=True)
+    render_parser.add_argument("--card-tags", type=Path, required=True)
     render_parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
@@ -241,12 +288,14 @@ def main():
             validate(
                 args.report.read_text(encoding="utf-8"),
                 args.block.read_text(encoding="utf-8"),
+                args.card_tags.read_text(encoding="utf-8"),
             )
             output = args.report
         else:
             result = render(
                 args.report.read_text(encoding="utf-8"),
                 args.block.read_text(encoding="utf-8"),
+                args.card_tags.read_text(encoding="utf-8"),
             )
             output = args.output or args.report
             atomic_write(output, result)

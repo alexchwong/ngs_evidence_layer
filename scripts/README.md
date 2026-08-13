@@ -5,8 +5,10 @@ Scripts are grouped below by their primary role.
 ## Skill
 
 - `append_integrated_diagnosis.py`
+- `case_major_categories.py`
 - `create_work_dir.py`
 - `render.py`
+- `report_audit.py`
 - `report_citations.py`
 - `resolve_demo.py`
 - `retrieve.py`
