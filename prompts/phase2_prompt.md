@@ -159,8 +159,8 @@ unique union of all card gene arrays.
 
 ```json
 {
-  "vocabulary_version": "1.5",
-  "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
+  "vocabulary_version": "1.6",
+  "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, directional category-specific retrieval relationships, and reviewed source-disease aliases. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
   "diseases": [
     "CHIP",
     "CCUS",
@@ -194,6 +194,89 @@ unique union of all card gene arrays.
     "histiocytic/dendritic neoplasm",
     "haematological malignancy, other"
   ],
+  "source_disease_aliases": {
+    "clonal haematopoiesis": "CHIP",
+    "clonal haemopoiesis": "CHIP",
+    "clonal hematopoiesis": "CHIP",
+    "clonal hematopoiesis of indeterminate potential": "CHIP",
+    "clonal haematopoiesis of indeterminate potential": "CHIP",
+    "clonal haemopoiesis of indeterminate potential": "CHIP",
+    "clonal cytopenia of undetermined significance": "CCUS",
+    "clonal cytopaenia of undetermined significance": "CCUS",
+    "myelodysplastic syndrome": "MDS",
+    "myelodysplastic syndromes": "MDS",
+    "myelodysplastic neoplasm": "MDS",
+    "myelodysplastic neoplasms": "MDS",
+    "myelodysplastic syndrome/acute myeloid leukemia": "MDS/AML",
+    "myelodysplastic syndrome/acute myeloid leukaemia": "MDS/AML",
+    "myelodysplastic neoplasm/acute myeloid leukemia": "MDS/AML",
+    "myelodysplastic neoplasm/acute myeloid leukaemia": "MDS/AML",
+    "acute myeloid leukemia": "AML",
+    "acute myeloid leukaemia": "AML",
+    "acute promyelocytic leukemia": "APL",
+    "acute promyelocytic leukaemia": "APL",
+    "myelodysplastic/myeloproliferative neoplasm": "MDS/MPN",
+    "myelodysplastic/myeloproliferative neoplasms": "MDS/MPN",
+    "myelodysplastic syndrome/myeloproliferative neoplasm": "MDS/MPN",
+    "myelodysplastic/myeloproliferative neoplasm, unclassifiable": "MDS/MPN-U",
+    "myelodysplastic/myeloproliferative neoplasm unclassifiable": "MDS/MPN-U",
+    "myelodysplastic/myeloproliferative neoplasm, unspecified": "MDS/MPN-U",
+    "chronic myelomonocytic leukemia": "CMML",
+    "chronic myelomonocytic leukaemia": "CMML",
+    "atypical chronic myeloid leukemia": "aCML",
+    "atypical chronic myeloid leukaemia": "aCML",
+    "atypical chronic myelogenous leukemia": "aCML",
+    "atypical chronic myelogenous leukaemia": "aCML",
+    "MDS/MPN with neutrophilia": "aCML",
+    "myelodysplastic/myeloproliferative neoplasm with neutrophilia": "aCML",
+    "MDS/MPN with SF3B1 mutation and thrombocytosis": "MDS/MPN-SF3B1-T",
+    "myelodysplastic/myeloproliferative neoplasm with SF3B1 mutation and thrombocytosis": "MDS/MPN-SF3B1-T",
+    "MDS/MPN with ring sideroblasts and thrombocytosis": "MDS/MPN-SF3B1-T",
+    "myelodysplastic/myeloproliferative neoplasm with ring sideroblasts and thrombocytosis": "MDS/MPN-SF3B1-T",
+    "juvenile myelomonocytic leukemia": "JMML",
+    "juvenile myelomonocytic leukaemia": "JMML",
+    "myeloproliferative neoplasm": "MPN",
+    "myeloproliferative neoplasms": "MPN",
+    "myeloproliferative neoplasm, unclassifiable": "MPN-U",
+    "myeloproliferative neoplasm unclassifiable": "MPN-U",
+    "myeloproliferative neoplasm, unspecified": "MPN-U",
+    "polycythemia vera": "PV",
+    "polycythaemia vera": "PV",
+    "polycythemia rubra vera": "PV",
+    "polycythaemia rubra vera": "PV",
+    "essential thrombocythemia": "ET",
+    "essential thrombocythaemia": "ET",
+    "primary myelofibrosis": "PMF",
+    "post-polycythemia vera myelofibrosis": "post-PV/post-ET MF",
+    "post-polycythaemia vera myelofibrosis": "post-PV/post-ET MF",
+    "post-essential thrombocythemia myelofibrosis": "post-PV/post-ET MF",
+    "post-essential thrombocythaemia myelofibrosis": "post-PV/post-ET MF",
+    "post-PV myelofibrosis": "post-PV/post-ET MF",
+    "post-ET myelofibrosis": "post-PV/post-ET MF",
+    "myeloproliferative neoplasm blast phase": "MPN blast phase",
+    "blast-phase myeloproliferative neoplasm": "MPN blast phase",
+    "blast phase myeloproliferative neoplasm": "MPN blast phase",
+    "chronic myeloid leukemia": "CML",
+    "chronic myeloid leukaemia": "CML",
+    "chronic myelogenous leukemia": "CML",
+    "chronic myelogenous leukaemia": "CML",
+    "chronic neutrophilic leukemia": "CNL",
+    "chronic neutrophilic leukaemia": "CNL",
+    "chronic eosinophilic leukemia": "CEL",
+    "chronic eosinophilic leukaemia": "CEL",
+    "systemic mastocytosis": "mastocytosis",
+    "mast cell neoplasm": "mastocytosis",
+    "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase fusion": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+    "myeloid/lymphoid neoplasms with eosinophilia and tyrosine kinase gene fusions": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+    "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase gene fusion": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+    "blastic plasmacytoid dendritic cell neoplasm": "BPDCN",
+    "myeloid neoplasm with germline predisposition": "germline predisposition syndrome",
+    "myeloid neoplasm with germ line predisposition": "germline predisposition syndrome",
+    "acute leukemia of ambiguous lineage": "acute leukaemia of ambiguous lineage",
+    "histiocytic and dendritic cell neoplasm": "histiocytic/dendritic neoplasm",
+    "histiocytic and dendritic neoplasm": "histiocytic/dendritic neoplasm",
+    "hematological malignancy, other": "haematological malignancy, other"
+  },
   "case_only_diseases": [
     "no_haematological_malignancy"
   ],
@@ -201,124 +284,338 @@ unique union of all card gene arrays.
     "no_haematological_malignancy": "Use only when the case stem does not specify a haematological malignancy and the NGS result block contains no variants."
   },
   "umbrella": {
-    "MDS/AML": ["MDS", "AML"],
-    "APL": ["AML"],
-    "MDS/MPN": ["MDS", "MPN"],
-    "MDS/MPN-U": ["MDS/MPN"],
-    "CMML": ["MDS/MPN"],
-    "aCML": ["MDS/MPN"],
-    "MDS/MPN-SF3B1-T": ["MDS/MPN"],
-    "MPN-U": ["MPN"],
-    "PV": ["MPN"],
-    "ET": ["MPN"],
-    "PMF": ["MPN"],
-    "post-PV/post-ET MF": ["MPN"],
-    "MPN blast phase": ["MPN"],
-    "CML": ["MPN"],
-    "CNL": ["MPN"],
-    "CEL": ["MPN"],
-    "JMML": ["MPN"],
-    "BPDCN": ["histiocytic/dendritic neoplasm"]
+    "MDS/AML": [
+      "MDS",
+      "AML"
+    ],
+    "APL": [
+      "AML"
+    ],
+    "MDS/MPN": [
+      "MDS",
+      "MPN"
+    ],
+    "MDS/MPN-U": [
+      "MDS/MPN"
+    ],
+    "CMML": [
+      "MDS/MPN"
+    ],
+    "aCML": [
+      "MDS/MPN"
+    ],
+    "MDS/MPN-SF3B1-T": [
+      "MDS/MPN"
+    ],
+    "MPN-U": [
+      "MPN"
+    ],
+    "PV": [
+      "MPN"
+    ],
+    "ET": [
+      "MPN"
+    ],
+    "PMF": [
+      "MPN"
+    ],
+    "post-PV/post-ET MF": [
+      "MPN"
+    ],
+    "MPN blast phase": [
+      "MPN"
+    ],
+    "CML": [
+      "MPN"
+    ],
+    "CNL": [
+      "MPN"
+    ],
+    "CEL": [
+      "MPN"
+    ],
+    "JMML": [
+      "MPN"
+    ],
+    "BPDCN": [
+      "histiocytic/dendritic neoplasm"
+    ]
   },
   "retrieval_related": {
     "MDS": {
-      "diagnosis": ["CCUS", "CHIP"],
-      "prognosis": ["CCUS", "CHIP"],
-      "biomarker": ["CCUS", "CHIP"]
+      "diagnosis": [
+        "CCUS",
+        "CHIP"
+      ],
+      "prognosis": [
+        "CCUS",
+        "CHIP"
+      ],
+      "biomarker": [
+        "CCUS",
+        "CHIP"
+      ]
     },
     "CCUS": {
-      "diagnosis": ["CHIP", "MDS"],
-      "prognosis": ["CHIP", "MDS"],
-      "biomarker": ["CHIP", "MDS"]
+      "diagnosis": [
+        "CHIP",
+        "MDS"
+      ],
+      "prognosis": [
+        "CHIP",
+        "MDS"
+      ],
+      "biomarker": [
+        "CHIP",
+        "MDS"
+      ]
     },
     "CHIP": {
-      "diagnosis": ["CCUS"],
-      "biomarker": ["CCUS"]
+      "diagnosis": [
+        "CCUS"
+      ],
+      "biomarker": [
+        "CCUS"
+      ]
     },
     "MDS/AML": {
-      "diagnosis": ["MDS", "AML"],
-      "prognosis": ["MDS", "AML"],
-      "treatment": ["MDS", "AML"],
-      "biomarker": ["MDS", "AML"]
+      "diagnosis": [
+        "MDS",
+        "AML"
+      ],
+      "prognosis": [
+        "MDS",
+        "AML"
+      ],
+      "treatment": [
+        "MDS",
+        "AML"
+      ],
+      "biomarker": [
+        "MDS",
+        "AML"
+      ]
     },
     "APL": {
-      "diagnosis": ["AML"],
-      "biomarker": ["AML"]
+      "diagnosis": [
+        "AML"
+      ],
+      "biomarker": [
+        "AML"
+      ]
     },
     "MDS/MPN": {
-      "diagnosis": ["MDS", "MPN"],
-      "prognosis": ["MDS", "MPN"],
-      "treatment": ["MDS", "MPN"],
-      "biomarker": ["MDS", "MPN"]
+      "diagnosis": [
+        "MDS",
+        "MPN"
+      ],
+      "prognosis": [
+        "MDS",
+        "MPN"
+      ],
+      "treatment": [
+        "MDS",
+        "MPN"
+      ],
+      "biomarker": [
+        "MDS",
+        "MPN"
+      ]
     },
     "MDS/MPN-U": {
-      "diagnosis": ["MDS/MPN", "MDS", "MPN"],
-      "prognosis": ["MDS/MPN", "MDS", "MPN"],
-      "treatment": ["MDS/MPN", "MDS", "MPN"],
-      "biomarker": ["MDS/MPN", "MDS", "MPN"]
+      "diagnosis": [
+        "MDS/MPN",
+        "MDS",
+        "MPN"
+      ],
+      "prognosis": [
+        "MDS/MPN",
+        "MDS",
+        "MPN"
+      ],
+      "treatment": [
+        "MDS/MPN",
+        "MDS",
+        "MPN"
+      ],
+      "biomarker": [
+        "MDS/MPN",
+        "MDS",
+        "MPN"
+      ]
     },
     "CMML": {
-      "diagnosis": ["MDS/MPN", "MDS"],
-      "prognosis": ["MDS/MPN", "MDS"],
-      "biomarker": ["MDS/MPN", "MDS"]
+      "diagnosis": [
+        "MDS/MPN",
+        "MDS"
+      ],
+      "prognosis": [
+        "MDS/MPN",
+        "MDS"
+      ],
+      "biomarker": [
+        "MDS/MPN",
+        "MDS"
+      ]
     },
     "aCML": {
-      "diagnosis": ["MDS/MPN", "MPN", "CNL"],
-      "prognosis": ["MDS/MPN", "MPN"],
-      "treatment": ["MDS/MPN", "MPN"],
-      "biomarker": ["MDS/MPN", "MPN", "CNL"]
+      "diagnosis": [
+        "MDS/MPN",
+        "MPN",
+        "CNL"
+      ],
+      "prognosis": [
+        "MDS/MPN",
+        "MPN"
+      ],
+      "treatment": [
+        "MDS/MPN",
+        "MPN"
+      ],
+      "biomarker": [
+        "MDS/MPN",
+        "MPN",
+        "CNL"
+      ]
     },
     "MDS/MPN-SF3B1-T": {
-      "diagnosis": ["MDS/MPN", "MDS", "ET"],
-      "prognosis": ["MDS/MPN", "MDS", "ET"],
-      "biomarker": ["MDS/MPN", "MDS", "ET"]
+      "diagnosis": [
+        "MDS/MPN",
+        "MDS",
+        "ET"
+      ],
+      "prognosis": [
+        "MDS/MPN",
+        "MDS",
+        "ET"
+      ],
+      "biomarker": [
+        "MDS/MPN",
+        "MDS",
+        "ET"
+      ]
     },
     "MPN-U": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
+      "diagnosis": [
+        "MPN"
+      ],
+      "prognosis": [
+        "MPN"
+      ],
+      "treatment": [
+        "MPN"
+      ],
+      "biomarker": [
+        "MPN"
+      ]
     },
     "PV": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
+      "diagnosis": [
+        "MPN"
+      ],
+      "prognosis": [
+        "MPN"
+      ],
+      "treatment": [
+        "MPN"
+      ],
+      "biomarker": [
+        "MPN"
+      ]
     },
     "ET": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
+      "diagnosis": [
+        "MPN"
+      ],
+      "prognosis": [
+        "MPN"
+      ],
+      "treatment": [
+        "MPN"
+      ],
+      "biomarker": [
+        "MPN"
+      ]
     },
     "PMF": {
-      "diagnosis": ["MPN", "post-PV/post-ET MF"],
-      "prognosis": ["MPN", "post-PV/post-ET MF"],
-      "biomarker": ["MPN", "post-PV/post-ET MF"]
+      "diagnosis": [
+        "MPN",
+        "post-PV/post-ET MF"
+      ],
+      "prognosis": [
+        "MPN",
+        "post-PV/post-ET MF"
+      ],
+      "biomarker": [
+        "MPN",
+        "post-PV/post-ET MF"
+      ]
     },
     "post-PV/post-ET MF": {
-      "diagnosis": ["PMF", "MPN"],
-      "prognosis": ["PMF", "MPN"],
-      "treatment": ["PMF", "MPN"],
-      "biomarker": ["PMF", "MPN"]
+      "diagnosis": [
+        "PMF",
+        "MPN"
+      ],
+      "prognosis": [
+        "PMF",
+        "MPN"
+      ],
+      "treatment": [
+        "PMF",
+        "MPN"
+      ],
+      "biomarker": [
+        "PMF",
+        "MPN"
+      ]
     },
     "MPN blast phase": {
-      "diagnosis": ["AML", "MPN"],
-      "prognosis": ["AML", "MPN"],
-      "treatment": ["AML", "MPN"],
-      "biomarker": ["AML", "MPN"]
+      "diagnosis": [
+        "AML",
+        "MPN"
+      ],
+      "prognosis": [
+        "AML",
+        "MPN"
+      ],
+      "treatment": [
+        "AML",
+        "MPN"
+      ],
+      "biomarker": [
+        "AML",
+        "MPN"
+      ]
     },
     "CNL": {
-      "diagnosis": ["MPN", "aCML"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN", "aCML"]
+      "diagnosis": [
+        "MPN",
+        "aCML"
+      ],
+      "prognosis": [
+        "MPN"
+      ],
+      "treatment": [
+        "MPN"
+      ],
+      "biomarker": [
+        "MPN",
+        "aCML"
+      ]
     },
     "CEL": {
-      "diagnosis": ["MPN"],
-      "prognosis": ["MPN"],
-      "treatment": ["MPN"],
-      "biomarker": ["MPN"]
+      "diagnosis": [
+        "MPN"
+      ],
+      "prognosis": [
+        "MPN"
+      ],
+      "treatment": [
+        "MPN"
+      ],
+      "biomarker": [
+        "MPN"
+      ]
     }
   },
   "categories": [
