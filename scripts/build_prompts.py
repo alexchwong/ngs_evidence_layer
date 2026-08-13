@@ -127,6 +127,10 @@ def vocabulary_errors():
     expected = vocabulary["diseases"] if isinstance(vocabulary, dict) else vocabulary
     actual = package["$defs"]["disease"]["enum"]
     errors = [] if expected == actual else ["disease vocabulary and package schema enum differ"]
+    if isinstance(vocabulary, dict) and "source_disease_aliases" in vocabulary:
+        errors.append(
+            "source disease aliases must live only in schema/source_disease_aliases.json"
+        )
     if not isinstance(aliases, dict):
         errors.append("source disease aliases must be a JSON object")
     else:

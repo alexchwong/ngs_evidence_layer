@@ -104,6 +104,10 @@ def check_vocabulary_consistency():
     schema = json.loads(PACKAGE_SCHEMA_PATH.read_text(encoding="utf-8"))
     enum = schema["$defs"]["disease"]["enum"]
     problems = []
+    if "source_disease_aliases" in _VOCAB:
+        problems.append(
+            "source disease aliases must live only in schema/source_disease_aliases.json"
+        )
     if list(enum) != DISEASES:
         problems.append(
             "ingestion_package_schema.json disease enum differs from disease_vocabulary.json"
