@@ -27,7 +27,8 @@ python -m unittest discover -s tests -v 2>&1
 python scripts/build_skill_zip.py
 ```
 
-Before release, also update `NEWS.md`, verify the documentation and corpus tables, set
+Before release, also update `NEWS.md`, verify the documentation and current-corpus
+summary, set
 `release/VERSION`, review `release/skill.txt`, and confirm that no private ingestion files
 are staged. See [Pre-release housekeeping](#pre-release-housekeeping) for the complete
 checklist.
@@ -60,9 +61,13 @@ Edit rules, vocabularies, schemas, executable validation code, and other canonic
 sources only at their owning paths. In particular, source disease aliases live in
 `schema/source_disease_aliases.json`; publication-type taxonomy lives in
 `schema/publication_type_vocabulary.json`; Phase 3-only publication-type audit policy
-lives in `prompts/assets/publication_type_audit_policy.md`. File assets are injected in
-full; bundle members are embedded verbatim in full. Read `prompts/meta_prompt.md`
-before changing extraction rules or schemas.
+lives in `prompts/assets/publication_type_audit_policy.md`. Phase-specific online
+validators live under `scripts/phase_validation/`: the prompt manifest injects the
+relevant Phase 1, 2, 4, or 5 validator, while Phase 3 has no executable prompt validator
+and is checked by Phase 4 on entry. `scripts/final_validation.py` remains the local
+compatibility CLI for Phases 1–4 and dispatches to the canonical phase validators. File
+assets are injected in full; bundle members are embedded verbatim in full. Read
+`prompts/meta_prompt.md` before changing extraction rules or schemas.
 
 Regenerate the affected prompt:
 ```bash
@@ -167,7 +172,7 @@ Before merging a release to `master`:
 2. Inspect generated prompt diffs for unintended changes.
 3. Run the full unittest suite.
 4. Update `NEWS.md` with the user-visible changes for the release.
-5. Update the `README.md` corpus tables if corpus contents changed.
+5. Update the `README.md` current-corpus summary if corpus contents changed.
 6. Check `README.md`, `INGEST.md`, and `DEVEL.md` still match current user/developer commands.
 7. Set `release/VERSION` to the intended release version.
 8. Review `release/skill.txt` and ensure every file required by `SKILL.md` is included.

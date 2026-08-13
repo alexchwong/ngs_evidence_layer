@@ -1,8 +1,26 @@
 # NEWS
 
 ## 0.2.0
-- scripts/transport.py now reproduces state of intermediate files identical to that of backup repo
-- scripts/confirm.py allows update of existing corpus papers by versioning in archive/
+- Rebuilt the active corpus around eight key publications re-ingested under 0.2.0 instead of carrying the 0.1.x corpus forward.
+- Refactored ingestion around phase-specific prompt contracts.
+  - Phase 1 performs an exhaustive claim census.
+  - Phase 2 reviews claims evidence-first, retaining only directly supported, clinically useful interpretations as cards.
+  - Phases 3 and 5 apply audit-focused review standards.
+  - Phases 4 and 5 apply card-construction and adjudication standards.
+- Modularized ingestion prompts into reusable assets and phase templates.
+- Added phase-specific deterministic validation from `scripts/phase_validation/` where required.
+- Expanded the census/card model to preserve distinct claims sharing the same gene and category.
+- Added source-supported diagnosis and treatment cards without gene associations.
+- Added complete Phase 1 and Phase 2 redo workflows for accepted papers.
+- Redo workflows preserve superseded accepted state in `archive/`.
+- Phase 5 remains available for focused post-acceptance additions and selected card revisions.
+- Added operator-confirmed paper nicknames during Phase 4.
+- Propagated `paper_nickname` into accepted corpus metadata.
+- Expanded disease-vocabulary aliases for full disease names, including primary myelofibrosis mapped to PMF.
+- Replaced validation cases with a clinician-authored 22-case set covering AML, MDS, and MPN/CMML differentials.
+- Validation cases also cover variant-specific diagnostic support and possible germline predisposition.
+- Improved transport and accepted-paper versioning for moving or reprocessing private intermediate state and updated corpus papers.
+- Preserved prior accepted history when moving or reprocessing papers.
 
 ## 0.1.8
 - Hardened diagnostic adjudication so each criterion assessment cites diagnosis evidence and non-unknown decisions also cite supplied case facts.

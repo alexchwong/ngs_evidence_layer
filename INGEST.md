@@ -370,11 +370,11 @@ Once a provisional package has been produced, do not repeat Phase 2 after audit.
 #### Source disease aliases
 
 Phase 2 normally omits a card when the source-stated disease is outside the closed
-evidence-card vocabulary. A small reviewed allowlist in
-`schema/disease_vocabulary.json` under `source_disease_aliases` provides explicit
-exceptions. For example, source wording `clonal haematopoiesis` or `clonal
-haemopoiesis` is stored as canonical disease `CHIP`; the source wording must still be
-preserved in the evidence and interpretation.
+evidence-card vocabulary. Reviewed source wording aliases live in
+`schema/source_disease_aliases.json` and map complete source phrases to existing
+canonical disease terms from `schema/disease_vocabulary.json`. For example, source
+wording `clonal haematopoiesis` or `clonal haemopoiesis` can map to canonical disease
+`CHIP`; the source wording must still be preserved in the evidence and interpretation.
 
 Aliases are case-insensitive but otherwise exact. They do not enable fuzzy matching,
 stemming, punctuation substitution, semantic inference, or mapping to a nearest term.
@@ -422,8 +422,14 @@ Start a fresh chat with:
 - `paper.review-001.json`
 - `prompts/phase4_prompt.md`
 
-Phase 4 presents the cards and review findings for human adjudication. Discuss the cards
-with the model and make the final source-supported decisions.
+Phase 4 first proposes a concise paper nickname. Confirm it, provide a replacement, or
+send `FINALIZE` without a replacement to confirm the latest proposal. The confirmed
+value is stored as top-level `paper_nickname` in `paper.final.json`.
+
+Phase 4 presents only Phase 3 failures requiring human adjudication. Discuss those
+failed cards or publication-type findings with the model and make the final
+source-supported decisions. If Phase 3 found no failures, nickname confirmation is the
+only required interaction before finalization.
 
 Save the final output as:
 
@@ -470,11 +476,16 @@ The main outputs are:
 output/corpus/nel.corpus.json
 output/corpus/nel.index.json
 output/reports/build-report.json
+cards/<publication-key>.md
+evidence/<publication-key>.md
 ```
 
 `incorporate.py` reads from `accept/`. Invalid accepted packages are reported and
-excluded; valid accepted papers are incorporated. `nel.index.json` exposes papers by
-`accepted_in_version`, allowing corpus additions to be traced to a release.
+excluded; valid accepted papers are incorporated. `nel.index.json` exposes paper
+acceptance-version history. `cards/` is the committed human-readable card view;
+`evidence/` is the local evidence-and-interpretation view and remains ignored. Each
+incorporation replaces the generated Markdown views so they remain synchronized with
+the accepted corpus.
 
 ### Render the incorporated corpus for inspection
 
