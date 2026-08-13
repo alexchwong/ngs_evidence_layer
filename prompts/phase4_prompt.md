@@ -124,6 +124,16 @@ A negative or null finding is useful only when its absence or lack of effect is 
 
 When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
 
+## Geneless treatment claims
+
+Geneless treatment claims (`genes: []`) use a stricter gate. Retain only claims that establish the usual or default treatment strategy for the stated disease or a routine treatment-defining clinical population, such as suitability for intensive therapy.
+
+The claim must identify a standard regimen, treatment backbone, or standard alternative treatment strategy. Clinical actionability alone is insufficient.
+
+Do not retain geneless claims whose usefulness depends on MRD or treatment response, transplant timing or conditioning, surveillance, clinical-trial eligibility, testing or work-up recommendations, or other downstream management advice.
+
+Do not reclassify an otherwise ineligible geneless claim as `treatment` merely to permit `genes: []`.
+
 ### Card content rules
 
 # Card content rules
@@ -132,7 +142,9 @@ When several findings support the same clinical conclusion, prefer the clinical 
 - `genes` contains only genes participating in that assertion.
 - `genes: []` is permitted only for geneless `diagnosis` or `treatment` assertions.
 - A geneless `diagnosis` card must state an independently useful diagnostic/classification criterion, requirement, exclusion, threshold, or distinction.
-- A geneless `treatment` card must state independently useful disease-level treatment context that informs treatment eligibility, selection, or interpretation of a molecular treatment modifier. Do not card generic treatment background that would not affect an NGS report.
+- A geneless `treatment` card must satisfy the stricter geneless-treatment gate: it must state what treatment the defined patient population would ordinarily receive, independent of a molecular treatment modifier.
+- Standard disease-level treatment backbones and standard alternatives for broad clinical strata are in scope; for example, intensive AML induction for suitable patients or venetoclax-based lower-intensity therapy for patients unsuitable for intensive treatment.
+- Clinical actionability alone is insufficient for a geneless `treatment` card.
 - `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
 - Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
 

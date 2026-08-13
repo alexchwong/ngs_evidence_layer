@@ -95,7 +95,17 @@ A negative or null finding is useful only when its absence or lack of effect is 
 
 When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
 
-For Phase 1, use this only to identify potentially relevant claims. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`.
+## Geneless treatment claims
+
+Geneless treatment claims (`genes: []`) use a stricter gate. Retain only claims that establish the usual or default treatment strategy for the stated disease or a routine treatment-defining clinical population, such as suitability for intensive therapy.
+
+The claim must identify a standard regimen, treatment backbone, or standard alternative treatment strategy. Clinical actionability alone is insufficient.
+
+Do not retain geneless claims whose usefulness depends on MRD or treatment response, transplant timing or conditioning, surveillance, clinical-trial eligibility, testing or work-up recommendations, or other downstream management advice.
+
+Do not reclassify an otherwise ineligible geneless claim as `treatment` merely to permit `genes: []`.
+
+For Phase 1, use this only to identify potentially relevant claims. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`; geneless `treatment` claims outside the stricter gate are out of scope and should not be censused.
 
 ## Output schema
 

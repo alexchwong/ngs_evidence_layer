@@ -35,7 +35,7 @@ Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
 {{CLINICAL_REPORTING_GATE}}
 
-For Phase 1, use this only to identify potentially relevant claims. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`.
+For Phase 1, use this only to identify potentially relevant claims. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`; geneless `treatment` claims outside the stricter gate are out of scope and should not be censused.
 
 ## Output schema
 
