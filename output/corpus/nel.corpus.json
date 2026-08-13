@@ -1,13 +1,2060 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 260,
-    "census_entries": 659,
-    "completed_papers": 2,
-    "rejected_papers": 41
+    "cards": 382,
+    "census_entries": 1034,
+    "completed_papers": 8,
+    "rejected_papers": 35
   },
-  "generated_at": "2026-08-12T06:40:19.745474+00:00",
+  "generated_at": "2026-08-13T02:25:52.547270+00:00",
   "publications": [
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0001",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "For AML with RUNX1::RUNX1T1 or CBFB::MYH11, suspected molecular MRD relapse should be promptly confirmed by repeat testing, preferably using paired peripheral-blood and bone-marrow samples within 4 weeks.",
+            "locator": "Table 1 recommendation A6; Table 5 CBF qPCR section",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0002",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "For mutated-NPM1 AML, suspected MRD relapse should be confirmed by repeat paired peripheral-blood and bone-marrow testing as soon as possible, preferably within 4 weeks; a bone-marrow NPM1/ABL1 ratio ≥1% may indicate such imminent relapse that confirmation cannot safely be awaited.",
+            "locator": "Table 1 recommendation A6; A3 MRD relapse",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0003",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "For FLT3-ITD AML, suspected MRD relapse should be confirmed by repeat paired peripheral-blood and bone-marrow testing as soon as possible, preferably within 4 weeks; FLT3-ITD UHS-NGS MRD ≥0.01% may indicate imminent relapse and may not allow time for confirmatory testing.",
+            "locator": "Table 1 recommendation A6; A3 MRD relapse",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0004",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "In AML, an optimal MRD response (MRD-negative remission) supports continuing planned treatment according to ELN risk at diagnosis; in ELN intermediate-risk disease, the value of allogeneic HCT may be discussed.",
+            "locator": "A5 Clinical consequences; recommendation A9",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0005",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "In AML, a warning MRD response (primarily MRD-LL) supports continuing planned treatment, including allogeneic HCT when indicated, with close monitoring for MRD relapse.",
+            "locator": "A5 Clinical consequences; recommendation A10",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0006",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "In AML, MRD classified as high risk of treatment failure or as MRD relapse warrants strong consideration of urgent intervention.",
+            "locator": "Table 1 recommendation A11; A5 Clinical consequences",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0007",
+            "category": "biomarker",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "In APL, follow-up PML::RARA MRD monitoring is recommended when MRD is positive at end of treatment and also in chemotherapy-treated high-risk APL even when MRD is negative at end of treatment.",
+            "locator": "Table 1 recommendation A12; A5 Clinical consequences",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0008",
+            "category": "treatment",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "In APL, PML::RARA MRD relapse warrants strong consideration for immediate intervention.",
+            "locator": "Table 1 recommendation A12; A5 Clinical consequences",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0009",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "In mutated-NPM1 AML, ELN-defined molecular MRD relapse can justify initiation of antileukemic therapy before morphologic relapse; allogeneic HCT should also be strongly considered.",
+            "locator": "A5 Clinical consequences of MRD assessment including MRD relapse",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0010",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "In AML, pretransplant MRD positivity is not a contraindication to allogeneic HCT; transplantation may improve outcome compared with continued chemotherapy or observation in MRD-positive patients.",
+            "locator": "Peritransplant; recommendation A13",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0011",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "In AML patients with detectable MRD before allogeneic HCT, myeloablative conditioning should be considered when the patient is a suitable transplant candidate.",
+            "locator": "Peritransplant; recommendation A14",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0012",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "In FLT3-mutated AML after allogeneic HCT, sorafenib maintenance is effective independent of pretransplant MFC-MRD status.",
+            "locator": "Maintenance therapies; recommendation A15",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0013",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "In FLT3-ITD AML after allogeneic HCT, gilteritinib maintenance is recommended for patients with FLT3-ITD UHS-NGS MRD positivity before and/or after transplant.",
+            "locator": "Table 1 recommendation A15; Maintenance therapies",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0014",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "For AML patients receiving standard-of-care FLT3-inhibitor maintenance, evidence is currently very limited for stopping treatment on the basis of MRD results.",
+            "locator": "Table 1 recommendation A17; Maintenance therapies",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0015",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "In AML treated with a hypomethylating agent plus venetoclax, mutated-NPM1 qPCR MRD is prognostic; its clinical utility in this setting remains under investigation.",
+            "locator": "Table 1 recommendation A18; Nonintensive treatments",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0016",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "In CEBPA-mutated AML, the relevant subgroup is now defined by an in-frame bZIP CEBPA mutation; biallelic CEBPA mutations are no longer required. In this subgroup, bone-marrow MFC-MRD after two cycles of intensive chemotherapy has evidence of prognostic value; its prognostic value at end of treatment and during follow-up requires further study.",
+            "locator": "B2 MFC-MRD technology; recommendation B13",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0017",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "FLT3",
+              "PML",
+              "RARA",
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11",
+              "KMT2A",
+              "WT1",
+              "MECOM"
+            ],
+            "interpretation": "For AML MRD assessment, validated leukemia-specific assays for NPM1, FLT3-ITD, PML::RARA, RUNX1::RUNX1T1, CBFB::MYH11, and KMT2A rearrangements are preferred over less-specific WT1 or EVI1/MECOM expression markers.",
+            "locator": "C1 qPCR-based MRD assessment; recommendation C4",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0018",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "For mutated-NPM1 AML after two chemotherapy cycles, panel-used dPCR prognostic thresholds include a 4-log10 reduction in peripheral-blood cDNA and 0.01% in peripheral-blood DNA; these cutoffs require further validation.",
+            "locator": "mutNPM1 MRD; recommendation C5",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0019",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "KMT2A"
+            ],
+            "interpretation": "In KMT2A-rearranged AML, the clinical role of intervention for persistent fusion-gene MRD at specific thresholds and treatment time points remains unestablished.",
+            "locator": "KMT2A-rearranged AML MRD; recommendation C6",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0020",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "When multiple FLT3-ITD clones are detected by UHS-NGS MRD testing, the VAF and sequence of each clone should be reported; the major clone currently determines MRD level, and reporting the summed VAF of all clones is also suggested.",
+            "locator": "C2 FLT3-ITD UHS-NGS; recommendation C8",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0021",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "In FLT3-ITD AML, UHS-NGS MRD can identify patients at increased risk of relapse and death.",
+            "locator": "C2 FLT3-ITD UHS-NGS; recommendation C9",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0022",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "During follow-up of FLT3-ITD AML, FLT3-ITD UHS-NGS should not be used as the sole MRD test when other markers are available because FLT3-ITD-negative relapses may occur.",
+            "locator": "Table 3 recommendation C9; C2 FLT3-ITD UHS-NGS",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0023",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53",
+              "IDH1",
+              "CEBPA"
+            ],
+            "interpretation": "At selected pre-allogeneic-HCT time points in AML, residual TP53, IDH1, or bZIP-mutated CEBPA detected by UHS-NGS did not show the prognostic effects observed for some other residual mutations.",
+            "locator": "C2 UHS-NGS MRD using other gene mutations",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0024",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "ANKRD26",
+              "CEBPA",
+              "DDX41",
+              "ETV6",
+              "GATA2",
+              "RUNX1",
+              "TP53"
+            ],
+            "interpretation": "In AML remission after intensive chemotherapy and before allogeneic HCT, mutations in genes associated with germline predisposition—including ANKRD26, CEBPA, DDX41, ETV6, GATA2, RUNX1, and TP53—are not prognostic and should not be counted when assessing MRD status.",
+            "locator": "C2 UHS-NGS MRD using other gene mutations; recommendation C13",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0025",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DNMT3A",
+              "TET2",
+              "ASXL1"
+            ],
+            "interpretation": "In AML remission after intensive chemotherapy and before allogeneic HCT, age-related clonal-hematopoiesis mutations such as DNMT3A, TET2, and ASXL1 are not prognostic and should not be counted when assessing MRD status.",
+            "locator": "C2 UHS-NGS MRD using other gene mutations; recommendation C13",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0026",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "ANKRD26",
+              "CEBPA",
+              "DDX41",
+              "ETV6",
+              "GATA2",
+              "RUNX1",
+              "TP53",
+              "DNMT3A",
+              "TET2",
+              "ASXL1"
+            ],
+            "interpretation": "After allogeneic HCT for AML, serial UHS-NGS monitoring of diagnostic molecular markers can correlate with impending relapse even when the tracked marker is in a gene associated with germline predisposition or clonal hematopoiesis; this approach requires further validation.",
+            "locator": "C2 UHS-NGS MRD using other gene mutations; recommendation C14",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0027",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "In mutated-NPM1 AML, persistence of mutated NPM1 at genomic-DNA VAF ≥0.01% in peripheral blood or bone marrow may identify increased risk of relapse and death; this requires further validation.",
+            "locator": "C2 UHS-NGS MRD using other gene mutations; recommendation C17",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0028",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "FLT3",
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "Before using a rare NPM1 variant, very large FLT3-ITD, or uncommon noncanonical PML::RARA transcript as an AML MRD marker, analyte detectability should be confirmed at diagnosis with the intended MRD assay.",
+            "locator": "C. Molecular MRD technologies",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0029",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "For mutated-NPM1 AML, MRD levels are approximately tenfold higher in bone marrow than peripheral blood; MRD negativity is defined as <0.001% NPM1/ABL1 or by the EAC criterion with at least 10,000 ABL1 copies, and MRD-LL thresholds therefore differ by tissue.",
+            "locator": "C1 mutNPM1 MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0030",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "After two chemotherapy cycles in mutated-NPM1 AML, formal qPCR MRD positivity is defined in peripheral blood rather than bone marrow because bone-marrow positivity does not sufficiently discriminate risk; a positive peripheral-blood result is classified as warning rather than high risk of treatment failure.",
+            "locator": "C1 mutNPM1 MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0031",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "At end of treatment in mutated-NPM1 AML, the recommended bone-marrow NPM1/ABL1 positivity threshold is 0.1%; this threshold has prognostic significance and replaces the former 2% threshold, which often identifies patients already near hematologic relapse.",
+            "locator": "C1 mutNPM1 MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0032",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "For RUNX1::RUNX1T1 or CBFB::MYH11 AML, a ≥3-log reduction from diagnostic baseline is recommended to stratify relapse risk; log reduction should be measured in the same tissue, bone marrow is preferred, and a diagnostic transcript baseline is required.",
+            "locator": "C1 CBF-AML MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0033",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "In RUNX1::RUNX1T1 or CBFB::MYH11 AML, low-level fusion-transcript persistence at end of treatment can occur without subsequent relapse; MRD-relapse thresholds were therefore redefined to reduce overtreatment of low-risk MRD-LL persistence.",
+            "locator": "C1 CBF-AML MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0034",
+            "category": "biomarker",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "In PML::RARA APL, MRD monitoring is recommended at end of treatment rather than during ongoing treatment; end-of-treatment positivity is a warning because transient stable MRD-LL can occur, and follow-up should document stability or conversion to MRD negativity.",
+            "locator": "C1 APL-MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0035",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "For FLT3-ITD AML, UHS-NGS MRD is recommended after two treatment cycles and before allogeneic HCT; end-of-treatment and follow-up monitoring are recommended on more limited evidence, and positivity is defined as greater than the assay LOD with LOD at least 0.01% VAF.",
+            "locator": "C2 FLT3-ITD UHS-NGS MRD assessment",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0036",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "FLT3"
+            ],
+            "interpretation": "In AML with both mutated NPM1 and FLT3-ITD, mutated-NPM1 MRD can serve as a stand-alone marker when FLT3-ITD UHS-NGS is unavailable.",
+            "locator": "C2 FLT3-ITD UHS-NGS MRD assessment",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0037",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NPM1",
+              "FLT3"
+            ],
+            "interpretation": "In AML with both mutated NPM1 and FLT3-ITD, persistence of MRD by either mutated-NPM1 qPCR or FLT3-ITD UHS-NGS is associated with increased risk compared with negativity by both markers.",
+            "locator": "C2 FLT3-ITD UHS-NGS MRD assessment",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0038",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "After two intensive-chemotherapy cycles or before allogeneic HCT, peripheral-blood mutated-NPM1 qPCR is optimal when <0.001% or undetectable, warning/MRD-LL at detectable 0.001% to <0.01%, and warning/MRD-positive at detectable ≥0.01%.",
+            "locator": "Table 5, mutated-NPM1 qPCR after 2 cycles/before alloHCT",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0039",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "At end of treatment, bone-marrow mutated-NPM1 qPCR is optimal when <0.001% or undetectable, warning/MRD-LL at detectable 0.001% to <0.1%, and high risk of treatment failure at detectable ≥0.1%.",
+            "locator": "Table 5, mutated-NPM1 qPCR EOT",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0040",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "During peripheral-blood follow-up of mutated-NPM1 AML, qPCR is optimal when <0.001% or undetectable, warning/MRD-LL at detectable 0.001% to <0.01%, and MRD relapse at detectable ≥0.01%; if MRD never became negative, relapse requires a ≥1-log10 increase from nadir in the same tissue regardless of threshold.",
+            "locator": "Table 5, mutated-NPM1 qPCR follow-up PB",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0041",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "During bone-marrow follow-up of mutated-NPM1 AML, qPCR is optimal when <0.001% or undetectable, warning/MRD-LL at detectable 0.001% to <0.1%, and MRD relapse at detectable ≥0.1%; if MRD never became negative, relapse requires a ≥1-log10 increase from nadir in the same tissue regardless of threshold.",
+            "locator": "Table 5, mutated-NPM1 qPCR follow-up BM",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0042",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "After two intensive-chemotherapy cycles or before allogeneic HCT in RUNX1::RUNX1T1 or CBFB::MYH11 AML, a bone-marrow qPCR reduction ≥3-log10 from diagnosis is an optimal response, whereas <3-log10 reduction is MRD-positive and a warning response.",
+            "locator": "Table 5, CBF qPCR after 2 cycles/before alloHCT",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0043",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "At end of treatment in RUNX1::RUNX1T1 or CBFB::MYH11 AML, bone-marrow qPCR is optimal when <0.001% or undetectable, warning/MRD-LL when detectable with ≥3-log10 reduction, and high risk of treatment failure when reduction is <3-log10 from diagnosis.",
+            "locator": "Table 5, CBF qPCR EOT",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0044",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11"
+            ],
+            "interpretation": "During follow-up of RUNX1::RUNX1T1 or CBFB::MYH11 AML, qPCR is optimal when <0.001% or undetectable, warning at low detectable levels meeting the table criteria, and MRD relapse on conversion to detectable ≥0.1%; persistent never-negative MRD requires a ≥1-log10 increase from nadir in the same tissue.",
+            "locator": "Table 5, CBF qPCR follow-up",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0045",
+            "category": "biomarker",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "At end of treatment in APL, bone-marrow PML::RARA qPCR is optimal when <0.001% or undetectable and is MRD-positive but classified as warning when detectable at ≥0.001%.",
+            "locator": "Table 5, PML::RARA qPCR EOT",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0046",
+            "category": "biomarker",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "During APL follow-up, bone-marrow PML::RARA qPCR is optimal when <0.001% or undetectable and defines MRD relapse when detectable at ≥0.001%; persistent never-negative MRD requires a ≥1-log10 increase from nadir in the same tissue.",
+            "locator": "Table 5, PML::RARA qPCR follow-up",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0047",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "After two intensive-chemotherapy cycles or before allogeneic HCT in FLT3-ITD AML, targeted UHS-NGS is optimal below assay LOD and high risk of treatment failure when FLT3-ITD is detected at or above LOD; bone marrow is preferred over peripheral blood.",
+            "locator": "Table 5, targeted FLT3-ITD UHS-NGS after 2 cycles/before alloHCT",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0048",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "At end of treatment in FLT3-ITD AML, targeted UHS-NGS is optimal below assay LOD and high risk of treatment failure when FLT3-ITD is detected at or above LOD; bone marrow is preferred over peripheral blood.",
+            "locator": "Table 5, targeted FLT3-ITD UHS-NGS EOT",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0049",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "During follow-up of FLT3-ITD AML, targeted UHS-NGS is optimal below LOD and defines MRD relapse when FLT3-ITD is detected at or above LOD; low-level results from LOD to <0.01% VAF should be promptly confirmed, especially if the clone differs from diagnosis.",
+            "locator": "Table 5, targeted FLT3-ITD UHS-NGS follow-up",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 69,
+        "citation": {
+          "authors": [
+            "Cloos J",
+            "Valk PJM",
+            "Thiede C",
+            "Döhner K",
+            "Roboz GJ",
+            "Wood BL",
+            "Walter RB",
+            "Wang S",
+            "Wierzbowska A",
+            "Wei AH",
+            "Wu D",
+            "Vergez F",
+            "Venditti A",
+            "van der Reijden BA",
+            "van de Loosdrecht AA",
+            "Tiong IS",
+            "Thol FR",
+            "Subklewe M",
+            "Roumier C",
+            "Reuvekamp T",
+            "Ravandi F",
+            "Preudhomme C",
+            "Plesa A",
+            "Othman J",
+            "Ossenkoppele GJ",
+            "Ofran Y",
+            "Mimoun A",
+            "Maurillo L",
+            "Majchrzak A",
+            "de Leeuw D",
+            "Kern W",
+            "Kim DDH",
+            "Ikoma-Colturato MRV",
+            "Haaksma LH",
+            "Guzman ML",
+            "Feuring M",
+            "Depreter B",
+            "Czyz A",
+            "Bücklein V",
+            "Baer C",
+            "Bachas C",
+            "Freeman SD",
+            "Buccisano F",
+            "Hourigan CS",
+            "Dillon R",
+            "Heuser M"
+          ],
+          "citation_incomplete": [],
+          "display": "Cloos J, Valk PJM, Thiede C, Döhner K, Roboz GJ, Wood BL, et al. 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party. Blood. 2026;147(11):1147-1167.",
+          "doi": "10.1182/blood.2025031480",
+          "issue": "11",
+          "journal": "Blood",
+          "pages": "1147-1167",
+          "title": "2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party",
+          "volume": "147",
+          "year": 2026
+        },
+        "diseases_covered": [
+          "AML",
+          "APL"
+        ],
+        "extraction_date": "2026-08-12",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "RUNX1",
+          "RUNX1T1",
+          "CBFB",
+          "MYH11",
+          "NPM1",
+          "FLT3",
+          "PML",
+          "RARA",
+          "CEBPA",
+          "KMT2A",
+          "WT1",
+          "MECOM",
+          "TP53",
+          "IDH1",
+          "ANKRD26",
+          "DDX41",
+          "ETV6",
+          "GATA2",
+          "DNMT3A",
+          "TET2",
+          "ASXL1"
+        ],
+        "paper_nickname": "ELN-DAVID 2025 AML MRD Guidelines",
+        "publication_key": "cloos-2026-blood-147-1147",
+        "publication_type": "guideline"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-13",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0017",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0018",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0019",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0020",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0021",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0022",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0023",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0024",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0025",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0026",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0027",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0028",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0029",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0030",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0031",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0032",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0033",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0034",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0035",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0036",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0037",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0038",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0039",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0040",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0041",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0042",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0043",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0044",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0045",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0046",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0047",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0048",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0049",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 49,
+          "census_claims": 69,
+          "census_entries": 69,
+          "ratio": 0.71
+        },
+        "input_id": "38aa8749-11da-5075-991d-15315d144543",
+        "markdown_sha256": "17102aea29c8ea5dcb023381d144e909557716a3e65c9ee45d935c059dd606fa",
+        "source_filename": "Cloos_2026_ELN_DAVID_AML_MRD_consensus.pdf",
+        "source_sha256": "a4e0fcfb887f0ac0632fff667913063fc6af6f86c69a922c70ba2f11e4fe3615",
+        "warnings": [
+          "cloos-2026-blood-147-1147-C0003: evidence is identical to cloos-2026-blood-147-1147-C0002; review independent utility"
+        ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CALR"
+            ],
+            "interpretation": "In ET, CALR mutation was reported not to further modify prediction of future vascular events by IPSET-thrombosis.",
+            "locator": "Opening paragraph",
+            "secondary_citation": {
+              "authors": [
+                "Finazzi G",
+                "Carobbio A",
+                "Guglielmelli P"
+              ],
+              "citation_incomplete": [],
+              "display": "Finazzi G, Carobbio A, Guglielmelli P. Calreticulin mutation does not modify the IPSET score for predicting the risk of thrombosis among 1150 patients with essential thrombocythemia. Blood. 2014;124:2611–2612.",
+              "journal": "Blood",
+              "pages": "2611–2612",
+              "title": "Calreticulin mutation does not modify the IPSET score for predicting the risk of thrombosis among 1150 patients with essential thrombocythemia",
+              "volume": "124",
+              "year": 2014
+            }
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally assigned low-risk ET, JAK2 mutation without cardiovascular risk factors was associated with a higher annual thrombosis rate than absence of both JAK2 mutation and cardiovascular risk factors (1.59% vs 0.44% patients/year; P=0.001).",
+            "locator": "Conventionally assigned low-risk group; Table 1",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally assigned low-risk JAK2-unmutated ET, cardiovascular risk factors alone did not significantly increase thrombosis compared with absence of both factors (1.05% vs 0.44% patients/year; P=NS).",
+            "locator": "Conventionally assigned low-risk group; Table 1",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally assigned low-risk JAK2-mutated ET, concomitant cardiovascular risk factors did not significantly increase thrombosis compared with JAK2 mutation alone (P=0.217).",
+            "locator": "Conventionally assigned low-risk group; Table 1",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally assigned high-risk ET, patients with both JAK2 mutation and cardiovascular risk factors had higher thrombosis risk than patients with neither factor (4.17% vs 1.44% patients/year; P=0.011).",
+            "locator": "Conventionally assigned high-risk group; Table 1",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0006",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally high-risk ET defined by a history of thrombosis, JAK2 mutation and/or cardiovascular risk factors provided only limited, non-significant additional thrombosis-risk enhancement, regardless of age.",
+            "locator": "Additional analysis after high-risk group results",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0007",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In conventionally high-risk ET defined by age alone, JAK2 mutation with or without cardiovascular risk factors might increase thrombosis risk (P=0.05).",
+            "locator": "Additional analysis after high-risk group results",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0008",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In the revised ET thrombosis classification, very-low-risk disease is defined by no thrombosis history, age ≤60 years, and unmutated JAK2.",
+            "locator": "Discussion of revised low-risk stratification; Figure 1c",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0009",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In the revised ET thrombosis classification, low-risk disease is defined by no thrombosis history, age ≤60 years, and mutated JAK2.",
+            "locator": "Discussion of revised low-risk stratification; revised four-category scheme",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0010",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In the revised ET thrombosis classification, intermediate-risk disease is defined by no thrombosis history, age >60 years, and unmutated JAK2.",
+            "locator": "Discussion of revised high-risk stratification; Figure 1d",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0011",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In the revised ET thrombosis classification, high-risk disease is defined by a history of thrombosis or by age >60 years together with JAK2 mutation.",
+            "locator": "Discussion of revised high-risk stratification; revised four-category scheme",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0012",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For revised very-low-risk ET (no thrombosis history, age ≤60 years, JAK2-unmutated) without cardiovascular risk factors, the authors would not insist on aspirin; they state that these treatment recommendations require prospective controlled-study evaluation.",
+            "locator": "Final treatment-recommendation paragraph",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0013",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For revised very-low-risk ET (no thrombosis history, age ≤60 years, JAK2-unmutated) with cardiovascular risk factors, the authors advise once-daily aspirin; they state that these treatment recommendations require prospective controlled-study evaluation.",
+            "locator": "Final treatment-recommendation paragraph",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0014",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For revised low-risk JAK2-mutated ET, twice-daily aspirin is considered reasonable but not mandated, especially when cardiovascular risk factors are present; the recommendation is pending prospective controlled-study evaluation.",
+            "locator": "Final treatment-recommendation paragraph",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0015",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For revised intermediate-risk ET (no thrombosis history, age >60 years, JAK2-unmutated), the authors encourage cytoreductive therapy but would not insist on it; twice-daily aspirin may be used instead, pending prospective controlled-study evaluation.",
+            "locator": "Final treatment-recommendation paragraph",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0016",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "For revised high-risk ET (history of thrombosis, or age >60 years with JAK2 mutation), the authors encourage cytoreductive therapy, pending prospective controlled-study evaluation.",
+            "locator": "Final treatment-recommendation paragraph",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 16,
+        "citation": {
+          "authors": [
+            "Barbui T",
+            "Vannucchi AM",
+            "Buxhofer-Ausch V",
+            "De Stefano V",
+            "Betti S",
+            "Rambaldi A",
+            "Rumi E",
+            "Ruggeri M",
+            "Rodeghiero F",
+            "Randi ML",
+            "Bertozzi I",
+            "Gisslinger H",
+            "Finazzi G",
+            "Carobbio A",
+            "Thiele J",
+            "Passamonti F",
+            "Falcone C",
+            "Tefferi A"
+          ],
+          "citation_incomplete": [],
+          "display": "Barbui T, Vannucchi AM, Buxhofer-Ausch V, De Stefano V, Betti S, Rambaldi A, et al. Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia. Blood Cancer Journal. 2015;5(11):e369-e369.",
+          "doi": "10.1038/bcj.2015.94",
+          "issue": "11",
+          "journal": "Blood Cancer Journal",
+          "pages": "e369-e369",
+          "title": "Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia",
+          "volume": "5",
+          "year": 2015
+        },
+        "diseases_covered": [
+          "ET"
+        ],
+        "extraction_date": "2026-08-12",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "CALR",
+          "JAK2"
+        ],
+        "paper_nickname": "IPSET-Thrombosis",
+        "publication_key": "barbui-2015-blood-cancer-journal-5-e369",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-12",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "barbui-2015-blood-cancer-journal-5-e369-C0016",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 16,
+          "census_claims": 16,
+          "census_entries": 16,
+          "ratio": 1.0
+        },
+        "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
+        "markdown_sha256": "3ac9bfdc5626dcf6a1afdb04799d87354ca2e3560c46d18a84fa4404c23be23e",
+        "source_filename": "Barbui_2015_revised_IPSET_thrombosis_ET.pdf",
+        "source_sha256": "3dbdecfbb3be1294c8ae6098adfef4182d63697f6073dbaf8ac82f3bab6779d0",
+        "warnings": [
+          "barbui-2015-blood-cancer-journal-5-e369-C0003: evidence is identical to barbui-2015-blood-cancer-journal-5-e369-C0002; review independent utility",
+          "barbui-2015-blood-cancer-journal-5-e369-C0004: evidence is identical to barbui-2015-blood-cancer-journal-5-e369-C0003; review independent utility",
+          "barbui-2015-blood-cancer-journal-5-e369-C0007: evidence is identical to barbui-2015-blood-cancer-journal-5-e369-C0006; review independent utility"
+        ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "FLT3",
+              "NRAS",
+              "KRAS",
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, NPM1-mutated AML is favorable risk when FLT3-ITD is negative and NRAS, KRAS, and TP53 are wild type.",
+            "locator": "Table 1, Favorable row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH2",
+              "FLT3",
+              "NRAS",
+              "KRAS",
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, IDH2-mutated AML is favorable risk when FLT3-ITD is negative and NRAS, KRAS, and TP53 are wild type.",
+            "locator": "Table 1, Favorable row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1",
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, TP53-wild-type IDH1-mutated AML is favorable risk specifically with azacitidine plus ivosidenib; this favorable assignment applies irrespective of activating signaling-gene mutations.",
+            "locator": "Table 1, Favorable row and footnote *",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, DDX41-mutated AML is favorable risk.",
+            "locator": "Table 1, Favorable row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3",
+              "NRAS",
+              "KRAS",
+              "TP53"
+            ],
+            "interpretation": "For other cytogenetic and/or molecular abnormalities, the 2024 ELN Less-Intensive classification tentatively assigns favorable risk when FLT3-ITD is negative and NRAS, KRAS, and TP53 are wild type; data are unavailable for many such abnormalities.",
+            "locator": "Table 1, Favorable row and footnote ‡",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0006",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3",
+              "NRAS",
+              "KRAS",
+              "TP53"
+            ],
+            "interpretation": "For other cytogenetic and molecular abnormalities, the 2024 ELN Less-Intensive classification tentatively assigns intermediate risk when FLT3-ITD and/or NRAS/KRAS mutation is present and TP53 is wild type; data are unavailable for many such abnormalities.",
+            "locator": "Table 1, Intermediate row and footnote ‡",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0007",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Under the 2024 ELN Less-Intensive classification, TP53-mutated AML is adverse risk.",
+            "locator": "Table 1, Adverse row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0008",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "A DDX41 mutation at near-heterozygous frequency should prompt consideration of a germline DDX41 mutation.",
+            "locator": "Table 1, footnote †",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0009",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "Do not apply the 2024 ELN Less-Intensive classification to AML patients who have received prior HMA treatment.",
+            "locator": "Table 1, applicability statement",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0010",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NPM1",
+              "FLT3",
+              "KRAS",
+              "NRAS"
+            ],
+            "interpretation": "In NPM1-mutated AML treated with HMA/VEN, co-occurring FLT3-ITD, KRAS, or NRAS mutations are associated with inferior prognosis; median OS was 39 months without these signaling mutations versus 9.9 months when one or more were present.",
+            "locator": "HMAs plus VEN, NPM1 signaling-gene analysis",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0011",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IDH2",
+              "FLT3",
+              "KRAS",
+              "NRAS"
+            ],
+            "interpretation": "In IDH2-mutated AML treated with HMA/VEN, co-occurring activated signaling mutations are associated with inferior prognosis; median OS was 36.9 months without versus 12.2 months with an activated kinase pathogenic variant.",
+            "locator": "HMAs plus VEN, IDH2 signaling-gene analysis",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2024-blood-144-2169-C0012",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IDH1"
+            ],
+            "interpretation": "Azacitidine plus ivosidenib is a treatment standard for IDH1-mutated AML and improved overall survival versus azacitidine/placebo (24.0 vs 7.9 months) in the cited randomized phase 3 study.",
+            "locator": "AZA and IVO",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 57,
+        "citation": {
+          "authors": [
+            "Döhner H",
+            "DiNardo CD",
+            "Appelbaum FR",
+            "Craddock C",
+            "Dombret H",
+            "Ebert BL",
+            "Fenaux P",
+            "Godley LA",
+            "Hasserjian RP",
+            "Larson RA",
+            "Levine RL",
+            "Miyazaki Y",
+            "Niederwieser D",
+            "Ossenkoppele G",
+            "Röllig C",
+            "Sierra J",
+            "Stein EM",
+            "Tallman MS",
+            "Tien H",
+            "Wang J",
+            "Wierzbowska A",
+            "Wei AH",
+            "Löwenberg B"
+          ],
+          "citation_incomplete": [],
+          "display": "Döhner H, DiNardo CD, Appelbaum FR, Craddock C, Dombret H, Ebert BL, et al. Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations. Blood. 2024;144(21):2169-2173.",
+          "doi": "10.1182/blood.2024025409",
+          "issue": "21",
+          "journal": "Blood",
+          "pages": "2169-2173",
+          "title": "Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations",
+          "volume": "144",
+          "year": 2024
+        },
+        "diseases_covered": [
+          "AML"
+        ],
+        "extraction_date": "2026-08-12",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "DDX41",
+          "FLT3",
+          "IDH1",
+          "IDH2",
+          "KRAS",
+          "NPM1",
+          "NRAS",
+          "TP53"
+        ],
+        "paper_nickname": "ELN 2024 Less-Intensive AML Risk Classification",
+        "publication_key": "d-hner-2024-blood-144-2169",
+        "publication_type": "consensus statement"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-12",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2024-blood-144-2169-C0012",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 12,
+          "census_claims": 57,
+          "census_entries": 57,
+          "ratio": 0.21
+        },
+        "input_id": "ad2131a7-b225-5a2a-badc-1fb730ce9e70",
+        "markdown_sha256": "1ba5e76608f65b2a9e5849585cb6d65efadfea9908140d9c8b5e886e537203ad",
+        "source_filename": "Dohner_2024_ELN_less_intensive_AML_risk.pdf",
+        "source_sha256": "eaee35628b4ba6676bae70d7ff283989e77610b213f5d41681f03b8d6c0befad",
+        "warnings": [
+          "d-hner-2024-blood-144-2169-C0002: evidence is identical to d-hner-2024-blood-144-2169-C0001; review independent utility",
+          "d-hner-2024-blood-144-2169-C0004: evidence is identical to d-hner-2024-blood-144-2169-C0002; review independent utility"
+        ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "U2AF1"
+            ],
+            "interpretation": "In primary myelofibrosis, U2AF1 Q157 is an additional high-molecular-risk mutation incorporated into MIPSS70+ version 2.0.",
+            "locator": "Main text, paragraph 2",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1",
+              "SRSF2",
+              "EZH2",
+              "IDH1",
+              "IDH2",
+              "U2AF1"
+            ],
+            "interpretation": "For patients with primary myelofibrosis aged 70 years or younger, MIPSS70+ version 2.0 assigns 2 points for one high-molecular-risk mutation and 3 points for two or more; the high-molecular-risk set comprises ASXL1, SRSF2, EZH2, IDH1, IDH2, and U2AF1 Q157.",
+            "locator": "Main text, multivariable analysis and score construction",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "CALR"
+            ],
+            "interpretation": "For patients with primary myelofibrosis aged 70 years or younger, absence of a type 1/like CALR mutation is independently adverse (HR 2.1, 95% CI 1.5-3.0) and contributes 2 points to MIPSS70+ version 2.0.",
+            "locator": "Main text, multivariable analysis and score construction",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "SRSF2",
+              "EZH2",
+              "IDH1",
+              "IDH2",
+              "U2AF1",
+              "CALR"
+            ],
+            "interpretation": "MIPSS70+ version 2.0 incorporates ASXL1, SRSF2, EZH2, IDH1, IDH2, U2AF1 Q157, and CALR type 1/like status and stratifies patients with primary myelofibrosis aged 70 years or younger into very low (0 points), low (1-2), intermediate (3-4), high (5-8), and very high (9 or more) risk groups with progressively worse overall survival.",
+            "locator": "Main text, score construction; Fig 1 legend",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 4,
+        "citation": {
+          "authors": [
+            "Tefferi A",
+            "Guglielmelli P",
+            "Lasho TL",
+            "Gangat N",
+            "Ketterling RP",
+            "Pardanani A",
+            "Vannucchi AM"
+          ],
+          "citation_incomplete": [],
+          "display": "Tefferi A, Guglielmelli P, Lasho TL, Gangat N, Ketterling RP, Pardanani A, et al. MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis. Journal of Clinical Oncology. 2018;36(17):1769-1770.",
+          "doi": "10.1200/jco.2018.78.9867",
+          "issue": "17",
+          "journal": "Journal of Clinical Oncology",
+          "pages": "1769-1770",
+          "title": "MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis",
+          "volume": "36",
+          "year": 2018
+        },
+        "diseases_covered": [
+          "PMF"
+        ],
+        "extraction_date": "2026-08-13",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ASXL1",
+          "SRSF2",
+          "EZH2",
+          "IDH1",
+          "IDH2",
+          "U2AF1",
+          "CALR"
+        ],
+        "paper_nickname": "MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis",
+        "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-13",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 4,
+          "census_claims": 4,
+          "census_entries": 4,
+          "ratio": 1.0
+        },
+        "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
+        "markdown_sha256": "f95c1ffc40edfe32c34e9edb1642f1d5b36b9a043bbba3d4d5cfcd3407a25167",
+        "source_filename": "Tefferi_2018_MIPSS70plus_v2_myelofibrosis.pdf",
+        "source_sha256": "eabb8c620328f13f1430358c0678469982b27d633f0412968a5ba02a10b4bbf9",
+        "warnings": []
+      }
+    },
     {
       "document": {
         "cards": [
@@ -5699,6 +7746,1136 @@
           "arber-2022-blood-140-1200-C0147: evidence is identical to arber-2022-blood-140-1200-C0146; review independent utility",
           "arber-2022-blood-140-1200-C0148: evidence is identical to arber-2022-blood-140-1200-C0147; review independent utility",
           "arber-2022-blood-140-1200-C0172: evidence is identical to arber-2022-blood-140-1200-C0171; review independent utility"
+        ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "elena-2016-blood-128-1408-C0001",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "In CMML, the FAB classification distinguishes myelodysplastic from myeloproliferative disease using a leukocyte-count threshold of 13 × 10^9/L (≤13 × 10^9/L vs >13 × 10^9/L, respectively).",
+            "locator": "Introduction, paragraph 1 (paper.md line 23)",
+            "secondary_citation": {
+              "display": "Bennett JM, Catovsky D, Daniel MT, et al. The chronic myeloid leukaemias: guidelines for distinguishing chronic granulocytic, atypical chronic myeloid, and chronic myelomonocytic leukaemia. Br J Haematol. 1994;87(4):746-754."
+            }
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0002",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2",
+              "NRAS",
+              "SETBP1"
+            ],
+            "interpretation": "In CMML, JAK2, NRAS, and SETBP1 mutations were significantly associated with the myeloproliferative subtype (CMML-MP).",
+            "locator": "Results — Mutation spectrum and correlations between genotype and disease phenotype in CMML (paper.md line 117)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TET2",
+              "SF3B1"
+            ],
+            "interpretation": "In CMML, TET2 and SF3B1 mutations were significantly associated with the myelodysplastic subtype (CMML-MD; P=.007 and P=.03, respectively).",
+            "locator": "Results — Mutation spectrum and correlations between genotype and disease phenotype in CMML (paper.md line 117)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "RUNX1",
+              "NRAS",
+              "SETBP1",
+              "ASXL1"
+            ],
+            "interpretation": "In CMML, RUNX1, NRAS, SETBP1, and ASXL1 mutations each retained independent adverse prognostic value for overall survival in multivariable analysis (HR 2.32, 2.19, 2.00, and 1.77, respectively).",
+            "locator": "Results — Prognostic value of genetic lesions in CMML, paragraph 2 (paper.md line 125)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "elena-2016-blood-128-1408-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MDS",
+              "MDS/MPN",
+              "MPN"
+            ],
+            "diseases": [
+              "CMML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "EZH2"
+            ],
+            "interpretation": "In CMML, EZH2 mutation was associated with worse overall survival in univariable analysis (HR 2.07, P=.023).",
+            "locator": "Results — Prognostic value of genetic lesions in CMML, paragraph 1 (paper.md line 123)",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 48,
+        "citation": {
+          "authors": [
+            "Elena C",
+            "Gallì A",
+            "Such E",
+            "Meggendorfer M",
+            "Germing U",
+            "Rizzo E",
+            "Cervera J",
+            "Molteni E",
+            "Fasan A",
+            "Schuler E",
+            "Ambaglio I",
+            "Lopez-Pavia M",
+            "Zibellini S",
+            "Kuendgen A",
+            "Travaglino E",
+            "Sancho-Tello R",
+            "Catricalà S",
+            "Vicente AI",
+            "Haferlach T",
+            "Haferlach C",
+            "Sanz GF",
+            "Malcovati L",
+            "Cazzola M"
+          ],
+          "citation_incomplete": [],
+          "display": "Elena C, Gallì A, Such E, Meggendorfer M, Germing U, Rizzo E, et al. Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia. Blood. 2016;128(10):1408-1417.",
+          "doi": "10.1182/blood-2016-05-714030",
+          "issue": "10",
+          "journal": "Blood",
+          "pages": "1408-1417",
+          "title": "Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia",
+          "volume": "128",
+          "year": 2016
+        },
+        "diseases_covered": [
+          "CMML"
+        ],
+        "extraction_date": "2026-08-12",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ASXL1",
+          "EZH2",
+          "JAK2",
+          "NRAS",
+          "RUNX1",
+          "SETBP1",
+          "SF3B1",
+          "TET2"
+        ],
+        "paper_nickname": "CMML-specific CPSS-Mol score",
+        "publication_key": "elena-2016-blood-128-1408",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-12",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "elena-2016-blood-128-1408-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "elena-2016-blood-128-1408-C0005",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 5,
+          "census_claims": 48,
+          "census_entries": 48,
+          "ratio": 0.1
+        },
+        "input_id": "b4a67a11-b558-5108-bd12-59e860393150",
+        "markdown_sha256": "668c0f43525447f49cb1d3a21b2d5957e64fea59b05a58544b2ccdab9af2b5ce",
+        "source_filename": "Elena_2016_CPSS-Mol_CMML.pdf",
+        "source_sha256": "cc9867d018ca1fcb18614254186e29a2e0cfb79ecd0d372fab3f16af42d5051c",
+        "warnings": [
+          "elena-2016-blood-128-1408-C0003: evidence is identical to elena-2016-blood-128-1408-C0002; review independent utility"
+        ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0001",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA",
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11",
+              "MLLT3",
+              "KMT2A",
+              "DEK",
+              "NUP214",
+              "GATA2",
+              "MECOM",
+              "PRDM16",
+              "RPN1",
+              "RBM15",
+              "MRTFA",
+              "NPM1",
+              "MLF1",
+              "NUP98",
+              "NSD1",
+              "ETV6",
+              "MNX1",
+              "KAT6A",
+              "CREBBP",
+              "PICALM",
+              "MLLT10",
+              "KMD5A",
+              "FUS",
+              "ERG",
+              "CBFA2T3",
+              "GLIS2",
+              "CEBPA",
+              "BCR",
+              "ABL1"
+            ],
+            "interpretation": "AML can be diagnosed with ≥10% blasts in blood or bone marrow in the presence of recurrent genetic abnormalities, which include: PML::RARA; RUNX1::RUNX1T1; CBFB::MYH11; MLLT3::KMT2A or another KMT2A rearrangement; DEK::NUP214; GATA2/MECOM or another MECOM rearrangement; PRDM16::RPN1; RBM15::MRTFA; NPM1::MLF1; NUP98::NSD1; ETV6::MNX1; KAT6A::CREBBP; PICALM::MLLT10; NUP98::KMD5A or another NUP98 rearrangement; FUS::ERG; RUNX1::CBFA2T3; CBFA2T3::GLIS2; mutated NPM1; or an in-frame bZIP CEBPA mutation. AML with BCR::ABL1 remains an exception and requires ≥20% blasts.",
+            "locator": "Changes to blast thresholds defining AML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0002",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "BCR",
+              "ABL1"
+            ],
+            "interpretation": "AML with BCR::ABL1 requires at least 20% blasts in bone marrow or blood to avoid overlap with accelerated-phase CML.",
+            "locator": "Changes to blast thresholds defining AML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MDS",
+              "AML"
+            ],
+            "diseases": [
+              "MDS/AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "Cases with defined genomic abnormalities and 10% to 19% blasts may be classified as MDS/AML; other non-recurrent-genetic AML subtypes require at least 20% blasts.",
+            "locator": "Changes to blast thresholds defining AML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0004",
+            "category": "treatment",
+            "disease_ancestors": [
+              "MDS",
+              "AML"
+            ],
+            "diseases": [
+              "MDS/AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "Patients classified as MDS/AML should be eligible for either MDS or AML clinical trials and treatment approaches.",
+            "locator": "Changes to blast thresholds defining AML",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0005",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "An in-frame mutation affecting the CEBPA bZIP region defines the CEBPA-mutated AML subtype whether monoallelic or biallelic.",
+            "locator": "AML with recurrent genetic abnormalities",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0006",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "In-frame CEBPA bZIP mutations are associated with favorable outcome irrespective of monoallelic or biallelic occurrence.",
+            "locator": "AML with recurrent genetic abnormalities",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0007",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "A pathogenic TP53 mutation with variant allele fraction of at least 10%, with or without loss of the wild-type allele, defines AML with mutated TP53.",
+            "locator": "AML with mutated TP53",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0008",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML",
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53-mutant AML and MDS are associated with a very poor prognosis.",
+            "locator": "AML with mutated TP53",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0009",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "ASXL1",
+              "BCOR",
+              "EZH2",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "STAG2",
+              "U2AF1",
+              "ZRSR2"
+            ],
+            "interpretation": "In the absence of TP53 mutation, mutations in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, and/or ZRSR2 define AML with myelodysplasia-related gene mutations irrespective of prior MDS.",
+            "locator": "AML with myelodysplasia-related gene mutations",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0010",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ASXL1",
+              "BCOR",
+              "EZH2",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "STAG2",
+              "U2AF1",
+              "ZRSR2"
+            ],
+            "interpretation": "Myelodysplasia-related gene mutations in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, and/or ZRSR2 confer adverse prognosis even in de novo AML.",
+            "locator": "AML with myelodysplasia-related gene mutations",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0011",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53",
+              "ASXL1",
+              "BCOR",
+              "EZH2",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "STAG2",
+              "U2AF1",
+              "ZRSR2"
+            ],
+            "interpretation": "AML with recurrent genetic abnormalities takes precedence over all other AML categories. Among the remaining categories, AML with mutated TP53 takes precedence over AML with myelodysplasia-related gene mutations, which takes precedence over AML with myelodysplasia-related cytogenetic abnormalities. AML with myelodysplasia-related cytogenetic abnormalities is defined, in the absence of higher-priority AML-defining categories, by a qualifying complex karyotype or del(5q)/t(5q)/add(5q), −7/del(7q), +8, del(12p)/t(12p)/add(12p), i(17q), −17/add(17p)/del(17p), del(20q), and/or idic(X)(q13).",
+            "locator": "AML classification hierarchy",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0012",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Germline predisposition should be considered in patients with hematopoietic malignancy regardless of age; DDX41 predisposition alleles can present at older ages.",
+            "locator": "Germline predisposition",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0013",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "Because allogeneic HCT and related-donor selection may be relevant in AML, germline risk-allele testing should be performed as early as possible during clinical management.",
+            "locator": "Germline predisposition",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0014",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "RUNX1T1",
+              "CBFB",
+              "MYH11",
+              "KMT2A",
+              "MECOM"
+            ],
+            "interpretation": "If conventional cytogenetics fails, FISH is an alternative for detecting RUNX1::RUNX1T1, CBFB::MYH11, KMT2A, and MECOM fusions and selected myelodysplasia-related chromosome abnormalities.",
+            "locator": "Diagnostic procedures > Cytogenetic and molecular studies",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0015",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "CBFB",
+              "MYH11",
+              "RUNX1",
+              "RUNX1T1"
+            ],
+            "interpretation": "In NPM1-mutant and core-binding-factor AML, baseline qPCR or dPCR molecular assessment is recommended to enable subsequent MRD monitoring.",
+            "locator": "Diagnostic procedures > Cytogenetic and molecular studies",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0016",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "MRD response can modify initial ELN risk assignment during therapy, particularly in NPM1-mutated AML.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0017",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3",
+              "NPM1"
+            ],
+            "interpretation": "FLT3-ITD AML without adverse-risk genetic lesions is intermediate risk irrespective of FLT3-ITD allelic ratio or concurrent NPM1 mutation; the allelic ratio is no longer used for ELN risk classification.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0018",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "ASXL1",
+              "BCOR",
+              "EZH2",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "STAG2",
+              "U2AF1",
+              "ZRSR2"
+            ],
+            "interpretation": "AML with pathogenic ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2 mutations is categorized as adverse risk.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0019",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "NPM1-mutated AML with adverse-risk cytogenetic abnormalities is categorized as adverse risk.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0020",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "In-frame CEBPA bZIP mutations are categorized as favorable risk irrespective of whether they are monoallelic or biallelic.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0021",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "MECOM"
+            ],
+            "interpretation": "MECOM rearrangements involving t(3q26.2;v) are included in the adverse-risk group.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0022",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "KAT6A",
+              "CREBBP"
+            ],
+            "interpretation": "KAT6A::CREBBP t(8;16) is included in the adverse-risk group.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0023",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1",
+              "IDH2",
+              "DNMT3A"
+            ],
+            "interpretation": "Current evidence does not assign IDH1, IDH2, or DNMT3A mutations to a distinct ELN prognostic group.",
+            "locator": "2022 ELN genetic risk classification",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0024",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "CBFB",
+              "MYH11",
+              "RUNX1",
+              "RUNX1T1"
+            ],
+            "interpretation": "Mutated NPM1, CBFB::MYH11, and RUNX1::RUNX1T1 are robustly validated molecular targets for qPCR-based MRD monitoring in AML.",
+            "locator": "Monitoring of measurable residual disease > Molecular MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0025",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "DNMT3A",
+              "TET2",
+              "ASXL1"
+            ],
+            "interpretation": "DNMT3A, TET2, and ASXL1 mutations consistent with premalignant clonal hematopoiesis should not be considered AML MRD.",
+            "locator": "Monitoring of measurable residual disease > Molecular MRD",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0026",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "CBFB",
+              "MYH11",
+              "RUNX1",
+              "RUNX1T1"
+            ],
+            "interpretation": "Persistent low-level molecular MRD in NPM1-mutated or core-binding-factor AML can occur after treatment without being prognostic of relapse when below the prognosis-linked threshold.",
+            "locator": "Implementation of MRD testing/decision making",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0027",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "Midostaurin incorporated into first-line intensive induction and consolidation is standard therapy for FLT3-mutant AML.",
+            "locator": "Therapy for AML > Patients considered fit for intensive therapy",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0028",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IDH1"
+            ],
+            "interpretation": "For newly diagnosed patients with IDH1-mutated AML who are not considered candidates for intensive therapy, ivosidenib plus azacitidine improves event-free survival, clinical response, and overall survival compared with azacitidine plus placebo.",
+            "locator": "Patients not considered candidates for intensive therapy",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0029",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1"
+            ],
+            "interpretation": "Rapid IDH1 mutation screening is recommended at initial diagnosis in older AML patients to identify candidates for ivosidenib.",
+            "locator": "Patients not considered candidates for intensive therapy",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0030",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1",
+              "IDH2",
+              "FLT3"
+            ],
+            "interpretation": "At AML progression, molecular re-evaluation is important because new IDH1/IDH2 mutations or new or expanded FLT3-ITD or FLT3-TKD clones may emerge and identify targeted salvage options.",
+            "locator": "Relapsed and refractory disease",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0031",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "Gilteritinib is an approved salvage option for relapsed/refractory FLT3-mutated AML and improved response and overall survival versus salvage chemotherapy in the cited randomized trial.",
+            "locator": "Relapsed and refractory disease",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0032",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1",
+              "IDH2"
+            ],
+            "interpretation": "Ivosidenib or enasidenib is a salvage option for relapsed/refractory IDH1- or IDH2-mutated AML.",
+            "locator": "Relapsed and refractory disease",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0033",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "After allogeneic HCT for FLT3-mutated AML, sorafenib maintenance reduces relapse risk and supports FLT3-inhibitor maintenance as a reasonable option.",
+            "locator": "Allogeneic HCT > Pre- and posttransplant strategies",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0034",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "KMT2A",
+              "NPM1"
+            ],
+            "interpretation": "Menin inhibitors are under clinical evaluation for AML with KMT2A rearrangements or NPM1 mutations.",
+            "locator": "New therapies",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0035",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "IDH1",
+              "IDH2"
+            ],
+            "interpretation": "Patients receiving IDH inhibitors require close monitoring for differentiation syndrome.",
+            "locator": "Management of special situations and supportive care",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "d-hner-2022-blood-140-1345-C0036",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "CEBPA"
+            ],
+            "interpretation": "Hematopoietic donor stem cells from carriers of deleterious RUNX1 or CEBPA variants should not be used.",
+            "locator": "Germline predisposition",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 181,
+        "citation": {
+          "authors": [
+            "Döhner H",
+            "Wei AH",
+            "Appelbaum FR",
+            "Craddock C",
+            "DiNardo CD",
+            "Dombret H",
+            "Ebert BL",
+            "Fenaux P",
+            "Godley LA",
+            "Hasserjian RP",
+            "Larson RA",
+            "Levine RL",
+            "Miyazaki Y",
+            "Niederwieser D",
+            "Ossenkoppele G",
+            "Röllig C",
+            "Sierra J",
+            "Stein EM",
+            "Tallman MS",
+            "Tien H",
+            "Wang J",
+            "Wierzbowska A",
+            "Löwenberg B"
+          ],
+          "citation_incomplete": [],
+          "display": "Döhner H, Wei AH, Appelbaum FR, Craddock C, DiNardo CD, Dombret H, et al. Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN. Blood. 2022;140(12):1345-1377.",
+          "doi": "10.1182/blood.2022016867",
+          "issue": "12",
+          "journal": "Blood",
+          "pages": "1345-1377",
+          "title": "Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN",
+          "volume": "140",
+          "year": 2022
+        },
+        "diseases_covered": [
+          "AML",
+          "MDS/AML",
+          "MDS"
+        ],
+        "extraction_date": "2026-08-12",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "PML",
+          "RARA",
+          "RUNX1",
+          "RUNX1T1",
+          "CBFB",
+          "MYH11",
+          "MLLT3",
+          "KMT2A",
+          "DEK",
+          "NUP214",
+          "GATA2",
+          "MECOM",
+          "PRDM16",
+          "RPN1",
+          "RBM15",
+          "MRTFA",
+          "NPM1",
+          "MLF1",
+          "NUP98",
+          "NSD1",
+          "ETV6",
+          "MNX1",
+          "KAT6A",
+          "CREBBP",
+          "PICALM",
+          "MLLT10",
+          "KMD5A",
+          "FUS",
+          "ERG",
+          "CBFA2T3",
+          "GLIS2",
+          "CEBPA",
+          "BCR",
+          "ABL1",
+          "TP53",
+          "ASXL1",
+          "BCOR",
+          "EZH2",
+          "SF3B1",
+          "SRSF2",
+          "STAG2",
+          "U2AF1",
+          "ZRSR2",
+          "DDX41",
+          "FLT3",
+          "IDH1",
+          "IDH2",
+          "DNMT3A",
+          "TET2"
+        ],
+        "paper_nickname": "ELN 2022 Risk Classification for AML",
+        "publication_key": "d-hner-2022-blood-140-1345",
+        "publication_type": "guideline"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-12",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0017",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0018",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0019",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0020",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0021",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0022",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0023",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0024",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0025",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0026",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0027",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0028",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0029",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0030",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0031",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0032",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0033",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0034",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0035",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "d-hner-2022-blood-140-1345-C0036",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 36,
+          "census_claims": 181,
+          "census_entries": 181,
+          "ratio": 0.2
+        },
+        "input_id": "c2b332e6-e926-543e-af15-b6b3dccfc755",
+        "markdown_sha256": "5d6e1456d7c380004a8ab45a392d08a4c154eab5112ed2890b32bb43eb21de43",
+        "source_filename": "Dohner_2022_ELN_AML_recommendations.pdf",
+        "source_sha256": "807f4d95316a7d5ddf51e41455746d42bcedfbbcf199d5560204bffc8ace81a1",
+        "warnings": [
+          "d-hner-2022-blood-140-1345-C0004: evidence is identical to d-hner-2022-blood-140-1345-C0003; review independent utility",
+          "d-hner-2022-blood-140-1345-C0006: evidence is identical to d-hner-2022-blood-140-1345-C0005; review independent utility",
+          "d-hner-2022-blood-140-1345-C0008: evidence is identical to d-hner-2022-blood-140-1345-C0007; review independent utility",
+          "d-hner-2022-blood-140-1345-C0010: evidence is identical to d-hner-2022-blood-140-1345-C0009; review independent utility",
+          "d-hner-2022-blood-140-1345-C0018: evidence is identical to d-hner-2022-blood-140-1345-C0017; review independent utility",
+          "d-hner-2022-blood-140-1345-C0019: evidence is identical to d-hner-2022-blood-140-1345-C0018; review independent utility",
+          "d-hner-2022-blood-140-1345-C0021: evidence is identical to d-hner-2022-blood-140-1345-C0020; review independent utility",
+          "d-hner-2022-blood-140-1345-C0022: evidence is identical to d-hner-2022-blood-140-1345-C0021; review independent utility"
         ]
       }
     }
