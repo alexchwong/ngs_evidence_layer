@@ -166,16 +166,13 @@ Keep `round` equal to 1. Populate the existing final `audit` shape:
 Repeat `results` exactly once for every resulting card. All resulting cards are
 marked pass because the human review and action taken are final. Do not add human
 decision fields to the audit; adjudication is represented by the final card content.
-## Disease vocabulary
+## Canonical validation assets
 
-```json
-{{DISEASE_VOCABULARY}}
-```
-## Output schema
-
-```json
-{{PACKAGE_SCHEMA}}
-```
+The deterministic validation bundle below includes the canonical
+`schema/disease_vocabulary.json` and `schema/ingestion_package_schema.json`. Use
+those verbatim files as the disease vocabulary/taxonomy and output schema;
+`schema/review_schema.json` is also bundled for entry validation. Do not reconstruct
+or maintain a second copy in the validator.
 ## Deterministic exit validation
 
 {{VALIDATION_BUNDLE_POLICY}}

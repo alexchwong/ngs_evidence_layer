@@ -20,6 +20,20 @@ PHASE_ASSETS = {
     4: "PHASE4_VALIDATION_BUNDLE",
     5: "PHASE5_VALIDATION_BUNDLE",
 }
+PHASE_BUNDLE_PATHS = {
+    1: ["scripts/phase_validation/phase1.py"],
+    2: [
+        "scripts/phase_validation/phase2.py",
+        "schema/ingestion_package_schema.json",
+        "schema/disease_vocabulary.json",
+    ],
+    4: [
+        "scripts/phase_validation/phase4.py",
+        "schema/ingestion_package_schema.json",
+        "schema/review_schema.json",
+        "schema/disease_vocabulary.json",
+    ],
+}
 
 
 def load_build_prompts():
@@ -41,23 +55,32 @@ FILE_RE = re.compile(
 
 
 class PromptValidationBundleTests(unittest.TestCase):
-    def test_each_asset_contains_only_its_canonical_phase_validator(self):
+    def test_phase_validation_bundles_include_canonical_dependencies(self):
         manifest = build_prompts.load_manifest()["assets"]
         for phase, keyword in PHASE_ASSETS.items():
             with self.subTest(phase=phase):
                 spec = manifest[keyword]
-                relative = f"scripts/phase_validation/phase{phase}.py"
-                path = ROOT / relative
+                validator = f"scripts/phase_validation/phase{phase}.py"
                 content = build_prompts.asset_content(keyword)
                 if spec.get("type") == "bundle":
-                    self.assertEqual(spec.get("paths"), [relative])
+                    self.assertEqual(spec.get("paths"), PHASE_BUNDLE_PATHS[phase])
                     self.assertFalse(spec.get("globs"))
-                    self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
-                    self.assertEqual(len(list(FILE_RE.finditer(content))), 1)
+                    matches = list(FILE_RE.finditer(content))
+                    self.assertEqual(
+                        [match.group("path") for match in matches],
+                        PHASE_BUNDLE_PATHS[phase],
+                    )
+                    for relative in PHASE_BUNDLE_PATHS[phase]:
+                        self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
+                        self.assertIn(
+                            (ROOT / relative).read_text(encoding="utf-8").rstrip(),
+                            content,
+                        )
                 else:
-                    self.assertEqual(spec, {"type": "file", "path": relative})
-                    self.assertEqual(content, path.read_text(encoding="utf-8").rstrip())
-                self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
+                    self.assertEqual(spec, {"type": "file", "path": validator})
+                    self.assertEqual(
+                        content, (ROOT / validator).read_text(encoding="utf-8").rstrip()
+                    )
 
     def test_phase_templates_use_phase_specific_bundle_markers(self):
         for phase, keyword in PHASE_ASSETS.items():
@@ -81,14 +104,13 @@ class PromptValidationBundleTests(unittest.TestCase):
             temp = Path(tempdir)
             work = temp / "work"
             shutil.copytree(FIXTURE, work)
-            matches = [
-                match for match in FILE_RE.finditer(prompt)
-                if match.group("path") == "scripts/phase_validation/phase2.py"
-            ]
-            self.assertEqual(len(matches), 1)
-            script = work / "validation_bundle" / matches[0].group("path")
-            script.parent.mkdir(parents=True, exist_ok=True)
-            script.write_text(matches[0].group("content"), encoding="utf-8")
+            matches = list(FILE_RE.finditer(prompt))
+            bundled = {match.group("path"): match.group("content") for match in matches}
+            for relative in PHASE_BUNDLE_PATHS[2]:
+                target = work / "validation_bundle" / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(bundled[relative], encoding="utf-8")
+            script = work / "validation_bundle" / "scripts/phase_validation/phase2.py"
             result = subprocess.run(
                 [
                     sys.executable,
@@ -110,13 +132,15 @@ class PromptValidationBundleTests(unittest.TestCase):
             temp = Path(tempdir)
             work = temp / "work"
             shutil.copytree(FIXTURE, work)
-            match = next(
-                match for match in FILE_RE.finditer(prompt)
-                if match.group("path") == "scripts/phase_validation/phase4.py"
-            )
-            script = work / "validation_bundle" / match.group("path")
-            script.parent.mkdir(parents=True, exist_ok=True)
-            script.write_text(match.group("content"), encoding="utf-8")
+            bundled = {
+                match.group("path"): match.group("content")
+                for match in FILE_RE.finditer(prompt)
+            }
+            for relative in PHASE_BUNDLE_PATHS[4]:
+                target = work / "validation_bundle" / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(bundled[relative], encoding="utf-8")
+            script = work / "validation_bundle" / "scripts/phase_validation/phase4.py"
             result = subprocess.run(
                 [
                     sys.executable,

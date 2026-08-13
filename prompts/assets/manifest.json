@@ -58,13 +58,18 @@
     "PHASE2_VALIDATION_BUNDLE": {
       "type": "bundle",
       "paths": [
-        "scripts/phase_validation/phase2.py"
+        "scripts/phase_validation/phase2.py",
+        "schema/ingestion_package_schema.json",
+        "schema/disease_vocabulary.json"
       ]
     },
     "PHASE4_VALIDATION_BUNDLE": {
       "type": "bundle",
       "paths": [
-        "scripts/phase_validation/phase4.py"
+        "scripts/phase_validation/phase4.py",
+        "schema/ingestion_package_schema.json",
+        "schema/review_schema.json",
+        "schema/disease_vocabulary.json"
       ]
     },
     "PHASE5_VALIDATION_BUNDLE": {

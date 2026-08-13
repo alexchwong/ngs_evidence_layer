@@ -74,13 +74,28 @@ class PromptIntegrationTests(unittest.TestCase):
             content = BUILD_PROMPTS.asset_content(keyword)
             spec = self.manifest[keyword]
             if spec.get("type") == "bundle":
-                self.assertEqual(len(spec.get("paths", [])), 1)
-                path = ROOT / spec["paths"][0]
-                relative = path.relative_to(ROOT).as_posix()
-                self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
+                for relative in spec.get("paths", []):
+                    path = ROOT / relative
+                    self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
+                    self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
             else:
                 path = ROOT / spec["path"]
-            self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
+                self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
+
+    def test_phase2_and_phase4_validators_load_canonical_json_assets(self):
+        for phase in (2, 4):
+            with self.subTest(phase=phase):
+                script = (ROOT / "scripts" / "phase_validation" / f"phase{phase}.py").read_text(encoding="utf-8")
+                template = (ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md").read_text(encoding="utf-8")
+                self.assertIn('load_json_asset("ingestion_package_schema.json")', script)
+                self.assertIn('load_json_asset("disease_vocabulary.json")', script)
+                self.assertNotIn("PACKAGE_SCHEMA = json.loads(", script)
+                self.assertNotIn("UMBRELLA = json.loads(", script)
+                self.assertNotIn("{{PACKAGE_SCHEMA}}", template)
+                self.assertNotIn("{{DISEASE_VOCABULARY}}", template)
+        phase4 = (ROOT / "scripts" / "phase_validation" / "phase4.py").read_text(encoding="utf-8")
+        self.assertIn('load_json_asset("review_schema.json")', phase4)
+        self.assertNotIn("REVIEW_SCHEMA = json.loads(", phase4)
 
     def test_phase2_allows_multi_claim_composite_text(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())
