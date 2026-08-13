@@ -169,10 +169,10 @@ decision fields to the audit; adjudication is represented by the final card cont
 ## Canonical validation assets
 
 The deterministic validation bundle below includes the canonical
-`schema/disease_vocabulary.json` and `schema/ingestion_package_schema.json`. Use
-those verbatim files as the disease vocabulary/taxonomy and output schema;
-`schema/review_schema.json` is also bundled for entry validation. Do not reconstruct
-or maintain a second copy in the validator.
+`schema/disease_vocabulary.json` and structural `schema/ingestion_package_schema.json`;
+`schema/review_schema.json` is also bundled for entry validation. The validator derives
+the strict disease enum from the vocabulary at runtime; do not maintain a second
+disease list.
 ## Deterministic exit validation
 
 {{VALIDATION_BUNDLE_POLICY}}

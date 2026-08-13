@@ -370,18 +370,18 @@ Once a provisional package has been produced, do not repeat Phase 2 after audit.
 #### Source disease aliases
 
 Phase 2 normally omits a card when the source-stated disease is outside the closed
-evidence-card vocabulary. Reviewed source wording aliases live in
-`schema/source_disease_aliases.json` and map complete source phrases to existing
-canonical disease terms from `schema/disease_vocabulary.json`. For example, source
+evidence-card vocabulary. Reviewed source wording aliases live on their canonical term in
+`schema/disease_vocabulary.json` and map complete source phrases to that existing
+canonical disease term. For example, source
 wording `clonal haematopoiesis` or `clonal haemopoiesis` can map to canonical disease
 `CHIP`; the source wording must still be preserved in the evidence and interpretation.
 
 Aliases are case-insensitive but otherwise exact. They do not enable fuzzy matching,
 stemming, punctuation substitution, semantic inference, or mapping to a nearest term.
-To add an alias, map the complete source phrase to an existing canonical `diseases`
-value, regenerate the affected prompts, and run the full test suite. Do not use aliases
-to encode taxonomic ancestry or retrieval relationships; those remain separate
-`umbrella` and `retrieval_related` configuration.
+To add an alias, add the complete source phrase to that canonical term's `aliases`
+array, regenerate the affected prompts, and run the full test suite. Do not use aliases
+to encode taxonomic ancestry or retrieval relationships; those live on the same term
+as `parents` and `retrieval_related` respectively.
 
 ### Phase 3 — independent review
 

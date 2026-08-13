@@ -30,8 +30,9 @@
       "path": "schema/disease_vocabulary.json"
     },
     "SOURCE_DISEASE_ALIASES": {
-      "type": "file",
-      "path": "schema/source_disease_aliases.json"
+      "type": "derived",
+      "path": "schema/disease_vocabulary.json",
+      "view": "source_disease_aliases"
     },
     "PUBLICATION_TYPE_VOCABULARY": {
       "type": "file",

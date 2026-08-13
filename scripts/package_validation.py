@@ -30,11 +30,18 @@ def read_json(path, label="JSON"):
         raise ValueError(f"invalid {label} in {path}: {exc}") from exc
 
 
+def load_schema(path):
+    schema = read_json(path, "schema")
+    if Path(path).name == "ingestion_package_schema.json":
+        schema = vocab.bind_disease_vocabulary(schema)
+    return schema
+
+
 def schema_errors(document, schema_name, label):
-    schema = read_json(SCHEMAS / schema_name, "schema")
+    schema = load_schema(SCHEMAS / schema_name)
     resources = []
     for path in SCHEMAS.glob("*_schema.json"):
-        referenced_schema = read_json(path, "schema")
+        referenced_schema = load_schema(path)
         if "$id" in referenced_schema:
             resources.append((referenced_schema["$id"], Resource.from_contents(referenced_schema)))
     registry = Registry().with_resources(resources)

@@ -366,8 +366,8 @@ Canonical source aliases:
   "nodal marginal zone lymphoma": "NMZL",
   "paediatric marginal zone lymphoma": "paediatric MZL",
   "pediatric marginal zone lymphoma": "paediatric MZL",
-  "FL": "follicular lymphoma",
   "in situ follicular neoplasia": "in situ follicular B-cell neoplasm",
+  "FL": "follicular lymphoma",
   "paediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
   "pediatric-type follicular lymphoma": "paediatric-type follicular lymphoma",
   "pediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
@@ -461,8 +461,8 @@ Canonical source aliases:
   "HSTCL": "hepatosplenic T-cell lymphoma",
   "ALCL": "anaplastic large cell lymphoma",
   "anaplastic large cell lymphoma, ALK-positive": "ALK-positive anaplastic large cell lymphoma",
-  "anaplastic large cell lymphoma, ALK-negative": "ALK-negative anaplastic large cell lymphoma",
   "ALK+ ALCL": "ALK-positive anaplastic large cell lymphoma",
+  "anaplastic large cell lymphoma, ALK-negative": "ALK-negative anaplastic large cell lymphoma",
   "ALK- ALCL": "ALK-negative anaplastic large cell lymphoma",
   "BIA-ALCL": "breast implant-associated anaplastic large cell lymphoma",
   "nodal T-follicular helper cell lymphoma": "nodal TFH cell lymphoma",
@@ -517,10 +517,10 @@ decision fields to the audit; adjudication is represented by the final card cont
 ## Canonical validation assets
 
 The deterministic validation bundle below includes the canonical
-`schema/disease_vocabulary.json` and `schema/ingestion_package_schema.json`. Use
-those verbatim files as the disease vocabulary/taxonomy and output schema;
-`schema/review_schema.json` is also bundled for entry validation. Do not reconstruct
-or maintain a second copy in the validator.
+`schema/disease_vocabulary.json` and structural `schema/ingestion_package_schema.json`;
+`schema/review_schema.json` is also bundled for entry validation. The validator derives
+the strict disease enum from the vocabulary at runtime; do not maintain a second
+disease list.
 ## Deterministic exit validation
 
 The bundle below contains the canonical self-contained validator for this phase.
@@ -554,15 +554,32 @@ def load_json_asset(filename):
         raise RuntimeError(f"invalid bundled JSON asset {path}: {exc}") from exc
 
 
-PACKAGE_SCHEMA = load_json_asset("ingestion_package_schema.json")
 REVIEW_SCHEMA = load_json_asset("review_schema.json")
 DISEASE_VOCABULARY = load_json_asset("disease_vocabulary.json")
-DISEASES = list(DISEASE_VOCABULARY["diseases"])
-UMBRELLA = {key: list(parents) for key, parents in DISEASE_VOCABULARY["umbrella"].items()}
-if PACKAGE_SCHEMA["$defs"]["disease"]["enum"] != DISEASES:
-    raise RuntimeError(
-        "bundled ingestion package schema disease enum differs from disease vocabulary"
-    )
+TERMS = list(DISEASE_VOCABULARY["terms"])
+DISEASES = [term["name"] for term in TERMS]
+UMBRELLA = {
+    term["name"]: list(term.get("parents", []))
+    for term in TERMS
+    if term.get("parents")
+}
+
+
+def bind_disease_vocabulary(schema):
+    disease_schema = schema.get("$defs", {}).get("disease")
+    if not isinstance(disease_schema, dict):
+        raise RuntimeError("bundled ingestion package schema $defs.disease must be an object")
+    if "enum" in disease_schema:
+        raise RuntimeError(
+            "bundled ingestion package schema must not contain a duplicate disease enum"
+        )
+    disease_schema["enum"] = list(DISEASES)
+    return schema
+
+
+PACKAGE_SCHEMA = bind_disease_vocabulary(
+    load_json_asset("ingestion_package_schema.json")
+)
 
 DISEASE_DEPENDENT_CATEGORIES = {"diagnosis", "prognosis", "treatment", "biomarker"}
 GENERIC_INTERPRETATION_PATTERNS = (
@@ -1063,159 +1080,8 @@ if __name__ == "__main__":
       "pattern": "^[A-Z0-9][A-Z0-9\\-]*$"
     },
     "disease": {
-      "enum": [
-        "CHIP",
-        "CCUS",
-        "MDS",
-        "MDS/AML",
-        "AML",
-        "APL",
-        "MDS/MPN",
-        "MDS/MPN-U",
-        "CMML",
-        "aCML",
-        "MDS/MPN-SF3B1-T",
-        "JMML",
-        "MPN",
-        "MPN-U",
-        "PV",
-        "ET",
-        "PMF",
-        "post-PV/post-ET MF",
-        "MPN blast phase",
-        "CML",
-        "CNL",
-        "CEL",
-        "mastocytosis",
-        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-        "BPDCN",
-        "germline predisposition syndrome",
-        "myeloid neoplasm, unspecified",
-        "lymphoid neoplasm",
-        "acute leukaemia of ambiguous lineage",
-        "histiocytic/dendritic neoplasm",
-        "haematological malignancy, other",
-        "acute lymphoblastic leukaemia/lymphoma",
-        "B-cell lymphoid neoplasm",
-        "precursor B-cell neoplasm",
-        "B-ALL",
-        "mature B-cell neoplasm",
-        "small lymphocytic proliferation",
-        "MBL",
-        "CLL/SLL",
-        "splenic B-cell lymphoma/leukaemia",
-        "HCL",
-        "SMZL",
-        "SDRPL",
-        "SBLPN",
-        "LPL",
-        "IgM LPL/WM",
-        "non-IgM LPL",
-        "marginal zone lymphoma",
-        "extranodal MZL of MALT",
-        "primary cutaneous MZL",
-        "NMZL",
-        "paediatric MZL",
-        "in situ follicular B-cell neoplasm",
-        "follicular lymphoma",
-        "paediatric-type follicular lymphoma",
-        "duodenal-type follicular lymphoma",
-        "primary cutaneous follicle centre lymphoma",
-        "mantle cell neoplasm",
-        "in situ mantle cell neoplasm",
-        "mantle cell lymphoma",
-        "leukaemic non-nodal mantle cell lymphoma",
-        "large B-cell lymphoma",
-        "DLBCL, NOS",
-        "THRLBCL",
-        "DLBCL/HGBL-MYC/BCL2",
-        "ALK-positive large B-cell lymphoma",
-        "large B-cell lymphoma with IRF4 rearrangement",
-        "HGBL-11q",
-        "lymphomatoid granulomatosis",
-        "EBV-positive DLBCL",
-        "DLBCL associated with chronic inflammation",
-        "fibrin-associated large B-cell lymphoma",
-        "fluid overload-associated large B-cell lymphoma",
-        "plasmablastic lymphoma",
-        "primary large B-cell lymphoma of immune-privileged sites",
-        "primary cutaneous DLBCL, leg type",
-        "intravascular large B-cell lymphoma",
-        "primary mediastinal large B-cell lymphoma",
-        "mediastinal grey zone lymphoma",
-        "HGBL, NOS",
-        "Burkitt lymphoma",
-        "KSHV/HHV8-associated B-cell lymphoid neoplasm",
-        "primary effusion lymphoma",
-        "KSHV/HHV8-positive DLBCL",
-        "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
-        "Hodgkin lymphoma",
-        "classic Hodgkin lymphoma",
-        "nodular lymphocyte predominant Hodgkin lymphoma",
-        "plasma cell neoplasm/paraprotein disorder",
-        "monoclonal gammopathy",
-        "MGUS",
-        "cold agglutinin disease",
-        "IgM MGUS",
-        "non-IgM MGUS",
-        "MGRS",
-        "monoclonal immunoglobulin deposition disease",
-        "AL amyloidosis",
-        "heavy chain disease",
-        "mu heavy chain disease",
-        "gamma heavy chain disease",
-        "alpha heavy chain disease",
-        "plasma cell neoplasm",
-        "plasmacytoma",
-        "plasma cell myeloma",
-        "plasma cell neoplasm with paraneoplastic syndrome",
-        "POEMS syndrome",
-        "TEMPI syndrome",
-        "AESOP syndrome",
-        "T-cell/NK-cell lymphoid neoplasm",
-        "precursor T-cell neoplasm",
-        "T-ALL",
-        "T-ALL, NOS",
-        "ETP-ALL",
-        "mature T-cell/NK-cell neoplasm",
-        "mature T-cell/NK-cell leukaemia",
-        "T-PLL",
-        "T-LGLL",
-        "NK-LGLL",
-        "ATLL",
-        "Sezary syndrome",
-        "aggressive NK-cell leukaemia",
-        "primary cutaneous T-cell lymphoma",
-        "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
-        "primary cutaneous acral CD8-positive lymphoproliferative disorder",
-        "mycosis fungoides",
-        "lymphomatoid papulosis",
-        "primary cutaneous anaplastic large cell lymphoma",
-        "subcutaneous panniculitis-like T-cell lymphoma",
-        "primary cutaneous gamma/delta T-cell lymphoma",
-        "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma",
-        "primary cutaneous peripheral T-cell lymphoma, NOS",
-        "intestinal T-cell/NK-cell lymphoid neoplasm",
-        "indolent T-cell lymphoma of the gastrointestinal tract",
-        "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
-        "enteropathy-associated T-cell lymphoma",
-        "monomorphic epitheliotropic intestinal T-cell lymphoma",
-        "intestinal T-cell lymphoma, NOS",
-        "hepatosplenic T-cell lymphoma",
-        "anaplastic large cell lymphoma",
-        "ALK-positive anaplastic large cell lymphoma",
-        "ALK-negative anaplastic large cell lymphoma",
-        "breast implant-associated anaplastic large cell lymphoma",
-        "nodal TFH cell lymphoma",
-        "nodal TFH cell lymphoma, angioimmunoblastic-type",
-        "nodal TFH cell lymphoma, follicular-type",
-        "nodal TFH cell lymphoma, NOS",
-        "peripheral T-cell lymphoma, NOS",
-        "EBV-positive T/NK-cell lymphoma",
-        "EBV-positive nodal T/NK-cell lymphoma",
-        "extranodal NK/T-cell lymphoma",
-        "systemic EBV-positive T-cell lymphoma of childhood"
-      ]
+      "type": "string",
+      "minLength": 1
     },
     "citation": {
       "type": "object",
@@ -1824,863 +1690,1651 @@ if __name__ == "__main__":
 <!-- BEGIN VERBATIM schema/disease_vocabulary.json -->
 ```json
 {
-  "vocabulary_version": "1.8",
-  "note": "Closed evidence-card disease vocabulary with separate case-only terms, taxonomic umbrellas, and directional category-specific retrieval relationships. Reviewed source-disease aliases are stored separately in schema/source_disease_aliases.json. WHO-HAEM5 lymphoid family/entity terms are included while tumour-like/reactive lesions are excluded. Canonical diseases are kept at clinically useful disease/entity granularity rather than molecular-subtype granularity; source molecular subtype names should resolve through reviewed aliases to the appropriate broader canonical disease. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
-  "diseases": [
-    "CHIP",
-    "CCUS",
-    "MDS",
-    "MDS/AML",
-    "AML",
-    "APL",
-    "MDS/MPN",
-    "MDS/MPN-U",
-    "CMML",
-    "aCML",
-    "MDS/MPN-SF3B1-T",
-    "JMML",
-    "MPN",
-    "MPN-U",
-    "PV",
-    "ET",
-    "PMF",
-    "post-PV/post-ET MF",
-    "MPN blast phase",
-    "CML",
-    "CNL",
-    "CEL",
-    "mastocytosis",
-    "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-    "BPDCN",
-    "germline predisposition syndrome",
-    "myeloid neoplasm, unspecified",
-    "lymphoid neoplasm",
-    "acute leukaemia of ambiguous lineage",
-    "histiocytic/dendritic neoplasm",
-    "haematological malignancy, other",
-    "acute lymphoblastic leukaemia/lymphoma",
-    "B-cell lymphoid neoplasm",
-    "precursor B-cell neoplasm",
-    "B-ALL",
-    "mature B-cell neoplasm",
-    "small lymphocytic proliferation",
-    "MBL",
-    "CLL/SLL",
-    "splenic B-cell lymphoma/leukaemia",
-    "HCL",
-    "SMZL",
-    "SDRPL",
-    "SBLPN",
-    "LPL",
-    "IgM LPL/WM",
-    "non-IgM LPL",
-    "marginal zone lymphoma",
-    "extranodal MZL of MALT",
-    "primary cutaneous MZL",
-    "NMZL",
-    "paediatric MZL",
-    "in situ follicular B-cell neoplasm",
-    "follicular lymphoma",
-    "paediatric-type follicular lymphoma",
-    "duodenal-type follicular lymphoma",
-    "primary cutaneous follicle centre lymphoma",
-    "mantle cell neoplasm",
-    "in situ mantle cell neoplasm",
-    "mantle cell lymphoma",
-    "leukaemic non-nodal mantle cell lymphoma",
-    "large B-cell lymphoma",
-    "DLBCL, NOS",
-    "THRLBCL",
-    "DLBCL/HGBL-MYC/BCL2",
-    "ALK-positive large B-cell lymphoma",
-    "large B-cell lymphoma with IRF4 rearrangement",
-    "HGBL-11q",
-    "lymphomatoid granulomatosis",
-    "EBV-positive DLBCL",
-    "DLBCL associated with chronic inflammation",
-    "fibrin-associated large B-cell lymphoma",
-    "fluid overload-associated large B-cell lymphoma",
-    "plasmablastic lymphoma",
-    "primary large B-cell lymphoma of immune-privileged sites",
-    "primary cutaneous DLBCL, leg type",
-    "intravascular large B-cell lymphoma",
-    "primary mediastinal large B-cell lymphoma",
-    "mediastinal grey zone lymphoma",
-    "HGBL, NOS",
-    "Burkitt lymphoma",
-    "KSHV/HHV8-associated B-cell lymphoid neoplasm",
-    "primary effusion lymphoma",
-    "KSHV/HHV8-positive DLBCL",
-    "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
-    "Hodgkin lymphoma",
-    "classic Hodgkin lymphoma",
-    "nodular lymphocyte predominant Hodgkin lymphoma",
-    "plasma cell neoplasm/paraprotein disorder",
-    "monoclonal gammopathy",
-    "MGUS",
-    "cold agglutinin disease",
-    "IgM MGUS",
-    "non-IgM MGUS",
-    "MGRS",
-    "monoclonal immunoglobulin deposition disease",
-    "AL amyloidosis",
-    "heavy chain disease",
-    "mu heavy chain disease",
-    "gamma heavy chain disease",
-    "alpha heavy chain disease",
-    "plasma cell neoplasm",
-    "plasmacytoma",
-    "plasma cell myeloma",
-    "plasma cell neoplasm with paraneoplastic syndrome",
-    "POEMS syndrome",
-    "TEMPI syndrome",
-    "AESOP syndrome",
-    "T-cell/NK-cell lymphoid neoplasm",
-    "precursor T-cell neoplasm",
-    "T-ALL",
-    "T-ALL, NOS",
-    "ETP-ALL",
-    "mature T-cell/NK-cell neoplasm",
-    "mature T-cell/NK-cell leukaemia",
-    "T-PLL",
-    "T-LGLL",
-    "NK-LGLL",
-    "ATLL",
-    "Sezary syndrome",
-    "aggressive NK-cell leukaemia",
-    "primary cutaneous T-cell lymphoma",
-    "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
-    "primary cutaneous acral CD8-positive lymphoproliferative disorder",
-    "mycosis fungoides",
-    "lymphomatoid papulosis",
-    "primary cutaneous anaplastic large cell lymphoma",
-    "subcutaneous panniculitis-like T-cell lymphoma",
-    "primary cutaneous gamma/delta T-cell lymphoma",
-    "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma",
-    "primary cutaneous peripheral T-cell lymphoma, NOS",
-    "intestinal T-cell/NK-cell lymphoid neoplasm",
-    "indolent T-cell lymphoma of the gastrointestinal tract",
-    "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
-    "enteropathy-associated T-cell lymphoma",
-    "monomorphic epitheliotropic intestinal T-cell lymphoma",
-    "intestinal T-cell lymphoma, NOS",
-    "hepatosplenic T-cell lymphoma",
-    "anaplastic large cell lymphoma",
-    "ALK-positive anaplastic large cell lymphoma",
-    "ALK-negative anaplastic large cell lymphoma",
-    "breast implant-associated anaplastic large cell lymphoma",
-    "nodal TFH cell lymphoma",
-    "nodal TFH cell lymphoma, angioimmunoblastic-type",
-    "nodal TFH cell lymphoma, follicular-type",
-    "nodal TFH cell lymphoma, NOS",
-    "peripheral T-cell lymphoma, NOS",
-    "EBV-positive T/NK-cell lymphoma",
-    "EBV-positive nodal T/NK-cell lymphoma",
-    "extranodal NK/T-cell lymphoma",
-    "systemic EBV-positive T-cell lymphoma of childhood"
+  "vocabulary_version": "2.0",
+  "note": "Closed evidence-card disease vocabulary and single source of truth for canonical disease terms, reviewed source aliases, taxonomic parents, and directional category-specific retrieval relationships. WHO-HAEM5 lymphoid family/entity terms are included while tumour-like/reactive lesions are excluded. Canonical diseases are kept at clinically useful disease/entity granularity rather than molecular-subtype granularity; source molecular subtype names should resolve through reviewed aliases on the appropriate broader canonical disease term. Evidence-card diseases are not to be extended casually: an added term changes what every existing card means by omission.",
+  "terms": [
+    {
+      "name": "CHIP",
+      "aliases": [
+        "clonal haematopoiesis",
+        "clonal haemopoiesis",
+        "clonal hematopoiesis",
+        "clonal hematopoiesis of indeterminate potential",
+        "clonal haematopoiesis of indeterminate potential",
+        "clonal haemopoiesis of indeterminate potential"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "CCUS"
+        ],
+        "biomarker": [
+          "CCUS"
+        ]
+      }
+    },
+    {
+      "name": "CCUS",
+      "aliases": [
+        "clonal cytopenia of undetermined significance",
+        "clonal cytopaenia of undetermined significance"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "CHIP",
+          "MDS"
+        ],
+        "prognosis": [
+          "CHIP",
+          "MDS"
+        ],
+        "biomarker": [
+          "CHIP",
+          "MDS"
+        ]
+      }
+    },
+    {
+      "name": "MDS",
+      "aliases": [
+        "myelodysplastic syndrome",
+        "myelodysplastic syndromes",
+        "myelodysplastic neoplasm",
+        "myelodysplastic neoplasms"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "CCUS",
+          "CHIP"
+        ],
+        "prognosis": [
+          "CCUS",
+          "CHIP"
+        ],
+        "biomarker": [
+          "CCUS",
+          "CHIP"
+        ]
+      }
+    },
+    {
+      "name": "MDS/AML",
+      "aliases": [
+        "myelodysplastic syndrome/acute myeloid leukemia",
+        "myelodysplastic syndrome/acute myeloid leukaemia",
+        "myelodysplastic neoplasm/acute myeloid leukemia",
+        "myelodysplastic neoplasm/acute myeloid leukaemia"
+      ],
+      "parents": [
+        "MDS",
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MDS",
+          "AML"
+        ],
+        "prognosis": [
+          "MDS",
+          "AML"
+        ],
+        "treatment": [
+          "MDS",
+          "AML"
+        ],
+        "biomarker": [
+          "MDS",
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "AML",
+      "aliases": [
+        "acute myeloid leukemia",
+        "acute myeloid leukaemia"
+      ]
+    },
+    {
+      "name": "APL",
+      "aliases": [
+        "acute promyelocytic leukemia",
+        "acute promyelocytic leukaemia"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "MDS/MPN",
+      "aliases": [
+        "myelodysplastic/myeloproliferative neoplasm",
+        "myelodysplastic/myeloproliferative neoplasms",
+        "myelodysplastic syndrome/myeloproliferative neoplasm"
+      ],
+      "parents": [
+        "MDS",
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MDS",
+          "MPN"
+        ],
+        "prognosis": [
+          "MDS",
+          "MPN"
+        ],
+        "treatment": [
+          "MDS",
+          "MPN"
+        ],
+        "biomarker": [
+          "MDS",
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "MDS/MPN-U",
+      "aliases": [
+        "myelodysplastic/myeloproliferative neoplasm, unclassifiable",
+        "myelodysplastic/myeloproliferative neoplasm unclassifiable",
+        "myelodysplastic/myeloproliferative neoplasm, unspecified"
+      ],
+      "parents": [
+        "MDS/MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MDS/MPN",
+          "MDS",
+          "MPN"
+        ],
+        "prognosis": [
+          "MDS/MPN",
+          "MDS",
+          "MPN"
+        ],
+        "treatment": [
+          "MDS/MPN",
+          "MDS",
+          "MPN"
+        ],
+        "biomarker": [
+          "MDS/MPN",
+          "MDS",
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "CMML",
+      "aliases": [
+        "chronic myelomonocytic leukemia",
+        "chronic myelomonocytic leukaemia"
+      ],
+      "parents": [
+        "MDS/MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MDS/MPN",
+          "MDS"
+        ],
+        "prognosis": [
+          "MDS/MPN",
+          "MDS"
+        ],
+        "biomarker": [
+          "MDS/MPN",
+          "MDS"
+        ]
+      }
+    },
+    {
+      "name": "aCML",
+      "aliases": [
+        "atypical chronic myeloid leukemia",
+        "atypical chronic myeloid leukaemia",
+        "atypical chronic myelogenous leukemia",
+        "atypical chronic myelogenous leukaemia",
+        "MDS/MPN with neutrophilia",
+        "myelodysplastic/myeloproliferative neoplasm with neutrophilia"
+      ],
+      "parents": [
+        "MDS/MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MDS/MPN",
+          "MPN",
+          "CNL"
+        ],
+        "prognosis": [
+          "MDS/MPN",
+          "MPN"
+        ],
+        "treatment": [
+          "MDS/MPN",
+          "MPN"
+        ],
+        "biomarker": [
+          "MDS/MPN",
+          "MPN",
+          "CNL"
+        ]
+      }
+    },
+    {
+      "name": "MDS/MPN-SF3B1-T",
+      "aliases": [
+        "MDS/MPN with SF3B1 mutation and thrombocytosis",
+        "myelodysplastic/myeloproliferative neoplasm with SF3B1 mutation and thrombocytosis",
+        "MDS/MPN with ring sideroblasts and thrombocytosis",
+        "myelodysplastic/myeloproliferative neoplasm with ring sideroblasts and thrombocytosis"
+      ],
+      "parents": [
+        "MDS/MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MDS/MPN",
+          "MDS",
+          "ET"
+        ],
+        "prognosis": [
+          "MDS/MPN",
+          "MDS",
+          "ET"
+        ],
+        "biomarker": [
+          "MDS/MPN",
+          "MDS",
+          "ET"
+        ]
+      }
+    },
+    {
+      "name": "JMML",
+      "aliases": [
+        "juvenile myelomonocytic leukemia",
+        "juvenile myelomonocytic leukaemia"
+      ],
+      "parents": [
+        "MPN"
+      ]
+    },
+    {
+      "name": "MPN",
+      "aliases": [
+        "myeloproliferative neoplasm",
+        "myeloproliferative neoplasms"
+      ]
+    },
+    {
+      "name": "MPN-U",
+      "aliases": [
+        "myeloproliferative neoplasm, unclassifiable",
+        "myeloproliferative neoplasm unclassifiable",
+        "myeloproliferative neoplasm, unspecified"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MPN"
+        ],
+        "prognosis": [
+          "MPN"
+        ],
+        "treatment": [
+          "MPN"
+        ],
+        "biomarker": [
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "PV",
+      "aliases": [
+        "polycythemia vera",
+        "polycythaemia vera",
+        "polycythemia rubra vera",
+        "polycythaemia rubra vera"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MPN"
+        ],
+        "prognosis": [
+          "MPN"
+        ],
+        "treatment": [
+          "MPN"
+        ],
+        "biomarker": [
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "ET",
+      "aliases": [
+        "essential thrombocythemia",
+        "essential thrombocythaemia"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MPN"
+        ],
+        "prognosis": [
+          "MPN"
+        ],
+        "treatment": [
+          "MPN"
+        ],
+        "biomarker": [
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "PMF",
+      "aliases": [
+        "primary myelofibrosis"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MPN",
+          "post-PV/post-ET MF"
+        ],
+        "prognosis": [
+          "MPN",
+          "post-PV/post-ET MF"
+        ],
+        "biomarker": [
+          "MPN",
+          "post-PV/post-ET MF"
+        ]
+      }
+    },
+    {
+      "name": "post-PV/post-ET MF",
+      "aliases": [
+        "post-polycythemia vera myelofibrosis",
+        "post-polycythaemia vera myelofibrosis",
+        "post-essential thrombocythemia myelofibrosis",
+        "post-essential thrombocythaemia myelofibrosis",
+        "post-PV myelofibrosis",
+        "post-ET myelofibrosis"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "PMF",
+          "MPN"
+        ],
+        "prognosis": [
+          "PMF",
+          "MPN"
+        ],
+        "treatment": [
+          "PMF",
+          "MPN"
+        ],
+        "biomarker": [
+          "PMF",
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "MPN blast phase",
+      "aliases": [
+        "myeloproliferative neoplasm blast phase",
+        "blast-phase myeloproliferative neoplasm",
+        "blast phase myeloproliferative neoplasm"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML",
+          "MPN"
+        ],
+        "prognosis": [
+          "AML",
+          "MPN"
+        ],
+        "treatment": [
+          "AML",
+          "MPN"
+        ],
+        "biomarker": [
+          "AML",
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "CML",
+      "aliases": [
+        "chronic myeloid leukemia",
+        "chronic myeloid leukaemia",
+        "chronic myelogenous leukemia",
+        "chronic myelogenous leukaemia"
+      ],
+      "parents": [
+        "MPN"
+      ]
+    },
+    {
+      "name": "CNL",
+      "aliases": [
+        "chronic neutrophilic leukemia",
+        "chronic neutrophilic leukaemia"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MPN",
+          "aCML"
+        ],
+        "prognosis": [
+          "MPN"
+        ],
+        "treatment": [
+          "MPN"
+        ],
+        "biomarker": [
+          "MPN",
+          "aCML"
+        ]
+      }
+    },
+    {
+      "name": "CEL",
+      "aliases": [
+        "chronic eosinophilic leukemia",
+        "chronic eosinophilic leukaemia"
+      ],
+      "parents": [
+        "MPN"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "MPN"
+        ],
+        "prognosis": [
+          "MPN"
+        ],
+        "treatment": [
+          "MPN"
+        ],
+        "biomarker": [
+          "MPN"
+        ]
+      }
+    },
+    {
+      "name": "mastocytosis",
+      "aliases": [
+        "systemic mastocytosis",
+        "mast cell neoplasm"
+      ]
+    },
+    {
+      "name": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+      "aliases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase fusion",
+        "myeloid/lymphoid neoplasms with eosinophilia and tyrosine kinase gene fusions",
+        "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase gene fusion"
+      ]
+    },
+    {
+      "name": "BPDCN",
+      "aliases": [
+        "blastic plasmacytoid dendritic cell neoplasm"
+      ],
+      "parents": [
+        "histiocytic/dendritic neoplasm"
+      ]
+    },
+    {
+      "name": "germline predisposition syndrome",
+      "aliases": [
+        "myeloid neoplasm with germline predisposition",
+        "myeloid neoplasm with germ line predisposition"
+      ]
+    },
+    {
+      "name": "myeloid neoplasm, unspecified"
+    },
+    {
+      "name": "lymphoid neoplasm"
+    },
+    {
+      "name": "acute leukaemia of ambiguous lineage",
+      "aliases": [
+        "acute leukemia of ambiguous lineage"
+      ]
+    },
+    {
+      "name": "histiocytic/dendritic neoplasm",
+      "aliases": [
+        "histiocytic and dendritic cell neoplasm",
+        "histiocytic and dendritic neoplasm"
+      ]
+    },
+    {
+      "name": "haematological malignancy, other",
+      "aliases": [
+        "hematological malignancy, other"
+      ]
+    },
+    {
+      "name": "acute lymphoblastic leukaemia/lymphoma",
+      "aliases": [
+        "acute lymphoblastic leukemia",
+        "acute lymphoblastic leukaemia",
+        "acute lymphoblastic leukemia/lymphoma",
+        "ALL"
+      ],
+      "parents": [
+        "lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "B-cell lymphoid neoplasm",
+      "parents": [
+        "lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "precursor B-cell neoplasm",
+      "parents": [
+        "B-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "B-ALL",
+      "aliases": [
+        "B-lymphoblastic leukaemia/lymphoma",
+        "B-lymphoblastic leukemia/lymphoma",
+        "B-cell acute lymphoblastic leukaemia",
+        "B-cell acute lymphoblastic leukemia",
+        "B lymphoblastic leukaemia/lymphoma",
+        "B lymphoblastic leukemia/lymphoma",
+        "B-lymphoblastic leukaemia/lymphoma, NOS",
+        "B-lymphoblastic leukemia/lymphoma, NOS",
+        "B-lymphoblastic leukaemia/lymphoma with hyperdiploidy",
+        "B-lymphoblastic leukemia/lymphoma with hyperdiploidy",
+        "B-lymphoblastic leukaemia/lymphoma with high hyperdiploidy",
+        "B-lymphoblastic leukemia/lymphoma with high hyperdiploidy",
+        "B-lymphoblastic leukaemia/lymphoma with hypodiploidy",
+        "B-lymphoblastic leukemia/lymphoma with hypodiploidy",
+        "B-lymphoblastic leukaemia/lymphoma with iAMP21",
+        "B-lymphoblastic leukemia/lymphoma with iAMP21",
+        "B-lymphoblastic leukaemia/lymphoma with BCR::ABL1 fusion",
+        "B-lymphoblastic leukemia/lymphoma with BCR::ABL1 fusion",
+        "B-lymphoblastic leukaemia/lymphoma with t(9;22)(q34;q11.2); BCR-ABL1",
+        "B-lymphoblastic leukemia/lymphoma with t(9;22)(q34;q11.2); BCR-ABL1",
+        "B-lymphoblastic leukaemia/lymphoma, BCR-ABL1-like",
+        "B-lymphoblastic leukemia/lymphoma, BCR-ABL1-like",
+        "Philadelphia chromosome-like acute lymphoblastic leukaemia",
+        "Philadelphia chromosome-like acute lymphoblastic leukemia",
+        "Ph-like acute lymphoblastic leukaemia",
+        "Ph-like acute lymphoblastic leukemia",
+        "B-lymphoblastic leukaemia/lymphoma with KMT2A rearrangement",
+        "B-lymphoblastic leukemia/lymphoma with KMT2A rearrangement",
+        "B-lymphoblastic leukaemia/lymphoma with t(v;11q23.3); KMT2A-rearranged",
+        "B-lymphoblastic leukemia/lymphoma with t(v;11q23.3); KMT2A-rearranged",
+        "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1 fusion",
+        "B-lymphoblastic leukemia/lymphoma with ETV6::RUNX1 fusion",
+        "B-lymphoblastic leukaemia/lymphoma with t(12;21)(p13.2;q22.1); ETV6-RUNX1",
+        "B-lymphoblastic leukemia/lymphoma with t(12;21)(p13.2;q22.1); ETV6-RUNX1",
+        "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1-like features",
+        "B-lymphoblastic leukemia/lymphoma with ETV6::RUNX1-like features",
+        "B-lymphoblastic leukaemia/lymphoma with TCF3::PBX1 fusion",
+        "B-lymphoblastic leukemia/lymphoma with TCF3::PBX1 fusion",
+        "B-lymphoblastic leukaemia/lymphoma with t(1;19)(q23;p13.3); TCF3-PBX1",
+        "B-lymphoblastic leukemia/lymphoma with t(1;19)(q23;p13.3); TCF3-PBX1",
+        "B-lymphoblastic leukaemia/lymphoma with IGH::IL3 fusion",
+        "B-lymphoblastic leukemia/lymphoma with IGH::IL3 fusion",
+        "B-lymphoblastic leukaemia/lymphoma with t(5;14)(q31.1;q32.1); IGH/IL3",
+        "B-lymphoblastic leukemia/lymphoma with t(5;14)(q31.1;q32.1); IGH/IL3",
+        "B-lymphoblastic leukaemia/lymphoma with TCF3::HLF fusion",
+        "B-lymphoblastic leukemia/lymphoma with TCF3::HLF fusion",
+        "B-lymphoblastic leukaemia/lymphoma with other defined genetic abnormalities",
+        "B-lymphoblastic leukemia/lymphoma with other defined genetic abnormalities"
+      ],
+      "parents": [
+        "acute lymphoblastic leukaemia/lymphoma",
+        "precursor B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "mature B-cell neoplasm",
+      "parents": [
+        "B-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "small lymphocytic proliferation",
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "MBL",
+      "aliases": [
+        "monoclonal B-cell lymphocytosis"
+      ],
+      "parents": [
+        "small lymphocytic proliferation"
+      ]
+    },
+    {
+      "name": "CLL/SLL",
+      "aliases": [
+        "chronic lymphocytic leukaemia/small lymphocytic lymphoma",
+        "chronic lymphocytic leukemia/small lymphocytic lymphoma",
+        "chronic lymphocytic leukaemia",
+        "chronic lymphocytic leukemia",
+        "small lymphocytic lymphoma"
+      ],
+      "parents": [
+        "small lymphocytic proliferation"
+      ]
+    },
+    {
+      "name": "splenic B-cell lymphoma/leukaemia",
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "HCL",
+      "aliases": [
+        "hairy cell leukaemia",
+        "hairy cell leukemia"
+      ],
+      "parents": [
+        "splenic B-cell lymphoma/leukaemia"
+      ]
+    },
+    {
+      "name": "SMZL",
+      "aliases": [
+        "splenic marginal zone lymphoma"
+      ],
+      "parents": [
+        "splenic B-cell lymphoma/leukaemia"
+      ]
+    },
+    {
+      "name": "SDRPL",
+      "aliases": [
+        "splenic diffuse red pulp small B-cell lymphoma"
+      ],
+      "parents": [
+        "splenic B-cell lymphoma/leukaemia"
+      ]
+    },
+    {
+      "name": "SBLPN",
+      "aliases": [
+        "splenic B-cell lymphoma/leukaemia with prominent nucleoli",
+        "splenic B-cell lymphoma/leukemia with prominent nucleoli"
+      ],
+      "parents": [
+        "splenic B-cell lymphoma/leukaemia"
+      ]
+    },
+    {
+      "name": "LPL",
+      "aliases": [
+        "lymphoplasmacytic lymphoma"
+      ],
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "IgM LPL/WM",
+      "aliases": [
+        "IgM lymphoplasmacytic lymphoma",
+        "IgM lymphoplasmacytic lymphoma/Waldenström macroglobulinaemia",
+        "IgM lymphoplasmacytic lymphoma/Waldenstrom macroglobulinemia",
+        "Waldenström macroglobulinaemia",
+        "Waldenström macroglobulinemia",
+        "Waldenstrom macroglobulinemia",
+        "WM"
+      ],
+      "parents": [
+        "LPL"
+      ]
+    },
+    {
+      "name": "non-IgM LPL",
+      "aliases": [
+        "non-IgM lymphoplasmacytic lymphoma"
+      ],
+      "parents": [
+        "LPL"
+      ]
+    },
+    {
+      "name": "marginal zone lymphoma",
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "extranodal MZL of MALT",
+      "aliases": [
+        "extranodal marginal zone lymphoma of mucosa-associated lymphoid tissue",
+        "extranodal marginal zone lymphoma of mucosa associated lymphoid tissue",
+        "MALT lymphoma"
+      ],
+      "parents": [
+        "marginal zone lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous MZL",
+      "aliases": [
+        "primary cutaneous marginal zone lymphoma"
+      ],
+      "parents": [
+        "marginal zone lymphoma"
+      ]
+    },
+    {
+      "name": "NMZL",
+      "aliases": [
+        "nodal marginal zone lymphoma"
+      ],
+      "parents": [
+        "marginal zone lymphoma"
+      ]
+    },
+    {
+      "name": "paediatric MZL",
+      "aliases": [
+        "paediatric marginal zone lymphoma",
+        "pediatric marginal zone lymphoma"
+      ],
+      "parents": [
+        "marginal zone lymphoma"
+      ]
+    },
+    {
+      "name": "in situ follicular B-cell neoplasm",
+      "aliases": [
+        "in situ follicular neoplasia"
+      ],
+      "parents": [
+        "follicular lymphoma"
+      ]
+    },
+    {
+      "name": "follicular lymphoma",
+      "aliases": [
+        "FL"
+      ],
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "paediatric-type follicular lymphoma",
+      "aliases": [
+        "paediatric type follicular lymphoma",
+        "pediatric-type follicular lymphoma",
+        "pediatric type follicular lymphoma"
+      ],
+      "parents": [
+        "follicular lymphoma"
+      ]
+    },
+    {
+      "name": "duodenal-type follicular lymphoma",
+      "aliases": [
+        "duodenal type follicular lymphoma"
+      ],
+      "parents": [
+        "follicular lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous follicle centre lymphoma",
+      "aliases": [
+        "primary cutaneous follicle center lymphoma"
+      ],
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "mantle cell neoplasm",
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "in situ mantle cell neoplasm",
+      "aliases": [
+        "in situ mantle cell neoplasia"
+      ],
+      "parents": [
+        "mantle cell neoplasm"
+      ]
+    },
+    {
+      "name": "mantle cell lymphoma",
+      "aliases": [
+        "MCL"
+      ],
+      "parents": [
+        "mantle cell neoplasm"
+      ]
+    },
+    {
+      "name": "leukaemic non-nodal mantle cell lymphoma",
+      "aliases": [
+        "leukemic non-nodal mantle cell lymphoma"
+      ],
+      "parents": [
+        "mantle cell neoplasm"
+      ]
+    },
+    {
+      "name": "large B-cell lymphoma",
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "DLBCL, NOS",
+      "aliases": [
+        "DLBCL",
+        "diffuse large B-cell lymphoma, not otherwise specified",
+        "diffuse large B-cell lymphoma, NOS"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "THRLBCL",
+      "aliases": [
+        "T-cell/histiocyte-rich large B-cell lymphoma"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "DLBCL/HGBL-MYC/BCL2",
+      "aliases": [
+        "diffuse large B-cell lymphoma/high-grade B-cell lymphoma with MYC and BCL2 rearrangements",
+        "diffuse large B-cell lymphoma/high grade B-cell lymphoma with MYC and BCL2 rearrangements",
+        "DLBCL/HGBL with MYC and BCL2 rearrangements",
+        "large B-cell lymphoma/high-grade B-cell lymphoma with MYC and BCL2 rearrangements",
+        "large B-cell lymphoma/high grade B-cell lymphoma with MYC and BCL2 rearrangements"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "ALK-positive large B-cell lymphoma",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "large B-cell lymphoma with IRF4 rearrangement",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "HGBL-11q",
+      "aliases": [
+        "high-grade B-cell lymphoma with 11q aberrations",
+        "high-grade B-cell lymphoma with 11q aberration",
+        "Burkitt-like lymphoma with 11q aberration"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "lymphomatoid granulomatosis",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "EBV-positive DLBCL",
+      "aliases": [
+        "EBV-positive diffuse large B-cell lymphoma",
+        "EBV-positive diffuse large B-cell lymphoma, NOS"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "DLBCL associated with chronic inflammation",
+      "aliases": [
+        "diffuse large B-cell lymphoma associated with chronic inflammation"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "fibrin-associated large B-cell lymphoma",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "fluid overload-associated large B-cell lymphoma",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "plasmablastic lymphoma",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary large B-cell lymphoma of immune-privileged sites",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous DLBCL, leg type",
+      "aliases": [
+        "primary cutaneous diffuse large B-cell lymphoma, leg type"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "intravascular large B-cell lymphoma",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary mediastinal large B-cell lymphoma",
+      "aliases": [
+        "PMBCL",
+        "primary mediastinal B-cell lymphoma"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "mediastinal grey zone lymphoma",
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "HGBL, NOS",
+      "aliases": [
+        "high-grade B-cell lymphoma, NOS",
+        "high grade B-cell lymphoma, NOS",
+        "HGBL NOS"
+      ],
+      "parents": [
+        "large B-cell lymphoma"
+      ]
+    },
+    {
+      "name": "Burkitt lymphoma",
+      "aliases": [
+        "BL"
+      ],
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "KSHV/HHV8-associated B-cell lymphoid neoplasm",
+      "parents": [
+        "mature B-cell neoplasm"
+      ]
+    },
+    {
+      "name": "primary effusion lymphoma",
+      "aliases": [
+        "PEL"
+      ],
+      "parents": [
+        "KSHV/HHV8-associated B-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "KSHV/HHV8-positive DLBCL",
+      "aliases": [
+        "HHV8-positive diffuse large B-cell lymphoma, NOS",
+        "KSHV-positive diffuse large B-cell lymphoma"
+      ],
+      "parents": [
+        "KSHV/HHV8-associated B-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
+      "aliases": [
+        "HHV8-positive germinotropic lymphoproliferative disorder",
+        "KSHV-positive germinotropic lymphoproliferative disorder"
+      ],
+      "parents": [
+        "KSHV/HHV8-associated B-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "Hodgkin lymphoma",
+      "parents": [
+        "B-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "classic Hodgkin lymphoma",
+      "aliases": [
+        "CHL",
+        "classical Hodgkin lymphoma"
+      ],
+      "parents": [
+        "Hodgkin lymphoma"
+      ]
+    },
+    {
+      "name": "nodular lymphocyte predominant Hodgkin lymphoma",
+      "aliases": [
+        "NLPHL",
+        "nodular lymphocyte-predominant Hodgkin lymphoma",
+        "nodular lymphocyte predominant B-cell lymphoma"
+      ],
+      "parents": [
+        "Hodgkin lymphoma"
+      ]
+    },
+    {
+      "name": "plasma cell neoplasm/paraprotein disorder",
+      "parents": [
+        "B-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "monoclonal gammopathy",
+      "parents": [
+        "plasma cell neoplasm/paraprotein disorder"
+      ]
+    },
+    {
+      "name": "MGUS",
+      "aliases": [
+        "monoclonal gammopathy of undetermined significance"
+      ],
+      "parents": [
+        "monoclonal gammopathy"
+      ]
+    },
+    {
+      "name": "cold agglutinin disease",
+      "parents": [
+        "monoclonal gammopathy"
+      ]
+    },
+    {
+      "name": "IgM MGUS",
+      "aliases": [
+        "IgM monoclonal gammopathy of undetermined significance"
+      ],
+      "parents": [
+        "MGUS"
+      ]
+    },
+    {
+      "name": "non-IgM MGUS",
+      "aliases": [
+        "non-IgM monoclonal gammopathy of undetermined significance"
+      ],
+      "parents": [
+        "MGUS"
+      ]
+    },
+    {
+      "name": "MGRS",
+      "aliases": [
+        "monoclonal gammopathy of renal significance"
+      ],
+      "parents": [
+        "monoclonal gammopathy"
+      ]
+    },
+    {
+      "name": "monoclonal immunoglobulin deposition disease",
+      "parents": [
+        "plasma cell neoplasm/paraprotein disorder"
+      ]
+    },
+    {
+      "name": "AL amyloidosis",
+      "aliases": [
+        "immunoglobulin-related (AL) amyloidosis",
+        "immunoglobulin-related AL amyloidosis",
+        "primary amyloidosis"
+      ],
+      "parents": [
+        "monoclonal immunoglobulin deposition disease"
+      ]
+    },
+    {
+      "name": "heavy chain disease",
+      "parents": [
+        "plasma cell neoplasm/paraprotein disorder"
+      ]
+    },
+    {
+      "name": "mu heavy chain disease",
+      "aliases": [
+        "mu heavy-chain disease"
+      ],
+      "parents": [
+        "heavy chain disease"
+      ]
+    },
+    {
+      "name": "gamma heavy chain disease",
+      "aliases": [
+        "gamma heavy-chain disease"
+      ],
+      "parents": [
+        "heavy chain disease"
+      ]
+    },
+    {
+      "name": "alpha heavy chain disease",
+      "aliases": [
+        "alpha heavy-chain disease"
+      ],
+      "parents": [
+        "heavy chain disease"
+      ]
+    },
+    {
+      "name": "plasma cell neoplasm",
+      "parents": [
+        "plasma cell neoplasm/paraprotein disorder"
+      ]
+    },
+    {
+      "name": "plasmacytoma",
+      "parents": [
+        "plasma cell neoplasm"
+      ]
+    },
+    {
+      "name": "plasma cell myeloma",
+      "aliases": [
+        "multiple myeloma",
+        "MM"
+      ],
+      "parents": [
+        "plasma cell neoplasm"
+      ]
+    },
+    {
+      "name": "plasma cell neoplasm with paraneoplastic syndrome",
+      "parents": [
+        "plasma cell neoplasm"
+      ]
+    },
+    {
+      "name": "POEMS syndrome",
+      "parents": [
+        "plasma cell neoplasm with paraneoplastic syndrome"
+      ]
+    },
+    {
+      "name": "TEMPI syndrome",
+      "parents": [
+        "plasma cell neoplasm with paraneoplastic syndrome"
+      ]
+    },
+    {
+      "name": "AESOP syndrome",
+      "parents": [
+        "plasma cell neoplasm with paraneoplastic syndrome"
+      ]
+    },
+    {
+      "name": "T-cell/NK-cell lymphoid neoplasm",
+      "parents": [
+        "lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "precursor T-cell neoplasm",
+      "parents": [
+        "T-cell/NK-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "T-ALL",
+      "aliases": [
+        "T-lymphoblastic leukaemia/lymphoma",
+        "T-lymphoblastic leukemia/lymphoma",
+        "T-cell acute lymphoblastic leukaemia",
+        "T-cell acute lymphoblastic leukemia"
+      ],
+      "parents": [
+        "acute lymphoblastic leukaemia/lymphoma",
+        "precursor T-cell neoplasm"
+      ]
+    },
+    {
+      "name": "T-ALL, NOS",
+      "aliases": [
+        "T-lymphoblastic leukaemia/lymphoma, NOS",
+        "T-lymphoblastic leukemia/lymphoma, NOS"
+      ],
+      "parents": [
+        "T-ALL"
+      ]
+    },
+    {
+      "name": "ETP-ALL",
+      "aliases": [
+        "early T-precursor lymphoblastic leukaemia/lymphoma",
+        "early T-precursor lymphoblastic leukemia/lymphoma",
+        "early T-cell precursor lymphoblastic leukaemia",
+        "early T-cell precursor lymphoblastic leukemia"
+      ],
+      "parents": [
+        "T-ALL"
+      ]
+    },
+    {
+      "name": "mature T-cell/NK-cell neoplasm",
+      "parents": [
+        "T-cell/NK-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "mature T-cell/NK-cell leukaemia",
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "T-PLL",
+      "aliases": [
+        "T-prolymphocytic leukaemia",
+        "T-prolymphocytic leukemia"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell leukaemia"
+      ]
+    },
+    {
+      "name": "T-LGLL",
+      "aliases": [
+        "T-cell large granular lymphocytic leukaemia",
+        "T-cell large granular lymphocytic leukemia",
+        "T-LGL leukaemia",
+        "T-LGL leukemia"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell leukaemia"
+      ]
+    },
+    {
+      "name": "NK-LGLL",
+      "aliases": [
+        "NK-large granular lymphocytic leukaemia",
+        "NK-large granular lymphocytic leukemia",
+        "chronic lymphoproliferative disorder of NK cells"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell leukaemia"
+      ]
+    },
+    {
+      "name": "ATLL",
+      "aliases": [
+        "adult T-cell leukaemia/lymphoma",
+        "adult T-cell leukemia/lymphoma"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell leukaemia"
+      ]
+    },
+    {
+      "name": "Sezary syndrome",
+      "aliases": [
+        "Sézary syndrome"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell leukaemia"
+      ]
+    },
+    {
+      "name": "aggressive NK-cell leukaemia",
+      "aliases": [
+        "aggressive NK-cell leukemia"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell leukaemia"
+      ]
+    },
+    {
+      "name": "primary cutaneous T-cell lymphoma",
+      "aliases": [
+        "cutaneous T-cell lymphoma",
+        "CTCL"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
+      "aliases": [
+        "primary cutaneous CD4-positive small or medium T-cell lymphoproliferative disorder"
+      ],
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous acral CD8-positive lymphoproliferative disorder",
+      "aliases": [
+        "primary cutaneous acral CD8-positive T-cell lymphoma"
+      ],
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "mycosis fungoides",
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "lymphomatoid papulosis",
+      "aliases": [
+        "primary cutaneous CD30-positive T-cell lymphoproliferative disorder: lymphomatoid papulosis"
+      ],
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous anaplastic large cell lymphoma",
+      "aliases": [
+        "primary cutaneous CD30-positive T-cell lymphoproliferative disorder: primary cutaneous anaplastic large cell lymphoma"
+      ],
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "subcutaneous panniculitis-like T-cell lymphoma",
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous gamma/delta T-cell lymphoma",
+      "aliases": [
+        "primary cutaneous gamma-delta T-cell lymphoma"
+      ],
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma",
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "primary cutaneous peripheral T-cell lymphoma, NOS",
+      "parents": [
+        "primary cutaneous T-cell lymphoma"
+      ]
+    },
+    {
+      "name": "intestinal T-cell/NK-cell lymphoid neoplasm",
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "indolent T-cell lymphoma of the gastrointestinal tract",
+      "aliases": [
+        "indolent T-cell lymphoproliferative disorder of the gastrointestinal tract",
+        "indolent T-cell lymphoproliferative disorder of the GI tract",
+        "indolent T-cell lymphoma of the GI tract"
+      ],
+      "parents": [
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+      "aliases": [
+        "indolent NK-cell lymphoproliferative disorder of the GI tract",
+        "NK-cell enteropathy",
+        "lymphomatoid gastropathy"
+      ],
+      "parents": [
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "enteropathy-associated T-cell lymphoma",
+      "aliases": [
+        "EATL"
+      ],
+      "parents": [
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "monomorphic epitheliotropic intestinal T-cell lymphoma",
+      "aliases": [
+        "MEITL"
+      ],
+      "parents": [
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "intestinal T-cell lymphoma, NOS",
+      "parents": [
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ]
+    },
+    {
+      "name": "hepatosplenic T-cell lymphoma",
+      "aliases": [
+        "HSTCL"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "anaplastic large cell lymphoma",
+      "aliases": [
+        "ALCL"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "ALK-positive anaplastic large cell lymphoma",
+      "aliases": [
+        "anaplastic large cell lymphoma, ALK-positive",
+        "ALK+ ALCL"
+      ],
+      "parents": [
+        "anaplastic large cell lymphoma"
+      ]
+    },
+    {
+      "name": "ALK-negative anaplastic large cell lymphoma",
+      "aliases": [
+        "anaplastic large cell lymphoma, ALK-negative",
+        "ALK- ALCL"
+      ],
+      "parents": [
+        "anaplastic large cell lymphoma"
+      ]
+    },
+    {
+      "name": "breast implant-associated anaplastic large cell lymphoma",
+      "aliases": [
+        "BIA-ALCL"
+      ],
+      "parents": [
+        "anaplastic large cell lymphoma"
+      ]
+    },
+    {
+      "name": "nodal TFH cell lymphoma",
+      "aliases": [
+        "nodal T-follicular helper cell lymphoma",
+        "nodal TFH-cell lymphoma",
+        "nTFHL"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "nodal TFH cell lymphoma, angioimmunoblastic-type",
+      "aliases": [
+        "angioimmunoblastic T-cell lymphoma",
+        "AITL",
+        "nTFHL-AI"
+      ],
+      "parents": [
+        "nodal TFH cell lymphoma"
+      ]
+    },
+    {
+      "name": "nodal TFH cell lymphoma, follicular-type",
+      "aliases": [
+        "follicular T-cell lymphoma",
+        "nTFHL-F"
+      ],
+      "parents": [
+        "nodal TFH cell lymphoma"
+      ]
+    },
+    {
+      "name": "nodal TFH cell lymphoma, NOS",
+      "aliases": [
+        "nodal peripheral T-cell lymphoma with TFH phenotype",
+        "nTFHL-NOS"
+      ],
+      "parents": [
+        "nodal TFH cell lymphoma"
+      ]
+    },
+    {
+      "name": "peripheral T-cell lymphoma, NOS",
+      "aliases": [
+        "peripheral T-cell lymphoma, not otherwise specified",
+        "PTCL-NOS"
+      ],
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "EBV-positive T/NK-cell lymphoma",
+      "parents": [
+        "mature T-cell/NK-cell neoplasm"
+      ]
+    },
+    {
+      "name": "EBV-positive nodal T/NK-cell lymphoma",
+      "aliases": [
+        "nodal EBV-positive T- and NK-cell lymphoma",
+        "EBV-positive nodal T- and NK-cell lymphoma"
+      ],
+      "parents": [
+        "EBV-positive T/NK-cell lymphoma"
+      ]
+    },
+    {
+      "name": "extranodal NK/T-cell lymphoma",
+      "aliases": [
+        "extranodal NK/T-cell lymphoma, nasal-type",
+        "ENKTL"
+      ],
+      "parents": [
+        "EBV-positive T/NK-cell lymphoma"
+      ]
+    },
+    {
+      "name": "systemic EBV-positive T-cell lymphoma of childhood",
+      "parents": [
+        "EBV-positive T/NK-cell lymphoma"
+      ]
+    }
   ],
   "case_only_diseases": [
     "no_haematological_malignancy"
   ],
   "case_only_usage": {
     "no_haematological_malignancy": "Use only when the case stem does not specify a haematological malignancy and the NGS result block contains no variants."
-  },
-  "umbrella": {
-    "MDS/AML": [
-      "MDS",
-      "AML"
-    ],
-    "APL": [
-      "AML"
-    ],
-    "MDS/MPN": [
-      "MDS",
-      "MPN"
-    ],
-    "MDS/MPN-U": [
-      "MDS/MPN"
-    ],
-    "CMML": [
-      "MDS/MPN"
-    ],
-    "aCML": [
-      "MDS/MPN"
-    ],
-    "MDS/MPN-SF3B1-T": [
-      "MDS/MPN"
-    ],
-    "MPN-U": [
-      "MPN"
-    ],
-    "PV": [
-      "MPN"
-    ],
-    "ET": [
-      "MPN"
-    ],
-    "PMF": [
-      "MPN"
-    ],
-    "post-PV/post-ET MF": [
-      "MPN"
-    ],
-    "MPN blast phase": [
-      "MPN"
-    ],
-    "CML": [
-      "MPN"
-    ],
-    "CNL": [
-      "MPN"
-    ],
-    "CEL": [
-      "MPN"
-    ],
-    "JMML": [
-      "MPN"
-    ],
-    "BPDCN": [
-      "histiocytic/dendritic neoplasm"
-    ],
-    "acute lymphoblastic leukaemia/lymphoma": [
-      "lymphoid neoplasm"
-    ],
-    "B-cell lymphoid neoplasm": [
-      "lymphoid neoplasm"
-    ],
-    "precursor B-cell neoplasm": [
-      "B-cell lymphoid neoplasm"
-    ],
-    "B-ALL": [
-      "acute lymphoblastic leukaemia/lymphoma",
-      "precursor B-cell neoplasm"
-    ],
-    "mature B-cell neoplasm": [
-      "B-cell lymphoid neoplasm"
-    ],
-    "small lymphocytic proliferation": [
-      "mature B-cell neoplasm"
-    ],
-    "MBL": [
-      "small lymphocytic proliferation"
-    ],
-    "CLL/SLL": [
-      "small lymphocytic proliferation"
-    ],
-    "splenic B-cell lymphoma/leukaemia": [
-      "mature B-cell neoplasm"
-    ],
-    "HCL": [
-      "splenic B-cell lymphoma/leukaemia"
-    ],
-    "SMZL": [
-      "splenic B-cell lymphoma/leukaemia"
-    ],
-    "SDRPL": [
-      "splenic B-cell lymphoma/leukaemia"
-    ],
-    "SBLPN": [
-      "splenic B-cell lymphoma/leukaemia"
-    ],
-    "LPL": [
-      "mature B-cell neoplasm"
-    ],
-    "IgM LPL/WM": [
-      "LPL"
-    ],
-    "non-IgM LPL": [
-      "LPL"
-    ],
-    "marginal zone lymphoma": [
-      "mature B-cell neoplasm"
-    ],
-    "extranodal MZL of MALT": [
-      "marginal zone lymphoma"
-    ],
-    "primary cutaneous MZL": [
-      "marginal zone lymphoma"
-    ],
-    "NMZL": [
-      "marginal zone lymphoma"
-    ],
-    "paediatric MZL": [
-      "marginal zone lymphoma"
-    ],
-    "follicular lymphoma": [
-      "mature B-cell neoplasm"
-    ],
-    "in situ follicular B-cell neoplasm": [
-      "follicular lymphoma"
-    ],
-    "paediatric-type follicular lymphoma": [
-      "follicular lymphoma"
-    ],
-    "duodenal-type follicular lymphoma": [
-      "follicular lymphoma"
-    ],
-    "primary cutaneous follicle centre lymphoma": [
-      "mature B-cell neoplasm"
-    ],
-    "mantle cell neoplasm": [
-      "mature B-cell neoplasm"
-    ],
-    "in situ mantle cell neoplasm": [
-      "mantle cell neoplasm"
-    ],
-    "mantle cell lymphoma": [
-      "mantle cell neoplasm"
-    ],
-    "leukaemic non-nodal mantle cell lymphoma": [
-      "mantle cell neoplasm"
-    ],
-    "large B-cell lymphoma": [
-      "mature B-cell neoplasm"
-    ],
-    "DLBCL, NOS": [
-      "large B-cell lymphoma"
-    ],
-    "THRLBCL": [
-      "large B-cell lymphoma"
-    ],
-    "DLBCL/HGBL-MYC/BCL2": [
-      "large B-cell lymphoma"
-    ],
-    "ALK-positive large B-cell lymphoma": [
-      "large B-cell lymphoma"
-    ],
-    "large B-cell lymphoma with IRF4 rearrangement": [
-      "large B-cell lymphoma"
-    ],
-    "HGBL-11q": [
-      "large B-cell lymphoma"
-    ],
-    "lymphomatoid granulomatosis": [
-      "large B-cell lymphoma"
-    ],
-    "EBV-positive DLBCL": [
-      "large B-cell lymphoma"
-    ],
-    "DLBCL associated with chronic inflammation": [
-      "large B-cell lymphoma"
-    ],
-    "fibrin-associated large B-cell lymphoma": [
-      "large B-cell lymphoma"
-    ],
-    "fluid overload-associated large B-cell lymphoma": [
-      "large B-cell lymphoma"
-    ],
-    "plasmablastic lymphoma": [
-      "large B-cell lymphoma"
-    ],
-    "primary large B-cell lymphoma of immune-privileged sites": [
-      "large B-cell lymphoma"
-    ],
-    "primary cutaneous DLBCL, leg type": [
-      "large B-cell lymphoma"
-    ],
-    "intravascular large B-cell lymphoma": [
-      "large B-cell lymphoma"
-    ],
-    "primary mediastinal large B-cell lymphoma": [
-      "large B-cell lymphoma"
-    ],
-    "mediastinal grey zone lymphoma": [
-      "large B-cell lymphoma"
-    ],
-    "HGBL, NOS": [
-      "large B-cell lymphoma"
-    ],
-    "Burkitt lymphoma": [
-      "mature B-cell neoplasm"
-    ],
-    "KSHV/HHV8-associated B-cell lymphoid neoplasm": [
-      "mature B-cell neoplasm"
-    ],
-    "primary effusion lymphoma": [
-      "KSHV/HHV8-associated B-cell lymphoid neoplasm"
-    ],
-    "KSHV/HHV8-positive DLBCL": [
-      "KSHV/HHV8-associated B-cell lymphoid neoplasm"
-    ],
-    "KSHV/HHV8-positive germinotropic lymphoproliferative disorder": [
-      "KSHV/HHV8-associated B-cell lymphoid neoplasm"
-    ],
-    "Hodgkin lymphoma": [
-      "B-cell lymphoid neoplasm"
-    ],
-    "classic Hodgkin lymphoma": [
-      "Hodgkin lymphoma"
-    ],
-    "nodular lymphocyte predominant Hodgkin lymphoma": [
-      "Hodgkin lymphoma"
-    ],
-    "plasma cell neoplasm/paraprotein disorder": [
-      "B-cell lymphoid neoplasm"
-    ],
-    "monoclonal gammopathy": [
-      "plasma cell neoplasm/paraprotein disorder"
-    ],
-    "MGUS": [
-      "monoclonal gammopathy"
-    ],
-    "IgM MGUS": [
-      "MGUS"
-    ],
-    "non-IgM MGUS": [
-      "MGUS"
-    ],
-    "cold agglutinin disease": [
-      "monoclonal gammopathy"
-    ],
-    "MGRS": [
-      "monoclonal gammopathy"
-    ],
-    "monoclonal immunoglobulin deposition disease": [
-      "plasma cell neoplasm/paraprotein disorder"
-    ],
-    "AL amyloidosis": [
-      "monoclonal immunoglobulin deposition disease"
-    ],
-    "heavy chain disease": [
-      "plasma cell neoplasm/paraprotein disorder"
-    ],
-    "mu heavy chain disease": [
-      "heavy chain disease"
-    ],
-    "gamma heavy chain disease": [
-      "heavy chain disease"
-    ],
-    "alpha heavy chain disease": [
-      "heavy chain disease"
-    ],
-    "plasma cell neoplasm": [
-      "plasma cell neoplasm/paraprotein disorder"
-    ],
-    "plasmacytoma": [
-      "plasma cell neoplasm"
-    ],
-    "plasma cell myeloma": [
-      "plasma cell neoplasm"
-    ],
-    "plasma cell neoplasm with paraneoplastic syndrome": [
-      "plasma cell neoplasm"
-    ],
-    "POEMS syndrome": [
-      "plasma cell neoplasm with paraneoplastic syndrome"
-    ],
-    "TEMPI syndrome": [
-      "plasma cell neoplasm with paraneoplastic syndrome"
-    ],
-    "AESOP syndrome": [
-      "plasma cell neoplasm with paraneoplastic syndrome"
-    ],
-    "T-cell/NK-cell lymphoid neoplasm": [
-      "lymphoid neoplasm"
-    ],
-    "precursor T-cell neoplasm": [
-      "T-cell/NK-cell lymphoid neoplasm"
-    ],
-    "T-ALL": [
-      "acute lymphoblastic leukaemia/lymphoma",
-      "precursor T-cell neoplasm"
-    ],
-    "T-ALL, NOS": [
-      "T-ALL"
-    ],
-    "ETP-ALL": [
-      "T-ALL"
-    ],
-    "mature T-cell/NK-cell neoplasm": [
-      "T-cell/NK-cell lymphoid neoplasm"
-    ],
-    "mature T-cell/NK-cell leukaemia": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "T-PLL": [
-      "mature T-cell/NK-cell leukaemia"
-    ],
-    "T-LGLL": [
-      "mature T-cell/NK-cell leukaemia"
-    ],
-    "NK-LGLL": [
-      "mature T-cell/NK-cell leukaemia"
-    ],
-    "ATLL": [
-      "mature T-cell/NK-cell leukaemia"
-    ],
-    "Sezary syndrome": [
-      "mature T-cell/NK-cell leukaemia"
-    ],
-    "aggressive NK-cell leukaemia": [
-      "mature T-cell/NK-cell leukaemia"
-    ],
-    "primary cutaneous T-cell lymphoma": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "primary cutaneous acral CD8-positive lymphoproliferative disorder": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "mycosis fungoides": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "lymphomatoid papulosis": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "primary cutaneous anaplastic large cell lymphoma": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "subcutaneous panniculitis-like T-cell lymphoma": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "primary cutaneous gamma/delta T-cell lymphoma": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "primary cutaneous peripheral T-cell lymphoma, NOS": [
-      "primary cutaneous T-cell lymphoma"
-    ],
-    "intestinal T-cell/NK-cell lymphoid neoplasm": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "indolent T-cell lymphoma of the gastrointestinal tract": [
-      "intestinal T-cell/NK-cell lymphoid neoplasm"
-    ],
-    "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract": [
-      "intestinal T-cell/NK-cell lymphoid neoplasm"
-    ],
-    "enteropathy-associated T-cell lymphoma": [
-      "intestinal T-cell/NK-cell lymphoid neoplasm"
-    ],
-    "monomorphic epitheliotropic intestinal T-cell lymphoma": [
-      "intestinal T-cell/NK-cell lymphoid neoplasm"
-    ],
-    "intestinal T-cell lymphoma, NOS": [
-      "intestinal T-cell/NK-cell lymphoid neoplasm"
-    ],
-    "hepatosplenic T-cell lymphoma": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "anaplastic large cell lymphoma": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "ALK-positive anaplastic large cell lymphoma": [
-      "anaplastic large cell lymphoma"
-    ],
-    "ALK-negative anaplastic large cell lymphoma": [
-      "anaplastic large cell lymphoma"
-    ],
-    "breast implant-associated anaplastic large cell lymphoma": [
-      "anaplastic large cell lymphoma"
-    ],
-    "nodal TFH cell lymphoma": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "nodal TFH cell lymphoma, angioimmunoblastic-type": [
-      "nodal TFH cell lymphoma"
-    ],
-    "nodal TFH cell lymphoma, follicular-type": [
-      "nodal TFH cell lymphoma"
-    ],
-    "nodal TFH cell lymphoma, NOS": [
-      "nodal TFH cell lymphoma"
-    ],
-    "peripheral T-cell lymphoma, NOS": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "EBV-positive T/NK-cell lymphoma": [
-      "mature T-cell/NK-cell neoplasm"
-    ],
-    "EBV-positive nodal T/NK-cell lymphoma": [
-      "EBV-positive T/NK-cell lymphoma"
-    ],
-    "extranodal NK/T-cell lymphoma": [
-      "EBV-positive T/NK-cell lymphoma"
-    ],
-    "systemic EBV-positive T-cell lymphoma of childhood": [
-      "EBV-positive T/NK-cell lymphoma"
-    ]
-  },
-  "retrieval_related": {
-    "MDS": {
-      "diagnosis": [
-        "CCUS",
-        "CHIP"
-      ],
-      "prognosis": [
-        "CCUS",
-        "CHIP"
-      ],
-      "biomarker": [
-        "CCUS",
-        "CHIP"
-      ]
-    },
-    "CCUS": {
-      "diagnosis": [
-        "CHIP",
-        "MDS"
-      ],
-      "prognosis": [
-        "CHIP",
-        "MDS"
-      ],
-      "biomarker": [
-        "CHIP",
-        "MDS"
-      ]
-    },
-    "CHIP": {
-      "diagnosis": [
-        "CCUS"
-      ],
-      "biomarker": [
-        "CCUS"
-      ]
-    },
-    "MDS/AML": {
-      "diagnosis": [
-        "MDS",
-        "AML"
-      ],
-      "prognosis": [
-        "MDS",
-        "AML"
-      ],
-      "treatment": [
-        "MDS",
-        "AML"
-      ],
-      "biomarker": [
-        "MDS",
-        "AML"
-      ]
-    },
-    "APL": {
-      "diagnosis": [
-        "AML"
-      ],
-      "biomarker": [
-        "AML"
-      ]
-    },
-    "MDS/MPN": {
-      "diagnosis": [
-        "MDS",
-        "MPN"
-      ],
-      "prognosis": [
-        "MDS",
-        "MPN"
-      ],
-      "treatment": [
-        "MDS",
-        "MPN"
-      ],
-      "biomarker": [
-        "MDS",
-        "MPN"
-      ]
-    },
-    "MDS/MPN-U": {
-      "diagnosis": [
-        "MDS/MPN",
-        "MDS",
-        "MPN"
-      ],
-      "prognosis": [
-        "MDS/MPN",
-        "MDS",
-        "MPN"
-      ],
-      "treatment": [
-        "MDS/MPN",
-        "MDS",
-        "MPN"
-      ],
-      "biomarker": [
-        "MDS/MPN",
-        "MDS",
-        "MPN"
-      ]
-    },
-    "CMML": {
-      "diagnosis": [
-        "MDS/MPN",
-        "MDS"
-      ],
-      "prognosis": [
-        "MDS/MPN",
-        "MDS"
-      ],
-      "biomarker": [
-        "MDS/MPN",
-        "MDS"
-      ]
-    },
-    "aCML": {
-      "diagnosis": [
-        "MDS/MPN",
-        "MPN",
-        "CNL"
-      ],
-      "prognosis": [
-        "MDS/MPN",
-        "MPN"
-      ],
-      "treatment": [
-        "MDS/MPN",
-        "MPN"
-      ],
-      "biomarker": [
-        "MDS/MPN",
-        "MPN",
-        "CNL"
-      ]
-    },
-    "MDS/MPN-SF3B1-T": {
-      "diagnosis": [
-        "MDS/MPN",
-        "MDS",
-        "ET"
-      ],
-      "prognosis": [
-        "MDS/MPN",
-        "MDS",
-        "ET"
-      ],
-      "biomarker": [
-        "MDS/MPN",
-        "MDS",
-        "ET"
-      ]
-    },
-    "MPN-U": {
-      "diagnosis": [
-        "MPN"
-      ],
-      "prognosis": [
-        "MPN"
-      ],
-      "treatment": [
-        "MPN"
-      ],
-      "biomarker": [
-        "MPN"
-      ]
-    },
-    "PV": {
-      "diagnosis": [
-        "MPN"
-      ],
-      "prognosis": [
-        "MPN"
-      ],
-      "treatment": [
-        "MPN"
-      ],
-      "biomarker": [
-        "MPN"
-      ]
-    },
-    "ET": {
-      "diagnosis": [
-        "MPN"
-      ],
-      "prognosis": [
-        "MPN"
-      ],
-      "treatment": [
-        "MPN"
-      ],
-      "biomarker": [
-        "MPN"
-      ]
-    },
-    "PMF": {
-      "diagnosis": [
-        "MPN",
-        "post-PV/post-ET MF"
-      ],
-      "prognosis": [
-        "MPN",
-        "post-PV/post-ET MF"
-      ],
-      "biomarker": [
-        "MPN",
-        "post-PV/post-ET MF"
-      ]
-    },
-    "post-PV/post-ET MF": {
-      "diagnosis": [
-        "PMF",
-        "MPN"
-      ],
-      "prognosis": [
-        "PMF",
-        "MPN"
-      ],
-      "treatment": [
-        "PMF",
-        "MPN"
-      ],
-      "biomarker": [
-        "PMF",
-        "MPN"
-      ]
-    },
-    "MPN blast phase": {
-      "diagnosis": [
-        "AML",
-        "MPN"
-      ],
-      "prognosis": [
-        "AML",
-        "MPN"
-      ],
-      "treatment": [
-        "AML",
-        "MPN"
-      ],
-      "biomarker": [
-        "AML",
-        "MPN"
-      ]
-    },
-    "CNL": {
-      "diagnosis": [
-        "MPN",
-        "aCML"
-      ],
-      "prognosis": [
-        "MPN"
-      ],
-      "treatment": [
-        "MPN"
-      ],
-      "biomarker": [
-        "MPN",
-        "aCML"
-      ]
-    },
-    "CEL": {
-      "diagnosis": [
-        "MPN"
-      ],
-      "prognosis": [
-        "MPN"
-      ],
-      "treatment": [
-        "MPN"
-      ],
-      "biomarker": [
-        "MPN"
-      ]
-    }
   },
   "categories": [
     "diagnosis",

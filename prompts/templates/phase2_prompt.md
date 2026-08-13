@@ -83,11 +83,11 @@ exact same ID in its paired evidence bundle. Never construct card IDs from `pape
 content-derived UUID is used only to preserve paper identity across input artefacts.
 Use `diseases` only for exact clinical applicability: include each source-grounded
 disease for which the interpretation itself is valid. Do not add broader taxonomy
-terms to `diseases` merely because the vocabulary's `umbrella` graph identifies them
-as ancestors; doing so would make a disease-specific card eligible for unrelated
+terms to `diseases` merely because the vocabulary term's `parents` graph identifies
+them as ancestors; doing so would make a disease-specific card eligible for unrelated
 cases in downstream retrieval.
 For every card, mechanically populate `disease_ancestors` with every direct and
-transitive parent reached through the vocabulary's `umbrella` graph, in canonical
+transitive parent reached through the vocabulary term's `parents` graph, in canonical
 vocabulary order, excluding values already present in `diseases`. These are derived
 indexing terms, not additional clinical scope, and need not appear in the evidence.
 For example, a CMML card has exact `diseases: ["CMML"]` and derived ancestors
@@ -99,9 +99,9 @@ unique union of all card gene arrays.
 ## Canonical validation assets
 
 The deterministic validation bundle below includes the canonical
-`schema/disease_vocabulary.json` and `schema/ingestion_package_schema.json`. Use
-those verbatim files as the disease vocabulary/taxonomy and output schema; do not
-reconstruct or maintain a second copy in the validator.
+`schema/disease_vocabulary.json` and structural `schema/ingestion_package_schema.json`.
+The validator derives the strict disease enum from the vocabulary at runtime; do not
+maintain a second disease list.
 ## Exit self-audit
 
 For every card ask: (1) does its paired evidence bundle support every material assertion,

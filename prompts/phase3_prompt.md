@@ -105,7 +105,7 @@ Apply these calibrations consistently:
   - A `scope_heading` may supply disease context only when the claim occurs within
     that heading's section and no intervening heading or section boundary changes
     scope. Fail a heading that is merely nearby or broadly related.
-  - A derived umbrella ancestor need not appear in evidence and must not broaden the
+  - A derived taxonomic ancestor need not appear in evidence and must not broaden the
     interpretation beyond the exact source-supported disease.
   - Fail a disease value when it adds unsupported narrower, sibling, or otherwise
     distinct disease scope.
@@ -289,8 +289,8 @@ Canonical source aliases:
   "nodal marginal zone lymphoma": "NMZL",
   "paediatric marginal zone lymphoma": "paediatric MZL",
   "pediatric marginal zone lymphoma": "paediatric MZL",
-  "FL": "follicular lymphoma",
   "in situ follicular neoplasia": "in situ follicular B-cell neoplasm",
+  "FL": "follicular lymphoma",
   "paediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
   "pediatric-type follicular lymphoma": "paediatric-type follicular lymphoma",
   "pediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
@@ -384,8 +384,8 @@ Canonical source aliases:
   "HSTCL": "hepatosplenic T-cell lymphoma",
   "ALCL": "anaplastic large cell lymphoma",
   "anaplastic large cell lymphoma, ALK-positive": "ALK-positive anaplastic large cell lymphoma",
-  "anaplastic large cell lymphoma, ALK-negative": "ALK-negative anaplastic large cell lymphoma",
   "ALK+ ALCL": "ALK-positive anaplastic large cell lymphoma",
+  "anaplastic large cell lymphoma, ALK-negative": "ALK-negative anaplastic large cell lymphoma",
   "ALK- ALCL": "ALK-negative anaplastic large cell lymphoma",
   "BIA-ALCL": "breast implant-associated anaplastic large cell lymphoma",
   "nodal T-follicular helper cell lymphoma": "nodal TFH cell lymphoma",

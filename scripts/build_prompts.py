@@ -96,7 +96,38 @@ def asset_content(keyword, manifest=None):
         return read(path)
     if asset_type == "bundle":
         return render_bundle(spec)
+    if asset_type == "derived":
+        return render_derived(spec)
     raise ValueError(f"unsupported asset type for {keyword}: {asset_type!r}")
+
+
+
+
+def disease_terms(vocabulary):
+    terms = vocabulary.get("terms") if isinstance(vocabulary, dict) else None
+    if not isinstance(terms, list):
+        raise ValueError("disease vocabulary must contain a terms array")
+    return terms
+
+
+def source_disease_aliases(vocabulary):
+    aliases = {}
+    for term in disease_terms(vocabulary):
+        name = term.get("name") if isinstance(term, dict) else None
+        for alias in term.get("aliases", []) if isinstance(term, dict) else []:
+            aliases[alias] = name
+    return aliases
+
+
+def render_derived(spec):
+    relative = spec.get("path")
+    view = spec.get("view")
+    if not isinstance(relative, str) or not relative:
+        raise ValueError("derived asset has no source path")
+    document = json.loads(read(repo_path(relative)))
+    if view == "source_disease_aliases":
+        return json.dumps(source_disease_aliases(document), indent=2, ensure_ascii=False)
+    raise ValueError(f"unsupported derived asset view: {view!r}")
 
 
 def template_markers(template):
@@ -122,36 +153,72 @@ def render_template(path):
 
 def vocabulary_errors():
     vocabulary = json.loads(read(ROOT / "schema" / "disease_vocabulary.json"))
-    aliases = json.loads(read(ROOT / "schema" / "source_disease_aliases.json"))
     package = json.loads(read(ROOT / "schema" / "ingestion_package_schema.json"))
-    expected = vocabulary["diseases"] if isinstance(vocabulary, dict) else vocabulary
-    actual = package["$defs"]["disease"]["enum"]
-    errors = [] if expected == actual else ["disease vocabulary and package schema enum differ"]
-    if isinstance(vocabulary, dict) and "source_disease_aliases" in vocabulary:
-        errors.append(
-            "source disease aliases must live only in schema/source_disease_aliases.json"
-        )
-    if not isinstance(aliases, dict):
-        errors.append("source disease aliases must be a JSON object")
-    else:
-        normalized = set()
-        canonical_casefold = {disease.casefold() for disease in expected}
-        for alias, target in aliases.items():
+    errors = []
+    try:
+        terms = disease_terms(vocabulary)
+    except ValueError as exc:
+        return [str(exc)]
+
+    names = []
+    normalized_aliases = set()
+    for index, term in enumerate(terms):
+        if not isinstance(term, dict):
+            errors.append(f"disease term {index} must be an object")
+            continue
+        name = term.get("name")
+        if not isinstance(name, str) or not name.strip():
+            errors.append(f"disease term {index} has no non-empty name")
+            continue
+        names.append(name)
+    if len(names) != len(set(names)):
+        errors.append("disease vocabulary contains duplicate canonical term names")
+    canonical = set(names)
+    canonical_casefold = {name.casefold() for name in names}
+
+    for term in terms:
+        if not isinstance(term, dict) or term.get("name") not in canonical:
+            continue
+        name = term["name"]
+        aliases = term.get("aliases", [])
+        parents = term.get("parents", [])
+        related = term.get("retrieval_related", {})
+        if not isinstance(aliases, list):
+            errors.append(f"disease term {name!r} aliases must be an array")
+            aliases = []
+        if not isinstance(parents, list):
+            errors.append(f"disease term {name!r} parents must be an array")
+            parents = []
+        if not isinstance(related, dict):
+            errors.append(f"disease term {name!r} retrieval_related must be an object")
+            related = {}
+        for alias in aliases:
             if not isinstance(alias, str) or not alias.strip():
-                errors.append("source disease aliases must be non-empty strings")
+                errors.append(f"disease term {name!r} has a non-string or empty alias")
                 continue
-            normalized_alias = alias.strip().casefold()
-            if normalized_alias in normalized:
-                errors.append(
-                    f"source disease alias {alias!r} duplicates another alias after normalization"
-                )
-            normalized.add(normalized_alias)
-            if normalized_alias in canonical_casefold:
+            normalized = alias.strip().casefold()
+            if normalized in normalized_aliases:
+                errors.append(f"source disease alias {alias!r} duplicates another alias after normalization")
+            normalized_aliases.add(normalized)
+            if normalized in canonical_casefold:
                 errors.append(f"source disease alias {alias!r} collides with a canonical disease")
-            if target not in expected:
-                errors.append(
-                    f"source disease alias {alias!r} targets non-canonical disease {target!r}"
-                )
+        for parent in parents:
+            if parent not in canonical:
+                errors.append(f"disease term {name!r} parent {parent!r} is not in the vocabulary")
+        for category, targets in related.items():
+            if not isinstance(targets, list):
+                errors.append(f"retrieval_related[{name!r}][{category!r}] must be an array")
+                continue
+            for target in targets:
+                if target not in canonical:
+                    errors.append(f"retrieval_related target {target!r} is not an evidence-card disease")
+
+    disease_schema = package.get("$defs", {}).get("disease")
+    if not isinstance(disease_schema, dict):
+        errors.append("ingestion package schema $defs.disease must be an object")
+    elif "enum" in disease_schema:
+        errors.append("ingestion package schema must not duplicate the disease vocabulary enum")
+
     publication_vocabulary = json.loads(
         read(ROOT / "schema" / "publication_type_vocabulary.json")
     )

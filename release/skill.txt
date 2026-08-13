@@ -9,7 +9,6 @@ scripts/append_integrated_diagnosis.py
 scripts/validate_adjudication.py
 scripts/report_citations.py
 schema/disease_vocabulary.json
-schema/source_disease_aliases.json
 schema/ingestion_package_schema.json
 output/corpus/nel.corpus.json
 output/corpus/nel.index.json

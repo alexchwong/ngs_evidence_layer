@@ -107,6 +107,19 @@ class PromptIntegrationTests(unittest.TestCase):
             "every `claim` fragment contributes to the same source assertion", prompt
         )
 
+    def test_source_disease_alias_prompt_view_is_derived_from_terms(self):
+        vocabulary = json.loads(
+            (ROOT / "schema" / "disease_vocabulary.json").read_text(encoding="utf-8")
+        )
+        expected = {
+            alias: term["name"]
+            for term in vocabulary["terms"]
+            for alias in term.get("aliases", [])
+        }
+        rendered = json.loads(BUILD_PROMPTS.asset_content("SOURCE_DISEASE_ALIASES"))
+        self.assertEqual(rendered, expected)
+        self.assertEqual(self.manifest["SOURCE_DISEASE_ALIASES"]["type"], "derived")
+
     def test_all_card_handling_prompts_use_canonical_source_disease_alias_policy(self):
         prompts = {
             f"phase{phase}": BUILD_PROMPTS.render(phase)

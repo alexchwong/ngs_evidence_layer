@@ -22,15 +22,32 @@ def load_json_asset(filename):
         raise RuntimeError(f"invalid bundled JSON asset {path}: {exc}") from exc
 
 
-PACKAGE_SCHEMA = load_json_asset("ingestion_package_schema.json")
 REVIEW_SCHEMA = load_json_asset("review_schema.json")
 DISEASE_VOCABULARY = load_json_asset("disease_vocabulary.json")
-DISEASES = list(DISEASE_VOCABULARY["diseases"])
-UMBRELLA = {key: list(parents) for key, parents in DISEASE_VOCABULARY["umbrella"].items()}
-if PACKAGE_SCHEMA["$defs"]["disease"]["enum"] != DISEASES:
-    raise RuntimeError(
-        "bundled ingestion package schema disease enum differs from disease vocabulary"
-    )
+TERMS = list(DISEASE_VOCABULARY["terms"])
+DISEASES = [term["name"] for term in TERMS]
+UMBRELLA = {
+    term["name"]: list(term.get("parents", []))
+    for term in TERMS
+    if term.get("parents")
+}
+
+
+def bind_disease_vocabulary(schema):
+    disease_schema = schema.get("$defs", {}).get("disease")
+    if not isinstance(disease_schema, dict):
+        raise RuntimeError("bundled ingestion package schema $defs.disease must be an object")
+    if "enum" in disease_schema:
+        raise RuntimeError(
+            "bundled ingestion package schema must not contain a duplicate disease enum"
+        )
+    disease_schema["enum"] = list(DISEASES)
+    return schema
+
+
+PACKAGE_SCHEMA = bind_disease_vocabulary(
+    load_json_asset("ingestion_package_schema.json")
+)
 
 DISEASE_DEPENDENT_CATEGORIES = {"diagnosis", "prognosis", "treatment", "biomarker"}
 GENERIC_INTERPRETATION_PATTERNS = (

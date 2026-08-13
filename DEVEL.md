@@ -23,6 +23,7 @@ python scripts/build_prompts.py --phase5-review
 
 # Run the full test suite.
 python -m unittest discover -s tests -v 2>&1
+
 # Build a provisional skill zip package for testing
 python scripts/build_skill_zip.py
 ```
@@ -58,8 +59,9 @@ moving a prompt asset should require a manifest edit and template marker, not ne
 phase-specific Python dispatch.
 
 Edit rules, vocabularies, schemas, executable validation code, and other canonical
-sources only at their owning paths. In particular, source disease aliases live in
-`schema/source_disease_aliases.json`; publication-type taxonomy lives in
+sources only at their owning paths. In particular, canonical disease names, source aliases, taxonomic parents, and
+retrieval relationships live together in `schema/disease_vocabulary.json`;
+publication-type taxonomy lives in
 `schema/publication_type_vocabulary.json`; Phase 3-only publication-type audit policy
 lives in `prompts/assets/publication_type_audit_policy.md`. Phase-specific online
 validators live under `scripts/phase_validation/`: the prompt manifest injects the

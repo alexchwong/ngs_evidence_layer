@@ -138,12 +138,24 @@ class VocabularyAndKeyTests(unittest.TestCase):
         self.assertIsNone(vocab.canonical_source_disease("high-grade B-cell lymphoma with MYC and BCL2 and/or BCL6 rearrangements"))
         self.assertIsNone(vocab.canonical_source_disease(None))
 
-    def test_source_disease_aliases_have_one_canonical_owner(self):
+    def test_disease_terms_have_one_canonical_owner(self):
         disease_vocabulary = json.loads(
             (ROOT / "schema" / "disease_vocabulary.json").read_text(encoding="utf-8")
         )
-        self.assertNotIn("source_disease_aliases", disease_vocabulary)
+        self.assertEqual(
+            [term["name"] for term in disease_vocabulary["terms"]], vocab.DISEASES
+        )
         self.assertGreater(len(vocab.SOURCE_DISEASE_ALIASES), 2)
+        self.assertFalse((ROOT / "schema" / "source_disease_aliases.json").exists())
+
+    def test_package_schema_binds_disease_enum_at_runtime(self):
+        package_schema = json.loads(
+            (ROOT / "schema" / "ingestion_package_schema.json").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("enum", package_schema["$defs"]["disease"])
+        bound = vocab.bind_disease_vocabulary(package_schema)
+        self.assertEqual(bound["$defs"]["disease"]["enum"], vocab.DISEASES)
+        self.assertNotIn("enum", package_schema["$defs"]["disease"])
 
     def test_umbrella_cycle_is_rejected(self):
         original = copy.deepcopy(vocab.UMBRELLA)
