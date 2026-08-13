@@ -1,29 +1,157 @@
 #!/usr/bin/env python3
-"""Render one committed, self-contained phase prompt from canonical sources."""
+"""Render one committed, self-contained phase prompt from manifest-backed sources."""
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-
-VALIDATION_BUNDLE_FILES = (
-    ROOT / "scripts" / "final_validation.py",
-    ROOT / "scripts" / "package_validation.py",
-    ROOT / "scripts" / "vocab.py",
-)
+MANIFEST_PATH = ROOT / "prompts" / "assets" / "manifest.json"
+MARKER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
 
 
 def read(path):
     return path.read_text(encoding="utf-8").rstrip()
 
 
+def repo_path(relative):
+    path = (ROOT / relative).resolve()
+    try:
+        path.relative_to(ROOT.resolve())
+    except ValueError as exc:
+        raise ValueError(f"asset path escapes repository root: {relative}") from exc
+    return path
+
+
+def load_manifest():
+    manifest = json.loads(read(MANIFEST_PATH))
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("assets"), dict):
+        raise ValueError("prompt asset manifest must contain an 'assets' object")
+    return manifest
+
+
+def bundle_paths(spec):
+    paths = []
+    for relative in spec.get("paths", []):
+        path = repo_path(relative)
+        if not path.is_file():
+            raise ValueError(f"bundle file does not exist: {relative}")
+        paths.append(path)
+    for pattern in spec.get("globs", []):
+        matches = sorted(ROOT.glob(pattern))
+        if not matches:
+            raise ValueError(f"bundle glob matched no files: {pattern}")
+        paths.extend(path.resolve() for path in matches if path.is_file())
+    deduplicated = []
+    seen = set()
+    for path in paths:
+        if path not in seen:
+            seen.add(path)
+            deduplicated.append(path)
+    if not deduplicated:
+        raise ValueError("bundle asset contains no files")
+    return deduplicated
+
+
+def fence_language(path):
+    return {
+        ".py": "python",
+        ".json": "json",
+        ".md": "markdown",
+        ".txt": "text",
+    }.get(path.suffix.lower(), "text")
+
+
+def render_bundle(spec):
+    lines = []
+    for path in bundle_paths(spec):
+        relative = path.relative_to(ROOT).as_posix()
+        lines.extend(
+            [
+                f"<!-- BEGIN VERBATIM {relative} -->",
+                f"```{fence_language(path)}",
+                read(path),
+                "```",
+                f"<!-- END VERBATIM {relative} -->",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip()
+
+
+def asset_content(keyword, manifest=None):
+    manifest = manifest or load_manifest()
+    spec = manifest["assets"].get(keyword)
+    if not isinstance(spec, dict):
+        raise ValueError(f"unknown prompt asset: {keyword}")
+    asset_type = spec.get("type")
+    if asset_type == "file":
+        relative = spec.get("path")
+        if not isinstance(relative, str) or not relative:
+            raise ValueError(f"file asset {keyword} has no path")
+        path = repo_path(relative)
+        if not path.is_file():
+            raise ValueError(f"asset file does not exist: {relative}")
+        return read(path)
+    if asset_type == "bundle":
+        return render_bundle(spec)
+    raise ValueError(f"unsupported asset type for {keyword}: {asset_type!r}")
+
+
+def template_markers(template):
+    return list(dict.fromkeys(MARKER_RE.findall(template)))
+
+
+def render_template(path):
+    template = read(path)
+    manifest = load_manifest()
+    markers = template_markers(template)
+    unknown = sorted(set(markers) - set(manifest["assets"]))
+    if unknown:
+        raise ValueError("unknown prompt markers: " + ", ".join(unknown))
+    for keyword in markers:
+        template = template.replace(
+            "{{" + keyword + "}}", asset_content(keyword, manifest=manifest)
+        )
+    unresolved = sorted(set(MARKER_RE.findall(template)))
+    if unresolved:
+        raise ValueError("unresolved prompt markers: " + ", ".join(unresolved))
+    return template
+
+
 def vocabulary_errors():
     vocabulary = json.loads(read(ROOT / "schema" / "disease_vocabulary.json"))
+    aliases = json.loads(read(ROOT / "schema" / "source_disease_aliases.json"))
     package = json.loads(read(ROOT / "schema" / "ingestion_package_schema.json"))
     expected = vocabulary["diseases"] if isinstance(vocabulary, dict) else vocabulary
     actual = package["$defs"]["disease"]["enum"]
     errors = [] if expected == actual else ["disease vocabulary and package schema enum differ"]
+    if isinstance(vocabulary, dict) and "source_disease_aliases" in vocabulary:
+        errors.append(
+            "source disease aliases must live only in schema/source_disease_aliases.json"
+        )
+    if not isinstance(aliases, dict):
+        errors.append("source disease aliases must be a JSON object")
+    else:
+        normalized = set()
+        canonical_casefold = {disease.casefold() for disease in expected}
+        for alias, target in aliases.items():
+            if not isinstance(alias, str) or not alias.strip():
+                errors.append("source disease aliases must be non-empty strings")
+                continue
+            normalized_alias = alias.strip().casefold()
+            if normalized_alias in normalized:
+                errors.append(
+                    f"source disease alias {alias!r} duplicates another alias after normalization"
+                )
+            normalized.add(normalized_alias)
+            if normalized_alias in canonical_casefold:
+                errors.append(f"source disease alias {alias!r} collides with a canonical disease")
+            if target not in expected:
+                errors.append(
+                    f"source disease alias {alias!r} targets non-canonical disease {target!r}"
+                )
     publication_vocabulary = json.loads(
         read(ROOT / "schema" / "publication_type_vocabulary.json")
     )
@@ -38,106 +166,10 @@ def vocabulary_errors():
     return errors
 
 
-def publication_type_rubric(phase):
-    vocabulary = json.loads(read(ROOT / "schema" / "publication_type_vocabulary.json"))
-    lines = ["Allowed values and operational definitions:"]
-    for entry in vocabulary["types"]:
-        lines.append(f'- `{entry["value"]}`: {entry["definition"]} {entry["excludes"]}')
-    lines.append("\nApply these precedence rules in order:")
-    lines.extend(
-        f"{number}. {rule}"
-        for number, rule in enumerate(vocabulary["precedence"], start=1)
-    )
-    if phase == 3:
-        lines.append("\nApply these audit-stability rules:")
-        lines.extend(f"- {rule}" for rule in vocabulary["audit_stability"])
-    return "\n".join(lines)
-
-
-def source_disease_alias_policy():
-    """Render the strict source-to-canonical disease alias policy."""
-    vocabulary = json.loads(read(ROOT / "schema" / "disease_vocabulary.json"))
-    aliases = vocabulary.get("source_disease_aliases", {})
-    rendered_aliases = "\n".join(
-        f'- `{alias}` → `{target}`' for alias, target in aliases.items()
-    )
-    template = read(
-        ROOT / "prompts" / "templates" / "source_disease_alias_policy.md"
-    )
-    template = template.replace("{{SOURCE_DISEASE_ALIASES}}", rendered_aliases)
-    if "{{" in template or "}}" in template:
-        raise ValueError("unresolved source disease alias policy marker")
-    return template
-
-
-def validation_bundle_paths():
-    """Return every repository-owned file needed by final_validation.py."""
-    paths = list(VALIDATION_BUNDLE_FILES)
-    paths.extend(sorted((ROOT / "schema").glob("*.json")))
-    return paths
-
-
-def validation_bundle():
-    """Embed the canonical validator and all local dependencies verbatim."""
-    lines = [
-        "Create a directory named `validation_bundle` and recreate every file below",
-        "at its displayed relative path. Preserve the directory structure and file",
-        "contents verbatim. Do not combine files or rewrite imports.",
-        "",
-    ]
-    for path in validation_bundle_paths():
-        relative = path.relative_to(ROOT).as_posix()
-        language = "python" if path.suffix == ".py" else "json"
-        lines.extend(
-            [
-                f"<!-- BEGIN VERBATIM {relative} -->",
-                f"```{language}",
-                read(path),
-                "```",
-                f"<!-- END VERBATIM {relative} -->",
-                "",
-            ]
-        )
-    return "\n".join(lines).rstrip()
-
-
-def phase5_chat_validation():
-    return read(ROOT / "scripts" / "phase5_chat_validation.py")
-
-
 def render(phase):
-    template = read(ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md")
-    replacements = {
-        "{{PHASE_VALIDATION_BUNDLE}}": validation_bundle(),
-    }
-    if phase in (2, 3, 4, 5):
-        replacements["{{SOURCE_DISEASE_ALIAS_POLICY}}"] = source_disease_alias_policy()
-    if phase == 5:
-        replacements["{{PHASE5_CHAT_VALIDATION}}"] = phase5_chat_validation()
-    if phase in (1, 3):
-        replacements["{{PUBLICATION_TYPE_RUBRIC}}"] = publication_type_rubric(phase)
-    if phase in (1, 2, 4):
-        replacements["{{REPORTING_RULES}}"] = read(
-            ROOT / "rules" / "agreed_reporting_rules.md"
-        )
-    if phase == 1:
-        replacements["{{CENSUS_SCHEMA}}"] = read(
-            ROOT / "schema" / "census_schema.json"
-        )
-    if phase in (2, 4):
-        replacements["{{DISEASE_VOCABULARY}}"] = read(
-            ROOT / "schema" / "disease_vocabulary.json"
-        )
-        replacements["{{PACKAGE_SCHEMA}}"] = read(
-            ROOT / "schema" / "ingestion_package_schema.json"
-        )
-    for marker, content in replacements.items():
-        template = template.replace(marker, content)
-    unresolved = sorted(
-        set(part.split("}}", 1)[0] + "}}" for part in template.split("{{")[1:])
+    template = render_template(
+        ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
     )
-    if unresolved:
-        raise ValueError("unresolved prompt markers: " + ", ".join(unresolved))
     if phase == 3 and any(
         term in template
         for term in (
@@ -146,28 +178,14 @@ def render(phase):
             '"$schema"',
         )
     ):
-        before_bundle = template.split(
-            "<!-- BEGIN VERBATIM scripts/final_validation.py -->", 1
-        )[0]
-        if any(
-            term in before_bundle
-            for term in ("agreed_reporting_rules", '"diseases": [', '"$schema"')
-        ):
-            raise ValueError("Phase 3 prompt contains forbidden authoring context")
+        raise ValueError("Phase 3 prompt contains forbidden authoring context")
     return template + "\n"
 
 
 def render_phase5_review():
-    template = read(ROOT / "prompts" / "templates" / "phase5_review_prompt.md")
-    template = template.replace(
-        "{{SOURCE_DISEASE_ALIAS_POLICY}}", source_disease_alias_policy()
-    )
-    unresolved = sorted(
-        set(part.split("}}", 1)[0] + "}}" for part in template.split("{{")[1:])
-    )
-    if unresolved:
-        raise ValueError("unresolved prompt markers: " + ", ".join(unresolved))
-    return template + "\n"
+    return render_template(
+        ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
+    ) + "\n"
 
 
 def main():
@@ -189,7 +207,7 @@ def main():
             content = render(args.phase)
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
-    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         sys.exit(f"PROMPT BUILD FAILED:\n{exc}")
     print(f"wrote {destination}")
 

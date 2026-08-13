@@ -54,7 +54,7 @@ Examples include:
 - Declaring a tumour-only variant germline.
 - Recommending a mutation-directed treatment unsupported by the detected alteration.
 - Overstating drug sensitivity where only a cautious possibility is supported.
-- Reporting an irrelevant absent mutation as though it materially affects classification or management.
+- Stating a negative finding that is false or contradicts supplied patient facts, or using a negative finding to support a materially incorrect classification or management conclusion.
 
 ### Hallucination commission error
 
@@ -141,6 +141,7 @@ Do not calculate points, percentages, averages or a single overall category.
 - CHRS may apply to either CHIP or CCUS when the required variables are available.
 - Do not require reporting of an absent mutation unless its presence is ordinarily expected in the relevant differential diagnosis, or its absence directly changes classification, allelic-state interpretation or management.
 - Do not reward lists of irrelevant negative findings.
+- A factually correct negative statement is neutral even when unnecessary or low-value. Do not lower the category solely because it is mentioned. Penalise a negative statement only when it is false, contradicts the supplied case, or materially contributes to an incorrect interpretation.
 - Do not penalise concise wording when the required meaning is clear.
 - Do not reward repetition, verbosity or restatement of supplied clinical and morphological facts unless needed to support the molecular interpretation.
 - A material incorrect assertion within an applicable rubric is a commission error even when the answer also contains the correct conclusion.

@@ -6,19 +6,35 @@
 
 **Category:** prognosis
 
+**Genes:** U2AF1
+
+**Diseases:** PMF
+
+**Evidence tier:** restated secondary
+
+**Locator:** Main text, paragraph 2
+
+### Interpretation
+
+In primary myelofibrosis, U2AF1 Q157 is an additional high-molecular-risk mutation incorporated into MIPSS70+ version 2.0.
+
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0002
+
+**Category:** prognosis
+
 **Genes:** ASXL1, SRSF2, EZH2, IDH1, IDH2, U2AF1
 
 **Diseases:** PMF
 
 **Evidence tier:** multivariable-adjusted
 
-**Locator:** Main text, opening paragraph and multivariable analysis and score construction paragraph
+**Locator:** Main text, multivariable analysis and score construction
 
 ### Interpretation
 
-For patients aged 70 years or younger with primary myelofibrosis, MIPSS70+ version 2.0 treated ASXL1, SRSF2, EZH2, IDH1, IDH2, and U2AF1 Q157 as high-molecular-risk mutations. In multivariable analysis, one HMR mutation had HR 1.8 (95% CI, 1.3 to 2.5) and was assigned 2 points, whereas two or more HMR mutations had HR 2.6 (95% CI, 1.6 to 4.0) and were assigned 3 points.
+For patients with primary myelofibrosis aged 70 years or younger, MIPSS70+ version 2.0 assigns 2 points for one high-molecular-risk mutation and 3 points for two or more; the high-molecular-risk set comprises ASXL1, SRSF2, EZH2, IDH1, IDH2, and U2AF1 Q157.
 
-## tefferi-2018-journal-of-clinical-oncology-36-1769-C0002
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0003
 
 **Category:** prognosis
 
@@ -28,8 +44,24 @@ For patients aged 70 years or younger with primary myelofibrosis, MIPSS70+ versi
 
 **Evidence tier:** multivariable-adjusted
 
-**Locator:** Main text, opening paragraph and multivariable analysis and score construction paragraph
+**Locator:** Main text, multivariable analysis and score construction
 
 ### Interpretation
 
-For patients aged 70 years or younger with primary myelofibrosis, CALR type 1/like was the favorable mutation variable in MIPSS70/MIPSS70+. In the revised multivariable model, absence of a type 1/like CALR mutation had HR 2.1 (95% CI, 1.5 to 3.0) and was assigned 2 points in MIPSS70+ version 2.0.
+For patients with primary myelofibrosis aged 70 years or younger, absence of a type 1/like CALR mutation is independently adverse (HR 2.1, 95% CI 1.5-3.0) and contributes 2 points to MIPSS70+ version 2.0.
+
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0004
+
+**Category:** prognosis
+
+**Genes:** ASXL1, SRSF2, EZH2, IDH1, IDH2, U2AF1, CALR
+
+**Diseases:** PMF
+
+**Evidence tier:** univariable or descriptive
+
+**Locator:** Main text, score construction; Fig 1 legend
+
+### Interpretation
+
+MIPSS70+ version 2.0 incorporates ASXL1, SRSF2, EZH2, IDH1, IDH2, U2AF1 Q157, and CALR type 1/like status and stratifies patients with primary myelofibrosis aged 70 years or younger into very low (0 points), low (1-2), intermediate (3-4), high (5-8), and very high (9 or more) risk groups with progressively worse overall survival.

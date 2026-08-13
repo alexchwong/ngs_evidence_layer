@@ -1,5 +1,5 @@
 {
-  "schema_version": "3.1",
+  "schema_version": "3.2",
   "census_date": "2026-01-01",
   "census_model": "fixture-census-model",
   "publication_type": "consensus statement",
@@ -7,19 +7,15 @@
   "supplement_flags": [],
   "entries": [
     {
-      "entry_id": "GENEA",
-      "gene": "GENEA",
-      "locators": [
-        "Section 1 - Entity definition",
-        "Section 3 - Follow-up marker"
+      "claim_id": "CLAIM-001",
+      "genes": [
+        "GENEA"
       ],
-      "categories": [
-        "diagnosis",
-        "biomarker"
-      ]
+      "category": "diagnosis",
+      "locator": "Section 1 - Entity definition",
+      "summary": "GENEA mutation defines Fixture Entity One at any blast count."
     }
   ],
-  "geneless_statements": [],
   "paper_id": "bbbbbbbb-0000-0000-0000-000000000002",
   "validation_unresolved": []
 }

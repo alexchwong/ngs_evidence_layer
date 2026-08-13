@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -10,6 +11,7 @@ SPEC = importlib.util.spec_from_file_location(
 )
 BUILD_PROMPTS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(BUILD_PROMPTS)
+MARKER_RE = re.compile(r"{{([A-Z0-9_]+)}}")
 
 
 class PromptIntegrationTests(unittest.TestCase):
@@ -19,6 +21,7 @@ class PromptIntegrationTests(unittest.TestCase):
             (ROOT / "schema" / "publication_type_vocabulary.json").read_text()
         )
         cls.allowed = [entry["value"] for entry in cls.vocabulary["types"]]
+        cls.manifest = BUILD_PROMPTS.load_manifest()["assets"]
 
     def test_publication_type_vocabulary_matches_both_schemas(self):
         census = json.loads((ROOT / "schema" / "census_schema.json").read_text())
@@ -34,22 +37,59 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertEqual(BUILD_PROMPTS.vocabulary_errors(), [])
 
     def test_all_phase_templates_render_without_unresolved_markers(self):
-        for phase in (1, 2, 3, 4):
+        for phase in (1, 2, 3, 4, 5):
             with self.subTest(phase=phase):
                 prompt = BUILD_PROMPTS.render(phase)
                 self.assertTrue(prompt.strip())
                 self.assertNotRegex(prompt, r"\{\{[^{}]+\}\}")
+        review = BUILD_PROMPTS.render_phase5_review()
+        self.assertTrue(review.strip())
+        self.assertNotRegex(review, r"\{\{[^{}]+\}\}")
+
+    def test_file_assets_are_injected_whole(self):
+        templates = {
+            f"phase{phase}": ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
+            for phase in (1, 2, 3, 4, 5)
+        }
+        templates["phase5-review"] = (
+            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
+        )
+        rendered = {
+            f"phase{phase}": BUILD_PROMPTS.render(phase) for phase in (1, 2, 3, 4, 5)
+        }
+        rendered["phase5-review"] = BUILD_PROMPTS.render_phase5_review()
+        for name, template_path in templates.items():
+            markers = set(MARKER_RE.findall(template_path.read_text(encoding="utf-8")))
+            for marker in markers:
+                spec = self.manifest[marker]
+                if spec.get("type") != "file":
+                    continue
+                expected = (ROOT / spec["path"]).read_text(encoding="utf-8").rstrip()
+                with self.subTest(prompt=name, asset=marker):
+                    self.assertIn(expected, rendered[name])
+
+    def test_phase_validation_assets_contain_declared_file_whole(self):
+        for phase in (1, 2, 4, 5):
+            keyword = f"PHASE{phase}_VALIDATION_BUNDLE"
+            content = BUILD_PROMPTS.asset_content(keyword)
+            spec = self.manifest[keyword]
+            if spec.get("type") == "bundle":
+                self.assertEqual(len(spec.get("paths", [])), 1)
+                path = ROOT / spec["paths"][0]
+                relative = path.relative_to(ROOT).as_posix()
+                self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
+            else:
+                path = ROOT / spec["path"]
+            self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
 
     def test_phase2_allows_multi_claim_composite_text(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())
         self.assertIn(
-            "use one or more `claim` fragments for substantive prose", prompt
+            "One or more `claim` fragments may jointly support one source assertion",
+            prompt,
         )
         self.assertIn(
             "every `claim` fragment contributes to the same source assertion", prompt
-        )
-        self.assertNotIn(
-            "Include one `claim` fragment and only necessary", prompt
         )
 
     def test_all_card_handling_prompts_use_canonical_source_disease_alias_policy(self):
@@ -61,80 +101,89 @@ class PromptIntegrationTests(unittest.TestCase):
         for name, rendered in prompts.items():
             with self.subTest(prompt=name):
                 prompt = " ".join(rendered.split())
-                self.assertIn("`clonal haematopoiesis` → `CHIP`", prompt)
-                self.assertIn("`clonal haemopoiesis` → `CHIP`", prompt)
+                self.assertIn('"clonal haematopoiesis": "CHIP"', rendered)
+                self.assertIn('"clonal haemopoiesis": "CHIP"', rendered)
                 self.assertIn(
                     "Do not use fuzzy matching, stemming, punctuation substitution, "
                     "semantic inference, or nearest-term mapping.",
                     prompt,
                 )
                 self.assertNotIn("{{SOURCE_DISEASE_ALIAS_POLICY}}", rendered)
-
-    def test_source_disease_alias_policy_partial_renders_canonical_alias_data(self):
-        policy = BUILD_PROMPTS.source_disease_alias_policy()
-        self.assertIn("`clonal haematopoiesis` → `CHIP`", policy)
-        self.assertIn("`clonal haemopoiesis` → `CHIP`", policy)
-        self.assertNotRegex(policy, r"\{\{[^{}]+\}\}")
+                self.assertNotIn("{{SOURCE_DISEASE_ALIASES}}", rendered)
 
     def test_phase1_does_not_apply_card_disease_alias_policy(self):
         prompt = BUILD_PROMPTS.render(1)
         self.assertNotIn("Source disease alias policy", prompt)
-        self.assertNotIn("`clonal haematopoiesis` → `CHIP`", prompt)
+        self.assertNotIn('"clonal haematopoiesis": "CHIP"', prompt.split(
+            "<!-- BEGIN VERBATIM", 1
+        )[0])
 
     def test_phase3_audits_multi_claim_composites_without_auto_failure(self):
         prompt = " ".join(BUILD_PROMPTS.render(3).split())
-        self.assertIn("Multiple `claim` fragments are valid.", prompt)
-        self.assertIn("**Single assertion:**", prompt)
-        self.assertIn("**Necessary composition:**", prompt)
         self.assertIn(
-            "Do not use `evidence_relationship` solely because a valid bundle "
-            "contains multiple substantive `claim` fragments.",
+            "Multiple `claim` fragments are valid when they jointly support one "
+            "source assertion.",
+            prompt,
+        )
+        self.assertIn(
+            "a `composite_text` bundle supports one coherent source assertion, "
+            "uses compatible scope, and contains only necessary fragments",
+            prompt,
+        )
+        self.assertIn(
+            "Fail evidence that combines separate findings, populations, analyses, "
+            "classifier branches or independently useful conclusions",
             prompt,
         )
 
+    def test_phase3_uses_separate_publication_type_audit_policy(self):
+        prompt = BUILD_PROMPTS.render(3)
+        expected = (
+            ROOT / "prompts" / "assets" / "publication_type_audit_policy.md"
+        ).read_text(encoding="utf-8").rstrip()
+        self.assertIn(expected, prompt)
+        self.assertNotIn("audit_stability", prompt)
+
     def test_phase3_omits_deterministic_validation_bundle(self):
         prompt = BUILD_PROMPTS.render(3)
-        self.assertNotIn("{{PHASE_VALIDATION_BUNDLE}}", prompt)
-        self.assertNotIn("<!-- BEGIN VERBATIM scripts/final_validation.py -->", prompt)
-        self.assertNotIn("validation_bundle/scripts/final_validation.py", prompt)
+        self.assertNotIn("_VALIDATION_BUNDLE}}", prompt)
+        self.assertNotIn("<!-- BEGIN VERBATIM scripts/phase_validation/", prompt)
+        self.assertNotIn("validation_bundle/scripts/phase_validation/", prompt)
         self.assertNotIn("## Deterministic exit validation", prompt)
 
     def test_validation_occurs_at_phase2_exit_and_phase4_entry(self):
         phase2 = BUILD_PROMPTS.render(2)
         self.assertIn("## Deterministic exit validation", phase2)
         self.assertIn(
-            "python validation_bundle/scripts/final_validation.py --phase 2",
+            "python validation_bundle/scripts/phase_validation/phase2.py",
             phase2,
         )
-
         phase4 = BUILD_PROMPTS.render(4)
         entry = phase4.split("## Entry validation", 1)[1].split(
             "## Mandatory human adjudication", 1
         )[0]
         self.assertIn(
-            "python validation_bundle/scripts/final_validation.py --phase 3",
+            "python validation_bundle/scripts/phase_validation/phase4.py --review-only",
             entry,
         )
         self.assertIn("Before any adjudication or finalization", entry)
 
-    def test_phase4_embeds_canonical_final_validator_verbatim(self):
+    def test_phase4_embeds_canonical_phase4_validator_verbatim(self):
         rendered = BUILD_PROMPTS.render(4)
-        start_marker = "<!-- BEGIN VERBATIM scripts/final_validation.py -->\n```python\n"
-        end_marker = "\n```\n<!-- END VERBATIM scripts/final_validation.py -->"
+        relative = "scripts/phase_validation/phase4.py"
+        start_marker = f"<!-- BEGIN VERBATIM {relative} -->\n```python\n"
+        end_marker = f"\n```\n<!-- END VERBATIM {relative} -->"
         embedded = rendered.split(start_marker, 1)[1].split(end_marker, 1)[0]
-        expected = (ROOT / "scripts" / "final_validation.py").read_text(
-            encoding="utf-8"
-        ).rstrip()
+        expected = (ROOT / relative).read_text(encoding="utf-8").rstrip()
         self.assertEqual(embedded, expected)
 
     def test_phase4_requires_successful_validation_as_final_action(self):
         prompt = BUILD_PROMPTS.render(4)
         self.assertIn(
-            "python validation_bundle/scripts/final_validation.py --phase 4",
+            "python validation_bundle/scripts/phase_validation/phase4.py",
             prompt,
         )
-        self.assertNotIn("python final_validation.py --phase 4", prompt)
-        self.assertNotIn("python scripts/final_validation.py", prompt)
+        self.assertNotIn("validation_bundle/scripts/final_validation.py", prompt)
         self.assertIn(
             "The final action before returning `paper.final.json` must be a "
             "successful run",

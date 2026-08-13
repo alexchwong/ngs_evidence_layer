@@ -3,8 +3,8 @@
 Quotes are never rendered or returned by retrieval; they remain private inside
 accepted ingestion packages.
 The rendered Markdown preserves one visible record per retrieved evidence card.
-Each record includes its stable card ID, human-readable label, category, genes,
-disease context, retrieval match, evidence tier, interpretation, source locator,
+Each record includes its human-readable label, category, genes, disease context,
+evidence tier, interpretation, and exact card-ID citation marker.
 Citations remain publication-style at the end of the block. Each card exposes
 its exact card-ID citation marker, ``## Refs`` maps card IDs to primary and
 secondary references, and ``## References`` contains the numbered bibliography.
@@ -154,21 +154,15 @@ def format_card(card):
     out = [
         f"### {card_label(card)}",
         "",
-        format_field("Card ID", f"`{inline_text(card['card_id'])}`"),
+    ]
+    if card.get("paper_nickname") is not None:
+        out.append(format_field("Paper", card["paper_nickname"]))
+    out.extend([
         format_field("Category", card.get("category")),
         format_field("Genes", list_text(card.get("genes"))),
         format_field("Disease context", list_text(card.get("diseases"))),
-    ]
-    retrieval_match = card.get("retrieval_match")
-    if retrieval_match:
-        out.append(format_field("Retrieval match", retrieval_match))
-    related_matches = card.get("matched_retrieval_related_diseases") or []
-    if related_matches:
-        out.append(format_field("Matched retrieval_related disease", list_text(related_matches)))
-    out.extend([
         format_field("Evidence tier", card.get("evidence_tier")),
         format_field("Interpretation", card.get("interpretation")),
-        format_field("Source locator", card.get("locator")),
         format_field("Citation marker", f"[card:{inline_text(card['card_id'])}]"),
     ])
     if card.get("escalates_to"):

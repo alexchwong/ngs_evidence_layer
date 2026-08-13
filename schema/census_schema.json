@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/ngs_evidence_layer/census_schema.json",
   "title": "Publication census (Phase 1)",
-  "description": "One entry per gene about which the publication makes a claim. The census is the completeness contract: it is what makes under-extraction countable.",
+  "description": "One entry per distinct potentially report-relevant source claim. The census is the completeness contract: it makes under-extraction countable at claim level.",
   "type": "object",
   "required": [
     "schema_version",
@@ -12,15 +12,25 @@
     "publication_type",
     "publication_type_basis",
     "entries",
-    "geneless_statements",
     "validation_unresolved"
   ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "3.1" },
-    "paper_id": { "type": "string", "format": "uuid" },
-    "census_date": { "type": "string", "format": "date" },
-    "census_model": { "type": "string", "minLength": 1 },
+    "schema_version": {
+      "const": "3.2"
+    },
+    "paper_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "census_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "census_model": {
+      "type": "string",
+      "minLength": 1
+    },
     "publication_type": {
       "enum": [
         "guideline",
@@ -31,69 +41,110 @@
         "other"
       ]
     },
-    "publication_type_basis": { "type": "string", "minLength": 1 },
+    "publication_type_basis": {
+      "type": "string",
+      "minLength": 1
+    },
     "supplement_flags": {
       "type": "array",
       "description": "Critical values referenced by the main text but living in supplementary material. Record, do not refuse.",
       "items": {
         "type": "object",
-        "required": ["locator", "missing_value"],
+        "required": [
+          "locator",
+          "missing_value"
+        ],
         "additionalProperties": false,
         "properties": {
-          "locator": { "type": "string" },
-          "missing_value": { "type": "string" }
+          "locator": {
+            "type": "string"
+          },
+          "missing_value": {
+            "type": "string"
+          }
         }
       }
     },
     "entries": {
       "type": "array",
       "minItems": 1,
+      "description": "One independently reviewable source claim per entry, including eligible geneless diagnosis/treatment claims.",
       "items": {
         "type": "object",
-        "required": ["entry_id", "gene", "locators", "categories"],
+        "required": [
+          "claim_id",
+          "genes",
+          "category",
+          "locator",
+          "summary"
+        ],
         "additionalProperties": false,
         "properties": {
-          "entry_id": { "type": "string", "minLength": 1 },
-          "gene": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9\\-]*$" },
-          "locators": {
-            "type": "array",
-            "minItems": 1,
-            "description": "Sections, tables and table footnotes where the publication makes a claim about this gene.",
-            "items": { "type": "string", "minLength": 1 }
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
           },
-          "categories": {
+          "genes": {
             "type": "array",
-            "minItems": 1,
+            "uniqueItems": true,
             "items": {
-              "enum": [
-                "diagnosis",
-                "prognosis",
-                "treatment",
-                "biomarker",
-                "germline"
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9\\-]*$"
+            }
+          },
+          "category": {
+            "enum": [
+              "diagnosis",
+              "prognosis",
+              "treatment",
+              "biomarker",
+              "germline"
+            ]
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Concise source-faithful discriminator for the claim; not a polished card interpretation."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "category": {
+                  "enum": [
+                    "prognosis",
+                    "biomarker",
+                    "germline"
+                  ]
+                }
+              },
+              "required": [
+                "category"
               ]
+            },
+            "then": {
+              "properties": {
+                "genes": {
+                  "minItems": 1
+                }
+              }
             }
           }
-        }
-      }
-    },
-    "geneless_statements": {
-      "type": "array",
-      "description": "Rule-relevant statements with no gene attached. Recorded for visibility, not for carding.",
-      "items": {
-        "type": "object",
-        "required": ["locator", "summary"],
-        "additionalProperties": false,
-        "properties": {
-          "locator": { "type": "string", "minLength": 1 },
-          "summary": { "type": "string", "minLength": 1 }
-        }
+        ]
       }
     },
     "validation_unresolved": {
       "type": "array",
       "description": "Specific Phase 1 exit-validation defects still unresolved after the third pass.",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   }
 }

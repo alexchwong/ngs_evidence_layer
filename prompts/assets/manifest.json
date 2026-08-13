@@ -1,0 +1,75 @@
+{
+  "manifest_version": "1.0",
+  "assets": {
+    "CLINICAL_REPORTING_GATE": {
+      "type": "file",
+      "path": "prompts/assets/clinical_reporting_gate.md"
+    },
+    "CARD_CONTENT_RULES": {
+      "type": "file",
+      "path": "prompts/assets/card_content_rules.md"
+    },
+    "EVIDENCE_BUNDLE_RULES": {
+      "type": "file",
+      "path": "prompts/assets/evidence_bundle_rules.md"
+    },
+    "EVIDENCE_REVIEW_RULES": {
+      "type": "file",
+      "path": "prompts/assets/evidence_review_rules.md"
+    },
+    "CENSUS_SCHEMA": {
+      "type": "file",
+      "path": "schema/census_schema.json"
+    },
+    "PACKAGE_SCHEMA": {
+      "type": "file",
+      "path": "schema/ingestion_package_schema.json"
+    },
+    "DISEASE_VOCABULARY": {
+      "type": "file",
+      "path": "schema/disease_vocabulary.json"
+    },
+    "SOURCE_DISEASE_ALIASES": {
+      "type": "file",
+      "path": "schema/source_disease_aliases.json"
+    },
+    "PUBLICATION_TYPE_VOCABULARY": {
+      "type": "file",
+      "path": "schema/publication_type_vocabulary.json"
+    },
+    "SOURCE_DISEASE_ALIAS_POLICY": {
+      "type": "file",
+      "path": "prompts/assets/source_disease_alias_policy.md"
+    },
+    "PUBLICATION_TYPE_AUDIT_POLICY": {
+      "type": "file",
+      "path": "prompts/assets/publication_type_audit_policy.md"
+    },
+    "VALIDATION_BUNDLE_POLICY": {
+      "type": "file",
+      "path": "prompts/assets/validation_bundle_policy.md"
+    },
+    "PHASE1_VALIDATION_BUNDLE": {
+      "type": "bundle",
+      "paths": [
+        "scripts/phase_validation/phase1.py"
+      ]
+    },
+    "PHASE2_VALIDATION_BUNDLE": {
+      "type": "bundle",
+      "paths": [
+        "scripts/phase_validation/phase2.py"
+      ]
+    },
+    "PHASE4_VALIDATION_BUNDLE": {
+      "type": "bundle",
+      "paths": [
+        "scripts/phase_validation/phase4.py"
+      ]
+    },
+    "PHASE5_VALIDATION_BUNDLE": {
+      "type": "file",
+      "path": "scripts/phase_validation/phase5.py"
+    }
+  }
+}

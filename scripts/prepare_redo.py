@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore one accepted publication into work/ for additive or revision Phase 5."""
+"""Restore one accepted publication into work/ for a Phase 1, 2, or 5 redo."""
 import argparse
 import hashlib
 import json
@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 CARD_TOKEN_RE = re.compile(r"^(?:C)?([0-9]{4})$")
+HISTORY_DIRS = {"phase5", "phase5-revision", "redo", "versions"}
 
 
 def read_json(path, label="JSON"):
@@ -30,7 +31,7 @@ def canonical_sha256(document):
 def copy_archive_contents(source, destination):
     destination.mkdir(parents=True)
     for item in source.iterdir():
-        if item.name in {"phase5", "phase5-revision"}:
+        if item.name in HISTORY_DIRS:
             continue
         target = destination / item.name
         if item.is_dir():
@@ -135,17 +136,14 @@ def build_revision_targets(publication_key, base_final, short_ids):
     return targets
 
 
-def prepare(args):
+def _accepted_state(args):
     archive_source = args.archive_dir / args.publication_key
-    work_destination = args.work_dir / args.publication_key
     accepted_final_path = args.accept_dir / f"{args.publication_key}.final.json"
     accepted_census_path = args.accept_dir / f"{args.publication_key}.census.json"
-    if work_destination.exists():
-        raise ValueError(f"working folder already exists: {work_destination}")
     if not archive_source.is_dir():
         raise ValueError(f"archive folder not found: {archive_source}")
     if not accepted_final_path.is_file() or not accepted_census_path.is_file():
-        raise ValueError("accepted final/census pair is required for Phase 5")
+        raise ValueError("accepted final/census pair is required for redo")
     envelope = read_json(accepted_final_path, "accepted package")
     census = read_json(accepted_census_path, "accepted census")
     metadata = envelope.get("metadata") or {}
@@ -153,9 +151,80 @@ def prepare(args):
     if metadata.get("publication_key") != args.publication_key:
         raise ValueError("accepted package publication_key does not match --key")
     if envelope.get("acceptance_path") != "confirmed":
-        raise ValueError("Phase 5 requires a deterministically confirmed accepted package")
+        raise ValueError("redo requires a deterministically confirmed accepted package")
     if census.get("paper_id") != metadata.get("paper_id"):
         raise ValueError("accepted census paper_id does not match accepted metadata")
+    return archive_source, envelope, census, metadata, base_final
+
+
+def _next_redo_sequence(envelope, archive_source):
+    recorded = [
+        item.get("redo", 0)
+        for item in (envelope.get("redos") or [])
+        if isinstance(item, dict)
+    ]
+    redo_dir = archive_source / "redo"
+    archived = []
+    if redo_dir.is_dir():
+        for item in redo_dir.iterdir():
+            if item.is_dir() and re.fullmatch(r"[0-9]{3}", item.name):
+                archived.append(int(item.name))
+    return max(recorded + archived + [0]) + 1
+
+
+def prepare_full_redo(args):
+    if getattr(args, "cards", None) is not None:
+        raise ValueError("--cards is valid only with --phase 5")
+    if args.phase not in {1, 2}:
+        raise ValueError("full redo start phase must be 1 or 2")
+    work_destination = args.work_dir / args.publication_key
+    if work_destination.exists():
+        raise ValueError(f"working folder already exists: {work_destination}")
+    archive_source, envelope, census, metadata, base_final = _accepted_state(args)
+    source_path = archive_source / "paper.md"
+    if not source_path.is_file():
+        raise ValueError(f"archived source Markdown not found: {source_path}")
+    sequence = _next_redo_sequence(envelope, archive_source)
+    try:
+        work_destination.mkdir(parents=True)
+        shutil.copy2(source_path, work_destination / "paper.md")
+        (work_destination / "metadata.json").write_text(
+            json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        if args.phase == 2:
+            (work_destination / "paper.census.json").write_text(
+                json.dumps(census, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+        (work_destination / "paper.base.final.json").write_text(
+            json.dumps(base_final, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        (work_destination / "paper.base.census.json").write_text(
+            json.dumps(census, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        marker = {
+            "schema_version": "1.0",
+            "publication_key": args.publication_key,
+            "paper_id": metadata.get("paper_id"),
+            "start_phase": args.phase,
+            "redo": sequence,
+            "base_final_sha256": canonical_sha256(base_final),
+            "base_census_sha256": canonical_sha256(census),
+            "base_metadata_sha256": canonical_sha256(metadata),
+        }
+        (work_destination / "redo.json").write_text(
+            json.dumps(marker, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+    except Exception:
+        shutil.rmtree(work_destination, ignore_errors=True)
+        raise
+    return work_destination, sequence
+
+
+def prepare_phase5(args):
+    work_destination = args.work_dir / args.publication_key
+    if work_destination.exists():
+        raise ValueError(f"working folder already exists: {work_destination}")
+    archive_source, envelope, census, metadata, base_final = _accepted_state(args)
     cards_arg = getattr(args, "cards", None)
     if isinstance(cards_arg, str) and cards_arg.strip().casefold() == "all":
         short_ids = all_card_tokens(args.publication_key, base_final)
@@ -245,12 +314,21 @@ def prepare(args):
     return work_destination, sequence
 
 
+def prepare(args):
+    if args.phase in {1, 2}:
+        return prepare_full_redo(args)
+    if args.phase == 5:
+        return prepare_phase5(args)
+    raise ValueError("--phase must be 1, 2, or 5")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--key", dest="publication_key", required=True)
+    parser.add_argument("--phase", type=int, choices=(1, 2, 5), required=True)
     parser.add_argument(
         "--cards",
-        help="comma-separated four-digit accepted card IDs, or 'all' (for revision mode), e.g. 0001,0003,0005",
+        help="Phase 5 only: comma-separated four-digit accepted card IDs, or 'all' (revision mode)",
     )
     parser.add_argument("--work-dir", type=Path, default=Path("work"))
     parser.add_argument("--accept-dir", type=Path, default=Path("accept"))
@@ -259,14 +337,19 @@ def main():
     try:
         work, sequence = prepare(args)
     except (OSError, ValueError) as exc:
-        sys.exit(f"PHASE 5 PREPARE FAILED:\n{exc}")
-    marker = read_json(work / "phase5.json", "Phase 5 marker")
-    print(f"PHASE 5 READY: {args.publication_key}")
-    if marker.get("mode") == "revision":
-        print(f"Revision: {sequence:03d}")
-        print("Cards: " + ",".join(target["short_id"] for target in marker["targets"]))
+        sys.exit(f"REDO PREPARE FAILED:\n{exc}")
+    if args.phase == 5:
+        marker = read_json(work / "phase5.json", "Phase 5 marker")
+        print(f"PHASE 5 READY: {args.publication_key}")
+        if marker.get("mode") == "revision":
+            print(f"Revision: {sequence:03d}")
+            print("Cards: " + ",".join(target["short_id"] for target in marker["targets"]))
+        else:
+            print(f"Supplement: {sequence:03d}")
     else:
-        print(f"Supplement: {sequence:03d}")
+        print(f"REDO READY: {args.publication_key}")
+        print(f"Start phase: {args.phase}")
+        print(f"Redo: {sequence:03d}")
     print(f"Work: {work}")
 
 

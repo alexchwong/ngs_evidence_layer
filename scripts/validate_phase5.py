@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 import package_validation as validation
-import phase5_chat_validation as chat_validation
+from phase_validation import phase5 as chat_validation
 
 
 def canonical_sha256(document):
@@ -156,6 +156,7 @@ def validate_phase5_files(
         "round",
         "extraction_date",
         "extraction_model",
+        "paper_nickname",
         "publication_type",
         "publication_type_basis",
         "publication_type_verified_by_phase3",

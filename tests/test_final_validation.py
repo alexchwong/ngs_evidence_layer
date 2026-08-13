@@ -88,6 +88,29 @@ class FinalValidationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(json.loads(result.stdout)["valid"])
 
+
+    def test_final_requires_paper_nickname(self):
+        self.mutate_json(
+            "paper.final.json",
+            lambda final: final.pop("paper_nickname", None),
+        )
+        errors, _warnings, _report = final_validation.validate_final_files(
+            **self.paths()
+        )
+        self.assertIn("final: final package requires paper_nickname", errors)
+
+    def test_paper_nickname_must_be_trimmed_single_line(self):
+        self.mutate_json(
+            "paper.final.json",
+            lambda final: final.update(paper_nickname="  Fixture\nPaper  "),
+        )
+        errors, _warnings, _report = final_validation.validate_final_files(
+            **self.paths()
+        )
+        self.assertIn(
+            "final: paper_nickname must be a trimmed single-line string", errors
+        )
+
     def test_final_audit_model_must_equal_phase3_reviewer(self):
         self.mutate_json(
             "paper.final.json",

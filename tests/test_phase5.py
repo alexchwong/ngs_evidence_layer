@@ -10,8 +10,8 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-import phase5_chat_validation  # noqa: E402
-import prepare_phase5  # noqa: E402
+from phase_validation import phase5 as phase5_validation  # noqa: E402
+import prepare_redo  # noqa: E402
 
 
 class PreparePhase5Tests(unittest.TestCase):
@@ -86,11 +86,12 @@ class PreparePhase5Tests(unittest.TestCase):
             paper_key, accept, archive, work, envelope, census = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
-            destination, supplement = prepare_phase5.prepare(args)
+            destination, supplement = prepare_redo.prepare(args)
             self.assertEqual(supplement, 2)
             self.assertEqual(destination, work / paper_key)
             self.assertTrue((destination / "paper.md").is_file())
@@ -116,11 +117,12 @@ class PreparePhase5Tests(unittest.TestCase):
             paper_key, accept, archive, work, _envelope, _census = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
-            destination, _ = prepare_phase5.prepare(args)
+            destination, _ = prepare_redo.prepare(args)
             context = json.loads((destination / "phase5.existing-cards.json").read_text())
             self.assertEqual(context["target_publication_key"], paper_key)
             self.assertEqual(context["cards"][0]["interpretation"], "Existing interpretation")
@@ -131,12 +133,13 @@ class PreparePhase5Tests(unittest.TestCase):
             paper_key, accept, archive, work, envelope, _census = self.make_state(root)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 cards="all",
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
-            destination, revision = prepare_phase5.prepare(args)
+            destination, revision = prepare_redo.prepare(args)
             self.assertEqual(revision, 1)
             marker = json.loads((destination / "phase5.json").read_text())
             self.assertEqual(marker["mode"], "revision")
@@ -157,12 +160,13 @@ class PreparePhase5Tests(unittest.TestCase):
             (work / paper_key).mkdir(parents=True)
             args = SimpleNamespace(
                 publication_key=paper_key,
+                phase=5,
                 accept_dir=accept,
                 archive_dir=archive,
                 work_dir=work,
             )
             with self.assertRaisesRegex(ValueError, "working folder already exists"):
-                prepare_phase5.prepare(args)
+                prepare_redo.prepare(args)
 
 
 class RevisionChangeSetTests(unittest.TestCase):
@@ -195,8 +199,8 @@ class RevisionChangeSetTests(unittest.TestCase):
                 {
                     "card_id": card["card_id"],
                     "short_id": card["card_id"].rsplit("C", 1)[-1],
-                    "card_sha256": phase5_chat_validation.canonical_sha256(card),
-                    "evidence_sha256": phase5_chat_validation.canonical_sha256(evidence),
+                    "card_sha256": phase5_validation.canonical_sha256(card),
+                    "evidence_sha256": phase5_validation.canonical_sha256(evidence),
                     "card": card,
                     "evidence": evidence,
                 }
@@ -214,13 +218,13 @@ class RevisionChangeSetTests(unittest.TestCase):
             "card_id": card1["card_id"],
             "replacement_card": replacement,
             "replacement_evidence": evidence1,
-            "revision_sha256": phase5_chat_validation.revision_sha256(replacement, evidence1),
+            "revision_sha256": phase5_validation.revision_sha256(replacement, evidence1),
         }
         reason = "Redundant accepted card"
         deletion = {
             "card_id": card2["card_id"],
             "reason": reason,
-            "deletion_sha256": phase5_chat_validation.deletion_sha256(
+            "deletion_sha256": phase5_validation.deletion_sha256(
                 card2["card_id"],
                 target_items[1]["card_sha256"],
                 target_items[1]["evidence_sha256"],
@@ -243,7 +247,7 @@ class RevisionChangeSetTests(unittest.TestCase):
     def test_revision_provisional_accepts_modify_and_delete_subset(self):
         phase5, targets, provisional = self.make_documents()
         self.assertEqual(
-            phase5_chat_validation.validate_revision_provisional(
+            phase5_validation.validate_revision_provisional(
                 phase5, targets, provisional, "New supported text."
             ),
             [],
@@ -299,7 +303,7 @@ class RevisionChangeSetTests(unittest.TestCase):
             },
         }
         self.assertEqual(
-            phase5_chat_validation.validate_revision_asset(
+            phase5_validation.validate_revision_asset(
                 phase5, targets, provisional, review, asset
             ),
             [],
@@ -307,7 +311,7 @@ class RevisionChangeSetTests(unittest.TestCase):
         asset["confirmed_change_set"]["delete"] = []
         self.assertIn(
             "revision asset confirmed_change_set does not exactly match reviewed changes",
-            phase5_chat_validation.validate_revision_asset(
+            phase5_validation.validate_revision_asset(
                 phase5, targets, provisional, review, asset
             ),
         )

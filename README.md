@@ -161,73 +161,25 @@ Run `nel-validate <case-id>` (for example, `nel-validate 1A`) to execute a bundl
 validation case. Marking criteria are withheld until the report is complete, then used
 to score the generated report. Available case IDs are:
 
-`1A`, `1B`, `1C`, `1D`; `2A`, `2B`, `2C`; `3A`, `3B`, `3C`; `4A`, `4B`, `4C`;
-`5A`, `5B`, `5C`; `6A`, `6B`, `6C`; `7A`, `7B`, `7C`; `8A`, `8B`, `8C`;
-`9A`, `9B`, `9C`; `10A`, `10B`, `10C`; `11A`, `11B`, `11C`.
+`1A`, `1B`, `1C`, `1D`, `1E`; `2A`, `2B`, `2C`, `2D`, `2E`;
+`3A`, `3B`, `3C`, `3D`; `4A`, `4B`, `4C`, `4D`; `5A`, `5B`, `5C`, `5D`.
 
 ## Current corpus
 
-The current corpus contains 43 completed publications: 10 introduced in v0.1.5, 13
-introduced in v0.1.6, and 20 introduced in v0.1.7. The release in which each paper first
-entered the corpus is stored in `nel.index.json` as `accepted_in_version`.
+The current 0.2.0 corpus contains eight publications reprocessed under the 0.2.0
+ingestion workflow. Complete citation, card, and acceptance-version metadata are stored
+in `output/corpus/nel.index.json`.
 
-### v0.1.5
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
-| `10.1038/s41375-022-01613-1` | WHO5 | The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Myeloid and Histiocytic/Dendritic Neoplasms | WHO fifth-edition myeloid classification and diagnostic criteria. |
-| `10.1182/blood.2022015850` | ICC | International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data | ICC myeloid classification and diagnostic criteria. |
-| `10.1056/evidoa2200310` | CHRS | Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis | CHRS predicts myeloid malignancy risk in clonal haematopoiesis. |
-| `10.1038/bcj.2015.94` | revised IPSET-thrombosis | Practice-relevant revision of IPSET-thrombosis based on 1019 patients with WHO-defined essential thrombocythemia | Revised IPSET-thrombosis risk model for essential thrombocythaemia. |
-| `10.1182/blood.2024025409` | ELN 2024 Less-Intensive | Genetic risk classification for adults with AML receiving less-intensive therapies: the 2024 ELN recommendations | ELN genetic risk groups for less-intensive AML therapy. |
-| `10.1200/jco.2018.78.9867` | MIPSS70+ v2.0 | MIPSS70+ Version 2.0: Mutation and Karyotype-Enhanced International Prognostic Scoring System for Primary Myelofibrosis | MIPSS70+ v2.0 prognostic score for primary myelofibrosis. |
-| `10.1182/blood-2016-05-714030` | CPSS-Mol | Integrating clinical features and genetic lesions in the risk assessment of patients with chronic myelomonocytic leukemia | CPSS-Mol integrates mutations into CMML prognostic risk. |
-| `10.1056/evidoa2200008` | IPSS-M | Molecular International Prognostic Scoring System for Myelodysplastic Syndromes | IPSS-M molecular prognostic score for myelodysplastic syndromes. |
-| `10.1182/blood.2022016867` | ELN 2022 | Diagnosis and management of AML in adults: 2022 recommendations from an international expert panel on behalf of the ELN | ELN AML genetic risk classification and prognostic guidance. |
-| `10.1182/blood.2025031480` | ELN MRD 2025 | 2025 update on MRD in acute myeloid leukemia: a consensus document from the ELN-DAVID MRD Working Party | MRD-directed AML management and post-transplant maintenance recommendations. |
-
-### v0.1.6
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
-| `10.1182/blood.2019003988` | VEN genotype response | Molecular patterns of response and treatment failure after frontline venetoclax combinations in older patients with AML | Genotype-specific response and resistance to frontline venetoclax combinations. |
-| `10.1182/blood.2019002697` | NPM1/FLT3-ITD | Impact of NPM1/FLT3-ITD genotypes defined by the 2017 European LeukemiaNet in patients with acute myeloid leukemia | Prognostic interaction of NPM1 and FLT3-ITD in AML. |
-| `10.1182/bloodadvances.2021006489` | ADMIRAL molecular | Molecular profile of FLT3-mutated relapsed/refractory patients with AML in the phase 3 ADMIRAL study of gilteritinib | Molecular predictors and resistance patterns during gilteritinib therapy. |
-| `10.1038/s41467-021-22874-x` | IDH inhibitor resistance | Leukemia stemness and co-occurring mutations drive resistance to IDH inhibitors in acute myeloid leukemia | Co-mutation and stemness modifiers of IDH-inhibitor response and resistance. |
-| `10.1038/leu.2014.3` | PMF driver genotype | CALR vs JAK2 vs MPL-mutated or triple-negative myelofibrosis: clinical, cytogenetic and molecular comparisons | Driver genotype and adverse molecular features in myelofibrosis. |
-| `10.1182/bloodadvances.2021004856` | MPN interferon genomics | Genomic profiling of a randomized trial of interferon-α vs hydroxyurea in MPN reveals mutation-specific responses | Mutation-specific response to interferon versus hydroxyurea in MPN. |
-| `10.1038/leu.2017.169` | MYSEC-PM | A clinical-molecular prognostic model to predict survival in patients with post polycythemia vera and post essential thrombocythemia myelofibrosis | MYSEC-PM prognosis for post-PV and post-ET myelofibrosis. |
-| `10.1016/S1470-2045(17)30615-0` | PACE-MDS | Luspatercept for the treatment of anaemia in patients with lower-risk myelodysplastic syndromes (PACE-MDS): a multicentre, open-label phase 2 dose-finding study with long-term extension study | SF3B1-associated response to luspatercept in lower-risk MDS. |
-| `10.1182/bloodadvances.2020003734` | R/R AML venetoclax | Clinical and molecular predictors of response and survival following venetoclax therapy in relapsed/refractory AML | Molecular predictors of venetoclax response and survival in R/R AML. |
-| `10.1038/s41375-018-0107-z` | GIPSS | GIPSS: genetically inspired prognostic scoring system for primary myelofibrosis | Genetics-only prognostic score for primary myelofibrosis. |
-| `10.1111/bjh.16380` | MIPSS-ET/PV | Mutation-enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera | Mutation-enhanced survival models for ET and PV. |
-| `10.1182/blood-2014-06-582809` | TET2 HMA response | TET2 mutations predict response to hypomethylating agents in myelodysplastic syndrome patients | TET2 and co-mutation effects on HMA response in MDS. |
-| `10.1182/blood-2015-11-679167` | MDS clonal dynamics | Mutational hierarchies in myelodysplastic syndromes dynamically adapt and evolve upon therapy response and failure | Therapy-associated clonal dynamics, including TP53 and lenalidomide. |
-
-### v0.1.7
-
-| DOI | Nickname | Paper title | Contribution to corpus |
-|---|---|---|---|
-| `10.1038/s41586-018-0317-6` | Pre-AML prediction | Prediction of acute myeloid leukaemia risk in healthy individuals | Mutation- and clone-size-based prediction of future AML risk. |
-| `10.1002/humu.23673` | TP53 gnomAD | Variable population prevalence estimates of germline TP53 variants: A gnomAD-based analysis | Population-frequency and clonal-haematopoiesis caveats for germline TP53 interpretation. |
-| `10.1097/hs9.0000000000000321` | Nordic germline guidelines | Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up | Germline referral, testing, surveillance, and transplant guidance for adult myeloid neoplasms. |
-| `10.1038/s41591-020-1008-z` | TP53 allelic state | Implications of TP53 allelic state for genome stability, clinical presentation and outcomes in myelodysplastic syndromes | Multi-hit TP53 assignment and its prognostic and treatment implications in MDS. |
-| `10.1172/jci71861` | ANKRD26 predisposition | Thrombocytopenia-associated mutations in the ANKRD26 regulatory region induce MAPK hyperactivation | ANKRD26 5′ UTR variants in inherited thrombocytopenia with leukaemia predisposition. |
-| `10.1038/s41588-020-00710-0` | Therapy-related CH | Cancer therapy shapes the fitness landscape of clonal hematopoiesis | Therapy-selected clonal haematopoiesis and mutation-specific risk of therapy-related myeloid neoplasms. |
-| `10.1038/s41375-018-0074-4` | SAMD9/SAMD9L | SAMD9 and SAMD9L in inherited predisposition to ataxia, pancytopenia, and myeloid malignancies | Germline SAMD9/SAMD9L syndromes, chromosome 7 abnormalities, surveillance, and transplant considerations. |
-| `10.1182/bloodadvances.2017013037` | Germline VAF | Prognostic tumor sequencing panels frequently identify germ line variants associated with hereditary hematopoietic malignancies | Tumour-only VAF clues and limitations when identifying hereditary haematopoietic malignancy variants. |
-| `10.1038/s41586-022-04785-z` | CH dynamics | The longitudinal dynamics and natural history of clonal haematopoiesis | Longitudinal clone dynamics and high-risk expansion patterns in clonal haematopoiesis. |
-| `10.1016/j.gim.2021.12.008` | Germline variant interpretation | A practical guide to interpreting germline variants that drive hematopoietic malignancies, bone marrow failure, and chronic cytopenias | Gene-specific interpretation criteria for germline myeloid predisposition variants. |
-| `10.1182/blood-2018-07-861070` | GATA2 donor risk | Donor-derived MDS/AML in families with germline GATA2 mutation | GATA2-associated MDS/AML risk and avoidance of mutation-positive related donors. |
-| `10.1182/blood.2021011323` | CCUS clone metrics | Relationship between clone metrics and clinical outcome in clonal cytopenia | Mutation-profile and clone-metric predictors of CCUS progression. |
-| `10.1182/blood-2012-01-403220` | GATA2/CEBPA AML | GATA2 zinc finger 1 mutations associated with biallelic CEBPA mutations define a unique genetic entity of acute myeloid leukemia | Diagnostic and prognostic interaction of GATA2 and biallelic CEBPA mutations in AML. |
-| `10.1182/blood-2011-06-365049` | GATA2 deficiency HSCT | Successful allogeneic hematopoietic stem cell transplantation for GATA2 deficiency | Germline GATA2/MonoMAC recognition and related-donor screening in the transplant setting. |
-| `10.1038/s41586-022-05448-9` | CHIP inherited genetics | Common and rare variant associations with clonal haematopoiesis phenotypes | Germline determinants, subtype associations, and clinical outcomes of clonal haematopoiesis. |
-| `10.1182/blood.2020006910` | Germline detection guide | Identifying potential germline variants from sequencing hematopoietic malignancies | Recognition and confirmation of potential germline variants detected by haematopoietic tumour sequencing. |
-| `10.1182/blood-2017-01-763425` | CCUS mutation patterns | Clinical significance of somatic mutation in unexplained blood cytopenia | Mutation patterns supporting CCUS/MDS assessment and predicting progression from unexplained cytopenia. |
-| `10.1038/ng.3253` | ETV6 predisposition | Germline mutations in ETV6 are associated with thrombocytopenia, red cell macrocytosis and predisposition to lymphoblastic leukemia | Germline ETV6 variants causing inherited thrombocytopenia and leukaemia predisposition. |
-| `10.1182/blood-2015-09-669937` | GATA2-related MDS | Prevalence, clinical characteristics, and prognosis of GATA2-related myelodysplastic syndromes in children and adolescents | Prevalence, diagnosis, prognosis, and transplant outcomes of paediatric GATA2-related MDS. |
-| `10.1182/blood.2024024756` | CCRS | Risk prediction for clonal cytopenia: multicenter real-world evidence | Clonal Cytopenia Risk Score and gene-specific progression and survival associations in CCUS. |
+| DOI | Paper nickname | Contribution to corpus |
+|---|---|---|
+| `10.1182/blood.2022015850` | ICC Classification | ICC myeloid classification and diagnostic criteria. |
+| `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
+| `10.1182/blood.2025031480` | ELN-DAVID 2025 AML MRD Guidelines | AML measurable residual disease assessment and management guidance. |
+| `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | AML diagnosis, genetic risk classification, and management guidance. |
+| `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | AML genetic risk classification for less-intensive therapy. |
+| `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
+| `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
+| `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
 
 ## Important boundaries
 

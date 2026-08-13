@@ -1,5 +1,5 @@
 {
-  "schema_version": "3.1",
+  "schema_version": "3.2",
   "census_date": "2026-01-01",
   "census_model": "fixture-census-model",
   "publication_type": "guideline",
@@ -7,56 +7,40 @@
   "supplement_flags": [],
   "entries": [
     {
-      "entry_id": "GENEA",
-      "gene": "GENEA",
-      "locators": [
-        "Section 1 - Entity definition",
-        "Section 2 - Prognostic table",
-        "Section 3 - Follow-up marker"
+      "claim_id": "CLAIM-001",
+      "genes": [
+        "GENEA"
       ],
-      "categories": [
-        "diagnosis",
-        "prognosis",
-        "biomarker"
-      ]
-    },
-    {
-      "entry_id": "GENEB",
-      "gene": "GENEB",
-      "locators": [
-        "Section 1 - Entity definition",
-        "Section 3 - Follow-up marker"
-      ],
-      "categories": [
-        "diagnosis",
-        "biomarker"
-      ]
-    },
-    {
-      "entry_id": "GENEC",
-      "gene": "GENEC",
-      "locators": [
-        "Section 2 - Prognostic table"
-      ],
-      "categories": [
-        "prognosis"
-      ]
-    },
-    {
-      "entry_id": "GENED",
-      "gene": "GENED",
-      "locators": [
-        "Section 4 - Predisposition"
-      ],
-      "categories": [
-        "germline"
-      ]
-    }
-  ],
-  "geneless_statements": [
-    {
+      "category": "diagnosis",
       "locator": "Section 1 - Entity definition",
-      "summary": "A fixture-defining fusion defeats the entity criterion; no gene named at this point in the text."
+      "summary": "GENEA mutation defines Fixture Entity One subject to blast thresholds and a fixture-defining fusion exclusion."
+    },
+    {
+      "claim_id": "CLAIM-002",
+      "genes": [
+        "GENEB"
+      ],
+      "category": "diagnosis",
+      "locator": "Section 1 - Entity definition",
+      "summary": "GENEB mutation refines an existing diagnostic category without changing the major category."
+    },
+    {
+      "claim_id": "CLAIM-003",
+      "genes": [
+        "GENEC"
+      ],
+      "category": "prognosis",
+      "locator": "Section 2 - Prognostic table",
+      "summary": "GENEC has both adjusted negative and earlier univariable adverse prognostic findings."
+    },
+    {
+      "claim_id": "CLAIM-004",
+      "genes": [
+        "GENED"
+      ],
+      "category": "germline",
+      "locator": "Section 4 - Predisposition",
+      "summary": "A constitutional GENED variant predisposes to the fixture myeloid neoplasm."
     }
   ],
   "paper_id": "aaaaaaaa-0000-0000-0000-000000000001",

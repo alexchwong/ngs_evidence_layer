@@ -70,12 +70,9 @@ def validate_metadata(metadata):
 
 def validate_census(census, metadata=None):
     errors = schema_errors(census, "census_schema.json", "census")
-    entry_ids = [entry.get("entry_id") for entry in census.get("entries", [])]
-    genes = [entry.get("gene") for entry in census.get("entries", [])]
-    if len(entry_ids) != len(set(entry_ids)):
-        errors.append("census contains duplicate entry_id values")
-    if len(genes) != len(set(genes)):
-        errors.append("census contains duplicate gene entries")
+    claim_ids = [entry.get("claim_id") for entry in census.get("entries", [])]
+    if len(claim_ids) != len(set(claim_ids)):
+        errors.append("census contains duplicate claim_id values")
     if metadata and census.get("paper_id") != metadata.get("paper_id"):
         errors.append("census paper_id does not match metadata")
     return errors
@@ -136,6 +133,14 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package paper_id does not match metadata")
     if package["census_entries"] != len(census.get("entries", [])):
         errors.append("package census_entries does not match census")
+    nickname = package.get("paper_nickname")
+    if require_final:
+        if not isinstance(nickname, str) or not nickname.strip():
+            errors.append("final package requires paper_nickname")
+        elif nickname != nickname.strip() or any(char in nickname for char in "\r\n\t"):
+            errors.append("paper_nickname must be a trimmed single-line string")
+    elif "paper_nickname" in package:
+        errors.append("provisional package must not contain paper_nickname")
     if package["round"] == 1 and not require_final:
         if package["publication_type"] != census.get("publication_type"):
             errors.append("first-round package publication_type does not match census")
@@ -248,14 +253,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             warnings.append(f"{card_id}: evidence is identical to {duplicate}; review independent utility")
         bundle_texts[normalized_bundle] = card_id
 
-    census_pairs = {
-        (entry["gene"], category)
-        for entry in census.get("entries", []) for category in entry.get("categories", [])
-    }
-    card_pairs = {
-        (gene, card["category"])
-        for card in package["cards"] for gene in card["genes"]
-    }
     covered_genes = sorted({gene for card in package["cards"] for gene in card["genes"]})
     covered_diseases = sorted({disease for card in package["cards"] for disease in card["diseases"]})
     if sorted(package["genes_covered"]) != covered_genes:
@@ -294,10 +291,7 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         "cards": len(card_ids),
         "census_entries": len(census.get("entries", [])),
         "ratio": round(len(card_ids) / len(census["entries"]), 2) if census.get("entries") else None,
-        "gene_category_pairs_with_no_card": [
-            {"gene": gene, "category": category}
-            for gene, category in sorted(census_pairs - card_pairs)
-        ],
+        "census_claims": len(census.get("entries", [])),
     }
     return errors, warnings, report
 

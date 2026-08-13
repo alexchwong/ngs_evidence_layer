@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """Single source of truth for closed disease vocabularies and retrieval relations.
-
 Evidence-card diseases, case-only disease options, taxonomy, categories and evidence
-ranks all live in ``schema/disease_vocabulary.json``. Explicit source aliases may map
-source wording to a canonical evidence-card disease; they do not extend the output
-vocabulary. ``umbrella`` remains taxonomy only. ``retrieval_related`` is a separate,
-directional, category-specific relation used only by case retrieval.
+ranks live in ``schema/disease_vocabulary.json``. Explicit source aliases live in
+``schema/source_disease_aliases.json``; they may map source wording to a canonical
+evidence-card disease but do not extend the output vocabulary. ``umbrella`` remains
+taxonomy only. ``retrieval_related`` is a separate, directional, category-specific
+relation used only by case retrieval.
 """
 import json
 from pathlib import Path
-
 SCHEMA_DIR = Path(__file__).resolve().parent.parent / "schema"
 VOCAB_PATH = SCHEMA_DIR / "disease_vocabulary.json"
+SOURCE_DISEASE_ALIASES_PATH = SCHEMA_DIR / "source_disease_aliases.json"
 PACKAGE_SCHEMA_PATH = SCHEMA_DIR / "ingestion_package_schema.json"
-
 _VOCAB = json.loads(VOCAB_PATH.read_text(encoding="utf-8"))
 DISEASES = list(_VOCAB["diseases"])
 DISEASE_SET = set(DISEASES)
-SOURCE_DISEASE_ALIASES = dict(_VOCAB.get("source_disease_aliases", {}))
+SOURCE_DISEASE_ALIASES = dict(
+    json.loads(SOURCE_DISEASE_ALIASES_PATH.read_text(encoding="utf-8"))
+)
 _NORMALIZED_SOURCE_DISEASE_ALIASES = {
     alias.strip().casefold(): target
     for alias, target in SOURCE_DISEASE_ALIASES.items()
@@ -40,14 +41,12 @@ DISEASE_NAMING_EXPECTED = set(_VOCAB["disease_naming_expected"])
 # Render and truncation order. Strongest tier first; truncation eats the tail.
 TIER_RANK = {tier: i for i, tier in enumerate(EVIDENCE_TIERS)}
 CATEGORY_RANK = {category: i for i, category in enumerate(CATEGORIES)}
-
 UNSPECIFIED_DISEASE = "myeloid neoplasm, unspecified"
 NO_HAEMATOLOGICAL_MALIGNANCY = "no_haematological_malignancy"
 
 
 def canonical_source_disease(term):
     """Resolve a canonical disease or an exact configured source alias.
-
     Alias matching ignores surrounding whitespace and letter case only. It does not
     perform fuzzy matching, stemming, punctuation changes, or nearest-term mapping.
     ``None`` means the source term is outside the controlled vocabulary and aliases.
@@ -70,7 +69,6 @@ def disease_ancestors(diseases):
     """
     requested = set(diseases)
     ancestors = set()
-
     def visit(disease, path):
         if disease in path:
             cycle = " -> ".join((*path, disease))
@@ -106,6 +104,10 @@ def check_vocabulary_consistency():
     schema = json.loads(PACKAGE_SCHEMA_PATH.read_text(encoding="utf-8"))
     enum = schema["$defs"]["disease"]["enum"]
     problems = []
+    if "source_disease_aliases" in _VOCAB:
+        problems.append(
+            "source disease aliases must live only in schema/source_disease_aliases.json"
+        )
     if list(enum) != DISEASES:
         problems.append(
             "ingestion_package_schema.json disease enum differs from disease_vocabulary.json"

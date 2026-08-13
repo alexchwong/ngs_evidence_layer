@@ -34,6 +34,10 @@ python scripts/fanout.py --corpus <name> --key <publication-key>
 python scripts/confirm.py --key <publication-key>
 python scripts/incorporate.py
 python scripts/build_secondary_source_backlog.py
+
+# Inspect the incorporated corpus as human-readable Markdown.
+python scripts/render_corpus.py --list
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
 ```
 
 Quarantine commands for a paper that must remain outside the corpus:
@@ -47,18 +51,32 @@ python scripts/quarantine.py list
 python scripts/quarantine.py review --key <publication-key> --note "<review-note>"
 ```
 
+Redo commands for re-running an accepted paper from Phase 1 or Phase 2:
+
+```bash
+# Redo the census and all downstream cards.
+python scripts/prepare_redo.py --key <publication-key> --phase 1
+
+# Keep the accepted census and redo cards/review/adjudication.
+python scripts/prepare_redo.py --key <publication-key> --phase 2
+
+# Complete the normal remaining phases, then confirm without --overwrite.
+python scripts/confirm.py --key <publication-key>
+python scripts/incorporate.py
+```
+
 Phase 5 commands for post-acceptance additions or card revisions:
 
 ```bash
 # Add missed evidence.
-python scripts/prepare_phase5.py --key <publication-key>
+python scripts/prepare_redo.py --key <publication-key> --phase 5
 
 # Or inspect the corpus and prepare selected accepted cards for revision.
-scripts/render_corpus --list
-scripts/render_corpus --key <publication-key> --dest ./temp/corpus
-python scripts/prepare_phase5.py --key <publication-key> --cards 0001,0003,0005
+python scripts/render_corpus.py --list
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,0005
 # Or release every accepted card from the publication into the revision allowlist.
-python scripts/prepare_phase5.py --key <publication-key> --cards all
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards all
 
 # Complete the Phase 5 authoring and independent review steps described below.
 # Revision mode: restate exactly the existing cards actually modified/deleted.
@@ -352,11 +370,11 @@ Once a provisional package has been produced, do not repeat Phase 2 after audit.
 #### Source disease aliases
 
 Phase 2 normally omits a card when the source-stated disease is outside the closed
-evidence-card vocabulary. A small reviewed allowlist in
-`schema/disease_vocabulary.json` under `source_disease_aliases` provides explicit
-exceptions. For example, source wording `clonal haematopoiesis` or `clonal
-haemopoiesis` is stored as canonical disease `CHIP`; the source wording must still be
-preserved in the evidence and interpretation.
+evidence-card vocabulary. Reviewed source wording aliases live in
+`schema/source_disease_aliases.json` and map complete source phrases to existing
+canonical disease terms from `schema/disease_vocabulary.json`. For example, source
+wording `clonal haematopoiesis` or `clonal haemopoiesis` can map to canonical disease
+`CHIP`; the source wording must still be preserved in the evidence and interpretation.
 
 Aliases are case-insensitive but otherwise exact. They do not enable fuzzy matching,
 stemming, punctuation substitution, semantic inference, or mapping to a nearest term.
@@ -404,8 +422,14 @@ Start a fresh chat with:
 - `paper.review-001.json`
 - `prompts/phase4_prompt.md`
 
-Phase 4 presents the cards and review findings for human adjudication. Discuss the cards
-with the model and make the final source-supported decisions.
+Phase 4 first proposes a concise paper nickname. Confirm it, provide a replacement, or
+send `FINALIZE` without a replacement to confirm the latest proposal. The confirmed
+value is stored as top-level `paper_nickname` in `paper.final.json`.
+
+Phase 4 presents only Phase 3 failures requiring human adjudication. Discuss those
+failed cards or publication-type findings with the model and make the final
+source-supported decisions. If Phase 3 found no failures, nickname confirmation is the
+only required interaction before finalization.
 
 Save the final output as:
 
@@ -452,11 +476,82 @@ The main outputs are:
 output/corpus/nel.corpus.json
 output/corpus/nel.index.json
 output/reports/build-report.json
+cards/<publication-key>.md
+evidence/<publication-key>.md
 ```
 
 `incorporate.py` reads from `accept/`. Invalid accepted packages are reported and
-excluded; valid accepted papers are incorporated. `nel.index.json` exposes papers by
-`accepted_in_version`, allowing corpus additions to be traced to a release.
+excluded; valid accepted papers are incorporated. `nel.index.json` exposes paper
+acceptance-version history. `cards/` is the committed human-readable card view;
+`evidence/` is the local evidence-and-interpretation view and remains ignored. Each
+incorporation replaces the generated Markdown views so they remain synchronized with
+the accepted corpus.
+
+### Render the incorporated corpus for inspection
+
+`scripts/render_corpus.py` provides a read-only Markdown view of the committed corpus
+outputs. List every publication key, card count, acceptance version, and citation:
+
+```bash
+python scripts/render_corpus.py --list
+```
+
+Render one publication and all of its accepted cards:
+
+```bash
+python scripts/render_corpus.py --key <publication-key>
+```
+
+Both commands print Markdown to standard output by default. To write files instead, pass
+a destination directory:
+
+```bash
+python scripts/render_corpus.py --list --dest ./temp/corpus
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
+```
+
+List mode writes `./temp/corpus/index.md`; publication mode writes
+`./temp/corpus/<publication-key>.md`. Publication output includes each card's full ID,
+short numeric ID, category, genes, diseases, disease ancestors, evidence tier,
+interpretation, locator, and secondary citation. The short IDs (for example `0001`) can
+be passed to `prepare_redo.py --phase 5 --cards` when preparing selected revisions.
+
+By default, the renderer reads:
+
+```text
+output/corpus/nel.index.json
+output/corpus/nel.corpus.json
+```
+
+To inspect a completed but not yet accepted `paper.final.json` directly from the working
+folder, use `--from-work`:
+
+```bash
+python scripts/render_corpus.py --key <publication-key> --from-work
+```
+
+This reads `work/<publication-key>/paper.final.json` and
+`work/<publication-key>/metadata.json`. Because the package has not yet been accepted,
+the rendered acceptance version is `—`.
+
+To inspect the current accepted package directly, without requiring incorporation, use
+`--from-accept`:
+
+```bash
+python scripts/render_corpus.py --key <publication-key> --from-accept
+```
+
+This reads `accept/<publication-key>.final.json`, including the embedded metadata and
+final package. For a Phase 5 supplement/revision or full redo, it reports the acceptance
+version from the newest dated modification record. Otherwise it reports `latest_version`
+for an overwritten paper, falling back to the original `accepted_in_version`.
+
+`--from-work` and `--from-accept` are mutually exclusive, require `--key`, and cannot be
+used with `--list`. Both support `--dest` in the same way as default publication mode.
+
+Use `--index <path>` and `--corpus <path>` to inspect alternate generated files. `--list`
+only requires the index; `--key` requires both files. The renderer does not modify the
+corpus, index, or accepted ingestion state.
 
 ### Rebuild the secondary-source curation backlog
 
@@ -494,6 +589,54 @@ The command never modifies `archive/`, `accept/`, or `output/`. `curation/` is i
 by Git but is included by `transport.py` when moving private corpus state to another
 computer.
 
+## 6A. Redo an accepted paper from Phase 1 or Phase 2
+
+Use a full redo when the accepted census or card extraction should be rebuilt rather than
+patched with Phase 5. Preparation creates `work/<publication-key>/` and a `redo.json`
+marker that authorises replacement of the current Phase 1–4 lineage.
+
+Redo the census and every downstream phase:
+
+```bash
+python scripts/prepare_redo.py --key <publication-key> --phase 1
+```
+
+Phase 1 preparation restores `paper.md` and `metadata.json`, plus frozen baseline files
+used only by local confirmation. Generate a new `paper.census.json`, then continue through
+Phases 2–4.
+
+Keep the accepted census and rebuild cards from Phase 2:
+
+```bash
+python scripts/prepare_redo.py --key <publication-key> --phase 2
+```
+
+Phase 2 preparation additionally restores the accepted `paper.census.json`. The census
+must remain equivalent as JSON through confirmation; use `--phase 1` if it needs to
+change. `--cards` is not valid for Phase 1 or Phase 2 redo.
+
+Both modes create:
+
+```text
+paper.base.final.json
+paper.base.census.json
+redo.json
+```
+
+Do not edit these baseline files or `redo.json`. After completing the remaining normal
+phases, confirm normally:
+
+```bash
+python scripts/confirm.py --key <publication-key>
+```
+
+`confirm.py` detects `redo.json`, verifies that the accepted baseline has not changed since
+preparation, validates the complete replacement Phase 1–4 lineage, and replaces the
+accepted final/census and current archive. The superseded accepted envelope, census, and
+archive are retained under `archive/<publication-key>/redo/NNN/`. Repeated redos therefore
+do not require a release-version change. Existing Phase 5 supplement/revision records are
+not carried onto the new current lineage; they remain preserved in the redo snapshot.
+
 ## 7. Phase 5 — post-acceptance additions and card revisions
 
 Use Phase 5 after a paper has already been accepted. It supports two modes:
@@ -502,24 +645,24 @@ Use Phase 5 after a paper has already been accepted. It supports two modes:
 - **revision mode** modifies or deletes explicitly authorised accepted cards.
 
 Neither mode may change the census. Structural changes to an accepted card's identity or
-applicability require a full re-ingest.
+applicability require a redo from Phase 2, or Phase 1 if the census must also change.
 
 ### Browse accepted publications and cards
 
 List publication keys with their citations:
 
 ```bash
-scripts/render_corpus --list
+python scripts/render_corpus.py --list
 ```
 
 Render one publication's accepted cards to Markdown:
 
 ```bash
-scripts/render_corpus --key <publication-key> --dest ./temp/corpus
+python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
 ```
 
 This writes `./temp/corpus/<publication-key>.md`. Each card is headed by its short numeric
-ID (for example `0001`) so those IDs can be passed directly to `prepare_phase5.py`. The
+ID (for example `0001`) so those IDs can be passed directly to `prepare_redo.py --phase 5 --cards`. The
 renderer is read-only and uses the committed corpus/index outputs.
 
 ### Prepare additive Phase 5
@@ -527,7 +670,7 @@ renderer is read-only and uses the committed corpus/index outputs.
 Restore an accepted paper for an additive supplement:
 
 ```bash
-python scripts/prepare_phase5.py --key <publication-key>
+python scripts/prepare_redo.py --key <publication-key> --phase 5
 ```
 
 This restores the archived Phase 1–4 files into `work/<publication-key>/`, overlays the
@@ -550,8 +693,8 @@ Send `CONFIRM CHANGES` to approve that set; only then does Phase 5 produce the m
 Select the accepted cards that may be modified/deleted, or release all accepted cards:
 
 ```bash
-python scripts/prepare_phase5.py --key <publication-key> --cards 0001,0003,0005
-python scripts/prepare_phase5.py --key <publication-key> --cards all
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,0005
+python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards all
 ```
 
 The selected IDs are a local allowlist; `all` expands to every accepted card in the
