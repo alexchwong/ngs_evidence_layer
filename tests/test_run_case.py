@@ -72,7 +72,7 @@ class RunCaseDiagnosisTests(unittest.TestCase):
 
     def test_default_work_directory_filenames(self):
         run("diagnosis", "--work-dir", self.work)
-        self.assertTrue((self.work / "step2.json").is_file())
+        self.assertTrue((self.work / "diagnostic_evidence.md").is_file())
 
     def test_secure_temp_directory_created_when_omitted(self):
         output, _ = run("diagnosis", "--case-input", self.work / "case-input.json")
@@ -95,10 +95,10 @@ class RunCaseDiagnosisTests(unittest.TestCase):
         self.assertIn("overriding case-input genes from --genes", output)
         self.assertIn("overriding case-input provisional-disease from --provisional-disease", output)
         self.assertIn("overriding case-input case-major-category from --case-major-category", output)
-        result = json.loads((self.work / "step2.json").read_text(encoding="utf-8"))
-        self.assertEqual(result["genes"], ["NPM1"])
-        self.assertEqual(result["provisional_disease"], "MDS")
-        self.assertEqual(result["case_major_category"], "MDS")
+        text = (self.work / "diagnostic_evidence.md").read_text(encoding="utf-8")
+        self.assertIn("- Genes: NPM1", text)
+        self.assertIn("- Provisional disease: MDS", text)
+        self.assertIn("- Case major category: MDS", text)
 
     def test_non_zero_child_exit_propagation(self):
         (self.work / "case-input.json").write_text("{ not json", encoding="utf-8")
@@ -115,7 +115,7 @@ class RunCaseDiagnosisTests(unittest.TestCase):
 
     def test_operation_from_non_repository_cwd(self):
         run("diagnosis", "--work-dir", self.work, cwd=self.tmp.name)
-        self.assertTrue((self.work / "step2.json").is_file())
+        self.assertTrue((self.work / "diagnostic_evidence.md").is_file())
 
 
 class RunCaseFullTests(unittest.TestCase):
@@ -135,26 +135,24 @@ class RunCaseFullTests(unittest.TestCase):
         output, _ = run("full", "--work-dir", self.work)
         self.assertLess(
             output.index("step 4: retrieve full evidence bundle"),
-            output.index("step 5: render evidence block"),
+            output.index("step 5: render evidence"),
         )
         self.assertTrue((self.work / "bundle.json").is_file())
-        self.assertTrue((self.work / "block.md").is_file())
-        self.assertTrue((self.work / "evidence.json").is_file())
+        self.assertTrue((self.work / "evidence.md").is_file())
         self.assertTrue((self.work / "card-tags.json").is_file())
 
     def test_render_not_called_when_retrieval_fails(self):
         (self.work / "adjudication.json").write_text("{}", encoding="utf-8")
         output, _ = run("full", "--work-dir", self.work, success=False)
         self.assertIn("step 4: retrieve full evidence bundle failed", output)
-        self.assertNotIn("step 5: render evidence block", output)
-        self.assertFalse((self.work / "block.md").exists())
-        self.assertFalse((self.work / "evidence.json").exists())
+        self.assertNotIn("step 5: render evidence", output)
+        self.assertFalse((self.work / "evidence.md").exists())
+        self.assertFalse((self.work / "evidence.md").exists())
 
     def test_default_input_and_output_paths(self):
         run("full", "--work-dir", self.work)
         self.assertTrue((self.work / "bundle.json").is_file())
-        self.assertTrue((self.work / "block.md").is_file())
-        self.assertTrue((self.work / "evidence.json").is_file())
+        self.assertTrue((self.work / "evidence.md").is_file())
         self.assertTrue((self.work / "card-tags.json").is_file())
 
     def test_advanced_path_forwarding(self):
@@ -162,16 +160,14 @@ class RunCaseFullTests(unittest.TestCase):
         alt.mkdir()
         run(
             "full", "--work-dir", self.work,
-            "--diagnosis-result", self.work / "step2.json",
+            "--diagnosis-result", self.work / "diagnostic_evidence.md",
             "--adjudication-result", self.work / "adjudication.json",
             "--bundle-output", alt / "bundle.json",
-            "--output", alt / "block.md",
-            "--evidence-output", alt / "evidence.json",
+            "--output", alt / "evidence.md",
             "--card-tag-output", alt / "card-tags.json",
         )
         self.assertTrue((alt / "bundle.json").is_file())
-        self.assertTrue((alt / "block.md").is_file())
-        self.assertTrue((alt / "evidence.json").is_file())
+        self.assertTrue((alt / "evidence.md").is_file())
         self.assertTrue((alt / "card-tags.json").is_file())
 
     def test_token_budget_forwarding(self):
@@ -189,29 +185,25 @@ class RunCaseFullTests(unittest.TestCase):
     def test_missing_bundle_detection(self):
         output, _ = run(
             "full", "--work-dir", self.work,
-            "--diagnosis-result", self.dir / "missing-step2.json",
+            "--diagnosis-result", self.dir / "missing-diagnostic-evidence.md",
             success=False,
         )
         self.assertIn("failed", output)
 
     def test_stale_block_not_delivered_after_failure(self):
-        stale = self.work / "block.md"
-        stale_evidence = self.work / "evidence.json"
+        stale = self.work / "evidence.md"
         stale_tags = self.work / "card-tags.json"
         stale.write_text("stale", encoding="utf-8")
-        stale_evidence.write_text("stale", encoding="utf-8")
         stale_tags.write_text("stale", encoding="utf-8")
         (self.work / "adjudication.json").write_text("{}", encoding="utf-8")
         run("full", "--work-dir", self.work, success=False)
         self.assertFalse(stale.exists())
-        self.assertFalse(stale_evidence.exists())
         self.assertFalse(stale_tags.exists())
 
     def test_output_status_names_final_absolute_path(self):
         output, _ = run("full", "--work-dir", self.work)
         self.assertIn(
-            f"[run_case] outputs: {(self.work / 'block.md').resolve()}, "
-            f"{(self.work / 'evidence.json').resolve()}, "
+            f"[run_case] outputs: {(self.work / 'evidence.md').resolve()}, "
             f"{(self.work / 'card-tags.json').resolve()}",
             output,
         )

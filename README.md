@@ -37,8 +37,8 @@ Use one of the modes defined in `SKILL.md`.
 | Mode | Use when | Output |
 |---|---|---|
 | `ngs-report` | You want a complete NGS report from a new case. | `report-final.md` rendered in chat |
-| `evidence-block` | You want the retrieved evidence without a final report. | `block.md` |
-| `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `block.md` |
+| `evidence-block` | You want the retrieved evidence without a final report. | `evidence.md` |
+| `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `evidence.md` |
 | `evidence-to-report` | You already have a completed evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
 | `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
 | `nel-validate <case-id>` | You want to run a bundled validation case and score the generated report. | Generated report and marking result |
@@ -114,7 +114,7 @@ evidence-block
 <clinical case>
 ```
 
-to return `block.md` without generating a final NGS report.
+to return `evidence.md` without generating a final NGS report.
 
 Use:
 
@@ -135,7 +135,7 @@ If Steps 1–5 have already been completed, provide the retained work directory 
 evidence-to-report
 ```
 
-NEL verifies that the required `case.md` and `block.md` are present, then performs only
+NEL verifies that the required `case.md` and `evidence.md` are present, then performs only
 the reporting steps.
 
 ### Demo mode

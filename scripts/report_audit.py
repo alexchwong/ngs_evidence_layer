@@ -3,7 +3,7 @@
 
 The model answers every reporting rule and assigns short runtime ``card_tags`` in
 one pass. This script enforces the complete rule checklist, explicit citation
-state, and exact membership of every tag in ``evidence.json`` before rendering
+state, and exact membership of every tag in ``evidence.md`` before rendering
 marker-bearing Markdown for the formatting step.
 """
 
@@ -47,35 +47,15 @@ def require_exact_keys(value, expected, *, location):
         raise ValueError(f"{location} has invalid fields: {'; '.join(details)}")
 
 
-def evidence_card_tags(evidence):
-    require_exact_keys(
-        evidence,
-        {"schema_version", "cards", "not_assessed", "suppressed", "provenance"},
-        location="evidence",
-    )
-    if evidence["schema_version"] != "1.0":
-        raise ValueError("evidence schema_version must be '1.0'")
-    cards = evidence["cards"]
-    if not isinstance(cards, list):
-        raise ValueError("evidence cards must be an array")
-    tags = []
-    for index, card in enumerate(cards):
-        if not isinstance(card, dict):
-            raise ValueError(f"evidence cards[{index}] must be an object")
-        tag = card.get("card_tag")
-        if not isinstance(tag, str) or CARD_TAG.fullmatch(tag) is None:
-            raise ValueError(
-                f"evidence cards[{index}].card_tag must be exactly six lowercase hex characters"
-            )
-        if "card_id" in card:
-            raise ValueError(f"evidence cards[{index}] must not expose full card_id")
-        tags.append(tag)
-    if len(tags) != len(set(tags)):
-        raise ValueError("evidence contains duplicate card_tag values")
+def evidence_card_tags(evidence_text):
+    """Return runtime card tags exposed by evidence.md."""
+    tags = re.findall(r"\[card:([0-9a-f]{6})\]", evidence_text)
+    if not tags:
+        raise ValueError("evidence.md contains no runtime card tags")
     return set(tags)
 
 
-def validate_analysis(payload, evidence):
+def validate_analysis(payload, evidence_text):
     require_exact_keys(payload, {"schema_version", "answers"}, location="document")
     if payload["schema_version"] != "1.0":
         raise ValueError("document schema_version must be '1.0'")
@@ -87,7 +67,7 @@ def validate_analysis(payload, evidence):
             f"document must contain {len(EXPECTED_RULE_IDS)} answers; found {len(answers)}"
         )
 
-    known_tags = evidence_card_tags(evidence)
+    known_tags = evidence_card_tags(evidence_text)
     unknown = {}
     fields = {"rule_id", "text", "citation_status", "card_tags"}
     for index, (answer, expected_rule_id) in enumerate(
@@ -165,8 +145,8 @@ def main():
     args = parser.parse_args()
     try:
         analysis = read_json(args.analysis)
-        evidence = read_json(args.evidence)
-        validate_analysis(analysis, evidence)
+        evidence_text = args.evidence.read_text(encoding="utf-8")
+        validate_analysis(analysis, evidence_text)
         if args.command == "render":
             write_text(args.output, render_markdown(analysis))
             output = args.output

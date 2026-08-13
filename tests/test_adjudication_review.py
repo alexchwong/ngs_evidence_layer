@@ -178,9 +178,9 @@ class AdjudicationReviewTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            step2_path = tmp / "step2.json"
+            step2_path = tmp / "diagnostic_evidence.md"
             adjudication_path = tmp / "adjudication.json"
-            step2_path.write_text(json.dumps(self.step2), encoding="utf-8")
+            step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
             adjudication_path.write_text(json.dumps(adjudication), encoding="utf-8")
             args = argparse.Namespace(
                 diagnosis_result=step2_path,
@@ -225,9 +225,9 @@ class AdjudicationReviewTests(unittest.TestCase):
     def test_run_full_rejects_pending_before_corpus_access(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
-            step2_path = tmp / "step2.json"
+            step2_path = tmp / "diagnostic_evidence.md"
             adjudication_path = tmp / "adjudication.json"
-            step2_path.write_text(json.dumps(self.step2), encoding="utf-8")
+            step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
             adjudication_path.write_text(json.dumps(self.pending), encoding="utf-8")
             args = argparse.Namespace(
                 diagnosis_result=step2_path,

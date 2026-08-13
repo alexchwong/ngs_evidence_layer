@@ -14,7 +14,7 @@ and every number points at a reference contributed by a rendered card.
 Order: category, then gene, then evidence tier strongest first, then publication
 year descending, then card ID.
 Usage:
-  render.py --bundle bundle.json > block.md
+  render.py --bundle bundle.json > evidence.md
   render.py --bundle bundle.json --token-budget 120000 --format json
 """
 import argparse
@@ -166,8 +166,6 @@ def format_card(card):
         format_field("Interpretation", card.get("interpretation")),
         format_field("Citation marker", f"[card:{inline_text(card['card_id'])}]"),
     ])
-    if card.get("escalates_to"):
-        out.append(format_field("Escalates to", card["escalates_to"]))
     return out
 
 def build_card_reference_map(lines, card_map, sorted_cards):
@@ -250,7 +248,6 @@ def serialise_card(card):
         "evidence_tier": card.get("evidence_tier"),
         "interpretation": card.get("interpretation"),
         "locator": card.get("locator"),
-        "escalates_to": card.get("escalates_to"),
         # Retained for compatibility with the previous rendered_facts shape.
         "card_ids": [card["card_id"]],
     }
@@ -490,7 +487,7 @@ def build_card_tags(rendered_cards):
     six-character collision occurs within the current rendered set, rehash that
     card with a deterministic numeric salt until an unused six-character tag is
     found. The returned mapping is the only deconvolution boundary; full card IDs
-    are not exposed in ``evidence.json``.
+    are not exposed in ``evidence.md``.
     """
     used = {}
     rows = []
@@ -512,33 +509,36 @@ def build_card_tags(rendered_cards):
     }
 
 
-def evidence_payload(bundle, result, tag_map):
-    """Return the compact card-level Step 6 evidence boundary for model consumption."""
+
+def evidence_markdown(result, tag_map):
+    """Render the single model-facing evidence Markdown using runtime card tags."""
     tag_by_id = {row["card_id"]: row["card_tag"] for row in tag_map["tags"]}
-    return {
-        "schema_version": "1.0",
-        "cards": [
-            {
-                "card_tag": tag_by_id[card["card_id"]],
-                "category": card["category"],
-                "genes": card["genes"],
-                "diseases": card["diseases"],
-                "evidence_tier": card["evidence_tier"],
-                "interpretation": card["interpretation"],
-                "escalates_to": card["escalates_to"],
-            }
-            for card in result["rendered_cards"]
-        ],
-        "not_assessed": list(bundle.get("not_assessed") or []),
-        "suppressed": {
-            "count": (bundle.get("suppressed") or {}).get("count", 0),
-            "by_disease": dict((bundle.get("suppressed") or {}).get("by_disease") or {}),
-        },
-        "provenance": {
-            "corpus_version": (bundle.get("provenance") or {}).get("corpus_version"),
-            "corpus_sha256": (bundle.get("provenance") or {}).get("corpus_sha256"),
-        },
-    }
+    lines = result["text"].splitlines()
+    rendered = []
+    in_refs = False
+    for line in lines:
+        if line == "# Evidence block":
+            rendered.append("# Evidence")
+            continue
+        if line == "## Refs":
+            in_refs = True
+            rendered.append(line)
+            continue
+        if in_refs and line and ": primary ref " in line:
+            card_text, rest = line.split(": ", 1)
+            tags = []
+            for card_id in card_text.split(","):
+                if card_id not in tag_by_id:
+                    raise ValueError(f"rendered reference mapping names unknown card {card_id}")
+                tags.append(tag_by_id[card_id])
+            rendered.append(f"{','.join(tags)}: {rest}")
+            continue
+        for card_id, tag in tag_by_id.items():
+            line = line.replace(f"[card:{card_id}]", f"[card:{tag}]")
+            if line == f"### {card_id}":
+                line = f"### Card {tag}"
+        rendered.append(line)
+    return "\n".join(rendered).rstrip() + "\n"
 
 def main():
     parser = argparse.ArgumentParser(
@@ -546,13 +546,7 @@ def main():
     )
     parser.add_argument("--bundle", type=Path, required=True, help="step 4 output")
     parser.add_argument("--token-budget", type=int, default=DEFAULT_TOKEN_BUDGET)
-    parser.add_argument("--format", choices=["text", "json"], default="text")
-    parser.add_argument("--output", type=Path)
-    parser.add_argument(
-        "--evidence-output",
-        type=Path,
-        help="write compact post-truncation Step 6 evidence JSON",
-    )
+    parser.add_argument("--output", type=Path, help="write evidence.md")
     parser.add_argument(
         "--card-tag-output",
         type=Path,
@@ -567,25 +561,12 @@ def main():
         sys.exit("render expects a step 4 bundle from retrieve.py full")
     result = render(bundle, args.token_budget)
     tag_map = build_card_tags(result["rendered_cards"])
-    if args.format == "json":
-        payload = json.dumps(result, indent=2, ensure_ascii=False)
-    else:
-        payload = result["text"]
+    payload = evidence_markdown(result, tag_map)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
-            payload if payload.endswith("\n") else payload + "\n",
-            encoding="utf-8",
-        )
+        args.output.write_text(payload, encoding="utf-8")
     else:
-        print(payload, end="" if payload.endswith("\n") else "\n")
-    if args.evidence_output:
-        args.evidence_output.parent.mkdir(parents=True, exist_ok=True)
-        args.evidence_output.write_text(
-            json.dumps(evidence_payload(bundle, result, tag_map), indent=2, ensure_ascii=False)
-            + "\n",
-            encoding="utf-8",
-        )
+        print(payload, end="")
     if args.card_tag_output:
         args.card_tag_output.parent.mkdir(parents=True, exist_ok=True)
         args.card_tag_output.write_text(

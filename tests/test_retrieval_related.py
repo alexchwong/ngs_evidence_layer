@@ -164,6 +164,27 @@ class CaseMajorCategoryStep2Tests(unittest.TestCase):
         self.assertEqual(result["allowed_refined_diseases"], ["MDS"])
         self.assertLess(len(result["allowed_refined_diseases"]), len(vocab.DISEASES))
 
+    def test_step2_cards_omit_retrieval_and_citation_metadata(self):
+        mds = card("mds-dx", "MDS", "diagnosis", gene="TET2")
+        result = retrieve.step2(
+            [mds], ["TET2"], "MDS", [], case_major_category="MDS"
+        )
+        output = result["diagnosis_cards"][0]
+        for field in (
+            "category",
+            "locator",
+            "publication_key",
+            "citation_display",
+            "citation_incomplete",
+            "matched_genes",
+            "matched_case_major_category",
+            "matched_retrieval_related_diseases",
+        ):
+            self.assertNotIn(field, output)
+        self.assertEqual(output["card_id"], "mds-dx")
+        self.assertEqual(output["diseases"], ["MDS"])
+        self.assertEqual(output["interpretation"], "mds-dx interpretation")
+
 
 class RetrievalRelatedStep4Tests(unittest.TestCase):
     def test_secondary_mf_retrieves_exact_pmf_and_mpn_cards(self):

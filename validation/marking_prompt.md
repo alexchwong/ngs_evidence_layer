@@ -102,7 +102,7 @@ You will receive:
 2. `validation-case.md` — the original clinical, morphological and laboratory case information.
 3. `report-final.md` — the candidate NEL report to mark.
 4. `marking-criteria.md` — the case-specific RnCm marking criteria.
-5. `block.md` — NEL evidence for verifying literature claims and citations only.
+5. `evidence.md` — NEL evidence for verifying literature claims and citations only.
 
 ### Core task
 
@@ -126,9 +126,9 @@ Do not calculate points, percentages, averages or a single overall category.
 ### General marking rules
 
 - Mark `report-final.md` only. Content absent from the final report is absent for scoring, even if it may have appeared earlier in the NEL workflow.
-- The case-specific marking criteria define what conclusions are required. Do not create additional requirements from `block.md` or outside knowledge.
+- The case-specific marking criteria define what conclusions are required. Do not create additional requirements from `evidence.md` or outside knowledge.
 - Use `validation-case.md` as the sole source of supplied patient facts.
-- Use `block.md` only to verify whether literature-derived claims and citations in `report-final.md` are supported; do not use it to add expected conclusions beyond the marking criteria.
+- Use `evidence.md` only to verify whether literature-derived claims and citations in `report-final.md` are supported; do not use it to add expected conclusions beyond the marking criteria.
 - Do not use outside medical knowledge or external sources.
 - For a purely prohibitive criterion such as “do not infer” or “do not calculate”, silence satisfies that prohibition. Do not require an explicit negative statement unless the criterion itself requires one.
 - Compare the candidate report only with the supplied case information and case-specific expected criteria.
@@ -145,7 +145,7 @@ Do not calculate points, percentages, averages or a single overall category.
 - Do not penalise concise wording when the required meaning is clear.
 - Do not reward repetition, verbosity or restatement of supplied clinical and morphological facts unless needed to support the molecular interpretation.
 - A material incorrect assertion within an applicable rubric is a commission error even when the answer also contains the correct conclusion.
-- Use the hallucination category only when fabrication or material misrepresentation is demonstrable from the supplied inputs. Do not label a citation hallucinated merely because support cannot be determined from `block.md`.
+- Use the hallucination category only when fabrication or material misrepresentation is demonstrable from the supplied inputs. Do not label a citation hallucinated merely because support cannot be determined from `evidence.md`.
 
 ### MRD-specific rules
 

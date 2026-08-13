@@ -24,23 +24,20 @@ def analysis_payload():
     }
 
 
-EVIDENCE = {
-    "schema_version": "1.0",
-    "cards": [
-        {
-            "card_tag": "a1b2c3",
-            "category": "prognosis",
-            "genes": ["NPM1"],
-            "diseases": ["AML"],
-            "evidence_tier": "guideline criterion",
-            "interpretation": "A supported assertion.",
-            "escalates_to": None,
-        }
-    ],
-    "not_assessed": [],
-    "suppressed": {},
-    "provenance": {},
-}
+EVIDENCE = """# Evidence
+
+### Fixture
+
+- Citation marker: [card:a1b2c3]
+
+## Refs
+
+a1b2c3: primary ref 1
+
+## References
+
+1. Fixture reference.
+"""
 
 
 class AnalysisValidationTests(unittest.TestCase):
@@ -91,10 +88,9 @@ class AnalysisValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must not contain duplicates"):
             report_audit.validate_analysis(payload, EVIDENCE)
 
-    def test_evidence_must_not_expose_full_card_id(self):
-        evidence = {**EVIDENCE, "cards": [{**EVIDENCE["cards"][0], "card_id": "paper-C0001"}]}
-        with self.assertRaisesRegex(ValueError, "must not expose full card_id"):
-            report_audit.validate_analysis(analysis_payload(), evidence)
+    def test_evidence_requires_runtime_card_tags(self):
+        with self.assertRaisesRegex(ValueError, "contains no runtime card tags"):
+            report_audit.validate_analysis(analysis_payload(), "# Evidence\n")
 
 
 class RenderTests(unittest.TestCase):

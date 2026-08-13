@@ -26,7 +26,7 @@ def main():
     try:
         if not args.case.is_file():
             raise ValueError(f"case file not found: {args.case}")
-        step2 = json.loads(args.diagnosis_result.read_text(encoding="utf-8"))
+        step2 = retrieve.parse_step_markdown(args.diagnosis_result)
         adjudication = json.loads(args.adjudication_result.read_text(encoding="utf-8"))
         retrieve.validate_adjudication(step2, adjudication, require_completed_review=True)
         diagnosis = _effective_diagnosis(adjudication)

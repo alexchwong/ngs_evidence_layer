@@ -106,7 +106,7 @@ class RenderMappingTests(unittest.TestCase):
         self.assertIn("- Evidence tier: multivariable-adjusted", text)
         self.assertIn("- Interpretation: Interpretation text.", text)
         self.assertIn("- Citation marker: [card:C1-1]", text)
-        self.assertIn("- Escalates to: primary study", text)
+        self.assertNotIn("Escalates to", text)
         self.assertNotIn("- Card ID:", text)
         self.assertNotIn("- Retrieval match:", text)
         self.assertNotIn("- Matched retrieval_related disease:", text)
@@ -356,26 +356,15 @@ class RenderMappingTests(unittest.TestCase):
         self.assertEqual(sorted(mapped), sorted(rendered))
         self.assertEqual(len(mapped), len(set(mapped)))
 
-    def test_compact_evidence_payload_uses_post_truncation_cards(self):
-        source_bundle = bundle([
-            card("C1-1", "Strong.", tier="guideline criterion"),
-            card("C1-2", "Droppable.", tier="restated secondary"),
-        ])
-        result = render.render(source_bundle, token_budget=100)
-        tag_map = render.build_card_tags(result["rendered_cards"])
-        evidence = render.evidence_payload(source_bundle, result, tag_map)
-
-        self.assertEqual(evidence["schema_version"], "1.0")
-        self.assertEqual(
-            [item["card_tag"] for item in evidence["cards"]],
-            [item["card_tag"] for item in tag_map["tags"]],
-        )
-        self.assertTrue(all(len(item["card_tag"]) == 6 for item in evidence["cards"]))
-        self.assertTrue(all("card_id" not in item for item in evidence["cards"]))
-        self.assertNotIn("text", evidence)
-        self.assertNotIn("references", evidence)
-        self.assertNotIn("card_ids", evidence["cards"][0])
-        self.assertNotIn("publication_key", evidence["cards"][0])
+    def test_evidence_markdown_uses_runtime_tags(self):
+        fixture = bundle([card("paper-a-C0001", "Text.")])
+        result = render.render(fixture, token_budget=100000)
+        tags = render.build_card_tags(result["rendered_cards"])
+        text = render.evidence_markdown(result, tags)
+        tag = tags["tags"][0]["card_tag"]
+        self.assertIn(f"[card:{tag}]", text)
+        self.assertIn(f"{tag}: primary ref 1", text)
+        self.assertNotIn("[card:paper-a-C0001]", text)
 
     def test_every_mapped_number_resolves_to_bibliography_entry(self):
         secondary = {

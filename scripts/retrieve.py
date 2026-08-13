@@ -16,6 +16,7 @@ category. Germline remains gene-only.
 import argparse
 import hashlib
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -72,6 +73,172 @@ def flatten(corpus):
 
 def match_genes(card, wanted):
     return sorted({gene.upper() for gene in card["genes"]} & wanted)
+
+
+def step2_card_view(card):
+    """Return only diagnosis-card fields needed by the Step-3 model boundary."""
+    return {
+        "card_id": card["card_id"],
+        "genes": list(card.get("genes") or []),
+        "diseases": list(card.get("diseases") or []),
+        "evidence_tier": card.get("evidence_tier"),
+        "interpretation": card.get("interpretation"),
+        "paper_nickname": card.get("paper_nickname"),
+        "publication_year": card.get("publication_year"),
+        "secondary_citation": card.get("secondary_citation"),
+    }
+
+
+
+def render_step_markdown(result):
+    """Render the persisted diagnostic-evidence boundary as compact Markdown."""
+    lines = [
+        "# Step 2 diagnosis evidence",
+        "",
+        f"- Case major category: {result['case_major_category']}",
+        f"- Provisional disease: {result['provisional_disease']}",
+        f"- Genes: {', '.join(result['genes']) if result['genes'] else 'none'}",
+        f"- Allowed refined diseases: {' | '.join(result['allowed_refined_diseases'])}",
+        f"- Genes with no diagnosis card: {', '.join(result['genes_with_no_diagnosis_card']) if result['genes_with_no_diagnosis_card'] else 'none'}",
+        "",
+        "## Case facts",
+        "",
+    ]
+    for fact in result['case_facts']:
+        fact_id = fact['fact_id']
+        payload = {k: v for k, v in fact.items() if k != 'fact_id'}
+        lines.append(f"- `{fact_id}`: {json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}")
+    if not result['case_facts']:
+        lines.append("None.")
+    lines.extend(["", "## Diagnosis cards", ""])
+    for card in result['diagnosis_cards']:
+        lines.append(f"### {card['card_id']}")
+        if card.get('paper_nickname'):
+            year = f" ({card['publication_year']})" if card.get('publication_year') else ""
+            lines.append(f"- Paper: {card['paper_nickname']}{year}")
+        elif card.get('publication_year'):
+            lines.append(f"- Publication year: {card['publication_year']}")
+        lines.append(f"- Genes: {', '.join(card.get('genes') or []) if card.get('genes') else 'none'}")
+        lines.append(f"- Diseases: {' | '.join(card.get('diseases') or []) if card.get('diseases') else 'none'}")
+        lines.append(f"- Evidence tier: {card.get('evidence_tier') or 'not specified'}")
+        lines.append(f"- Interpretation: {inline_step_text(card.get('interpretation'))}")
+        if card.get('secondary_citation'):
+            lines.append(f"- Secondary citation: {inline_step_text(card['secondary_citation'])}")
+        lines.append("")
+    lines.extend([
+        "## Retrieval state",
+        "",
+        f"- Corpus path: {result['corpus']['path']}",
+        f"- Index path: {result['corpus']['index']}",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def inline_step_text(value):
+    if value is None:
+        return "not specified"
+    return " ".join(str(value).split())
+
+
+def parse_step_markdown(path):
+    """Parse a diagnostic-evidence boundary produced by render_step_markdown."""
+    text = Path(path).read_text(encoding='utf-8')
+    lines = text.splitlines()
+    if not lines or lines[0] != '# Step 2 diagnosis evidence':
+        raise ValueError('diagnosis result is not a valid diagnostic_evidence.md')
+
+    def bullet(prefix):
+        target = f'- {prefix}: '
+        for line in lines:
+            if line.startswith(target):
+                return line[len(target):]
+        raise ValueError(f'diagnostic_evidence.md missing {prefix}')
+
+    genes_text = bullet('Genes')
+    no_card_text = bullet('Genes with no diagnosis card')
+    allowed_text = bullet('Allowed refined diseases')
+    case_facts = []
+    try:
+        fact_start = lines.index('## Case facts') + 1
+        card_start = lines.index('## Diagnosis cards')
+        state_start = lines.index('## Retrieval state')
+    except ValueError as exc:
+        raise ValueError('diagnostic_evidence.md is missing a required section') from exc
+    fact_re = re.compile(r"^- `([^`]+)`: (.+)$")
+    for line in lines[fact_start:card_start]:
+        if not line.strip() or line == 'None.':
+            continue
+        match = fact_re.fullmatch(line)
+        if not match:
+            raise ValueError(f'malformed case fact in diagnostic_evidence.md: {line!r}')
+        try:
+            payload = json.loads(match.group(2))
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f'malformed case fact JSON in diagnostic_evidence.md: {exc}'
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ValueError('diagnostic_evidence.md case fact payload must be an object')
+        case_facts.append({'fact_id': match.group(1), **payload})
+
+    cards = []
+    current = None
+    for line in lines[card_start + 1:state_start]:
+        if line.startswith('### '):
+            if current is not None:
+                cards.append(current)
+            current = {
+                'card_id': line[4:].strip(), 'genes': [], 'diseases': [],
+                'paper_nickname': None, 'publication_year': None,
+                'secondary_citation': None,
+            }
+            continue
+        if current is None or not line.startswith('- '):
+            continue
+        key, sep, value = line[2:].partition(': ')
+        if not sep:
+            raise ValueError(
+                f'malformed diagnosis-card field in diagnostic_evidence.md: {line!r}'
+            )
+        if key == 'Paper':
+            m = re.fullmatch(r'(.*) \((\d{4})\)', value)
+            if m:
+                current['paper_nickname'] = m.group(1)
+                current['publication_year'] = int(m.group(2))
+            else:
+                current['paper_nickname'] = value
+        elif key == 'Publication year':
+            current['publication_year'] = int(value)
+        elif key == 'Genes':
+            current['genes'] = [] if value == 'none' else [x.strip() for x in value.split(',')]
+        elif key == 'Diseases':
+            current['diseases'] = [] if value == 'none' else [x.strip() for x in value.split(' | ')]
+        elif key == 'Evidence tier':
+            current['evidence_tier'] = value
+        elif key == 'Interpretation':
+            current['interpretation'] = value
+        elif key == 'Secondary citation':
+            current['secondary_citation'] = value
+    if current is not None:
+        cards.append(current)
+
+    result = {
+        'step': 2,
+        'case_major_category': bullet('Case major category'),
+        'provisional_disease': bullet('Provisional disease'),
+        'genes': [] if genes_text == 'none' else [x.strip() for x in genes_text.split(',')],
+        'case_facts': case_facts,
+        'diagnosis_cards': cards,
+        'allowed_refined_diseases': [x.strip() for x in allowed_text.split(' | ') if x.strip()],
+        'genes_with_no_diagnosis_card': [] if no_card_text == 'none' else [x.strip() for x in no_card_text.split(',')],
+        'corpus': {
+            'path': bullet('Corpus path'),
+            'index': bullet('Index path'),
+        },
+    }
+    validate_case_facts(result['case_facts'])
+    return result
 
 def provenance(corpus, corpus_path, index_path, digest, card_ids):
     return {
@@ -239,7 +406,10 @@ def step2(
         "provisional_disease": provisional_disease.strip(),
         "genes": sorted(wanted),
         "case_facts": case_facts,
-        "diagnosis_cards": sorted(hits, key=lambda item: item["card_id"]),
+        "diagnosis_cards": [
+            step2_card_view(hit)
+            for hit in sorted(hits, key=lambda item: item["card_id"])
+        ],
         "allowed_refined_diseases": allowed,
         "genes_with_no_diagnosis_card": sorted(wanted - genes_with_diagnosis_card),
     }
@@ -679,7 +849,7 @@ def run_diagnosis(args):
     return result
 
 def run_full(args):
-    step2_result = json.loads(Path(args.diagnosis_result).read_text(encoding="utf-8"))
+    step2_result = parse_step_markdown(args.diagnosis_result)
     adjudication = json.loads(Path(args.adjudication_result).read_text(encoding="utf-8"))
     validate_adjudication(
         step2_result,
@@ -737,20 +907,24 @@ def main():
     full.add_argument("--genes", nargs="+")
     full.add_argument("--corpus", type=Path)
     full.add_argument("--index", type=Path)
-    for sub_parser in (diagnosis, full):
-        sub_parser.add_argument("--output", type=Path, help="write JSON here instead of stdout")
+    diagnosis.add_argument("--output", type=Path, help="write Step-2 Markdown here instead of stdout")
+    full.add_argument("--output", type=Path, help="write Step-4 JSON bundle here instead of stdout")
     args = parser.parse_args()
     try:
         result = run_diagnosis(args) if args.command == "diagnosis" else run_full(args)
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         sys.exit(f"retrieval failed: {exc}")
-    payload = json.dumps(result, indent=2, ensure_ascii=False)
+    payload = (
+        render_step_markdown(result)
+        if args.command == "diagnosis"
+        else json.dumps(result, indent=2, ensure_ascii=False) + "\n"
+    )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(payload + "\n", encoding="utf-8")
+        args.output.write_text(payload, encoding="utf-8")
         print(f"wrote {args.output}", file=sys.stderr)
     else:
-        print(payload)
+        print(payload, end="" if payload.endswith("\n") else "\n")
 
 
 if __name__ == "__main__":

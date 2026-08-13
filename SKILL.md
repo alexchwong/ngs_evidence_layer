@@ -7,8 +7,8 @@ description: Builds a deterministic evidence block or NGS report for a myeloid N
 
 Perform only the mode explicitly requested by the user:
 
-- `evidence-block` — run Steps 0–5; diagnosis review is automatic (skip 3B). Return `<work-dir>/block.md`.
-- `evidence-block manual` — run Steps 0–5; Step 3B requires user confirmation or revision. Return `<work-dir>/block.md`.
+- `evidence-block` — run Steps 0–5; diagnosis review is automatic (skip 3B). Return `<work-dir>/evidence.md`.
+- `evidence-block manual` — run Steps 0–5; Step 3B requires user confirmation or revision. Return `<work-dir>/evidence.md`.
 - `ngs-report` — run Steps 0–6; diagnosis review is automatic (skip 3B) and reporting follows Step 5 without stopping. Step 7 renders `<work-dir>/report-final.md` in chat.
 - `evidence-to-report` — run Step 0, verify Step 5 outputs already exist, then run Steps 6A–6C only. Step 7 renders `<work-dir>/report-final.md` in chat.
 - `nel-demo example <N>` — resolve one numbered repository example and run the same automatic Steps 0–6 as `ngs-report`; Step 7 displays the case, generated report, and matching expected behaviour. Do not read the expected file before `report-final.md` is complete.
@@ -21,18 +21,18 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 0 — deterministic/setup: establish workflow state and `<work-dir>`; record `<format-prompt>` when needed.
 - Step 1A — model: capture the supplied clinical case verbatim in `case.md`.
 - Step 1B — deterministic/model: expose only the small case-major-category list, then structure `case.md` into `case-input.json`.
-- Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `step2.json`.
+- Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `diagnostic_evidence.md`.
 - Step 3A — model: adjudicate the diagnosis into `adjudication.json`.
-- Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded against `step2.json`.
+- Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded against `diagnostic_evidence.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
-- Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, render `block.md`, and render card-level `evidence.json` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
+- Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, then render the single model-facing `evidence.md` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
 - Step 6A — model + deterministic validation: answer every reporting rule and attach evidence-card tags in one `report-analysis.json` pass, then render `report-draft.md`.
 - Step 6B — model + deterministic validation: format `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
 - Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md`.
 
 `evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md`,
-`<work-dir>/evidence.json`, `<work-dir>/card-tags.json`, and a non-empty `<work-dir>/block.md` exist. Do not
+`<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist. Do not
 rerun skipped steps.
 
 
@@ -95,8 +95,7 @@ File access is **deny by default**.
    - do not use a formatting prompt outside `prompts/formatting/`;
    - **record the path only. Do not read `<format-prompt>` until Step 6B.**
 6. For `evidence-to-report`, verify only that `<work-dir>/case.md`,
-   `<work-dir>/evidence.json`, and `<work-dir>/card-tags.json` exist and
-   `<work-dir>/block.md` exists and is non-empty.
+   `<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist, and `<work-dir>/evidence.md` is non-empty.
    Do not read their contents in Step 0.
 7. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
 
@@ -236,12 +235,12 @@ python scripts/run_case.py diagnosis --work-dir <work-dir>
 ### Exit
 
 - The command succeeds.
-- `<work-dir>/step2.json` exists.
+- `<work-dir>/diagnostic_evidence.md` exists.
 - Diagnosis retrieval includes cards belonging to `case_major_category`, existing direct diagnosis `retrieval_related` scope, or a reported case gene.
 - `provisional_disease` remains the supplied free-text starting diagnosis.
 - `allowed_refined_diseases` is limited to canonical diseases represented by retrieved diagnosis cards plus the selected major category fallback; it is not the full disease vocabulary.
 
-Do not read or modify `step2.json` in this step.
+Do not read or modify `diagnostic_evidence.md` in this step.
 
 ## Step 3 — Adjudicate the diagnosis
 
@@ -254,11 +253,11 @@ Use a fresh bounded model session.
 Read only:
 
 - `prompts/diagnostic_adjudication_prompt.md`;
-- `<work-dir>/step2.json`.
+- `<work-dir>/diagnostic_evidence.md`.
 
 #### Required action
 
-Follow `prompts/diagnostic_adjudication_prompt.md` exactly, using `step2.json` as the complete patient-fact and diagnosis-evidence boundary.
+Follow `prompts/diagnostic_adjudication_prompt.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary.
 
 If `diagnosis_cards` is empty:
 
@@ -306,7 +305,7 @@ Do not start another model adjudication.
 
 Use a fresh bounded model session and read only:
 
-- `<work-dir>/step2.json`;
+- `<work-dir>/diagnostic_evidence.md`;
 - `<work-dir>/adjudication.json`;
 - the user's revised diagnostic label and downstream category.
 
@@ -330,7 +329,7 @@ Run exactly:
 ```bash
 python scripts/append_integrated_diagnosis.py \
   --case <work-dir>/case.md \
-  --diagnosis-result <work-dir>/step2.json \
+  --diagnosis-result <work-dir>/diagnostic_evidence.md \
   --adjudication-result <work-dir>/adjudication.json
 ```
 
@@ -347,12 +346,12 @@ python scripts/run_case.py full --work-dir <work-dir>
 #### Exit
 
 - The command succeeds. If adjudication validation fails, stop.
-- `<work-dir>/bundle.json`, `<work-dir>/block.md`, `<work-dir>/evidence.json`, and `<work-dir>/card-tags.json` exist.
+- `<work-dir>/bundle.json`, `<work-dir>/evidence.md`, and `<work-dir>/card-tags.json` exist.
 - Only diagnosis cards actually cited by Step 3 are carried into the full reporting bundle; prognosis/treatment/biomarker retrieval remains disease-narrow unless adjudication remains broad/indeterminate.
-- `evidence.json` preserves one model-visible record per evidence card but exposes only a six-character runtime `card_tag`, never the stable full `card_id`.
+- `evidence.md` preserves one model-visible record per evidence card but exposes only a six-character runtime `card_tag`, never the stable full `card_id`.
 - `card-tags.json` is the deterministic private tag-to-card-ID map and is not model-readable.
 
-Do not model-read or modify `step2.json`, `adjudication.json`, `bundle.json`, `block.md`, `evidence.json`, or `card-tags.json` in Steps 3D–5.
+Do not model-read or modify `diagnostic_evidence.md`, `adjudication.json`, `bundle.json`, `evidence.md`, or `card-tags.json` in Steps 3D–5.
 
 ## Step 6 — Write the NGS report
 
@@ -360,7 +359,7 @@ Run only for `ngs-report`, `evidence-to-report`, `nel-demo`, or `nel-validate`.
 
 For `ngs-report`, `nel-demo`, and `nel-validate`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
 
-For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md`, `<work-dir>/evidence.json`, `<work-dir>/card-tags.json`, and a non-empty `<work-dir>/block.md`; do not rerun Steps 1A–5.
+For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md`, `<work-dir>/evidence.md` and `<work-dir>/card-tags.json`; do not rerun Steps 1A–5.
 
 ### Step 6A — Answer reporting rules and assign evidence cards
 
@@ -369,7 +368,7 @@ Use one fresh bounded model session.
 Read only:
 
 - `<work-dir>/case.md`;
-- `<work-dir>/evidence.json`;
+- `<work-dir>/evidence.md`;
 - `rules/agreed_reporting_rules.md`.
 
 Write `<work-dir>/report-analysis.json` with this shape:
@@ -393,9 +392,9 @@ Requirements:
 - Include every rule from `R1.1` through `R5.9` exactly once and in source order.
 - Give each rule a self-contained, case-specific answer.
 - Use the integrated diagnosis in `case.md`; do not re-adjudicate it.
-- Use `evidence.json` as the complete literature-evidence boundary.
+- Use `evidence.md` as the complete literature-evidence boundary.
 - Keep card-level evidence granularity: cite the exact runtime `card_tag` of every evidence card that directly supports the answer.
-- Use only tags copied exactly from `evidence.json`; never infer, reconstruct, shorten or invent a tag.
+- Use only tags copied exactly from `evidence.md`; never infer, reconstruct, shorten or invent a tag.
 - Set `citation_status` to `"cited"` when one or more cards directly support the answer and include those tags.
 - Set `citation_status` to `"no_citation_required"` with `card_tags: []` when no literature citation is required. This explicit state is compulsory; an empty tag array alone is not sufficient.
 - Use a drafting instruction such as `Omit ...` when a rule has no reportable implication.
@@ -406,7 +405,7 @@ Run exactly:
 ```bash
 python scripts/report_audit.py render \
   --analysis <work-dir>/report-analysis.json \
-  --evidence <work-dir>/evidence.json \
+  --evidence <work-dir>/evidence.md \
   --output <work-dir>/report-draft.md
 ```
 
@@ -423,7 +422,7 @@ Read only:
 - `<format-prompt>`;
 - `<work-dir>/report-draft.md`.
 
-Do not read `case.md`, `evidence.json`, `card-tags.json`, `block.md`, `rules/agreed_reporting_rules.md`, the original case document, or any other file. Do not use information carried from Step 6A except `report-draft.md`.
+Do not read `case.md`, `evidence.md`, `card-tags.json`, `rules/agreed_reporting_rules.md`, the original case document, or any other file. Do not use information carried from Step 6A except `report-draft.md`.
 
 If either required input is missing, unreadable, or malformed, stop and report the error.
 
@@ -446,7 +445,7 @@ Then run exactly:
 ```bash
 python scripts/report_citations.py validate \
   --report <work-dir>/report-final.md \
-  --block <work-dir>/block.md \
+  --evidence <work-dir>/evidence.md \
   --card-tags <work-dir>/card-tags.json
 ```
 
@@ -459,11 +458,11 @@ Run exactly:
 ```bash
 python scripts/report_citations.py render \
   --report <work-dir>/report-final.md \
-  --block <work-dir>/block.md \
+  --evidence <work-dir>/evidence.md \
   --card-tags <work-dir>/card-tags.json
 ```
 
-The command deconvolves each runtime tag to its stable card ID, resolves that card through `block.md` to its primary publication, replaces card markers with Vancouver-style numeric square-bracket citations, merges adjacent citations, deduplicates publications, removes `(no citation required)`, and appends the cited bibliography. Do not otherwise modify `report-final.md` after this command.
+The command resolves each runtime tag through `evidence.md` to its primary publication, replaces card markers with Vancouver-style numeric square-bracket citations, merges adjacent citations, deduplicates publications, removes `(no citation required)`, and appends the cited bibliography. Do not otherwise modify `report-final.md` after this command.
 
 ## Step 7 — Post-report delivery and validation
 
@@ -484,7 +483,7 @@ Run after Step 6C has completed `report-final.md`.
   - `<work-dir>/validation-case.md`;
   - `<work-dir>/report-final.md`;
   - `<work-dir>/marking-criteria.md`;
-  - `<work-dir>/block.md`.
+  - `<work-dir>/evidence.md`.
 
   Follow `validation/marking_prompt.md` exactly. Treat `report-final.md` as the candidate answer and write only `<work-dir>/validation-mark.md`. Do not alter any earlier workflow artifact.
 
@@ -514,31 +513,31 @@ Deliver only the artifact or artifacts explicitly requested by the user.
 
 ### Evidence-block mode
 
-For `evidence-block` and `evidence-block manual`, return `<work-dir>/block.md` unchanged.
+For `evidence-block` and `evidence-block manual`, return `<work-dir>/evidence.md` unchanged.
 
 ### NGS-report mode
 
 For `ngs-report` and `evidence-to-report`, Step 7 performs final delivery by rendering `<work-dir>/report-final.md` in chat unchanged.
 
-Do not also return `block.md` unless explicitly requested and do not perform an additional rendering pass after Step 7.
+Do not also return `evidence.md` unless explicitly requested and do not perform an additional rendering pass after Step 7.
 
 ### Demo mode
 
 For `nel-demo`, Step 7 performs final delivery by rendering the case, `<work-dir>/report-final.md`, and expected behaviour. Do not read or render `<demo-expected>` before `report-final.md` is complete and do not perform an additional rendering pass after Step 7.
 
-Do not return `block.md` unless explicitly requested.
+Do not return `evidence.md` unless explicitly requested.
 
 ### Validation mode
 
 For `nel-validate`, Step 7 renders the validation case, `<work-dir>/report-final.md`, and `<work-dir>/validation-mark.md`. Do not retrieve or read marking criteria before `report-final.md` is complete.
 
-Do not return `block.md` unless explicitly requested.
+Do not return `evidence.md` unless explicitly requested.
 
 ### Both outputs explicitly requested
 
 Use `ngs-report` and return separately:
 
-1. `<work-dir>/block.md`;
+1. `<work-dir>/evidence.md`;
 2. `<work-dir>/report-final.md`.
 
 Do not combine them.

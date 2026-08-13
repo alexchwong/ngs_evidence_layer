@@ -9,6 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "append_integrated_diagnosis.py"
+sys.path.insert(0, str(ROOT / "scripts"))
+import retrieve  # noqa: E402
 
 
 class AppendIntegratedDiagnosisTests(unittest.TestCase):
@@ -16,16 +18,19 @@ class AppendIntegratedDiagnosisTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             case = root / "case.md"
-            step2 = root / "step2.json"
+            step2 = root / "diagnostic_evidence.md"
             adj = root / "adjudication.json"
             case.write_text("Case text.\n", encoding="utf-8")
-            step2.write_text(json.dumps({
+            step2.write_text(retrieve.render_step_markdown({
+                "step": 2,
                 "case_major_category": "MDS",
                 "provisional_disease": "MDS",
                 "genes": [],
                 "case_facts": [],
                 "diagnosis_cards": [],
                 "allowed_refined_diseases": ["MDS"],
+                "genes_with_no_diagnosis_card": [],
+                "corpus": {"path": "corpus.json", "index": "index.json"},
             }), encoding="utf-8")
             adj.write_text(json.dumps({
                 "status": "indeterminate",

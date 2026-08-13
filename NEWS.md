@@ -86,7 +86,7 @@
 - Added `publication_type_verified_by_phase3` and removed `escalates_to` from cards,
   the index, and retrieval
 - Added `scripts/transport.py` to move private corpus files between computers
-- Optimized `SKILL.md` as a four-step workflow, returning a block.md containing evidence cards.
+- Optimized `SKILL.md` as a four-step workflow, returning a evidence.md containing evidence cards.
 
 ## 0.1.2
 

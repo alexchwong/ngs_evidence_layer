@@ -3,7 +3,8 @@
 ## Role and evidence boundary
 
 Adjudicate the provisional major diagnostic category using exactly one Step 2
-diagnosis JSON document produced by `scripts/retrieve.py diagnosis`. Use only:
+Markdown document (`diagnostic_evidence.md`) produced by
+`scripts/retrieve.py diagnosis`. Use only:
 
 - `case_major_category`;
 - free-text `provisional_disease`;
@@ -13,8 +14,7 @@ diagnosis JSON document produced by `scripts/retrieve.py diagnosis`. Use only:
 
 Diagnosis cards are the complete hard-evidence boundary. Do not add diagnostic
 rules, thresholds, exclusions, definitions, or qualifiers from model knowledge. Do
-not invent, normalise, or reinterpret patient facts. Ignore any legacy
-`escalates_to` field; it is provenance only and never a logic gate.
+not invent, normalise, or reinterpret patient facts.
 
 ## Test-result semantics
 

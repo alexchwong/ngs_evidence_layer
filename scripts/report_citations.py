@@ -3,7 +3,7 @@
 
 ``validate`` is a read-only Step 6A/6B exit check. It verifies that a report
 document contains only well-formed runtime card-tag markers that deconvolve to cards through `card-tags.json` and resolve through the
-canonical ``## Refs`` mapping in ``block.md``.
+canonical ``## Refs`` mapping in ``evidence.md``.
 
 ``render`` is mandatory Step 6C processing. It replaces the card-tag markers in
 ``report-final.md`` with report-local Vancouver-style numeric citations in order
@@ -24,8 +24,9 @@ REFERENCES_HEADING = "## References"
 REFS_HEADING = "## Refs"
 REFERENCE_START = re.compile(r"^(\d+)\.\s+(.+)$")
 CARD_ID = r"[A-Za-z0-9][A-Za-z0-9._-]*"
+CARD_TAG = r"[0-9a-f]{6}"
 REFS_MAPPING = re.compile(
-    rf"^({CARD_ID}(?:,{CARD_ID})*): primary ref "
+    rf"^({CARD_TAG}(?:,{CARD_TAG})*): primary ref "
     r"([1-9]\d*(?:,[1-9]\d*)*)"
     r"(?:; secondary ref ([1-9]\d*(?:,[1-9]\d*)*))?$"
 )
@@ -92,16 +93,16 @@ def ordered_unique(numbers):
     return result
 
 
-def parse_card_references(block_text, source_references):
-    """Return the block's validated card-ID-to-primary-reference mapping."""
-    lines = block_text.rstrip().splitlines()
+def parse_card_references(evidence_text, source_references):
+    """Return evidence.md runtime-card-tag to primary-reference mapping."""
+    lines = evidence_text.rstrip().splitlines()
     headings = [
         index for index, line in enumerate(lines)
         if line == REFS_HEADING
     ]
     if len(headings) != 1:
         raise ValueError(
-            f"block must contain exactly one {REFS_HEADING!r} heading"
+            f"evidence must contain exactly one {REFS_HEADING!r} heading"
         )
     start = headings[0] + 1
     end = next(
@@ -115,7 +116,7 @@ def parse_card_references(block_text, source_references):
             continue
         match = REFS_MAPPING.fullmatch(line)
         if not match:
-            raise ValueError(f"block has malformed Refs line: {line!r}")
+            raise ValueError(f"evidence has malformed Refs line: {line!r}")
         card_text, primary_text, secondary_text = match.groups()
         primary_references = [int(value) for value in primary_text.split(",")]
         secondary_references = (
@@ -124,7 +125,7 @@ def parse_card_references(block_text, source_references):
         )
         if len(primary_references) != 1:
             raise ValueError(
-                f"block card mapping must have exactly one primary reference: {line!r}"
+                f"evidence card mapping must have exactly one primary reference: {line!r}"
             )
         unknown = [
             number for number in primary_references + secondary_references
@@ -132,19 +133,19 @@ def parse_card_references(block_text, source_references):
         ]
         if unknown:
             raise ValueError(
-                "block card mapping cites unknown reference(s): "
+                "evidence card mapping cites unknown reference(s): "
                 + ", ".join(map(str, ordered_unique(unknown)))
             )
         primary_reference = primary_references[0]
-        for card_id in card_text.split(","):
-            if card_id in mapping:
-                raise ValueError(f"block contains duplicate card mapping {card_id}")
-            mapping[card_id] = primary_reference
+        for card_tag in card_text.split(","):
+            if card_tag in mapping:
+                raise ValueError(f"evidence contains duplicate card mapping {card_tag}")
+            mapping[card_tag] = primary_reference
         used_references.update(primary_references + secondary_references)
     if set(source_references) != used_references:
         missing = sorted(set(source_references) - used_references)
         raise ValueError(
-            "block Refs mapping omits reference(s): "
+            "evidence Refs mapping omits reference(s): "
             + ", ".join(map(str, missing))
         )
     return mapping
@@ -193,26 +194,28 @@ def render_document(body, references):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def validate(document_text, block_text, card_tags_text, *, source="report document"):
+def validate(document_text, evidence_text, card_tags_text, *, source="report document"):
     """Validate runtime card-tag markers without modifying the document."""
     if REFERENCES_HEADING in document_text.splitlines():
         raise ValueError(f"{source} already contains a References section")
     if REPORT_MARKER.search(document_text):
         raise ValueError(f"{source} contains a model-generated numeric citation")
-    _block_body, source_references = split_references(block_text, source="block")
-    card_to_source = parse_card_references(block_text, source_references)
+    _evidence_body, source_references = split_references(evidence_text, source="evidence")
+    tag_to_source = parse_card_references(evidence_text, source_references)
     tag_to_card = parse_card_tags(card_tags_text)
-    missing_from_block = sorted(
-        card_id for card_id in tag_to_card.values() if card_id not in card_to_source
-    )
-    if missing_from_block:
-        raise ValueError(
-            "card-tags maps to card(s) absent from block: " + ", ".join(missing_from_block)
-        )
+    if set(tag_to_source) != set(tag_to_card):
+        missing = sorted(set(tag_to_card) - set(tag_to_source))
+        extra = sorted(set(tag_to_source) - set(tag_to_card))
+        details = []
+        if missing:
+            details.append("missing from evidence: " + ", ".join(missing))
+        if extra:
+            details.append("unknown in evidence: " + ", ".join(extra))
+        raise ValueError("evidence/card-tags mismatch: " + "; ".join(details))
 
     for match in SOURCE_MARKER.finditer(document_text):
         tag = match.group(1)
-        if tag not in tag_to_card:
+        if tag not in tag_to_source:
             raise ValueError(f"{source} cites unknown runtime card tag {tag}")
     if CARD_MARKER_LIKE.search(SOURCE_MARKER.sub("", document_text)):
         raise ValueError(f"{source} contains a malformed card-tag marker")
@@ -221,17 +224,15 @@ def validate(document_text, block_text, card_tags_text, *, source="report docume
     return document_text
 
 
-def render(report_text, block_text, card_tags_text):
+def render(report_text, evidence_text, card_tags_text):
     """Resolve validated Step 6B card-tag markers and append primary entries."""
-    validate(report_text, block_text, card_tags_text, source="final report")
-    _block_body, source_references = split_references(block_text, source="block")
-    card_to_source = parse_card_references(block_text, source_references)
-    tag_to_card = parse_card_tags(card_tags_text)
+    validate(report_text, evidence_text, card_tags_text, source="final report")
+    _evidence_body, source_references = split_references(evidence_text, source="evidence")
+    tag_to_source = parse_card_references(evidence_text, source_references)
     report_number_by_source = {}
 
     def replace_marker(match):
-        card_id = tag_to_card[match.group(1)]
-        source_number = card_to_source[card_id]
+        source_number = tag_to_source[match.group(1)]
         if source_number not in report_number_by_source:
             report_number_by_source[source_number] = len(report_number_by_source) + 1
         return f"[{report_number_by_source[source_number]}]"
@@ -275,11 +276,11 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--report", type=Path, required=True)
-    validate_parser.add_argument("--block", type=Path, required=True)
+    validate_parser.add_argument("--evidence", type=Path, required=True)
     validate_parser.add_argument("--card-tags", type=Path, required=True)
     render_parser = subparsers.add_parser("render")
     render_parser.add_argument("--report", type=Path, required=True)
-    render_parser.add_argument("--block", type=Path, required=True)
+    render_parser.add_argument("--evidence", type=Path, required=True)
     render_parser.add_argument("--card-tags", type=Path, required=True)
     render_parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -287,14 +288,14 @@ def main():
         if args.command == "validate":
             validate(
                 args.report.read_text(encoding="utf-8"),
-                args.block.read_text(encoding="utf-8"),
+                args.evidence.read_text(encoding="utf-8"),
                 args.card_tags.read_text(encoding="utf-8"),
             )
             output = args.report
         else:
             result = render(
                 args.report.read_text(encoding="utf-8"),
-                args.block.read_text(encoding="utf-8"),
+                args.evidence.read_text(encoding="utf-8"),
                 args.card_tags.read_text(encoding="utf-8"),
             )
             output = args.output or args.report
