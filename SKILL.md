@@ -26,7 +26,7 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3B — model/user: manual review only; finalise review fields in `adjudication.json`.
 - Step 3C — model + deterministic append: append one integrated-diagnosis sentence to `case.md` without model-reading `case.md`; automatic review performs this in Step 3A, manual review after Step 3B.
 - Steps 3D–5 — deterministic: validate the completed adjudication, retrieve the full evidence bundle into `bundle.json`, and render `block.md`.
-- Step 6A — model + deterministic validation: audit every reporting rule, write only reportable statements into `report-draft.md`, and validate its card-ID markers.
+- Step 6A — model + deterministic validation: audit every reporting rule, write self-contained reportable conclusions or drafting instructions into `report-draft.md`, and validate its card-ID markers.
 - Step 6B — model + deterministic validation: format `report-draft.md` into `report-final.md`, copying the exact card-ID markers associated with retained statements, then validate them.
 - Step 6C — deterministic: replace card-ID markers in `report-final.md` with Vancouver-style citations and render its bibliography.
 - Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md`.
@@ -392,8 +392,11 @@ Evaluate every numbered rule under R1–R5 in `rules/agreed_reporting_rules.md`.
 
 For each rule:
 - identify it by rule number;
-- give a 1–3 sentence case-specific answer;
-- answer the rule even when it is not applicable or the result is negative;
+- give a 1–3 sentence case-specific answer without restating the question;
+- make the answer self-contained: its meaning must not depend on seeing the rule text;
+- answer with either a reportable patient-specific conclusion or an explicit drafting instruction describing what Step 6B must omit, avoid, or not infer;
+- answer the rule even when it is not applicable or the result is negative, naming the relevant topic or finding rather than writing only “yes”, “no”, “not applicable”, “none”, or equivalent;
+- when a negative rule has no positive reportable implication, prefer a drafting instruction such as `Omit ...`, `Do not state ...`, or `Do not infer ...` rather than prose explaining an irrelevant negative point;
 - end every sentence with one citation marker:
   - one or more exact card-ID `Citation marker` values copied from the
     supporting `block.md` cards, e.g. `[card:arber-2022-aml-C0001]`; or
@@ -447,6 +450,8 @@ If either required input is missing, unreadable, or malformed, stop and report t
 #### Required action
 
 Follow `<format-prompt>` exactly, using `report-draft.md` as the sole source of report content.
+
+Treat explicit drafting instructions in `report-draft.md` as constraints on the final report, not as report prose. Apply instructions such as `Omit ...`, `Do not state ...`, and `Do not infer ...`, then omit the instruction itself from `report-final.md`.
 
 Do not introduce a clinical assertion, qualification, citation, or patient fact that is absent from `report-draft.md`.
 
