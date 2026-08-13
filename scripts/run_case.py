@@ -109,10 +109,12 @@ def full(args):
     adjudication_result = args.adjudication_result or (work_dir / "adjudication.json")
     bundle = args.bundle_output or (work_dir / "bundle.json")
     block = args.output or (work_dir / "block.md")
+    evidence = args.evidence_output or (work_dir / "evidence.json")
     bundle_tmp = bundle.with_suffix(bundle.suffix + ".tmp")
     block_tmp = block.with_suffix(block.suffix + ".tmp")
+    evidence_tmp = evidence.with_suffix(evidence.suffix + ".tmp")
 
-    remove_if_present(bundle, block, bundle_tmp, block_tmp)
+    remove_if_present(bundle, block, evidence, bundle_tmp, block_tmp, evidence_tmp)
 
     retrieve_command = [
         args.python, str(SCRIPTS / "retrieve.py"), "full",
@@ -135,15 +137,18 @@ def full(args):
         args.python, str(SCRIPTS / "render.py"),
         "--bundle", str(bundle),
         "--output", str(block_tmp),
+        "--evidence-output", str(evidence_tmp),
     ]
     if args.token_budget is not None:
         render_command.extend(["--token-budget", str(args.token_budget)])
 
     run_command(render_command, "step 5: render evidence block")
     require_file(block_tmp, "block.md")
+    require_file(evidence_tmp, "evidence.json")
     block_tmp.replace(block)
+    evidence_tmp.replace(evidence)
 
-    print(f"[run_case] output: {block}", file=sys.stderr)
+    print(f"[run_case] outputs: {block}, {evidence}", file=sys.stderr)
 
 
 def main():
@@ -170,6 +175,7 @@ def main():
     full_parser.add_argument("--adjudication-result", type=Path, help="override path to adjudication.json")
     full_parser.add_argument("--bundle-output", type=Path, help="override path to bundle.json")
     full_parser.add_argument("--output", type=Path, help="override path to block.md")
+    full_parser.add_argument("--evidence-output", type=Path, help="override path to evidence.json")
     full_parser.add_argument("--genes", nargs="+", help="override genes for full retrieval")
     full_parser.add_argument("--corpus", type=Path, help="override corpus path")
     full_parser.add_argument("--index", type=Path, help="override index path")

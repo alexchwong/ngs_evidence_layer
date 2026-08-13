@@ -25,13 +25,16 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3A — model: adjudicate the diagnosis into `adjudication.json`; automatic review also performs Step 3C (skip 3B).
 - Step 3B — model/user: manual review only; finalise review fields in `adjudication.json`.
 - Step 3C — model + deterministic append: append one integrated-diagnosis sentence to `case.md` without model-reading `case.md`; automatic review performs this in Step 3A, manual review after Step 3B.
-- Steps 3D–5 — deterministic: validate the completed adjudication, retrieve the full evidence bundle into `bundle.json`, and render `block.md`.
-- Step 6A — model + deterministic validation: audit every reporting rule, write self-contained reportable conclusions or drafting instructions into `report-draft.md`, and validate its card-ID markers.
+- Steps 3D–5 — deterministic: validate the completed adjudication, retrieve the full evidence bundle into `bundle.json`, and render equivalent human-readable `block.md` and model-readable `evidence.json` views.
+- Step 6A1 — model + deterministic validation: answer every reporting rule in `report-content.json` without citations.
+- Step 6A2 — model + deterministic validation: copy the answers unchanged into `report-audit.json`, add `card_ids`, and render `report-draft.md` deterministically.
 - Step 6B — model + deterministic validation: format `report-draft.md` into `report-final.md`, copying the exact card-ID markers associated with retained statements, then validate them.
 - Step 6C — deterministic: replace card-ID markers in `report-final.md` with Vancouver-style citations and render its bibliography.
 - Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md`.
 
-`evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md` and a non-empty `<work-dir>/block.md` exist. Do not rerun skipped steps.
+`evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md`,
+`<work-dir>/evidence.json`, and a non-empty `<work-dir>/block.md` exist. Do not
+rerun skipped steps.
 
 
 ## Mandatory file-access policy
@@ -92,7 +95,9 @@ File access is **deny by default**.
    - do not list or search `prompts/formatting/`;
    - do not use a formatting prompt outside `prompts/formatting/`;
    - **record the path only. Do not read `<format-prompt>` until Step 6B.**
-6. For `evidence-to-report`, verify only that `<work-dir>/case.md` exists and `<work-dir>/block.md` exists and is non-empty. Do not read their contents in Step 0.
+6. For `evidence-to-report`, verify only that `<work-dir>/case.md` and
+   `<work-dir>/evidence.json` exist and `<work-dir>/block.md` exists and is non-empty.
+   Do not read their contents in Step 0.
 7. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
 
 ### Exit
@@ -347,9 +352,10 @@ python scripts/run_case.py full --work-dir <work-dir>
 #### Exit
 
 - The command succeeds. If validation fails, stop.
-- `<work-dir>/bundle.json` and `<work-dir>/block.md` exist.
+- `<work-dir>/bundle.json`, `<work-dir>/block.md`, and `<work-dir>/evidence.json` exist.
 
-Do not model-read or modify `step2.json`, `adjudication.json`, `bundle.json`, or `block.md` in Steps 3D–5.
+Do not model-read or modify `step2.json`, `adjudication.json`, `bundle.json`,
+`block.md`, or `evidence.json` in Steps 3D–5.
 
 Do not create a separate review, approval, diagnosis, or override file.
 
@@ -359,78 +365,78 @@ Run only for `ngs-report`, `evidence-to-report`, `nel-demo`, or `nel-validate`.
 
 For `ngs-report`, `nel-demo`, and `nel-validate`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
 
-For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md` and a non-empty `<work-dir>/block.md`; do not rerun Steps 1A–5.
+For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md`,
+`<work-dir>/evidence.json`, and a non-empty `<work-dir>/block.md`; do not rerun
+Steps 1A–5.
 
-### Step 6A — Reporting-rule audit
+### Step 6A1 — Answer the reporting rules
 
 Use a fresh bounded model session.
-
-#### Model-readable inputs
 
 Read only:
 
 - `<work-dir>/case.md`;
-- `<work-dir>/block.md`;
+- `<work-dir>/evidence.json`;
 - `rules/agreed_reporting_rules.md`.
 
-If any required input is missing, unreadable, or malformed, stop and report the error.
+Write `<work-dir>/report-content.json` with this shape:
 
-#### Source hierarchy
-
-- **`case.md`:** sole source of truth for patient identity, specimen information, clinical context, test results, variants, measurements, other patient-specific facts, and the final integrated diagnosis.
-- Use the `Integrated diagnosis:` sentence in `case.md` as the final diagnosis. Do not re-adjudicate it in Step 6A.
-- **`block.md`:** exclusive source for literature-derived classification, prognosis, treatment, biomarkers, germline interpretation, clinical associations, and references.
-- **Reporting rules:** questions and constraints to apply; they do not establish patient facts or clinical assertions.
-- Do not strengthen, reconcile, or resolve interpretations beyond `block.md`.
-- Preserve material uncertainty, disagreement, limitations, and qualifiers.
-- Do not copy workflow metadata into the report draft unless a reporting rule requires it.
-- If `case.md` and `block.md` conflict, do not silently repair the inconsistency.
-
-#### Required action
-
-Evaluate every numbered rule under R1–R5 in `rules/agreed_reporting_rules.md`. Every rule number must appear exactly once in `report-draft.md`.
-
-For each rule:
-- identify it by rule number;
-- give a 1–3 sentence case-specific answer without restating the question;
-- make the answer self-contained: its meaning must not depend on seeing the rule text;
-- answer with either a reportable patient-specific conclusion or an explicit drafting instruction describing what Step 6B must omit, avoid, or not infer;
-- answer the rule even when it is not applicable or the result is negative, naming the relevant topic or finding rather than writing only “yes”, “no”, “not applicable”, “none”, or equivalent;
-- when a negative rule has no positive reportable implication, prefer a drafting instruction such as `Omit ...`, `Do not state ...`, or `Do not infer ...` rather than prose explaining an irrelevant negative point;
-- end every sentence with one citation marker:
-  - one or more exact card-ID `Citation marker` values copied from the
-    supporting `block.md` cards, e.g. `[card:arber-2022-aml-C0001]`; or
-  - `(no citation required)`;
-- when several evidence cards support one sentence, copy their markers adjacently,
-  e.g. `[card:arber-2022-aml-C0001][card:khoury-2022-who-C0003]`;
-- each card marker resolves deterministically to that card's primary publication;
-  `secondary ref` metadata is not selectable by a Step 6A card marker;
-- do not create, infer, alter, shorten, or parse a citation marker;
-- do not write numeric citations or use `block.md` reference numbers;
-- use `(no citation required)` only when the sentence does not require literature support.
-
-Do not omit a rule because it is unlikely to appear in the final report.
-
-#### Output
-
-Write only:
-
-`<work-dir>/report-draft.md`
-
-Then run exactly:
-
-```bash
-python scripts/report_citations.py validate \
-  --report <work-dir>/report-draft.md \
-  --block <work-dir>/block.md
+```json
+{
+  "schema_version": "1.0",
+  "answers": [
+    {"rule_id": "R1.1", "text": "Patient-specific conclusion or drafting instruction."}
+  ]
+}
 ```
 
-The command is read-only and must succeed before Step 6B. It verifies that every
-card-ID marker is well formed and exists in the `block.md` `## Refs` mapping, and
-that the draft contains neither numeric citations nor a bibliography. If it fails,
-use only the validator error and the inputs already allowed in this Step 6A session
-to correct `report-draft.md`, then rerun the exact command until it succeeds. Do not
-replace card-ID markers or append references in Step 6A.
+- Include every rule from `R1.1` through `R5.9` exactly once and in source order.
+- Give each rule a self-contained, case-specific answer.
+- Use the integrated diagnosis in `case.md`; do not re-adjudicate it.
+- Use `evidence.json` for literature-derived claims.
+- Use a drafting instruction such as `Omit ...` when a rule has no reportable implication.
+- Do not add `card_ids`, citations, headings, commentary, or fields outside the shown shape.
+
+Run:
+
+```bash
+python scripts/report_audit.py validate-content \
+  --content <work-dir>/report-content.json
+```
+
+Correct `report-content.json` until validation succeeds.
+
+### Step 6A2 — Audit citations
+
+Use a fresh bounded model session.
+
+Read only:
+
+- `<work-dir>/report-content.json`;
+- `<work-dir>/evidence.json`.
+
+Write `<work-dir>/report-audit.json` by copying every `rule_id` and `text` value
+exactly and adding one `card_ids` array to each answer.
+
+- Do not edit, reorder, add, or remove any answer or any character in `rule_id` or `text`.
+- Add the exact `card_id` of every evidence card that directly supports the answer.
+- Use an empty `card_ids` array when no card in `evidence.json` is appropriate.
+- Do not infer, shorten, reconstruct, or alter a card ID.
+- Do not add fields outside `rule_id`, `text`, and `card_ids`.
+
+Run:
+
+```bash
+python scripts/report_audit.py render \
+  --content <work-dir>/report-content.json \
+  --audit <work-dir>/report-audit.json \
+  --evidence <work-dir>/evidence.json \
+  --output <work-dir>/report-draft.md
+```
+
+The command rejects content edits and unknown card IDs, then deterministically creates
+`report-draft.md`. Correct only `card_ids` until it succeeds. Do not edit
+`report-draft.md`.
 
 ### Step 6B — Format the final report
 

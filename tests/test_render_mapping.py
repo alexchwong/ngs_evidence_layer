@@ -356,6 +356,24 @@ class RenderMappingTests(unittest.TestCase):
         self.assertEqual(sorted(mapped), sorted(rendered))
         self.assertEqual(len(mapped), len(set(mapped)))
 
+    def test_compact_evidence_payload_uses_post_truncation_cards(self):
+        source_bundle = bundle([
+            card("C1-1", "Strong.", tier="guideline criterion"),
+            card("C1-2", "Droppable.", tier="restated secondary"),
+        ])
+        result = render.render(source_bundle, token_budget=100)
+        evidence = render.evidence_payload(source_bundle, result)
+
+        self.assertEqual(evidence["schema_version"], "1.0")
+        self.assertEqual(
+            [item["card_id"] for item in evidence["cards"]],
+            [item["card_id"] for item in result["rendered_cards"]],
+        )
+        self.assertNotIn("text", evidence)
+        self.assertNotIn("references", evidence)
+        self.assertNotIn("card_ids", evidence["cards"][0])
+        self.assertNotIn("publication_key", evidence["cards"][0])
+
     def test_every_mapped_number_resolves_to_bibliography_entry(self):
         secondary = {
             "display": "Beta B. Secondary publication. Leukemia. 2021;2(2):3-4.",

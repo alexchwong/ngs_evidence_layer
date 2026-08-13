@@ -481,6 +481,28 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
         "card_reference_map": reference_map,
     }
 
+
+def evidence_payload(bundle, result):
+    """Return the compact Step 6 evidence boundary for model consumption."""
+    return {
+        "schema_version": "1.0",
+        "cards": [
+            {
+                "card_id": card["card_id"],
+                "category": card["category"],
+                "genes": card["genes"],
+                "diseases": card["diseases"],
+                "evidence_tier": card["evidence_tier"],
+                "interpretation": card["interpretation"],
+                "escalates_to": card["escalates_to"],
+            }
+            for card in result["rendered_cards"]
+        ],
+        "not_assessed": list(bundle.get("not_assessed") or []),
+        "suppressed": dict(bundle.get("suppressed") or {}),
+        "provenance": dict(bundle.get("provenance") or {}),
+    }
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -489,6 +511,11 @@ def main():
     parser.add_argument("--token-budget", type=int, default=DEFAULT_TOKEN_BUDGET)
     parser.add_argument("--format", choices=["text", "json"], default="text")
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--evidence-output",
+        type=Path,
+        help="write compact post-truncation Step 6 evidence JSON",
+    )
     args = parser.parse_args()
     try:
         bundle = json.loads(args.bundle.read_text(encoding="utf-8"))
@@ -509,6 +536,13 @@ def main():
         )
     else:
         print(payload, end="" if payload.endswith("\n") else "\n")
+    if args.evidence_output:
+        args.evidence_output.parent.mkdir(parents=True, exist_ok=True)
+        args.evidence_output.write_text(
+            json.dumps(evidence_payload(bundle, result), indent=2, ensure_ascii=False)
+            + "\n",
+            encoding="utf-8",
+        )
     print(
         f"[render] {result['cards_rendered']}/{result['cards_retrieved']} card(s), "
         f"{len(result['references'])} reference(s), "

@@ -133,6 +133,7 @@ class RunCaseFullTests(unittest.TestCase):
         )
         self.assertTrue((self.work / "bundle.json").is_file())
         self.assertTrue((self.work / "block.md").is_file())
+        self.assertTrue((self.work / "evidence.json").is_file())
 
     def test_render_not_called_when_retrieval_fails(self):
         (self.work / "adjudication.json").write_text("{}", encoding="utf-8")
@@ -140,11 +141,13 @@ class RunCaseFullTests(unittest.TestCase):
         self.assertIn("step 4: retrieve full evidence bundle failed", output)
         self.assertNotIn("step 5: render evidence block", output)
         self.assertFalse((self.work / "block.md").exists())
+        self.assertFalse((self.work / "evidence.json").exists())
 
     def test_default_input_and_output_paths(self):
         run("full", "--work-dir", self.work)
         self.assertTrue((self.work / "bundle.json").is_file())
         self.assertTrue((self.work / "block.md").is_file())
+        self.assertTrue((self.work / "evidence.json").is_file())
 
     def test_advanced_path_forwarding(self):
         alt = self.dir / "alt"
@@ -155,9 +158,11 @@ class RunCaseFullTests(unittest.TestCase):
             "--adjudication-result", self.work / "adjudication.json",
             "--bundle-output", alt / "bundle.json",
             "--output", alt / "block.md",
+            "--evidence-output", alt / "evidence.json",
         )
         self.assertTrue((alt / "bundle.json").is_file())
         self.assertTrue((alt / "block.md").is_file())
+        self.assertTrue((alt / "evidence.json").is_file())
 
     def test_token_budget_forwarding(self):
         output, _ = run("full", "--work-dir", self.work, "--token-budget", "1000000")
@@ -181,14 +186,21 @@ class RunCaseFullTests(unittest.TestCase):
 
     def test_stale_block_not_delivered_after_failure(self):
         stale = self.work / "block.md"
+        stale_evidence = self.work / "evidence.json"
         stale.write_text("stale", encoding="utf-8")
+        stale_evidence.write_text("stale", encoding="utf-8")
         (self.work / "adjudication.json").write_text("{}", encoding="utf-8")
         run("full", "--work-dir", self.work, success=False)
         self.assertFalse(stale.exists())
+        self.assertFalse(stale_evidence.exists())
 
     def test_output_status_names_final_absolute_path(self):
         output, _ = run("full", "--work-dir", self.work)
-        self.assertIn(f"[run_case] output: {(self.work / 'block.md').resolve()}", output)
+        self.assertIn(
+            f"[run_case] outputs: {(self.work / 'block.md').resolve()}, "
+            f"{(self.work / 'evidence.json').resolve()}",
+            output,
+        )
 
 
 if __name__ == "__main__":
