@@ -19,21 +19,34 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 ## Workflow
 
 - Step 0 — deterministic/setup: establish workflow state and `<work-dir>`; record `<format-prompt>` when needed.
-- Step 1A — model: capture the supplied clinical case verbatim in `case.md`.
-- Step 1B — deterministic/model: expose only the small case-major-category list, then structure `case.md` into `case-input.json`.
+- Step 1A — model via `prompts/workflow/capture_case.md`: capture the supplied clinical case verbatim in `case.md`.
+- Step 1B — deterministic/model via `prompts/workflow/structure_case.md`: expose only the small case-major-category list, then structure `case.md` into `case-input.json`.
 - Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `diagnostic_evidence.md`.
-- Step 3A — model: adjudicate the diagnosis into `adjudication.json`.
-- Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded against `diagnostic_evidence.md`.
+- Step 3A — model via `prompts/workflow/adjudicate_diagnosis.md`: adjudicate the diagnosis into `adjudication.json`.
+- Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `prompts/workflow/revise_diagnosis.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
 - Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, then render the single model-facing `evidence.md` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
-- Step 6A — model + deterministic validation: answer every reporting rule and attach evidence-card tags in one `report-analysis.json` pass, then render `report-draft.md`.
-- Step 6B — model + deterministic validation: format `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
+- Step 6A — model via `prompts/workflow/analyse_report.md` + deterministic validation: answer every reporting rule and attach evidence-card tags in one `report-analysis.json` pass, then render `report-draft.md`.
+- Step 6B — model via `prompts/workflow/format_report.md` plus `<format-prompt>` + deterministic validation: format `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
-- Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md`.
+- Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md` via `prompts/workflow/mark_validation_report.md`.
 
 `evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md`,
 `<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist. Do not
 rerun skipped steps.
+
+
+## Workflow state
+
+The workflow may define these global variables:
+
+- `<mode>` — the explicit operating mode selected in Step 0;
+- `<work-dir>` — the fixed working directory;
+- `<format-prompt>` — the selected file under `prompts/formatting/` when reporting is requested;
+- `<demo-case>` and `<demo-expected>` — resolved demo paths for `nel-demo`;
+- `<validation-case>` — the requested validation case identifier for `nel-validate`.
+
+Paths may be recorded without permission to read their contents. Model-readable access is controlled only by the declarations in each step.
 
 
 ## Mandatory file-access policy
@@ -49,7 +62,33 @@ File access is **deny by default**.
 - Run only the commands declared below and write only the declared outputs.
 - Do not modify an output written by a deterministic command.
 - If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
-- For `nel-validate`, do not model-read `validation/case_summary.md`, `validation/marking_prompt.md`, or marking criteria before Step 7.
+- For `nel-validate`, do not model-read `validation/case_summary.md`, `prompts/workflow/mark_validation_report.md`, or marking criteria before Step 7.
+
+
+## Model-task policy
+
+For every model step:
+
+1. Use a fresh bounded model session unless the step explicitly says otherwise.
+2. Read only the task prompt and additional model-readable inputs declared by that step.
+3. Follow shared rules in this `SKILL.md` and task-specific instructions in the workflow prompt.
+4. Write only the declared output.
+5. Do not carry information from an earlier bounded model step unless it is present in an allowed input.
+
+`SKILL.md` controls workflow state, file access, shared invariants, commands, branching, validation loops, and delivery. `prompts/workflow/*.md` controls only the model task performed inside those boundaries. If a task prompt conflicts with a workflow or access rule in `SKILL.md`, `SKILL.md` prevails.
+
+## Shared patient-result semantics
+
+These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudication, and Step 3B diagnostic revision. Reporting steps must not independently reconstruct missing results from these rules.
+
+
+- Treat a reported test result as complete unless explicitly described as partial, selected, limited, abbreviated, pending, or otherwise incomplete.
+- In a complete test, an unlisted abnormal finding is negative only within that test's scope.
+- Do not assume that an unmentioned test was performed.
+- A negative sequencing result does not exclude copy-number changes, rearrangements, or other findings unless the test assessed them.
+- If cytogenetic results are not supplied, assume normal conventional cytogenetics for interpretation and record this as a `workflow_assumption`, not a patient result.
+- Do not state that cytogenetics were performed or that a specific cytogenetic abnormality was formally excluded.
+- Do not use the normal-cytogenetics assumption when supplied karyotype, FISH, copy-number, or other findings conflict with it.
 
 ## Step 0 — Establish workflow state
 
@@ -124,26 +163,22 @@ For all other modes, use a fresh bounded model session.
 
 ### Model-readable inputs
 
-Read only the one case source:
+Read only:
 
-- normal modes: the one user-designated case source;
-- `nel-demo`: `<demo-case>`.
+- `prompts/workflow/capture_case.md`;
+- the one designated case source:
+  - normal modes: the one user-designated case source;
+  - `nel-demo`: `<demo-case>`.
 
-Do not read any other repository file in model Step 1A. In `nel-demo`, `<demo-case>` is the sole permitted repository-file exception.
+Do not read any other repository file in model Step 1A. In `nel-demo`, `<demo-case>` is the sole permitted repository-file exception apart from the declared workflow prompt.
 
 ### Required action
 
-Identify the exact supplied content that constitutes the clinical case and write it to `<work-dir>/case.md`.
-
-`case.md` must:
-- contain only the supplied clinical case, preserving that content verbatim and in its original order;
-- include all supplied patient, specimen, morphology, laboratory, cytogenetic, molecular, treatment, and other clinical case information;
-- exclude workflow instructions, output requests, and other non-case commentary;
-- contain no model interpretation, summary, normalisation, literature information, or added facts.
+Follow `prompts/workflow/capture_case.md` exactly and write only `<work-dir>/case.md`.
 
 ### Output
 
-Write only `<work-dir>/case.md`.
+`<work-dir>/case.md`.
 
 ## Step 1B — Structure the case
 
@@ -159,64 +194,19 @@ Then use a fresh bounded model session.
 
 Read only:
 
+- `prompts/workflow/structure_case.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/case-major-categories.json`.
 
 Do not reread the original case source.
 
-### Missing and unreported results
-
-- Treat a reported test result as complete unless explicitly described as partial, selected, limited, abbreviated, pending, or otherwise incomplete.
-- In a complete test, an unlisted abnormal finding is negative only within that test's scope.
-- Do not assume that an unmentioned test was performed.
-- A negative sequencing result does not exclude copy-number changes, rearrangements, or other findings unless the test assessed them.
-- If cytogenetic results are not supplied, assume normal conventional cytogenetics for interpretation and record this as a `workflow_assumption`, not a patient result.
-- Do not state that cytogenetics were performed or that a specific cytogenetic abnormality was formally excluded.
-- Do not use the normal-cytogenetics assumption when supplied karyotype, FISH, copy-number, or other findings conflict with it.
-
 ### Required action
 
-Create:
-
-- `case_major_category`
-  - Choose exactly one value from `<work-dir>/case-major-categories.json`.
-  - Represent the supplied starting **clinicomorphological major category**, not a molecularly revised diagnosis.
-  - Use `no_haematological_malignancy` only when the case specifies no haematological malignancy and the NGS result block contains no variants.
-  - Do not use `no_haematological_malignancy` if variants are present.
-
-- `provisional_disease`
-  - Preserve the supplied provisional diagnostic wording, including any subtype/entity wording such as `MDS-IB2`.
-  - Do not force it to a controlled-vocabulary term and do not revise it using molecular findings.
-
-- `genes`
-  - Include only genes with reported variants in the NGS result block.
-  - Exclude genes mentioned only in history, differential diagnosis, assay description, other tests, or lists of genes tested.
-  - Use `[]` when no NGS variants are reported.
-
-- `case_facts`
-  - Preserve supplied patient facts losslessly with unique, stable `fact_id` values.
-  - Preserve exact variants, values, units, morphology, blood counts, cytogenetic/FISH findings, treatment context, assay limitations, and qualifiers.
-  - Do not strengthen or normalise supplied facts.
-  - Do not infer phase, clonal order, allelic state, germline origin, assay coverage, or unreported clinical features.
-  - Apply **Missing and unreported results** above.
-  - Record one `test_result_status` fact for each supplied test treated as complete.
-  - Do not create separate negative facts for every unlisted gene or abnormality.
-  - Record an assumed normal cytogenetic result as a `workflow_assumption`, not a patient result.
+Follow `prompts/workflow/structure_case.md` exactly and write JSON only to `<work-dir>/case-input.json`.
 
 ### Output
 
-Write JSON only to `<work-dir>/case-input.json` with exactly these top-level fields:
-
-```json
-{
-  "case_major_category": "<exact allowed major category>",
-  "provisional_disease": "<supplied provisional diagnostic wording>",
-  "genes": [],
-  "case_facts": []
-}
-```
-
-Do not add explanatory prose or other top-level fields.
+`<work-dir>/case-input.json`.
 
 ## Step 2 — Retrieve diagnosis evidence
 
@@ -252,21 +242,12 @@ Use a fresh bounded model session.
 
 Read only:
 
-- `prompts/diagnostic_adjudication_prompt.md`;
+- `prompts/workflow/adjudicate_diagnosis.md`;
 - `<work-dir>/diagnostic_evidence.md`.
 
 #### Required action
 
-Follow `prompts/diagnostic_adjudication_prompt.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary.
-
-If `diagnosis_cards` is empty:
-
-- do not reclassify;
-- set `status` to `"indeterminate"`;
-- set `refined_disease` and `downstream_filter_disease` to `case_major_category`;
-- preserve the supplied `provisional_disease` as `diagnostic_label`;
-- set `driven_by` and `criterion_assessment` to `[]`;
-- state in `reason` that no corpus diagnosis evidence was retrieved.
+Follow `prompts/workflow/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary.
 
 For `evidence-block`, `ngs-report`, `nel-demo`, and `nel-validate`:
 - set `user_review` to `"automatic"`;
@@ -276,6 +257,7 @@ For `evidence-block`, `ngs-report`, `nel-demo`, and `nel-validate`:
 
 For `evidence-block manual`:
 - write the initial `<work-dir>/adjudication.json` with `user_review.decision: "pending"` and the exact pending review fields required by the adjudication prompt;
+- keep the initial `downstream_filter_disease` equal to the model's `refined_disease`;
 - proceed to Step 3B.
 
 #### Output
@@ -305,20 +287,16 @@ Do not start another model adjudication.
 
 Use a fresh bounded model session and read only:
 
+- `prompts/workflow/revise_diagnosis.md`;
 - `<work-dir>/diagnostic_evidence.md`;
 - `<work-dir>/adjudication.json`;
 - the user's revised diagnostic label and downstream category.
 
-Re-ground the requested revision using only supplied case facts and retrieved diagnosis cards. Do not alter the model's original top-level adjudication fields. Update only:
+Follow `prompts/workflow/revise_diagnosis.md` exactly.
 
-- `user_review.decision` to `"disagree"`;
-- `user_review.diagnostic_label` to the grounded revised label;
-- `user_review.refined_disease` to one exact `allowed_refined_diseases` value;
-- `user_review.reason` to a concise evidence-bounded reason;
-- `user_review.card_ids` to one or more exact supporting diagnosis `card_id` values;
-- `downstream_filter_disease` to `user_review.refined_disease`.
+If the requested revision is supportable, replace `<work-dir>/adjudication.json` only with the complete updated JSON returned by that task.
 
-If the requested revision cannot be grounded in retrieved diagnosis evidence, do not invent support; explain that Step 4 remains blocked until the user supplies a supportable revision or agrees with the model adjudication.
+If the requested revision cannot be grounded in retrieved diagnosis evidence, do not alter `<work-dir>/adjudication.json`; explain that Step 3C remains blocked until the user supplies a supportable revision or agrees with the model adjudication.
 
 ### Step 3C — Deterministically append the integrated diagnosis
 
@@ -367,38 +345,12 @@ Use one fresh bounded model session.
 
 Read only:
 
+- `prompts/workflow/analyse_report.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/evidence.md`;
 - `rules/agreed_reporting_rules.md`.
 
-Write `<work-dir>/report-analysis.json` with this shape:
-
-```json
-{
-  "schema_version": "1.0",
-  "answers": [
-    {
-      "rule_id": "R1.1",
-      "text": "Patient-specific conclusion or drafting instruction.",
-      "citation_status": "cited",
-      "card_tags": ["a1b2c3"]
-    }
-  ]
-}
-```
-
-Requirements:
-
-- Include every rule from `R1.1` through `R5.9` exactly once and in source order.
-- Give each rule a self-contained, case-specific answer.
-- Use the integrated diagnosis in `case.md`; do not re-adjudicate it.
-- Use `evidence.md` as the complete literature-evidence boundary.
-- Keep card-level evidence granularity: cite the exact runtime `card_tag` of every evidence card that directly supports the answer.
-- Use only tags copied exactly from `evidence.md`; never infer, reconstruct, shorten or invent a tag.
-- Set `citation_status` to `"cited"` when one or more cards directly support the answer and include those tags.
-- Set `citation_status` to `"no_citation_required"` with `card_tags: []` when no literature citation is required. This explicit state is compulsory; an empty tag array alone is not sufficient.
-- Use a drafting instruction such as `Omit ...` when a rule has no reportable implication.
-- Do not add headings, commentary or fields outside the shown shape.
+Follow `prompts/workflow/analyse_report.md` exactly and write only `<work-dir>/report-analysis.json`.
 
 Run exactly:
 
@@ -419,22 +371,17 @@ Use a fresh bounded model session.
 
 Read only:
 
+- `prompts/workflow/format_report.md`;
 - `<format-prompt>`;
 - `<work-dir>/report-draft.md`.
 
 Do not read `case.md`, `evidence.md`, `card-tags.json`, `rules/agreed_reporting_rules.md`, the original case document, or any other file. Do not use information carried from Step 6A except `report-draft.md`.
 
-If either required input is missing, unreadable, or malformed, stop and report the error.
+If any required input is missing, unreadable, or malformed, stop and report the error.
 
 #### Required action
 
-Follow `<format-prompt>` exactly, using `report-draft.md` as the sole source of report content.
-
-Treat explicit drafting instructions in `report-draft.md` as constraints, not report prose. Apply instructions such as `Omit ...`, `Do not state ...`, and `Do not infer ...`, then omit the instruction itself from `report-final.md`.
-
-Do not introduce a clinical assertion, qualification, citation, or patient fact absent from `report-draft.md`.
-
-For every retained statement, copy verbatim every exact `[card:<six-character-tag>]` marker associated with its supporting facts. Keep copied markers attached to those facts. When combining retained draft statements, copy all supporting markers verbatim and adjacently. Do not create, infer, alter, shorten, parse, replace, or renumber a card-tag marker. Retain `(no citation required)` for a retained sentence with that marker. Do not write numeric citations or a `## References` section.
+Follow `prompts/workflow/format_report.md` exactly. Apply `<format-prompt>` only for report style, ordering, emphasis, compression, and optional-content choices within the mandatory workflow constraints. Use `report-draft.md` as the sole source of report content.
 
 #### Output
 
@@ -449,7 +396,7 @@ python scripts/report_citations.py validate \
   --card-tags <work-dir>/card-tags.json
 ```
 
-The command is read-only and must succeed before Step 6C. If it fails, use only the validator error, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
+The command is read-only and must succeed before Step 6C. If it fails, use only the validator error, `prompts/workflow/format_report.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
 
 ### Step 6C — Render citations and references
 
@@ -479,13 +426,13 @@ Run after Step 6C has completed `report-final.md`.
 
   Both commands must succeed. Then use a fresh bounded model session and read only:
   - `<validation-case>`;
-  - `validation/marking_prompt.md`;
+  - `prompts/workflow/mark_validation_report.md`;
   - `<work-dir>/validation-case.md`;
   - `<work-dir>/report-final.md`;
   - `<work-dir>/marking-criteria.md`;
   - `<work-dir>/evidence.md`.
 
-  Follow `validation/marking_prompt.md` exactly. Treat `report-final.md` as the candidate answer and write only `<work-dir>/validation-mark.md`. Do not alter any earlier workflow artifact.
+  Follow `prompts/workflow/mark_validation_report.md` exactly. Treat `report-final.md` as the candidate answer and write only `<work-dir>/validation-mark.md`. Do not alter any earlier workflow artifact.
 
 Display mode outputs in these forms:
 

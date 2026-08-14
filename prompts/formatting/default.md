@@ -1,21 +1,12 @@
 # Default NGS report formatting
 
-Use `report-draft.md` as the sole source of content.
+This file controls report style and content prioritisation only. Mandatory source-integrity and citation-marker constraints are defined in `prompts/workflow/format_report.md`.
 
 <!--
 Customise report length, content emphasis, section ordering, and omission rules below.
-Source constraints and referencing rules should normally be left unchanged.
+Do not duplicate source-integrity or citation-marker rules here; those are enforced by
+prompts/workflow/format_report.md for every formatting style.
 -->
-
-## Source and output constraints
-
-- Do not add facts that are not present in `report-draft.md`.
-- Do not add interpretations that are not present in `report-draft.md`.
-- Do not add recommendations that are not present in `report-draft.md`.
-- Do not add citations that are not present in `report-draft.md`.
-- Do not mention reporting rules.
-- Do not mention the evidence block.
-- Do not mention the drafting process.
 
 ## General formatting
 
@@ -48,7 +39,7 @@ Source constraints and referencing rules should normally be left unchanged.
 
 - Omit this section if there are no NGS (or other molecular results given in the case) that changes treatment.
 - Prioritise information that changes treatment.
-- For NGS variants that alters treatment-specific outcomes, first assess whether the patient would otherwise be eligible for this treatment. If not, then do not report the corresponding treatment-specific effects. 
+- For NGS variants that alters treatment-specific outcomes, first assess whether the patient would otherwise be eligible for this treatment. If not, then do not report the corresponding treatment-specific effects.
 
 ## Biomarkers and MRD
 
@@ -67,16 +58,3 @@ Source constraints and referencing rules should normally be left unchanged.
 ## Compression
 
 - When multiple genes have the same clinical implication, group them in one statement rather than describing each separately.
-
-## Referencing
-
-`report-draft.md` contains exact card-ID markers attached to its statements.
-
-- For every retained statement, copy all associated `[card:<card-id>]` markers
-  verbatim and keep them attached to the facts they support.
-- When combining retained statements, copy all of their supporting card-ID markers
-  verbatim and adjacently.
-- Retain `(no citation required)` for each retained sentence that has that marker.
-- Do not add, reconstruct, edit, replace, parse, or renumber citation markers.
-- Do not write numeric citations or a `References` section; deterministic Step 6C
-  performs citation replacement and bibliography rendering.
