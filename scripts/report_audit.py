@@ -2,11 +2,13 @@
 """Validate the strict Markdown produced by Step 6A.
 
 Step 6A writes one line per reporting rule directly to ``report-draft.md``.
-Every line must end in a full stop, one space, and either one or more exact
+Every line must explicitly classify its rule outcome as ``REPORT:`` or
+``OMIT:``, then end in a full stop, one space, and either one or more exact
 runtime ``[card:xxxxxx]`` markers or the literal ``(no citation required)``.
-For example: ``R1.1 Conclusion. [card:a1b2c3]``. This script enforces the
-complete rule checklist, the terminal citation disposition, and exact
-membership of every cited tag in ``evidence.md``.
+For example: ``R1.1 REPORT: Conclusion. [card:a1b2c3]``. This script enforces
+the complete rule checklist, classification grammar, obvious report-construction
+meta-language leakage, terminal citation disposition, and exact membership of
+every cited tag in ``evidence.md``.
 """
 
 import argparse
@@ -26,6 +28,18 @@ RULE_ID = re.compile(r"R\d+\.\d+")
 CARD_MARKER = re.compile(r"\[card:([0-9a-f]{6})\]")
 TERMINAL_CITED = re.compile(r"(?:\[card:[0-9a-f]{6}\])+")
 NO_CITATION = "(no citation required)"
+CLASSIFICATIONS = ("REPORT", "OMIT")
+REPORT_META_PREFIX = re.compile(
+    r"(?:the\s+final\s+report\s+should\b|final\s+report\s+should\b|"
+    r"report\b|omit\b|do\s+not\s+(?:mention|report|state|discuss)\b|"
+    r"commentary\s+(?:is|should\s+be)\s+not\s+warranted\b)",
+    re.IGNORECASE,
+)
+REPORT_META_ANYWHERE = re.compile(
+    r"\b(?:should|must)\s+be\s+omitted\b|"
+    r"\bshould\s+not\s+be\s+(?:mentioned|reported|discussed)\b",
+    re.IGNORECASE,
+)
 
 
 def read_text(path):
@@ -44,7 +58,7 @@ def evidence_card_tags(evidence_text):
 
 
 def split_draft_line(line, *, expected_rule_id, line_number):
-    """Return ``(text, tags)`` for one strict Step 6A Markdown line."""
+    """Return ``(classification, text, tags)`` for one strict Step 6A line."""
     prefix = f"{expected_rule_id} "
     if not line.startswith(prefix):
         found = line.split(" ", 1)[0] if line else "<blank>"
@@ -53,6 +67,20 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         )
 
     content = line[len(prefix) :]
+    class_match = re.match(r"(REPORT|OMIT): ", content)
+    if class_match is None:
+        found = content.split(" ", 1)[0] if content else "<missing>"
+        raise ValueError(
+            f"{expected_rule_id} must classify the rule immediately after the rule ID. "
+            "Expected exactly 'REPORT:' for reportable clinical content or 'OMIT:' for "
+            "a topic that must not appear in the final report, followed by one space. "
+            f"Found {found!r}. Rewrite the line as either "
+            f"'{expected_rule_id} REPORT: <report-ready conclusion>. <citation disposition>' "
+            f"or '{expected_rule_id} OMIT: <topic to suppress>. <citation disposition>'."
+        )
+    classification = class_match.group(1)
+    content = content[class_match.end() :]
+
     if content.endswith(NO_CITATION):
         separator = content[: -len(NO_CITATION)]
         if not separator.endswith(" "):
@@ -66,9 +94,9 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         if match is None:
             raise ValueError(
                 f"{expected_rule_id} has no valid terminal citation disposition. "
-                "Expected exactly: '<answer>. [card:a1b2c3]' (or adjacent card tags), "
-                "or '<answer>. (no citation required)'. The citation disposition must "
-                "follow the full stop; do not write '<answer> [card:a1b2c3].'"
+                "Expected exactly: '<conclusion>. [card:a1b2c3]' (or adjacent card tags), "
+                "or '<conclusion>. (no citation required)'. The citation disposition must "
+                "follow the full stop; do not write '<conclusion> [card:a1b2c3].'"
             )
         if match.start() == 0 or content[match.start() - 1] != " ":
             raise ValueError(
@@ -81,12 +109,12 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         tags = CARD_MARKER.findall(marker_block)
 
     if not text:
-        raise ValueError(f"{expected_rule_id} answer text must be non-empty")
+        raise ValueError(f"{expected_rule_id} answer text must be non-empty after {classification}:")
     if not text.endswith("."):
         raise ValueError(
             f"{expected_rule_id} citation disposition is misplaced. Expected exactly: "
-            "'<answer>. [card:a1b2c3]' (or adjacent card tags), or "
-            "'<answer>. (no citation required)'. The full stop must come before the "
+            "'<conclusion>. [card:a1b2c3]' (or adjacent card tags), or "
+            "'<conclusion>. (no citation required)'. The full stop must come before the "
             "citation disposition."
         )
     if text != text.strip():
@@ -101,13 +129,28 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         raise ValueError(
             f"{expected_rule_id} terminal card tags must not contain duplicates. "
             "Keep each supporting tag once, after the full stop, e.g. "
-            "'<answer>. [card:a1b2c3][card:d4e5f6]'"
+            "'<conclusion>. [card:a1b2c3][card:d4e5f6]'"
         )
     if any(CARD_TAG.fullmatch(tag) is None for tag in tags):
         raise ValueError(
             f"{expected_rule_id} card tags must be six-character lowercase hex strings"
         )
-    return text, tags
+
+    if classification == "REPORT":
+        prose = text[:-1].strip()
+        meta = REPORT_META_PREFIX.match(prose) or REPORT_META_ANYWHERE.search(prose)
+        if meta:
+            phrase = meta.group(0)
+            raise ValueError(
+                f"{expected_rule_id} is classified REPORT but contains report-construction "
+                f"meta-language {phrase!r}. REPORT text must be direct, report-ready clinical "
+                "prose. If the rule means the topic should be absent from the final report, "
+                f"rewrite it as '{expected_rule_id} OMIT: <topic to suppress>. <citation disposition>'. "
+                "If the negative finding itself is clinically reportable, keep REPORT but rewrite "
+                "the sentence as the clinical finding rather than an instruction to the formatter."
+            )
+
+    return classification, text, tags
 
 
 def validate_draft(draft_text, evidence_text):
@@ -185,7 +228,7 @@ def validate_draft(draft_text, evidence_text):
     for line_number, (line, expected_rule_id) in enumerate(
         zip(lines, EXPECTED_RULE_IDS), start=1
     ):
-        text, tags = split_draft_line(
+        classification, text, tags = split_draft_line(
             line, expected_rule_id=expected_rule_id, line_number=line_number
         )
         for tag in tags:
@@ -194,6 +237,7 @@ def validate_draft(draft_text, evidence_text):
         parsed.append(
             {
                 "rule_id": expected_rule_id,
+                "classification": classification,
                 "text": text,
                 "card_tags": tags,
                 "citation_status": "cited" if tags else "no_citation_required",

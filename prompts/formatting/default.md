@@ -1,24 +1,25 @@
 # Default NGS report formatting
 
-This file controls report style and content prioritisation only. Mandatory source-integrity and citation-marker constraints are defined in `prompts/workflow/format_report.md`.
+This file controls report style and content prioritisation only. Mandatory source-integrity and citation-marker constraints are defined by the reporting workflow and `prompts/workflow/citation_rules.md`.
 
 <!--
 Customise report length, content emphasis, section ordering, and omission rules below.
-Do not duplicate source-integrity or citation-marker rules here; those are enforced by
-prompts/workflow/format_report.md for every formatting style.
+Do not duplicate detailed source-integrity or citation-marker mechanics here; those are enforced by
+the reporting workflow for every formatting style.
 -->
 
 ## General formatting
 
 - Write a concise final clinical NGS report.
-- Maximum 200 words, excluding citations.
+- Maximum 200 report-prose words. Runtime card IDs and workflow citation dispositions do not count toward this limit.
+- Formatting, compression, and word-count instructions MUST NOT remove, alter, or separate citation markers from the sentence they support.
 - Use full sentences.
 - Include only the most clinically important conclusions from `report-draft.md`.
 - Preserve clinically important qualifications and uncertainty.
 
 ## Variant summary
 
-- The first sentence MUST summarise the detected NGS variants. Because this is a patient-result summary, it MUST end with `(no citation required)` unless the supporting content in `report-draft.md` explicitly carries one or more evidence-card markers; in that case preserve those markers instead.
+- The first sentence MUST summarise the detected NGS variants.
 - List genes in alphabetical order.
 - Give variant type and VAF in brackets following each gene (e.g. missense, 30%).
 - Use a recognised hotspot name when the variant type or hotspot is clinically important (e.g. JAK2 V617F, FLT3-ITD or TKD, NPM1 type A).
@@ -50,10 +51,6 @@ prompts/workflow/format_report.md for every formatting style.
 
 - Prioritise information that changes assessment of possible germline predisposition.
 
-## Handling negative statements
-
-- Omit statements that only say what a finding does not imply or should not be used for.
-- Retain negative test results only when they materially affect diagnosis, classification, prognosis, or response assessment.
 
 ## Compression
 

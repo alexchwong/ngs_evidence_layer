@@ -11,7 +11,7 @@ import report_audit  # noqa: E402
 
 def draft_text():
     return "\n".join(
-        f"{rule_id} Answer for {rule_id}. (no citation required)"
+        f"{rule_id} REPORT: Answer for {rule_id}. (no citation required)"
         for rule_id in report_audit.EXPECTED_RULE_IDS
     ) + "\n"
 
@@ -38,8 +38,8 @@ d4e5f6: primary ref 2
 class DraftValidationTests(unittest.TestCase):
     def test_accepts_complete_document(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1. [card:a1b2c3]",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1. [card:a1b2c3]",
         )
         result = report_audit.validate_draft(text, EVIDENCE)
         self.assertEqual(result[0]["rule_id"], "R1.1")
@@ -47,9 +47,54 @@ class DraftValidationTests(unittest.TestCase):
         self.assertEqual(result[0]["citation_status"], "cited")
         self.assertEqual(result[1]["citation_status"], "no_citation_required")
 
+    def test_requires_report_or_omit_classification(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 Answer for R1.1. (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "must classify the rule immediately"):
+            report_audit.validate_draft(text, EVIDENCE)
+
+    def test_accepts_omit_classification(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 OMIT: Germline commentary. (no citation required)",
+        )
+        result = report_audit.validate_draft(text, EVIDENCE)
+        self.assertEqual(result[0]["classification"], "OMIT")
+        self.assertEqual(result[0]["text"], "Germline commentary.")
+
+    def test_parses_report_classification(self):
+        result = report_audit.validate_draft(draft_text(), EVIDENCE)
+        self.assertEqual(result[0]["classification"], "REPORT")
+
+    def test_rejects_report_meta_instruction_with_actionable_message(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: The final report should state AML with mutated NPM1. (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "classified REPORT but contains report-construction meta-language"):
+            report_audit.validate_draft(text, EVIDENCE)
+
+    def test_rejects_report_omit_instruction(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Omit germline commentary. (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "rewrite it as 'R1.1 OMIT:"):
+            report_audit.validate_draft(text, EVIDENCE)
+
+    def test_allows_clinically_meaningful_negative_report(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: FLT3-ITD was not detected and the case remains favourable risk. (no citation required)",
+        )
+        result = report_audit.validate_draft(text, EVIDENCE)
+        self.assertEqual(result[0]["classification"], "REPORT")
+
     def test_requires_every_rule_in_order(self):
         text = draft_text().replace(
-            "R1.2 Answer for R1.2.", "R1.3 Answer for R1.2.", 1
+            "R1.2 REPORT: Answer for R1.2.", "R1.3 REPORT: Answer for R1.2.", 1
         )
         with self.assertRaisesRegex(ValueError, r"missing rule line\(s\): R1.2"):
             report_audit.validate_draft(text, EVIDENCE)
@@ -74,40 +119,40 @@ class DraftValidationTests(unittest.TestCase):
 
     def test_requires_explicit_terminal_citation_disposition(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1.",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1.",
         )
-        with self.assertRaisesRegex(ValueError, r"Expected exactly: '<answer>\. \[card:a1b2c3\]'"):
+        with self.assertRaisesRegex(ValueError, r"Expected exactly: '<conclusion>\. \[card:a1b2c3\]'"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_rejects_marker_before_full_stop_with_actionable_message(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1 [card:a1b2c3].",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1 [card:a1b2c3].",
         )
         with self.assertRaisesRegex(ValueError, "citation disposition must follow the full stop"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_requires_full_stop_before_no_citation_disposition(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1 (no citation required)",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1 (no citation required)",
         )
         with self.assertRaisesRegex(ValueError, "full stop must come before the citation disposition"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_accepts_multiple_adjacent_terminal_tags(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1. [card:a1b2c3][card:d4e5f6]",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1. [card:a1b2c3][card:d4e5f6]",
         )
         result = report_audit.validate_draft(text, EVIDENCE)
         self.assertEqual(result[0]["card_tags"], ["a1b2c3", "d4e5f6"])
 
     def test_rejects_unknown_tag_with_rule_id(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1. [card:ffffff]",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1. [card:ffffff]",
         )
         with self.assertRaisesRegex(
             ValueError,
@@ -117,32 +162,32 @@ class DraftValidationTests(unittest.TestCase):
 
     def test_rejects_duplicate_tags(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1. [card:a1b2c3][card:a1b2c3]",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1. [card:a1b2c3][card:a1b2c3]",
         )
         with self.assertRaisesRegex(ValueError, "R1.1 terminal card tags must not contain duplicates"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_rejects_inline_card_marker(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer [card:a1b2c3] for R1.1. [card:d4e5f6]",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer [card:a1b2c3] for R1.1. [card:d4e5f6]",
         )
         with self.assertRaisesRegex(ValueError, "marker inside answer prose"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_rejects_no_citation_marker_inside_prose(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Say (no citation required) in prose. [card:a1b2c3]",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Say (no citation required) in prose. [card:a1b2c3]",
         )
         with self.assertRaisesRegex(ValueError, "marker inside answer prose"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_rejects_space_between_terminal_tags(self):
         text = draft_text().replace(
-            "R1.1 Answer for R1.1. (no citation required)",
-            "R1.1 Answer for R1.1. [card:a1b2c3] [card:d4e5f6]",
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: Answer for R1.1. [card:a1b2c3] [card:d4e5f6]",
         )
         with self.assertRaisesRegex(ValueError, "Expected exactly"):
             report_audit.validate_draft(text, EVIDENCE)

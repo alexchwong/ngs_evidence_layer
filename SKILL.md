@@ -26,8 +26,8 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `prompts/workflow/revise_diagnosis.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
 - Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, then render the single model-facing `evidence.md` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
-- Step 6A — model via `prompts/workflow/analyse_report.md` + deterministic validation: answer every reporting rule directly in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
-- Step 6B — model via `prompts/workflow/format_report.md` plus `<format-prompt>` + deterministic validation: format `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
+- Step 6A — model via `prompts/workflow/analyse_report.md` + shared `prompts/workflow/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
+- Step 6B — model via `prompts/workflow/format_report.md` + shared `prompts/workflow/citation_rules.md` plus `<format-prompt>` + deterministic validation: render only `REPORT:` content from `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
 - Step 7 — post-report delivery and deterministic packaging; full `ngs-report`-equivalent runs get a debug ZIP containing every workflow artifact, while `nel-validate` additionally gets a separate external-marking ZIP containing only the report, validation case, and self-contained marking prompt.
 
@@ -353,6 +353,7 @@ Use one fresh bounded model session.
 Read only:
 
 - `prompts/workflow/analyse_report.md`;
+- `prompts/workflow/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/evidence.md`;
 - `rules/agreed_reporting_rules.md`.
@@ -367,18 +368,19 @@ python scripts/report_audit.py validate \
   --evidence <work-dir>/evidence.md
 ```
 
-The command is read-only and validates the complete rule sequence, compulsory terminal citation disposition, exact runtime card-tag syntax, duplicate tags, and tag membership in `evidence.md`.
+The command is read-only and validates the complete rule sequence, compulsory `REPORT:`/`OMIT:` classification, obvious report-construction meta-language after `REPORT:`, compulsory terminal citation disposition, exact runtime card-tag syntax, duplicate tags, and tag membership in `evidence.md`.
 
 If validation fails for a citation-tag reason (unknown, malformed, misplaced, or duplicated tag), enter **citation-repair mode** until validation succeeds:
 
 - use the validator error to identify the affected rule(s);
 - inspect/edit `report-draft.md`;
-- `evidence.md` is the **only source file you may read or re-read** to repair the affected answer or its citation tags;
+- re-read `prompts/workflow/citation_rules.md` before repairing the citation defect;
+- `evidence.md` is the **only evidentiary/source-content file you may read or re-read** to repair the affected answer or its citation tags;
 - find the supporting evidence in `evidence.md` and copy the exact runtime `card_tag` shown there;
 - do **not** read or re-read `case.md`, `rules/agreed_reporting_rules.md`, `card-tags.json`, `bundle.json`, `diagnostic_evidence.md`, `adjudication.json`, `cards/`, the corpus/index, the original case document, or any other source file;
 - never use `card-tags.json` to recover, translate, verify, or substitute a tag.
 
-For non-citation structural validation failures, correct only the reported formatting/rule-sequence defect and rerun validation. Unknown tags are reported with the affected rule IDs.
+For non-citation structural or classification validation failures, correct only the reported rule(s) and defect(s), using the validator message and `prompts/workflow/analyse_report.md`; do not reopen case or evidence sources unless the failure is specifically a citation-tag repair permitted above. Unknown tags are reported with the affected rule IDs.
 
 ### Step 6B — Format the final report
 
@@ -389,6 +391,7 @@ Use a fresh bounded model session.
 Read only:
 
 - `prompts/workflow/format_report.md`;
+- `prompts/workflow/citation_rules.md`;
 - `<format-prompt>`;
 - `<work-dir>/report-draft.md`.
 
@@ -416,7 +419,7 @@ python scripts/report_citations.py validate \
   --require-citation-after-full-stop
 ```
 
-The command is read-only and must succeed before Step 6C. In Step 6B mode it requires every sentence-ending full stop to be followed by one space and either one or more exact runtime card-tag markers or `(no citation required)`. A placement failure reports the affected line and the exact expected syntax, so do not read the validation script to troubleshoot it. This does not rewrite `report-final.md`. If validation fails, use only the validator error, `prompts/workflow/format_report.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
+The command is read-only and must succeed before Step 6C. In Step 6B mode it requires every sentence-ending full stop to be followed by one space and either one or more exact runtime card-tag markers or `(no citation required)`. A placement failure reports the affected line and the exact expected syntax, so do not read the validation script to troubleshoot it. This does not rewrite `report-final.md`. If validation fails, use only the validator error, `prompts/workflow/format_report.md`, `prompts/workflow/citation_rules.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
 
 ### Step 6C — Render citations and references
 
