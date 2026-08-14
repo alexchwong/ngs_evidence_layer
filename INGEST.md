@@ -328,6 +328,24 @@ Run each phase in a fresh chat. Save the model's returned JSON file into the sam
 
 ### Phase 1 — census
 
+Invoke Phase 1 with either full scope or an explicit category-only scope. Examples:
+
+```text
+Phase 1
+Phase 1, diagnosis only
+Phase 1, diagnosis and biomarker only
+```
+
+Phase 1 first normalizes and paraphrases the requested scope and asks for `CONFIRM`.
+It must not begin extraction until confirmed. Plain `Phase 1` means all five clinical
+categories. A restricted run still reads the entire paper, but writes census entries
+only for the confirmed categories. Restricted scope is persisted as the optional
+positive allow-list `category_scope` in `paper.census.json`; full-scope runs omit the
+field for backward compatibility. Downstream phases treat categories outside a
+declared scope as intentionally excluded, while remaining strict about completeness
+inside the scope.
+
+
 Start a fresh chat and provide exactly:
 
 - `work/<publication-key>/paper.md`

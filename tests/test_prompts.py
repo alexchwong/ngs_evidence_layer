@@ -225,3 +225,18 @@ class PromptIntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Phase1CategoryScopePromptTests(unittest.TestCase):
+    def test_phase1_requires_scope_confirmation_before_extraction(self):
+        prompt = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertIn("Phase 1, diagnosis only", prompt)
+        self.assertIn("ask the user to reply exactly `CONFIRM`", prompt)
+        self.assertIn("Plain `Phase 1` means all five categories", prompt)
+        self.assertIn("reading remains whole-paper", prompt)
+
+    def test_phase2_respects_declared_category_scope(self):
+        prompt = " ".join(BUILD_PROMPTS.render(2).split())
+        self.assertIn("optional `category_scope`", prompt)
+        self.assertIn("outside a declared `category_scope`", prompt)
+        self.assertIn("Within the declared scope, completeness and atomicity remain strict", prompt)

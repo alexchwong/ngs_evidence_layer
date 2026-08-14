@@ -22,8 +22,14 @@ You are the extraction model for exactly one publication. Use only `paper.md`,
 add facts absent from the paper.
 ## Entry validation
 
-First validate the census against the paper. If materially deficient, stop and
-write the next `paper.census-critique-NNN.md` with specific gaps; do not card.
+First validate the census against the paper. Treat optional `category_scope` as the
+intentional positive allow-list for Phase 1; if it is absent, all five categories were
+in scope. Do not critique the census for clinically relevant claims whose semantic
+category is outside a declared `category_scope`, and do not create cards from those
+out-of-scope claims merely because they are visible while reviewing the paper.
+Within the declared scope, completeness and atomicity remain strict: if the census is
+materially deficient, stop and write the next `paper.census-critique-NNN.md` with
+specific gaps; do not card.
 ## Working method
 
 Walk every census claim as a review obligation, not an output obligation. A census
