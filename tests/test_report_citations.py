@@ -53,11 +53,11 @@ class ValidateTests(unittest.TestCase):
             report_citations.validate("Finding. [card:ffffff]\n", EVIDENCE, CARD_TAGS)
 
     def test_malformed_marker_fails(self):
-        with self.assertRaisesRegex(ValueError, "malformed card-tag"):
+        with self.assertRaisesRegex(ValueError, "malformed card marker"):
             report_citations.validate("Finding. [card:bad tag]\n", EVIDENCE, CARD_TAGS)
 
     def test_legacy_numeric_source_marker_fails(self):
-        with self.assertRaisesRegex(ValueError, "legacy numeric"):
+        with self.assertRaisesRegex(ValueError, r"legacy '\(refs: \.\.\.\)' citation syntax"):
             report_citations.validate("Finding. (refs: 1)\n", EVIDENCE, CARD_TAGS)
 
     def test_model_generated_numeric_citation_fails(self):
@@ -65,7 +65,7 @@ class ValidateTests(unittest.TestCase):
             report_citations.validate("Finding. [1]\n", EVIDENCE, CARD_TAGS)
 
     def test_references_section_fails(self):
-        with self.assertRaisesRegex(ValueError, "already contains"):
+        with self.assertRaisesRegex(ValueError, "contains a model-written '## References' section"):
             report_citations.validate("Finding.\n\n## References\n\n1. Alpha.\n", EVIDENCE, CARD_TAGS)
 
     def test_incomplete_evidence_refs_mapping_fails(self):
@@ -101,7 +101,7 @@ class ValidateTests(unittest.TestCase):
     def test_step6b_rejects_uncited_sentence_ending_full_stop_with_actionable_message(self):
         with self.assertRaisesRegex(
             ValueError,
-            r"Expected exactly: 'Sentence\. \[card:a1b2c3\]'",
+            r"full stop is followed immediately by exactly one space",
         ):
             report_citations.validate(
                 "Uncited sentence.\n",
@@ -111,7 +111,7 @@ class ValidateTests(unittest.TestCase):
             )
 
     def test_step6b_rejects_marker_before_full_stop_with_actionable_message(self):
-        with self.assertRaisesRegex(ValueError, "Do not place the marker before the full stop"):
+        with self.assertRaisesRegex(ValueError, "move it after the full stop"):
             report_citations.validate(
                 "Finding [card:a1b2c3].\n",
                 EVIDENCE,
@@ -120,7 +120,7 @@ class ValidateTests(unittest.TestCase):
             )
 
     def test_step6b_requires_one_space_before_disposition(self):
-        with self.assertRaisesRegex(ValueError, "Expected exactly"):
+        with self.assertRaisesRegex(ValueError, "full stop is followed immediately by exactly one space"):
             report_citations.validate(
                 "Finding.[card:a1b2c3]\n",
                 EVIDENCE,
@@ -235,7 +235,7 @@ class CommandTests(unittest.TestCase):
             strict_step6b=True,
         )
         self.assertNotEqual(completed.returncode, 0)
-        self.assertIn("Do not place the marker before the full stop", completed.stderr)
+        self.assertIn("move it after the full stop", completed.stderr)
         self.assertEqual(report, original)
 
     def run_command(self, command, original, *, strict_step6b=False):

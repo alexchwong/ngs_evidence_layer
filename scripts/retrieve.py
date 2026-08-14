@@ -413,6 +413,19 @@ def provenance(corpus, corpus_path, index_path, digest, card_ids):
         "card_ids": sorted(card_ids),
     }
 
+def _field_mismatch_message(label, actual_keys, required_keys):
+    actual_keys = set(actual_keys)
+    required_keys = set(required_keys)
+    missing = sorted(required_keys - actual_keys)
+    extra = sorted(actual_keys - required_keys)
+    details = []
+    if missing:
+        details.append("missing field(s): " + ", ".join(missing))
+    if extra:
+        details.append("unexpected field(s): " + ", ".join(extra))
+    return f"{label} has the wrong fields; " + "; ".join(details)
+
+
 def validate_case_facts(case_facts):
     if not isinstance(case_facts, list):
         raise ValueError("case_facts must be a JSON array")
@@ -425,7 +438,11 @@ def validate_case_facts(case_facts):
             raise ValueError(f"case_facts[{index}].fact_id must be a non-empty string")
         fact_ids.append(fact_id)
     if len(fact_ids) != len(set(fact_ids)):
-        raise ValueError("case fact IDs must be unique")
+        duplicates = sorted({fact_id for fact_id in fact_ids if fact_ids.count(fact_id) > 1})
+        raise ValueError(
+            "case_facts contains duplicate fact_id value(s): " + ", ".join(duplicates)
+            + ". Rename or remove the duplicate entries so every case fact has a unique fact_id."
+        )
     return case_facts
 
 def _normalise_genes(genes, *, field="genes"):
@@ -450,7 +467,10 @@ def _validate_case_disease(disease, genes, *, field):
     variants; the case-only term must not be inferred solely from an empty gene list.
     """
     if disease not in vocab.CASE_DISEASE_SET:
-        raise ValueError(f"{field} {disease!r} is outside the case disease vocabulary")
+        raise ValueError(
+            f"{field} has invalid value {disease!r}. Use an exact canonical disease value "
+            "from the allowed refined diseases supplied in diagnostic_evidence.md."
+        )
     if disease == vocab.NO_HAEMATOLOGICAL_MALIGNANCY and genes:
         raise ValueError(
             f"{field} {vocab.NO_HAEMATOLOGICAL_MALIGNANCY!r} requires no reported variants"
@@ -459,7 +479,10 @@ def _validate_case_disease(disease, genes, *, field):
 
 def _validate_case_major_category(category, genes, *, field="case_major_category"):
     if category not in vocab.CASE_MAJOR_CATEGORY_SET:
-        raise ValueError(f"{field} {category!r} is outside the case-major-category vocabulary")
+        raise ValueError(
+            f"{field} has invalid value {category!r}. Replace it with exactly one allowed "
+            "case-major category from case-major-categories.json; do not invent a new category."
+        )
     if category == vocab.NO_HAEMATOLOGICAL_MALIGNANCY and genes:
         raise ValueError(
             f"{field} {vocab.NO_HAEMATOLOGICAL_MALIGNANCY!r} requires no reported variants"
@@ -480,7 +503,8 @@ def validate_case_input(path):
     required = {"case_major_category", "provisional_disease", "genes", "case_facts"}
     if set(document) != required:
         raise ValueError(
-            "case-input must contain exactly: " + ", ".join(sorted(required))
+            _field_mismatch_message("case-input.json", document.keys(), required)
+            + ". Edit case-input.json so it contains exactly: " + ", ".join(sorted(required))
         )
     provisional_disease = document["provisional_disease"]
     if not isinstance(provisional_disease, str) or not provisional_disease.strip():
@@ -630,7 +654,8 @@ def _validate_user_review(
         )
         if reviewed_refined not in allowed_refined_diseases:
             raise ValueError(
-                f"user_review refined_disease {reviewed_refined!r} is not allowed by Step 2"
+                f"user_review.refined_disease {reviewed_refined!r} is not allowed. Replace it with one "
+                f"of: {', '.join(allowed_refined_diseases)}"
             )
     reviewed_reason = review["reason"]
     reviewed_cards = review["card_ids"]
@@ -645,7 +670,11 @@ def _validate_user_review(
     if len(reviewed_cards) != len(set(reviewed_cards)):
         raise ValueError("user_review card_ids must be unique")
     if any(card_id not in retrieved_card_ids for card_id in reviewed_cards):
-        raise ValueError("every user_review card_id must name a retrieved diagnosis card")
+        invalid = [card_id for card_id in reviewed_cards if card_id not in retrieved_card_ids]
+        raise ValueError(
+            "user_review.card_ids contains unretrieved diagnosis card ID(s): " + ", ".join(invalid)
+            + ". Replace/remove only those IDs using exact card IDs shown in diagnostic_evidence.md."
+        )
 
     if decision == "pending":
         if (
@@ -702,13 +731,18 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     }
     allowed_key_sets = {frozenset(base_keys), frozenset(base_keys | {"user_review"})}
     if not isinstance(adjudication, dict) or frozenset(adjudication) not in allowed_key_sets:
+        expected = base_keys | ({"user_review"} if "user_review" in adjudication else set()) if isinstance(adjudication, dict) else base_keys
+        actual = adjudication.keys() if isinstance(adjudication, dict) else []
         raise ValueError(
-            "adjudication must contain exactly the model fields and optional user_review: "
-            + ", ".join(sorted(base_keys | {"user_review"}))
+            _field_mismatch_message("adjudication.json", actual, expected)
+            + ". Restore the exact adjudication schema from the Step 3 prompt; do not add explanatory fields."
         )
     status = adjudication["status"]
     if status not in {"criteria_met", "criteria_not_met", "indeterminate"}:
-        raise ValueError(f"invalid adjudication status {status!r}")
+        raise ValueError(
+            f"adjudication.status has invalid value {status!r}; use exactly one of: "
+            "criteria_met, criteria_not_met, indeterminate."
+        )
     provisional = step2_result["provisional_disease"]
     if not isinstance(provisional, str) or not provisional.strip():
         raise ValueError("step2 provisional_disease must be a non-empty string")
@@ -721,12 +755,17 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     ):
         raise ValueError("step2 allowed_refined_diseases is invalid")
     if adjudication["provisional_disease"] != provisional:
-        raise ValueError("adjudication provisional_disease does not match diagnosis result")
+        raise ValueError(
+            f"adjudication.provisional_disease is {adjudication['provisional_disease']!r}, but "
+            f"diagnostic_evidence.md supplies {provisional!r}. Copy the provisional disease exactly; "
+            "do not reinterpret it in this field."
+        )
     refined = adjudication["refined_disease"]
     _validate_case_disease(refined, genes, field="adjudication refined_disease")
     if refined not in allowed_refined_diseases:
         raise ValueError(
-            f"adjudication refined_disease {refined!r} is not allowed by Step 2"
+            f"adjudication.refined_disease {refined!r} is not allowed. Replace it with exactly one "
+            f"of the allowed refined diseases from diagnostic_evidence.md: {', '.join(allowed_refined_diseases)}"
         )
     downstream = adjudication["downstream_filter_disease"]
     _validate_case_disease(
@@ -736,7 +775,8 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     )
     if downstream not in allowed_refined_diseases:
         raise ValueError(
-            f"adjudication downstream_filter_disease {downstream!r} is not allowed by Step 2"
+            f"adjudication.downstream_filter_disease {downstream!r} is not allowed. Replace it with "
+            f"the applicable refined disease from this allowed list: {', '.join(allowed_refined_diseases)}"
         )
     label = adjudication["diagnostic_label"]
     if label is not None and (not isinstance(label, str) or not label.strip()):
@@ -746,9 +786,17 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     retrieved_card_ids = {card["card_id"] for card in step2_result["diagnosis_cards"]}
     driven_by = adjudication["driven_by"]
     if not isinstance(driven_by, list) or any(card_id not in retrieved_card_ids for card_id in driven_by):
-        raise ValueError("every driven_by ID must name a retrieved diagnosis card")
+        invalid = [card_id for card_id in driven_by if card_id not in retrieved_card_ids] if isinstance(driven_by, list) else [repr(driven_by)]
+        raise ValueError(
+            "adjudication.driven_by contains invalid diagnosis card ID(s): " + ", ".join(map(str, invalid))
+            + ". Replace/remove only those IDs using exact card IDs shown in diagnostic_evidence.md."
+        )
     if len(driven_by) != len(set(driven_by)):
-        raise ValueError("driven_by card IDs must be unique")
+        duplicates = sorted({card_id for card_id in driven_by if driven_by.count(card_id) > 1})
+        raise ValueError(
+            "adjudication.driven_by repeats card ID(s): " + ", ".join(duplicates)
+            + ". Keep each cited diagnosis card ID once."
+        )
     supplied_fact_ids = {fact["fact_id"] for fact in validate_case_facts(step2_result["case_facts"])}
     assessments = adjudication["criterion_assessment"]
     if not isinstance(assessments, list):
@@ -757,21 +805,41 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     for index, item in enumerate(assessments):
         item_keys = {"criterion", "required", "status", "card_ids", "case_fact_ids"}
         if not isinstance(item, dict) or set(item) != item_keys:
-            raise ValueError(f"criterion_assessment[{index}] has the wrong fields")
+            raise ValueError(
+                _field_mismatch_message(
+                    f"criterion_assessment[{index}]",
+                    item.keys() if isinstance(item, dict) else [],
+                    item_keys,
+                )
+                + ". That assessment must contain exactly: " + ", ".join(sorted(item_keys))
+            )
         if not isinstance(item["criterion"], str) or not item["criterion"].strip():
             raise ValueError(f"criterion_assessment[{index}].criterion must be non-empty")
         if not isinstance(item["required"], bool):
             raise ValueError(f"criterion_assessment[{index}].required must be boolean")
         if item["status"] not in {"met", "not_met", "unknown"}:
-            raise ValueError(f"criterion_assessment[{index}] has invalid status")
+            raise ValueError(
+                f"criterion_assessment[{index}].status has invalid value {item['status']!r}; "
+                "use exactly one of: met, not_met, unknown."
+            )
         if not isinstance(item["card_ids"], list) or not item["card_ids"]:
             raise ValueError(f"criterion_assessment[{index}] must cite a diagnosis card")
         if any(card_id not in retrieved_card_ids for card_id in item["card_ids"]):
-            raise ValueError(f"criterion_assessment[{index}] cites an unretrieved card")
+            invalid = [card_id for card_id in item["card_ids"] if card_id not in retrieved_card_ids]
+            raise ValueError(
+                f"criterion_assessment[{index}].card_ids contains unretrieved ID(s): "
+                + ", ".join(invalid)
+                + ". Replace/remove only those IDs using exact diagnosis card IDs shown in diagnostic_evidence.md."
+            )
         if not isinstance(item["case_fact_ids"], list):
             raise ValueError(f"criterion_assessment[{index}].case_fact_ids must be an array")
         if any(fact_id not in supplied_fact_ids for fact_id in item["case_fact_ids"]):
-            raise ValueError(f"criterion_assessment[{index}] cites an unsupplied case fact")
+            invalid = [fact_id for fact_id in item["case_fact_ids"] if fact_id not in supplied_fact_ids]
+            raise ValueError(
+                f"criterion_assessment[{index}].case_fact_ids contains unknown fact ID(s): "
+                + ", ".join(invalid)
+                + ". Replace/remove only those IDs using exact fact IDs shown in diagnostic_evidence.md."
+            )
         if item["status"] != "unknown" and not item["case_fact_ids"]:
             raise ValueError(f"criterion_assessment[{index}] must cite a case fact")
         if item["required"]:
@@ -779,13 +847,24 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
     if status == "criteria_met" and any(
         item["status"] != "met" for item in required_assessments
     ):
-        raise ValueError("criteria_met requires every required criterion to be met")
+        bad = [
+            f"criterion_assessment[{i}]={item['status']} ({item['criterion']})"
+            for i, item in enumerate(assessments) if item.get("required") and item.get("status") != "met"
+        ]
+        raise ValueError(
+            "adjudication.status is 'criteria_met' but these required criteria are not met: "
+            + "; ".join(bad)
+            + ". Either correct the individual criterion status if supported by the cited facts/cards, "
+              "or change adjudication.status to criteria_not_met or indeterminate."
+        )
     changed_major_category = not vocab.disease_matches_case_major_category(
         refined, case_major_category
     )
     if status != "criteria_met" and changed_major_category:
         raise ValueError(
-            "non-met or indeterminate adjudication must remain within the original case_major_category"
+            f"adjudication.status is {status!r}, so refined_disease {refined!r} cannot move outside "
+            f"the original case_major_category {case_major_category!r}. Keep refined_disease within "
+            "the original major category unless all required diagnostic criteria for the new category are met."
         )
     if changed_major_category:
         if not driven_by:

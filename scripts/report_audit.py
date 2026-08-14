@@ -22,6 +22,7 @@ EXPECTED_RULE_IDS = tuple(
     for rule in range(1, count + 1)
 )
 CARD_TAG = re.compile(r"[0-9a-f]{6}")
+RULE_ID = re.compile(r"R\d+\.\d+")
 CARD_MARKER = re.compile(r"\[card:([0-9a-f]{6})\]")
 TERMINAL_CITED = re.compile(r"(?:\[card:[0-9a-f]{6}\])+")
 NO_CITATION = "(no citation required)"
@@ -112,9 +113,70 @@ def split_draft_line(line, *, expected_rule_id, line_number):
 def validate_draft(draft_text, evidence_text):
     """Validate strict Step 6A Markdown and return parsed rule records."""
     lines = draft_text.splitlines()
-    if len(lines) != len(EXPECTED_RULE_IDS):
+
+    # Diagnose rule-sequence defects before enforcing the line count. This gives the
+    # model enough information to repair report-draft.md without inspecting code.
+    found_rows = []
+    unlabelled = []
+    for line_number, line in enumerate(lines, start=1):
+        first_token = line.split(" ", 1)[0] if line else ""
+        if RULE_ID.fullmatch(first_token):
+            found_rows.append((line_number, first_token))
+        else:
+            unlabelled.append((line_number, line))
+
+    found_ids = [rule_id for _, rule_id in found_rows]
+    missing = [rule_id for rule_id in EXPECTED_RULE_IDS if rule_id not in found_ids]
+    unknown = [(line_number, rule_id) for line_number, rule_id in found_rows if rule_id not in EXPECTED_RULE_IDS]
+    duplicates = {}
+    for line_number, rule_id in found_rows:
+        if found_ids.count(rule_id) > 1:
+            duplicates.setdefault(rule_id, []).append(line_number)
+
+    structural = []
+    if missing:
+        structural.append("missing rule line(s): " + ", ".join(missing))
+    if unknown:
+        structural.append(
+            "non-existent rule ID(s): "
+            + ", ".join(f"line {line_number}={rule_id}" for line_number, rule_id in unknown)
+        )
+    if duplicates:
+        structural.append(
+            "duplicate rule ID(s): "
+            + "; ".join(
+                f"{rule_id} on lines {','.join(map(str, line_numbers))}"
+                for rule_id, line_numbers in duplicates.items()
+            )
+        )
+    if unlabelled:
+        structural.append(
+            "line(s) without a valid rule ID: "
+            + "; ".join(
+                f"line {line_number}={line!r}" for line_number, line in unlabelled
+            )
+        )
+
+    if not structural and found_ids != list(EXPECTED_RULE_IDS):
+        mismatches = []
+        for position, (actual, expected) in enumerate(zip(found_ids, EXPECTED_RULE_IDS), start=1):
+            if actual != expected:
+                line_number = found_rows[position - 1][0]
+                mismatches.append(
+                    f"line {line_number} has {actual}; expected {expected}"
+                )
+        structural.append("rule lines are out of order: " + "; ".join(mismatches))
+
+    if structural or len(lines) != len(EXPECTED_RULE_IDS):
+        if len(lines) != len(EXPECTED_RULE_IDS):
+            structural.append(
+                f"line count is {len(lines)} but must be {len(EXPECTED_RULE_IDS)} after repair"
+            )
         raise ValueError(
-            f"report-draft.md must contain exactly {len(EXPECTED_RULE_IDS)} lines; found {len(lines)}"
+            "report-draft.md rule sequence is invalid. "
+            + " | ".join(structural)
+            + ". Fix only these rule-line defects: there must be exactly one line for each "
+              "rule R1.1 through R5.9 in canonical order, with no blank, heading, or extra lines."
         )
 
     known_tags = evidence_card_tags(evidence_text)

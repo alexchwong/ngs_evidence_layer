@@ -145,7 +145,7 @@ class AdjudicationReviewTests(unittest.TestCase):
             "card_ids": ["classifier-C0001"],
         }
         adjudication["downstream_filter_disease"] = "not-a-vocabulary-disease"
-        with self.assertRaisesRegex(ValueError, "adjudication downstream_filter_disease 'not-a-vocabulary-disease' is outside the case disease vocabulary"):
+        with self.assertRaisesRegex(ValueError, "adjudication downstream_filter_disease has invalid value 'not-a-vocabulary-disease'"):
             retrieve.validate_adjudication(
                 self.step2,
                 adjudication,

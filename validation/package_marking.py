@@ -48,11 +48,17 @@ def package_marking_bundle(
     prompt_path: Path = DEFAULT_PROMPT,
 ) -> Path:
     if not report_path.is_file():
-        raise FileNotFoundError(f"report not found: {report_path}")
+        raise FileNotFoundError(
+            f"cannot package marking bundle because report-final.md is missing: {report_path}. "
+            "Complete Step 6B validation and Step 6C deterministic citation rendering first, then rerun Step 7B."
+        )
 
     report = report_path.read_text(encoding="utf-8")
     if not report.strip():
-        raise ValueError(f"report is empty: {report_path}")
+        raise ValueError(
+            f"cannot package marking bundle because report-final.md is empty: {report_path}. "
+            "Do not package an empty placeholder; regenerate the report through Steps 6B-6C, then rerun Step 7B."
+        )
 
     validation_case = retrieve_case(case_id)
     marking_prompt = render_marking_prompt(case_id, prompt_path)

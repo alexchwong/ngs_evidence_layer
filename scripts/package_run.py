@@ -40,7 +40,10 @@ def package_run_bundle(work_dir: Path, output_path: Path) -> Path:
     missing = [name for name in RUN_ARTIFACTS if not (work_dir / name).is_file()]
     if missing:
         raise FileNotFoundError(
-            "full ngs-report artifacts missing from work directory: " + ", ".join(missing)
+            "cannot package the debug ZIP because these required workflow artifacts are missing: "
+            + ", ".join(missing)
+            + ". Do not fabricate or hand-edit missing deterministic artifacts. Resume/rerun the "
+              "workflow step that produces each missing file, then rerun Step 7A packaging."
         )
 
     output_path = output_path.resolve()

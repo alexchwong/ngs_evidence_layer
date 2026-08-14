@@ -220,6 +220,24 @@ def render_document(body, references):
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _line_context(text, offset):
+    line_number = text.count("\n", 0, offset) + 1
+    line_start = text.rfind("\n", 0, offset) + 1
+    line_end = text.find("\n", offset)
+    if line_end == -1:
+        line_end = len(text)
+    return line_number, text[line_start:line_end].strip()
+
+
+def _upstream_error(message):
+    return (
+        message
+        + " This is a deterministic Step 5 evidence/card-tag artifact problem, not a "
+          "report-final.md authoring error. Do not edit report-final.md or inspect this "
+          "validator to fix it; rerun/fix the upstream deterministic Step 5 output."
+    )
+
+
 def validate(
     document_text,
     evidence_text,
@@ -230,16 +248,27 @@ def validate(
 ):
     """Validate runtime card-tag markers without modifying the document."""
     if REFERENCES_HEADING in document_text.splitlines():
-        raise ValueError(f"{source} already contains a References section")
-    if REPORT_MARKER.search(document_text):
+        line_number = document_text.splitlines().index(REFERENCES_HEADING) + 1
         raise ValueError(
-            f"{source} contains a model-generated numeric citation. "
-            "Do not write numeric citations in Step 6A/6B. Use the exact runtime "
-            "card tag after the full stop, for example: 'Sentence. [card:a1b2c3]'"
+            f"{source} line {line_number} contains a model-written '## References' section. "
+            "Delete that heading and all model-written bibliography entries; Step 6C creates the "
+            "References section deterministically from runtime card tags."
         )
-    _evidence_body, source_references = split_references(evidence_text, source="evidence")
-    tag_to_source = parse_card_references(evidence_text, source_references)
-    tag_to_card = parse_card_tags(card_tags_text)
+    numeric = REPORT_MARKER.search(document_text)
+    if numeric:
+        line_number, line = _line_context(document_text, numeric.start())
+        raise ValueError(
+            f"{source} line {line_number} contains model-generated numeric citation {numeric.group(0)!r}. "
+            "Remove the numeric citation and restore the exact runtime card tag(s) from report-draft.md "
+            "after the full stop, e.g. 'Sentence. [card:a1b2c3]'. "
+            f"Offending line: {line!r}"
+        )
+    try:
+        _evidence_body, source_references = split_references(evidence_text, source="evidence")
+        tag_to_source = parse_card_references(evidence_text, source_references)
+        tag_to_card = parse_card_tags(card_tags_text)
+    except ValueError as exc:
+        raise ValueError(_upstream_error(str(exc))) from exc
     if set(tag_to_source) != set(tag_to_card):
         missing = sorted(set(tag_to_card) - set(tag_to_source))
         extra = sorted(set(tag_to_source) - set(tag_to_card))
@@ -248,36 +277,52 @@ def validate(
             details.append("missing from evidence: " + ", ".join(missing))
         if extra:
             details.append("unknown in evidence: " + ", ".join(extra))
-        raise ValueError("evidence/card-tags mismatch: " + "; ".join(details))
+        raise ValueError(_upstream_error("evidence/card-tags mismatch: " + "; ".join(details) + "."))
 
     for match in SOURCE_MARKER.finditer(document_text):
         tag = match.group(1)
         if tag not in tag_to_source:
-            raise ValueError(f"{source} cites unknown runtime card tag {tag}")
-    if CARD_MARKER_LIKE.search(SOURCE_MARKER.sub("", document_text)):
+            line_number, line = _line_context(document_text, match.start())
+            raise ValueError(
+                f"{source} line {line_number} cites unknown runtime card tag [card:{tag}]. "
+                "Replace that marker with the exact marker(s) present on the corresponding assertion "
+                "in report-draft.md; do not invent or translate tags. "
+                f"Offending line: {line!r}"
+            )
+    residual_text = SOURCE_MARKER.sub(lambda m: " " * len(m.group(0)), document_text)
+    malformed = CARD_MARKER_LIKE.search(residual_text)
+    if malformed:
+        line_number, line = _line_context(document_text, malformed.start())
+        bad = document_text[malformed.start():malformed.end()]
         raise ValueError(
-            f"{source} contains a malformed card-tag marker. "
-            "Copy an exact six-character runtime card tag and place it after the "
-            "full stop, for example: 'Sentence. [card:a1b2c3]'"
+            f"{source} line {line_number} contains malformed card marker {bad!r}. "
+            "Replace it with the exact six-character lowercase runtime marker copied from the "
+            "corresponding assertion in report-draft.md, e.g. '[card:a1b2c3]'. "
+            f"Offending line: {line!r}"
         )
-    if "(refs:" in document_text:
-        raise ValueError(f"{source} contains a legacy numeric source marker")
+    legacy_offset = document_text.find("(refs:")
+    if legacy_offset != -1:
+        line_number, line = _line_context(document_text, legacy_offset)
+        raise ValueError(
+            f"{source} line {line_number} contains legacy '(refs: ...)' citation syntax. "
+            "Delete that legacy marker and restore the exact terminal disposition from report-draft.md: "
+            "'[card:xxxxxx]' marker(s) or '(no citation required)' after the full stop. "
+            f"Offending line: {line!r}"
+        )
     if require_citation_after_full_stop:
         for match in SENTENCE_ENDING_FULL_STOP.finditer(document_text):
             suffix = document_text[match.end():]
             if CITATION_DISPOSITION_AFTER_FULL_STOP.match(suffix) is None:
-                line_number = document_text.count("\n", 0, match.start()) + 1
-                line_start = document_text.rfind("\n", 0, match.start()) + 1
-                line_end = document_text.find("\n", match.end())
-                if line_end == -1:
-                    line_end = len(document_text)
-                line = document_text[line_start:line_end].strip()
+                line_number, line = _line_context(document_text, match.start())
+                following = suffix[:40].split("\n", 1)[0]
                 raise ValueError(
-                    f"{source} line {line_number} has a sentence-ending full stop without "
-                    "the required citation disposition immediately after it. Expected exactly: "
-                    "'Sentence. [card:a1b2c3]' (or adjacent card tags), or "
-                    "'Sentence. (no citation required)'. Do not place the marker before "
-                    f"the full stop. Offending line: {line!r}"
+                    f"{source} line {line_number} has a sentence-ending full stop followed by "
+                    f"{following!r}, not by the required citation disposition. Fix this sentence so the "
+                    "full stop is followed immediately by exactly one space and either adjacent exact "
+                    "runtime card tags or '(no citation required)': 'Sentence. [card:a1b2c3]' or "
+                    "'Sentence. (no citation required)'. If a marker is currently before the full stop, "
+                    "move it after the full stop. Restore markers from report-draft.md only. "
+                    f"Offending line: {line!r}"
                 )
     return document_text
 

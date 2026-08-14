@@ -33,7 +33,7 @@ class CaseMajorCategoryTests(unittest.TestCase):
         self.assertEqual(result["provisional_disease"], wording)
 
     def test_case_major_category_must_be_allowed(self):
-        with self.assertRaisesRegex(ValueError, "outside the case-major-category vocabulary"):
+        with self.assertRaisesRegex(ValueError, "invalid value"):
             retrieve.validate_case_input(self._case_input("not-a-category", "MDS-IB2"))
 
     def test_every_canonical_disease_maps_to_a_major_category(self):

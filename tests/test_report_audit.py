@@ -51,19 +51,26 @@ class DraftValidationTests(unittest.TestCase):
         text = draft_text().replace(
             "R1.2 Answer for R1.2.", "R1.3 Answer for R1.2.", 1
         )
-        with self.assertRaisesRegex(ValueError, "must begin with 'R1.2'"):
+        with self.assertRaisesRegex(ValueError, r"missing rule line\(s\): R1.2"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_rejects_missing_rule(self):
         lines = draft_text().splitlines()
         text = "\n".join(lines[:-1]) + "\n"
-        with self.assertRaisesRegex(ValueError, "exactly 52 lines; found 51"):
+        with self.assertRaisesRegex(ValueError, r"missing rule line\(s\): R5.9"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_rejects_blank_line_or_extra_markdown(self):
         text = draft_text().replace("\nR1.2", "\n\nR1.2", 1)
-        with self.assertRaisesRegex(ValueError, "exactly 52 lines; found 53"):
+        with self.assertRaisesRegex(ValueError, r"line\(s\) without a valid rule ID: line 2"):
             report_audit.validate_draft(text, EVIDENCE)
+
+
+    def test_rejects_nonexistent_rule_with_line_number(self):
+        lines = draft_text().splitlines()
+        lines[1] = lines[1].replace("R1.2", "R9.9", 1)
+        with self.assertRaisesRegex(ValueError, r"non-existent rule ID\(s\): line 2=R9.9"):
+            report_audit.validate_draft("\n".join(lines) + "\n", EVIDENCE)
 
     def test_requires_explicit_terminal_citation_disposition(self):
         text = draft_text().replace(
