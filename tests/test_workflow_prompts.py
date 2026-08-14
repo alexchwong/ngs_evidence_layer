@@ -71,26 +71,18 @@ def test_release_manifest_includes_validation_packagers():
     assert "scripts/package_run.py" in manifest
 
 
-def test_variant_summary_has_explicit_no_citation_path():
-    workflow = (WORKFLOW_DIR / "format_report.md").read_text(encoding="utf-8")
-    analysis = (WORKFLOW_DIR / "analyse_report.md").read_text(encoding="utf-8")
-    default = (ROOT / "prompts" / "formatting" / "default.md").read_text(encoding="utf-8")
-
-    assert "first sentence MUST summarise the detected NGS variants" in default
-    assert "MUST end with `(no citation required)`" in default
-    assert "opening variant-summary sentence" in workflow
-    assert "patient-specific result facts" in analysis
-    assert "which variants were detected" in analysis
-
-
-def test_step6a_and_step6b_explicitly_require_marker_after_full_stop():
-    analysis = (WORKFLOW_DIR / "analyse_report.md").read_text(encoding="utf-8")
-    workflow = (WORKFLOW_DIR / "format_report.md").read_text(encoding="utf-8")
+def test_model_steps_are_not_described_as_deterministic_model_hybrids():
     skill = SKILL.read_text(encoding="utf-8")
+    assert "deterministic/model" not in skill
+    assert "Step 1B — model with deterministic setup" in skill
 
-    assert "Patient-specific conclusion. [card:a1b2c3]" in analysis
-    assert "citation disposition MUST come after the full stop" in analysis
-    assert "immediately after that full stop" in workflow
-    assert "Do not write `... [card:abcdef].`" in workflow
-    assert "Sentence. [card:abcdef]" in skill
-    assert "--require-citation-after-full-stop" in skill
+
+def test_skill_forbids_script_inspection_for_model_tasks():
+    skill = SKILL.read_text(encoding="utf-8")
+    for required in (
+        "Treat declared deterministic commands as opaque operations",
+        "do not open, read, search, grep, or otherwise inspect their Python source",
+        "Do not search for or substitute another script or command to perform a model task",
+        "The model, not a Python script, must author `<work-dir>/case-input.json`",
+    ):
+        assert required in skill

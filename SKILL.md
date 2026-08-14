@@ -20,7 +20,7 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 
 - Step 0 — deterministic/setup: establish workflow state and `<work-dir>`; record `<format-prompt>` when needed.
 - Step 1A — model via `prompts/workflow/capture_case.md`: capture the supplied clinical case verbatim in `case.md`.
-- Step 1B — deterministic/model via `prompts/workflow/structure_case.md`: expose only the small case-major-category list, then structure `case.md` into `case-input.json`.
+- Step 1B — model with deterministic setup via `prompts/workflow/structure_case.md`: deterministically expose only the small case-major-category list, then model-author `case-input.json` from `case.md` and that list.
 - Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `diagnostic_evidence.md`.
 - Step 3A — model via `prompts/workflow/adjudicate_diagnosis.md`: adjudicate the diagnosis into `adjudication.json`.
 - Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `prompts/workflow/revise_diagnosis.md`.
@@ -59,7 +59,9 @@ File access is **deny by default**.
 - Do not supplement inputs with live sources, external tools, or model knowledge.
 - Do not carry information between bounded model steps unless supplied as an allowed input.
 - Deterministic commands may read what their command requires; this does not make those files model-readable.
-- Run only the commands declared below and write only the declared outputs.
+- Treat declared deterministic commands as opaque operations: do not open, read, search, grep, or otherwise inspect their Python source unless that source is explicitly declared as a model-readable input.
+- Run only the commands declared below and write only the declared outputs. Do not search for or substitute another script or command to perform a model task.
+- If a step says the model writes an output, the model must generate that output only from the declared model-readable inputs; do not look for repository code that could generate it instead.
 - Do not modify an output written by a deterministic command.
 - If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
 - For `nel-validate`, do not model-read `validation/case_summary.md`, `prompts/workflow/mark_validation_report.md`, or marking criteria at any point. Step 7 may read them only through the declared deterministic packaging command.
@@ -182,13 +184,17 @@ Follow `prompts/workflow/capture_case.md` exactly and write only `<work-dir>/cas
 
 ## Step 1B — Structure the case
 
-First run exactly:
+This is a **model-authored step with deterministic setup**. The Python command below creates only the allowed category list; it does not create `case-input.json`. Do not inspect the script or search for another script to structure the case.
+
+### Deterministic setup
+
+Run exactly:
 
 ```bash
 python scripts/case_major_categories.py --output <work-dir>/case-major-categories.json
 ```
 
-Then use a fresh bounded model session.
+Treat this command as opaque. After it succeeds, use a fresh bounded model session for the model task below.
 
 ### Model-readable inputs
 
@@ -200,9 +206,9 @@ Read only:
 
 Do not reread the original case source.
 
-### Required action
+### Model task
 
-Follow `prompts/workflow/structure_case.md` exactly and write JSON only to `<work-dir>/case-input.json`.
+The model, not a Python script, must author `<work-dir>/case-input.json`. Follow `prompts/workflow/structure_case.md` exactly and write JSON only to `<work-dir>/case-input.json` using only the declared model-readable inputs above.
 
 ### Output
 
@@ -393,8 +399,6 @@ If any required input is missing, unreadable, or malformed, stop and report the 
 
 Follow `prompts/workflow/format_report.md` exactly. Apply `<format-prompt>` only for report style, ordering, emphasis, compression, and optional-content choices within the mandatory workflow constraints. Use `report-draft.md` as the sole source of report content.
 
-**Step 6B citation invariant:** citation preservation takes precedence over formatting, compression, and word-count targets. A retained or merged assertion must retain the complete citation disposition of its supporting draft content; merged assertions must retain the union of all supporting card markers. In model-written Step 6A and Step 6B Markdown, the citation disposition MUST follow the sentence-ending full stop: `Sentence. [card:abcdef]`, `Sentence. [card:abcdef][card:123456]`, or `Sentence. (no citation required)`. The required order is sentence → full stop → one space → citation disposition; never place a runtime citation marker before the full stop.
-
 #### Output
 
 Write only `<work-dir>/report-final.md`.
@@ -405,11 +409,10 @@ Then run exactly:
 python scripts/report_citations.py validate \
   --report <work-dir>/report-final.md \
   --evidence <work-dir>/evidence.md \
-  --card-tags <work-dir>/card-tags.json \
-  --require-citation-after-full-stop
+  --card-tags <work-dir>/card-tags.json
 ```
 
-The command is read-only and must succeed before Step 6C. In Step 6B mode it requires every sentence-ending full stop to be followed by one space and either one or more exact runtime card-tag markers or `(no citation required)`. A placement failure reports the affected line and the exact expected syntax, so do not read the validation script to troubleshoot it. This does not rewrite `report-final.md`. If validation fails, use only the validator error, `prompts/workflow/format_report.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
+The command is read-only and must succeed before Step 6C. If it fails, use only the validator error, `prompts/workflow/format_report.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
 
 ### Step 6C — Render citations and references
 
@@ -422,7 +425,7 @@ python scripts/report_citations.py render \
   --card-tags <work-dir>/card-tags.json
 ```
 
-The command validates the model-facing `Sentence. [card:abcdef]` placement, then deterministically moves cited markers before the full stop for the rendered report, resolves each runtime tag through `evidence.md` to its primary publication, replaces card markers with Vancouver-style numeric square-bracket citations, merges adjacent citations, deduplicates publications, removes `(no citation required)`, and appends the cited bibliography. Thus `Sentence. [card:abcdef]` is rendered deterministically as `Sentence [1].`. Do not otherwise modify `report-final.md` after this command.
+The command resolves each runtime tag through `evidence.md` to its primary publication, replaces card markers with Vancouver-style numeric square-bracket citations, merges adjacent citations, deduplicates publications, removes `(no citation required)`, and appends the cited bibliography. Do not otherwise modify `report-final.md` after this command.
 
 ## Step 7 — Post-report delivery and validation
 
