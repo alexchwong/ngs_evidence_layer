@@ -1,6 +1,7 @@
 SKILL.md
 scripts/create_work_dir.py
 scripts/case_major_categories.py
+scripts/card_tags.py
 scripts/resolve_demo.py
 scripts/run_case.py
 scripts/retrieve.py

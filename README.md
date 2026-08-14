@@ -166,21 +166,29 @@ to score the generated report. Available case IDs are:
 
 ## Current corpus
 
-The current 0.2.0 corpus contains eight publications reprocessed under the 0.2.0
-ingestion workflow. Complete citation, card, and acceptance-version metadata are stored
-in `output/corpus/nel.index.json`.
+The current 0.2.1 corpus contains nine publications. Publications are grouped below by
+the corpus version in which they were most recently accepted or modified, using
+`latest_accepted_in_version` from `output/corpus/nel.index.json`. Complete citation,
+card, and acceptance-version metadata are stored in that index.
+
+### Last modified in v0.2.1
 
 | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|
-| `10.1182/blood.2022015850` | ICC Classification | ICC myeloid classification and diagnostic criteria. |
-| `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
 | `10.1182/blood.2025031480` | ELN-DAVID 2025 AML MRD Guidelines | AML measurable residual disease assessment and management guidance. |
+| `10.1182/blood.2022015850` | ICC Classification | ICC myeloid classification and diagnostic criteria. |
+| `10.1038/s41375-022-01620-2` | WHO-HAEM5 Lymphoid Neoplasms 2022 | WHO fifth-edition lymphoid classification and molecular diagnostic criteria. |
+
+### Last modified in v0.2.0
+
+| DOI | Paper nickname | Contribution to corpus |
+|---|---|---|
+| `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
 | `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | AML diagnosis, genetic risk classification, and management guidance. |
 | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | AML genetic risk classification for less-intensive therapy. |
-| `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
-| `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
+| `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
 | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
-
+| `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
 ## Important boundaries
 
 - NEL reports only what the supplied case and retrieved corpus support.
