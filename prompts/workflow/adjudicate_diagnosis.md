@@ -9,7 +9,7 @@ Use only:
 - `case_major_category`;
 - free-text `provisional_disease`;
 - `case_facts` and exact `fact_id` values;
-- `diagnosis_cards`, their interpretations, and exact `card_id` values;
+- `diagnosis_cards`, their interpretations, and exact six-character runtime `card_tag` values;
 - `allowed_refined_diseases`.
 
 Apply the shared patient-result semantics in `SKILL.md`.
@@ -23,7 +23,7 @@ Determine whether the supplied case facts, including NGS results, satisfy a diag
 For every material required criterion or exclusion assessed:
 
 - record `status` as `met`, `not_met`, or `unknown`;
-- cite at least one retrieved diagnosis card in `card_ids`;
+- cite at least one retrieved diagnosis card in `card_tags`;
 - if `status` is not `unknown`, cite at least one supplied fact in `case_fact_ids`.
 
 Assess a competing diagnosis only when supplied case facts raise it; mention in a card or precedence rule alone is insufficient. When raised, assess every material criterion and exclusion needed to resolve it. Do not add hypothetical exclusion assessments for diagnoses not raised by the case.
@@ -60,13 +60,13 @@ Return JSON only, with exactly these top-level fields:
   "refined_disease": "MDS",
   "downstream_filter_disease": "MDS",
   "diagnostic_label": "Entity-A subtype",
-  "driven_by": ["<retrieved diagnosis card_id>"],
+  "driven_by": ["<retrieved six-character card_tag>"],
   "criterion_assessment": [
     {
       "criterion": "<source-stated material criterion or exclusion>",
       "required": true,
       "status": "met",
-      "card_ids": ["<retrieved diagnosis card_id>"],
+      "card_tags": ["<retrieved six-character card_tag>"],
       "case_fact_ids": ["<supplied fact_id>"]
     }
   ],
@@ -83,14 +83,14 @@ For initial manual mode, `user_review` is exactly:
   "diagnostic_label": null,
   "refined_disease": null,
   "reason": null,
-  "card_ids": []
+  "card_tags": []
 }
 ```
 
 Allowed top-level `status`: `criteria_met`, `criteria_not_met`, `indeterminate`.
 Allowed criterion `status`: `met`, `not_met`, `unknown`.
 Allowed manual `user_review.decision`: `pending`, `agree`, `disagree`.
-`diagnostic_label` may be null. Copy every ID exactly from the input.
+`diagnostic_label` may be null. Copy every card tag and fact ID exactly from the input. Never infer or reconstruct a stable card ID.
 
 ## Final check
 

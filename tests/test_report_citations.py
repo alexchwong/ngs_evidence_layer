@@ -11,6 +11,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "report_citations.py"
+sys.path.insert(0, str(ROOT / "scripts"))
+import card_tags  # noqa: E402
+
 SPEC = importlib.util.spec_from_file_location("report_citations", SCRIPT)
 report_citations = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(report_citations)
@@ -33,7 +36,7 @@ c1d2e3: primary ref 3
 
 CARD_TAGS = json.dumps({
     "schema_version": "1.0",
-    "algorithm": "sha256-6hex-collision-resolved",
+    "algorithm": card_tags.ALGORITHM,
     "tags": [
         {"card_tag": "a1b2c3", "card_id": "paper-a-C0001"},
         {"card_tag": "d4e5f6", "card_id": "paper-a-C0002"},
@@ -44,6 +47,23 @@ CARD_TAGS = json.dumps({
 
 
 class ValidateTests(unittest.TestCase):
+    def test_accepts_tag_map_emitted_by_shared_producer(self):
+        produced = card_tags.build_card_tags(["paper-a-C0001", "paper-b-C0001"])
+        expected = {
+            row["card_tag"]: row["card_id"]
+            for row in produced["tags"]
+        }
+        self.assertEqual(
+            report_citations.parse_card_tags(json.dumps(produced)),
+            expected,
+        )
+
+    def test_rejects_legacy_algorithm_identifier(self):
+        legacy = json.loads(CARD_TAGS)
+        legacy["algorithm"] = "sha256-6hex-collision-resolved"
+        with self.assertRaisesRegex(ValueError, "algorithm is unsupported"):
+            report_citations.parse_card_tags(json.dumps(legacy))
+
     def test_accepts_known_markers_without_modifying_document(self):
         document = "First. [card:b1c2d3][card:a1b2c3]\nPatient fact. (no citation required)\n"
         self.assertEqual(report_citations.validate(document, EVIDENCE, CARD_TAGS), document)

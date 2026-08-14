@@ -25,6 +25,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import card_tags
+
 
 REFERENCES_HEADING = "## References"
 REFS_HEADING = "## Refs"
@@ -178,7 +180,7 @@ def parse_card_tags(card_tags_text):
         raise ValueError("card-tags must contain exactly schema_version, algorithm, and tags")
     if payload["schema_version"] != "1.0":
         raise ValueError("card-tags schema_version must be '1.0'")
-    if payload["algorithm"] != "sha256-6hex-collision-resolved":
+    if payload["algorithm"] != card_tags.ALGORITHM:
         raise ValueError("card-tags algorithm is unsupported")
     rows = payload["tags"]
     if not isinstance(rows, list):

@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
+import card_tags  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CORPUS = REPO_ROOT / "output/corpus/nel.corpus.json"
@@ -331,7 +332,11 @@ def _group_step_diagnosis_cards(cards):
 
 
 def render_step_markdown(result):
-    """Render compact model-facing Step-2 Markdown; JSON remains authoritative."""
+    """Render compact model-facing Step-2 Markdown with opaque runtime tags."""
+    tag_map = result.get("card_tags") or card_tags.build_card_tags(
+        card["card_id"] for card in result.get("diagnosis_cards", [])
+    )
+    tag_by_id = card_tags.tag_by_id(tag_map)
     lines = [
         "# Step 2 diagnosis evidence",
         "",
@@ -361,7 +366,7 @@ def render_step_markdown(result):
                 lines.append(f"    - Diseases: {disease_text}")
                 for card in disease_group['cards']:
                     lines.append(
-                        f"      - [{card['card_id']}]: {inline_step_text(card.get('interpretation'))}"
+                        f"      - [card:{tag_by_id[card['card_id']]}]: {inline_step_text(card.get('interpretation'))}"
                     )
         lines.append("")
     if not groups:
@@ -673,7 +678,7 @@ def _validate_user_review(
         invalid = [card_id for card_id in reviewed_cards if card_id not in retrieved_card_ids]
         raise ValueError(
             "user_review.card_ids contains unretrieved diagnosis card ID(s): " + ", ".join(invalid)
-            + ". Replace/remove only those IDs using exact card IDs shown in diagnostic_evidence.md."
+            + ". Replace/remove only those IDs using exact six-character card tags shown in diagnostic_evidence.md."
         )
 
     if decision == "pending":
@@ -722,6 +727,68 @@ def _validate_user_review(
                 "a disagreeing user_review requires an evidence-grounded reason and card_ids"
             )
     return review
+
+def _translate_model_card_tags(step2_result, adjudication):
+    """Translate Step-3 model-facing card tags to private stable card IDs.
+
+    Returns a deep JSON-compatible copy. Already-translated stable IDs are accepted
+    for internal callers/tests, but model-facing six-character values must resolve
+    through the private Step-2 tag table.
+    """
+    translated = json.loads(json.dumps(adjudication))
+    mapping = card_tags.id_by_tag(step2_result.get("card_tags") or {})
+    stable_ids = {card["card_id"] for card in step2_result.get("diagnosis_cards", [])}
+
+    def one(value, field):
+        if not isinstance(value, str) or not value:
+            raise ValueError(
+                f"{field} must contain non-empty six-character card tags copied from diagnostic_evidence.md."
+            )
+        if value in stable_ids:
+            return value
+        if value in mapping:
+            return mapping[value]
+        raise ValueError(
+            f"{field} contains unknown diagnosis card tag {value!r}. "
+            "Replace it with an exact six-character [card:xxxxxx] tag shown in diagnostic_evidence.md."
+        )
+
+    driven = translated.get("driven_by")
+    if isinstance(driven, list):
+        translated["driven_by"] = [one(value, "adjudication.driven_by") for value in driven]
+    assessments = translated.get("criterion_assessment")
+    if isinstance(assessments, list):
+        for index, item in enumerate(assessments):
+            if isinstance(item, dict):
+                if "card_tags" in item and "card_ids" in item:
+                    raise ValueError(
+                        f"criterion_assessment[{index}] must contain card_tags in model output, not both card_tags and card_ids."
+                    )
+                values = item.get("card_tags", item.get("card_ids"))
+                if values is not None:
+                    item["card_ids"] = [one(value, f"criterion_assessment[{index}].card_tags") for value in values]
+                    item.pop("card_tags", None)
+    review = translated.get("user_review")
+    if isinstance(review, dict):
+        if "card_tags" in review and "card_ids" in review:
+            raise ValueError(
+                "user_review must contain card_tags in model output, not both card_tags and card_ids."
+            )
+        values = review.get("card_tags", review.get("card_ids"))
+        if values is not None:
+            review["card_ids"] = [one(value, "user_review.card_tags") for value in values]
+            review.pop("card_tags", None)
+    return translated
+
+
+def normalise_adjudication(step2_result, adjudication, *, require_completed_review=False):
+    """Translate model card tags, validate, and return private stable-ID JSON."""
+    translated = _translate_model_card_tags(step2_result, adjudication)
+    validate_adjudication(
+        step2_result, translated, require_completed_review=require_completed_review
+    )
+    return translated
+
 
 def validate_adjudication(step2_result, adjudication, *, require_completed_review=False):
     base_keys = {
@@ -789,7 +856,7 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
         invalid = [card_id for card_id in driven_by if card_id not in retrieved_card_ids] if isinstance(driven_by, list) else [repr(driven_by)]
         raise ValueError(
             "adjudication.driven_by contains invalid diagnosis card ID(s): " + ", ".join(map(str, invalid))
-            + ". Replace/remove only those IDs using exact card IDs shown in diagnostic_evidence.md."
+            + ". Replace/remove only those IDs using exact six-character card tags shown in diagnostic_evidence.md."
         )
     if len(driven_by) != len(set(driven_by)):
         duplicates = sorted({card_id for card_id in driven_by if driven_by.count(card_id) > 1})
@@ -829,14 +896,15 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
             raise ValueError(
                 f"criterion_assessment[{index}].card_ids contains unretrieved ID(s): "
                 + ", ".join(invalid)
-                + ". Replace/remove only those IDs using exact diagnosis card IDs shown in diagnostic_evidence.md."
+                + ". Replace/remove only those IDs using exact six-character diagnosis card tags shown in diagnostic_evidence.md."
             )
         if not isinstance(item["case_fact_ids"], list):
             raise ValueError(f"criterion_assessment[{index}].case_fact_ids must be an array")
         if any(fact_id not in supplied_fact_ids for fact_id in item["case_fact_ids"]):
             invalid = [fact_id for fact_id in item["case_fact_ids"] if fact_id not in supplied_fact_ids]
             raise ValueError(
-                f"criterion_assessment[{index}].case_fact_ids contains unknown fact ID(s): "
+                f"criterion_assessment[{index}].case_fact_ids cites an unsupplied case fact; "
+                "unknown fact ID(s): "
                 + ", ".join(invalid)
                 + ". Replace/remove only those IDs using exact fact IDs shown in diagnostic_evidence.md."
             )
@@ -852,7 +920,8 @@ def validate_adjudication(step2_result, adjudication, *, require_completed_revie
             for i, item in enumerate(assessments) if item.get("required") and item.get("status") != "met"
         ]
         raise ValueError(
-            "adjudication.status is 'criteria_met' but these required criteria are not met: "
+            "adjudication.status is 'criteria_met', but every required criterion must be met; "
+            "these required criteria are not met: "
             + "; ".join(bad)
             + ". Either correct the individual criterion status if supported by the cited facts/cards, "
               "or change adjudication.status to criteria_not_met or indeterminate."
@@ -1076,6 +1145,10 @@ def run_diagnosis(args):
     result = step2(
         cards, genes, provisional, case_facts, case_major_category=case_major_category
     )
+    global_tag_map = card_tags.build_card_tags(card["card_id"] for card in cards)
+    # Private machine boundary retains the complete eligibility-universe tag table.
+    # The model-facing Markdown exposes only tags for cards actually rendered.
+    result["card_tags"] = global_tag_map
     result["corpus"] = {"path": str(args.corpus), "index": str(args.index)}
     result["provenance"] = provenance(
         corpus, args.corpus, args.index, digest,
@@ -1091,11 +1164,9 @@ def run_diagnosis(args):
 
 def run_full(args):
     step2_result = load_step_json(args.diagnosis_result)
-    adjudication = json.loads(Path(args.adjudication_result).read_text(encoding="utf-8"))
-    validate_adjudication(
-        step2_result,
-        adjudication,
-        require_completed_review=True,
+    adjudication_raw = json.loads(Path(args.adjudication_result).read_text(encoding="utf-8"))
+    adjudication = normalise_adjudication(
+        step2_result, adjudication_raw, require_completed_review=True
     )
     corpus_path = Path(args.corpus or step2_result["corpus"]["path"])
     index_path = Path(args.index or step2_result["corpus"]["index"])
@@ -1105,6 +1176,20 @@ def run_full(args):
     genes = args.genes if args.genes is not None else step2_result["genes"]
     cards = blacklist_cards(flatten(corpus), args.blacklist)
     eligible_card_ids = {card["card_id"] for card in cards}
+    current_tag_map = card_tags.build_card_tags(eligible_card_ids)
+    step2_tag_map = step2_result.get("card_tags")
+    step2_tags = card_tags.tag_by_id(step2_tag_map or {})
+    current_tags = card_tags.tag_by_id(current_tag_map)
+    changed_tags = sorted(
+        card_id for card_id in {card["card_id"] for card in step2_result["diagnosis_cards"]}
+        if step2_tag_map and step2_tags.get(card_id) != current_tags.get(card_id)
+    )
+    if changed_tags:
+        raise ValueError(
+            "runtime card tags for Step-2 diagnosis evidence no longer match the current eligible corpus: "
+            + ", ".join(changed_tags)
+            + ". Rerun diagnosis and adjudication under the current corpus/blacklist before full retrieval."
+        )
     newly_blocked_diagnosis = sorted(
         _adjudication_diagnosis_card_ids(adjudication) - eligible_card_ids
     )
@@ -1126,6 +1211,12 @@ def run_full(args):
         "provisional_disease": provisional,
         "refined_disease": refined,
         "diagnostic_adjudication": adjudication,
+        "diagnostic_context": [
+            dict(card) for card in cards
+            if card["category"] == "diagnosis"
+            and card["card_id"] in {item["card_id"] for item in step2_result["diagnosis_cards"]}
+        ],
+        "runtime_card_tags": current_tag_map,
         **result,
     }
     result["provenance"] = provenance(

@@ -21,7 +21,7 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 0 — deterministic/setup: establish workflow state and `<work-dir>`; record `<format-prompt>` when needed.
 - Step 1A — model via `prompts/workflow/capture_case.md`: capture the supplied clinical case verbatim in `case.md`.
 - Step 1B — model with deterministic setup via `prompts/workflow/structure_case.md`: deterministically expose only the small case-major-category list, then model-author `case-input.json` from `case.md` and that list.
-- Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `diagnostic_evidence.md`.
+- Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `diagnostic_evidence.md`, exposing only six-character runtime card tags while retaining stable IDs privately.
 - Step 3A — model via `prompts/workflow/adjudicate_diagnosis.md`: adjudicate the diagnosis into `adjudication.json`.
 - Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `prompts/workflow/revise_diagnosis.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
@@ -269,6 +269,7 @@ For `evidence-block manual`:
 #### Output
 
 Write only `<work-dir>/adjudication.json`.
+Use runtime card tags exactly as shown in `diagnostic_evidence.md`; do not emit or reconstruct stable card IDs. Step 3C deterministically deconvolves valid tags to private stable IDs before downstream use.
 
 ### Step 3B — Manual user review
 
@@ -284,7 +285,7 @@ Update only `user_review` and `downstream_filter_disease`:
 - copy top-level `diagnostic_label` to `user_review.diagnostic_label`;
 - copy top-level `refined_disease` to `user_review.refined_disease`;
 - copy top-level `reason` to `user_review.reason`;
-- copy top-level `driven_by` to `user_review.card_ids`;
+- copy top-level `driven_by` to `user_review.card_tags`;
 - set `downstream_filter_disease` to `user_review.refined_disease`.
 
 Do not start another model adjudication.
@@ -331,9 +332,9 @@ python scripts/run_case.py full --work-dir <work-dir>
 
 - The command succeeds. If adjudication validation fails, stop.
 - `<work-dir>/bundle.json`, `<work-dir>/evidence.md`, and `<work-dir>/card-tags.json` exist.
-- Only diagnosis cards actually cited by Step 3 are carried into the full reporting bundle; prognosis/treatment/biomarker retrieval remains disease-narrow unless adjudication remains broad/indeterminate.
-- `evidence.md` preserves one model-visible record per evidence card but exposes only a six-character runtime `card_tag`, never the stable full `card_id`.
-- `card-tags.json` is the deterministic private tag-to-card-ID map and is not model-readable.
+- `retrieved` retains only diagnosis cards actually cited by Step 3 plus normal full-retrieval cards; separately, `diagnostic_context` carries every Step-2 diagnosis card so `evidence.md` remains complete for a fresh model session.
+- Both `diagnostic_evidence.md` and `evidence.md` expose only the same deterministic six-character runtime `card_tag` for a given card, never the stable full `card_id`.
+- `card-tags.json` is the deterministic private tag-to-card-ID map for cards rendered in `evidence.md` and is not model-readable. The private Step-2 JSON retains the eligibility-universe tag table needed for deterministic Step-3 deconvolution.
 
 Do not model-read or modify `diagnostic_evidence.md`, `adjudication.json`, `bundle.json`, `evidence.md`, or `card-tags.json` in Steps 3D–5.
 

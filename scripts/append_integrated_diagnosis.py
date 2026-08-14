@@ -27,8 +27,15 @@ def main():
         if not args.case.is_file():
             raise ValueError(f"case file not found: {args.case}")
         step2 = retrieve.load_step_json(args.diagnosis_result)
-        adjudication = json.loads(args.adjudication_result.read_text(encoding="utf-8"))
-        retrieve.validate_adjudication(step2, adjudication, require_completed_review=True)
+        adjudication_raw = json.loads(args.adjudication_result.read_text(encoding="utf-8"))
+        adjudication = retrieve.normalise_adjudication(
+            step2, adjudication_raw, require_completed_review=True
+        )
+        if adjudication != adjudication_raw:
+            args.adjudication_result.write_text(
+                json.dumps(adjudication, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
         diagnosis = _effective_diagnosis(adjudication)
         if not isinstance(diagnosis, str) or not diagnosis.strip() or "\n" in diagnosis or "\r" in diagnosis:
             raise ValueError("effective integrated diagnosis must be one non-empty line")

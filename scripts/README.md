@@ -6,6 +6,7 @@ Scripts are grouped below by their primary role.
 
 - `append_integrated_diagnosis.py`
 - `case_major_categories.py`
+- `card_tags.py` — shared deterministic runtime card-tag assignment/deconvolution
 - `create_work_dir.py`
 - `render.py`
 - `report_audit.py`

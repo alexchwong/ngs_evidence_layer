@@ -3,10 +3,10 @@
 Quotes are never rendered or returned by retrieval; they remain private inside
 accepted ingestion packages.
 The rendered Markdown groups cards by category, paper, evidence tier and disease.
-Only the interpretation and exact card-ID citation marker are repeated per card; rich
+Only the interpretation and an opaque runtime card-tag marker are repeated per card; rich
 card metadata remains in the deterministic JSON representation.
 Citations remain publication-style at the end of the block. Each card exposes
-its exact card-ID citation marker, ``## Refs`` maps card IDs to primary and
+its private stable card ID internally; model-facing ``evidence.md`` replaces those IDs with opaque runtime tags, and ``## Refs`` maps tags to primary and
 secondary references, and ``## References`` contains the numbered bibliography.
 Citation numbering is scripted rather than modelled. Numbers fall out of the
 deterministic card order, so the same corpus and case produce the same block,
@@ -18,7 +18,6 @@ Usage:
   render.py --bundle bundle.json --token-budget 120000 --format json
 """
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -26,6 +25,7 @@ import textwrap
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vocab  # noqa: E402
+import card_tags  # noqa: E402
 DEFAULT_TOKEN_BUDGET = 120_000
 CHARS_PER_TOKEN = 4  # estimate; stated as an estimate wherever it is reported
 WRAP_WIDTH = 78
@@ -458,7 +458,12 @@ def render_tail(bundle, references, dropped, reference_map):
     return out
 
 def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
-    cards = list(bundle.get("retrieved", []))
+    # evidence.md is the complete model-facing boundary: preserve every diagnosis
+    # card seen in Step 2, then add Step-4 retrieval, deduplicated by stable ID.
+    cards_by_id = {}
+    for card in list(bundle.get("diagnostic_context", [])) + list(bundle.get("retrieved", [])):
+        cards_by_id.setdefault(card["card_id"], card)
+    cards = list(cards_by_id.values())
     dropped = []
     while True:
         sorted_cards = sorted(cards, key=sort_key)
@@ -507,6 +512,7 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
         "over_budget": over_budget,
         "cards_rendered": len(cards),
         "cards_retrieved": len(bundle.get("retrieved", [])),
+        "cards_available": len(cards_by_id),
         "dropped": [
             {"evidence_tier": tier, "cards": count}
             for tier, count in dropped
@@ -523,34 +529,10 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
     }
 
 
+
 def build_card_tags(rendered_cards):
-    """Assign short opaque runtime tags to rendered cards.
-
-    Tags are six hexadecimal characters derived from the full stable card ID. If a
-    six-character collision occurs within the current rendered set, rehash that
-    card with a deterministic numeric salt until an unused six-character tag is
-    found. The returned mapping is the only deconvolution boundary; full card IDs
-    are not exposed in ``evidence.md``.
-    """
-    used = {}
-    rows = []
-    for card in rendered_cards:
-        card_id = card["card_id"]
-        salt = 0
-        while True:
-            seed = card_id if salt == 0 else f"{card_id}#{salt}"
-            tag = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:6]
-            if tag not in used or used[tag] == card_id:
-                used[tag] = card_id
-                rows.append({"card_tag": tag, "card_id": card_id})
-                break
-            salt += 1
-    return {
-        "schema_version": "1.0",
-        "algorithm": "sha256-6hex-collision-resolved",
-        "tags": rows,
-    }
-
+    """Backward-compatible wrapper around the shared runtime-tag utility."""
+    return card_tags.build_card_tags(card["card_id"] for card in rendered_cards)
 
 
 def evidence_markdown(result, tag_map):
@@ -580,6 +562,9 @@ def evidence_markdown(result, tag_map):
             line = line.replace(f"[card:{card_id}]", f"[card:{tag}]")
             if line == f"### {card_id}":
                 line = f"### Card {tag}"
+            # Stable IDs may also occur in deterministic diagnostic-summary text
+            # (for example "Driven by"). Never expose them model-side.
+            line = line.replace(card_id, tag)
         rendered.append(line)
     return "\n".join(rendered).rstrip() + "\n"
 
@@ -603,7 +588,16 @@ def main():
     if bundle.get("step") != 4:
         sys.exit("render expects a step 4 bundle from retrieve.py full")
     result = render(bundle, args.token_budget)
-    tag_map = build_card_tags(result["rendered_cards"])
+    global_tag_map = bundle.get("runtime_card_tags")
+    if not global_tag_map:
+        # Backward-compatible direct renderer use. New workflow bundles always
+        # persist the eligibility-universe map so Step 2 and Step 5 tags agree.
+        global_tag_map = card_tags.build_card_tags(
+            card["card_id"] for card in result["rendered_cards"]
+        )
+    tag_map = card_tags.subset_tag_map(
+        global_tag_map, [card["card_id"] for card in result["rendered_cards"]]
+    )
     payload = evidence_markdown(result, tag_map)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -617,7 +611,8 @@ def main():
             encoding="utf-8",
         )
     print(
-        f"[render] {result['cards_rendered']}/{result['cards_retrieved']} card(s), "
+        f"[render] {result['cards_rendered']}/{result['cards_available']} model-facing card(s) rendered "
+        f"({result['cards_retrieved']} Step-4 retrieved), "
         f"{len(result['references'])} reference(s), "
         f"~{result['estimated_tokens']} tokens (estimate: "
         f"{result['token_estimate_method']}) against a budget of "

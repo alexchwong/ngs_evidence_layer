@@ -10,7 +10,7 @@ Use only the user's requested revised diagnostic label/downstream category, `dia
 
 - The requested `refined_disease` must be one exact value from `allowed_refined_diseases` in `diagnostic_evidence.md`.
 - Ground the revision only in supplied case facts and retrieved diagnosis cards.
-- Do not invent supporting facts, criteria, cards, or IDs.
+- Do not invent supporting facts, criteria, cards, tags, or IDs.
 - Do not alter top-level `status`, `provisional_disease`, `refined_disease`, `diagnostic_label`, `driven_by`, `criterion_assessment`, or `reason` from the original model adjudication.
 - If the requested revision cannot be grounded in retrieved diagnosis evidence, do not manufacture support. Return a concise explanation that the revision is not supportable; do not produce a modified adjudication.
 
@@ -22,11 +22,11 @@ When the revision is supportable, return the complete updated adjudication JSON 
 - `user_review.diagnostic_label` = the grounded revised label;
 - `user_review.refined_disease` = one exact `allowed_refined_diseases` value;
 - `user_review.reason` = a concise evidence-bounded reason;
-- `user_review.card_ids` = one or more exact supporting diagnosis `card_id` values;
+- `user_review.card_tags` = one or more exact supporting six-character diagnosis `card_tag` values;
 - `downstream_filter_disease` = `user_review.refined_disease`.
 
 Return JSON only when a grounded revision is possible.
 
 ## Final check
 
-Before returning, verify privately that every changed field is permitted above, all cited IDs are copied exactly from the supplied diagnostic evidence, and the top-level model adjudication is otherwise byte-for-byte semantically unchanged.
+Before returning, verify privately that every changed field is permitted above, all cited card tags are copied exactly from the supplied diagnostic evidence, and the top-level model adjudication is otherwise byte-for-byte semantically unchanged.
