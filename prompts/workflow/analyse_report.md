@@ -2,7 +2,30 @@
 
 ## Task
 
-Answer every reporting rule using the integrated case and the retrieved evidence, assign the exact runtime evidence-card tags that directly support each answer, and explicitly classify every rule outcome as reportable or omitted.
+Answer every reporting rule using the integrated case and the retrieved evidence. 
+Assign evidence-card tags that directly support each answer. 
+Explicitly classify every rule outcome as reportable or omitted.
+
+## REPORT versus OMIT classification
+
+The following principles should be used when deciding whether to report a statement of fact.
+
+### REPORT THE FOLLOWING:
+- The presence of a variant alters clinical diagnosis, prognosis or treatment.
+- The presence of a variant indicates the variant can be used as a biomarker
+- The presence of a variant is suspicious for a germline variant.
+- The absence of a variant contradicts the initial provisional diagnosis provided in the clinical stem
+- A variant, which is usually expected to be present given the clinical context, alters diagnosis, prognosis, treatment.
+- The presence of a variant, where there is no morphological evidence of haematological condition, indicates clonal haematopoiesis
+- The presence of a variant indicates dual pathology
+- The individual prognostic value of each NGS variant must be reported (adverse, favourable, or neutral)
+- The relevant applicable prognostic score (when present) needs to be stated.
+
+### OMIT THE FOLLOWING:
+- The absence of a variant when the variant is not usually expected to be present given the clinical stem
+- When treatment does not change from standard practice due to absence of a variant
+- When there are no suitable biomarkers
+- When there are no suspicious germline variants
 
 ## Task-specific rules
 
@@ -21,17 +44,7 @@ Answer every reporting rule using the integrated case and the retrieved evidence
 - Card markers are allowed only as the terminal citation suffix. Do not place `[card:...]` inside answer prose.
 - Do not repeat the same card marker on one rule.
 
-## REPORT versus OMIT classification
 
-- Use `REPORT:` when the patient-level conclusion is eligible to appear in the final report. The text after `REPORT:` must be report-ready clinical prose, not an instruction about what the report should say.
-- Use `OMIT:` when the reporting rule concludes that the topic should not appear in the final report. The text after `OMIT:` should concisely identify the topic or commentary to suppress.
-- `OMIT:` means that Step 6B must apply the instruction but must not reproduce, paraphrase, negate, or explain it in the final report.
-- Canonicalise rule wording such as “omit”, “do not mention”, “do not state”, “do not discuss”, or “silence is appropriate” to `OMIT:` when the intended patient-level outcome is absence of that topic from the report.
-- Do not turn an omission instruction into negative clinical prose. For example, if the rule says an irrelevant MRD limitation should be omitted, write `OMIT: MRD commentary about that finding.` rather than a reportable sentence explaining that the finding is unsuitable for MRD.
-- Do not use `OMIT:` merely because an answer contains a clinically meaningful negative finding. If an absent finding, limitation, uncertainty, or negative result materially affects diagnosis, classification, prognosis, treatment, MRD, or germline interpretation and the rule calls for it to be reported, write the self-contained reportable conclusion normally.
-- `OMIT:` lines still require the terminal citation disposition required by `citation_rules.md`.
-- Never write report-construction meta-language after `REPORT:`, including `The final report should ...`, `Report ...`, `Omit ...`, `Do not mention ...`, `Do not report ...`, or `Do not discuss ...`. Either convert the content to direct clinical prose or classify the rule as `OMIT:`.
-- A clinically meaningful negative result may still be `REPORT:` when the negative itself changes diagnosis, classification, prognosis, treatment, MRD interpretation, or germline assessment. Do not convert such a finding to `OMIT:` merely because it contains words such as `not`, `no`, or `cannot`.
 
 ## Validation repair
 
