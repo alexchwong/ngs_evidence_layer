@@ -182,6 +182,7 @@ class AdjudicationReviewTests(unittest.TestCase):
             adjudication_path = tmp / "adjudication.json"
             blacklist_path = tmp / "blacklist.yaml"
             step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
+            retrieve.write_step_json(self.step2, step2_path.with_suffix(".json"))
             adjudication_path.write_text(json.dumps(adjudication), encoding="utf-8")
             blacklist_path.write_text("enabled: true\n", encoding="utf-8")
             args = argparse.Namespace(
@@ -231,6 +232,7 @@ class AdjudicationReviewTests(unittest.TestCase):
             step2_path = tmp / "diagnostic_evidence.md"
             adjudication_path = tmp / "adjudication.json"
             step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
+            retrieve.write_step_json(self.step2, step2_path.with_suffix(".json"))
             adjudication_path.write_text(json.dumps(self.pending), encoding="utf-8")
             args = argparse.Namespace(
                 diagnosis_result=step2_path,

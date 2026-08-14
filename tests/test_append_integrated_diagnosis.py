@@ -21,7 +21,7 @@ class AppendIntegratedDiagnosisTests(unittest.TestCase):
             step2 = root / "diagnostic_evidence.md"
             adj = root / "adjudication.json"
             case.write_text("Case text.\n", encoding="utf-8")
-            step2.write_text(retrieve.render_step_markdown({
+            step2_result = {
                 "step": 2,
                 "case_major_category": "MDS",
                 "provisional_disease": "MDS",
@@ -31,7 +31,9 @@ class AppendIntegratedDiagnosisTests(unittest.TestCase):
                 "allowed_refined_diseases": ["MDS"],
                 "genes_with_no_diagnosis_card": [],
                 "corpus": {"path": "corpus.json", "index": "index.json"},
-            }), encoding="utf-8")
+            }
+            step2.write_text(retrieve.render_step_markdown(step2_result), encoding="utf-8")
+            retrieve.write_step_json(step2_result, step2.with_suffix(".json"))
             adj.write_text(json.dumps({
                 "status": "indeterminate",
                 "provisional_disease": "MDS",

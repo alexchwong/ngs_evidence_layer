@@ -15,6 +15,7 @@ RUN_ARTIFACTS = (
     "case-major-categories.json",
     "case-input.json",
     "diagnostic_evidence.md",
+    "diagnostic_evidence.json",
     "adjudication.json",
     "bundle.json",
     "evidence.md",

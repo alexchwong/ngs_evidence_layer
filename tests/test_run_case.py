@@ -71,8 +71,11 @@ class RunCaseDiagnosisTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_default_work_directory_filenames(self):
-        run("diagnosis", "--work-dir", self.work)
+        output, _ = run("diagnosis", "--work-dir", self.work)
         self.assertTrue((self.work / "diagnostic_evidence.md").is_file())
+        self.assertTrue((self.work / "diagnostic_evidence.json").is_file())
+        self.assertNotIn("diagnostic_evidence.json", output)
+        self.assertNotIn(str((self.work / "diagnostic_evidence.json").resolve()), output)
 
     def test_secure_temp_directory_created_when_omitted(self):
         output, _ = run("diagnosis", "--case-input", self.work / "case-input.json")
@@ -99,6 +102,11 @@ class RunCaseDiagnosisTests(unittest.TestCase):
         self.assertIn("- Genes: NPM1", text)
         self.assertIn("- Provisional disease: MDS", text)
         self.assertIn("- Case major category: MDS", text)
+        self.assertIn("## Diagnosis cards", text)
+        self.assertNotIn("  - Genes:", text)
+        step2_json = json.loads((self.work / "diagnostic_evidence.json").read_text(encoding="utf-8"))
+        self.assertTrue(all("genes" in card for card in step2_json["diagnosis_cards"]))
+        self.assertNotIn("diagnostic_evidence.json", output)
 
     def test_non_zero_child_exit_propagation(self):
         (self.work / "case-input.json").write_text("{ not json", encoding="utf-8")

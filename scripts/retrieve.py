@@ -300,8 +300,41 @@ def step2_card_view(card):
 
 
 
+def _paper_display(card):
+    """Return one deterministic paper label for compact model-facing Markdown."""
+    nickname = inline_step_text(card.get("paper_nickname"), fallback="Paper")
+    year = card.get("publication_year")
+    if year and not re.search(rf"\({re.escape(str(year))}\)$", nickname):
+        return f"{nickname} ({year})"
+    return nickname
+
+
+def _group_step_diagnosis_cards(cards):
+    """Group diagnosis cards without discarding rich machine-facing metadata."""
+    groups = []
+    paper_index = {}
+    for card in cards:
+        paper = _paper_display(card)
+        if paper not in paper_index:
+            paper_index[paper] = len(groups)
+            groups.append({"paper": paper, "tiers": []})
+        paper_group = groups[paper_index[paper]]
+        tier = inline_step_text(card.get("evidence_tier"))
+        tier_group = next((item for item in paper_group["tiers"] if item["tier"] == tier), None)
+        if tier_group is None:
+            tier_group = {"tier": tier, "diseases": []}
+            paper_group["tiers"].append(tier_group)
+        diseases = tuple(card.get("diseases") or [])
+        disease_group = next((item for item in tier_group["diseases"] if item["key"] == diseases), None)
+        if disease_group is None:
+            disease_group = {"key": diseases, "cards": []}
+            tier_group["diseases"].append(disease_group)
+        disease_group["cards"].append(card)
+    return groups
+
+
 def render_step_markdown(result):
-    """Render the persisted diagnostic-evidence boundary as compact Markdown."""
+    """Render compact model-facing Step-2 Markdown; JSON remains authoritative."""
     lines = [
         "# Step 2 diagnosis evidence",
         "",
@@ -321,133 +354,55 @@ def render_step_markdown(result):
     if not result['case_facts']:
         lines.append("None.")
     lines.extend(["", "## Diagnosis cards", ""])
-    for card in result['diagnosis_cards']:
-        lines.append(f"### {card['card_id']}")
-        if card.get('paper_nickname'):
-            year = f" ({card['publication_year']})" if card.get('publication_year') else ""
-            lines.append(f"- Paper: {card['paper_nickname']}{year}")
-        elif card.get('publication_year'):
-            lines.append(f"- Publication year: {card['publication_year']}")
-        lines.append(f"- Genes: {', '.join(card.get('genes') or []) if card.get('genes') else 'none'}")
-        lines.append(f"- Diseases: {' | '.join(card.get('diseases') or []) if card.get('diseases') else 'none'}")
-        lines.append(f"- Evidence tier: {card.get('evidence_tier') or 'not specified'}")
-        lines.append(f"- Interpretation: {inline_step_text(card.get('interpretation'))}")
-        if card.get('secondary_citation'):
-            lines.append(f"- Secondary citation: {inline_step_text(card['secondary_citation'])}")
+    groups = _group_step_diagnosis_cards(result['diagnosis_cards'])
+    for paper_group in groups:
+        lines.append(f"- Paper: {paper_group['paper']}")
+        for tier_group in paper_group['tiers']:
+            lines.append(f"  - Evidence tier: {tier_group['tier']}")
+            for disease_group in tier_group['diseases']:
+                disease_text = " | ".join(disease_group['key']) if disease_group['key'] else "none"
+                lines.append(f"    - Diseases: {disease_text}")
+                for card in disease_group['cards']:
+                    lines.append(
+                        f"      - [{card['card_id']}]: {inline_step_text(card.get('interpretation'))}"
+                    )
         lines.append("")
-    lines.extend([
-        "## Retrieval state",
-        "",
-        f"- Corpus path: {result['corpus']['path']}",
-        f"- Index path: {result['corpus']['index']}",
-        "",
-    ])
-    return "\n".join(lines)
+    if not groups:
+        lines.append("None.")
+    return "\n".join(lines).rstrip() + "\n"
 
 
-def inline_step_text(value):
+def inline_step_text(value, fallback="not specified"):
     if value is None:
-        return "not specified"
-    return " ".join(str(value).split())
+        return fallback
+    text = " ".join(str(value).split())
+    return text or fallback
 
 
-def parse_step_markdown(path):
-    """Parse a diagnostic-evidence boundary produced by render_step_markdown."""
-    text = Path(path).read_text(encoding='utf-8')
-    lines = text.splitlines()
-    if not lines or lines[0] != '# Step 2 diagnosis evidence':
-        raise ValueError('diagnosis result is not a valid diagnostic_evidence.md')
+def write_step_json(result, path):
+    """Persist the rich deterministic Step-2 boundary for downstream scripts."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    def bullet(prefix):
-        target = f'- {prefix}: '
-        for line in lines:
-            if line.startswith(target):
-                return line[len(target):]
-        raise ValueError(f'diagnostic_evidence.md missing {prefix}')
 
-    genes_text = bullet('Genes')
-    no_card_text = bullet('Genes with no diagnosis card')
-    allowed_text = bullet('Allowed refined diseases')
-    case_facts = []
+def load_step_json(diagnosis_result):
+    """Load rich Step-2 JSON, deriving its private sibling from the Markdown path.
+
+    Public workflow commands continue to name ``diagnostic_evidence.md``. Downstream
+    code never parses that Markdown; it derives and consumes the sibling JSON.
+    """
+    path = Path(diagnosis_result)
+    json_path = path if path.suffix.lower() == ".json" else path.with_suffix(".json")
+    if not json_path.is_file():
+        raise ValueError(f"Step-2 machine boundary not found for diagnosis result: {path}")
     try:
-        fact_start = lines.index('## Case facts') + 1
-        card_start = lines.index('## Diagnosis cards')
-        state_start = lines.index('## Retrieval state')
-    except ValueError as exc:
-        raise ValueError('diagnostic_evidence.md is missing a required section') from exc
-    fact_re = re.compile(r"^- `([^`]+)`: (.+)$")
-    for line in lines[fact_start:card_start]:
-        if not line.strip() or line == 'None.':
-            continue
-        match = fact_re.fullmatch(line)
-        if not match:
-            raise ValueError(f'malformed case fact in diagnostic_evidence.md: {line!r}')
-        try:
-            payload = json.loads(match.group(2))
-        except json.JSONDecodeError as exc:
-            raise ValueError(
-                f'malformed case fact JSON in diagnostic_evidence.md: {exc}'
-            ) from exc
-        if not isinstance(payload, dict):
-            raise ValueError('diagnostic_evidence.md case fact payload must be an object')
-        case_facts.append({'fact_id': match.group(1), **payload})
-
-    cards = []
-    current = None
-    for line in lines[card_start + 1:state_start]:
-        if line.startswith('### '):
-            if current is not None:
-                cards.append(current)
-            current = {
-                'card_id': line[4:].strip(), 'genes': [], 'diseases': [],
-                'paper_nickname': None, 'publication_year': None,
-                'secondary_citation': None,
-            }
-            continue
-        if current is None or not line.startswith('- '):
-            continue
-        key, sep, value = line[2:].partition(': ')
-        if not sep:
-            raise ValueError(
-                f'malformed diagnosis-card field in diagnostic_evidence.md: {line!r}'
-            )
-        if key == 'Paper':
-            m = re.fullmatch(r'(.*) \((\d{4})\)', value)
-            if m:
-                current['paper_nickname'] = m.group(1)
-                current['publication_year'] = int(m.group(2))
-            else:
-                current['paper_nickname'] = value
-        elif key == 'Publication year':
-            current['publication_year'] = int(value)
-        elif key == 'Genes':
-            current['genes'] = [] if value == 'none' else [x.strip() for x in value.split(',')]
-        elif key == 'Diseases':
-            current['diseases'] = [] if value == 'none' else [x.strip() for x in value.split(' | ')]
-        elif key == 'Evidence tier':
-            current['evidence_tier'] = value
-        elif key == 'Interpretation':
-            current['interpretation'] = value
-        elif key == 'Secondary citation':
-            current['secondary_citation'] = value
-    if current is not None:
-        cards.append(current)
-
-    result = {
-        'step': 2,
-        'case_major_category': bullet('Case major category'),
-        'provisional_disease': bullet('Provisional disease'),
-        'genes': [] if genes_text == 'none' else [x.strip() for x in genes_text.split(',')],
-        'case_facts': case_facts,
-        'diagnosis_cards': cards,
-        'allowed_refined_diseases': [x.strip() for x in allowed_text.split(' | ') if x.strip()],
-        'genes_with_no_diagnosis_card': [] if no_card_text == 'none' else [x.strip() for x in no_card_text.split(',')],
-        'corpus': {
-            'path': bullet('Corpus path'),
-            'index': bullet('Index path'),
-        },
-    }
-    validate_case_facts(result['case_facts'])
+        result = json.loads(json_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Step-2 machine boundary is not valid JSON: {exc}") from exc
+    if not isinstance(result, dict) or result.get("step") != 2:
+        raise ValueError("Step-2 machine boundary must be a Step-2 JSON object")
+    validate_case_facts(result.get("case_facts"))
     return result
 
 def provenance(corpus, corpus_path, index_path, digest, card_ids):
@@ -1059,7 +1014,7 @@ def run_diagnosis(args):
     return result
 
 def run_full(args):
-    step2_result = parse_step_markdown(args.diagnosis_result)
+    step2_result = load_step_json(args.diagnosis_result)
     adjudication = json.loads(Path(args.adjudication_result).read_text(encoding="utf-8"))
     validate_adjudication(
         step2_result,
@@ -1146,6 +1101,8 @@ def main():
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(payload, encoding="utf-8")
+        if args.command == "diagnosis":
+            write_step_json(result, args.output.with_suffix(".json"))
         print(f"wrote {args.output}", file=sys.stderr)
     else:
         print(payload, end="" if payload.endswith("\n") else "\n")

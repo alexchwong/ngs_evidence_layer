@@ -2,17 +2,17 @@
 """Render a step 4 retrieval bundle as a structured evidence-card block.
 Quotes are never rendered or returned by retrieval; they remain private inside
 accepted ingestion packages.
-The rendered Markdown preserves one visible record per retrieved evidence card.
-Each record includes its human-readable label, category, genes, disease context,
-evidence tier, interpretation, and exact card-ID citation marker.
+The rendered Markdown groups cards by category, paper, evidence tier and disease.
+Only the interpretation and exact card-ID citation marker are repeated per card; rich
+card metadata remains in the deterministic JSON representation.
 Citations remain publication-style at the end of the block. Each card exposes
 its exact card-ID citation marker, ``## Refs`` maps card IDs to primary and
 secondary references, and ``## References`` contains the numbered bibliography.
 Citation numbering is scripted rather than modelled. Numbers fall out of the
 deterministic card order, so the same corpus and case produce the same block,
 and every number points at a reference contributed by a rendered card.
-Order: category, then gene, then evidence tier strongest first, then publication
-year descending, then card ID.
+Paper order follows first appearance in the historical deterministic card order;
+within each paper, evidence tier, disease tuple and stable card order are deterministic.
 Usage:
   render.py --bundle bundle.json > evidence.md
   render.py --bundle bundle.json --token-budget 120000 --format json
@@ -35,11 +35,11 @@ WRAP_WIDTH = 78
 # weakened one.
 DROPPABLE_TIERS = ["restated secondary", "univariable or descriptive"]
 CATEGORY_HEADINGS = {
-    "diagnosis": "Diagnosis and classification",
-    "prognosis": "Prognostic significance",
-    "treatment": "Clinically actionable implications",
-    "biomarker": "MRD and biomarker implications",
-    "germline": "Possible germline predisposition",
+    "diagnosis": "Diagnosis Cards",
+    "prognosis": "Prognosis Cards",
+    "treatment": "Treatment Cards",
+    "biomarker": "Biomarker Cards",
+    "germline": "Germline Cards",
 }
 
 def sort_key(card):
@@ -128,45 +128,77 @@ def inline_text(value, fallback="not specified"):
     text = " ".join(str(value).split())
     return text or fallback
 
-def list_text(values, fallback="none specified"):
-    """Render a sequence as a comma-separated inline value."""
-    cleaned = [inline_text(value, "") for value in (values or [])]
-    cleaned = [value for value in cleaned if value]
-    return ", ".join(cleaned) if cleaned else fallback
-
-def format_field(label, value):
-    """Format one wrapped Markdown bullet without breaking hyphenated terms."""
-    prefix = f"- {label}: "
-    return textwrap.fill(
-        inline_text(value),
-        width=WRAP_WIDTH,
-        initial_indent=prefix,
-        subsequent_indent="  ",
-        break_long_words=False,
-        break_on_hyphens=False,
-    )
-
 def card_label(card):
     """Return the human-readable card label, falling back to the stable ID."""
     return inline_text(card.get("locator"), inline_text(card["card_id"]))
 
-def format_card(card):
-    """Render one complete evidence card as structured Markdown."""
-    out = [
-        f"### {card_label(card)}",
-        "",
-    ]
-    if card.get("paper_nickname") is not None:
-        out.append(format_field("Paper", card["paper_nickname"]))
-    out.extend([
-        format_field("Category", card.get("category")),
-        format_field("Genes", list_text(card.get("genes"))),
-        format_field("Disease context", list_text(card.get("diseases"))),
-        format_field("Evidence tier", card.get("evidence_tier")),
-        format_field("Interpretation", card.get("interpretation")),
-        format_field("Citation marker", f"[card:{inline_text(card['card_id'])}]"),
-    ])
-    return out
+
+def paper_display(card):
+    """Return a compact deterministic paper label including year when available."""
+    nickname = inline_text(card.get("paper_nickname"), "Paper")
+    year = card.get("publication_year")
+    if year and not re.search(rf"\({re.escape(str(year))}\)$", nickname):
+        return f"{nickname} ({year})"
+    return nickname
+
+
+def _paper_key(card):
+    return card.get("publication_key") or (
+        card.get("paper_nickname"), card.get("publication_year"), card.get("citation_display")
+    )
+
+
+def group_cards_for_render(sorted_cards):
+    """Group cards as category -> paper -> tier -> diseases -> cards.
+
+    Category and paper order follow first appearance in the historical deterministic
+    sort. Within each paper, evidence tier and disease grouping are deterministic.
+    Returns both groups and the exact flattened rendered card order.
+    """
+    categories = []
+    category_index = {}
+    for card in sorted_cards:
+        category = card["category"]
+        if category not in category_index:
+            category_index[category] = len(categories)
+            categories.append({"category": category, "papers": [], "paper_index": {}})
+        category_group = categories[category_index[category]]
+        key = _paper_key(card)
+        if key not in category_group["paper_index"]:
+            category_group["paper_index"][key] = len(category_group["papers"])
+            category_group["papers"].append({"display": paper_display(card), "cards": []})
+        category_group["papers"][category_group["paper_index"][key]]["cards"].append(card)
+
+    render_order = []
+    for category_group in categories:
+        category_group.pop("paper_index", None)
+        for paper_group in category_group["papers"]:
+            paper_cards = sorted(
+                paper_group.pop("cards"),
+                key=lambda card: (
+                    vocab.TIER_RANK.get(card.get("evidence_tier"), len(vocab.TIER_RANK)),
+                    tuple(card.get("diseases") or []),
+                    sort_key(card),
+                ),
+            )
+            tiers = []
+            tier_index = {}
+            for card in paper_cards:
+                tier = inline_text(card.get("evidence_tier"))
+                if tier not in tier_index:
+                    tier_index[tier] = len(tiers)
+                    tiers.append({"tier": tier, "diseases": [], "disease_index": {}})
+                tier_group = tiers[tier_index[tier]]
+                diseases = tuple(card.get("diseases") or [])
+                if diseases not in tier_group["disease_index"]:
+                    tier_group["disease_index"][diseases] = len(tier_group["diseases"])
+                    tier_group["diseases"].append({"diseases": diseases, "cards": []})
+                tier_group["diseases"][tier_group["disease_index"][diseases]]["cards"].append(card)
+                render_order.append(card)
+            for tier_group in tiers:
+                tier_group.pop("disease_index", None)
+            paper_group["tiers"] = tiers
+    return categories, render_order
 
 def build_card_reference_map(lines, card_map, sorted_cards):
     """Group cards by identical ordered reference signature.
@@ -252,21 +284,32 @@ def serialise_card(card):
         "card_ids": [card["card_id"]],
     }
 
-def render_body(lines):
+def render_body(groups):
     out = []
-    current_category = None
     rendered_cards = []
-    for line in lines:
-        card = line["representative"]
-        category = card["category"]
-        if category != current_category:
-            current_category = category
+    for category_group in groups:
+        category = category_group["category"]
+        out.extend(["", f"## {CATEGORY_HEADINGS.get(category, category)}", ""])
+        for paper_number, paper_group in enumerate(category_group["papers"], 1):
+            out.append(f"{paper_number}. Paper: {paper_group['display']}")
             out.append("")
-            out.append(f"## {CATEGORY_HEADINGS.get(category, category)}")
+            for tier_group in paper_group["tiers"]:
+                out.append(f"- Evidence tier: {tier_group['tier']}")
+                for disease_group in tier_group["diseases"]:
+                    diseases = " | ".join(disease_group["diseases"]) if disease_group["diseases"] else "none"
+                    disease_label = (
+                        "Disease context"
+                        if len(disease_group["diseases"]) <= 1
+                        else "Diseases"
+                    )
+                    out.append(f"  - {disease_label}: {diseases}")
+                    for card in disease_group["cards"]:
+                        out.append(
+                            f"    - [card:{inline_text(card['card_id'])}]: "
+                            f"{inline_text(card.get('interpretation'))}"
+                        )
+                        rendered_cards.append(serialise_card(card))
             out.append("")
-        out.extend(format_card(card))
-        out.append("")
-        rendered_cards.append(serialise_card(card))
     return out, rendered_cards
 
 def render_header(bundle):
@@ -286,10 +329,9 @@ def render_header(bundle):
         "# Evidence block",
         "",
         textwrap.fill(
-            "Collated evidence cards, not a report. Each card below preserves one "
-            "retrieved source statement and its card-level metadata; nothing has "
-            "been reconciled, ranked clinically or concluded from. Report synthesis "
-            "happens downstream.",
+            "Collated evidence cards, not a report. Source, evidence tier and disease "
+            "context are grouped above each card interpretation; report synthesis happens "
+            "downstream.",
             width=WRAP_WIDTH,
         ),
         "",
@@ -420,10 +462,11 @@ def render(bundle, token_budget=DEFAULT_TOKEN_BUDGET):
     dropped = []
     while True:
         sorted_cards = sorted(cards, key=sort_key)
-        lines = card_lines(sorted_cards)
+        groups, rendered_order = group_cards_for_render(sorted_cards)
+        lines = card_lines(rendered_order)
         references, card_map = assign_references(lines)
-        reference_map = build_card_reference_map(lines, card_map, sorted_cards)
-        body, rendered_cards = render_body(lines)
+        reference_map = build_card_reference_map(lines, card_map, rendered_order)
+        body, rendered_cards = render_body(groups)
         tail = render_tail(bundle, references, dropped, reference_map)
         text = "\n".join(render_header(bundle) + body + tail)
         # Sections are assembled independently, so blank-line runs are joined

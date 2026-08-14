@@ -100,6 +100,7 @@ def diagnosis(args):
 
     run_command(command, "step 2: retrieve diagnosis evidence")
     require_file(output, "diagnostic_evidence.md")
+    require_file(output.with_suffix(".json"), "Step-2 machine boundary")
     print(f"[run_case] output: {output}", file=sys.stderr)
 
 
