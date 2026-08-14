@@ -2,8 +2,9 @@
 """Validate the strict Markdown produced by Step 6A.
 
 Step 6A writes one line per reporting rule directly to ``report-draft.md``.
-Every line must end in either one or more exact runtime ``[card:xxxxxx]``
-markers or the literal ``(no citation required)``. This script enforces the
+Every line must end in a full stop, one space, and either one or more exact
+runtime ``[card:xxxxxx]`` markers or the literal ``(no citation required)``.
+For example: ``R1.1 Conclusion. [card:a1b2c3]``. This script enforces the
 complete rule checklist, the terminal citation disposition, and exact
 membership of every cited tag in ``evidence.md``.
 """
@@ -63,7 +64,10 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         match = re.search(r"((?:\[card:[0-9a-f]{6}\])+)$", content)
         if match is None:
             raise ValueError(
-                f"{expected_rule_id} has no valid terminal citation disposition"
+                f"{expected_rule_id} has no valid terminal citation disposition. "
+                "Expected exactly: '<answer>. [card:a1b2c3]' (or adjacent card tags), "
+                "or '<answer>. (no citation required)'. The citation disposition must "
+                "follow the full stop; do not write '<answer> [card:a1b2c3].'"
             )
         if match.start() == 0 or content[match.start() - 1] != " ":
             raise ValueError(
@@ -77,6 +81,13 @@ def split_draft_line(line, *, expected_rule_id, line_number):
 
     if not text:
         raise ValueError(f"{expected_rule_id} answer text must be non-empty")
+    if not text.endswith("."):
+        raise ValueError(
+            f"{expected_rule_id} citation disposition is misplaced. Expected exactly: "
+            "'<answer>. [card:a1b2c3]' (or adjacent card tags), or "
+            "'<answer>. (no citation required)'. The full stop must come before the "
+            "citation disposition."
+        )
     if text != text.strip():
         raise ValueError(
             f"{expected_rule_id} answer text must not have leading or trailing whitespace"
@@ -86,7 +97,11 @@ def split_draft_line(line, *, expected_rule_id, line_number):
             f"{expected_rule_id} contains a citation marker inside answer prose; markers are terminal only"
         )
     if len(tags) != len(set(tags)):
-        raise ValueError(f"{expected_rule_id} terminal card tags must not contain duplicates")
+        raise ValueError(
+            f"{expected_rule_id} terminal card tags must not contain duplicates. "
+            "Keep each supporting tag once, after the full stop, e.g. "
+            "'<answer>. [card:a1b2c3][card:d4e5f6]'"
+        )
     if any(CARD_TAG.fullmatch(tag) is None for tag in tags):
         raise ValueError(
             f"{expected_rule_id} card tags must be six-character lowercase hex strings"

@@ -180,11 +180,11 @@ class AdjudicationReviewTests(unittest.TestCase):
             tmp = Path(tmp)
             step2_path = tmp / "diagnostic_evidence.md"
             adjudication_path = tmp / "adjudication.json"
-            blacklist_path = tmp / "blacklist.yaml"
+            blacklist_path = tmp / "blacklist.json"
             step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
             retrieve.write_step_json(self.step2, step2_path.with_suffix(".json"))
             adjudication_path.write_text(json.dumps(adjudication), encoding="utf-8")
-            blacklist_path.write_text("enabled: true\n", encoding="utf-8")
+            blacklist_path.write_text(json.dumps({"enabled": True}), encoding="utf-8")
             args = argparse.Namespace(
                 diagnosis_result=step2_path,
                 adjudication_result=adjudication_path,

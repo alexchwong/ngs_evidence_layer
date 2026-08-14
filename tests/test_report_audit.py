@@ -70,7 +70,23 @@ class DraftValidationTests(unittest.TestCase):
             "R1.1 Answer for R1.1. (no citation required)",
             "R1.1 Answer for R1.1.",
         )
-        with self.assertRaisesRegex(ValueError, "R1.1 has no valid terminal citation disposition"):
+        with self.assertRaisesRegex(ValueError, r"Expected exactly: '<answer>\. \[card:a1b2c3\]'"):
+            report_audit.validate_draft(text, EVIDENCE)
+
+    def test_rejects_marker_before_full_stop_with_actionable_message(self):
+        text = draft_text().replace(
+            "R1.1 Answer for R1.1. (no citation required)",
+            "R1.1 Answer for R1.1 [card:a1b2c3].",
+        )
+        with self.assertRaisesRegex(ValueError, "citation disposition must follow the full stop"):
+            report_audit.validate_draft(text, EVIDENCE)
+
+    def test_requires_full_stop_before_no_citation_disposition(self):
+        text = draft_text().replace(
+            "R1.1 Answer for R1.1. (no citation required)",
+            "R1.1 Answer for R1.1 (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "full stop must come before the citation disposition"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_accepts_multiple_adjacent_terminal_tags(self):
@@ -121,7 +137,7 @@ class DraftValidationTests(unittest.TestCase):
             "R1.1 Answer for R1.1. (no citation required)",
             "R1.1 Answer for R1.1. [card:a1b2c3] [card:d4e5f6]",
         )
-        with self.assertRaisesRegex(ValueError, "marker inside answer prose"):
+        with self.assertRaisesRegex(ValueError, "Expected exactly"):
             report_audit.validate_draft(text, EVIDENCE)
 
     def test_evidence_requires_runtime_card_tags(self):

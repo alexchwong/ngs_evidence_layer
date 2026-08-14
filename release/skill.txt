@@ -15,6 +15,7 @@ schema/disease_vocabulary.json
 schema/ingestion_package_schema.json
 output/corpus/nel.corpus.json
 output/corpus/nel.index.json
+output/corpus/blacklist.json
 prompts/workflow/*
 prompts/formatting/*
 rules/agreed_reporting_rules.md

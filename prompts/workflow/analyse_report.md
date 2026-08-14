@@ -14,9 +14,11 @@ Answer every reporting rule using the integrated case and the retrieved evidence
 - Use `evidence.md` as the complete literature-evidence boundary.
 - Keep card-level evidence granularity: cite every evidence card that directly supports the answer using its exact runtime `card_tag`.
 - Use only tags copied exactly from `evidence.md`; never infer, reconstruct, shorten, or invent a tag.
-- End every line with exactly one citation disposition:
-  - one or more adjacent runtime markers, e.g. `[card:a1b2c3][card:d4e5f6]`; or
-  - the exact literal `(no citation required)` when no literature citation is required.
+- End every line with a full stop followed by exactly one citation disposition. The citation disposition MUST come after the full stop, never before it:
+  - cited: `Patient-specific conclusion. [card:a1b2c3]` or `Patient-specific conclusion. [card:a1b2c3][card:d4e5f6]`;
+  - uncited: `Patient-specific conclusion. (no citation required)`.
+- The required order is always `answer prose` → `.` → one space → `citation disposition`. Do not write `Patient-specific conclusion [card:a1b2c3].`.
+- Use `(no citation required)` for patient-specific result facts that do not themselves require literature support (for example, stating which variants were detected and their case-supplied VAFs). This lets Step 6B preserve those facts under its sentence-level citation contract without inventing evidence citations.
 - A line without a terminal citation disposition is invalid. Never leave the citation state implicit.
 - Card markers are allowed only as the terminal suffix. Do not place `[card:...]` inside answer prose.
 - Do not combine card markers with `(no citation required)` on the same line.
@@ -50,4 +52,4 @@ Continue in exact source order through `R5.9`.
 
 ## Final check
 
-Before returning, verify privately that there is exactly one line for every rule, every line has a terminal citation disposition, every card tag is copied exactly from `evidence.md`, and no citation marker appears inside answer prose.
+Before returning, verify privately that there is exactly one line for every rule; every answer ends with a full stop followed by one space and its terminal citation disposition; every card tag is copied exactly from `evidence.md`; and no citation marker appears before the full stop or inside answer prose.

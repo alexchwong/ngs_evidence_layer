@@ -2,13 +2,19 @@
 """Validate and render citations in generated NGS reports.
 
 ``validate`` is a read-only Step 6A/6B exit check. It verifies that a report
-document contains only well-formed runtime card-tag markers that deconvolve to cards through `card-tags.json` and resolve through the
-canonical ``## Refs`` mapping in ``evidence.md``.
+document contains only well-formed runtime card-tag markers that deconvolve to
+cards through ``card-tags.json`` and resolve through the canonical ``## Refs``
+mapping in ``evidence.md``. Step 6B can additionally require every sentence-ending
+full stop to be immediately followed by one space and a citation disposition, e.g.
+``Sentence. [card:abcdef]`` or ``Sentence. (no citation required)``. ``validate``
+remains read-only and reports the exact expected syntax on placement failures.
 
-``render`` is mandatory Step 6C processing. It replaces the card-tag markers in
-``report-final.md`` with report-local Vancouver-style numeric citations in order
-of first appearance and appends the cited primary references. Rendering replaces
-its output atomically and fails without modifying it when validation fails.
+``render`` is mandatory Step 6C processing. It canonicalizes the model-facing
+post-full-stop citation placement into final Vancouver-style placement,
+replaces the card-tag markers in ``report-final.md`` with report-local
+Vancouver-style numeric citations in order of first appearance, and appends the
+cited primary references. Rendering replaces its output atomically and fails
+without modifying it when validation fails.
 """
 
 import argparse
@@ -35,6 +41,17 @@ CARD_MARKER_LIKE = re.compile(r"\[card:[^\[\]\n]*\]")
 REPORT_MARKER = re.compile(r"\[([0-9]+(?:\s*,\s*[0-9]+)*)\]")
 ADJACENT_REPORT_MARKERS = re.compile(r"(?:\[(?:[0-9]+(?:\s*,\s*[0-9]+)*)\]){2,}")
 NO_CITATION_MARKER = re.compile(r"\s*\(no citation required\)")
+SENTENCE_ENDING_FULL_STOP = re.compile(r"\.(?=(?:\s|\[card:|\(no citation required\)|$))")
+CITATION_DISPOSITION_AFTER_FULL_STOP = re.compile(
+    rf"^(?: \[card:{CARD_TAG}\](?:\[card:{CARD_TAG}\])*"
+    rf"| \(no citation required\))(?=\s|$)"
+)
+LEGACY_DISPOSITION_AFTER_FULL_STOP = re.compile(
+    rf"\.(?P<spacing>[ \t]+)(?P<disposition>"
+    rf"(?:\[card:{CARD_TAG}\](?:[ \t]*\[card:{CARD_TAG}\])*)"
+    rf"|\(no citation required\))"
+    rf"(?=(?:\s|$))"
+)
 
 
 def split_references(text, *, source):
@@ -186,6 +203,15 @@ def parse_card_tags(card_tags_text):
     return mapping
 
 
+
+def normalize_citation_placement(document_text):
+    """Move model-facing post-full-stop card markers before the full stop for rendering."""
+    def replace(match):
+        disposition = re.sub(r"[ \t]+(?=\[card:)", "", match.group("disposition"))
+        return f" {disposition}."
+
+    return LEGACY_DISPOSITION_AFTER_FULL_STOP.sub(replace, document_text)
+
 def render_document(body, references):
     lines = [body.rstrip()]
     if references:
@@ -194,12 +220,23 @@ def render_document(body, references):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def validate(document_text, evidence_text, card_tags_text, *, source="report document"):
+def validate(
+    document_text,
+    evidence_text,
+    card_tags_text,
+    *,
+    source="report document",
+    require_citation_after_full_stop=False,
+):
     """Validate runtime card-tag markers without modifying the document."""
     if REFERENCES_HEADING in document_text.splitlines():
         raise ValueError(f"{source} already contains a References section")
     if REPORT_MARKER.search(document_text):
-        raise ValueError(f"{source} contains a model-generated numeric citation")
+        raise ValueError(
+            f"{source} contains a model-generated numeric citation. "
+            "Do not write numeric citations in Step 6A/6B. Use the exact runtime "
+            "card tag after the full stop, for example: 'Sentence. [card:a1b2c3]'"
+        )
     _evidence_body, source_references = split_references(evidence_text, source="evidence")
     tag_to_source = parse_card_references(evidence_text, source_references)
     tag_to_card = parse_card_tags(card_tags_text)
@@ -218,15 +255,43 @@ def validate(document_text, evidence_text, card_tags_text, *, source="report doc
         if tag not in tag_to_source:
             raise ValueError(f"{source} cites unknown runtime card tag {tag}")
     if CARD_MARKER_LIKE.search(SOURCE_MARKER.sub("", document_text)):
-        raise ValueError(f"{source} contains a malformed card-tag marker")
+        raise ValueError(
+            f"{source} contains a malformed card-tag marker. "
+            "Copy an exact six-character runtime card tag and place it after the "
+            "full stop, for example: 'Sentence. [card:a1b2c3]'"
+        )
     if "(refs:" in document_text:
         raise ValueError(f"{source} contains a legacy numeric source marker")
+    if require_citation_after_full_stop:
+        for match in SENTENCE_ENDING_FULL_STOP.finditer(document_text):
+            suffix = document_text[match.end():]
+            if CITATION_DISPOSITION_AFTER_FULL_STOP.match(suffix) is None:
+                line_number = document_text.count("\n", 0, match.start()) + 1
+                line_start = document_text.rfind("\n", 0, match.start()) + 1
+                line_end = document_text.find("\n", match.end())
+                if line_end == -1:
+                    line_end = len(document_text)
+                line = document_text[line_start:line_end].strip()
+                raise ValueError(
+                    f"{source} line {line_number} has a sentence-ending full stop without "
+                    "the required citation disposition immediately after it. Expected exactly: "
+                    "'Sentence. [card:a1b2c3]' (or adjacent card tags), or "
+                    "'Sentence. (no citation required)'. Do not place the marker before "
+                    f"the full stop. Offending line: {line!r}"
+                )
     return document_text
 
 
 def render(report_text, evidence_text, card_tags_text):
-    """Resolve validated Step 6B card-tag markers and append primary entries."""
-    validate(report_text, evidence_text, card_tags_text, source="final report")
+    """Canonicalize, resolve Step 6B card-tag markers, and append primary entries."""
+    validate(
+        report_text,
+        evidence_text,
+        card_tags_text,
+        source="final report",
+        require_citation_after_full_stop=True,
+    )
+    report_text = normalize_citation_placement(report_text)
     _evidence_body, source_references = split_references(evidence_text, source="evidence")
     tag_to_source = parse_card_references(evidence_text, source_references)
     report_number_by_source = {}
@@ -278,6 +343,15 @@ def main():
     validate_parser.add_argument("--report", type=Path, required=True)
     validate_parser.add_argument("--evidence", type=Path, required=True)
     validate_parser.add_argument("--card-tags", type=Path, required=True)
+    validate_parser.add_argument(
+        "--require-citation-after-full-stop",
+        action="store_true",
+        help=(
+            "require each sentence-ending full stop to be followed by one space and "
+            "one or more runtime card tags or '(no citation required)', e.g. "
+            "'Sentence. [card:a1b2c3]'"
+        ),
+    )
     render_parser = subparsers.add_parser("render")
     render_parser.add_argument("--report", type=Path, required=True)
     render_parser.add_argument("--evidence", type=Path, required=True)
@@ -290,6 +364,7 @@ def main():
                 args.report.read_text(encoding="utf-8"),
                 args.evidence.read_text(encoding="utf-8"),
                 args.card_tags.read_text(encoding="utf-8"),
+                require_citation_after_full_stop=args.require_citation_after_full_stop,
             )
             output = args.report
         else:

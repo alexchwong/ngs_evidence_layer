@@ -1,9 +1,8 @@
+import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
-
-import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import retrieve  # noqa: E402
@@ -39,8 +38,8 @@ def cards():
 
 
 def write_policy(tmp_path, document):
-    path = tmp_path / "blacklist.yaml"
-    path.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+    path = tmp_path / "blacklist.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
     return path
 
 
@@ -166,6 +165,12 @@ class RetrieveBlacklistTests(unittest.TestCase):
                 ),
                 cards(),
             )
+
+    def test_invalid_json_fails_loudly(self):
+        path = self.tmp_path / "blacklist.json"
+        path.write_text("enabled: true\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "blacklist JSON is invalid"):
+            retrieve.load_blacklist(path, cards())
 
 
 if __name__ == "__main__":

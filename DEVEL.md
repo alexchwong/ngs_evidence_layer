@@ -21,6 +21,9 @@ Activate it in each new shell, then run the normal development checks:
 python scripts/build_prompts.py --phase <1|2|3|4|5>
 python scripts/build_prompts.py --phase5-review
 
+# Regenerate runtime JSON after editing output/corpus/blacklist.yaml.
+python scripts/build_blacklist.py
+
 # Run the full test suite.
 python -m unittest discover -s tests -v 2>&1
 
@@ -97,6 +100,26 @@ prompts/phase5_review_prompt.md
 Do not edit generated phase prompts directly. Edit the corresponding template or other
 canonical source, regenerate the prompt, inspect the diff, and commit the generated
 prompt with its source change.
+
+## Regenerate the blacklist
+
+`output/corpus/blacklist.yaml` is the human-edited canonical card eligibility policy.
+Runtime retrieval does not parse YAML; it reads the committed generated artefact:
+
+```text
+output/corpus/blacklist.json
+```
+
+After every blacklist YAML edit, regenerate the JSON from the repository root:
+
+```bash
+python scripts/build_blacklist.py
+```
+
+Do not edit `blacklist.json` directly. Commit it with the corresponding YAML change and
+inspect the generated diff before running tests. `--source` and `--output` are available
+for development fixtures or alternate paths.
+
 ## Run tests
 
 Run the full unittest suite:

@@ -18,7 +18,7 @@ prompts/workflow/format_report.md for every formatting style.
 
 ## Variant summary
 
-- The first sentence MUST summarise the detected NGS variants.
+- The first sentence MUST summarise the detected NGS variants. Because this is a patient-result summary, it MUST end with `(no citation required)` unless the supporting content in `report-draft.md` explicitly carries one or more evidence-card markers; in that case preserve those markers instead.
 - List genes in alphabetical order.
 - Give variant type and VAF in brackets following each gene (e.g. missense, 30%).
 - Use a recognised hotspot name when the variant type or hotspot is clinically important (e.g. JAK2 V617F, FLT3-ITD or TKD, NPM1 type A).

@@ -43,6 +43,7 @@ Scripts are grouped below by their primary role.
 
 ## Development
 
+- `build_blacklist.py`
 - `build_prompts.py`
 - `build_skill_zip.py`
 

@@ -1,0 +1,33 @@
+{
+  "enabled": true,
+  "global": {
+    "categories": {
+      "include": [],
+      "exclude": []
+    },
+    "genes": {
+      "include": [],
+      "exclude": []
+    },
+    "cards": {
+      "include": [],
+      "exclude": []
+    }
+  },
+  "papers": {
+    "khoury-2022-leukemia-36-1703": {
+      "categories": {
+        "include": [
+          "diagnosis"
+        ]
+      }
+    },
+    "arber-2022-blood-140-1200": {
+      "categories": {
+        "include": [
+          "diagnosis"
+        ]
+      }
+    }
+  }
+}

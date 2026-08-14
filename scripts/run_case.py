@@ -97,6 +97,8 @@ def diagnosis(args):
         command.extend(["--corpus", str(args.corpus)])
     if args.index:
         command.extend(["--index", str(args.index)])
+    if args.blacklist:
+        command.extend(["--blacklist", str(args.blacklist)])
 
     run_command(command, "step 2: retrieve diagnosis evidence")
     require_file(output, "diagnostic_evidence.md")
@@ -133,6 +135,8 @@ def full(args):
         retrieve_command.extend(["--corpus", str(args.corpus)])
     if args.index:
         retrieve_command.extend(["--index", str(args.index)])
+    if args.blacklist:
+        retrieve_command.extend(["--blacklist", str(args.blacklist)])
 
     run_command(retrieve_command, "step 4: retrieve full evidence bundle")
     require_file(bundle_tmp, "bundle.json")
@@ -177,6 +181,7 @@ def main():
     diag.add_argument("--case-facts", type=Path, help="override case-facts file")
     diag.add_argument("--corpus", type=Path, help="override corpus path")
     diag.add_argument("--index", type=Path, help="override index path")
+    diag.add_argument("--blacklist", type=Path, help="override blacklist policy path")
 
     full_parser = sub.add_parser("full", parents=[common], help="run Steps 4 and 5 full retrieval and render")
     full_parser.add_argument(
@@ -190,6 +195,7 @@ def main():
     full_parser.add_argument("--genes", nargs="+", help="override genes for full retrieval")
     full_parser.add_argument("--corpus", type=Path, help="override corpus path")
     full_parser.add_argument("--index", type=Path, help="override index path")
+    full_parser.add_argument("--blacklist", type=Path, help="override blacklist policy path")
     full_parser.add_argument("--token-budget", type=int, help="forward token budget to renderer")
 
     args = parser.parse_args()

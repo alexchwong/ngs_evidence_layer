@@ -393,6 +393,8 @@ If any required input is missing, unreadable, or malformed, stop and report the 
 
 Follow `prompts/workflow/format_report.md` exactly. Apply `<format-prompt>` only for report style, ordering, emphasis, compression, and optional-content choices within the mandatory workflow constraints. Use `report-draft.md` as the sole source of report content.
 
+**Step 6B citation invariant:** citation preservation takes precedence over formatting, compression, and word-count targets. A retained or merged assertion must retain the complete citation disposition of its supporting draft content; merged assertions must retain the union of all supporting card markers. In model-written Step 6A and Step 6B Markdown, the citation disposition MUST follow the sentence-ending full stop: `Sentence. [card:abcdef]`, `Sentence. [card:abcdef][card:123456]`, or `Sentence. (no citation required)`. The required order is sentence → full stop → one space → citation disposition; never place a runtime citation marker before the full stop.
+
 #### Output
 
 Write only `<work-dir>/report-final.md`.
@@ -403,10 +405,11 @@ Then run exactly:
 python scripts/report_citations.py validate \
   --report <work-dir>/report-final.md \
   --evidence <work-dir>/evidence.md \
-  --card-tags <work-dir>/card-tags.json
+  --card-tags <work-dir>/card-tags.json \
+  --require-citation-after-full-stop
 ```
 
-The command is read-only and must succeed before Step 6C. If it fails, use only the validator error, `prompts/workflow/format_report.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
+The command is read-only and must succeed before Step 6C. In Step 6B mode it requires every sentence-ending full stop to be followed by one space and either one or more exact runtime card-tag markers or `(no citation required)`. A placement failure reports the affected line and the exact expected syntax, so do not read the validation script to troubleshoot it. This does not rewrite `report-final.md`. If validation fails, use only the validator error, `prompts/workflow/format_report.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
 
 ### Step 6C — Render citations and references
 
@@ -419,7 +422,7 @@ python scripts/report_citations.py render \
   --card-tags <work-dir>/card-tags.json
 ```
 
-The command resolves each runtime tag through `evidence.md` to its primary publication, replaces card markers with Vancouver-style numeric square-bracket citations, merges adjacent citations, deduplicates publications, removes `(no citation required)`, and appends the cited bibliography. Do not otherwise modify `report-final.md` after this command.
+The command validates the model-facing `Sentence. [card:abcdef]` placement, then deterministically moves cited markers before the full stop for the rendered report, resolves each runtime tag through `evidence.md` to its primary publication, replaces card markers with Vancouver-style numeric square-bracket citations, merges adjacent citations, deduplicates publications, removes `(no citation required)`, and appends the cited bibliography. Thus `Sentence. [card:abcdef]` is rendered deterministically as `Sentence [1].`. Do not otherwise modify `report-final.md` after this command.
 
 ## Step 7 — Post-report delivery and validation
 

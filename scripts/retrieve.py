@@ -19,7 +19,6 @@ import json
 import re
 import sys
 
-import yaml
 from datetime import datetime, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -28,7 +27,7 @@ import vocab  # noqa: E402
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CORPUS = REPO_ROOT / "output/corpus/nel.corpus.json"
 DEFAULT_INDEX = REPO_ROOT / "output/corpus/nel.index.json"
-DEFAULT_BLACKLIST = REPO_ROOT / "output/corpus/blacklist.yaml"
+DEFAULT_BLACKLIST = REPO_ROOT / "output/corpus/blacklist.json"
 CARD_CATEGORIES = {"diagnosis", "prognosis", "treatment", "biomarker", "germline"}
 DISEASE_FILTERED = ("diagnosis", "prognosis", "treatment", "biomarker")
 
@@ -84,7 +83,7 @@ def _blacklist_string_list(value, *, field, uppercase=False):
     if value is None:
         return []
     if not isinstance(value, list):
-        raise ValueError(f"blacklist {field} must be a YAML list")
+        raise ValueError(f"blacklist {field} must be a JSON array")
     result = []
     seen = set()
     for index, item in enumerate(value):
@@ -169,13 +168,11 @@ def load_blacklist(path, cards):
             "present": False,
         }
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except yaml.YAMLError as exc:
-        raise ValueError(f"blacklist YAML is invalid: {exc}") from exc
-    if raw is None:
-        raw = {}
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"blacklist JSON is invalid: {exc}") from exc
     if not isinstance(raw, dict):
-        raise ValueError("blacklist root must be a YAML mapping")
+        raise ValueError("blacklist root must be a JSON object")
     unknown = set(raw) - {"enabled", "global", "papers"}
     if unknown:
         raise ValueError(
@@ -1076,7 +1073,7 @@ def main():
     diagnosis.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     diagnosis.add_argument("--index", type=Path, default=DEFAULT_INDEX)
     diagnosis.add_argument("--blacklist", type=Path, default=DEFAULT_BLACKLIST,
-                           help="YAML card eligibility policy")
+                           help="JSON card eligibility policy")
     full = sub.add_parser("full", help="step 4")
     full.add_argument("--diagnosis-result", type=Path, required=True)
     full.add_argument("--adjudication-result", type=Path, required=True,
@@ -1085,7 +1082,7 @@ def main():
     full.add_argument("--corpus", type=Path)
     full.add_argument("--index", type=Path)
     full.add_argument("--blacklist", type=Path, default=DEFAULT_BLACKLIST,
-                      help="YAML card eligibility policy")
+                      help="JSON card eligibility policy")
     diagnosis.add_argument("--output", type=Path, help="write Step-2 Markdown here instead of stdout")
     full.add_argument("--output", type=Path, help="write Step-4 JSON bundle here instead of stdout")
     args = parser.parse_args()

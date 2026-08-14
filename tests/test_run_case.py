@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the deterministic `scripts/run_case.py` wrapper."""
+import hashlib
 import json
 import subprocess
 import sys
@@ -9,8 +10,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RUN_CASE = ROOT / "scripts" / "run_case.py"
-CORPUS = ROOT / "output" / "corpus" / "nel.corpus.json"
-INDEX = ROOT / "output" / "corpus" / "nel.index.json"
 
 
 def run(*arguments, success=True, cwd=None):
@@ -59,41 +58,78 @@ def write_adjudication(path, disease="myeloid neoplasm, unspecified"):
     path.write_text(json.dumps(document), encoding="utf-8")
 
 
-class RunCaseDiagnosisTests(unittest.TestCase):
+def write_corpus_fixture(root):
+    corpus = {
+        "corpus_version": "test",
+        "generated_at": "2026-08-14T00:00:00+00:00",
+        "publications": [],
+    }
+    canonical = json.dumps(
+        corpus, ensure_ascii=False, indent=2, sort_keys=True
+    ) + "\n"
+    corpus_path = root / "nel.corpus.json"
+    index_path = root / "nel.index.json"
+    blacklist_path = root / "blacklist.json"
+    corpus_path.write_text(canonical, encoding="utf-8")
+    index_path.write_text(
+        json.dumps({
+            "corpus_sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+        }),
+        encoding="utf-8",
+    )
+    blacklist_path.write_text(json.dumps({"enabled": False}), encoding="utf-8")
+    return corpus_path, index_path, blacklist_path
+
+
+class IsolatedRunCaseTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
         self.work = self.dir / "work"
         self.work.mkdir()
+        self.corpus, self.index, self.blacklist = write_corpus_fixture(self.dir)
         write_case_input(self.work / "case-input.json")
 
     def tearDown(self):
         self.tmp.cleanup()
 
+    def run_case(self, command, *arguments, success=True, cwd=None):
+        return run(
+            command,
+            *arguments,
+            "--corpus", self.corpus,
+            "--index", self.index,
+            "--blacklist", self.blacklist,
+            success=success,
+            cwd=cwd,
+        )
+
+
+class RunCaseDiagnosisTests(IsolatedRunCaseTests):
+
     def test_default_work_directory_filenames(self):
-        output, _ = run("diagnosis", "--work-dir", self.work)
+        output, _ = self.run_case("diagnosis", "--work-dir", self.work)
         self.assertTrue((self.work / "diagnostic_evidence.md").is_file())
         self.assertTrue((self.work / "diagnostic_evidence.json").is_file())
         self.assertNotIn("diagnostic_evidence.json", output)
         self.assertNotIn(str((self.work / "diagnostic_evidence.json").resolve()), output)
 
     def test_secure_temp_directory_created_when_omitted(self):
-        output, _ = run("diagnosis", "--case-input", self.work / "case-input.json")
+        output, _ = self.run_case("diagnosis", "--case-input", self.work / "case-input.json")
         self.assertIn("[run_case] working directory:", output)
         self.assertIn("ngs_evidence_layer_", output)
         self.assertIn("step 2: retrieve diagnosis evidence", output)
 
     def test_absolute_working_directory_status_output(self):
-        output, _ = run("diagnosis", "--work-dir", self.work)
+        output, _ = self.run_case("diagnosis", "--work-dir", self.work)
         self.assertIn(f"[run_case] working directory: {self.work.resolve()}", output)
 
     def test_forwarding_advanced_overrides(self):
-        output, _ = run(
+        output, _ = self.run_case(
             "diagnosis", "--work-dir", self.work,
             "--genes", "NPM1",
             "--provisional-disease", "MDS",
             "--case-major-category", "MDS",
-            "--corpus", CORPUS, "--index", INDEX,
         )
         self.assertIn("overriding case-input genes from --genes", output)
         self.assertIn("overriding case-input provisional-disease from --provisional-disease", output)
@@ -110,11 +146,11 @@ class RunCaseDiagnosisTests(unittest.TestCase):
 
     def test_non_zero_child_exit_propagation(self):
         (self.work / "case-input.json").write_text("{ not json", encoding="utf-8")
-        output, _ = run("diagnosis", "--work-dir", self.work, success=False)
+        output, _ = self.run_case("diagnosis", "--work-dir", self.work, success=False)
         self.assertIn("step 2: retrieve diagnosis evidence failed", output)
 
     def test_missing_output_detection(self):
-        output, _ = run(
+        output, _ = self.run_case(
             "diagnosis", "--work-dir", self.work,
             "--case-input", self.dir / "missing.json",
             success=False,
@@ -122,25 +158,18 @@ class RunCaseDiagnosisTests(unittest.TestCase):
         self.assertIn("failed", output)
 
     def test_operation_from_non_repository_cwd(self):
-        run("diagnosis", "--work-dir", self.work, cwd=self.tmp.name)
+        self.run_case("diagnosis", "--work-dir", self.work, cwd=self.tmp.name)
         self.assertTrue((self.work / "diagnostic_evidence.md").is_file())
 
 
-class RunCaseFullTests(unittest.TestCase):
+class RunCaseFullTests(IsolatedRunCaseTests):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.dir = Path(self.tmp.name)
-        self.work = self.dir / "work"
-        self.work.mkdir()
-        write_case_input(self.work / "case-input.json")
+        super().setUp()
         write_adjudication(self.work / "adjudication.json")
-        run("diagnosis", "--work-dir", self.work)
-
-    def tearDown(self):
-        self.tmp.cleanup()
+        self.run_case("diagnosis", "--work-dir", self.work)
 
     def test_retrieve_full_then_render_execution_order(self):
-        output, _ = run("full", "--work-dir", self.work)
+        output, _ = self.run_case("full", "--work-dir", self.work)
         self.assertLess(
             output.index("step 4: retrieve full evidence bundle"),
             output.index("step 5: render evidence"),
@@ -151,14 +180,14 @@ class RunCaseFullTests(unittest.TestCase):
 
     def test_render_not_called_when_retrieval_fails(self):
         (self.work / "adjudication.json").write_text("{}", encoding="utf-8")
-        output, _ = run("full", "--work-dir", self.work, success=False)
+        output, _ = self.run_case("full", "--work-dir", self.work, success=False)
         self.assertIn("step 4: retrieve full evidence bundle failed", output)
         self.assertNotIn("step 5: render evidence", output)
         self.assertFalse((self.work / "evidence.md").exists())
         self.assertFalse((self.work / "evidence.md").exists())
 
     def test_default_input_and_output_paths(self):
-        run("full", "--work-dir", self.work)
+        self.run_case("full", "--work-dir", self.work)
         self.assertTrue((self.work / "bundle.json").is_file())
         self.assertTrue((self.work / "evidence.md").is_file())
         self.assertTrue((self.work / "card-tags.json").is_file())
@@ -166,7 +195,7 @@ class RunCaseFullTests(unittest.TestCase):
     def test_advanced_path_forwarding(self):
         alt = self.dir / "alt"
         alt.mkdir()
-        run(
+        self.run_case(
             "full", "--work-dir", self.work,
             "--diagnosis-result", self.work / "diagnostic_evidence.md",
             "--adjudication-result", self.work / "adjudication.json",
@@ -179,11 +208,11 @@ class RunCaseFullTests(unittest.TestCase):
         self.assertTrue((alt / "card-tags.json").is_file())
 
     def test_token_budget_forwarding(self):
-        output, _ = run("full", "--work-dir", self.work, "--token-budget", "1000000")
+        output, _ = self.run_case("full", "--work-dir", self.work, "--token-budget", "1000000")
         self.assertIn("against a budget of 1000000", output)
 
     def test_non_zero_render_exit_propagation(self):
-        output, _ = run(
+        output, _ = self.run_case(
             "full", "--work-dir", self.work,
             "--token-budget", "not-an-int",
             success=False,
@@ -191,7 +220,7 @@ class RunCaseFullTests(unittest.TestCase):
         self.assertIn("invalid int value", output)
 
     def test_missing_bundle_detection(self):
-        output, _ = run(
+        output, _ = self.run_case(
             "full", "--work-dir", self.work,
             "--diagnosis-result", self.dir / "missing-diagnostic-evidence.md",
             success=False,
@@ -204,12 +233,12 @@ class RunCaseFullTests(unittest.TestCase):
         stale.write_text("stale", encoding="utf-8")
         stale_tags.write_text("stale", encoding="utf-8")
         (self.work / "adjudication.json").write_text("{}", encoding="utf-8")
-        run("full", "--work-dir", self.work, success=False)
+        self.run_case("full", "--work-dir", self.work, success=False)
         self.assertFalse(stale.exists())
         self.assertFalse(stale_tags.exists())
 
     def test_output_status_names_only_model_readable_evidence_path(self):
-        output, _ = run("full", "--work-dir", self.work)
+        output, _ = self.run_case("full", "--work-dir", self.work)
         self.assertIn(
             f"[run_case] output: {(self.work / 'evidence.md').resolve()}",
             output,
