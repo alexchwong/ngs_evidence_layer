@@ -23,6 +23,7 @@ These rules are mandatory for every model-written reporting artifact that uses r
 
 ## No-citation disposition
 
+- `R0.1` is a mandatory patient-result rule and MUST end with `(no citation required)`; never append runtime card markers to `R0.1`.
 - Use `(no citation required)` only where the source content is a patient-specific fact or other content explicitly designated as not requiring literature support.
 - Do not invent literature citations for patient-result facts solely to satisfy the sentence citation contract.
 

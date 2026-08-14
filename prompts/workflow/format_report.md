@@ -10,6 +10,7 @@ Transform `report-draft.md` into the final clinical report. Apply the selected f
 - Follow `prompts/workflow/citation_rules.md` exactly. Citation integrity takes precedence over formatting, compression, and word-count targets.
 - Every draft line is explicitly classified after its rule ID as either `REPORT:` or `OMIT:`.
 - Only text after `REPORT:` is eligible source prose for the final report. Strip the rule ID and `REPORT:` token when rendering it.
+- `R0.1 REPORT:` content is mandatory final-report content. Render it as a standalone variant-result sentence and preserve its `(no citation required)` disposition; do not merge it with literature-supported interpretation.
 - Treat every `OMIT:` line as an instruction, not report prose. Apply the omission and do not reproduce, paraphrase, negate, explain, summarise, or otherwise surface any text after `OMIT:` in the final report.
 - Do not independently reinterpret whether a negative statement should be reported. Step 6A has already made the report-versus-omit decision: `REPORT:` is eligible report content; `OMIT:` is not.
 - Do not introduce a clinical assertion, qualification, recommendation, citation, patient fact, or interpretation absent from `report-draft.md`.

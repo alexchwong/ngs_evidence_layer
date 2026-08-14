@@ -22,17 +22,18 @@ The following principles should be used when deciding whether to report a statem
 - The relevant applicable prognostic score (when present) needs to be stated.
 
 ### OMIT THE FOLLOWING:
-- The absence of a variant when the variant is not usually expected to be present given the clinical stem
-- When treatment does not change from standard practice due to absence of a variant
-- When there are no suitable biomarkers
-- When there are no suspicious germline variants
+- Statements that declare the absence of a variant when the variant is not usually expected to be present given the clinical stem
+- Statements that says treatment does not change from standard practice due to absence of a variant
+- Statements that none of the NGS variants are suitable biomarkers (molecular MRD markers)
+- Statements that none of the NGS variants are suspicious germline variants
 
 ## Task-specific rules
 
-- Include every rule from `R1.1` through `R5.9` exactly once and in source order.
+- Include every numbered rule in `rules/agreed_reporting_rules.md` exactly once and in source order, using its `R<section>.<number>` ID.
 - Write exactly one line per rule. Do not add headings, bullets, blank lines, code fences, commentary, or other content.
 - Begin each line with the exact rule ID followed by one space, then exactly one classification token: `REPORT:` or `OMIT:`.
 - Every rule MUST be classified. A line without exactly one of these two tokens immediately after the rule ID is invalid.
+- `R0.1` is mandatory: classify it as `REPORT:`, state only the detected NGS variant result, and if no pathogenic variants were detected state exactly `No pathogenic variants were detected on NGS.`
 - After `REPORT:` or `OMIT:`, give the rule's self-contained, case-specific outcome on that same line.
 - Use the integrated diagnosis in `case.md`; do not re-adjudicate it.
 - Use `evidence.md` as the complete literature-evidence boundary.
@@ -65,13 +66,14 @@ Do not change unaffected rule answers merely because validation failed elsewhere
 Return Markdown only in this exact line grammar:
 
 ```text
+R0.1 REPORT: Detected NGS variants are GeneA (hotspot name) and GeneB (HGVS: c.blah, p.blah). (no citation required)
 R1.1 REPORT: Patient-specific conclusion. [card:a1b2c3]
 R1.2 REPORT: Patient-specific conclusion supported by two cards. [card:a1b2c3][card:d4e5f6]
 R1.3 OMIT: This topic has no reportable implication. (no citation required)
 ```
 
-Continue in exact source order through `R5.9`.
+Continue in exact source order through the final rule in `rules/agreed_reporting_rules.md`.
 
 ## Final check
 
-Before returning, verify privately that there is exactly one line for every rule; every line follows `citation_rules.md`; every card tag is copied exactly from `evidence.md`; every rule has exactly one `REPORT:` or `OMIT:` classification; every non-reportable rule outcome uses `OMIT:`; `REPORT:` lines contain report-ready clinical prose rather than report-construction instructions; and reportable negative findings have not been converted into omission directives.
+Before returning, verify privately that there is exactly one line for every numbered rule in `rules/agreed_reporting_rules.md`; `R0.1` is `REPORT:` and ends with `(no citation required)`; every line follows `citation_rules.md`; every card tag is copied exactly from `evidence.md`; every rule has exactly one `REPORT:` or `OMIT:` classification; every non-reportable rule outcome uses `OMIT:`; `REPORT:` lines contain report-ready clinical prose rather than report-construction instructions; and reportable negative findings have not been converted into omission directives.

@@ -4,8 +4,9 @@
 
 These rules apply to a concise interpretative summary for clinical haematologists. The purpose is to explain how the detected NGS findings alter or refine the diagnosis, prognosis, management, measurable residual disease assessment or consideration of germline predisposition in the supplied clinical and morphological context.
 
-Use the following order, omitting sections that are not relevant:
+Use the following order, omitting sections that are not relevant except for the mandatory detected-variant summary:
 
+0. Detected NGS variants
 1. Integrated diagnosis and classification
 2. Prognostic significance
 3. Clinically actionable implications
@@ -13,6 +14,11 @@ Use the following order, omitting sections that are not relevant:
 5. Possible germline predisposition
 
 Do not repeat the clinical history, morphology or standard treatment unless needed to explain the effect of a molecular finding.
+
+# R0 — Detected NGS variants
+
+1. **What variants were detected on NGS?** This rule is mandatory and must always be reported. State only the patient-specific NGS result without interpretation. If no pathogenic variants were detected on NGS, state exactly: `No pathogenic variants were detected on NGS.`
+<!-- report-audit: classification=REPORT; citation=no_citation_required -->
 
 # R1 — Diagnosis and classification
 

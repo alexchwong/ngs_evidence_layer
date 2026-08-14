@@ -25,6 +25,9 @@ EXPECTED_RULE_IDS = tuple(
 )
 CARD_TAG = re.compile(r"[0-9a-f]{6}")
 RULE_ID = re.compile(r"R\d+\.\d+")
+RULE_SECTION = re.compile(r"^# R(\d+)\b")
+RULE_ITEM = re.compile(r"^(\d+)\.\s")
+AUDIT_DIRECTIVE = re.compile(r"^<!--\s*report-audit:\s*(.*?)\s*-->$")
 CARD_MARKER = re.compile(r"\[card:([0-9a-f]{6})\]")
 TERMINAL_CITED = re.compile(r"(?:\[card:[0-9a-f]{6}\])+")
 NO_CITATION = "(no citation required)"
@@ -55,6 +58,67 @@ def evidence_card_tags(evidence_text):
     if not tags:
         raise ValueError("evidence.md contains no runtime card tags")
     return set(tags)
+
+
+def agreed_rule_specs(rules_text):
+    """Return canonical rule IDs and optional audit constraints from agreed rules."""
+    specs = []
+    current_section = None
+    current_spec = None
+    seen = set()
+
+    for line_number, line in enumerate(rules_text.splitlines(), start=1):
+        section_match = RULE_SECTION.match(line)
+        if section_match:
+            current_section = int(section_match.group(1))
+            current_spec = None
+            continue
+        if line.startswith("# "):
+            current_section = None
+            current_spec = None
+            continue
+
+        if current_section is not None:
+            item_match = RULE_ITEM.match(line)
+            if item_match:
+                rule_id = f"R{current_section}.{int(item_match.group(1))}"
+                if rule_id in seen:
+                    raise ValueError(
+                        f"agreed_reporting_rules.md contains duplicate rule ID {rule_id} "
+                        f"at line {line_number}"
+                    )
+                current_spec = {"rule_id": rule_id, "constraints": {}}
+                specs.append(current_spec)
+                seen.add(rule_id)
+                continue
+
+            directive_match = AUDIT_DIRECTIVE.match(line.strip())
+            if directive_match:
+                if current_spec is None:
+                    raise ValueError(
+                        "agreed_reporting_rules.md has a report-audit directive without "
+                        f"a preceding rule at line {line_number}"
+                    )
+                for field in directive_match.group(1).split(";"):
+                    field = field.strip()
+                    if not field:
+                        continue
+                    if "=" not in field:
+                        raise ValueError(
+                            "malformed report-audit directive in agreed_reporting_rules.md "
+                            f"at line {line_number}: {field!r}"
+                        )
+                    key, value = (part.strip() for part in field.split("=", 1))
+                    if key not in {"classification", "citation"}:
+                        raise ValueError(
+                            "unknown report-audit directive key in agreed_reporting_rules.md "
+                            f"at line {line_number}: {key!r}"
+                        )
+                    current_spec["constraints"][key] = value
+
+    if not specs:
+        raise ValueError("agreed_reporting_rules.md contains no reporting rules")
+    return specs
 
 
 def split_draft_line(line, *, expected_rule_id, line_number):
@@ -153,9 +217,17 @@ def split_draft_line(line, *, expected_rule_id, line_number):
     return classification, text, tags
 
 
-def validate_draft(draft_text, evidence_text):
+def validate_draft(draft_text, evidence_text, rules_text=None):
     """Validate strict Step 6A Markdown and return parsed rule records."""
     lines = draft_text.splitlines()
+    if rules_text is None:
+        rule_specs = [
+            {"rule_id": rule_id, "constraints": {}}
+            for rule_id in EXPECTED_RULE_IDS
+        ]
+    else:
+        rule_specs = agreed_rule_specs(rules_text)
+    expected_rule_ids = tuple(spec["rule_id"] for spec in rule_specs)
 
     # Diagnose rule-sequence defects before enforcing the line count. This gives the
     # model enough information to repair report-draft.md without inspecting code.
@@ -169,8 +241,8 @@ def validate_draft(draft_text, evidence_text):
             unlabelled.append((line_number, line))
 
     found_ids = [rule_id for _, rule_id in found_rows]
-    missing = [rule_id for rule_id in EXPECTED_RULE_IDS if rule_id not in found_ids]
-    unknown = [(line_number, rule_id) for line_number, rule_id in found_rows if rule_id not in EXPECTED_RULE_IDS]
+    missing = [rule_id for rule_id in expected_rule_ids if rule_id not in found_ids]
+    unknown = [(line_number, rule_id) for line_number, rule_id in found_rows if rule_id not in expected_rule_ids]
     duplicates = {}
     for line_number, rule_id in found_rows:
         if found_ids.count(rule_id) > 1:
@@ -200,9 +272,9 @@ def validate_draft(draft_text, evidence_text):
             )
         )
 
-    if not structural and found_ids != list(EXPECTED_RULE_IDS):
+    if not structural and found_ids != list(expected_rule_ids):
         mismatches = []
-        for position, (actual, expected) in enumerate(zip(found_ids, EXPECTED_RULE_IDS), start=1):
+        for position, (actual, expected) in enumerate(zip(found_ids, expected_rule_ids), start=1):
             if actual != expected:
                 line_number = found_rows[position - 1][0]
                 mismatches.append(
@@ -210,27 +282,47 @@ def validate_draft(draft_text, evidence_text):
                 )
         structural.append("rule lines are out of order: " + "; ".join(mismatches))
 
-    if structural or len(lines) != len(EXPECTED_RULE_IDS):
-        if len(lines) != len(EXPECTED_RULE_IDS):
+    if structural or len(lines) != len(expected_rule_ids):
+        if len(lines) != len(expected_rule_ids):
             structural.append(
-                f"line count is {len(lines)} but must be {len(EXPECTED_RULE_IDS)} after repair"
+                f"line count is {len(lines)} but must be {len(expected_rule_ids)} after repair"
             )
         raise ValueError(
             "report-draft.md rule sequence is invalid. "
             + " | ".join(structural)
             + ". Fix only these rule-line defects: there must be exactly one line for each "
-              "rule R1.1 through R5.9 in canonical order, with no blank, heading, or extra lines."
+              "rule declared in agreed_reporting_rules.md, in canonical order, with no blank, "
+              "heading, or extra lines."
         )
 
     known_tags = evidence_card_tags(evidence_text)
     unknown = {}
     parsed = []
-    for line_number, (line, expected_rule_id) in enumerate(
-        zip(lines, EXPECTED_RULE_IDS), start=1
+    for line_number, (line, rule_spec) in enumerate(
+        zip(lines, rule_specs), start=1
     ):
+        expected_rule_id = rule_spec["rule_id"]
         classification, text, tags = split_draft_line(
             line, expected_rule_id=expected_rule_id, line_number=line_number
         )
+        constraints = rule_spec["constraints"]
+        required_classification = constraints.get("classification")
+        if required_classification and classification != required_classification:
+            raise ValueError(
+                f"{expected_rule_id} must be classified {required_classification} as declared "
+                "in agreed_reporting_rules.md"
+            )
+        required_citation = constraints.get("citation")
+        if required_citation == "no_citation_required" and tags:
+            raise ValueError(
+                f"{expected_rule_id} must end with (no citation required) as declared in "
+                "agreed_reporting_rules.md"
+            )
+        if required_citation not in {None, "no_citation_required"}:
+            raise ValueError(
+                f"{expected_rule_id} has unsupported citation constraint "
+                f"{required_citation!r} in agreed_reporting_rules.md"
+            )
         for tag in tags:
             if tag not in known_tags:
                 unknown.setdefault(tag, []).append(expected_rule_id)
@@ -261,12 +353,18 @@ def main():
     validate = subparsers.add_parser("validate")
     validate.add_argument("--draft", type=Path, required=True)
     validate.add_argument("--evidence", type=Path, required=True)
+    validate.add_argument(
+        "--rules",
+        type=Path,
+        default=Path(__file__).resolve().parents[1] / "rules" / "agreed_reporting_rules.md",
+    )
     args = parser.parse_args()
 
     try:
         draft_text = read_text(args.draft)
         evidence_text = read_text(args.evidence)
-        validate_draft(draft_text, evidence_text)
+        rules_text = read_text(args.rules)
+        validate_draft(draft_text, evidence_text, rules_text)
     except ValueError as exc:
         print(f"REPORT AUDIT VALIDATE FAILED: {exc}", file=sys.stderr)
         return 1
