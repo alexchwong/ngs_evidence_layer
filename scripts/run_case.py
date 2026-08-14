@@ -152,7 +152,9 @@ def full(args):
     evidence_tmp.replace(evidence)
     card_tags_tmp.replace(card_tags)
 
-    print(f"[run_case] outputs: {evidence}, {card_tags}", file=sys.stderr)
+    # Surface only the model-readable evidence path. The private card-tag
+    # deconvolution map is intentionally not named in command output.
+    print(f"[run_case] output: {evidence}", file=sys.stderr)
 
 
 def main():

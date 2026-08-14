@@ -26,7 +26,7 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `prompts/workflow/revise_diagnosis.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
 - Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, then render the single model-facing `evidence.md` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
-- Step 6A — model via `prompts/workflow/analyse_report.md` + deterministic validation: answer every reporting rule and attach evidence-card tags in one `report-analysis.json` pass, then render `report-draft.md`.
+- Step 6A — model via `prompts/workflow/analyse_report.md` + deterministic validation: answer every reporting rule directly in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
 - Step 6B — model via `prompts/workflow/format_report.md` plus `<format-prompt>` + deterministic validation: format `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
 - Step 7 — post-report delivery; for `nel-validate`, retrieve evaluator-only inputs and mark `report-final.md` via `prompts/workflow/mark_validation_report.md`.
@@ -350,18 +350,28 @@ Read only:
 - `<work-dir>/evidence.md`;
 - `rules/agreed_reporting_rules.md`.
 
-Follow `prompts/workflow/analyse_report.md` exactly and write only `<work-dir>/report-analysis.json`.
+Follow `prompts/workflow/analyse_report.md` exactly and write only `<work-dir>/report-draft.md`.
 
 Run exactly:
 
 ```bash
-python scripts/report_audit.py render \
-  --analysis <work-dir>/report-analysis.json \
-  --evidence <work-dir>/evidence.md \
-  --output <work-dir>/report-draft.md
+python scripts/report_audit.py validate \
+  --draft <work-dir>/report-draft.md \
+  --evidence <work-dir>/evidence.md
 ```
 
-The command validates every rule, citation state and runtime card tag, then deterministically creates `report-draft.md`. If validation fails, correct `report-analysis.json` using only the validator error and the already-permitted Step 6A inputs until it succeeds. Unknown tags are reported with the affected rule IDs. Do not edit `report-draft.md`.
+The command is read-only and validates the complete rule sequence, compulsory terminal citation disposition, exact runtime card-tag syntax, duplicate tags, and tag membership in `evidence.md`.
+
+If validation fails for a citation-tag reason (unknown, malformed, misplaced, or duplicated tag), enter **citation-repair mode** until validation succeeds:
+
+- use the validator error to identify the affected rule(s);
+- inspect/edit `report-draft.md`;
+- `evidence.md` is the **only source file you may read or re-read** to repair the affected answer or its citation tags;
+- find the supporting evidence in `evidence.md` and copy the exact runtime `card_tag` shown there;
+- do **not** read or re-read `case.md`, `rules/agreed_reporting_rules.md`, `card-tags.json`, `bundle.json`, `diagnostic_evidence.md`, `adjudication.json`, `cards/`, the corpus/index, the original case document, or any other source file;
+- never use `card-tags.json` to recover, translate, verify, or substitute a tag.
+
+For non-citation structural validation failures, correct only the reported formatting/rule-sequence defect and rerun validation. Unknown tags are reported with the affected rule IDs.
 
 ### Step 6B — Format the final report
 

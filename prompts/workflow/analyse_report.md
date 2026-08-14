@@ -7,34 +7,47 @@ Answer every reporting rule using the integrated case and the retrieved evidence
 ## Task-specific rules
 
 - Include every rule from `R1.1` through `R5.9` exactly once and in source order.
-- Give each rule a self-contained, case-specific answer.
+- Write exactly one line per rule. Do not add headings, bullets, blank lines, code fences, commentary, or other content.
+- Begin each line with the exact rule ID followed by one space.
+- Give each rule a self-contained, case-specific answer on that same line.
 - Use the integrated diagnosis in `case.md`; do not re-adjudicate it.
 - Use `evidence.md` as the complete literature-evidence boundary.
-- Keep card-level evidence granularity: cite the exact runtime `card_tag` of every evidence card that directly supports the answer.
+- Keep card-level evidence granularity: cite every evidence card that directly supports the answer using its exact runtime `card_tag`.
 - Use only tags copied exactly from `evidence.md`; never infer, reconstruct, shorten, or invent a tag.
-- Set `citation_status` to `"cited"` when one or more cards directly support the answer and include those tags.
-- Set `citation_status` to `"no_citation_required"` with `card_tags: []` when no literature citation is required. This explicit state is compulsory; an empty tag array alone is not sufficient.
+- End every line with exactly one citation disposition:
+  - one or more adjacent runtime markers, e.g. `[card:a1b2c3][card:d4e5f6]`; or
+  - the exact literal `(no citation required)` when no literature citation is required.
+- A line without a terminal citation disposition is invalid. Never leave the citation state implicit.
+- Card markers are allowed only as the terminal suffix. Do not place `[card:...]` inside answer prose.
+- Do not combine card markers with `(no citation required)` on the same line.
+- Do not repeat the same card marker on one rule.
 - Use a drafting instruction such as `Omit ...` when a rule has no reportable implication.
-- Do not add headings, commentary, or fields outside the required JSON shape.
+
+## Validation repair
+
+If deterministic validation reports a citation-tag failure:
+
+- repair only the affected rule(s);
+- inspect/edit the current `report-draft.md`;
+- `evidence.md` is the only source file you may read or re-read during citation repair;
+- locate the supporting statement in `evidence.md` and copy its exact runtime `card_tag`;
+- do not read or re-read `case.md`, `rules/agreed_reporting_rules.md`, `card-tags.json`, `bundle.json`, `diagnostic_evidence.md`, `adjudication.json`, `cards/`, the corpus/index, the original case document, or any other source file;
+- never derive a runtime tag from a stable card ID or from `card-tags.json`.
+
+Do not change unaffected rule answers merely because validation failed elsewhere.
 
 ## Output contract
 
-Return JSON only with this shape:
+Return Markdown only in this exact line grammar:
 
-```json
-{
-  "schema_version": "1.0",
-  "answers": [
-    {
-      "rule_id": "R1.1",
-      "text": "Patient-specific conclusion or drafting instruction.",
-      "citation_status": "cited",
-      "card_tags": ["a1b2c3"]
-    }
-  ]
-}
+```text
+R1.1 Patient-specific conclusion. [card:a1b2c3]
+R1.2 Patient-specific conclusion supported by two cards. [card:a1b2c3][card:d4e5f6]
+R1.3 Omit this topic because it has no reportable implication. (no citation required)
 ```
+
+Continue in exact source order through `R5.9`.
 
 ## Final check
 
-Before returning, verify privately that every rule appears exactly once, every card tag is copied exactly from `evidence.md`, and every uncited answer explicitly uses `no_citation_required` with an empty tag list.
+Before returning, verify privately that there is exactly one line for every rule, every line has a terminal citation disposition, every card tag is copied exactly from `evidence.md`, and no citation marker appears inside answer prose.

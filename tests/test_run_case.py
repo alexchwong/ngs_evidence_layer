@@ -200,13 +200,14 @@ class RunCaseFullTests(unittest.TestCase):
         self.assertFalse(stale.exists())
         self.assertFalse(stale_tags.exists())
 
-    def test_output_status_names_final_absolute_path(self):
+    def test_output_status_names_only_model_readable_evidence_path(self):
         output, _ = run("full", "--work-dir", self.work)
         self.assertIn(
-            f"[run_case] outputs: {(self.work / 'evidence.md').resolve()}, "
-            f"{(self.work / 'card-tags.json').resolve()}",
+            f"[run_case] output: {(self.work / 'evidence.md').resolve()}",
             output,
         )
+        self.assertNotIn(str((self.work / "card-tags.json").resolve()), output)
+        self.assertNotIn("card-tags.json", output)
 
 
 if __name__ == "__main__":
