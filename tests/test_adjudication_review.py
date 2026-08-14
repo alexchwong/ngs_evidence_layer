@@ -180,14 +180,17 @@ class AdjudicationReviewTests(unittest.TestCase):
             tmp = Path(tmp)
             step2_path = tmp / "diagnostic_evidence.md"
             adjudication_path = tmp / "adjudication.json"
+            blacklist_path = tmp / "blacklist.yaml"
             step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
             adjudication_path.write_text(json.dumps(adjudication), encoding="utf-8")
+            blacklist_path.write_text("enabled: true\n", encoding="utf-8")
             args = argparse.Namespace(
                 diagnosis_result=step2_path,
                 adjudication_result=adjudication_path,
                 corpus=None,
                 index=None,
                 genes=None,
+                blacklist=blacklist_path,
             )
             with mock.patch.object(
                 retrieve,

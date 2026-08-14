@@ -13,12 +13,14 @@ other file.
 You are the census model for exactly one publication. Use only `paper.md`,
 `metadata.json`, and this prompt. Do not author evidence cards and do not use model
 knowledge to add facts absent from the paper.
-Walk the complete paper sequentially, including intact tables and footnotes. Record
-each distinct potentially report-relevant source claim separately. For every claim,
-record its participating genes, category, locator, and a concise source-faithful
-summary that distinguishes it from other claims. Use `genes: []` only for geneless
-`diagnosis` or `treatment` claims. Do not merge distinct claims merely because they
-share a gene, category, paragraph, or table. Record missing supplementary values. Do not refuse because a supplement is unavailable.
+Walk the complete paper sequentially, including intact tables and footnotes. Treat
+each census entry as one independently adjudicable Phase 2 review boundary: the
+smallest source-supported assertion that Phase 2 could retain or omit as a unit. For
+every claim, record its participating genes, category, locator, and a concise
+source-faithful summary of that assertion only, sufficient to distinguish its Phase 2
+review boundary from other entries. Use `genes: []` only for geneless `diagnosis` or
+`treatment` claims. Do not merge distinct claims merely because they share a gene,
+category, paragraph, or table. Record missing supplementary values. Do not refuse because a supplement is unavailable.
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
 that judgement. Phase 1 assigns this provisional value but does not independently
@@ -35,7 +37,7 @@ Write `paper.census.json`. Its `paper_id` must match `metadata.json`.
 
 {{CLINICAL_REPORTING_GATE}}
 
-For Phase 1, use this only to identify potentially relevant claims. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`; geneless `treatment` claims outside the stricter gate are out of scope and should not be censused.
+For Phase 1, use this only to identify potentially relevant claims. Phase 1 determines review boundaries, not card eligibility. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims within this scope. Geneless claims are in scope only for `diagnosis` and `treatment`; geneless `treatment` claims outside the stricter gate are out of scope and should not be censused.
 
 ## Output schema
 
@@ -45,10 +47,13 @@ For Phase 1, use this only to identify potentially relevant claims. Do not decid
 ## Exit validation
 
 Check that every section and table is accounted for, every entry has a locator,
-genes are valid symbols, claim IDs are unique, distinct claims have not been merged,
-and no rule-covered paper claim is absent. Confirm the publication type and basis are supported by the paper. Repair
-and repeat, at most three passes. If defects remain, list each one
-under `validation_unresolved`; otherwise return an empty list.
+genes are valid symbols, claim IDs are unique, and no rule-covered paper claim is
+absent. For every entry, ask whether Phase 2 could reasonably retain one part while
+rejecting another, or create more than one independently useful card from it. If
+either is true, split the entry and repeat the audit. Confirm the publication type
+and basis are supported by the paper. Repair and repeat, at most three passes. If
+defects remain, list each one under `validation_unresolved`; otherwise return an
+empty list.
 ## Deterministic exit validation
 
 {{VALIDATION_BUNDLE_POLICY}}
@@ -60,7 +65,8 @@ python validation_bundle/scripts/phase_validation/phase1.py \
   --metadata metadata.json \
   --census paper.census.json
 ```
-A non-zero exit means the Phase 1 product is invalid. Repair it and rerun until
+Return `paper.census.json` only after this command exits successfully on that exact
+file. A non-zero exit means the Phase 1 product is invalid. Repair it and rerun until
 successful. Do not edit the output after the successful run.
 ## Mandatory pre-output gate
 
