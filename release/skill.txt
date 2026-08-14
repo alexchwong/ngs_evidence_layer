@@ -10,6 +10,7 @@ scripts/append_integrated_diagnosis.py
 scripts/validate_adjudication.py
 scripts/report_audit.py
 scripts/report_citations.py
+scripts/package_run.py
 schema/disease_vocabulary.json
 schema/ingestion_package_schema.json
 output/corpus/nel.corpus.json
@@ -21,6 +22,7 @@ validation/__init__.py
 validation/case_summary.md
 validation/cases.py
 validation/retrieve_cli.py
+validation/package_marking.py
 examples/cases/01-escalation-fires.md
 examples/cases/02-escalation-does-not-fire.md
 examples/cases/03-ambiguous-disease.md

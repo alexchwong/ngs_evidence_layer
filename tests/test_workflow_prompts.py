@@ -63,3 +63,9 @@ def test_format_integrity_rules_are_global_not_default_style_only():
 
     assert "## Referencing" not in default
     assert "## Source and output constraints" not in default
+
+
+def test_release_manifest_includes_validation_packagers():
+    manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
+    assert "validation/package_marking.py" in manifest
+    assert "scripts/package_run.py" in manifest
