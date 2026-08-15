@@ -22,6 +22,8 @@ prompts/formatting/*
 rules/agreed_reporting_rules.md
 validation/__init__.py
 validation/case_summary.md
+validation/case_functional.md
+validation/case_functional_manifest.md
 validation/cases.py
 validation/retrieve_cli.py
 validation/package_marking.py

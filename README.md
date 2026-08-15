@@ -28,7 +28,8 @@ knowledge.
    - paste the clinical and morphological details and the NGS result, then add
      `ngs-report` on a line by itself;
    - run the first demonstration case with `nel-demo example 1`; or
-   - run the first validation case with `nel-validate 1A`.
+   - run the first legacy validation case with `nel-validate 1A`; or
+   - run the first function-targeted validation case with `nel-validate-function 1A`.
 4. View the evidence card library in the [card browser](output/reports/card-browser.html).
 
 ## NGS reporting
@@ -42,7 +43,8 @@ Use one of the modes defined in `SKILL.md`.
 | `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `evidence.md` |
 | `evidence-to-report` | You already have a completed evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
 | `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
-| `nel-validate <case-id>` | You want to run a bundled validation case and score the generated report. | Generated report and marking result |
+| `nel-validate <case-id>` | You want to run a bundled legacy validation case. | External-marking ZIP + debug ZIP |
+| `nel-validate-function <case-id>` | You want to test a specific reporting function using the functional validation suite. | Functional external-marking ZIP + debug ZIP |
 
 ### Generate a report
 
@@ -158,12 +160,22 @@ is not read until the generated report is complete.
 
 ### Validation mode
 
-Run `nel-validate <case-id>` (for example, `nel-validate 1A`) to execute a bundled
-validation case. Marking criteria are withheld until the report is complete, then used
-to score the generated report. Available case IDs are:
+Run `nel-validate <case-id>` (for example, `nel-validate 1A`) to execute the existing
+validation suite in `validation/case_summary.md`. Marking criteria are withheld until the
+report is complete. Available legacy case IDs are:
 
 `1A`, `1B`, `1C`, `1D`, `1E`; `2A`, `2B`, `2C`, `2D`, `2E`;
 `3A`, `3B`, `3C`, `3D`; `4A`, `4B`, `4C`, `4D`; `5A`, `5B`, `5C`, `5D`.
+
+Run `nel-validate-function <case-id>` to execute the parallel function-targeted suite in
+`validation/case_functional.md`. Its case IDs are:
+
+`1A`-`1H` (AML); `2A`-`2G` (MDS with 12% blasts); `3A`-`3G`
+(thrombocytosis/leukocytosis without marrow); and `4A`-`4D` (miscellaneous).
+
+`validation/case_functional_manifest.md` documents the reporting function isolated by each
+functional case. It is evaluator/developer-only and is never supplied to the report-generation
+model or included in the external marking ZIP.
 
 ## Current corpus
 

@@ -104,6 +104,8 @@ def test_skill_refreshes_shared_citation_rules_at_required_steps():
 def test_release_manifest_includes_validation_packagers():
     manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
     assert "validation/package_marking.py" in manifest
+    assert "validation/case_functional.md" in manifest
+    assert "validation/case_functional_manifest.md" in manifest
     assert "scripts/package_run.py" in manifest
     assert "scripts/prototype_workflow.py" in manifest
     assert "0.2.2_prototype_skill.md" in manifest
@@ -113,6 +115,8 @@ def test_prototype_skill_is_parallel_and_keeps_cmc_fixed_after_step3():
     prototype = (ROOT / "0.2.2_prototype_skill.md").read_text(encoding="utf-8")
     remainder = (WORKFLOW_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
     assert "Do not modify or substitute `SKILL.md`" in prototype
+    assert "`nel-validate-function <case-id>`" in prototype
+    assert "--case-file validation/case_functional.md" in prototype
     assert "prototype-diagnosis" in prototype
     assert "prototype-downstream" in prototype
     assert "CMC2 is fixed" in prototype

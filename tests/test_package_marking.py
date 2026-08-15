@@ -58,3 +58,35 @@ def test_skill_validation_step_packages_instead_of_marks():
     assert "`report-final.md`" in marking
     assert "must not be included in the **marking** ZIP" in marking
     assert "do **not** start another model session" in marking
+
+
+def test_functional_package_uses_selected_case_file_and_excludes_manifest():
+    case_file = ROOT / "validation" / "case_functional.md"
+    manifest_file = ROOT / "validation" / "case_functional_manifest.md"
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        report = tmp / "report-final.md"
+        report.write_text("# Report\n\nCandidate functional report.\n", encoding="utf-8")
+        output = tmp / "nel-validation-function-1H.zip"
+
+        package_marking_bundle("1H", report, output, case_file=case_file)
+
+        with zipfile.ZipFile(output) as zf:
+            names = zf.namelist()
+            prompt = zf.read("marking-prompt.md").decode("utf-8")
+            case = zf.read("validation-case.md").decode("utf-8")
+
+        assert names == ["marking-prompt.md", "validation-case.md", "report-final.md"]
+        assert "CEBPA" in case
+        assert "Lys313dup" in case
+        assert "single mutation is explicitly an in-frame bZIP mutation" in prompt
+        assert manifest_file.name not in names
+
+
+def test_skill_declares_functional_validation_as_parallel_and_manifest_hidden():
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+    assert "`nel-validate-function <case-id>`" in skill
+    assert "--file validation/case_functional.md" in skill
+    assert "--case-file validation/case_functional.md" in skill
+    assert "nel-validation-function-<validation-case>.zip" in skill
+    assert "case_functional_manifest.md` is never a runtime model input" in skill

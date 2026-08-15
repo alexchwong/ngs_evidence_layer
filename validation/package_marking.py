@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a self-contained external-marking bundle for one nel-validate case."""
+"""Build a self-contained external-marking bundle for one validation case."""
 from __future__ import annotations
 
 import argparse
@@ -14,14 +14,19 @@ if str(ROOT) not in sys.path:
 from validation.cases import retrieve_case, retrieve_MC  # noqa: E402
 
 DEFAULT_PROMPT = ROOT / "prompts" / "workflow" / "mark_validation_report.md"
+DEFAULT_CASE_FILE = ROOT / "validation" / "case_summary.md"
 CASE_TOKEN = "{{CASE_IDENTIFIER}}"
 CRITERIA_TOKEN = "{{CASE_SPECIFIC_MARKING_CRITERIA}}"
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 
 
-def render_marking_prompt(case_id: str, prompt_path: Path = DEFAULT_PROMPT) -> str:
+def render_marking_prompt(
+    case_id: str,
+    prompt_path: Path = DEFAULT_PROMPT,
+    case_file: Path = DEFAULT_CASE_FILE,
+) -> str:
     template = prompt_path.read_text(encoding="utf-8")
-    criteria = retrieve_MC(case_id)
+    criteria = retrieve_MC(case_id, str(case_file))
 
     missing = [token for token in (CASE_TOKEN, CRITERIA_TOKEN) if token not in template]
     if missing:
@@ -46,6 +51,7 @@ def package_marking_bundle(
     report_path: Path,
     output_path: Path,
     prompt_path: Path = DEFAULT_PROMPT,
+    case_file: Path = DEFAULT_CASE_FILE,
 ) -> Path:
     if not report_path.is_file():
         raise FileNotFoundError(
@@ -60,8 +66,8 @@ def package_marking_bundle(
             "Do not package an empty placeholder; regenerate the report through Steps 6B-6C, then rerun Step 7B."
         )
 
-    validation_case = retrieve_case(case_id)
-    marking_prompt = render_marking_prompt(case_id, prompt_path)
+    validation_case = retrieve_case(case_id, str(case_file))
+    marking_prompt = render_marking_prompt(case_id, prompt_path, case_file)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output_path, "w") as zf:
@@ -80,6 +86,12 @@ def main() -> None:
     parser.add_argument("--report", type=Path, required=True, help="Path to report-final.md")
     parser.add_argument("--output", type=Path, required=True, help="Output ZIP path")
     parser.add_argument(
+        "--case-file",
+        type=Path,
+        default=DEFAULT_CASE_FILE,
+        help="Validation case source (default: validation/case_summary.md)",
+    )
+    parser.add_argument(
         "--prompt",
         type=Path,
         default=DEFAULT_PROMPT,
@@ -88,7 +100,9 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        path = package_marking_bundle(args.case, args.report, args.output, args.prompt)
+        path = package_marking_bundle(
+            args.case, args.report, args.output, args.prompt, args.case_file
+        )
     except (OSError, KeyError, ValueError) as exc:
         parser.exit(1, f"Error: {exc}\n")
 

@@ -210,3 +210,45 @@ Task.
                 self.assertTrue(criteria)
                 self.assertNotIn("### NEL task", clinical)
                 self.assertNotIn("### Marking criteria", clinical)
+
+
+class FunctionalValidationCaseTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).resolve().parents[1]
+        self.functional = root / "validation" / "case_functional.md"
+        self.legacy = root / "validation" / "case_summary.md"
+
+    def test_functional_case_ids_are_exactly_the_declared_26_variants(self):
+        text = self.functional.read_text(encoding="utf-8")
+        actual = re.findall(r"^## Case (\d+[A-Z])\b", text, flags=re.MULTILINE)
+        expected = (
+            [f"1{x}" for x in "ABCDEFGH"]
+            + [f"2{x}" for x in "ABCDEFG"]
+            + [f"3{x}" for x in "ABCDEFG"]
+            + [f"4{x}" for x in "ABCD"]
+        )
+        self.assertEqual(actual, expected)
+
+    def test_every_functional_variant_retrieves_clinical_and_marking_content_separately(self):
+        text = self.functional.read_text(encoding="utf-8")
+        variant_ids = re.findall(r"^## Case (\d+[A-Z])\b", text, flags=re.MULTILINE)
+        for variant_id in variant_ids:
+            with self.subTest(variant_id=variant_id):
+                clinical = retrieve_case(variant_id, case_file=str(self.functional))
+                criteria = retrieve_MC(variant_id, case_file=str(self.functional))
+                self.assertTrue(clinical)
+                self.assertTrue(criteria)
+                self.assertNotIn("### NEL task", clinical)
+                self.assertNotIn("### Marking criteria", clinical)
+
+    def test_miscellaneous_group_is_copied_from_legacy_group_4(self):
+        for case_id in ("4A", "4B", "4C", "4D"):
+            with self.subTest(case_id=case_id):
+                self.assertEqual(
+                    retrieve_case(case_id, case_file=str(self.functional)),
+                    retrieve_case(case_id, case_file=str(self.legacy)),
+                )
+                self.assertEqual(
+                    retrieve_MC(case_id, case_file=str(self.functional)),
+                    retrieve_MC(case_id, case_file=str(self.legacy)),
+                )
