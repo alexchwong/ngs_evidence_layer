@@ -27,6 +27,8 @@ class RetrieveCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("diagnosis", result.stdout)
         self.assertIn("full", result.stdout)
+        self.assertIn("prototype-diagnosis", result.stdout)
+        self.assertIn("prototype-downstream", result.stdout)
 
     def test_diagnosis_help(self):
         result = run("diagnosis", "--help")
@@ -42,6 +44,13 @@ class RetrieveCliTests(unittest.TestCase):
         self.assertIn("--diagnosis-result", result.stdout)
         self.assertIn("--adjudication-result", result.stdout)
         self.assertIn("--output", result.stdout)
+
+    def test_prototype_downstream_help(self):
+        result = run("prototype-downstream", "--help")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("--refined-case-major-category", result.stdout)
+        self.assertIn("--diagnosis-result", result.stdout)
 
 
 if __name__ == "__main__":

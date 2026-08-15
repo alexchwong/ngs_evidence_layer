@@ -17,6 +17,8 @@ REQUIRED_WORKFLOW_PROMPTS = {
     "citation_rules.md",
     "format_report.md",
     "mark_validation_report.md",
+    "analyse_diagnosis_prototype.md",
+    "analyse_remainder_prototype.md",
 }
 
 
@@ -98,6 +100,18 @@ def test_release_manifest_includes_validation_packagers():
     manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
     assert "validation/package_marking.py" in manifest
     assert "scripts/package_run.py" in manifest
+    assert "scripts/prototype_workflow.py" in manifest
+    assert "0.2.2_prototype_skill.md" in manifest
+
+
+def test_prototype_skill_is_parallel_and_keeps_cmc_fixed_after_step3():
+    prototype = (ROOT / "0.2.2_prototype_skill.md").read_text(encoding="utf-8")
+    remainder = (WORKFLOW_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
+    assert "Do not modify or substitute `SKILL.md`" in prototype
+    assert "prototype-diagnosis" in prototype
+    assert "prototype-downstream" in prototype
+    assert "CMC2 is fixed" in prototype
+    assert "Do not change, re-route, propose, or emit another CMC" in remainder
 
 
 def test_model_steps_are_not_described_as_deterministic_model_hybrids():

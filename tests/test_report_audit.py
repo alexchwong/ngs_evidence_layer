@@ -196,6 +196,17 @@ class DraftValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "contains no runtime card tags"):
             report_audit.validate_draft(draft_text(), "# Evidence\n")
 
+    def test_prototype_may_allow_empty_evidence_when_draft_cites_no_cards(self):
+        rules = "# R2 — Prognosis\n\n1. **Question?**\n"
+        draft = "R2.1 OMIT: No reportable implication. (no citation required)\n"
+        parsed = report_audit.validate_draft(
+            draft,
+            "# Evidence\n",
+            rules,
+            allow_no_evidence_tags=True,
+        )
+        self.assertEqual(parsed[0]["card_tags"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

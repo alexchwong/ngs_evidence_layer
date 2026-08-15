@@ -12,6 +12,11 @@ prognosis, treatment and biomarker evidence it retains the narrower gene + refin
 -disease/``retrieval_related`` rule; when adjudication remains indeterminate or at
 the original broad major category, the disease side may fall back to that major
 category. Germline remains gene-only.
+
+The ``prototype-*`` commands implement the parallel diagnosis-first 0.2.2
+prototype workflow. They deliberately route downstream evidence by broad case
+major category rather than ``downstream_filter_disease`` and do not alter the
+legacy ``diagnosis`` or ``full`` command semantics.
 """
 import argparse
 import hashlib
@@ -77,6 +82,18 @@ def flatten(corpus):
 
 def match_genes(card, wanted):
     return sorted({gene.upper() for gene in card["genes"]} & wanted)
+
+
+def _matches_case_major_category(card, categories):
+    """Return the matching broad case-major categories for one evidence card."""
+    matched = []
+    for category in categories:
+        if any(
+            vocab.disease_matches_case_major_category(disease, category)
+            for disease in card.get("diseases", [])
+        ):
+            matched.append(category)
+    return matched
 
 
 def _blacklist_string_list(value, *, field, uppercase=False):
@@ -1099,6 +1116,163 @@ def step4(
     }
 
 
+def prototype_step2(cards, genes, provisional_disease, case_facts, case_major_category):
+    """Retrieve diagnosis-first prototype evidence for one broad CMC."""
+    case_facts = validate_case_facts(case_facts or [])
+    normalised_genes = _normalise_genes(list(genes), field="genes")
+    _validate_case_major_category(case_major_category, normalised_genes)
+    if not isinstance(provisional_disease, str) or not provisional_disease.strip():
+        raise ValueError("provisional_disease must be a non-empty string")
+
+    wanted = set(normalised_genes)
+    retrieved = []
+    for card in cards:
+        matched_genes = match_genes(card, wanted)
+        matched_cmcs = _matches_case_major_category(card, [case_major_category])
+        if card["category"] == "diagnosis":
+            if not matched_genes and not matched_cmcs:
+                continue
+        elif card["category"] == "germline":
+            if not matched_genes:
+                continue
+        else:
+            continue
+        hit = dict(card)
+        hit["matched_genes"] = matched_genes
+        if matched_cmcs:
+            hit["matched_case_major_categories"] = matched_cmcs
+        hit["retrieval_match"] = (
+            "gene_and_case_major_category"
+            if matched_genes and matched_cmcs
+            else "gene_only" if matched_genes
+            else "case_major_category"
+        )
+        retrieved.append(hit)
+
+    diagnosis_gene_hits = {
+        gene
+        for hit in retrieved
+        if hit["category"] == "diagnosis"
+        for gene in hit.get("matched_genes", [])
+    }
+    return {
+        "genes": normalised_genes,
+        "case_major_category": case_major_category,
+        "provisional_disease": provisional_disease.strip(),
+        "case_facts": case_facts,
+        "retrieved": sorted(retrieved, key=lambda item: item["card_id"]),
+        "genes_with_no_diagnosis_card": sorted(wanted - diagnosis_gene_hits),
+    }
+
+
+def prototype_step4(
+    cards, genes, initial_case_major_category, refined_case_major_category,
+    diagnostic_context,
+):
+    """Retrieve prototype downstream evidence using the refined CMC as route."""
+    normalised_genes = _normalise_genes(list(genes), field="genes")
+    _validate_case_major_category(
+        initial_case_major_category,
+        normalised_genes,
+        field="initial_case_major_category",
+    )
+    _validate_case_major_category(
+        refined_case_major_category,
+        normalised_genes,
+        field="refined_case_major_category",
+    )
+    wanted = set(normalised_genes)
+    cmc_changed = refined_case_major_category != initial_case_major_category
+    diagnosis_cmcs = [initial_case_major_category, refined_case_major_category]
+    retrieved = []
+    suppressed = []
+
+    for card in cards:
+        category = card["category"]
+        matched_genes = match_genes(card, wanted)
+        hit = dict(card)
+        hit["matched_genes"] = matched_genes
+
+        if category == "germline":
+            if matched_genes:
+                hit["retrieval_match"] = "gene_only"
+                retrieved.append(hit)
+            continue
+
+        if category == "diagnosis":
+            if not cmc_changed:
+                continue
+            matched_cmcs = _matches_case_major_category(card, diagnosis_cmcs)
+            if matched_genes or matched_cmcs:
+                if matched_cmcs:
+                    hit["matched_case_major_categories"] = matched_cmcs
+                hit["retrieval_match"] = (
+                    "gene_and_case_major_category"
+                    if matched_genes and matched_cmcs
+                    else "gene_only" if matched_genes
+                    else "case_major_category"
+                )
+                retrieved.append(hit)
+            continue
+
+        if category not in {"prognosis", "treatment", "biomarker"}:
+            continue
+
+        matched_cmcs = _matches_case_major_category(card, [refined_case_major_category])
+        disease_matched = bool(matched_cmcs)
+        geneless_allowed = category == "treatment" and not card.get("genes")
+        if disease_matched and (matched_genes or geneless_allowed):
+            hit["matched_case_major_categories"] = matched_cmcs
+            hit["retrieval_match"] = (
+                "case_major_category_geneless"
+                if geneless_allowed and not matched_genes
+                else "gene_and_case_major_category"
+            )
+            retrieved.append(hit)
+        elif matched_genes:
+            suppressed.append(hit)
+
+    assessed = {gene for hit in retrieved for gene in hit.get("matched_genes", [])}
+    assessed |= {gene for hit in suppressed for gene in hit.get("matched_genes", [])}
+    by_disease = {}
+    for hit in suppressed:
+        for disease in hit.get("diseases", []):
+            by_disease[disease] = by_disease.get(disease, 0) + 1
+
+    return {
+        "retrieval_scope": {
+            "initial_case_major_category": initial_case_major_category,
+            "refined_case_major_category": refined_case_major_category,
+            "case_major_category_changed": cmc_changed,
+        },
+        "diagnostic_context": [dict(card) for card in diagnostic_context],
+        "retrieved": sorted(retrieved, key=lambda item: item["card_id"]),
+        "suppressed": {
+            "count": len(suppressed),
+            "by_disease": dict(sorted(by_disease.items())),
+            "cards": sorted(
+                (
+                    {
+                        "card_id": hit["card_id"],
+                        "genes": hit["genes"],
+                        "diseases": hit["diseases"],
+                        "category": hit["category"],
+                    }
+                    for hit in suppressed
+                ),
+                key=lambda item: item["card_id"],
+            ),
+        },
+        "not_assessed": [
+            {
+                "gene": gene,
+                "reason": "no eligible prototype downstream card in this corpus version",
+            }
+            for gene in sorted(wanted - assessed)
+        ],
+    }
+
+
 def run_diagnosis(args):
     corpus, _index, digest = load_corpus(args.corpus, args.index)
     cards = blacklist_cards(flatten(corpus), args.blacklist)
@@ -1161,6 +1335,46 @@ def run_diagnosis(args):
         "change outside case_major_category requires fully met diagnostic criteria."
     )
     return result
+
+
+def run_prototype_diagnosis(args):
+    case_input = validate_case_input(args.case_input)
+    corpus, _index, digest = load_corpus(args.corpus, args.index)
+    cards = blacklist_cards(flatten(corpus), args.blacklist)
+    selected = prototype_step2(
+        cards,
+        case_input["genes"],
+        case_input["provisional_disease"],
+        case_input["case_facts"],
+        case_input["case_major_category"],
+    )
+    global_tag_map = card_tags.build_card_tags(card["card_id"] for card in cards)
+    return {
+        "step": 4,
+        "workflow_profile": "0.2.2_prototype",
+        "render_profile": "prototype_diagnosis",
+        "genes": selected["genes"],
+        "case_major_category": selected["case_major_category"],
+        "initial_case_major_category": selected["case_major_category"],
+        "refined_case_major_category": selected["case_major_category"],
+        "provisional_disease": selected["provisional_disease"],
+        "refined_disease": selected["case_major_category"],
+        "case_facts": selected["case_facts"],
+        "genes_with_no_diagnosis_card": selected["genes_with_no_diagnosis_card"],
+        "diagnostic_context": [],
+        "retrieved": selected["retrieved"],
+        "runtime_card_tags": global_tag_map,
+        "corpus": {"path": str(args.corpus), "index": str(args.index)},
+        "provenance": provenance(
+            corpus,
+            args.corpus,
+            args.index,
+            digest,
+            [card["card_id"] for card in selected["retrieved"]],
+        ),
+        "suppressed": {"count": 0, "by_disease": {}, "cards": []},
+        "not_assessed": [],
+    }
 
 def run_full(args):
     step2_result = load_step_json(args.diagnosis_result)
@@ -1225,6 +1439,79 @@ def run_full(args):
     )
     return result
 
+
+def run_prototype_downstream(args):
+    diagnosis_bundle = json.loads(Path(args.diagnosis_result).read_text(encoding="utf-8"))
+    if diagnosis_bundle.get("workflow_profile") != "0.2.2_prototype":
+        raise ValueError(
+            "prototype downstream retrieval requires diagnostic_evidence.json produced by "
+            "the prototype-diagnosis command"
+        )
+    initial_cmc = diagnosis_bundle.get("initial_case_major_category")
+    refined_cmc = args.refined_case_major_category
+    genes = args.genes if args.genes is not None else diagnosis_bundle.get("genes", [])
+    corpus_path = Path(args.corpus or diagnosis_bundle["corpus"]["path"])
+    index_path = Path(args.index or diagnosis_bundle["corpus"]["index"])
+    corpus, _index, digest = load_corpus(corpus_path, index_path)
+    cards = blacklist_cards(flatten(corpus), args.blacklist)
+
+    current_tag_map = card_tags.build_card_tags(card["card_id"] for card in cards)
+    previous_tag_map = diagnosis_bundle.get("runtime_card_tags") or {}
+    previous_tags = card_tags.tag_by_id(previous_tag_map)
+    current_tags = card_tags.tag_by_id(current_tag_map)
+    diagnosis_context = diagnosis_bundle.get("retrieved", [])
+    changed_tags = sorted(
+        card["card_id"]
+        for card in diagnosis_context
+        if previous_tags.get(card["card_id"]) != current_tags.get(card["card_id"])
+    )
+    if changed_tags:
+        raise ValueError(
+            "runtime card tags for prototype diagnosis evidence no longer match the current "
+            "eligible corpus: " + ", ".join(changed_tags)
+            + ". Rerun prototype diagnosis before downstream retrieval."
+        )
+    eligible_ids = {card["card_id"] for card in cards}
+    newly_blocked = sorted(
+        card["card_id"] for card in diagnosis_context if card["card_id"] not in eligible_ids
+    )
+    if newly_blocked:
+        raise ValueError(
+            "blacklist now excludes prototype diagnosis evidence card(s): "
+            + ", ".join(newly_blocked)
+            + ". Rerun prototype diagnosis under the current blacklist."
+        )
+
+    selected = prototype_step4(
+        cards,
+        genes,
+        initial_cmc,
+        refined_cmc,
+        diagnosis_context,
+    )
+    return {
+        "step": 4,
+        "workflow_profile": "0.2.2_prototype",
+        "render_profile": "prototype_downstream",
+        "genes": sorted({gene.upper() for gene in genes}),
+        "case_major_category": initial_cmc,
+        "initial_case_major_category": initial_cmc,
+        "refined_case_major_category": refined_cmc,
+        "case_major_category_changed": refined_cmc != initial_cmc,
+        "provisional_disease": diagnosis_bundle.get("provisional_disease"),
+        "refined_disease": refined_cmc,
+        "runtime_card_tags": current_tag_map,
+        "corpus": {"path": str(corpus_path), "index": str(index_path)},
+        "provenance": provenance(
+            corpus,
+            corpus_path,
+            index_path,
+            digest,
+            [card["card_id"] for card in selected["retrieved"]],
+        ),
+        **selected,
+    }
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -1253,11 +1540,42 @@ def main():
     full.add_argument("--index", type=Path)
     full.add_argument("--blacklist", type=Path, default=DEFAULT_BLACKLIST,
                       help="JSON card eligibility policy")
+    prototype_diagnosis = sub.add_parser(
+        "prototype-diagnosis", help="prototype step 2 diagnosis + gene-matched germline retrieval"
+    )
+    prototype_diagnosis.add_argument("--case-input", type=Path, required=True)
+    prototype_diagnosis.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    prototype_diagnosis.add_argument("--index", type=Path, default=DEFAULT_INDEX)
+    prototype_diagnosis.add_argument(
+        "--blacklist", type=Path, default=DEFAULT_BLACKLIST, help="JSON card eligibility policy"
+    )
+    prototype_downstream = sub.add_parser(
+        "prototype-downstream", help="prototype step 4 CMC-routed downstream retrieval"
+    )
+    prototype_downstream.add_argument("--diagnosis-result", type=Path, required=True)
+    prototype_downstream.add_argument(
+        "--refined-case-major-category", required=True, choices=vocab.CASE_MAJOR_CATEGORIES
+    )
+    prototype_downstream.add_argument("--genes", nargs="+")
+    prototype_downstream.add_argument("--corpus", type=Path)
+    prototype_downstream.add_argument("--index", type=Path)
+    prototype_downstream.add_argument(
+        "--blacklist", type=Path, default=DEFAULT_BLACKLIST, help="JSON card eligibility policy"
+    )
     diagnosis.add_argument("--output", type=Path, help="write Step-2 Markdown here instead of stdout")
     full.add_argument("--output", type=Path, help="write Step-4 JSON bundle here instead of stdout")
+    prototype_diagnosis.add_argument("--output", type=Path, help="write prototype diagnosis bundle JSON")
+    prototype_downstream.add_argument("--output", type=Path, help="write prototype downstream bundle JSON")
     args = parser.parse_args()
     try:
-        result = run_diagnosis(args) if args.command == "diagnosis" else run_full(args)
+        if args.command == "diagnosis":
+            result = run_diagnosis(args)
+        elif args.command == "full":
+            result = run_full(args)
+        elif args.command == "prototype-diagnosis":
+            result = run_prototype_diagnosis(args)
+        else:
+            result = run_prototype_downstream(args)
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         sys.exit(f"retrieval failed: {exc}")
     payload = (

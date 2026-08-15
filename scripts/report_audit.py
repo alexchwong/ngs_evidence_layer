@@ -52,10 +52,10 @@ def read_text(path):
         raise ValueError(f"cannot read {path}: {exc}") from exc
 
 
-def evidence_card_tags(evidence_text):
+def evidence_card_tags(evidence_text, *, allow_empty=False):
     """Return runtime card tags exposed by evidence.md."""
     tags = CARD_MARKER.findall(evidence_text)
-    if not tags:
+    if not tags and not allow_empty:
         raise ValueError("evidence.md contains no runtime card tags")
     return set(tags)
 
@@ -217,7 +217,9 @@ def split_draft_line(line, *, expected_rule_id, line_number):
     return classification, text, tags
 
 
-def validate_draft(draft_text, evidence_text, rules_text=None):
+def validate_draft(
+    draft_text, evidence_text, rules_text=None, *, allow_no_evidence_tags=False
+):
     """Validate strict Step 6A Markdown and return parsed rule records."""
     lines = draft_text.splitlines()
     if rules_text is None:
@@ -295,7 +297,9 @@ def validate_draft(draft_text, evidence_text, rules_text=None):
               "heading, or extra lines."
         )
 
-    known_tags = evidence_card_tags(evidence_text)
+    known_tags = evidence_card_tags(
+        evidence_text, allow_empty=allow_no_evidence_tags
+    )
     unknown = {}
     parsed = []
     for line_number, (line, rule_spec) in enumerate(
@@ -358,13 +362,23 @@ def main():
         type=Path,
         default=Path(__file__).resolve().parents[1] / "rules" / "agreed_reporting_rules.md",
     )
+    validate.add_argument(
+        "--allow-no-evidence-tags",
+        action="store_true",
+        help="allow an evidence view with zero runtime tags when the draft cites no cards",
+    )
     args = parser.parse_args()
 
     try:
         draft_text = read_text(args.draft)
         evidence_text = read_text(args.evidence)
         rules_text = read_text(args.rules)
-        validate_draft(draft_text, evidence_text, rules_text)
+        validate_draft(
+            draft_text,
+            evidence_text,
+            rules_text,
+            allow_no_evidence_tags=args.allow_no_evidence_tags,
+        )
     except ValueError as exc:
         print(f"REPORT AUDIT VALIDATE FAILED: {exc}", file=sys.stderr)
         return 1

@@ -37,3 +37,5 @@ examples/expected/03-ambiguous-disease.md
 examples/expected/04-genes-the-corpus-cannot-address.md
 examples/expected/05-germline-architecture.md
 examples/expected/06-sf3b1-diagnostic-adjudication.md
+0.2.2_prototype_skill.md
+scripts/prototype_workflow.py
