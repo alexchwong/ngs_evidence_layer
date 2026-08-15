@@ -65,6 +65,11 @@ def test_format_integrity_rules_are_shared_not_default_style_only():
         assert required in workflow
 
     for required in (
+        "## Rule-draft citation contract",
+        "Cite **every evidence card directly supporting the answer**",
+        "preserve card-level granularity",
+        "union of all directly supporting runtime card markers",
+        "## Final-report sentence citation contract",
         "Every sentence-ending full stop",
         "union of every runtime card marker",
         "When one source sentence is split",
@@ -113,6 +118,18 @@ def test_prototype_skill_is_parallel_and_keeps_cmc_fixed_after_step3():
     assert "CMC2 is fixed" in prototype
     assert "Do not change, re-route, propose, or emit another CMC" in remainder
 
+
+
+
+def test_prototype_analysis_prompts_delegate_semantics_to_generated_rule_contracts():
+    diagnosis = (WORKFLOW_DIR / "analyse_diagnosis_prototype.md").read_text(encoding="utf-8")
+    remainder = (WORKFLOW_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
+    for prompt in (diagnosis, remainder):
+        assert "procedural analysis contract" in prompt
+        assert "REPORT/OMIT taxonomy" in prompt
+        assert "Rule-draft citation contract" in prompt
+        assert "State the patient-level conclusion first" not in prompt
+    assert "Do not change, re-route, propose, or emit another CMC" in remainder
 
 def test_model_steps_are_not_described_as_deterministic_model_hybrids():
     skill = SKILL.read_text(encoding="utf-8")

@@ -149,7 +149,9 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         separator = content[: -len(NO_CITATION)]
         if not separator.endswith(" "):
             raise ValueError(
-                f"{expected_rule_id} must have one space before its citation disposition"
+                f"{expected_rule_id} citation disposition must be separated from the answer by exactly one space. "
+                "Expected '<conclusion>. [card:a1b2c3]' or '<conclusion>. (no citation required)'. "
+                "Keep exactly one terminal citation disposition at the end of the rule line."
             )
         text = separator[:-1]
         tags = []
@@ -164,7 +166,9 @@ def split_draft_line(line, *, expected_rule_id, line_number):
             )
         if match.start() == 0 or content[match.start() - 1] != " ":
             raise ValueError(
-                f"{expected_rule_id} must have one space before its citation disposition"
+                f"{expected_rule_id} citation disposition must be separated from the answer by exactly one space. "
+                "Expected '<conclusion>. [card:a1b2c3]' (or adjacent card tags). "
+                "Keep all directly supporting card tags together in this one terminal citation disposition."
             )
         text = content[: match.start() - 1]
         marker_block = match.group(1)
@@ -187,7 +191,11 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         )
     if "[card:" in text or NO_CITATION in text:
         raise ValueError(
-            f"{expected_rule_id} contains a citation marker inside answer prose; markers are terminal only"
+            f"{expected_rule_id} contains a citation marker inside answer prose. Rule-draft citations are terminal only: "
+            "remove every internal [card:...] or (no citation required) marker, preserve the answer prose, then place "
+            "exactly one citation disposition after the final full stop. If different cards support different clauses "
+            "or sentences, put the union of every directly supporting card tag there, e.g. "
+            "'<conclusion>. [card:a1b2c3][card:d4e5f6]'."
         )
     if len(tags) != len(set(tags)):
         raise ValueError(

@@ -8,6 +8,8 @@ from scripts import prototype_workflow, report_audit
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules" / "agreed_reporting_rules.md"
+SKILL = ROOT / "SKILL.md"
+ANALYSE_REPORT = ROOT / "prompts" / "workflow" / "analyse_report.md"
 
 
 def draft_for(rules_text, *, tag="a1b2c3"):
@@ -28,6 +30,43 @@ class PrototypeWorkflowTests(unittest.TestCase):
         remainder = prototype_workflow.slice_rules_text(source, {2, 3, 4, 5})
         self.assertTrue(all(s["rule_id"].startswith(("R0.", "R1.")) for s in report_audit.agreed_rule_specs(dx)))
         self.assertTrue(all(s["rule_id"].startswith(("R2.", "R3.", "R4.", "R5.")) for s in report_audit.agreed_rule_specs(remainder)))
+
+
+    def test_generated_rule_views_have_purpose_built_intros(self):
+        source = RULES.read_text(encoding="utf-8")
+        dx = prototype_workflow.slice_rules_text(source, {0, 1})
+        remainder = prototype_workflow.slice_rules_text(source, {2, 3, 4, 5})
+        full = prototype_workflow.slice_rules_text(source, set(range(0, 6)))
+
+        self.assertTrue(dx.startswith("# Diagnosis-pass reporting rules\n"))
+        self.assertTrue(remainder.startswith("# Downstream reporting rules\n"))
+        self.assertTrue(full.startswith("# Full reporting-rule re-analysis\n"))
+        for view in (dx, remainder, full):
+            self.assertNotIn("# Agreed reporting rules for interpretative myeloid NGS summaries", view)
+            self.assertNotIn("# Style requirements", view)
+            self.assertIn("## REPORT versus OMIT classification", view)
+            self.assertIn("## Citation contract", view)
+            self.assertIn("Rule-draft citation contract", view)
+
+    def test_patient_level_style_is_copied_verbatim_from_legacy_skill_6a(self):
+        skill = SKILL.read_text(encoding="utf-8")
+        start = skill.index("#### Patient-level conclusion and qualifier style")
+        end = skill.index("\n\nRead only:", start)
+        expected = skill[start:end].rstrip()
+        source = RULES.read_text(encoding="utf-8")
+        for sections in ({0, 1}, {2, 3, 4, 5}, set(range(0, 6))):
+            view = prototype_workflow.slice_rules_text(source, sections)
+            self.assertIn(expected, view)
+
+    def test_report_omit_taxonomy_is_copied_verbatim_from_legacy_6a_prompt(self):
+        analyse = ANALYSE_REPORT.read_text(encoding="utf-8")
+        start = analyse.index("## REPORT versus OMIT classification")
+        end = analyse.index("\n\n## Task-specific rules", start)
+        expected = analyse[start:end].rstrip()
+        source = RULES.read_text(encoding="utf-8")
+        for sections in ({0, 1}, {2, 3, 4, 5}, set(range(0, 6))):
+            view = prototype_workflow.slice_rules_text(source, sections)
+            self.assertIn(expected, view)
 
     def test_terminal_refined_cmc_is_strict_and_canonical(self):
         source = RULES.read_text(encoding="utf-8")

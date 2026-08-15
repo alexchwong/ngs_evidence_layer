@@ -176,6 +176,19 @@ class DraftValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "marker inside answer prose"):
             report_audit.validate_draft(text, EVIDENCE)
 
+
+    def test_inline_citation_error_instructs_terminal_union_repair(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: First claim. [card:a1b2c3] Second claim. [card:d4e5f6]",
+        )
+        with self.assertRaises(ValueError) as ctx:
+            report_audit.validate_draft(text, EVIDENCE)
+        message = str(ctx.exception)
+        self.assertIn("remove every internal [card:...]", message)
+        self.assertIn("union of every directly supporting card tag", message)
+        self.assertIn("exactly one citation disposition after the final full stop", message)
+
     def test_rejects_no_citation_marker_inside_prose(self):
         text = draft_text().replace(
             "R1.1 REPORT: Answer for R1.1. (no citation required)",

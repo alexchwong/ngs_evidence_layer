@@ -4,6 +4,8 @@
 
 Answer every rule supplied in `reporting-rules-remainder.md` using the patient case and the evidence made available for this pass.
 
+`reporting-rules-remainder.md` is the procedural analysis contract for this pass. Follow its patient-level conclusion style, REPORT/OMIT taxonomy, evidence boundary, branch-specific scope, and canonical reporting rules exactly. Apply the **Rule-draft citation contract** in `citation_rules.md`.
+
 ## Branch semantics
 
 The supplied rules deterministically define the branch:
@@ -19,14 +21,11 @@ The Step-3 refined CMC shown in `downstream_evidence.md` is fixed for this step.
 - Write exactly one line per rule using: `R<section>.<number> REPORT: ...` or `R<section>.<number> OMIT: ...`.
 - If R0.1 is supplied, it is mandatory `REPORT:` patient-result content and must end with `(no citation required)`.
 - `REPORT:` text must be direct report-ready clinical prose, not report-construction meta-language.
-- Use `OMIT:` for a topic that should not appear in the final report. Do not convert a clinically meaningful negative finding into an omission instruction.
-- State the patient-level conclusion first, then any material qualifier, condition, exception or limitation.
-- Use only `downstream_evidence.md` for literature support in this pass. When the unchanged-CMC branch supplies `report-draft-dx.md`, treat it as prior patient-level diagnostic conclusions, not as a source of new runtime citation tags.
-- Follow `citation_rules.md` exactly and copy runtime card tags only from `downstream_evidence.md`.
+- Use only runtime card tags copied from `downstream_evidence.md`.
 
 ## Validation repair
 
-If validation identifies a citation defect, repair only the affected rule line and use `downstream_evidence.md` as the only evidence source for replacement runtime tags. Do not inspect private JSON/tag maps, the combined `evidence.md`, or corpus files.
+If validation fails, repair only the rule(s) and defect(s) identified by the validator. For citation defects, use `downstream_evidence.md` as the only evidence source for replacement runtime tags. Do not inspect private JSON/tag maps, the combined `evidence.md`, or corpus files.
 
 ## Output contract
 

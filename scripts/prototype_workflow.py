@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic helpers for the parallel 0.2.2 diagnosis-first prototype.
 
-This module slices the canonical reporting rules, validates/extracts the terminal
-Step-3 CMC routing decision, and assembles the conventional ``report-draft.md``
+This module renders purpose-built prototype reporting-rule views from canonical
+rules, validates/extracts the terminal Step-3 CMC routing decision, and assembles
+the conventional ``report-draft.md``
 without changing any legacy workflow artifact.
 """
 from __future__ import annotations
@@ -19,6 +20,8 @@ import vocab  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RULES = REPO_ROOT / "rules" / "agreed_reporting_rules.md"
+LEGACY_SKILL = REPO_ROOT / "SKILL.md"
+LEGACY_ANALYSE_REPORT = REPO_ROOT / "prompts" / "workflow" / "analyse_report.md"
 SECTION_HEADING = re.compile(r"^# R(\d+)\b")
 REFINED_CMC_LINE = re.compile(r"^REFINED_CMC: (.+)$")
 
@@ -30,27 +33,148 @@ def _read(path: Path) -> str:
         raise ValueError(f"cannot read {path}: {exc}") from exc
 
 
+def _extract_markdown_section(text: str, heading: str) -> str:
+    """Extract one Markdown section verbatim, stopping at the next same/higher heading."""
+    lines = text.splitlines()
+    try:
+        start = lines.index(heading)
+    except ValueError as exc:
+        raise ValueError(f"required canonical prompt section is missing: {heading}") from exc
+    level = len(heading) - len(heading.lstrip("#"))
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        candidate = lines[index]
+        if not candidate.startswith("#"):
+            continue
+        candidate_level = len(candidate) - len(candidate.lstrip("#"))
+        if candidate_level <= level:
+            end = index
+            break
+    return "\n".join(lines[start:end]).rstrip()
+
+
+def _canonical_patient_level_style() -> str:
+    # Deliberately source this verbatim from legacy Step 6A so the prototype cannot
+    # silently drift from the benchmark's clinically important answer style. The
+    # legacy subsection is followed by an unheaded "Read only:" workflow block, so
+    # use that exact boundary rather than generic Markdown heading semantics.
+    text = _read(LEGACY_SKILL)
+    heading = "#### Patient-level conclusion and qualifier style"
+    start = text.find(heading)
+    if start < 0:
+        raise ValueError(f"required canonical prompt section is missing: {heading}")
+    end = text.find("\n\nRead only:", start)
+    if end < 0:
+        raise ValueError(
+            "cannot locate the end of legacy Patient-level conclusion and qualifier style "
+            "before the Step 6A 'Read only:' block"
+        )
+    return text[start:end].rstrip()
+
+
+def _canonical_report_omit_taxonomy() -> str:
+    # Reuse the legacy REPORT/OMIT taxonomy verbatim rather than maintaining a
+    # second classification policy for the prototype.
+    return _extract_markdown_section(
+        _read(LEGACY_ANALYSE_REPORT), "## REPORT versus OMIT classification"
+    )
+
+
+def _rule_view_kind(sections: set[int]) -> str:
+    mapping = {
+        frozenset({0, 1}): "diagnosis",
+        frozenset({2, 3, 4, 5}): "remainder",
+        frozenset(range(0, 6)): "full",
+    }
+    kind = mapping.get(frozenset(sections))
+    if kind is None:
+        allowed = "0 1 (diagnosis), 2 3 4 5 (downstream), or 0 1 2 3 4 5 (full re-analysis)"
+        raise ValueError(
+            "unsupported prototype reporting-rule section combination. Expected exactly " + allowed
+        )
+    return kind
+
+
+def _rule_view_intro(kind: str) -> str:
+    if kind == "diagnosis":
+        title = "# Diagnosis-pass reporting rules"
+        task = (
+            "Answer R0-R1 only. Produce self-contained patient-level conclusions suitable "
+            "for later report synthesis. After these rule answers, the workflow prompt "
+            "separately requires one refined CMC routing line; that routing line is not report content."
+        )
+        evidence = (
+            "Treat `diagnostic_evidence.md` as the complete literature-evidence boundary for this pass. "
+            "Use only runtime card tags exposed there."
+        )
+    elif kind == "remainder":
+        title = "# Downstream reporting rules"
+        task = (
+            "The diagnostic pass is complete. Answer R2-R5 only. Use `report-draft-dx.md` as "
+            "established patient-level diagnostic context; do not re-answer R0-R1 or change the refined CMC."
+        )
+        evidence = (
+            "Treat `downstream_evidence.md` as the complete literature-evidence boundary for this pass. "
+            "Use `report-draft-dx.md` only as prior patient-level diagnostic context, never as a source of "
+            "new runtime card tags. Use only runtime card tags exposed in `downstream_evidence.md`."
+        )
+    elif kind == "full":
+        title = "# Full reporting-rule re-analysis"
+        task = (
+            "The diagnostic CMC changed. Re-answer R0-R5 from scratch using the evidence supplied for "
+            "this pass. The refined CMC is fixed; do not change, re-route, propose, or emit another CMC."
+        )
+        evidence = (
+            "Treat `downstream_evidence.md` as the complete literature-evidence boundary for this pass, "
+            "including its recalled diagnosis evidence. Use only runtime card tags exposed there."
+        )
+    else:  # pragma: no cover - internal programming error
+        raise ValueError(f"unsupported prototype rule-view kind: {kind}")
+
+    return (
+        f"{title}\n\n"
+        "## Task\n\n"
+        f"{task}\n\n"
+        f"{_canonical_patient_level_style()}\n\n"
+        f"{_canonical_report_omit_taxonomy()}\n\n"
+        "## Evidence boundary\n\n"
+        f"{evidence}\n\n"
+        "## Citation contract\n\n"
+        "Apply the **Rule-draft citation contract** in `prompts/workflow/citation_rules.md`. "
+        "The rule-draft citation contract, not the final-report sentence contract, governs these rule answers.\n"
+    )
+
+
+def _canonical_rule_sections(rules_text: str, sections: set[int]) -> str:
+    """Return only the requested canonical R sections, without generic pre/postamble."""
+    lines = rules_text.splitlines()
+    first_rule = next((i for i, line in enumerate(lines) if SECTION_HEADING.match(line)), None)
+    if first_rule is None:
+        raise ValueError("agreed_reporting_rules.md contains no # R<section> headings")
+    out = []
+    current_section = None
+    for line in lines[first_rule:]:
+        match = SECTION_HEADING.match(line)
+        if match:
+            current_section = int(match.group(1))
+        elif line.startswith("# "):
+            current_section = None
+        if current_section in sections:
+            out.append(line)
+    return "\n".join(out).rstrip() + "\n"
+
+
 def slice_rules_text(rules_text: str, sections: set[int]) -> str:
-    """Return the canonical rule document restricted to selected R sections."""
+    """Render one prototype rule view with a purpose-built analysis contract."""
     if not sections:
         raise ValueError("at least one reporting-rule section is required")
     unknown = sorted(sections - set(range(0, 6)))
     if unknown:
         raise ValueError("unsupported reporting-rule section(s): " + ", ".join(map(str, unknown)))
 
-    lines = rules_text.splitlines()
-    first_rule = next((i for i, line in enumerate(lines) if SECTION_HEADING.match(line)), None)
-    if first_rule is None:
-        raise ValueError("agreed_reporting_rules.md contains no # R<section> headings")
-    out = lines[:first_rule]
-    current_section = None
-    for line in lines[first_rule:]:
-        match = SECTION_HEADING.match(line)
-        if match:
-            current_section = int(match.group(1))
-        if current_section in sections:
-            out.append(line)
-    result = "\n".join(out).rstrip() + "\n"
+    kind = _rule_view_kind(sections)
+    rules = _canonical_rule_sections(rules_text, sections)
+    result = _rule_view_intro(kind).rstrip() + "\n\n" + rules
     specs = report_audit.agreed_rule_specs(result)
     found_sections = {int(spec["rule_id"].split(".", 1)[0][1:]) for spec in specs}
     missing = sorted(sections - found_sections)
