@@ -4,15 +4,11 @@ This file is the single source of truth for the patient-level answer style and `
 
 ## Patient-level conclusion and qualifier style
 
-For each reporting rule, state the **clinically reportable conclusion first**, then add any **material qualifier, condition, exception, or limitation** needed to interpret that conclusion correctly.
-
-- Lead with the positive patient-level fact or classification supported by the case and evidence.
-- Do not replace a supported conclusion with an evidence-sufficiency disclaimer merely because the conclusion depends on combining multiple findings or criteria.
-- Where a conclusion is conditional, express it in normal clinical-reporting form: **“X is associated with/supports Y, provided that Z.”**
-- Qualifiers should identify the circumstances that would modify, override, or limit the stated conclusion.
-- Apply the retrieved evidence to the patient facts. A complete patient-level conclusion does not need to appear verbatim in a single evidence item if it follows from the supplied facts and the retrieved criteria.
-- If the available information genuinely prevents the conclusion from being assigned, state what can be concluded first, then identify the specific unresolved condition preventing further classification.
-- Avoid pipeline or evidence-process language such as “the retrieved evidence does not provide…” in reportable prose. Write the clinical interpretation instead.
+- State the strongest patient-level conclusion supported by the known facts.
+- Use a qualifier only for a material condition that is unresolved in the patient. If the condition is already known, resolve it and state the resulting conclusion directly.
+- If a material condition is unresolved, state the best-supported conclusion followed by the specific qualifier, e.g. **“X supports Y, provided that Z.”**
+- Do not withhold a supported conclusion just because some information is missing.
+- Do not speculate about possibilities that the known patient facts have already ruled out.
 
 ## REPORT versus OMIT classification
 
