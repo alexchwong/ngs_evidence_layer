@@ -29,6 +29,7 @@ knowledge.
      `ngs-report` on a line by itself;
    - run the first demonstration case with `nel-demo example 1`; or
    - run the first validation case with `nel-validate 1A`.
+4. View the evidence card library in the [card browser](output/reports/card-browser.html).
 
 ## NGS reporting
 

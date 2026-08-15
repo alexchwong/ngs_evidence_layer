@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evidence cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#efeef4;
+    --panel:#f7f6fa;
+    --ink:#191825;
+    --muted:#6e6a82;
+    --rule:#d8d5e3;
+    --azure:#2b4c8c;
+    --eosin:#a31e63;
+    --focus:#a31e63;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --display:"Newsreader",Georgia,serif;
+    --cat-diagnosis:#4a3f8f;
+    --cat-prognosis:#a31e63;
+    --cat-treatment:#1d6f63;
+    --cat-biomarker:#2b4c8c;
+    --cat-germline:#8a5a12;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--azure)}
+  button{font:inherit;color:inherit}
+
+  /* ---------- masthead ---------- */
+  header.masthead{
+    border-bottom:1px solid var(--rule);
+    padding:22px 28px 16px;
+    display:flex;flex-wrap:wrap;gap:18px;align-items:baseline;justify-content:space-between;
+  }
+  .wordmark{font-family:var(--display);font-size:31px;line-height:1;letter-spacing:-.01em;font-weight:500;margin:0}
+  .wordmark em{font-style:italic;color:var(--eosin)}
+  .provenance{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+
+  /* ---------- shell ---------- */
+  .shell{display:grid;grid-template-columns:288px minmax(0,1fr);gap:0;align-items:start}
+  .rail{
+    border-right:1px solid var(--rule);padding:20px 20px 60px;
+    position:sticky;top:0;max-height:100vh;overflow-y:auto;background:var(--panel);
+  }
+  .main{padding:20px 28px 90px;min-width:0}
+
+  /* ---------- filters ---------- */
+  .facet{margin-bottom:26px}
+  .facet h2{
+    font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 9px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  }
+  .facet h2 .clear{
+    border:0;background:none;padding:0;cursor:pointer;color:var(--eosin);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:none;
+    visibility:hidden;
+  }
+  .facet.active h2 .clear{visibility:visible}
+  .facet-search{
+    width:100%;border:1px solid var(--rule);background:#fff;border-radius:2px;
+    padding:6px 8px;font-family:var(--mono);font-size:12px;color:var(--ink);margin-bottom:8px;
+  }
+  .facet-search::placeholder{color:#9a96ab}
+  .options{list-style:none;margin:0;padding:0;max-height:264px;overflow-y:auto}
+  .options.short{max-height:none}
+  .opt{
+    width:100%;display:flex;gap:8px;align-items:baseline;text-align:left;
+    border:0;background:none;cursor:pointer;padding:3px 4px;border-radius:2px;
+    font-size:13.5px;line-height:1.35;color:var(--ink);
+  }
+  .opt:hover{background:#e9e6f1}
+  .opt .tick{
+    font-family:var(--mono);font-size:11px;color:var(--muted);width:12px;flex:none;
+  }
+  .opt[aria-pressed="true"]{background:#fff}
+  .opt[aria-pressed="true"] .label{color:var(--eosin);font-weight:600}
+  .opt[aria-pressed="true"] .tick{color:var(--eosin)}
+  .opt .label{flex:1;min-width:0;overflow-wrap:anywhere}
+  .opt .count{font-family:var(--mono);font-size:11px;color:var(--muted);flex:none}
+  .opt[disabled]{opacity:.35;cursor:default}
+  .opt[disabled]:hover{background:none}
+  .swatch{width:8px;height:8px;border-radius:50%;flex:none;align-self:center}
+
+  /* ---------- results ---------- */
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
+    padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:4px;
+  }
+  .tally{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.03em}
+  .tally b{color:var(--ink);font-weight:500}
+  .text-search{
+    flex:1;min-width:200px;max-width:380px;border:1px solid var(--rule);background:#fff;
+    border-radius:2px;padding:7px 10px;font-family:var(--sans);font-size:13.5px;
+  }
+  .reset{
+    border:1px solid var(--rule);background:#fff;border-radius:2px;padding:6px 11px;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;cursor:pointer;
+  }
+  .reset:hover{border-color:var(--eosin);color:var(--eosin)}
+
+  ol.cards{list-style:none;margin:0;padding:0}
+  li.card{
+    display:grid;grid-template-columns:232px minmax(0,1fr);gap:22px;
+    padding:15px 0 15px 13px;border-bottom:1px solid var(--rule);
+    border-left:3px solid var(--spine,var(--rule));
+  }
+  li.card .cid{
+    font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);
+    letter-spacing:-.01em;overflow-wrap:anywhere;padding-top:2px;
+  }
+  li.card p{margin:0;font-size:15.5px;line-height:1.6}
+  li.card mark{background:#f7dbe8;color:inherit;padding:0 1px}
+  .empty{padding:56px 0;max-width:44ch}
+  .empty h3{font-family:var(--display);font-size:22px;font-weight:500;margin:0 0 6px}
+  .empty p{margin:0;color:var(--muted)}
+
+  .railtoggle{display:none}
+
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr}
+    .rail{
+      position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule);
+      padding-bottom:24px;
+    }
+    .rail[hidden]{display:none}
+    .railtoggle{
+      display:block;margin:16px 28px 0;border:1px solid var(--rule);background:#fff;
+      border-radius:2px;padding:8px 12px;font-family:var(--mono);font-size:12px;cursor:pointer;
+    }
+    .main{padding:16px 20px 70px}
+    li.card{grid-template-columns:1fr;gap:5px}
+    header.masthead{padding:18px 20px 14px}
+  }
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <h1 class="wordmark">Evidence <em>cards</em></h1>
+  <div class="provenance" id="provenance"></div>
+</header>
+
+<button class="railtoggle" id="railtoggle" aria-expanded="false" aria-controls="rail">Filters</button>
+
+<div class="shell">
+  <aside class="rail" id="rail" aria-label="Filters"></aside>
+  <main class="main">
+    <div class="toolbar">
+      <div class="tally" id="tally"></div>
+      <input class="text-search" id="textsearch" type="search" placeholder="Search interpretation text" aria-label="Search interpretation text">
+      <button class="reset" id="reset" type="button">Clear all filters</button>
+    </div>
+    <ol class="cards" id="cards"></ol>
+  </main>
+</div>
+
+<script>
+const DATA = /*__CARD_DATA__*/null;
+
+const CATEGORY_COLOURS = {
+  diagnosis:"var(--cat-diagnosis)", prognosis:"var(--cat-prognosis)",
+  treatment:"var(--cat-treatment)", biomarker:"var(--cat-biomarker)",
+  germline:"var(--cat-germline)"
+};
+
+const paperName = {};
+DATA.papers.forEach(p => { paperName[p.key] = p.nickname; });
+
+const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"" };
+const facetSearch = { paper:"", disease:"", gene:"", category:"" };
+
+const FACETS = [
+  { key:"category", title:"Category",  field:c => [c.category], searchable:false, swatch:true },
+  { key:"paper",    title:"Paper",     field:c => [c.paper],    searchable:true,  labelOf:k => paperName[k] || k },
+  { key:"disease",  title:"Disease",   field:c => c.diseases,   searchable:true },
+  { key:"gene",     title:"Gene",      field:c => c.genes,      searchable:true }
+];
+
+function matches(card, skip){
+  for (const f of FACETS){
+    if (f.key === skip) continue;
+    const chosen = state[f.key];
+    if (!chosen.size) continue;
+    if (!f.field(card).some(v => chosen.has(v))) return false;
+  }
+  if (state.query && !skip){
+    if (!card.text.toLowerCase().includes(state.query)) return false;
+  }
+  return true;
+}
+
+function visibleCards(){
+  return DATA.cards.filter(c => matches(c, null));
+}
+
+function countsFor(facet){
+  const tally = new Map();
+  for (const card of DATA.cards){
+    if (!matches(card, facet.key)) continue;
+    if (state.query && !card.text.toLowerCase().includes(state.query)) continue;
+    for (const value of facet.field(card)){
+      if (!value) continue;
+      tally.set(value, (tally.get(value) || 0) + 1);
+    }
+  }
+  const all = new Set(tally.keys());
+  state[facet.key].forEach(v => { if (!all.has(v)) tally.set(v, 0); });
+  return tally;
+}
+
+function buildRail(){
+  const rail = document.getElementById("rail");
+  rail.innerHTML = "";
+  for (const facet of FACETS){
+    const tally = countsFor(facet);
+    let entries = [...tally.entries()];
+    if (facet.key === "paper"){
+      entries.sort((a,b) => (facet.labelOf(a[0])).localeCompare(facet.labelOf(b[0])));
+    } else if (facet.key === "category"){
+      entries.sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    } else {
+      entries.sort((a,b) => a[0].localeCompare(b[0], undefined, {numeric:true}));
+    }
+    const needle = facetSearch[facet.key].toLowerCase();
+    if (needle){
+      entries = entries.filter(([value]) => {
+        const label = facet.labelOf ? facet.labelOf(value) : value;
+        return label.toLowerCase().includes(needle) || state[facet.key].has(value);
+      });
+    }
+
+    const box = document.createElement("section");
+    box.className = "facet" + (state[facet.key].size ? " active" : "");
+
+    const head = document.createElement("h2");
+    head.textContent = facet.title;
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "clear";
+    clear.textContent = "clear";
+    clear.addEventListener("click", () => { state[facet.key].clear(); render(); });
+    head.appendChild(clear);
+    box.appendChild(head);
+
+    if (facet.searchable){
+      const input = document.createElement("input");
+      input.className = "facet-search";
+      input.type = "search";
+      input.placeholder = "Filter " + facet.title.toLowerCase() + "s";
+      input.setAttribute("aria-label", "Filter " + facet.title.toLowerCase() + " list");
+      input.value = facetSearch[facet.key];
+      input.addEventListener("input", event => {
+        facetSearch[facet.key] = event.target.value;
+        render({ keepFocus: facet.key });
+      });
+      box.appendChild(input);
+    }
+
+    const list = document.createElement("ul");
+    list.className = "options" + (entries.length <= 8 ? " short" : "");
+    for (const [value, count] of entries){
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      const on = state[facet.key].has(value);
+      button.type = "button";
+      button.className = "opt";
+      button.setAttribute("aria-pressed", on ? "true" : "false");
+      if (!count && !on) button.disabled = true;
+
+      const tick = document.createElement("span");
+      tick.className = "tick";
+      tick.textContent = on ? "\u2715" : "";
+      tick.setAttribute("aria-hidden", "true");
+      button.appendChild(tick);
+
+      if (facet.swatch){
+        const dot = document.createElement("span");
+        dot.className = "swatch";
+        dot.style.background = CATEGORY_COLOURS[value] || "var(--muted)";
+        button.appendChild(dot);
+      }
+
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = facet.labelOf ? facet.labelOf(value) : value;
+      button.appendChild(label);
+
+      const num = document.createElement("span");
+      num.className = "count";
+      num.textContent = count;
+      button.appendChild(num);
+
+      button.addEventListener("click", () => {
+        const set = state[facet.key];
+        if (set.has(value)) set.delete(value); else set.add(value);
+        render();
+      });
+      item.appendChild(button);
+      list.appendChild(item);
+    }
+    if (!entries.length){
+      const item = document.createElement("li");
+      item.className = "tally";
+      item.style.padding = "4px";
+      item.textContent = "No matches in this list.";
+      list.appendChild(item);
+    }
+    box.appendChild(list);
+    rail.appendChild(box);
+  }
+}
+
+function highlight(text, needle){
+  if (!needle) return document.createTextNode(text);
+  const fragment = document.createDocumentFragment();
+  const lower = text.toLowerCase();
+  let from = 0;
+  let at = lower.indexOf(needle, from);
+  while (at !== -1){
+    fragment.appendChild(document.createTextNode(text.slice(from, at)));
+    const mark = document.createElement("mark");
+    mark.textContent = text.slice(at, at + needle.length);
+    fragment.appendChild(mark);
+    from = at + needle.length;
+    at = lower.indexOf(needle, from);
+  }
+  fragment.appendChild(document.createTextNode(text.slice(from)));
+  return fragment;
+}
+
+function buildCards(){
+  const list = document.getElementById("cards");
+  const rows = visibleCards();
+  list.innerHTML = "";
+
+  document.getElementById("tally").innerHTML =
+    "<b>" + rows.length + "</b> of " + DATA.cards.length + " cards";
+
+  if (!rows.length){
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.innerHTML = "<h3>Nothing matches these filters</h3>" +
+      "<p>Remove a filter, or clear all of them and start from a single gene or paper.</p>";
+    list.appendChild(empty);
+    return;
+  }
+
+  const chunk = document.createDocumentFragment();
+  for (const card of rows){
+    const item = document.createElement("li");
+    item.className = "card";
+    item.style.setProperty("--spine", CATEGORY_COLOURS[card.category] || "var(--rule)");
+
+    const cid = document.createElement("span");
+    cid.className = "cid";
+    cid.textContent = card.id;
+    item.appendChild(cid);
+
+    const para = document.createElement("p");
+    para.appendChild(highlight(card.text, state.query));
+    item.appendChild(para);
+
+    chunk.appendChild(item);
+  }
+  list.appendChild(chunk);
+}
+
+function render(options){
+  const keep = options && options.keepFocus;
+  buildRail();
+  buildCards();
+  if (keep){
+    const facetIndex = FACETS.findIndex(f => f.key === keep);
+    const input = document.querySelectorAll(".facet")[facetIndex].querySelector(".facet-search");
+    if (input){
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+}
+
+document.getElementById("provenance").textContent =
+  "corpus " + DATA.corpusVersion + " \u00b7 " + DATA.cards.length + " cards \u00b7 " +
+  DATA.papers.length + " papers";
+
+document.getElementById("textsearch").addEventListener("input", event => {
+  state.query = event.target.value.trim().toLowerCase();
+  buildRail();
+  buildCards();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  FACETS.forEach(f => { state[f.key].clear(); facetSearch[f.key] = ""; });
+  state.query = "";
+  document.getElementById("textsearch").value = "";
+  render();
+});
+
+const railToggle = document.getElementById("railtoggle");
+railToggle.addEventListener("click", () => {
+  const rail = document.getElementById("rail");
+  const open = rail.hasAttribute("hidden");
+  if (open) rail.removeAttribute("hidden"); else rail.setAttribute("hidden", "");
+  railToggle.setAttribute("aria-expanded", open ? "true" : "false");
+});
+if (window.matchMedia("(max-width:900px)").matches){
+  document.getElementById("rail").setAttribute("hidden", "");
+}
+
+render();
+</script>
+</body>
+</html>
