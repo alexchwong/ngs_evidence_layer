@@ -14,6 +14,7 @@ REQUIRED_WORKFLOW_PROMPTS = {
     "adjudicate_diagnosis.md",
     "revise_diagnosis.md",
     "analyse_report.md",
+    "reporting_rule_policy.md",
     "citation_rules.md",
     "format_report.md",
     "mark_validation_report.md",
@@ -48,6 +49,7 @@ def test_repository_no_longer_contains_obsolete_prompt_files():
 def test_release_manifest_includes_all_workflow_prompts():
     manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
     assert "prompts/workflow/*" in manifest
+    assert "prompts/workflow/prototype/*" in manifest
     assert "prompts/diagnostic_adjudication_prompt.md" not in manifest
     assert "validation/marking_prompt.md" not in manifest
 
@@ -84,13 +86,16 @@ def test_format_integrity_rules_are_shared_not_default_style_only():
     assert "## Source and output constraints" not in default
 
 
-def test_analyse_report_uses_canonical_omit_directive():
+def test_analyse_report_uses_shared_reporting_rule_policy():
     analyse = (WORKFLOW_DIR / "analyse_report.md").read_text(encoding="utf-8")
-    assert "Use `OMIT:` when" in analyse
+    policy = (WORKFLOW_DIR / "reporting_rule_policy.md").read_text(encoding="utf-8")
+    assert "Follow `prompts/workflow/reporting_rule_policy.md` exactly" in analyse
     assert "exactly one classification token: `REPORT:` or `OMIT:`" in analyse
     assert "Every rule MUST be classified" in analyse
-    assert "Never write report-construction meta-language after `REPORT:`" in analyse
-    assert "Do not use `OMIT:` merely because" in analyse
+    assert "if the answer's clinical conclusion would begin `No ...` or `Not applicable ...`" in policy
+    assert "if a rule is conditional and its premise is not met" in policy
+    assert "R0.1` is the explicit exception" in policy
+    assert "Do not use `OMIT:` merely because a conclusion is negative in wording" in policy
     assert "Only text after `REPORT:` is eligible source prose" in (WORKFLOW_DIR / "format_report.md").read_text(encoding="utf-8")
 
 
@@ -129,7 +134,7 @@ def test_prototype_analysis_prompts_delegate_semantics_to_generated_rule_contrac
     diagnosis = (WORKFLOW_DIR / "analyse_diagnosis_prototype.md").read_text(encoding="utf-8")
     remainder = (WORKFLOW_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
     for prompt in (diagnosis, remainder):
-        assert "procedural analysis contract" in prompt
+        assert "prompt-owned analysis contract" in prompt
         assert "REPORT/OMIT taxonomy" in prompt
         assert "Rule-draft citation contract" in prompt
         assert "State the patient-level conclusion first" not in prompt

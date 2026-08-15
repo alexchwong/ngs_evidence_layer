@@ -8,8 +8,8 @@ from scripts import prototype_workflow, report_audit
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules" / "agreed_reporting_rules.md"
-SKILL = ROOT / "SKILL.md"
-ANALYSE_REPORT = ROOT / "prompts" / "workflow" / "analyse_report.md"
+POLICY = ROOT / "prompts" / "workflow" / "reporting_rule_policy.md"
+PROTOTYPE_PROMPT_DIR = ROOT / "prompts" / "workflow" / "prototype"
 
 
 def draft_for(rules_text, *, tag="a1b2c3"):
@@ -48,25 +48,27 @@ class PrototypeWorkflowTests(unittest.TestCase):
             self.assertIn("## Citation contract", view)
             self.assertIn("Rule-draft citation contract", view)
 
-    def test_patient_level_style_is_copied_verbatim_from_legacy_skill_6a(self):
-        skill = SKILL.read_text(encoding="utf-8")
-        start = skill.index("#### Patient-level conclusion and qualifier style")
-        end = skill.index("\n\nRead only:", start)
-        expected = skill[start:end].rstrip()
+    def test_shared_reporting_policy_is_injected_verbatim_from_prompt_source(self):
+        expected = POLICY.read_text(encoding="utf-8").rstrip()
         source = RULES.read_text(encoding="utf-8")
         for sections in ({0, 1}, {2, 3, 4, 5}, set(range(0, 6))):
             view = prototype_workflow.slice_rules_text(source, sections)
             self.assertIn(expected, view)
 
-    def test_report_omit_taxonomy_is_copied_verbatim_from_legacy_6a_prompt(self):
-        analyse = ANALYSE_REPORT.read_text(encoding="utf-8")
-        start = analyse.index("## REPORT versus OMIT classification")
-        end = analyse.index("\n\n## Task-specific rules", start)
-        expected = analyse[start:end].rstrip()
-        source = RULES.read_text(encoding="utf-8")
-        for sections in ({0, 1}, {2, 3, 4, 5}, set(range(0, 6))):
-            view = prototype_workflow.slice_rules_text(source, sections)
-            self.assertIn(expected, view)
+    def test_prototype_prompt_prose_is_not_hardcoded_in_python(self):
+        script = (ROOT / "scripts" / "prototype_workflow.py").read_text(encoding="utf-8")
+        for phrase in (
+            "Answer R0-R1 only",
+            "Answer R2-R5 only",
+            "The diagnostic CMC changed",
+            "Treat `diagnostic_evidence.md` as the complete literature-evidence boundary",
+            "Treat `downstream_evidence.md` as the complete literature-evidence boundary",
+        ):
+            self.assertNotIn(phrase, script)
+        for template_name in ("diagnosis_rule_view.md", "remainder_rule_view.md", "full_rule_view.md"):
+            template = (PROTOTYPE_PROMPT_DIR / template_name).read_text(encoding="utf-8")
+            self.assertIn("{{REPORTING_RULE_POLICY}}", template)
+            self.assertIn("{{CANONICAL_RULES}}", template)
 
     def test_terminal_refined_cmc_is_strict_and_canonical(self):
         source = RULES.read_text(encoding="utf-8")

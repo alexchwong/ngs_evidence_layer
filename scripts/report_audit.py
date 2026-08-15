@@ -38,6 +38,7 @@ REPORT_META_PREFIX = re.compile(
     r"commentary\s+(?:is|should\s+be)\s+not\s+warranted\b)",
     re.IGNORECASE,
 )
+NON_REPORTABLE_SENTENCE_START = re.compile(r"(?:^|(?<=[.!?])\s+)(No\b|Not applicable\b)", re.IGNORECASE)
 REPORT_META_ANYWHERE = re.compile(
     r"\b(?:should|must)\s+be\s+omitted\b|"
     r"\bshould\s+not\s+be\s+(?:mentioned|reported|discussed)\b",
@@ -210,6 +211,18 @@ def split_draft_line(line, *, expected_rule_id, line_number):
 
     if classification == "REPORT":
         prose = text[:-1].strip()
+        non_reportable = NON_REPORTABLE_SENTENCE_START.search(prose)
+        if expected_rule_id != "R0.1" and non_reportable:
+            phrase = non_reportable.group(1)
+            raise ValueError(
+                f"{expected_rule_id} is classified REPORT but contains a sentence beginning "
+                f"{phrase!r}. Under prompts/workflow/reporting_rule_policy.md, generic "
+                "'No ...' and 'Not applicable ...' outcomes must be classified OMIT, except "
+                "for mandatory R0.1. If an absent finding is itself clinically material, "
+                "rewrite the REPORT line to lead with its patient-level clinical effect rather "
+                "than a generic absence sentence; otherwise change the line to "
+                f"'{expected_rule_id} OMIT: <non-reportable outcome>. <citation disposition>'."
+            )
         meta = REPORT_META_PREFIX.match(prose) or REPORT_META_ANYWHERE.search(prose)
         if meta:
             phrase = meta.group(0)

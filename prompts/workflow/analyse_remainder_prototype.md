@@ -4,7 +4,7 @@
 
 Answer every rule supplied in `reporting-rules-remainder.md` using the patient case and the evidence made available for this pass.
 
-`reporting-rules-remainder.md` is the procedural analysis contract for this pass. Follow its patient-level conclusion style, REPORT/OMIT taxonomy, evidence boundary, branch-specific scope, and canonical reporting rules exactly. Apply the **Rule-draft citation contract** in `citation_rules.md`.
+`reporting-rules-remainder.md` is the prompt-owned analysis contract rendered for this pass. Follow its patient-level conclusion style, REPORT/OMIT taxonomy, evidence boundary, branch-specific scope, and canonical reporting rules exactly. Apply the **Rule-draft citation contract** in `citation_rules.md`.
 
 ## Branch semantics
 

@@ -4,7 +4,7 @@
 
 Answer every rule supplied in `reporting-rules-dx.md` using the patient case and `diagnostic_evidence.md`, then make one broad case-major-category routing decision.
 
-`reporting-rules-dx.md` is the procedural analysis contract for this pass. Follow its patient-level conclusion style, REPORT/OMIT taxonomy, evidence boundary, and canonical R0/R1 rules exactly. Apply the **Rule-draft citation contract** in `citation_rules.md`.
+`reporting-rules-dx.md` is the prompt-owned analysis contract rendered for this pass. Follow its patient-level conclusion style, REPORT/OMIT taxonomy, evidence boundary, and canonical R0/R1 rules exactly. Apply the **Rule-draft citation contract** in `citation_rules.md`.
 
 ## Reporting-rule output
 

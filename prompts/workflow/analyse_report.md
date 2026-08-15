@@ -6,26 +6,9 @@ Answer every reporting rule using the integrated case and the retrieved evidence
 Assign evidence-card tags that directly support each answer. 
 Explicitly classify every rule outcome as reportable or omitted.
 
-## REPORT versus OMIT classification
+## Shared reporting-rule policy
 
-The following principles should be used when deciding whether to report a statement of fact.
-
-### REPORT THE FOLLOWING:
-- The presence of a variant alters clinical diagnosis, prognosis or treatment.
-- The presence of a variant indicates the variant can be used as a biomarker
-- The presence of a variant is suspicious for a germline variant.
-- The absence of a variant contradicts the initial provisional diagnosis provided in the clinical stem
-- A variant, which is usually expected to be present given the clinical context, alters diagnosis, prognosis, treatment.
-- The presence of a variant, where there is no morphological evidence of haematological condition, indicates clonal haematopoiesis
-- The presence of a variant indicates dual pathology
-- The individual prognostic value of each NGS variant must be reported (adverse, favourable, or neutral)
-- The relevant applicable prognostic score (when present) needs to be stated.
-
-### OMIT THE FOLLOWING:
-- Statements that declare the absence of a variant when the variant is not usually expected to be present given the clinical stem
-- Statements that says treatment does not change from standard practice due to absence of a variant
-- Statements that none of the NGS variants are suitable biomarkers (molecular MRD markers)
-- Statements that none of the NGS variants are suspicious germline variants
+Follow `prompts/workflow/reporting_rule_policy.md` exactly for patient-level conclusion style and `REPORT:` versus `OMIT:` classification. The presence of an evidence card does not make a non-applicable rule reportable.
 
 ## Task-specific rules
 
@@ -76,4 +59,4 @@ Continue in exact source order through the final rule in `rules/agreed_reporting
 
 ## Final check
 
-Before returning, verify privately that there is exactly one line for every numbered rule in `rules/agreed_reporting_rules.md`; `R0.1` is `REPORT:` and ends with `(no citation required)`; every line follows `citation_rules.md`; every card tag is copied exactly from `evidence.md`; every rule has exactly one `REPORT:` or `OMIT:` classification; every non-reportable rule outcome uses `OMIT:`; `REPORT:` lines contain report-ready clinical prose rather than report-construction instructions; and reportable negative findings have not been converted into omission directives.
+Before returning, verify privately that there is exactly one line for every numbered rule in `rules/agreed_reporting_rules.md`; `R0.1` is `REPORT:` and ends with `(no citation required)`; every line follows `citation_rules.md`; every card tag is copied exactly from `evidence.md`; every rule has exactly one `REPORT:` or `OMIT:` classification; every non-reportable rule outcome uses `OMIT:`; any generic conclusion beginning `No ...` or `Not applicable ...` is `OMIT:` except R0.1; conditional rules whose premise is not met are `OMIT:`; `REPORT:` lines contain report-ready clinical prose rather than report-construction instructions; and clinically material negative findings are stated by their patient-level effect rather than as generic absence statements.

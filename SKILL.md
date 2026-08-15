@@ -27,7 +27,7 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `prompts/workflow/revise_diagnosis.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
 - Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, then render the single model-facing `evidence.md` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
-- Step 6A — model via `prompts/workflow/analyse_report.md` + shared `prompts/workflow/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
+- Step 6A — model via `prompts/workflow/analyse_report.md` + shared `prompts/workflow/reporting_rule_policy.md` + `prompts/workflow/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
 - Step 6B — model via `prompts/workflow/format_report.md` + shared `prompts/workflow/citation_rules.md` plus `<format-prompt>` + deterministic validation: render only `REPORT:` content from `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
 - Step 7 — post-report delivery and deterministic packaging; full `ngs-report`-equivalent runs get a debug ZIP containing every workflow artifact, while `nel-validate` and `nel-validate-function` additionally get separate external-marking ZIPs containing only the report, selected validation case, and self-contained marking prompt.
@@ -361,21 +361,12 @@ For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md`, `<work-d
 
 Use one fresh bounded model session.
 
-#### Patient-level conclusion and qualifier style
-
-For each reporting rule, state the **clinically reportable conclusion first**, then add any **material qualifier, condition, exception, or limitation** needed to interpret that conclusion correctly.
-
-- Lead with the positive patient-level fact or classification supported by the case and evidence.
-- Do not replace a supported conclusion with an evidence-sufficiency disclaimer merely because the conclusion depends on combining multiple findings or criteria.
-- Where a conclusion is conditional, express it in normal clinical-reporting form: **“X is associated with/supports Y, provided that Z.”**
-- Qualifiers should identify the circumstances that would modify, override, or limit the stated conclusion.
-- Apply the retrieved evidence to the patient facts. A complete patient-level conclusion does not need to appear verbatim in a single evidence item if it follows from the supplied facts and the retrieved criteria.
-- If the available information genuinely prevents the conclusion from being assigned, state what can be concluded first, then identify the specific unresolved condition preventing further classification.
-- Avoid pipeline or evidence-process language such as “the retrieved evidence does not provide…” in reportable prose. Write the clinical interpretation instead.
+#### Model-readable inputs
 
 Read only:
 
 - `prompts/workflow/analyse_report.md`;
+- `prompts/workflow/reporting_rule_policy.md`;
 - `prompts/workflow/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/evidence.md`;
@@ -391,7 +382,7 @@ python scripts/report_audit.py validate \
   --evidence <work-dir>/evidence.md
 ```
 
-The command is read-only and validates the complete rule sequence, compulsory `REPORT:`/`OMIT:` classification, obvious report-construction meta-language after `REPORT:`, compulsory terminal citation disposition, exact runtime card-tag syntax, duplicate tags, and tag membership in `evidence.md`.
+The command is read-only and validates the complete rule sequence, compulsory `REPORT:`/`OMIT:` classification, generic `No ...` / `Not applicable ...` outcomes incorrectly marked `REPORT:` (except R0.1), obvious report-construction meta-language after `REPORT:`, compulsory terminal citation disposition, exact runtime card-tag syntax, duplicate tags, and tag membership in `evidence.md`.
 
 If validation fails for a citation-tag reason (unknown, malformed, misplaced, or duplicated tag), enter **citation-repair mode** until validation succeeds:
 
@@ -403,7 +394,7 @@ If validation fails for a citation-tag reason (unknown, malformed, misplaced, or
 - do **not** read or re-read `case.md`, `rules/agreed_reporting_rules.md`, `card-tags.json`, `bundle.json`, `diagnostic_evidence.md`, `adjudication.json`, `cards/`, the corpus/index, the original case document, or any other source file;
 - never use `card-tags.json` to recover, translate, verify, or substitute a tag.
 
-For non-citation structural or classification validation failures, correct only the reported rule(s) and defect(s), using the validator message and `prompts/workflow/analyse_report.md`; do not reopen case or evidence sources unless the failure is specifically a citation-tag repair permitted above. Unknown tags are reported with the affected rule IDs.
+For non-citation structural or classification validation failures, correct only the reported rule(s) and defect(s), using the validator message, `prompts/workflow/analyse_report.md`, and `prompts/workflow/reporting_rule_policy.md`; do not reopen case or evidence sources unless the failure is specifically a citation-tag repair permitted above. Unknown tags are reported with the affected rule IDs.
 
 ### Step 6B — Format the final report
 

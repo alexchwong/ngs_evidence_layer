@@ -18,6 +18,7 @@ output/corpus/nel.corpus.json
 output/corpus/nel.index.json
 output/corpus/blacklist.json
 prompts/workflow/*
+prompts/workflow/prototype/*
 prompts/formatting/*
 rules/agreed_reporting_rules.md
 validation/__init__.py

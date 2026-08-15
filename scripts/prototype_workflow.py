@@ -3,8 +3,7 @@
 
 This module renders purpose-built prototype reporting-rule views from canonical
 rules, validates/extracts the terminal Step-3 CMC routing decision, and assembles
-the conventional ``report-draft.md``
-without changing any legacy workflow artifact.
+the conventional ``report-draft.md`` while keeping authored prompt prose outside Python.
 """
 from __future__ import annotations
 
@@ -20,8 +19,13 @@ import vocab  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RULES = REPO_ROOT / "rules" / "agreed_reporting_rules.md"
-LEGACY_SKILL = REPO_ROOT / "SKILL.md"
-LEGACY_ANALYSE_REPORT = REPO_ROOT / "prompts" / "workflow" / "analyse_report.md"
+REPORTING_RULE_POLICY = REPO_ROOT / "prompts" / "workflow" / "reporting_rule_policy.md"
+PROTOTYPE_PROMPT_DIR = REPO_ROOT / "prompts" / "workflow" / "prototype"
+PROTOTYPE_RULE_TEMPLATES = {
+    "diagnosis": PROTOTYPE_PROMPT_DIR / "diagnosis_rule_view.md",
+    "remainder": PROTOTYPE_PROMPT_DIR / "remainder_rule_view.md",
+    "full": PROTOTYPE_PROMPT_DIR / "full_rule_view.md",
+}
 SECTION_HEADING = re.compile(r"^# R(\d+)\b")
 REFINED_CMC_LINE = re.compile(r"^REFINED_CMC: (.+)$")
 
@@ -33,51 +37,21 @@ def _read(path: Path) -> str:
         raise ValueError(f"cannot read {path}: {exc}") from exc
 
 
-def _extract_markdown_section(text: str, heading: str) -> str:
-    """Extract one Markdown section verbatim, stopping at the next same/higher heading."""
-    lines = text.splitlines()
-    try:
-        start = lines.index(heading)
-    except ValueError as exc:
-        raise ValueError(f"required canonical prompt section is missing: {heading}") from exc
-    level = len(heading) - len(heading.lstrip("#"))
-    end = len(lines)
-    for index in range(start + 1, len(lines)):
-        candidate = lines[index]
-        if not candidate.startswith("#"):
-            continue
-        candidate_level = len(candidate) - len(candidate.lstrip("#"))
-        if candidate_level <= level:
-            end = index
-            break
-    return "\n".join(lines[start:end]).rstrip()
-
-
-def _canonical_patient_level_style() -> str:
-    # Deliberately source this verbatim from legacy Step 6A so the prototype cannot
-    # silently drift from the benchmark's clinically important answer style. The
-    # legacy subsection is followed by an unheaded "Read only:" workflow block, so
-    # use that exact boundary rather than generic Markdown heading semantics.
-    text = _read(LEGACY_SKILL)
-    heading = "#### Patient-level conclusion and qualifier style"
-    start = text.find(heading)
-    if start < 0:
-        raise ValueError(f"required canonical prompt section is missing: {heading}")
-    end = text.find("\n\nRead only:", start)
-    if end < 0:
+def _render_prompt_template(path: Path, replacements: dict[str, str]) -> str:
+    """Render one prompt-owned prototype template with strict named placeholders."""
+    text = _read(path)
+    for marker, value in replacements.items():
+        placeholder = "{{" + marker + "}}"
+        if placeholder not in text:
+            raise ValueError(f"prototype prompt template {path} is missing required placeholder {placeholder}")
+        text = text.replace(placeholder, value.rstrip())
+    unresolved = sorted(set(re.findall(r"{{[A-Z0-9_]+}}", text)))
+    if unresolved:
         raise ValueError(
-            "cannot locate the end of legacy Patient-level conclusion and qualifier style "
-            "before the Step 6A 'Read only:' block"
+            f"prototype prompt template {path} contains unresolved placeholder(s): "
+            + ", ".join(unresolved)
         )
-    return text[start:end].rstrip()
-
-
-def _canonical_report_omit_taxonomy() -> str:
-    # Reuse the legacy REPORT/OMIT taxonomy verbatim rather than maintaining a
-    # second classification policy for the prototype.
-    return _extract_markdown_section(
-        _read(LEGACY_ANALYSE_REPORT), "## REPORT versus OMIT classification"
-    )
+    return text.rstrip() + "\n"
 
 
 def _rule_view_kind(sections: set[int]) -> str:
@@ -95,53 +69,16 @@ def _rule_view_kind(sections: set[int]) -> str:
     return kind
 
 
-def _rule_view_intro(kind: str) -> str:
-    if kind == "diagnosis":
-        title = "# Diagnosis-pass reporting rules"
-        task = (
-            "Answer R0-R1 only. Produce self-contained patient-level conclusions suitable "
-            "for later report synthesis. After these rule answers, the workflow prompt "
-            "separately requires one refined CMC routing line; that routing line is not report content."
-        )
-        evidence = (
-            "Treat `diagnostic_evidence.md` as the complete literature-evidence boundary for this pass. "
-            "Use only runtime card tags exposed there."
-        )
-    elif kind == "remainder":
-        title = "# Downstream reporting rules"
-        task = (
-            "The diagnostic pass is complete. Answer R2-R5 only. Use `report-draft-dx.md` as "
-            "established patient-level diagnostic context; do not re-answer R0-R1 or change the refined CMC."
-        )
-        evidence = (
-            "Treat `downstream_evidence.md` as the complete literature-evidence boundary for this pass. "
-            "Use `report-draft-dx.md` only as prior patient-level diagnostic context, never as a source of "
-            "new runtime card tags. Use only runtime card tags exposed in `downstream_evidence.md`."
-        )
-    elif kind == "full":
-        title = "# Full reporting-rule re-analysis"
-        task = (
-            "The diagnostic CMC changed. Re-answer R0-R5 from scratch using the evidence supplied for "
-            "this pass. The refined CMC is fixed; do not change, re-route, propose, or emit another CMC."
-        )
-        evidence = (
-            "Treat `downstream_evidence.md` as the complete literature-evidence boundary for this pass, "
-            "including its recalled diagnosis evidence. Use only runtime card tags exposed there."
-        )
-    else:  # pragma: no cover - internal programming error
+def _render_rule_view(kind: str, rules: str) -> str:
+    template = PROTOTYPE_RULE_TEMPLATES.get(kind)
+    if template is None:  # pragma: no cover - internal programming error
         raise ValueError(f"unsupported prototype rule-view kind: {kind}")
-
-    return (
-        f"{title}\n\n"
-        "## Task\n\n"
-        f"{task}\n\n"
-        f"{_canonical_patient_level_style()}\n\n"
-        f"{_canonical_report_omit_taxonomy()}\n\n"
-        "## Evidence boundary\n\n"
-        f"{evidence}\n\n"
-        "## Citation contract\n\n"
-        "Apply the **Rule-draft citation contract** in `prompts/workflow/citation_rules.md`. "
-        "The rule-draft citation contract, not the final-report sentence contract, governs these rule answers.\n"
+    return _render_prompt_template(
+        template,
+        {
+            "REPORTING_RULE_POLICY": _read(REPORTING_RULE_POLICY),
+            "CANONICAL_RULES": rules,
+        },
     )
 
 
@@ -174,7 +111,7 @@ def slice_rules_text(rules_text: str, sections: set[int]) -> str:
 
     kind = _rule_view_kind(sections)
     rules = _canonical_rule_sections(rules_text, sections)
-    result = _rule_view_intro(kind).rstrip() + "\n\n" + rules
+    result = _render_rule_view(kind, rules)
     specs = report_audit.agreed_rule_specs(result)
     found_sections = {int(spec["rule_id"].split(".", 1)[0][1:]) for spec in specs}
     missing = sorted(sections - found_sections)

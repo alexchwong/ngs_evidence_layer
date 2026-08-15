@@ -68,6 +68,32 @@ class DraftValidationTests(unittest.TestCase):
         result = report_audit.validate_draft(draft_text(), EVIDENCE)
         self.assertEqual(result[0]["classification"], "REPORT")
 
+    def test_r0_1_allows_mandatory_no_pathogenic_variants_sentence(self):
+        classification, text, tags = report_audit.split_draft_line(
+            "R0.1 REPORT: No pathogenic variants were detected on NGS. (no citation required)",
+            expected_rule_id="R0.1",
+            line_number=1,
+        )
+        self.assertEqual(classification, "REPORT")
+        self.assertEqual(text, "No pathogenic variants were detected on NGS.")
+        self.assertEqual(tags, [])
+
+    def test_rejects_report_sentence_beginning_no(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: No reportable implication is present. (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "sentence beginning 'No'"):
+            report_audit.validate_draft(text, EVIDENCE)
+
+    def test_rejects_later_report_sentence_beginning_not_applicable(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: The assay result is available. Not applicable to this case. (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "sentence beginning 'Not applicable'"):
+            report_audit.validate_draft(text, EVIDENCE)
+
     def test_rejects_report_meta_instruction_with_actionable_message(self):
         text = draft_text().replace(
             "R1.1 REPORT: Answer for R1.1. (no citation required)",
