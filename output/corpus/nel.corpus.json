@@ -1,12 +1,12 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 519,
-    "census_entries": 1287,
-    "completed_papers": 9,
-    "rejected_papers": 35
+    "cards": 625,
+    "census_entries": 1488,
+    "completed_papers": 12,
+    "rejected_papers": 32
   },
-  "generated_at": "2026-08-14T03:57:13.375454+00:00",
+  "generated_at": "2026-08-15T13:40:13.396694+00:00",
   "publications": [
     {
       "document": {
@@ -1075,6 +1075,1269 @@
           "cloos-2026-blood-147-1147-C0039: evidence is identical to cloos-2026-blood-147-1147-C0038; review independent utility",
           "cloos-2026-blood-147-1147-C0045: evidence is identical to cloos-2026-blood-147-1147-C0044; review independent utility"
         ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0001",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Heterozygous germline DDX41 variants are associated with increased lifetime risk of MDS and AML.",
+            "locator": "Materials and Methods > Calculation of minor allele frequency thresholds",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "For germline DDX41 predisposition to MDS and AML, penetrance of heterozygous variants was estimated at approximately 62%.",
+            "locator": "Materials and Methods > Calculation of minor allele frequency thresholds",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0003",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "For DDX41 germline variant interpretation, the paper calculates a BA1 MAF threshold of 0.00109 (0.1%) using AML prevalence, estimated penetrance, allelic heterogeneity, and an assumption of 100% genetic heterogeneity.",
+            "locator": "Materials and Methods > Calculation of minor allele frequency thresholds; Figure 1A",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0004",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "For DDX41, using a maximum genetic heterogeneity contribution of 10%, the paper gives a BS1 MAF range of 0.000109 (0.01%) to 0.00109 (0.1%).",
+            "locator": "Materials and Methods > Calculation of minor allele frequency thresholds; Figure 1A",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0005",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Because DDX41 has founder variants, the proposed BA1/BS1 MAF cutoffs should be applied using the total gnomAD population rather than subpopulation MAFs.",
+            "locator": "Materials and Methods > Calculation of minor allele frequency thresholds",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0006",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "When DDX41 BS1 is calibrated from the recurrent p.Asp140Glyfs*2 variant, the paper proposes a conservative BS1 threshold of 0.000219, 2.5-fold above its gnomAD MAF of 0.0000875.",
+            "locator": "Results > Population data > MAF thresholds (BA1, BS1, BS1_supporting); Figure 1B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0007",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Under the recurrent-variant DDX41 calibration, BS1_supporting can be used for variants with MAF between 0.0000875 and 0.000219.",
+            "locator": "Results > Population data > MAF thresholds (BA1, BS1, BS1_supporting); Figure 1B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0008",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "Germline CEBPA variants cause hereditary AML without other organ manifestations.",
+            "locator": "Materials and Methods > Calculation of number of probands for PS4",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0009",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "Hereditary AML caused by germline CEBPA variants has a reported median age of onset of 24 years.",
+            "locator": "Materials and Methods > Calculation of number of probands for PS4",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0010",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "In AML, germline CEBPA heterozygotes almost always acquire a second CEBPA variant on the constitutionally wild-type allele and therefore present with biallelic CEBPA variants.",
+            "locator": "Materials and Methods > Calculation of number of probands for PS4",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0012",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BRAF",
+              "CARD11",
+              "CBL",
+              "ETV6",
+              "IKZF1",
+              "KRAS",
+              "MPL",
+              "NRAS",
+              "PTPN11",
+              "RAD51",
+              "RIT1",
+              "STAT3",
+              "TP53"
+            ],
+            "interpretation": "For BRAF, CARD11, CBL, ETV6, IKZF1, KRAS, MPL, NRAS, PTPN11, RAD51, RIT1, STAT3, and TP53, variants seen in gnomAD may reflect CHIP rather than true germline alleles and this possibility should be considered during germline interpretation.",
+            "locator": "Results > Observation in multiple probands (PS4, PS4_moderate, PS4_supporting)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0013",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2"
+            ],
+            "interpretation": "For GATA2, missense variants in zinc finger 1 are a typical somatic hotspot, whereas missense variants in zinc finger 2 are a common germline hotspot associated with clinical GATA2 deficiency.",
+            "locator": "Results > Protein domains and constraint scores (PP2, PM1, PM1_supporting)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0014",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "PM1 can be applied to germline ETV6 variants across the entire ETS domain.",
+            "locator": "Figure 2A",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0015",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "For ETV6, PM1 may be applied either across the central domain or specifically at the amino-acid 214 mutational hotspot.",
+            "locator": "Figure 2A",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0016",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ANKRD26"
+            ],
+            "interpretation": "PM1 can be applied to the 19-bp ANKRD26 5′ UTR stretch that encompasses all reported pathogenic/likely pathogenic variants.",
+            "locator": "Figure 2B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0017",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2"
+            ],
+            "interpretation": "GATA2 intronic enhancer variants are an example of disease-causing noncoding variation for which PM1 may be applied when the region is clearly defined, highly conserved, biologically significant, and variants in that region drive disease.",
+            "locator": "Results > Protein domains and constraint scores (PP2, PM1, PM1_supporting)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0018",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "BRCA2"
+            ],
+            "interpretation": "PVS1 should not be applied when truncating variants are frequent in the affected exon; the paper illustrates this with common truncating variants in the last exon of BRCA2.",
+            "locator": "Results > Truncating variants (PVS1, PVS1_strong, PVS1_moderate, PVS1_supporting); Figure 3A",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0019",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ERCC6L2"
+            ],
+            "interpretation": "ERCC6L2 NM_020207.7:c.1930C>T (p.Arg644*) affects both biologically relevant transcripts and has been reported as disease-causing.",
+            "locator": "Results > Truncating variants; Figure 3B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0020",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ERCC6L2"
+            ],
+            "interpretation": "ERCC6L2 NM_020207.7:c.3763C>T (p.Arg1255*) affects only the long HEBO isoform and has been reported as disease-causing.",
+            "locator": "Results > Truncating variants; Figure 3B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0021",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "PVS1_strong can be applied to DDX41 NM_016222.4:c.1791_1792del (p.Lys597Asnfs*?) because it is not predicted to undergo NMD but still affects a functional domain.",
+            "locator": "Results > Truncating variants; Figure 3C",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0022",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "For ETV6 variant curation, luciferase reporter assays showing decreased transcriptional repression are supported as a pathogenic functional readout.",
+            "locator": "Results > Functional criteria",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0023",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "For ETV6 variant curation, impaired megakaryocytic differentiation is supported as a pathogenic functional readout.",
+            "locator": "Results > Functional criteria",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0024",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "For ETV6 variant curation, aberrant cytoplasmic localization of mutant ETV6 is supported as a pathogenic functional readout.",
+            "locator": "Results > Functional criteria",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0025",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "For ETV6 functional evidence, two different supporting assays can reach moderate strength, while one moderate plus one supporting assay or three supporting assays can reach strong evidence.",
+            "locator": "Results > Functional criteria",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0026",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2"
+            ],
+            "interpretation": "In suspected GATA2 deficiency, pulmonary alveolar proteinosis is a specific extrahematologic feature that can support PP4 in germline variant interpretation.",
+            "locator": "Results > Phenotypic specificity (PP4_moderate, PP4)",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "feurstein-2021-myeloid-germline-C0027",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CTC1",
+              "STN1"
+            ],
+            "interpretation": "Coats Plus syndrome caused by CTC1 or STN1 is a highly distinct phenotype in which PP4_moderate can be applied during germline variant interpretation.",
+            "locator": "Results > Phenotypic specificity (PP4_moderate, PP4)",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 31,
+        "citation": {
+          "authors": [
+            "Feurstein S",
+            "Hahn CN",
+            "Mehta N",
+            "Godley LA"
+          ],
+          "citation_incomplete": [],
+          "display": "Feurstein S, Hahn CN, Mehta N, Godley LA. A practical guide to interpreting germline variants that drive hematopoietic malignancies, bone marrow failure, and chronic cytopenias. Genetics in Medicine. 2022;24(4):931-954.",
+          "doi": "10.1016/j.gim.2021.12.008",
+          "issue": "4",
+          "journal": "Genetics in Medicine",
+          "pages": "931-954",
+          "title": "A practical guide to interpreting germline variants that drive hematopoietic malignancies, bone marrow failure, and chronic cytopenias",
+          "volume": "24",
+          "year": 2022
+        },
+        "diseases_covered": [
+          "AML",
+          "CHIP",
+          "MDS"
+        ],
+        "extraction_date": "2026-08-15",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ANKRD26",
+          "BRAF",
+          "BRCA2",
+          "CARD11",
+          "CBL",
+          "CEBPA",
+          "CTC1",
+          "DDX41",
+          "ERCC6L2",
+          "ETV6",
+          "GATA2",
+          "IKZF1",
+          "KRAS",
+          "MPL",
+          "NRAS",
+          "PTPN11",
+          "RAD51",
+          "RIT1",
+          "STAT3",
+          "STN1",
+          "TP53"
+        ],
+        "paper_nickname": "Feurstein Germline Variant Interpretation Guide 2022",
+        "publication_key": "feurstein-2021-myeloid-germline",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-15",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0017",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0018",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0019",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0020",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0021",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0022",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0023",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0024",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0025",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0026",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "feurstein-2021-myeloid-germline-C0027",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 26,
+          "census_claims": 31,
+          "census_entries": 31,
+          "ratio": 0.84
+        },
+        "input_id": "3f058ea2-b0bb-548d-b6b9-96835bb6a43b",
+        "markdown_sha256": "e51ad6dd8f5f24d730c82094bce7550f838ea6e05651deca77afdc871b5cb217",
+        "source_filename": "Feurstein_2021_myeloid_germline.pdf",
+        "source_sha256": "c71475639e01dd96394440edbe9905cba9178f5f3d005ffbefecd12fefb9b3a2",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0002",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ELANE",
+              "CSF3R",
+              "GFI1",
+              "SRP54"
+            ],
+            "interpretation": "Severe congenital neutropenia involving ELANE, CSF3R, GFI1, or SRP54 is listed as a germline predisposition associated with MDS and AML.",
+            "locator": "Table 1 — Severe congenital neutropenia row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0003",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SRP72"
+            ],
+            "interpretation": "SRP72-associated bone marrow failure syndrome is listed as a germline predisposition associated with MDS.",
+            "locator": "Table 1 — BFMS1/SRP72 row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0004",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1"
+            ],
+            "interpretation": "RUNX1 is listed as a germline predisposition gene associated with MDS and AML.",
+            "locator": "Table 1 — germline RUNX1 row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0005",
+            "category": "germline",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "AML",
+              "MDS",
+              "CML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ANKRD26"
+            ],
+            "interpretation": "Germline ANKRD26 predisposition is associated with AML, MDS, and CML.",
+            "locator": "Table 1 — germline ANKRD26 row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0006",
+            "category": "germline",
+            "disease_ancestors": [
+              "lymphoid neoplasm"
+            ],
+            "diseases": [
+              "acute lymphoblastic leukaemia/lymphoma",
+              "AML",
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "Germline ETV6 predisposition is associated with ALL, AML, and MDS.",
+            "locator": "Table 1 — germline ETV6 row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0007",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2"
+            ],
+            "interpretation": "GATA2 deficiency syndrome is listed as a germline predisposition associated with MDS and AML.",
+            "locator": "Table 1 — GATA2 deficiency syndrome row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0008",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SAMD9L"
+            ],
+            "interpretation": "SAMD9L-associated ataxia-pancytopenia syndrome is listed as a germline predisposition to MDS/AML with monosomy 7.",
+            "locator": "Table 1 — Ataxia-pancytopenia syndrome row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0009",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SAMD9"
+            ],
+            "interpretation": "SAMD9-associated MIRAGE syndrome is listed as a germline predisposition to MDS/AML with monosomy 7.",
+            "locator": "Table 1 — MIRAGE syndrome row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0010",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Germline DDX41 mutation is listed as a predisposition associated with MDS and AML.",
+            "locator": "Table 1 — germline DDX41 row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0011",
+            "category": "germline",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "JMML",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CBL",
+              "KRAS",
+              "NF1",
+              "PTPN11"
+            ],
+            "interpretation": "RASopathies involving CBL, KRAS, NF1, or PTPN11 are listed as germline predisposition syndromes associated with JMML and AML.",
+            "locator": "Table 1 — RASopathies row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0012",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53-associated Li-Fraumeni syndrome is listed as a germline predisposition that includes MDS and AML.",
+            "locator": "Table 1 — Li Fraumeni syndrome row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0013",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MECOM"
+            ],
+            "interpretation": "MECOM-associated syndromes are listed among germline conditions associated with MDS and AML.",
+            "locator": "Table 1 — MECOM-associated syndromes row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0014",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DKC1"
+            ],
+            "interpretation": "DKC1-associated telomere biology disorder is listed as a germline predisposition associated with MDS and AML.",
+            "locator": "Table 1 — Telomere biology disorders row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0015",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "LIG4"
+            ],
+            "interpretation": "LIG4 syndrome is listed as a germline predisposition associated with MDS.",
+            "locator": "Table 1 — LIG4 syndrome row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0016",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SRP72"
+            ],
+            "interpretation": "Congenital sensorineural deafness is a characteristic clinical clue to SRP72-associated germline predisposition.",
+            "locator": "Table 1 — BFMS1/SRP72 row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0018",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TERC",
+              "RUNX1"
+            ],
+            "interpretation": "Poor stem-cell mobilization in a sibling candidate donor is reported as a rare clue to germline TERC or RUNX1 predisposition.",
+            "locator": "Criteria for whom to test — criterion A footnote 1",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0019",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "GATA2",
+              "TP53",
+              "ETV6",
+              "CEBPA"
+            ],
+            "interpretation": "In MDS or AML, a RUNX1, GATA2, TP53, ETV6, or CEBPA variant detected on a somatic NGS panel with VAF 40–60% or >90% can suggest possible germline origin.",
+            "locator": "Criteria for whom to test — criterion B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0020",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "GATA2",
+              "TP53",
+              "ETV6",
+              "CEBPA"
+            ],
+            "interpretation": "When a RUNX1, GATA2, TP53, ETV6, or CEBPA variant detected on a somatic NGS panel is suspected to be germline in MDS/AML, confirmation in extra-hematological tissue is highly recommended after consent.",
+            "locator": "Criteria for whom to test — criterion B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0021",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Possible germline DDX41 predisposition should not be excluded in older adults: DDX41 variants are associated with MDS and AML between ages 55 and 65 years.",
+            "locator": "Criteria for whom to test — criterion B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0022",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Truncating DDX41 variants are usually of germline origin.",
+            "locator": "Criteria for whom to test — criterion B",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0023",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "GATA2",
+              "SAMD9",
+              "SAMD9L"
+            ],
+            "interpretation": "In patients diagnosed with MDS or AML before age 50 without suggestive personal or family history, chromosome 7 loss abnormalities should prompt referral for germline counseling/testing; this criterion is particularly relevant to GATA2-, SAMD9-, and SAMD9L-related predisposition.",
+            "locator": "Criteria for whom to test — criterion C",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0025",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1",
+              "ANKRD26",
+              "ETV6"
+            ],
+            "interpretation": "Carriers of RUNX1, ANKRD26, or ETV6 variants may have thrombocytopenia at baseline.",
+            "locator": "Work-up for patients with a germline predisposition to MDS or AML — Baseline",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0026",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1",
+              "ANKRD26",
+              "ETV6"
+            ],
+            "interpretation": "Carriers of RUNX1, ANKRD26, or ETV6 variants may have a bleeding tendency even without thrombocytopenia.",
+            "locator": "Work-up for patients with a germline predisposition to MDS or AML — Baseline",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0027",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "GATA2",
+              "RUNX1"
+            ],
+            "interpretation": "For germline predisposition to MDS/AML involving pathogenic GATA2 or RUNX1 variants, the working group recommends repeating CBC every 6 months, particularly in high-risk patients.",
+            "locator": "Follow-up — Complete blood counts",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0028",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS",
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2",
+              "RUNX1"
+            ],
+            "interpretation": "In hereditary conditions related mainly to germline GATA2 or RUNX1 mutations, emergence of clonal hematopoiesis is associated with increased risk of developing MDS or AML.",
+            "locator": "Testing of peripheral blood for somatic mutations",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0030",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "Germline CEBPA variants are associated with AML.",
+            "locator": "Considerations for allo-HSCT — Indication",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0031",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "AML with germline CEBPA mutation has no absolute indication for allo-HSCT in first complete remission.",
+            "locator": "Considerations for allo-HSCT — Timing, germline CEBPA",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0032",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "Patients with germline CEBPA-associated AML can experience long remissions after conventional chemotherapy.",
+            "locator": "Considerations for allo-HSCT — Timing, germline CEBPA",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0033",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "Germline CEBPA-associated AML remains at high risk of developing new leukemic clones.",
+            "locator": "Considerations for allo-HSCT — Timing, germline CEBPA",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0034",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "Although allo-HSCT is not absolutely indicated in first remission, it may be considered later in germline CEBPA-associated AML.",
+            "locator": "Considerations for allo-HSCT — Timing, germline CEBPA",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 89,
+        "citation": {
+          "authors": [
+            "Baliakas P",
+            "Tesi B",
+            "Wartiovaara-Kautto U",
+            "Stray-Pedersen A",
+            "Friis LS",
+            "Dybedal I",
+            "Hovland R",
+            "Jahnukainen K",
+            "Raaschou-Jensen K",
+            "Ljungman P",
+            "Rustad CF",
+            "Lautrup CK",
+            "Kilpivaara O",
+            "Kittang AO",
+            "Grønbæk K",
+            "Cammenga J",
+            "Hellström-Lindberg E",
+            "Andersen MK"
+          ],
+          "citation_incomplete": [],
+          "display": "Baliakas P, Tesi B, Wartiovaara-Kautto U, Stray-Pedersen A, Friis LS, Dybedal I, et al. Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up. HemaSphere. 2019;3(6):e321.",
+          "doi": "10.1097/hs9.0000000000000321",
+          "issue": "6",
+          "journal": "HemaSphere",
+          "pages": "e321",
+          "title": "Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up",
+          "volume": "3",
+          "year": 2019
+        },
+        "diseases_covered": [
+          "AML",
+          "CML",
+          "JMML",
+          "MDS",
+          "acute lymphoblastic leukaemia/lymphoma"
+        ],
+        "extraction_date": "2026-08-15",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ANKRD26",
+          "CBL",
+          "CEBPA",
+          "CSF3R",
+          "DDX41",
+          "DKC1",
+          "ELANE",
+          "ETV6",
+          "GATA2",
+          "GFI1",
+          "KRAS",
+          "LIG4",
+          "MECOM",
+          "NF1",
+          "PTPN11",
+          "RUNX1",
+          "SAMD9",
+          "SAMD9L",
+          "SRP54",
+          "SRP72",
+          "TERC",
+          "TP53"
+        ],
+        "paper_nickname": "Nordic Germline Myeloid Guidelines 2019",
+        "publication_key": "baliakas-2019-operational-germline-testing",
+        "publication_type": "consensus statement"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-15",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0018",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0019",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0020",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0021",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0022",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0023",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0025",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0026",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0027",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0028",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0030",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0031",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0032",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0033",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0034",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 30,
+          "census_claims": 89,
+          "census_entries": 89,
+          "ratio": 0.34
+        },
+        "input_id": "58b75c4a-b4db-50b2-904d-f645039b0044",
+        "markdown_sha256": "4d6e6ac30f23a9c8f9fa18f9e03235fa841cf65f402e03280c6f3e7d3e1c6feb",
+        "source_filename": "Baliakas_2019_Operational_germline_testing.pdf",
+        "source_sha256": "b61fc18d05f07cb157e36cccb085664cb95d11bc5ca5e09f6af019fad868f31d",
+        "warnings": []
       }
     },
     {
@@ -12574,6 +13837,1739 @@
           "d-hner-2022-blood-140-1345-C0019: evidence is identical to d-hner-2022-blood-140-1345-C0018; review independent utility",
           "d-hner-2022-blood-140-1345-C0021: evidence is identical to d-hner-2022-blood-140-1345-C0020; review independent utility",
           "d-hner-2022-blood-140-1345-C0022: evidence is identical to d-hner-2022-blood-140-1345-C0021; review independent utility"
+        ]
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0001",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, TP53 multihit status is defined by multiple TP53 mutations or by a TP53 mutation with loss of heterozygosity, including chromosomal deletion or copy-neutral LOH.",
+            "locator": "Methods — Genomic Characterization, lines 49–51",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, TP53 multihit, but not monoallelic TP53 mutation, is a strong adverse prognostic feature after adjustment for clinical confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "In MDS, FLT3 mutations (ITD or TKD) are strong adverse prognostic features and were among the mutations with the strongest association with AML transformation.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "KMT2A"
+            ],
+            "interpretation": "In MDS, KMT2A (MLL) partial tandem duplication is a strong adverse prognostic feature, with high risk of AML transformation and poor overall survival.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ASXL1"
+            ],
+            "interpretation": "In MDS, ASXL1 mutation was significantly associated with adverse risk for leukemia-free survival, overall survival, and AML transformation after adjustment for confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0006",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "BCOR"
+            ],
+            "interpretation": "In MDS, BCOR mutation was significantly associated with adverse risk for leukemia-free survival, overall survival, and AML transformation after adjustment for confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0007",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "EZH2"
+            ],
+            "interpretation": "In MDS, EZH2 mutation was significantly associated with adverse risk for leukemia-free survival, overall survival, and AML transformation after adjustment for confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0008",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "NRAS"
+            ],
+            "interpretation": "In MDS, NRAS mutation was significantly associated with adverse risk for leukemia-free survival, overall survival, and AML transformation after adjustment for confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0009",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "RUNX1"
+            ],
+            "interpretation": "In MDS, RUNX1 mutation was significantly associated with adverse risk for leukemia-free survival, overall survival, and AML transformation after adjustment for confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0010",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "STAG2"
+            ],
+            "interpretation": "In MDS, STAG2 mutation was significantly associated with adverse risk for leukemia-free survival, overall survival, and AML transformation after adjustment for confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0011",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "U2AF1"
+            ],
+            "interpretation": "In MDS, U2AF1 mutation was significantly associated with adverse risk for leukemia-free survival, overall survival, and AML transformation after adjustment for confounders and IPSS-R.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 65–67",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0012",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "In MDS, DDX41 mutation was associated with increased risk of AML transformation.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, line 69",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0013",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "In MDS, DDX41 mutation was associated with favorable overall survival, particularly in MDS with excess blasts, despite its association with AML transformation.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, line 69",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0014",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "In MDS, a biallelic DDX41 pattern with clonal and subclonal VAF peaks was considered suggestive of a germline DDX41 mutation followed by a secondary somatic hit.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, line 69",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0015",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SF3B1",
+              "BCOR",
+              "BCORL1",
+              "RUNX1",
+              "NRAS",
+              "STAG2",
+              "SRSF2"
+            ],
+            "interpretation": "In MDS, favorable outcomes associated with SF3B1 mutation were confined to the SF3B1a subgroup; this subgroup excludes comutations in BCOR, BCORL1, RUNX1, NRAS, STAG2, SRSF2, and del(5q).",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 71 and 298",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0016",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SF3B1",
+              "BCOR",
+              "BCORL1",
+              "NRAS",
+              "RUNX1",
+              "SRSF2",
+              "STAG2"
+            ],
+            "interpretation": "In MDS, the favorable prognostic association of SF3B1 mutation was not observed in the SF3B1b subgroup defined by comutation with BCOR, BCORL1, NRAS, RUNX1, SRSF2, or STAG2.",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 71 and 298",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0017",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SF3B1"
+            ],
+            "interpretation": "In MDS, the favorable prognostic association of SF3B1 mutation was not observed in the SF3B15q subgroup with concomitant isolated del(5q).",
+            "locator": "Results — Association Between Gene Mutations and Clinical End Points, lines 71 and 298",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0018",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SF3B1",
+              "BCOR",
+              "BCORL1",
+              "NRAS",
+              "RUNX1",
+              "SRSF2",
+              "STAG2"
+            ],
+            "interpretation": "For prognostic interpretation in MDS, SF3B1-mutated cases should be distinguished by comutation-defined genetic subset rather than treating all SF3B1 mutations as uniformly favorable.",
+            "locator": "Discussion, line 487",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0019",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "NPM1"
+            ],
+            "interpretation": "In the adjusted IPSS-M leukemia-free-survival model for MDS, NPM1 mutation is a main-effect feature with adjusted hazard ratio 1.54 (0.78–3.02) and model weight 0.430.",
+            "locator": "Table 1 — IPSS-M Risk Score Construction, lines 322–331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0020",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "In the adjusted IPSS-M leukemia-free-survival model for MDS, ETV6 mutation is a main-effect feature with adjusted hazard ratio 1.48 (0.98–2.23) and model weight 0.391.",
+            "locator": "Table 1 — IPSS-M Risk Score Construction, lines 322–331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0021",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "IDH2"
+            ],
+            "interpretation": "In the adjusted IPSS-M leukemia-free-survival model for MDS, IDH2 mutation is a main-effect feature with adjusted hazard ratio 1.46 (1.05–2.02) and model weight 0.379.",
+            "locator": "Table 1 — IPSS-M Risk Score Construction, lines 322–331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0022",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "CBL"
+            ],
+            "interpretation": "In the adjusted IPSS-M leukemia-free-survival model for MDS, CBL mutation is a main-effect feature with adjusted hazard ratio 1.34 (0.99–1.82) and model weight 0.295.",
+            "locator": "Table 1 — IPSS-M Risk Score Construction, lines 322–331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0023",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SRSF2"
+            ],
+            "interpretation": "In the adjusted IPSS-M leukemia-free-survival model for MDS, SRSF2 mutation is a main-effect feature with adjusted hazard ratio 1.27 (1.03–1.56) and model weight 0.239.",
+            "locator": "Table 1 — IPSS-M Risk Score Construction, lines 322–331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0024",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "DNMT3A"
+            ],
+            "interpretation": "In the adjusted IPSS-M leukemia-free-survival model for MDS, DNMT3A mutation is a main-effect feature with adjusted hazard ratio 1.25 (1.02–1.53) and model weight 0.221.",
+            "locator": "Table 1 — IPSS-M Risk Score Construction, lines 322–331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0025",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "KRAS"
+            ],
+            "interpretation": "In the adjusted IPSS-M leukemia-free-survival model for MDS, KRAS mutation is a main-effect feature with adjusted hazard ratio 1.22 (0.84–1.77) and model weight 0.202.",
+            "locator": "Table 1 — IPSS-M Risk Score Construction, lines 322–331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0026",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, IPSS-M captures residual adverse molecular risk by counting mutations in BCOR, BCORL1, CEBPA, ETNK1, GATA2, GNB1, IDH1, NF1, PHF6, PPM1D, PRPF8, PTPN11, SETBP1, STAG2, and WT1; the residual mutation-count contribution is capped at two mutations.",
+            "locator": "Results — Feature Selection for IPSS-M Model Development, line 310",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0027",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1"
+            ],
+            "interpretation": "For the 16 IPSS-M main-effect prognostic genes in MDS, mutation VAF is not used to weight mutations; the model uses binary gene features, with TP53 allelic state and SF3B1 genetic subsets encoded separately because of their differential outcome effects.",
+            "locator": "Results — Feature Encoding and Feature Selection for IPSS-M Model Development, lines 304–308",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0028",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, an IPSS-M score of 0 represents the average patient; scores of -1, 1, and 2 correspond to approximately half, double, and fourfold risk, respectively, relative to the average patient.",
+            "locator": "Results — IPSS-M Risk Score and Risk Categories, line 314",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0029",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M very low risk category had a median leukemia-free survival of 9.7 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0030",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M very low risk category had a median overall survival of 10.6 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0031",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M very low risk category had AML-transformation incidences of 0.0% at 1 year, 1.2% at 2 years, and 2.8% at 4 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0032",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M low risk category had a median leukemia-free survival of 5.9 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0033",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M low risk category had a median overall survival of 6.0 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0034",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M low risk category had AML-transformation incidences of 1.7% at 1 year, 3.4% at 2 years, and 5.1% at 4 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0035",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M moderate low risk category had a median leukemia-free survival of 4.5 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0036",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M moderate low risk category had a median overall survival of 4.6 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0037",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M moderate low risk category had AML-transformation incidences of 4.9% at 1 year, 8.8% at 2 years, and 11.4% at 4 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0038",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M moderate high risk category had a median leukemia-free survival of 2.3 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0039",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M moderate high risk category had a median overall survival of 2.8 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0040",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M moderate high risk category had AML-transformation incidences of 9.5% at 1 year, 14.0% at 2 years, and 18.9% at 4 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0041",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M high risk category had a median leukemia-free survival of 1.5 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0042",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M high risk category had a median overall survival of 1.7 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0043",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M high risk category had AML-transformation incidences of 14.3% at 1 year, 21.2% at 2 years, and 29.2% at 4 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0044",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M very high risk category had a median leukemia-free survival of 0.76 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0045",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M very high risk category had a median overall survival of 1.0 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0046",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ASXL1",
+              "CBL",
+              "DNMT3A",
+              "ETV6",
+              "EZH2",
+              "FLT3",
+              "IDH2",
+              "KRAS",
+              "KMT2A",
+              "NPM1",
+              "NRAS",
+              "RUNX1",
+              "SF3B1",
+              "SRSF2",
+              "TP53",
+              "U2AF1",
+              "BCOR",
+              "BCORL1",
+              "CEBPA",
+              "ETNK1",
+              "GATA2",
+              "GNB1",
+              "IDH1",
+              "NF1",
+              "PHF6",
+              "PPM1D",
+              "PRPF8",
+              "PTPN11",
+              "SETBP1",
+              "STAG2",
+              "WT1"
+            ],
+            "interpretation": "In MDS, the IPSS-M very high risk category had AML-transformation incidences of 28.2% at 1 year, 38.6% at 2 years, and 42.8% at 4 years in the discovery cohort.",
+            "locator": "Table 2 — Summary of Clinical Outcomes by IPSS-M Risk Category, lines 403–425",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0047",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Among patients with MDS treated with hypomethylating agents, stem-cell transplantation, or lenalidomide, TP53 multihit remained the strongest predictor of worse overall survival across these treatment modalities.",
+            "locator": "Results — Relation Between IPSS-M and Treatment, line 471",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0048",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "In MDS, DDX41 mutation was associated with favorable overall survival after hypomethylating-agent treatment, but the authors state that this treatment-specific association requires confirmation in randomized studies.",
+            "locator": "Results — Relation Between IPSS-M and Treatment, line 471",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0049",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "Patients with higher-risk MDS are considered for disease-modifying and survival-prolonging treatment strategies, including hypomethylating agents and allogeneic transplantation.",
+            "locator": "Discussion, line 485",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0050",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53",
+              "FLT3",
+              "KMT2A"
+            ],
+            "interpretation": "In MDS, the authors highlight screening at diagnosis for TP53 multihit, FLT3 mutation, and KMT2A (MLL) partial tandem duplication because these were strong adverse outcome predictors.",
+            "locator": "Discussion, line 487",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 81,
+        "citation": {
+          "authors": [
+            "Bernard E",
+            "Tuechler H",
+            "Greenberg PL",
+            "Hasserjian RP",
+            "Arango Ossa JE",
+            "Nannya Y",
+            "Devlin SM",
+            "Creignou M",
+            "Pinel P",
+            "Monnier L",
+            "Gundem G",
+            "Medina-Martinez JS",
+            "Domenico D",
+            "Jädersten M",
+            "Germing U",
+            "Sanz G",
+            "van de Loosdrecht AA",
+            "Kosmider O",
+            "Follo MY",
+            "Thol F",
+            "Zamora L",
+            "Pinheiro RF",
+            "Pellagatti A",
+            "Elias HK",
+            "Haase D",
+            "Ganster C",
+            "Ades L",
+            "Tobiasson M",
+            "Palomo L",
+            "Della Porta MG",
+            "Takaori-Kondo A",
+            "Ishikawa T",
+            "Chiba S",
+            "Kasahara S",
+            "Miyazaki Y",
+            "Viale A",
+            "Huberman K",
+            "Fenaux P",
+            "Belickova M",
+            "Savona MR",
+            "Klimek VM",
+            "Santos FPS",
+            "Boultwood J",
+            "Kotsianidis I",
+            "Santini V",
+            "Solé F",
+            "Platzbecker U",
+            "Heuser M",
+            "Valent P",
+            "Ohyashiki K",
+            "Finelli C",
+            "Voso MT",
+            "Shih L",
+            "Fontenay M",
+            "Jansen JH",
+            "Cervera J",
+            "Gattermann N",
+            "Ebert BL",
+            "Bejar R",
+            "Malcovati L",
+            "Cazzola M",
+            "Ogawa S",
+            "Hellström-Lindberg E",
+            "Papaemmanuil E"
+          ],
+          "citation_incomplete": [],
+          "display": "Bernard E, Tuechler H, Greenberg PL, Hasserjian RP, Arango Ossa JE, Nannya Y, et al. Molecular International Prognostic Scoring System for Myelodysplastic Syndromes. NEJM Evidence. 2022 Jul;1(7):EVIDoa2200008.",
+          "doi": "10.1056/evidoa2200008",
+          "issue": "7",
+          "journal": "NEJM Evidence",
+          "month": "Jul",
+          "pages": "EVIDoa2200008",
+          "title": "Molecular International Prognostic Scoring System for Myelodysplastic Syndromes",
+          "volume": "1",
+          "year": 2022
+        },
+        "diseases_covered": [
+          "MDS"
+        ],
+        "extraction_date": "2026-08-15",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "TP53",
+          "FLT3",
+          "KMT2A",
+          "ASXL1",
+          "BCOR",
+          "EZH2",
+          "NRAS",
+          "RUNX1",
+          "STAG2",
+          "U2AF1",
+          "DDX41",
+          "SF3B1",
+          "BCORL1",
+          "SRSF2",
+          "NPM1",
+          "ETV6",
+          "IDH2",
+          "CBL",
+          "DNMT3A",
+          "KRAS",
+          "CEBPA",
+          "ETNK1",
+          "GATA2",
+          "GNB1",
+          "IDH1",
+          "NF1",
+          "PHF6",
+          "PPM1D",
+          "PRPF8",
+          "PTPN11",
+          "SETBP1",
+          "WT1"
+        ],
+        "paper_nickname": "IPSS-M Prognostic score for MDS",
+        "publication_key": "bernard-2022-nejm-evidence-1-na",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-15",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "reason": "Phase 3 review completed and the human adjudication is final.",
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0001",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0002",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0003",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0004",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0005",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0006",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0007",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0008",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0009",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0010",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0011",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0012",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0013",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0014",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0015",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0016",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0017",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0018",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0019",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0020",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0021",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0022",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0023",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0024",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0025",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0026",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0027",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0028",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0029",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0030",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0031",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0032",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0033",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0034",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0035",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0036",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0037",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0038",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0039",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0040",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0041",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0042",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0043",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0044",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0045",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0046",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0047",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0048",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0049",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0050",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 50,
+          "census_claims": 81,
+          "census_entries": 81,
+          "ratio": 0.62
+        },
+        "input_id": "f6f179da-542a-5f28-a3ba-e12798579924",
+        "markdown_sha256": "b4de4293499a82b5f68eea66f77f4ec881fa692ced5868d223e03a227e9a5c13",
+        "source_filename": "Bernard_2022_IPSS-M_MDS.pdf",
+        "source_sha256": "331f4160eaba68a182dbbbfc1a466ac39a768b434076d325ffe0806601e5fe3a",
+        "warnings": [
+          "bernard-2022-nejm-evidence-1-na-C0003: evidence is identical to bernard-2022-nejm-evidence-1-na-C0002; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0004: evidence is identical to bernard-2022-nejm-evidence-1-na-C0003; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0005: evidence is identical to bernard-2022-nejm-evidence-1-na-C0004; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0006: evidence is identical to bernard-2022-nejm-evidence-1-na-C0005; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0007: evidence is identical to bernard-2022-nejm-evidence-1-na-C0006; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0008: evidence is identical to bernard-2022-nejm-evidence-1-na-C0007; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0009: evidence is identical to bernard-2022-nejm-evidence-1-na-C0008; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0010: evidence is identical to bernard-2022-nejm-evidence-1-na-C0009; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0011: evidence is identical to bernard-2022-nejm-evidence-1-na-C0010; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0013: evidence is identical to bernard-2022-nejm-evidence-1-na-C0012; review independent utility",
+          "bernard-2022-nejm-evidence-1-na-C0017: evidence is identical to bernard-2022-nejm-evidence-1-na-C0016; review independent utility"
         ]
       }
     }

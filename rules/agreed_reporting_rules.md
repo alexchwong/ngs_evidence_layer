@@ -54,25 +54,40 @@ Do not repeat the clinical history, morphology or standard treatment unless need
 
 # R2 — Prognostic interpretation
 
-1. **For each NGS variant, state its individual prognostic contribution (adverse, favourable, neutral), and under which disease specific prognostic framework that was applied.** 
-- Use a validated disease-specific framework. 
-- For genetic-only frameworks, assign the risk tier when possible; if limited information is missing, give a conditional tier with the missing qualifier. 
-- For frameworks requiring non-genetic variables, name the framework but do not assign an overall tier.
+1. **What disease-specific prognostic framework applies, and what risk category can be assigned?**
+- Prefer a validated disease-specific prognostic framework where available.
+- State the resulting risk category when it can be assigned.
+- If limited required information is missing, give a conditional category only when justified and state the missing qualifier.
 - If the disease is AML:
-  - Use ELN 2022 as the primary AML risk classification. 
-  - ELN 2024 Less-Intensive may additionally be reported when it gives a materially different risk category. 
-  - Reporting ELN 2024 Less-Intensive is mandatory when the patient is already receiving less-intensive treatment or is explicitly unsuitable for intensive therapy. 
-  - Reporting ELN 2022 is optional if and only if ELN 2024 is mandatory.
-- If no prognostic framework exists, report strong disease-specific prognostic evidence. 
-- If a framework exists, but a variant with prognostic relevance relies on evidence outside that framework, report the prognostic effect and cite the relevant study (e.g. as per the ABC trial).
+  - Use ELN 2022 as the primary AML risk classification.
+  - Also report ELN 2024 Less-Intensive when it gives a materially different risk category.
+  - Reporting ELN 2024 Less-Intensive is mandatory when the patient is receiving less-intensive treatment or is explicitly unsuitable for intensive therapy.
+  - ELN 2022 may be omitted when ELN 2024 Less-Intensive is mandatory.
+- If no applicable validated prognostic framework exists, classify this rule as OMIT.
 
-2. **Does any variant have a different prognostic effect in a relevant differential diagnosis?**
+2. **What prognostic contribution do the detected NGS variants make within the applicable disease-specific framework?**
+- Assess every detected NGS variant against the applicable framework.
+- Group variants with the same prognostic effect together.
+- Identify variants that contribute favourable or adverse prognostic weight.
+- Identify detected variants that do not contribute additional prognostic weight under the framework.
+- Do not describe a variant as prognostically neutral merely because it is absent from the framework.
+- Do not answer variant-by-variant when multiple variants can be summarised together.
+
+3. **Is there material disease-specific prognostic evidence for any detected variant that is not represented by the applicable framework?**
+- Consider reputable disease-specific evidence outside the formal prognostic framework.
+- Report only evidence that supports a clinically meaningful prognostic effect.
+- Identify the relevant study or evidence source when useful.
+- Do not infer a prognostic effect merely because a gene is absent from the framework.
+- If an applicable framework exists and there is no material additional prognostic evidence outside it, classify this rule as OMIT.
+- If no validated prognostic framework exists, use this rule to report strong disease-specific prognostic evidence.
+
+4. **Does any variant have a different prognostic effect in a relevant differential diagnosis?**
 - If a number of morphological differentials exist, evaluate each variant's prognostic value via the relevant disease-specific prognostic frameworks.
 
-3. **Which panel-negative genes are relevant to the selected prognostic framework?** 
+5. **Which panel-negative genes are relevant to the selected prognostic framework?** 
 - A negative result on the NGS implies that no SNVs or short-range insertions / deletions / complex changes were detected for a gene expected to be in an NGS panel.
 
-4. **What prognostic interpretation follows from the established TP53 allelic state?** 
+6. **What prognostic interpretation follows from the established TP53 allelic state?** 
 - State the disease-specific prognostic significance of TP53 according to whether the established state is monoallelic or multi-hit.
 
 # R3 — Clinical actionability

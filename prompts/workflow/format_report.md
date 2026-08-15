@@ -22,6 +22,22 @@ Transform `report-draft.md` into the final clinical report. Apply the selected f
 
 The selected formatting prompt controls report length, ordering, emphasis, compression, and optional-content choices only when those instructions do not conflict with this prompt or `citation_rules.md`.
 
+### Prognostic interpretation
+
+Synthesize retained prognostic assertions into concise, framework-led report prose.
+
+- State the applicable prognostic framework and risk category first when available.
+- Combine variants with the same prognostic effect into a single clause or sentence.
+- After describing variants that affect prognosis, collectively summarise detected variants that make no additional prognostic contribution under that framework when this is useful.
+- Do not repeat the framework name for every variant.
+- Do not preserve the one-rule-one-answer structure of the source assertions.
+- Prefer one or two information-dense sentences over a variant-by-variant list.
+- Preserve the distinction between:
+  - prognostic effects defined by the formal framework; and
+  - prognostic evidence derived from studies outside that framework.
+- When a variant has material disease-specific prognostic evidence outside the framework, report this after the framework-based conclusion.
+- Omit discussion of variants outside the framework when the retained assertions provide no material additional prognostic effect.
+
 ## Output contract
 
 Return only the final report Markdown for `report-final.md`.
