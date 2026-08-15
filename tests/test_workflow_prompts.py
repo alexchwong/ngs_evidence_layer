@@ -116,6 +116,20 @@ def test_release_manifest_includes_validation_packagers():
     assert "0.2.2_prototype_skill.md" in manifest
 
 
+def test_prototype_skill_uses_merged_setup_and_render_validation():
+    prototype = (ROOT / "0.2.2_prototype_skill.md").read_text(encoding="utf-8")
+    assert "prototype_workflow.py setup --mode ngs-report" in prototype
+    assert "prototype_workflow.py setup --mode nel-demo --example <N>" in prototype
+    assert "prototype_workflow.py setup --mode nel-validate --case-id <case-id>" in prototype
+    assert "prototype_workflow.py setup --mode nel-validate-function --case-id <case-id>" in prototype
+    assert "python scripts/case_major_categories.py" not in prototype
+    assert "python validation/retrieve_cli.py case" not in prototype
+    assert "prototype_workflow.py rules" not in prototype
+    assert "python scripts/report_citations.py validate" not in prototype
+    assert "Step 6C `render` performs the same strict validation before any write" in prototype
+    assert "prototype_workflow.py remainder-rules" in prototype
+
+
 def test_prototype_skill_is_parallel_and_keeps_cmc_fixed_after_step3():
     prototype = (ROOT / "0.2.2_prototype_skill.md").read_text(encoding="utf-8")
     remainder = (WORKFLOW_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")

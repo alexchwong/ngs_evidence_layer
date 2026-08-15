@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from scripts import prototype_workflow, report_audit
+from validation.cases import retrieve_case
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +25,70 @@ def draft_for(rules_text, *, tag="a1b2c3"):
 
 
 class PrototypeWorkflowTests(unittest.TestCase):
+    def test_setup_creates_only_branch_independent_assets_and_preserves_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "existing-work"
+            work.mkdir()
+            case = work / "case.md"
+            case.write_text("existing patient case\n", encoding="utf-8")
+
+            resolved, demo_case, demo_expected = prototype_workflow.setup_prototype(
+                mode="ngs-report", work_dir=work
+            )
+
+            self.assertEqual(resolved, work.resolve())
+            self.assertIsNone(demo_case)
+            self.assertIsNone(demo_expected)
+            self.assertEqual(case.read_text(encoding="utf-8"), "existing patient case\n")
+            categories = json.loads((work / "case-major-categories.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                categories["case_major_categories"],
+                list(prototype_workflow.vocab.CASE_MAJOR_CATEGORIES),
+            )
+            dx_rules = (work / "reporting-rules-dx.md").read_text(encoding="utf-8")
+            self.assertTrue(dx_rules.startswith("# Diagnosis-pass reporting rules\n"))
+            self.assertFalse((work / "reporting-rules-remainder.md").exists())
+
+    def test_setup_demo_resolves_paths_without_reading_or_copying_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "demo-work"
+            resolved, demo_case, demo_expected = prototype_workflow.setup_prototype(
+                mode="nel-demo", work_dir=work, example=1
+            )
+            self.assertEqual(resolved, work.resolve())
+            self.assertEqual(demo_case, ROOT / "examples" / "cases" / "01-escalation-fires.md")
+            self.assertEqual(demo_expected, ROOT / "examples" / "expected" / "01-escalation-fires.md")
+            self.assertFalse((work / "case.md").exists())
+
+    def test_setup_validation_writes_case_additively_and_refuses_different_existing_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "validation-work"
+            prototype_workflow.setup_prototype(
+                mode="nel-validate", work_dir=work, case_id="1A"
+            )
+            first = (work / "case.md").read_text(encoding="utf-8")
+            self.assertTrue(first.strip())
+
+            prototype_workflow.setup_prototype(
+                mode="nel-validate", work_dir=work, case_id="1A"
+            )
+            self.assertEqual((work / "case.md").read_text(encoding="utf-8"), first)
+
+            with self.assertRaisesRegex(ValueError, "will not overwrite case.md"):
+                prototype_workflow.setup_prototype(
+                    mode="nel-validate", work_dir=work, case_id="1B"
+                )
+
+    def test_setup_function_validation_uses_functional_case_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "functional-work"
+            prototype_workflow.setup_prototype(
+                mode="nel-validate-function", work_dir=work, case_id="1A"
+            )
+            case = (work / "case.md").read_text(encoding="utf-8")
+            expected = retrieve_case("1A", "case_functional.md").rstrip() + "\n"
+            self.assertEqual(case, expected)
+
     def test_rule_slices_are_canonical_subsets(self):
         source = RULES.read_text(encoding="utf-8")
         dx = prototype_workflow.slice_rules_text(source, {0, 1})

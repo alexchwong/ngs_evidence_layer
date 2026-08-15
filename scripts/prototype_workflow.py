@@ -11,6 +11,7 @@ import argparse
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -28,6 +29,125 @@ PROTOTYPE_RULE_TEMPLATES = {
 }
 SECTION_HEADING = re.compile(r"^# R(\d+)\b")
 REFINED_CMC_LINE = re.compile(r"^REFINED_CMC: (.+)$")
+DEMO_EXAMPLES = {
+    1: "01-escalation-fires.md",
+    2: "02-escalation-does-not-fire.md",
+    3: "03-ambiguous-disease.md",
+    4: "04-genes-the-corpus-cannot-address.md",
+    5: "05-germline-architecture.md",
+    6: "06-sf3b1-diagnostic-adjudication.md",
+}
+CASE_MAJOR_CATEGORY_INSTRUCTION = (
+    "Select exactly one case_major_category representing the supplied starting "
+    "clinicomorphological major category; do not revise it using molecular results."
+)
+
+
+def _create_or_resolve_work_dir(work_dir: Path | None, project: bool) -> Path:
+    """Create or resolve a prototype work directory without touching legacy helpers."""
+    if work_dir is not None:
+        work_dir = work_dir.expanduser().resolve()
+        work_dir.mkdir(parents=True, exist_ok=True)
+        return work_dir
+    if project:
+        root = REPO_ROOT / "temp"
+        root.mkdir(exist_ok=True)
+        return Path(tempfile.mkdtemp(prefix="ngs-evidence-layer-", dir=root)).resolve()
+    return Path(tempfile.mkdtemp(prefix="ngs-evidence-layer-")).resolve()
+
+
+def write_case_major_categories(output: Path) -> Path:
+    payload = {
+        "case_major_categories": list(vocab.CASE_MAJOR_CATEGORIES),
+        "instruction": CASE_MAJOR_CATEGORY_INSTRUCTION,
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return output
+
+
+def _demo_paths(example: int) -> tuple[Path, Path]:
+    try:
+        name = DEMO_EXAMPLES[example]
+    except KeyError as exc:
+        raise ValueError(
+            "example must be one of: " + ", ".join(map(str, sorted(DEMO_EXAMPLES)))
+        ) from exc
+    return REPO_ROOT / "examples" / "cases" / name, REPO_ROOT / "examples" / "expected" / name
+
+
+def _validation_case_text(mode: str, case_id: str) -> str:
+    # Lazy import is deliberate: validation code must not enter the legacy import chain.
+    repo_text = str(REPO_ROOT)
+    inserted = repo_text not in sys.path
+    if inserted:
+        sys.path.insert(0, repo_text)
+    try:
+        from validation.cases import retrieve_case
+
+        case_file = "case_functional.md" if mode == "nel-validate-function" else "case_summary.md"
+        return retrieve_case(case_id, case_file)
+    finally:
+        if inserted and sys.path and sys.path[0] == repo_text:
+            sys.path.pop(0)
+
+
+def _write_case_if_absent(work_dir: Path, text: str) -> Path:
+    output = work_dir / "case.md"
+    payload = text.rstrip() + "\n"
+    if output.exists():
+        existing = output.read_text(encoding="utf-8")
+        if existing != payload:
+            raise ValueError(
+                f"{output} already exists and differs from the requested validation case; "
+                "setup will not overwrite case.md. Use a new work directory or remove the stale "
+                "case.md deliberately before rerunning setup."
+            )
+        return output
+    output.write_text(payload, encoding="utf-8")
+    return output
+
+
+def setup_prototype(
+    *,
+    mode: str = "ngs-report",
+    work_dir: Path | None = None,
+    project: bool = False,
+    example: int | None = None,
+    case_id: str | None = None,
+) -> tuple[Path, Path | None, Path | None]:
+    """Prepare branch-independent prototype assets and optional mode-specific case inputs."""
+    if mode == "nel-demo":
+        if example is None:
+            raise ValueError("--example is required when --mode nel-demo")
+        if case_id is not None:
+            raise ValueError("--case-id is not valid when --mode nel-demo")
+        demo_case, demo_expected = _demo_paths(example)
+    elif mode in {"nel-validate", "nel-validate-function"}:
+        if case_id is None:
+            raise ValueError(f"--case-id is required when --mode {mode}")
+        if example is not None:
+            raise ValueError(f"--example is not valid when --mode {mode}")
+        demo_case = demo_expected = None
+    elif mode == "ngs-report":
+        if example is not None or case_id is not None:
+            raise ValueError("--example and --case-id are not valid when --mode ngs-report")
+        demo_case = demo_expected = None
+    else:  # pragma: no cover - argparse constrains CLI mode values
+        raise ValueError(f"unsupported prototype mode: {mode}")
+
+    validation_case_text = (
+        _validation_case_text(mode, case_id)
+        if mode in {"nel-validate", "nel-validate-function"}
+        else None
+    )
+    resolved = _create_or_resolve_work_dir(work_dir, project)
+    if validation_case_text is not None:
+        _write_case_if_absent(resolved, validation_case_text)
+    write_case_major_categories(resolved / "case-major-categories.json")
+    write_rule_slice(DEFAULT_RULES, resolved / "reporting-rules-dx.md", {0, 1})
+
+    return resolved, demo_case, demo_expected
 
 
 def _read(path: Path) -> str:
@@ -215,6 +335,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
+    setup = sub.add_parser(
+        "setup",
+        help="prepare one prototype work directory and all branch-independent procedural assets",
+    )
+    work_group = setup.add_mutually_exclusive_group()
+    work_group.add_argument("--work-dir", type=Path, help="reuse/create this work directory")
+    work_group.add_argument("--project", action="store_true", help="create the work directory under repo temp/")
+    setup.add_argument(
+        "--mode",
+        choices=("ngs-report", "nel-demo", "nel-validate", "nel-validate-function"),
+        default="ngs-report",
+    )
+    setup.add_argument("--example", type=int, choices=sorted(DEMO_EXAMPLES))
+    setup.add_argument("--case-id")
+
     rules = sub.add_parser("rules", help="write a deterministic subset of agreed reporting rules")
     rules.add_argument("--source", type=Path, default=DEFAULT_RULES)
     rules.add_argument("--sections", type=int, nargs="+", required=True)
@@ -244,7 +379,19 @@ def main() -> int:
 
     args = parser.parse_args()
     try:
-        if args.command == "rules":
+        if args.command == "setup":
+            work_dir, demo_case, demo_expected = setup_prototype(
+                mode=args.mode,
+                work_dir=args.work_dir,
+                project=args.project,
+                example=args.example,
+                case_id=args.case_id,
+            )
+            print(work_dir)
+            if demo_case is not None:
+                print(demo_case.relative_to(REPO_ROOT))
+                print(demo_expected.relative_to(REPO_ROOT))
+        elif args.command == "rules":
             path = write_rule_slice(args.source, args.output, set(args.sections))
             print(path)
         elif args.command == "cmc":
@@ -270,8 +417,11 @@ def main() -> int:
             print(path)
             print(f"REFINED_CMC={refined}")
             print(f"CMC_CHANGED={'yes' if changed else 'no'}")
-    except (OSError, ValueError) as exc:
-        parser.exit(1, f"PROTOTYPE WORKFLOW FAILED: {exc}\n")
+    except (OSError, ValueError, KeyError) as exc:
+        message = exc.args[0] if isinstance(exc, KeyError) and exc.args else str(exc)
+        if args.command == "setup":
+            parser.exit(1, f"{message}\n")
+        parser.exit(1, f"PROTOTYPE WORKFLOW FAILED: {message}\n")
     return 0
 
 
