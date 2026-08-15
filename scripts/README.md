@@ -5,8 +5,11 @@ Scripts are grouped below by their primary role.
 ## Skill
 
 - `append_integrated_diagnosis.py`
+- `case_major_categories.py`
+- `card_tags.py` — shared deterministic runtime card-tag assignment/deconvolution
 - `create_work_dir.py`
 - `render.py`
+- `report_audit.py`
 - `report_citations.py`
 - `resolve_demo.py`
 - `retrieve.py`
@@ -41,6 +44,7 @@ Scripts are grouped below by their primary role.
 
 ## Development
 
+- `build_blacklist.py`
 - `build_prompts.py`
 - `build_skill_zip.py`
 

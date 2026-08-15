@@ -100,6 +100,19 @@ class VocabularyAndKeyTests(unittest.TestCase):
         )
         self.assertEqual(vocab.disease_ancestors(["acute leukaemia of ambiguous lineage"]), [])
         self.assertEqual(vocab.disease_ancestors(["haematological malignancy, other"]), [])
+        self.assertEqual(
+            vocab.disease_ancestors(["CLL/SLL"]),
+            ["lymphoid neoplasm", "B-cell lymphoid neoplasm", "mature B-cell neoplasm", "small lymphocytic proliferation"],
+        )
+        self.assertEqual(
+            vocab.disease_ancestors(["B-ALL"]),
+            ["lymphoid neoplasm", "acute lymphoblastic leukaemia/lymphoma", "B-cell lymphoid neoplasm", "precursor B-cell neoplasm"],
+        )
+        self.assertFalse(any(disease.startswith("B-ALL with ") for disease in vocab.DISEASES))
+        self.assertEqual(
+            vocab.disease_ancestors(["nodal TFH cell lymphoma, angioimmunoblastic-type"]),
+            ["lymphoid neoplasm", "T-cell/NK-cell lymphoid neoplasm", "mature T-cell/NK-cell neoplasm", "nodal TFH cell lymphoma"],
+        )
 
     def test_source_disease_aliases_resolve_reviewed_full_names(self):
         self.assertEqual(vocab.canonical_source_disease("clonal haematopoiesis"), "CHIP")
@@ -110,18 +123,39 @@ class VocabularyAndKeyTests(unittest.TestCase):
         self.assertEqual(vocab.canonical_source_disease("acute myeloid leukaemia"), "AML")
         self.assertEqual(vocab.canonical_source_disease("Clonal Haematopoiesis"), "CHIP")
         self.assertEqual(vocab.canonical_source_disease("  CHIP  "), "CHIP")
+        self.assertEqual(vocab.canonical_source_disease("chronic lymphocytic leukaemia"), "CLL/SLL")
+        self.assertEqual(vocab.canonical_source_disease("B-lymphoblastic leukaemia/lymphoma with BCR::ABL1 fusion"), "B-ALL")
+        self.assertEqual(vocab.canonical_source_disease("B-lymphoblastic leukemia/lymphoma with KMT2A rearrangement"), "B-ALL")
+        self.assertEqual(vocab.canonical_source_disease("Waldenström macroglobulinaemia"), "IgM LPL/WM")
+        self.assertEqual(vocab.canonical_source_disease("multiple myeloma"), "plasma cell myeloma")
+        self.assertEqual(vocab.canonical_source_disease("angioimmunoblastic T-cell lymphoma"), "nodal TFH cell lymphoma, angioimmunoblastic-type")
+        self.assertEqual(vocab.canonical_source_disease("extranodal NK/T-cell lymphoma, nasal-type"), "extranodal NK/T-cell lymphoma")
 
     def test_source_disease_aliases_do_not_enable_nearest_term_mapping(self):
         self.assertIsNone(vocab.canonical_source_disease("age-related clonal haematopoiesis"))
         self.assertIsNone(vocab.canonical_source_disease("primary myelofibrotic neoplasm"))
+        self.assertIsNone(vocab.canonical_source_disease("B-cell prolymphocytic leukaemia"))
+        self.assertIsNone(vocab.canonical_source_disease("high-grade B-cell lymphoma with MYC and BCL2 and/or BCL6 rearrangements"))
         self.assertIsNone(vocab.canonical_source_disease(None))
 
-    def test_source_disease_aliases_have_one_canonical_owner(self):
+    def test_disease_terms_have_one_canonical_owner(self):
         disease_vocabulary = json.loads(
             (ROOT / "schema" / "disease_vocabulary.json").read_text(encoding="utf-8")
         )
-        self.assertNotIn("source_disease_aliases", disease_vocabulary)
+        self.assertEqual(
+            [term["name"] for term in disease_vocabulary["terms"]], vocab.DISEASES
+        )
         self.assertGreater(len(vocab.SOURCE_DISEASE_ALIASES), 2)
+        self.assertFalse((ROOT / "schema" / "source_disease_aliases.json").exists())
+
+    def test_package_schema_binds_disease_enum_at_runtime(self):
+        package_schema = json.loads(
+            (ROOT / "schema" / "ingestion_package_schema.json").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("enum", package_schema["$defs"]["disease"])
+        bound = vocab.bind_disease_vocabulary(package_schema)
+        self.assertEqual(bound["$defs"]["disease"]["enum"], vocab.DISEASES)
+        self.assertNotIn("enum", package_schema["$defs"]["disease"])
 
     def test_umbrella_cycle_is_rejected(self):
         original = copy.deepcopy(vocab.UMBRELLA)

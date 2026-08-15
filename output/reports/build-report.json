@@ -1,13 +1,13 @@
 {
-  "corpus_sha256": "e8941bee0d1365708131c3d7fb69a8735a8cb488bf439e17425e7f33f4f9a0a7",
+  "corpus_sha256": "4180557bd191b1ff5871c52cd2708e1f1eb0c4befaafc3d6bc6a38dbdfa5ef94",
   "counts": {
-    "cards": 382,
-    "census_entries": 1034,
-    "completed_papers": 8,
+    "cards": 519,
+    "census_entries": 1287,
+    "completed_papers": 9,
     "rejected_papers": 35
   },
-  "extraction_ratio": 0.37,
-  "generated_at": "2026-08-13T02:25:52.547270+00:00",
+  "extraction_ratio": 0.4,
+  "generated_at": "2026-08-14T03:57:13.375454+00:00",
   "rejected": {
     "abelson-2018-predict-aml": [
       "census schema: <root>: Additional properties are not allowed ('geneless_statements' was unexpected)",

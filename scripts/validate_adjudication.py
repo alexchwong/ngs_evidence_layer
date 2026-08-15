@@ -17,12 +17,15 @@ def main():
 
     try:
         step2 = json.loads(args.diagnosis_result.read_text(encoding="utf-8"))
-        adjudication = json.loads(args.adjudication_result.read_text(encoding="utf-8"))
-        retrieve.validate_adjudication(
-            step2,
-            adjudication,
-            require_completed_review=True,
+        adjudication_raw = json.loads(args.adjudication_result.read_text(encoding="utf-8"))
+        adjudication = retrieve.normalise_adjudication(
+            step2, adjudication_raw, require_completed_review=True
         )
+        if adjudication != adjudication_raw:
+            args.adjudication_result.write_text(
+                json.dumps(adjudication, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         sys.exit(f"adjudication validation failed: {exc}")
 

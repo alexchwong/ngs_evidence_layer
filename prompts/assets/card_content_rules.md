@@ -4,7 +4,9 @@
 - `genes` contains only genes participating in that assertion.
 - `genes: []` is permitted only for geneless `diagnosis` or `treatment` assertions.
 - A geneless `diagnosis` card must state an independently useful diagnostic/classification criterion, requirement, exclusion, threshold, or distinction.
-- A geneless `treatment` card must state independently useful disease-level treatment context that informs treatment eligibility, selection, or interpretation of a molecular treatment modifier. Do not card generic treatment background that would not affect an NGS report.
+- A geneless `treatment` card must satisfy the stricter geneless-treatment gate: it must state what treatment the defined patient population would ordinarily receive, independent of a molecular treatment modifier.
+- Standard disease-level treatment backbones and standard alternatives for broad clinical strata are in scope; for example, intensive AML induction for suitable patients or venetoclax-based lower-intensity therapy for patients unsuitable for intensive treatment.
+- Clinical actionability alone is insufficient for a geneless `treatment` card.
 - `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
 - Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
 

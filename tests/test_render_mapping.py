@@ -97,26 +97,26 @@ class RenderMappingTests(unittest.TestCase):
         )]
         text = render.render(bundle(cards))["text"]
 
-        self.assertIn("## Prognostic significance", text)
-        self.assertIn("### Named finding", text)
-        self.assertIn("- Paper: Fixture Paper 2020", text)
-        self.assertIn("- Category: prognosis", text)
-        self.assertIn("- Genes: GENEA, GENEB", text)
-        self.assertIn("- Disease context: MDS, AML", text)
+        self.assertIn("## Prognosis Cards", text)
+        self.assertIn("1. Paper: Fixture Paper 2020 (2020)", text)
         self.assertIn("- Evidence tier: multivariable-adjusted", text)
-        self.assertIn("- Interpretation: Interpretation text.", text)
-        self.assertIn("- Citation marker: [card:C1-1]", text)
-        self.assertIn("- Escalates to: primary study", text)
+        self.assertIn("  - Diseases: MDS | AML", text)
+        self.assertIn("    - [card:C1-1]: Interpretation text.", text)
+        self.assertNotIn("- Category:", text)
+        self.assertNotIn("- Genes:", text)
+        self.assertNotIn("### Named finding", text)
+        self.assertNotIn("Escalates to", text)
         self.assertNotIn("- Card ID:", text)
         self.assertNotIn("- Retrieval match:", text)
         self.assertNotIn("- Matched retrieval_related disease:", text)
         self.assertNotIn("- Source locator:", text)
 
-    def test_card_label_falls_back_to_card_id(self):
+    def test_card_labels_are_not_rendered_in_compact_markdown(self):
         text = render.render(bundle([
-            card("C1-1", "Text.", locator=""),
+            card("C1-1", "Text.", locator="Named finding"),
         ]))["text"]
-        self.assertIn("### C1-1", text)
+        self.assertNotIn("### Named finding", text)
+        self.assertIn("[card:C1-1]: Text.", text)
 
     def test_refs_before_references(self):
         text = render.render(bundle([card("C1-1", "Text.")]))["text"]
@@ -213,8 +213,10 @@ class RenderMappingTests(unittest.TestCase):
             ["C1-1", "C1-2"],
         )
         self.assertEqual(result["text"].count("Identical text."), 2)
-        self.assertIn("### First card", result["text"])
-        self.assertIn("### Second card", result["text"])
+        self.assertNotIn("### First card", result["text"])
+        self.assertNotIn("### Second card", result["text"])
+        self.assertIn("[card:C1-1]: Identical text.", result["text"])
+        self.assertIn("[card:C1-2]: Identical text.", result["text"])
 
     def test_separate_cards_may_produce_multiple_mapping_lines(self):
         secondary = {
@@ -281,7 +283,7 @@ class RenderMappingTests(unittest.TestCase):
             result["references"][0]["display"],
             "[citation missing]",
         )
-        self.assertIn("- Citation marker: [card:C1-1]", result["text"])
+        self.assertIn("[card:C1-1]: Text.", result["text"])
 
     def test_truncated_cards_disappear_from_body_and_all_mappings(self):
         cards = [
@@ -329,13 +331,10 @@ class RenderMappingTests(unittest.TestCase):
         for rendered_card in result["rendered_cards"]:
             self.assertIn(rendered_card["interpretation"], result["text"])
             self.assertIn(
-                f"- Citation marker: [card:{rendered_card['card_id']}]",
+                f"[card:{rendered_card['card_id']}]: {rendered_card['interpretation']}",
                 result["text"],
             )
-            self.assertIn(
-                f"### {rendered_card['label']}",
-                result["text"],
-            )
+            self.assertNotIn(f"### {rendered_card['label']}", result["text"])
         for group in result["card_reference_map"]:
             for card_id in group["card_ids"]:
                 self.assertIn(card_id, result["text"])
@@ -355,6 +354,16 @@ class RenderMappingTests(unittest.TestCase):
         rendered = [item["card_id"] for item in result["rendered_cards"]]
         self.assertEqual(sorted(mapped), sorted(rendered))
         self.assertEqual(len(mapped), len(set(mapped)))
+
+    def test_evidence_markdown_uses_runtime_tags(self):
+        fixture = bundle([card("paper-a-C0001", "Text.")])
+        result = render.render(fixture, token_budget=100000)
+        tags = render.build_card_tags(result["rendered_cards"])
+        text = render.evidence_markdown(result, tags)
+        tag = tags["tags"][0]["card_tag"]
+        self.assertIn(f"[card:{tag}]", text)
+        self.assertIn(f"{tag}: primary ref 1", text)
+        self.assertNotIn("[card:paper-a-C0001]", text)
 
     def test_every_mapped_number_resolves_to_bibliography_entry(self):
         secondary = {
@@ -405,7 +414,7 @@ class RenderMappingTests(unittest.TestCase):
 
     def test_card_exposes_exact_card_id_marker(self):
         text = render.render(bundle([card("C1-1", "Text.")]))["text"]
-        self.assertIn("- Citation marker: [card:C1-1]", text)
+        self.assertIn("[card:C1-1]:", text)
         self.assertNotIn("## Citation markers", text)
 
     def test_same_author_year_references_need_no_marker_disambiguation(self):
@@ -422,16 +431,16 @@ class RenderMappingTests(unittest.TestCase):
             ),
         ]
         text = render.render(bundle(cards))["text"]
-        self.assertIn("- Citation marker: [card:C1-1]", text)
-        self.assertIn("- Citation marker: [card:C1-2]", text)
+        self.assertIn("[card:C1-1]:", text)
+        self.assertIn("[card:C1-2]:", text)
         self.assertIn("C1-1: primary ref 1", text)
         self.assertIn("C1-2: primary ref 2", text)
 
     def test_duplicate_publication_cards_keep_distinct_markers_and_one_reference(self):
         cards = [card("C1-1", "First."), card("C1-2", "Second.")]
         text = render.render(bundle(cards))["text"]
-        self.assertIn("- Citation marker: [card:C1-1]", text)
-        self.assertIn("- Citation marker: [card:C1-2]", text)
+        self.assertIn("[card:C1-1]:", text)
+        self.assertIn("[card:C1-2]:", text)
         self.assertIn("C1-1,C1-2: primary ref 1", text)
 
 

@@ -21,8 +21,12 @@ Activate it in each new shell, then run the normal development checks:
 python scripts/build_prompts.py --phase <1|2|3|4|5>
 python scripts/build_prompts.py --phase5-review
 
+# Regenerate runtime JSON after editing output/corpus/blacklist.yaml.
+python scripts/build_blacklist.py
+
 # Run the full test suite.
 python -m unittest discover -s tests -v 2>&1
+
 # Build a provisional skill zip package for testing
 python scripts/build_skill_zip.py
 ```
@@ -58,8 +62,9 @@ moving a prompt asset should require a manifest edit and template marker, not ne
 phase-specific Python dispatch.
 
 Edit rules, vocabularies, schemas, executable validation code, and other canonical
-sources only at their owning paths. In particular, source disease aliases live in
-`schema/source_disease_aliases.json`; publication-type taxonomy lives in
+sources only at their owning paths. In particular, canonical disease names, source aliases, taxonomic parents, and
+retrieval relationships live together in `schema/disease_vocabulary.json`;
+publication-type taxonomy lives in
 `schema/publication_type_vocabulary.json`; Phase 3-only publication-type audit policy
 lives in `prompts/assets/publication_type_audit_policy.md`. Phase-specific online
 validators live under `scripts/phase_validation/`: the prompt manifest injects the
@@ -95,6 +100,26 @@ prompts/phase5_review_prompt.md
 Do not edit generated phase prompts directly. Edit the corresponding template or other
 canonical source, regenerate the prompt, inspect the diff, and commit the generated
 prompt with its source change.
+
+## Regenerate the blacklist
+
+`output/corpus/blacklist.yaml` is the human-edited canonical card eligibility policy.
+Runtime retrieval does not parse YAML; it reads the committed generated artefact:
+
+```text
+output/corpus/blacklist.json
+```
+
+After every blacklist YAML edit, regenerate the JSON from the repository root:
+
+```bash
+python scripts/build_blacklist.py
+```
+
+Do not edit `blacklist.json` directly. Commit it with the corresponding YAML change and
+inspect the generated diff before running tests. `--source` and `--output` are available
+for development fixtures or alternate paths.
+
 ## Run tests
 
 Run the full unittest suite:
@@ -165,14 +190,46 @@ It runs:
 
 For a new version it builds the skill-only ZIP and creates the GitHub release. If the
 version tag already exists, skill-payload changes require a version bump.
+
+## Release documentation format
+
+### NEWS entries
+
+Add user-visible changes under the intended version heading in `NEWS.md`. Every new
+bullet point must contain no more than 20 words. Use one concise change per bullet and
+avoid implementation detail unless it affects users or operators.
+
+### README current-corpus listing
+
+The `README.md` `Current corpus` section must use this structure:
+
+1. Open with the current release version and total number of active publications.
+2. State that publications are grouped by `latest_accepted_in_version` from
+   `output/corpus/nel.index.json`.
+3. Group active publications under `### Last modified in vX.Y.Z` headings, newest
+   version first.
+4. Under each version heading, use a four-column table in this exact order:
+   `Publication key`, `DOI`, `Paper nickname`, `Contribution to corpus`.
+5. List each active publication exactly once. Use the publication key and metadata from
+   `output/corpus/nel.index.json`, and summarize its corpus contribution concisely.
+6. After the active groups, add `### Incompatible papers pending re-ingestion` when the
+   index contains rejected incompatible packages. Explain that these packages do not
+   contribute evidence, then use a two-column `Publication key` and `Status` table with
+   `Pending re-ingestion` as the status.
+
+Keep the active and pending publication sets synchronized with `papers` and `rejected`
+in `output/corpus/nel.index.json`.
+
 ## Pre-release housekeeping
 
 Before merging a release to `master`:
 1. Regenerate every affected generated prompt.
 2. Inspect generated prompt diffs for unintended changes.
 3. Run the full unittest suite.
-4. Update `NEWS.md` with the user-visible changes for the release.
-5. Update the `README.md` current-corpus summary if corpus contents changed.
+4. Update `NEWS.md` with the user-visible changes for the release, keeping every new
+   bullet point to 20 words or fewer.
+5. Update the `README.md` current-corpus summary and listing if corpus contents changed,
+   following the format above.
 6. Check `README.md`, `INGEST.md`, and `DEVEL.md` still match current user/developer commands.
 7. Set `release/VERSION` to the intended release version.
 8. Review `release/skill.txt` and ensure every file required by `SKILL.md` is included.

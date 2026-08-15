@@ -4,8 +4,9 @@
 
 These rules apply to a concise interpretative summary for clinical haematologists. The purpose is to explain how the detected NGS findings alter or refine the diagnosis, prognosis, management, measurable residual disease assessment or consideration of germline predisposition in the supplied clinical and morphological context.
 
-Use the following order, omitting sections that are not relevant:
+Use the following order, omitting sections that are not relevant except for the mandatory detected-variant summary:
 
+0. Detected NGS variants
 1. Integrated diagnosis and classification
 2. Prognostic significance
 3. Clinically actionable implications
@@ -14,128 +15,120 @@ Use the following order, omitting sections that are not relevant:
 
 Do not repeat the clinical history, morphology or standard treatment unless needed to explain the effect of a molecular finding.
 
+# R0 — Detected NGS variants
+
+1. **What variants were detected on NGS?** This rule is mandatory and must always be reported. State only the patient-specific NGS result without interpretation. If no pathogenic variants were detected on NGS, state exactly: `No pathogenic variants were detected on NGS.`
+<!-- report-audit: classification=REPORT; citation=no_citation_required -->
+
 # R1 — Diagnosis and classification
 
-1. **Interpret variants in the supplied clinicopathological context.** Do not diagnose a myeloid neoplasm from mutation number, mutation identity or VAF alone. Treat the stated morphological diagnosis as the starting point and explain only how the molecular result confirms, changes, excludes or qualifies it.
+1. **What WHO-5 diagnosis should the final report state?** Use WHO-5 as the primary diagnostic classifier. Treat the supplied clinicopathological diagnosis as the starting point.
 
-2. **Use WHO-5 as the primary diagnostic classifier.** State the WHO-5 diagnosis.
+2. **How should the supplied molecular findings confirm, change, exclude or qualify the WHO-5 diagnosis?** Revise the diagnosis when the molecular and clinicopathological criteria establish a different WHO-5 entity. Do not diagnose a myeloid neoplasm from mutation number, mutation identity or VAF alone.
 
-3. **Assess ICC separately.** State the ICC diagnosis. Then assess whether it is materially the same as the WHO-5 diagnosis.
+3. **Does a molecular, cytogenetic or other defining abnormality establish an entity-defining diagnosis?** Apply the required blast range, morphology, cytogenetic findings, exact alteration class, VAF threshold and exclusion criteria. Do not substitute a biologically related alteration for the required abnormality or use VAF as a substitute for missing diagnostic criteria.
 
-4. **State the integrated diagnosis when a detected alteration is entity-defining.** Apply the required blast range, morphology, cytogenetic findings, variant class, VAF threshold and exclusion criteria. Do not substitute a biologically related mutation for the mutation required by the entity definition.
+4. **When more than one molecular or cytogenetic defining feature is present, which has diagnostic precedence under WHO-5?** Apply WHO-5 classification precedence. Keep entity assignment separate from prognostic effects of co-mutations.
 
-5. **Respect diagnostic precedence.** When more than one molecular or cytogenetic feature is present, assign the entity with the appropriate classification precedence rather than listing competing diagnoses. Keep entity assignment separate from prognostic effects of co-mutations.
+5. **What ICC diagnosis should the final report state, and is it materially different from the WHO-5 diagnosis?** Assess ICC separately. Do not let the ICC diagnosis replace the primary WHO-5 diagnosis.
 
-6. **Distinguish clonal haematopoiesis from a myeloid neoplasm.** When morphology is non-diagnostic, classify a qualifying clone as:
-   - **CHIP** when cytopenia is absent or an adequate external cause explains the cytopenia; or
-   - **CCUS** when cytopenia is persistent, otherwise unexplained and no myeloid neoplasm is established.
+6. **Which competing diagnoses remain relevant, and which clinical, morphological, cytogenetic or molecular findings favour or exclude each?** A genotype may suggest a differential but does not override mandatory clinicopathological criteria.
 
-   A small clone must not be used to overcall MDS, MPN or another neoplasm.
+7. **If morphology is non-diagnostic, does the clone support CHIP, CCUS or neither, and what neoplasm must not be overcalled?** Classify a qualifying clone as CHIP when cytopenia is absent or adequately explained, or CCUS when cytopenia is persistent, otherwise unexplained and no myeloid neoplasm is established. Do not use CHIP or CCUS when a myeloid neoplasm is already established.
 
-7. **Actively assess relevant competing diagnoses.** A genotype may suggest a differential but does not override mandatory clinical or morphological criteria. Check the decisive variables, such as absolute and relative monocytosis, eosinophilia, dysgranulopoiesis, blast percentage, fibrosis, reactive causes and defining rearrangements.
+8. **Which diagnostic qualifiers or limitations materially affect the diagnosis or differential?** Consider informative negative findings, TP53 allelic state, assay limitations, outstanding cytogenetic or fusion studies, and exact variant-level requirements. Report only those that change the patient-level interpretation. Do not infer phase, clonal architecture or germline origin from bulk VAF alone.
 
-8. **Report negative molecular findings only when they are diagnostically informative.** Mention absence only when the alteration is ordinarily expected in the relevant differential, directly changes the diagnostic label, establishes triple-negative status, or helps determine allelic state. Do not list unrelated absent genes.
-
-9. **Interpret VAF conservatively.** VAF may support a small, substantial or dominant clonal population, but bulk sequencing does not establish:
-   - founding versus secondary status;
-   - chronological order;
-   - whether variants occur in the same cells;
-   - cis/trans phase; or
-   - germline origin.
-
-10. **Apply TP53 allelic-state rules explicitly.** Distinguish a single monoallelic mutation from multi-hit or biallelic disease. A single mutation without a qualifying second hit must not be called biallelic. Two qualifying TP53 mutations, or a mutation with a qualifying deletion/copy-neutral loss of heterozygosity, support multi-hit status under the applicable classifier.
-
-11. **Do not use a low VAF to dismiss an otherwise established diagnosis when low allele burden is biologically expected.** Conversely, do not use a high VAF as a substitute for missing diagnostic criteria.
-
-12. **Account for assay scope.** A negative SNV/indel panel does not exclude rearrangements, copy-number changes or variants outside validated coverage. Integrate cytogenetics, FISH, fusion testing and other assays where relevant.
-
-13. **Use precise variant-level interpretation.** Therapeutic or diagnostic implications may depend on the exact exon, codon, alteration type or fusion partner rather than merely the gene name.
 
 # R2 — Prognostic interpretation
 
-1. **Use the appropriate disease-specific prognostic framework.** Prefer a validated disease-specific prognostic system where one exists. For findings not addressed by that system, use high-quality disease-specific prognostic evidence.
+1. **Which disease-specific prognostic framework applies, and what risk conclusion can be reported?** Use a validated disease-specific framework. For genetic-only frameworks, assign the risk tier when possible; if limited information is missing, give a conditional tier with the missing qualifier. For frameworks requiring non-genetic variables, name the framework but do not assign an overall tier.
 
-2. **Assign a prognostic contribution to each detected pathogenic variant.** For each pathogenic or likely pathogenic variant, state whether it has a favourable, adverse or no established prognostic contribution in the relevant disease. Use the applicable prognostic system first; if it does not address the variant, use high-quality disease-specific evidence.
+2. **What prognostic contribution does each detected pathogenic or likely pathogenic variant make within that framework?** State each variant’s established favourable, adverse, neutral, or other prognostic contribution without calculating a composite score when non-molecular variables are required.
 
-3. **Report molecular contributions rather than composite clinical scores.** When a prognostic system incorporates non-molecular variables, report how the detected molecular findings contribute to prognosis without calculating the complete score or assigning its overall risk tier.
+3. **Are any detected pathogenic or likely pathogenic variants prognostically relevant outside the framework?** If no prognostic framework exists, report strong disease-specific prognostic evidence. If a framework exists, report strong newer evidence for variants not included in that framework.
 
-4. **Use ELN 2022 as the primary AML risk classification.** ELN 2024 Less-Intensive may additionally be reported when it gives a materially different risk category. Reporting ELN 2024 Less-Intensive is mandatory when the patient is already receiving less-intensive treatment or is explicitly unsuitable for intensive therapy. Reporting ELN 2022 is optional if and only if ELN 2024 is mandatory.
+4. **If this case is AML, which ELN framework applies and what risk category do the available findings support?** Use ELN 2022 as the primary AML risk classification. ELN 2024 Less-Intensive may additionally be reported when it gives a materially different risk category. Reporting ELN 2024 Less-Intensive is mandatory when the patient is already receiving less-intensive treatment or is explicitly unsuitable for intensive therapy. Reporting ELN 2022 is optional if and only if ELN 2024 is mandatory.
 
-5. **Do not transfer prognostic effects between diseases or models.** Apply a prognostic system only to the disease for which it is validated, and do not assign a variant a prognostic effect based solely on evidence from another disease.
+5. **Which detected variants have no established prognostic interpretation in this disease?** Do not transfer prognostic effects between diseases or prognostic models. State that no disease-specific prognostic effect is established where applicable.
 
-6. **Apply negative panel findings when required by the prognostic model.** When a gene is included in the NGS panel and no reportable variant is identified, treat it as wild-type for the purpose of the selected prognostic system. Do not extend this inference beyond the validated scope of the assay.
+6. **Which panel-negative genes are relevant to the selected prognostic framework?** A negative result on the NGS implies that no SNVs or short-range insertions / deletions / complex changes were detected for a gene expected to be in an NGS panel.
 
-7. **Apply TP53 prognostic effects according to allelic state.** Distinguish monoallelic TP53 alterations from TP53 multi-hit disease and apply the prognostic effect appropriate to the established allelic state.
-
-8. **Include only clinically relevant prognostic evidence.** Omit prevalence, epidemiological background and prognostic associations that do not contribute to the patient-level prognostic interpretation.
+7. **What prognostic interpretation follows from the established TP53 allelic state?** State the disease-specific prognostic significance of TP53 according to whether the established state is monoallelic or multi-hit.
 
 # R3 — Clinical actionability
 
-1. **Report only management implications that arise from the detected alteration.** Do not restate standard-of-care treatment that would apply regardless of the NGS result.
+1. **Which detected alteration supports a specific therapy, in what disease and treatment setting, and how established is that implication?**
+   Identify the actionable alteration, relevant treatment setting, and whether the implication is established, optional, or investigational. Include any necessary approval, treatment-line, trial, or jurisdictional qualification.
 
-2. **Link therapy to the exact actionable alteration and disease setting.** Specify the relevant mutation, fusion or pathway, the treatment phase where necessary, and whether the implication is established, optional or investigational.
+2. **For each relevant kinase alteration, what molecular class is present and what treatment implications apply specifically to that class?**
+   Base treatment interpretation on the detected variant class rather than other alterations in the same gene.
 
-3. **Report treatment-specific molecular modifiers.** For a therapy relevant to the patient, report detected alterations that are supported to modify response, resistance, relapse risk or survival. Do not extrapolate treatment-specific effects to overall prognosis.
+3. **Which detected alterations modify response, resistance, relapse after therapy, or treatment-specific survival?**
+   State treatment-specific molecular effects and match the strength of the claim to the evidence. Do not convert treatment-specific effects into general prognostic claims.
 
-4. **Do not overstate sensitivity or resistance.** Use qualified wording when evidence is limited, variant-specific or based on small series. “May be sensitive” is appropriate when a definitive response cannot be predicted.
+4. **Do cytogenetic or FISH-defined alterations provide an actionable treatment implication that should be integrated with the molecular findings?**
+   State treatment implications of relevant fusions, rearrangements, or deletions detected outside the NGS assay.
 
-5. **State approval and access context when relevant.** Distinguish approved frontline, relapsed/refractory, trial-only and jurisdiction-dependent uses without turning the report into a treatment protocol.
+5. **Does any detected molecular alteration materially affect transplant-related management?**
+   State the specific transplant implication only when supported by evidence; do not infer a transplant indication from mutation status alone.
 
-6. **Do not invent actionability.** When the detected variants do not select an approved mutation-specific therapy, say so only if this is clinically useful; otherwise omit therapy commentary.
+6. **If possible germline predisposition is present, what distinct treatment, constitutional-testing, counselling, or donor implications follow?**
+   State each supported implication separately and distinguish immediate disease treatment from germline confirmation, counselling, and donor considerations.
 
-7. **Keep diagnostic, prognostic and predictive roles separate.** A mutation may define the disease or worsen prognosis without selecting a targeted drug. Conversely, a therapeutically actionable mutation may not define the diagnostic entity.
-
-8. **Recommend transplant assessment only when the molecular finding materially alters risk, donor selection or therapeutic strategy.** Do not recommend transplantation solely because a mutation is present.
-
-9. **For kinase alterations, interpret the precise molecular class.** Different variants in the same gene can have different pathway activation and drug sensitivity; do not apply one mutation’s treatment logic to another.
-
-10. **For cytogenetically defined actionable disease, recognise that the treatment implication may arise outside the NGS panel.** Integrate defining fusions, rearrangements or deletions detected by cytogenetics or FISH.
-
-11. **When possible germline predisposition is identified, separate immediate disease treatment from genetic counselling, constitutional confirmation and donor-selection implications.**
+7. **What diagnostic, prognostic, and predictive roles does each therapeutically relevant alteration have?**
+   State each role separately and do not infer one role from another.
 
 # R4 — MRD interpretation
 
-1. **Do not assume that a diagnostic NGS variant is an MRD marker.** Use only disease-, gene-, assay- and timepoint-validated MRD approaches.
+1. **Which detected molecular alteration is a validated MRD marker for this disease, and how should it be monitored?**  
+Identify the preferred marker and appropriate high-sensitivity assay, considering the disease, alteration, specimen and treatment setting.
 
-2. **Distinguish routine-panel sensitivity from dedicated MRD sensitivity.** “Not detected” on a routine assay means below that assay’s reportable threshold, not biological absence or molecular remission.
+2. **When multiple detected alterations are relevant to MRD, which should be preferred for monitoring and which should be complementary?** 
+Prioritise the most disease-specific and validated MRD marker. Use additional alterations as complementary markers only when supported by validated evidence, and do not let a less specific marker supersede a more informative one.
 
-3. **When a validated leukaemia-specific marker is present, identify it explicitly and recommend an appropriate high-sensitivity assay.** For NPM1-mutated AML, the specific NPM1 mutation is the preferred molecular MRD target.
+3. **If a residual molecular alteration is detected, what does it mean at this specimen and treatment timepoint?**  
+Interpret it according to assay sensitivity, quantitative level and serial kinetics. Do not infer relapse or treatment failure from an isolated low-level result without appropriate corroboration.
 
-4. **Do not assign MRD status from persistent clonal-haematopoiesis-associated mutations.** Variants such as DNMT3A, TET2 and ASXL1 may persist independently of active leukaemia and must not determine remission status by themselves.
+4. **If a previously detected alteration is not detected on follow-up testing, what molecular response can be concluded?**  
+Interpret “not detected” within the sensitivity and scope of the assay; do not equate routine-panel negativity with biological absence or molecular remission.
 
-5. **Do not use IDH1 or IDH2 as stand-alone MRD markers.** Persistence or clearance should not independently establish molecular remission, relapse or treatment failure.
+5. **Which detected alterations are suitable for molecular MRD monitoring?**  
+Identify only disease-, alteration-, assay- and setting-validated MRD targets; do not assume that every diagnostic NGS variant is suitable for monitoring.
 
-6. **Use FLT3-ITD only within a validated high-sensitivity strategy.** When a validated leukaemia-specific marker such as NPM1 is available, FLT3-ITD should be complementary rather than the sole follow-up marker.
+6. **What validated molecular monitoring approach applies to this myeloid neoplasm?**  
+Apply disease-specific MRD guidance where available and do not transfer AML-specific molecular MRD approaches to other myeloid neoplasms without supporting validation.
 
-7. **Do not promote other non-validated mutations to stand-alone MRD markers.** Interpret genes such as spliceosome, cohesin, transcription-factor or signalling mutations only within a validated multimodal strategy.
-
-8. **If no validated molecular marker is available, say so and keep multiparameter flow cytometry, morphology and clinical assessment central.** Do not manufacture a molecular endpoint.
-
-9. **Interpret residual variants using assay threshold, specimen, treatment regimen, treatment timepoint and serial kinetics.** Do not assign relapse from a single low-level result without corroboration.
-
-10. **Do not escalate treatment solely because an unvalidated residual mutation remains detectable.** Correlate with the validated marker, flow cytometry, morphology and clinical course.
-
-11. **Do not transfer AML-specific MRD guidance to other myeloid neoplasms unless a disease-specific validated framework exists.** Silence is appropriate where no validated molecular MRD recommendation applies.
+7. **Which detected variants may persist without representing residual malignancy, or are otherwise unvalidated as stand-alone MRD markers?**  
+Interpret variants associated with clonal persistence and other unvalidated markers only within an appropriate validated MRD strategy; do not use their persistence or clearance alone to establish remission, relapse or treatment failure.
 
 # R5 — Possible germline predisposition
 
-1. **Flag possible germline origin when the combination of gene, variant type, VAF and personal phenotype is compatible with a recognised hereditary predisposition.** Do not rely on VAF alone.
+1. **What level of germline predisposition is supported by the gene, variant type, VAF, molecular context and phenotype?**  
+State the patient-specific level of suspicion without relying on VAF alone. If no finding supports germline predisposition, classify the answer as `OMIT`.
 
-2. **Never diagnose germline status from tumour-only sequencing.** Use wording such as “possible germline,” “suspected germline” or “presumed germline pending constitutional confirmation.”
+2. **What germline-status wording is justified by tumour-only sequencing?**  
+State whether the finding is possible, suspected or presumed germline pending constitutional confirmation. Do not diagnose germline status from tumour-only sequencing. If no germline concern is supported, classify the answer as `OMIT`.
 
-3. **Recognise characteristic molecular architectures.** Examples include a near-heterozygous loss-of-function predisposition variant with a lower-VAF recurrent somatic second event, or a pathogenic variant associated with a longstanding constitutional phenotype.
+3. **What constitutional confirmation and genetic-counselling recommendations follow from the suspected germline finding?**  
+State the appropriate confirmatory testing and preferred non-haematopoietic specimen, using cultured skin fibroblasts where haematopoietic contamination is a concern. If no germline concern is supported, classify the answer as `OMIT`.
 
-4. **Recommend confirmation using a validated non-haematopoietic specimen and genetic counselling.** Cultured skin fibroblasts are preferred where blood, marrow, saliva or buccal cells may be contaminated by the haematopoietic clone.
+4. **Could germline predisposition still be present despite the absence of a near-heterozygous variant on the myeloid panel?**  
+State whether phenotype, molecular architecture or assay limitations justify dedicated constitutional testing, including copy-number or other testing outside routine panel coverage where appropriate. If not applicable, classify the answer as `OMIT`.
 
-5. **Do not infer which allele is constitutional, whether variants are in cis or trans, or whether two variants occur in the same clone from bulk VAF alone.** Phasing or lineage-resolved testing may be required.
+5. **What donor-selection, family-counselling or cascade-testing implications follow from confirmed or suspected germline predisposition?**  
+State supported implications with wording appropriate to the level of germline certainty; do not present relatives as affected before constitutional confirmation. If no germline concern is supported, classify the answer as `OMIT`.
 
-6. **Do not dismiss germline predisposition because no near-50% variant was detected on the myeloid panel.** A recurrent low-VAF somatic “second hit,” relevant phenotype or incomplete assay coverage may still justify dedicated constitutional testing, including copy-number analysis where appropriate.
+6. **What molecular architecture supports or weakens the suspicion of germline predisposition?**  
+Describe relevant patterns such as a plausible constitutional variant with an acquired second event, while avoiding conclusions not established by the data. If no informative architecture is present, classify the answer as `OMIT`.
 
-7. **State the practical implications of confirmation.** These may include related-donor selection, family counselling and cascade testing. Do not recommend testing relatives as though germline status were already confirmed.
+7. **What phase, constitutional-allele or clonal relationships can be established from the available data?**  
+State only relationships supported by phasing or lineage-resolved evidence; do not infer cis/trans phase, constitutional allele identity or clonal co-occurrence from bulk VAF alone. If no such interpretation is clinically relevant, classify the answer as `OMIT`.
 
-8. **Keep germline interpretation separate from somatic prognostic scoring.** Where somatic versus germline origin changes the applicability of a prognostic model, state that the molecular risk contribution is provisional pending constitutional testing.
+8. **Does uncertainty about germline versus somatic origin alter the interpretation of any prognostic framework?**  
+State any patient-specific prognostic implication as provisional pending constitutional testing when germline status changes framework applicability. If it does not affect prognostic interpretation, classify the answer as `OMIT`.
 
-9. **Avoid indiscriminate germline flagging.** A common somatic hotspot at a plausible somatic VAF, without a compatible phenotype or predisposition-gene context, should not trigger routine germline recommendations.
+9. **Is germline-predisposition commentary clinically warranted in this case?**  
+State the supported germline concern only when the molecular and/or phenotypic findings justify it. Do not flag germline predisposition from an isolated plausible somatic finding or VAF alone. If germline commentary is not warranted, classify the answer as `OMIT`.
 
 # Style requirements
 

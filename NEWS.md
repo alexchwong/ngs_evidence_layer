@@ -1,5 +1,19 @@
 # NEWS
 
+## 0.2.1
+- Expanded the corpus to nine publications, adding WHO-HAEM5 lymphoid classification and reprocessing key ICC and ELN-DAVID sources.
+- Centralized lymphoid and myeloid disease vocabulary support while separating broad case-major categories from refined disease terms.
+- Added optional category-scoped Phase 1 ingestion, with confirmed scope persisted in `census.json` and respected downstream.
+- Tightened Phase 1 claim atomicity and Phase 2 compatibility rules to reduce merged, independently reviewable claims.
+- Refactored reporting workflow prompts into step-specific files while retaining shared orchestration in `SKILL.md`.
+- Simplified evidence hand-offs using `diagnostic_evidence.md`, `evidence.md`, compact card tags, and richer internal JSON for deterministic processing.
+- Strengthened report citation invariants and deterministic validation, including model-facing repair messages that identify the exact rule, line, or citation problem.
+- Made variant summaries mandatory, separated patient findings from cited interpretations, and added assertive, qualification-preserving `REPORT:`/`OMIT:` drafting.
+- Added a user-editable retrieval blacklist with YAML include/exclude rules for papers, categories, and genes, plus an LLM-assisted editing prompt.
+- Refactored retrieval rendering to group evidence by paper, evidence tier, and disease while reducing redundant model-facing metadata.
+- Updated `nel-validate` packaging so marking runs can be scored separately and debugging intermediates are packaged independently.
+- Improved release/developer documentation and generated-artifact ownership rules.
+
 ## 0.2.0
 - Rebuilt the active corpus around eight key publications re-ingested under 0.2.0 instead of carrying the 0.1.x corpus forward.
 - Refactored ingestion around phase-specific prompt contracts.
@@ -86,7 +100,7 @@
 - Added `publication_type_verified_by_phase3` and removed `escalates_to` from cards,
   the index, and retrieval
 - Added `scripts/transport.py` to move private corpus files between computers
-- Optimized `SKILL.md` as a four-step workflow, returning a block.md containing evidence cards.
+- Optimized `SKILL.md` as a four-step workflow, returning a evidence.md containing evidence cards.
 
 ## 0.1.2
 

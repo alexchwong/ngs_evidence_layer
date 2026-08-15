@@ -1,0 +1,88 @@
+# Card retrieval policy for scripts/retrieve.py.
+#
+# Normal retrieval runs first. This file then decides which otherwise-retrievable
+# cards are eligible for use.
+#
+# Rules:
+# - include: if non-empty, a card must match at least one listed value.
+# - exclude: any matching value rejects the card; exclude therefore wins.
+# - Missing/empty include means unrestricted for that dimension.
+# - Global and paper-specific rules are ANDed.
+# - Gene symbols are matched case-insensitively and normalised to uppercase.
+# - A gene-less card does not satisfy a non-empty genes.include list.
+# - Use publication_key and card_id values from output/corpus/nel.corpus.json.
+# - Unknown publication keys/card IDs and invalid categories fail loudly to catch typos.
+#
+# Valid categories: diagnosis, prognosis, treatment, biomarker, germline
+
+enabled: true
+
+global:
+  categories:
+    include: []
+    exclude: []
+  genes:
+    include: []
+    exclude: []
+  cards:
+    include: []
+    exclude: []
+
+papers:
+  # EXAMPLE: WHO 5th edition — retain diagnosis cards only.
+  khoury-2022-leukemia-36-1703:
+    categories:
+      include: [diagnosis]
+
+  # EXAMPLE: ICC — retain diagnosis cards only.
+  arber-2022-blood-140-1200:
+    categories:
+      include: [diagnosis]
+
+  # EXAMPLE: disable a whole publication.
+  # d-hner-2022-blood-140-1345:
+  #   enabled: false
+
+  # EXAMPLE: exclude selected categories from one publication.
+  # some-publication-key:
+  #   categories:
+  #     exclude: [treatment, prognosis]
+
+  # EXAMPLE: restrict one publication to cards mentioning selected genes.
+  # some-publication-key:
+  #   genes:
+  #     include: [NPM1, FLT3, TP53]
+
+  # EXAMPLE: exclude cards mentioning selected genes.
+  # some-publication-key:
+  #   genes:
+  #     exclude: [DNMT3A, TET2]
+
+  # EXAMPLE: category and gene rules combine with AND semantics.
+  # some-publication-key:
+  #   categories:
+  #     include: [diagnosis, prognosis]
+  #   genes:
+  #     include: [TP53, RUNX1]
+  #     exclude: [DNMT3A]
+
+  # EXAMPLE: suppress individual cards.
+  # some-publication-key:
+  #   cards:
+  #     exclude:
+  #       - some-publication-key-C0012
+  #       - some-publication-key-C0037
+
+  # EXAMPLE: use only selected cards from one publication.
+  # some-publication-key:
+  #   cards:
+  #     include:
+  #       - some-publication-key-C0003
+  #       - some-publication-key-C0008
+
+  # EXAMPLE: include a broad subset but explicitly veto one card.
+  # some-publication-key:
+  #   categories:
+  #     include: [diagnosis, prognosis]
+  #   cards:
+  #     exclude: [some-publication-key-C0015]

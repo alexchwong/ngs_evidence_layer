@@ -109,39 +109,8 @@
       "pattern": "^[A-Z0-9][A-Z0-9\\-]*$"
     },
     "disease": {
-      "enum": [
-        "CHIP",
-        "CCUS",
-        "MDS",
-        "MDS/AML",
-        "AML",
-        "APL",
-        "MDS/MPN",
-        "MDS/MPN-U",
-        "CMML",
-        "aCML",
-        "MDS/MPN-SF3B1-T",
-        "JMML",
-        "MPN",
-        "MPN-U",
-        "PV",
-        "ET",
-        "PMF",
-        "post-PV/post-ET MF",
-        "MPN blast phase",
-        "CML",
-        "CNL",
-        "CEL",
-        "mastocytosis",
-        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-        "BPDCN",
-        "germline predisposition syndrome",
-        "myeloid neoplasm, unspecified",
-        "lymphoid neoplasm",
-        "acute leukaemia of ambiguous lineage",
-        "histiocytic/dendritic neoplasm",
-        "haematological malignancy, other"
-      ]
+      "type": "string",
+      "minLength": 1
     },
     "citation": {
       "type": "object",

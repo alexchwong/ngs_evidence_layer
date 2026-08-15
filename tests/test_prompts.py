@@ -74,13 +74,28 @@ class PromptIntegrationTests(unittest.TestCase):
             content = BUILD_PROMPTS.asset_content(keyword)
             spec = self.manifest[keyword]
             if spec.get("type") == "bundle":
-                self.assertEqual(len(spec.get("paths", [])), 1)
-                path = ROOT / spec["paths"][0]
-                relative = path.relative_to(ROOT).as_posix()
-                self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
+                for relative in spec.get("paths", []):
+                    path = ROOT / relative
+                    self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
+                    self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
             else:
                 path = ROOT / spec["path"]
-            self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
+                self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
+
+    def test_phase2_and_phase4_validators_load_canonical_json_assets(self):
+        for phase in (2, 4):
+            with self.subTest(phase=phase):
+                script = (ROOT / "scripts" / "phase_validation" / f"phase{phase}.py").read_text(encoding="utf-8")
+                template = (ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md").read_text(encoding="utf-8")
+                self.assertIn('load_json_asset("ingestion_package_schema.json")', script)
+                self.assertIn('load_json_asset("disease_vocabulary.json")', script)
+                self.assertNotIn("PACKAGE_SCHEMA = json.loads(", script)
+                self.assertNotIn("UMBRELLA = json.loads(", script)
+                self.assertNotIn("{{PACKAGE_SCHEMA}}", template)
+                self.assertNotIn("{{DISEASE_VOCABULARY}}", template)
+        phase4 = (ROOT / "scripts" / "phase_validation" / "phase4.py").read_text(encoding="utf-8")
+        self.assertIn('load_json_asset("review_schema.json")', phase4)
+        self.assertNotIn("REVIEW_SCHEMA = json.loads(", phase4)
 
     def test_phase2_allows_multi_claim_composite_text(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())
@@ -91,6 +106,19 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn(
             "every `claim` fragment contributes to the same source assertion", prompt
         )
+
+    def test_source_disease_alias_prompt_view_is_derived_from_terms(self):
+        vocabulary = json.loads(
+            (ROOT / "schema" / "disease_vocabulary.json").read_text(encoding="utf-8")
+        )
+        expected = {
+            alias: term["name"]
+            for term in vocabulary["terms"]
+            for alias in term.get("aliases", [])
+        }
+        rendered = json.loads(BUILD_PROMPTS.asset_content("SOURCE_DISEASE_ALIASES"))
+        self.assertEqual(rendered, expected)
+        self.assertEqual(self.manifest["SOURCE_DISEASE_ALIASES"]["type"], "derived")
 
     def test_all_card_handling_prompts_use_canonical_source_disease_alias_policy(self):
         prompts = {
@@ -197,3 +225,18 @@ class PromptIntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Phase1CategoryScopePromptTests(unittest.TestCase):
+    def test_phase1_requires_scope_confirmation_before_extraction(self):
+        prompt = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertIn("Phase 1, diagnosis only", prompt)
+        self.assertIn("ask the user to reply exactly `CONFIRM`", prompt)
+        self.assertIn("Plain `Phase 1` means all five categories", prompt)
+        self.assertIn("reading remains whole-paper", prompt)
+
+    def test_phase2_respects_declared_category_scope(self):
+        prompt = " ".join(BUILD_PROMPTS.render(2).split())
+        self.assertIn("optional `category_scope`", prompt)
+        self.assertIn("outside a declared `category_scope`", prompt)
+        self.assertIn("Within the declared scope, completeness and atomicity remain strict", prompt)

@@ -78,7 +78,7 @@ def diagnosis(args):
     announce(work_dir)
 
     case_input = args.case_input or (work_dir / "case-input.json")
-    output = args.output or (work_dir / "step2.json")
+    output = args.output or (work_dir / "diagnostic_evidence.md")
 
     command = [
         args.python, str(SCRIPTS / "retrieve.py"), "diagnosis",
@@ -89,15 +89,20 @@ def diagnosis(args):
         command.extend(["--genes", *args.genes])
     if args.provisional_disease:
         command.extend(["--provisional-disease", args.provisional_disease])
+    if args.case_major_category:
+        command.extend(["--case-major-category", args.case_major_category])
     if args.case_facts:
         command.extend(["--case-facts", str(args.case_facts)])
     if args.corpus:
         command.extend(["--corpus", str(args.corpus)])
     if args.index:
         command.extend(["--index", str(args.index)])
+    if args.blacklist:
+        command.extend(["--blacklist", str(args.blacklist)])
 
     run_command(command, "step 2: retrieve diagnosis evidence")
-    require_file(output, "step2.json")
+    require_file(output, "diagnostic_evidence.md")
+    require_file(output.with_suffix(".json"), "Step-2 machine boundary")
     print(f"[run_case] output: {output}", file=sys.stderr)
 
 
@@ -105,14 +110,18 @@ def full(args):
     work_dir = resolve_work_dir(args.work_dir)
     announce(work_dir)
 
-    diagnosis_result = args.diagnosis_result or (work_dir / "step2.json")
+    diagnosis_result = args.diagnosis_result or (work_dir / "diagnostic_evidence.md")
     adjudication_result = args.adjudication_result or (work_dir / "adjudication.json")
     bundle = args.bundle_output or (work_dir / "bundle.json")
-    block = args.output or (work_dir / "block.md")
+    evidence = args.output or (work_dir / "evidence.md")
+    card_tags = args.card_tag_output or (work_dir / "card-tags.json")
     bundle_tmp = bundle.with_suffix(bundle.suffix + ".tmp")
-    block_tmp = block.with_suffix(block.suffix + ".tmp")
+    evidence_tmp = evidence.with_suffix(evidence.suffix + ".tmp")
+    card_tags_tmp = card_tags.with_suffix(card_tags.suffix + ".tmp")
 
-    remove_if_present(bundle, block, bundle_tmp, block_tmp)
+    remove_if_present(
+        bundle, evidence, card_tags, bundle_tmp, evidence_tmp, card_tags_tmp,
+    )
 
     retrieve_command = [
         args.python, str(SCRIPTS / "retrieve.py"), "full",
@@ -126,6 +135,8 @@ def full(args):
         retrieve_command.extend(["--corpus", str(args.corpus)])
     if args.index:
         retrieve_command.extend(["--index", str(args.index)])
+    if args.blacklist:
+        retrieve_command.extend(["--blacklist", str(args.blacklist)])
 
     run_command(retrieve_command, "step 4: retrieve full evidence bundle")
     require_file(bundle_tmp, "bundle.json")
@@ -134,16 +145,21 @@ def full(args):
     render_command = [
         args.python, str(SCRIPTS / "render.py"),
         "--bundle", str(bundle),
-        "--output", str(block_tmp),
+        "--output", str(evidence_tmp),
+        "--card-tag-output", str(card_tags_tmp),
     ]
     if args.token_budget is not None:
         render_command.extend(["--token-budget", str(args.token_budget)])
 
-    run_command(render_command, "step 5: render evidence block")
-    require_file(block_tmp, "block.md")
-    block_tmp.replace(block)
+    run_command(render_command, "step 5: render evidence")
+    require_file(evidence_tmp, "evidence.md")
+    require_file(card_tags_tmp, "card-tags.json")
+    evidence_tmp.replace(evidence)
+    card_tags_tmp.replace(card_tags)
 
-    print(f"[run_case] output: {block}", file=sys.stderr)
+    # Surface only the model-readable evidence path. The private card-tag
+    # deconvolution map is intentionally not named in command output.
+    print(f"[run_case] output: {evidence}", file=sys.stderr)
 
 
 def main():
@@ -158,21 +174,28 @@ def main():
 
     diag = sub.add_parser("diagnosis", parents=[common], help="run Step 2 diagnosis retrieval")
     diag.add_argument("--case-input", type=Path, help="override path to case-input.json")
-    diag.add_argument("--output", type=Path, help="override path to step2.json")
+    diag.add_argument("--output", type=Path, help="override path to diagnostic_evidence.md")
     diag.add_argument("--genes", nargs="+", help="override genes")
-    diag.add_argument("--provisional-disease", help="override provisional disease")
+    diag.add_argument("--provisional-disease", help="override provisional disease wording")
+    diag.add_argument("--case-major-category", help="override case major category")
     diag.add_argument("--case-facts", type=Path, help="override case-facts file")
     diag.add_argument("--corpus", type=Path, help="override corpus path")
     diag.add_argument("--index", type=Path, help="override index path")
+    diag.add_argument("--blacklist", type=Path, help="override blacklist policy path")
 
     full_parser = sub.add_parser("full", parents=[common], help="run Steps 4 and 5 full retrieval and render")
-    full_parser.add_argument("--diagnosis-result", type=Path, help="override path to step2.json")
+    full_parser.add_argument(
+        "--diagnosis-result", type=Path,
+        help="override path to diagnostic_evidence.md",
+    )
     full_parser.add_argument("--adjudication-result", type=Path, help="override path to adjudication.json")
     full_parser.add_argument("--bundle-output", type=Path, help="override path to bundle.json")
-    full_parser.add_argument("--output", type=Path, help="override path to block.md")
+    full_parser.add_argument("--output", type=Path, help="override path to evidence.md")
+    full_parser.add_argument("--card-tag-output", type=Path, help="override path to card-tags.json")
     full_parser.add_argument("--genes", nargs="+", help="override genes for full retrieval")
     full_parser.add_argument("--corpus", type=Path, help="override corpus path")
     full_parser.add_argument("--index", type=Path, help="override index path")
+    full_parser.add_argument("--blacklist", type=Path, help="override blacklist policy path")
     full_parser.add_argument("--token-budget", type=int, help="forward token budget to renderer")
 
     args = parser.parse_args()

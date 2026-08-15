@@ -37,8 +37,8 @@ Use one of the modes defined in `SKILL.md`.
 | Mode | Use when | Output |
 |---|---|---|
 | `ngs-report` | You want a complete NGS report from a new case. | `report-final.md` rendered in chat |
-| `evidence-block` | You want the retrieved evidence without a final report. | `block.md` |
-| `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `block.md` |
+| `evidence-block` | You want the retrieved evidence without a final report. | `evidence.md` |
+| `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `evidence.md` |
 | `evidence-to-report` | You already have a completed evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
 | `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
 | `nel-validate <case-id>` | You want to run a bundled validation case and score the generated report. | Generated report and marking result |
@@ -114,7 +114,7 @@ evidence-block
 <clinical case>
 ```
 
-to return `block.md` without generating a final NGS report.
+to return `evidence.md` without generating a final NGS report.
 
 Use:
 
@@ -135,7 +135,7 @@ If Steps 1–5 have already been completed, provide the retained work directory 
 evidence-to-report
 ```
 
-NEL verifies that the required `case.md` and `block.md` are present, then performs only
+NEL verifies that the required `case.md` and `evidence.md` are present, then performs only
 the reporting steps.
 
 ### Demo mode
@@ -166,20 +166,71 @@ to score the generated report. Available case IDs are:
 
 ## Current corpus
 
-The current 0.2.0 corpus contains eight publications reprocessed under the 0.2.0
-ingestion workflow. Complete citation, card, and acceptance-version metadata are stored
-in `output/corpus/nel.index.json`.
+The current 0.2.1 corpus contains nine publications. Publications are grouped below by
+the corpus version in which they were most recently accepted or modified, using
+`latest_accepted_in_version` from `output/corpus/nel.index.json`. Complete citation,
+card, and acceptance-version metadata are stored in that index.
 
-| DOI | Paper nickname | Contribution to corpus |
-|---|---|---|
-| `10.1182/blood.2022015850` | ICC Classification | ICC myeloid classification and diagnostic criteria. |
-| `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
-| `10.1182/blood.2025031480` | ELN-DAVID 2025 AML MRD Guidelines | AML measurable residual disease assessment and management guidance. |
-| `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | AML diagnosis, genetic risk classification, and management guidance. |
-| `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | AML genetic risk classification for less-intensive therapy. |
-| `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
-| `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
-| `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
+### Last modified in v0.2.1
+
+| Publication key | DOI | Paper nickname | Contribution to corpus |
+|---|---|---|---|
+| `cloos-2026-blood-147-1147` | `10.1182/blood.2025031480` | ELN-DAVID 2025 AML MRD Guidelines | AML measurable residual disease assessment and management guidance. |
+| `arber-2022-blood-140-1200` | `10.1182/blood.2022015850` | ICC Classification | ICC myeloid classification and diagnostic criteria. |
+| `alaggio-2022-leukemia-who5-lymphoid` | `10.1038/s41375-022-01620-2` | WHO-HAEM5 Lymphoid Neoplasms 2022 | WHO fifth-edition lymphoid classification and molecular diagnostic criteria. |
+
+### Last modified in v0.2.0
+
+| Publication key | DOI | Paper nickname | Contribution to corpus |
+|---|---|---|---|
+| `elena-2016-blood-128-1408` | `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
+| `d-hner-2022-blood-140-1345` | `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | AML diagnosis, genetic risk classification, and management guidance. |
+| `d-hner-2024-blood-144-2169` | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | AML genetic risk classification for less-intensive therapy. |
+| `barbui-2015-blood-cancer-journal-5-e369` | `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
+| `tefferi-2018-journal-of-clinical-oncology-36-1769` | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
+| `khoury-2022-leukemia-36-1703` | `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
+
+### Incompatible papers pending re-ingestion
+
+The following publication packages are present in the corpus index but are incompatible with the current ingestion schema. They are not part of the accepted corpus and require re-ingestion before they can contribute evidence.
+
+| Publication key | Status |
+|---|---|
+| `abelson-2018-predict-aml` | Pending re-ingestion |
+| `andrade-2018-tp53-gnomad` | Pending re-ingestion |
+| `baliakas-2019-operational-germline-testing` | Pending re-ingestion |
+| `bernard-2020-tp53-mds` | Pending re-ingestion |
+| `bernard-2022-nejm-evidence-1-na` | Pending re-ingestion |
+| `bluteau-2014-ankrd26` | Pending re-ingestion |
+| `bolton-2020-chemo-ch` | Pending re-ingestion |
+| `davidsson-2018-samd9-samd9l` | Pending re-ingestion |
+| `dinardo-2020-genotype-specific-venetoclax` | Pending re-ingestion |
+| `dohner-2020-npm1-flt3-interaction` | Pending re-ingestion |
+| `drazer-2018-germline-vaf` | Pending re-ingestion |
+| `fabre-2022-chip-dnmt3a` | Pending re-ingestion |
+| `feurstein-2021-myeloid-germline` | Pending re-ingestion |
+| `flt3-ras-gilteritinib-resistance` | Pending re-ingestion |
+| `galera-2018-gata2-germline` | Pending re-ingestion |
+| `galli-2021-clone-metrics-ccus` | Pending re-ingestion |
+| `grief-2012-gata-cebpa` | Pending re-ingestion |
+| `hsu-2011-gata2-momomac` | Pending re-ingestion |
+| `idh-comutations-inhibitor-resistance` | Pending re-ingestion |
+| `kessler-2022-large-biobank-genetics` | Pending re-ingestion |
+| `kraft-godley-2020-germline-guide` | Pending re-ingestion |
+| `malcovati-2017-ccus-foundation` | Pending re-ingestion |
+| `mf-genomics-ruxolitinib-response` | Pending re-ingestion |
+| `mpn-genomics-interferon-response` | Pending re-ingestion |
+| `noetzli-2015-etv6-phenotype` | Pending re-ingestion |
+| `passamonti-2017-mysec-pm-secondary` | Pending re-ingestion |
+| `sf3b1-luspatercept-response` | Pending re-ingestion |
+| `stahl-2021-independent-treatment-context` | Pending re-ingestion |
+| `tefferi-2018-genomics-only-pmf` | Pending re-ingestion |
+| `tefferi-2020-mipss-et-pv` | Pending re-ingestion |
+| `tet2-asxl1-hma-response` | Pending re-ingestion |
+| `tp53-lenalidomide-clonal-dynamics` | Pending re-ingestion |
+| `weeks-2023-nejm-evidence-2-na` | Pending re-ingestion |
+| `wlodarski-2016-gata2` | Pending re-ingestion |
+| `xie-2024-ccrs-ccus` | Pending re-ingestion |
 
 ## Important boundaries
 

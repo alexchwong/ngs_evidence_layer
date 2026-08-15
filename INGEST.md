@@ -328,6 +328,24 @@ Run each phase in a fresh chat. Save the model's returned JSON file into the sam
 
 ### Phase 1 — census
 
+Invoke Phase 1 with either full scope or an explicit category-only scope. Examples:
+
+```text
+Phase 1
+Phase 1, diagnosis only
+Phase 1, diagnosis and biomarker only
+```
+
+Phase 1 first normalizes and paraphrases the requested scope and asks for `CONFIRM`.
+It must not begin extraction until confirmed. Plain `Phase 1` means all five clinical
+categories. A restricted run still reads the entire paper, but writes census entries
+only for the confirmed categories. Restricted scope is persisted as the optional
+positive allow-list `category_scope` in `paper.census.json`; full-scope runs omit the
+field for backward compatibility. Downstream phases treat categories outside a
+declared scope as intentionally excluded, while remaining strict about completeness
+inside the scope.
+
+
 Start a fresh chat and provide exactly:
 
 - `work/<publication-key>/paper.md`
@@ -370,18 +388,18 @@ Once a provisional package has been produced, do not repeat Phase 2 after audit.
 #### Source disease aliases
 
 Phase 2 normally omits a card when the source-stated disease is outside the closed
-evidence-card vocabulary. Reviewed source wording aliases live in
-`schema/source_disease_aliases.json` and map complete source phrases to existing
-canonical disease terms from `schema/disease_vocabulary.json`. For example, source
+evidence-card vocabulary. Reviewed source wording aliases live on their canonical term in
+`schema/disease_vocabulary.json` and map complete source phrases to that existing
+canonical disease term. For example, source
 wording `clonal haematopoiesis` or `clonal haemopoiesis` can map to canonical disease
 `CHIP`; the source wording must still be preserved in the evidence and interpretation.
 
 Aliases are case-insensitive but otherwise exact. They do not enable fuzzy matching,
 stemming, punctuation substitution, semantic inference, or mapping to a nearest term.
-To add an alias, map the complete source phrase to an existing canonical `diseases`
-value, regenerate the affected prompts, and run the full test suite. Do not use aliases
-to encode taxonomic ancestry or retrieval relationships; those remain separate
-`umbrella` and `retrieval_related` configuration.
+To add an alias, add the complete source phrase to that canonical term's `aliases`
+array, regenerate the affected prompts, and run the full test suite. Do not use aliases
+to encode taxonomic ancestry or retrieval relationships; those live on the same term
+as `parents` and `retrieval_related` respectively.
 
 ### Phase 3 — independent review
 

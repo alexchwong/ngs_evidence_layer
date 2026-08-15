@@ -22,8 +22,14 @@ You are the extraction model for exactly one publication. Use only `paper.md`,
 add facts absent from the paper.
 ## Entry validation
 
-First validate the census against the paper. If materially deficient, stop and
-write the next `paper.census-critique-NNN.md` with specific gaps; do not card.
+First validate the census against the paper. Treat optional `category_scope` as the
+intentional positive allow-list for Phase 1; if it is absent, all five categories were
+in scope. Do not critique the census for clinically relevant claims whose semantic
+category is outside a declared `category_scope`, and do not create cards from those
+out-of-scope claims merely because they are visible while reviewing the paper.
+Within the declared scope, completeness and atomicity remain strict: if the census is
+materially deficient, stop and write the next `paper.census-critique-NNN.md` with
+specific gaps; do not card.
 ## Working method
 
 Walk every census claim as a review obligation, not an output obligation. A census
@@ -83,11 +89,11 @@ exact same ID in its paired evidence bundle. Never construct card IDs from `pape
 content-derived UUID is used only to preserve paper identity across input artefacts.
 Use `diseases` only for exact clinical applicability: include each source-grounded
 disease for which the interpretation itself is valid. Do not add broader taxonomy
-terms to `diseases` merely because the vocabulary's `umbrella` graph identifies them
-as ancestors; doing so would make a disease-specific card eligible for unrelated
+terms to `diseases` merely because the vocabulary term's `parents` graph identifies
+them as ancestors; doing so would make a disease-specific card eligible for unrelated
 cases in downstream retrieval.
 For every card, mechanically populate `disease_ancestors` with every direct and
-transitive parent reached through the vocabulary's `umbrella` graph, in canonical
+transitive parent reached through the vocabulary term's `parents` graph, in canonical
 vocabulary order, excluding values already present in `diseases`. These are derived
 indexing terms, not additional clinical scope, and need not appear in the evidence.
 For example, a CMML card has exact `diseases: ["CMML"]` and derived ancestors
@@ -96,17 +102,12 @@ Set `diseases_covered` to the exact unique union of the cards' exact `diseases`
 arrays only; do not include `disease_ancestors`. Set `genes_covered` to the exact
 unique union of all card gene arrays.
 
-## Disease vocabulary
+## Canonical validation assets
 
-```json
-{{DISEASE_VOCABULARY}}
-```
-
-## Output schema
-
-```json
-{{PACKAGE_SCHEMA}}
-```
+The deterministic validation bundle below includes the canonical
+`schema/disease_vocabulary.json` and structural `schema/ingestion_package_schema.json`.
+The validator derives the strict disease enum from the vocabulary at runtime; do not
+maintain a second disease list.
 ## Exit self-audit
 
 For every card ask: (1) does its paired evidence bundle support every material assertion,
