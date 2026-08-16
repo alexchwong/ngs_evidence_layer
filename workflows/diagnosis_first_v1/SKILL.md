@@ -34,6 +34,8 @@ File access is deny-by-default. In each model step read only the files explicitl
 
 Shared patient-result semantics from the original workflow apply to Steps 1B, 3 and 5: treat explicitly complete tests as complete within their stated scope; do not assume unmentioned tests; if cytogenetics are absent, normal conventional cytogenetics may be used only as a workflow assumption and must not be stated as a performed negative test.
 
+For Steps 3 and 5, `<work-dir>/ngs-panel-scope.md` is the complete assay-scope boundary for gene-level NGS negative inference. When the patient NGS result is complete, a gene listed in that file but absent from the detected-variant list is negative only for the variant classes stated in the panel-scope file. Use that negative result to resolve reporting-rule criteria and exclusions; do not treat the gene as unresolved merely because it is not individually listed. Do not call this whole-gene biological wild type or extend the inference to unlisted variant classes.
+
 ## Step 0 — Setup
 
 Select the explicit mode before reading case-specific inputs.
@@ -66,12 +68,13 @@ For `nel-demo`, also record output line 2 as `<demo-case>` and line 3 as `<demo-
 
 For `nel-validate <case-id>` or `nel-validate-function <case-id>`, record `<validation-case>` as the supplied case ID. Setup deterministically writes `<work-dir>/case.md`; do not read validation marking files. For `nel-validate-function`, `validation/case_functional.md` and `validation/case_functional_manifest.md` remain forbidden model inputs.
 
-Setup also generates the two branch-independent procedural assets used later:
+Setup also generates the branch-independent procedural assets used later:
 
 - `<work-dir>/case-major-categories.json`;
+- `<work-dir>/ngs-panel-scope.md`, copied from the canonical bundled assay definition;
 - `<work-dir>/reporting-rules-dx.md` containing only the prompt-owned R0-R1 diagnosis rule view.
 
-Setup is additive for an existing directory. It may replace those two procedural assets, but it must not overwrite an existing `case.md` with different validation-case content or modify any later workflow draft.
+Setup is additive for an existing directory. It may replace these procedural assets, but it must not overwrite an existing `case.md` with different validation-case content or modify any later workflow draft.
 
 For all supported modes record `<format-prompt>`; default `prompts/formatting/default.md`. Record the path only and do not read it until Step 6B.
 
@@ -122,6 +125,7 @@ Use a fresh bounded model session. Read only:
 - `<work-dir>/case.md`;
 - `<work-dir>/case-major-categories.json`;
 - `<work-dir>/diagnostic_evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`;
 - `<work-dir>/reporting-rules-dx.md`.
 
 Follow the diagnosis-first diagnosis prompt and the prompt-owned analysis contract rendered into `reporting-rules-dx.md`; apply the Rule-draft citation contract in `citation_rules.md`. Write only `<work-dir>/report-draft-dx.md`.
@@ -182,6 +186,7 @@ Always read only:
 - `prompts/workflow/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/downstream_evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`;
 - `<work-dir>/reporting-rules-remainder.md`.
 
 If `<cmc-changed>` is `no`, additionally read `<work-dir>/report-draft-dx.md`. The rule file contains only R2-R5; answer only R2-R5.

@@ -2,7 +2,7 @@
 
 ## Task
 
-Answer every rule supplied in `reporting-rules-dx.md` using the patient case and `diagnostic_evidence.md`, then make one broad case-major-category routing decision.
+Answer every rule supplied in `reporting-rules-dx.md` using the patient case, `diagnostic_evidence.md`, and `ngs-panel-scope.md`, then make one broad case-major-category routing decision.
 
 `reporting-rules-dx.md` is the prompt-owned analysis contract rendered for this pass. Follow its patient-level conclusion style, REPORT/OMIT taxonomy, evidence boundary, and canonical R0/R1 rules exactly. Apply the **Rule-draft citation contract** in `citation_rules.md`.
 
@@ -13,6 +13,7 @@ Answer every rule supplied in `reporting-rules-dx.md` using the patient case and
 - `R0.1` is mandatory `REPORT:` patient-result content and must end with `(no citation required)`.
 - `REPORT:` text must be direct report-ready clinical prose, not an instruction about what the final report should say.
 - Apply the supplied molecular findings to the clinical, morphological and other case facts. Do not diagnose a neoplasm or germline state from VAF alone.
+- Use `ngs-panel-scope.md` to resolve negative gene findings from a complete NGS result. If a listed panel gene is absent from the detected-variant list, treat it as negative only for the variant classes defined by that file; do not leave that gene unresolved merely because it is unlisted.
 - Use only runtime card tags copied from `diagnostic_evidence.md`.
 
 ## Refined CMC routing decision

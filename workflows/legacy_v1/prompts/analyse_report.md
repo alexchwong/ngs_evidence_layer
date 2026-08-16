@@ -20,6 +20,7 @@ Follow `prompts/workflow/reporting_rule_policy.md` exactly for patient-level con
 - After `REPORT:` or `OMIT:`, give the rule's self-contained, case-specific outcome on that same line.
 - Use the integrated diagnosis in `case.md`; do not re-adjudicate it.
 - Use `evidence.md` as the complete literature-evidence boundary.
+- Use `ngs-panel-scope.md` as the complete assay-scope boundary for gene-level NGS negative inference. For a complete NGS result, a listed panel gene absent from the detected-variant list is negative only for the variant classes defined by that file; do not treat it as unresolved merely because it is unlisted.
 - Follow `prompts/workflow/citation_rules.md` exactly for every line's citation disposition.
 - Keep card-level evidence granularity: cite every evidence card that directly supports the answer using its exact runtime `card_tag`.
 - Use only tags copied exactly from `evidence.md`; never infer, reconstruct, shorten, or invent a tag.

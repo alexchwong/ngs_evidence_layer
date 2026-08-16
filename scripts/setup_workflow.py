@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -50,6 +51,16 @@ def setup_workflow(
 
     work = resolve_work_dir(work_dir, project=project)
     write_workflow_state(work, workflow_id, mode)
+
+    # Canonical assay-scope asset. Every workflow/model step that interprets an
+    # NGS negative result reads the work-directory copy, never panel membership
+    # from model knowledge. This is also created for evidence-to-report so a
+    # resumed legacy reporting run has the same assay boundary.
+    panel_scope_source = REPO_ROOT / "config" / "ngs-panel-scope.md"
+    panel_scope_output = work / "ngs-panel-scope.md"
+    if not panel_scope_source.is_file():
+        raise ValueError(f"canonical NGS panel scope is missing: {panel_scope_source}")
+    shutil.copyfile(panel_scope_source, panel_scope_output)
 
     # Common procedural asset. evidence-to-report intentionally reuses existing
     # Step-5 outputs and does not create irrelevant Step-1 state.

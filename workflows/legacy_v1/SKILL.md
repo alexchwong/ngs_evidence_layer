@@ -83,8 +83,7 @@ For every model step:
 
 ## Shared patient-result semantics
 
-These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudication, and Step 3B diagnostic revision. Reporting steps must not independently reconstruct missing results from these rules.
-
+The general rules below apply only to Step 1B case structuring, Step 3A diagnostic adjudication, and Step 3B diagnostic revision. Step 6A must not independently reconstruct other missing test results from them.
 
 - Treat a reported test result as complete unless explicitly described as partial, selected, limited, abbreviated, pending, or otherwise incomplete.
 - In a complete test, an unlisted abnormal finding is negative only within that test's scope.
@@ -93,6 +92,14 @@ These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudicat
 - If cytogenetic results are not supplied, assume normal conventional cytogenetics for interpretation and record this as a `workflow_assumption`, not a patient result.
 - Do not state that cytogenetics were performed or that a specific cytogenetic abnormality was formally excluded.
 - Do not use the normal-cytogenetics assumption when supplied karyotype, FISH, copy-number, or other findings conflict with it.
+
+### NGS panel-negative semantics
+
+This additional assay-scope rule applies to Steps 3A, 3B and 6A. For these steps, treat the reported NGS result as complete unless it is explicitly described as partial, selected, limited, abbreviated, pending, or otherwise incomplete.
+
+- `<work-dir>/ngs-panel-scope.md` is the complete assay-scope boundary for gene-level NGS negative inference.
+- When the NGS result is complete, a gene listed there but absent from the detected-variant list is negative only for the variant classes stated in the panel-scope file. Use that negative result to resolve criteria and exclusions; do not treat the gene as unresolved merely because it is not individually listed.
+- Do not call an inferred panel-negative gene whole-gene biological wild type and do not extend the inference to variant classes outside the supplied panel scope.
 
 ## Step 0 — Establish workflow state
 
@@ -130,14 +137,14 @@ These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudicat
    ```
 
 4. Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`. For `nel-demo`, record output line 2 as `<demo-case>` and line 3 as `<demo-expected>` without reading either file yet. For validation modes record `<validation-case>` as the supplied case ID.
-5. Setup writes `<work-dir>/workflow.json` and binds the work directory to `legacy-v1`. It also writes `<work-dir>/case-major-categories.json` for modes that run Step 1. Do not infer workflow identity from other files.
+5. Setup writes `<work-dir>/workflow.json`, binds the work directory to `legacy-v1`, and copies the canonical assay definition to `<work-dir>/ngs-panel-scope.md`. It also writes `<work-dir>/case-major-categories.json` for modes that run Step 1. Do not infer workflow identity from other files.
 6. For `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`, record `<format-prompt>`:
    - default: `prompts/formatting/default.md`;
    - if the user explicitly specifies another file from `prompts/formatting/`, record that path;
    - do not list or search `prompts/formatting/`;
    - do not use a formatting prompt outside `prompts/formatting/`;
    - **record the path only. Do not read `<format-prompt>` until Step 6B.**
-7. For `evidence-to-report`, verify only that `<work-dir>/case.md`, `<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist, and `<work-dir>/evidence.md` is non-empty. Do not read their contents in Step 0.
+7. For `evidence-to-report`, verify only that `<work-dir>/case.md`, `<work-dir>/evidence.md`, `<work-dir>/card-tags.json`, and the newly copied `<work-dir>/ngs-panel-scope.md` exist, and `<work-dir>/evidence.md` is non-empty. Do not read their contents in Step 0.
 8. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
 
 ### Exit
@@ -249,11 +256,12 @@ Use a fresh bounded model session.
 Read only:
 
 - `workflows/legacy_v1/prompts/adjudicate_diagnosis.md`;
-- `<work-dir>/diagnostic_evidence.md`.
+- `<work-dir>/diagnostic_evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`.
 
 #### Required action
 
-Follow `workflows/legacy_v1/prompts/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary.
+Follow `workflows/legacy_v1/prompts/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary and `ngs-panel-scope.md` as the complete gene-level NGS assay-scope boundary.
 
 For `evidence-block`, `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`:
 - set `user_review` to `"automatic"`;
@@ -296,6 +304,7 @@ Use a fresh bounded model session and read only:
 
 - `workflows/legacy_v1/prompts/revise_diagnosis.md`;
 - `<work-dir>/diagnostic_evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`;
 - `<work-dir>/adjudication.json`;
 - the user's revised diagnostic label and downstream category.
 
@@ -359,6 +368,7 @@ Read only:
 - `prompts/workflow/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`;
 - `rules/agreed_reporting_rules.md`.
 
 Follow `workflows/legacy_v1/prompts/analyse_report.md` exactly and write only `<work-dir>/report-draft.md`.

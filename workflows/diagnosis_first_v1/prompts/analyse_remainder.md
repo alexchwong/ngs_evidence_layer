@@ -2,7 +2,7 @@
 
 ## Task
 
-Answer every rule supplied in `reporting-rules-remainder.md` using the patient case and the evidence made available for this pass.
+Answer every rule supplied in `reporting-rules-remainder.md` using the patient case, `ngs-panel-scope.md`, and the evidence made available for this pass.
 
 `reporting-rules-remainder.md` is the prompt-owned analysis contract rendered for this pass. Follow its patient-level conclusion style, REPORT/OMIT taxonomy, evidence boundary, branch-specific scope, and canonical reporting rules exactly. Apply the **Rule-draft citation contract** in `citation_rules.md`.
 
@@ -21,6 +21,7 @@ The Step-3 refined CMC shown in `downstream_evidence.md` is fixed for this step.
 - Write exactly one line per rule using: `R<section>.<number> REPORT: ...` or `R<section>.<number> OMIT: ...`.
 - If R0.1 is supplied, it is mandatory `REPORT:` patient-result content and must end with `(no citation required)`.
 - `REPORT:` text must be direct report-ready clinical prose, not report-construction meta-language.
+- Use `ngs-panel-scope.md` to resolve negative gene findings from a complete NGS result. If a listed panel gene is absent from the detected-variant list, treat it as negative only for the variant classes defined by that file; do not leave that gene unresolved merely because it is unlisted.
 - Use only runtime card tags copied from `downstream_evidence.md`.
 
 ## Validation repair
