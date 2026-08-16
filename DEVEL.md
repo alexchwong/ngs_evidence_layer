@@ -19,8 +19,7 @@ Activate it in each new shell, then use the relevant maintenance commands:
 . .env/bin/activate
 
 # Regenerate any prompt affected by canonical template, asset, rule, vocabulary, or schema changes.
-python scripts/build_prompts.py --phase <1|2|3|4|5>
-python scripts/build_prompts.py --phase5-review
+python scripts/build_prompts.py --phase <1|2|3|4>
 
 # Regenerate runtime JSON after editing output/corpus/blacklist.yaml.
 python scripts/build_blacklist.py
@@ -76,7 +75,7 @@ place. Promotion to default remains a deliberate edit of `workflows/registry.jso
 
 ## Regenerate ingestion prompts
 
-The committed Phase 1–5 prompts are generated artefacts.
+The committed Phase 1–4 prompts are generated artefacts.
 
 Edit phase-specific prose under:
 
@@ -98,7 +97,7 @@ aliases, taxonomic parents, and retrieval relationships live together in
 lives in `prompts/assets/publication_type_audit_policy.md`.
 
 Phase-specific online validators live under `scripts/phase_validation/`: the prompt
-manifest injects the relevant Phase 1, 2, 4, or 5 validator, while Phase 3 has no
+manifest injects the relevant Phase 1, 2, or 4 validator, while Phase 3 has no
 executable prompt validator and is checked by Phase 4 on entry.
 `scripts/final_validation.py` remains the local compatibility CLI for Phases 1–4 and
 dispatches to the canonical phase validators. File assets are injected in full; bundle
@@ -112,22 +111,6 @@ python scripts/build_prompts.py --phase 1
 python scripts/build_prompts.py --phase 2
 python scripts/build_prompts.py --phase 3
 python scripts/build_prompts.py --phase 4
-python scripts/build_prompts.py --phase 5
-python scripts/build_prompts.py --phase5-review
-```
-
-The canonical Phase 5 sources are:
-
-```text
-prompts/templates/phase5_prompt.md
-prompts/templates/phase5_review_prompt.md
-```
-
-The generated committed outputs are:
-
-```text
-prompts/phase5_prompt.md
-prompts/phase5_review_prompt.md
 ```
 
 Do not edit generated phase prompts directly. Edit the corresponding template or other

@@ -52,18 +52,13 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
             1: "PHASE1_VALIDATION_BUNDLE",
             2: "PHASE2_VALIDATION_BUNDLE",
             4: "PHASE4_VALIDATION_BUNDLE",
-            5: "PHASE5_VALIDATION_BUNDLE",
         }
-        for phase in (1, 2, 3, 4, 5):
+        for phase in (1, 2, 3, 4):
             path = ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
             markers = self.template_markers(path)
             validation_markers = {m for m in markers if m.endswith("_VALIDATION_BUNDLE")}
             wanted = {expected[phase]} if phase in expected else set()
             self.assertEqual(validation_markers, wanted, f"phase {phase}")
-        review_markers = self.template_markers(
-            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
-        )
-        self.assertFalse({m for m in review_markers if m.endswith("_VALIDATION_BUNDLE")})
 
     def test_card_handling_prompts_use_phase_appropriate_shared_assets(self):
         common = {
@@ -75,8 +70,6 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
             "phase2_prompt.md": "EVIDENCE_BUNDLE_RULES",
             "phase3_prompt.md": "EVIDENCE_REVIEW_RULES",
             "phase4_prompt.md": "EVIDENCE_BUNDLE_RULES",
-            "phase5_prompt.md": "EVIDENCE_BUNDLE_RULES",
-            "phase5_review_prompt.md": "EVIDENCE_REVIEW_RULES",
         }
         for name, evidence_asset in expected_evidence_asset.items():
             path = ROOT / "prompts" / "templates" / name

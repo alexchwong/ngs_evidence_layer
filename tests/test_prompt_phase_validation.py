@@ -9,7 +9,6 @@ PHASE_MARKERS = {
     1: "PHASE1_VALIDATION_BUNDLE",
     2: "PHASE2_VALIDATION_BUNDLE",
     4: "PHASE4_VALIDATION_BUNDLE",
-    5: "PHASE5_VALIDATION_BUNDLE",
 }
 
 
@@ -19,10 +18,7 @@ def test_only_phases_with_validators_embed_phase_specific_markers():
             ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
         ).read_text(encoding="utf-8")
         assert template.count("{{" + marker + "}}") == 1
-    for path in (
-        ROOT / "prompts" / "templates" / "phase3_prompt.md",
-        ROOT / "prompts" / "templates" / "phase5_review_prompt.md",
-    ):
+    for path in (ROOT / "prompts" / "templates" / "phase3_prompt.md",):
         template = path.read_text(encoding="utf-8")
         assert "_VALIDATION_BUNDLE}}" not in template
 
@@ -41,10 +37,6 @@ def test_builder_embeds_only_the_active_phase_validator():
                 ).read_text(encoding="utf-8").rstrip()
                 assert other_source not in rendered
     assert "<!-- BEGIN VERBATIM scripts/phase_validation/" not in build_prompts.render(3)
-    assert (
-        "<!-- BEGIN VERBATIM scripts/phase_validation/"
-        not in build_prompts.render_phase5_review()
-    )
 
 
 def test_phase4_entry_validates_phase3_product_with_phase4_validator():

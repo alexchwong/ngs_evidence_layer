@@ -275,29 +275,18 @@ def render(phase):
     return template + "\n"
 
 
-def render_phase5_review():
-    return render_template(
-        ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
-    ) + "\n"
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--phase", type=int, choices=(1, 2, 3, 4, 5))
-    mode.add_argument("--phase5-review", action="store_true")
+    mode.add_argument("--phase", type=int, choices=(1, 2, 3, 4))
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         errors = vocabulary_errors()
         if errors:
             raise ValueError("\n".join(errors))
-        if args.phase5_review:
-            destination = args.output or ROOT / "prompts" / "phase5_review_prompt.md"
-            content = render_phase5_review()
-        else:
-            destination = args.output or ROOT / "prompts" / f"phase{args.phase}_prompt.md"
-            content = render(args.phase)
+        destination = args.output or ROOT / "prompts" / f"phase{args.phase}_prompt.md"
+        content = render(args.phase)
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:

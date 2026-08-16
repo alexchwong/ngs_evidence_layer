@@ -72,10 +72,6 @@
         "schema/review_schema.json",
         "schema/disease_vocabulary.json"
       ]
-    },
-    "PHASE5_VALIDATION_BUNDLE": {
-      "type": "file",
-      "path": "scripts/phase_validation/phase5.py"
     }
   }
 }

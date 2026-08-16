@@ -32,6 +32,7 @@ def validate_phase_files(
     provisional_path=None,
     review_path=None,
     final_path=None,
+    base_final_path=None,
 ):
     """Dispatch to the canonical validator owned by the active/consuming phase."""
     paths = {
@@ -55,6 +56,7 @@ def validate_phase_files(
             census_path=census_path,
             source_path=source_path,
             provisional_path=provisional_path,
+            base_final_path=base_final_path,
         )
     if phase == 3:
         # Phase 3 has no prompt validator. Phase 4 owns deterministic validation
@@ -80,7 +82,7 @@ def validate_final_files(**paths):
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", type=int, choices=(1, 2, 3, 4), required=True)
-    for name in ("metadata", "census", "source", "provisional", "review", "final"):
+    for name in ("metadata", "census", "source", "provisional", "review", "final", "base-final"):
         parser.add_argument(f"--{name}", type=Path)
     args = parser.parse_args(argv)
     provided = {
@@ -108,6 +110,7 @@ def main(argv=None):
             provisional_path=args.provisional,
             review_path=args.review,
             final_path=args.final,
+            base_final_path=args.base_final,
         )
     except (OSError, ValueError) as exc:
         sys.exit(f"PHASE {args.phase} VALIDATION FAILED:\n{exc}")

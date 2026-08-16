@@ -51,36 +51,19 @@ python scripts/quarantine.py list
 python scripts/quarantine.py review --key <publication-key> --note "<review-note>"
 ```
 
-Redo commands for re-running an accepted paper from Phase 1 or Phase 2:
+Redo/review commands for an accepted paper:
 
 ```bash
-# Redo the census and all downstream cards.
-python scripts/prepare_redo.py --key <publication-key> --phase 1
+# Rebuild the census and all downstream phases.
+python scripts/prepare_redo.py census --key <publication-key>
 
-# Keep the accepted census and redo cards/review/adjudication.
-python scripts/prepare_redo.py --key <publication-key> --phase 2
+# Keep the accepted census and re-extract cards from Phase 2.
+python scripts/prepare_redo.py provisional --key <publication-key>
 
-# Complete the normal remaining phases, then confirm without --overwrite.
-python scripts/confirm.py --key <publication-key>
-python scripts/incorporate.py
-```
+# Review the accepted paper.final.json in Phase 2; cards may be added, deleted, or modified.
+python scripts/prepare_redo.py cards --key <publication-key>
 
-Phase 5 commands for post-acceptance additions or card revisions:
-
-```bash
-# Add missed evidence.
-python scripts/prepare_redo.py --key <publication-key> --phase 5
-
-# Or inspect the corpus and prepare selected accepted cards for revision.
-python scripts/render_corpus.py --list
-python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
-python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,0005
-# Or release every accepted card from the publication into the revision allowlist.
-python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards all
-
-# Complete the Phase 5 authoring and independent review steps described below.
-# Revision mode: restate exactly the existing cards actually modified/deleted.
-python scripts/apply_phase5.py --key <publication-key> --cards 0001,0003
+# Complete the remaining normal phases, then confirm without --overwrite.
 python scripts/confirm.py --key <publication-key>
 python scripts/incorporate.py
 ```
@@ -321,139 +304,87 @@ Run each phase in a fresh chat. Save the model's returned JSON file into the sam
 
 | Phase | Chat/session | Give the model | Prompt | Save output as |
 |---|---|---|---|---|
-| 1 — census | Fresh ChatGPT or Claude chat | `paper.md`, `metadata.json` | `prompts/phase1_prompt.md` | `paper.census.json` |
-| 2 — carding | Fresh chat | `paper.md`, `metadata.json`, `paper.census.json` | `prompts/phase2_prompt.md` | `paper.provisional-001.json` |
-| 3 — independent review | Fresh chat using a **different model from Phase 2** | `paper.md`, `paper.provisional-001.json` | `prompts/phase3_prompt.md` | `paper.review-001.json` |
-| 4 — human adjudication | Fresh chat | `paper.md`, `metadata.json`, `paper.census.json`, `paper.provisional-001.json`, `paper.review-001.json` | `prompts/phase4_prompt.md` | `paper.final.json` |
+| 1 — census | Fresh ChatGPT or Claude chat | `paper.md`, `metadata.json` | `prompts/phase1_prompt.md` | `paper.census-v001.json` |
+| 2 — carding | Fresh chat | `paper.md`, `metadata.json`, active census | `prompts/phase2_prompt.md` | `paper.provisional-v001.json` |
+| 3 — independent review | Fresh chat using a **different model from Phase 2** | `paper.md`, active provisional | `prompts/phase3_prompt.md` | matching `paper.review-vNNN.json` |
+| 4 — human adjudication | Fresh chat | `paper.md`, `metadata.json`, active census/provisional/review | `prompts/phase4_prompt.md` | `paper.final.json` |
 
 ### Phase 1 — census
 
-Invoke Phase 1 with either full scope or an explicit category-only scope. Examples:
+Invoke Phase 1 with full scope or an explicit category-only scope. Phase 1 first
+normalizes the requested scope and asks for `CONFIRM`. New ingestions write:
 
 ```text
-Phase 1
-Phase 1, diagnosis only
-Phase 1, diagnosis and biomarker only
+paper.census-v001.json
 ```
 
-Phase 1 first normalizes and paraphrases the requested scope and asks for `CONFIRM`.
-It must not begin extraction until confirmed. Plain `Phase 1` means all five clinical
-categories. A restricted run still reads the entire paper, but writes census entries
-only for the confirmed categories. Restricted scope is persisted as the optional
-positive allow-list `category_scope` in `paper.census.json`; full-scope runs omit the
-field for backward compatibility. Downstream phases treat categories outside a
-declared scope as intentionally excluded, while remaining strict about completeness
-inside the scope.
+If Phase 2 rejects that census, start a fresh Phase 1 conversation with the original
+Phase 1 inputs plus the prior census and its critique. The retry writes the next attempt,
+for example `paper.census-v002.json`. Never overwrite a failed attempt. Legacy
+`paper.census.json` is read as attempt v001; the next retry therefore writes v002.
 
+A prepared accepted-paper census redo also includes `redo.json`; use its exact
+`next_outputs.census` filename for the first redo attempt.
 
-Start a fresh chat and provide exactly:
+### Phase 2 — carding and accepted-card review
 
-- `work/<publication-key>/paper.md`
-- `work/<publication-key>/metadata.json`
-- `prompts/phase1_prompt.md`
-
-Save the output as:
+Normal Phase 2 receives `paper.md`, `metadata.json`, the active census, and
+`prompts/phase2_prompt.md`. New ingestion starts with:
 
 ```text
-work/<publication-key>/paper.census.json
+paper.provisional-v001.json
 ```
 
-Do not run Phase 2 in the same conversation.
+If Phase 2 rejects the census, it returns `paper.census-critique-vNNN.md`, tied to the
+census attempt being criticised. Redo Phase 1 as above. If Phase 3 rejects the
+provisional structurally, rerun Phase 2 with the prior provisional and critique; the
+next package uses the next Phase 2 attempt, for example `paper.provisional-v002.json`.
+The package `round` advances with Phase 2 attempts.
 
-### Phase 2 — carding
+Accepted-card review is also Phase 2. Prepare it with:
 
-Start a fresh chat with:
+```bash
+python scripts/prepare_redo.py cards --key <publication-key>
+```
 
-- `paper.md`
-- `metadata.json`
-- `paper.census.json`
-- `prompts/phase2_prompt.md`
-
-Normally save the output as:
+The work folder contains `paper.md`, `metadata.json`, the accepted census,
+`paper.final.json`, and `redo.json`. Phase 2 treats the accepted final as the existing
+card set and outputs a complete replacement provisional package. It may retain, add,
+delete, split, merge, or modify cards; there is no CLI card allowlist. Accepted-card
+revision numbering is separate from Phase-attempt numbering:
 
 ```text
-paper.provisional-001.json
+paper.provisional-rev001-v001.json
+paper.provisional-rev001-v002.json   # Phase 2 retry within revision 001
+paper.provisional-rev002-v001.json   # later accepted-card review
 ```
-
-If Phase 2 instead returns a census critique such as:
-
-```text
-paper.census-critique-001.md
-```
-
-stop Phase 2. Start a fresh Phase 1 conversation, provide the critique with the Phase 1
-inputs, regenerate `paper.census.json`, then start Phase 2 again in a new conversation.
-Once a provisional package has been produced, do not repeat Phase 2 after audit.
-
-#### Source disease aliases
-
-Phase 2 normally omits a card when the source-stated disease is outside the closed
-evidence-card vocabulary. Reviewed source wording aliases live on their canonical term in
-`schema/disease_vocabulary.json` and map complete source phrases to that existing
-canonical disease term. For example, source
-wording `clonal haematopoiesis` or `clonal haemopoiesis` can map to canonical disease
-`CHIP`; the source wording must still be preserved in the evidence and interpretation.
-
-Aliases are case-insensitive but otherwise exact. They do not enable fuzzy matching,
-stemming, punctuation substitution, semantic inference, or mapping to a nearest term.
-To add an alias, add the complete source phrase to that canonical term's `aliases`
-array, regenerate the affected prompts, and run the full test suite. Do not use aliases
-to encode taxonomic ancestry or retrieval relationships; those live on the same term
-as `parents` and `retrieval_related` respectively.
 
 ### Phase 3 — independent review
 
-Use a **different model** from the one used for Phase 2.
-
-For example:
-
-```text
-Phase 2: ChatGPT
-Phase 3: Claude
-```
-
-Start a fresh chat with exactly:
-
-- `paper.md`
-- `paper.provisional-001.json`
-- `prompts/phase3_prompt.md`
-
-Do not provide the census, schemas, vocabulary, reporting rules, or another publication.
-
-Save:
+Use a **different model** from Phase 2. Give it `paper.md`, the active provisional, and
+`prompts/phase3_prompt.md`. Phase 3 preserves any `revNNN` namespace. Its first review
+attempt uses at least the provisional attempt number; a Phase 3 retry increments only
+the review attempt. Examples:
 
 ```text
-paper.review-001.json
+paper.provisional-v002.json       -> paper.review-v002.json
+paper.provisional-rev001-v001.json -> paper.review-rev001-v001.json
 ```
 
-Phase 3 reviews the proposed cards; it does not edit them and does not create the final
-package.
+A structurally invalid provisional is returned to Phase 2 as
+`paper.provisional-critique[-revNNN]-vNNN.md`. Clinical card pass/fail review otherwise
+continues exactly as before.
 
 ### Phase 4 — human adjudication
 
-Start a fresh chat with:
+Give Phase 4 `paper.md`, `metadata.json`, the active census, the active provisional, its
+matching Phase 3 review, and `prompts/phase4_prompt.md`. The internal `round` values, not
+filename equality, bind the reviewed package. Phase 4 retains its existing nickname and
+human-adjudication workflow and returns `paper.final.json`.
 
-- `paper.md`
-- `metadata.json`
-- `paper.census.json`
-- `paper.provisional-001.json`
-- `paper.review-001.json`
-- `prompts/phase4_prompt.md`
-
-Phase 4 first proposes a concise paper nickname. Confirm it, provide a replacement, or
-send `FINALIZE` without a replacement to confirm the latest proposal. The confirmed
-value is stored as top-level `paper_nickname` in `paper.final.json`.
-
-Phase 4 presents only Phase 3 failures requiring human adjudication. Discuss those
-failed cards or publication-type findings with the model and make the final
-source-supported decisions. If Phase 3 found no failures, nickname confirmation is the
-only required interaction before finalization.
-
-Save the final output as:
-
-```text
-paper.final.json
-```
+Legacy archives using `paper.census.json`, `paper.provisional-001.json`, and
+`paper.review-001.json` remain valid and require no migration. New outputs always use the
+versioned filename schema.
 
 ## 5. Confirm the paper
 
@@ -531,9 +462,7 @@ python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
 List mode writes `./temp/corpus/index.md`; publication mode writes
 `./temp/corpus/<publication-key>.md`. Publication output includes each card's full ID,
 short numeric ID, category, genes, diseases, disease ancestors, evidence tier,
-interpretation, locator, and secondary citation. The short IDs (for example `0001`) can
-be passed to `prepare_redo.py --phase 5 --cards` when preparing selected revisions.
-
+interpretation, locator, and secondary citation. 
 By default, the renderer reads:
 
 ```text
@@ -560,7 +489,7 @@ python scripts/render_corpus.py --key <publication-key> --from-accept
 ```
 
 This reads `accept/<publication-key>.final.json`, including the embedded metadata and
-final package. For a Phase 5 supplement/revision or full redo, it reports the acceptance
+final package. For a legacy Phase 5 supplement/revision or a current redo, it reports the acceptance
 version from the newest dated modification record. Otherwise it reports `latest_version`
 for an overwritten paper, falling back to the original `accepted_in_version`.
 
@@ -607,234 +536,71 @@ The command never modifies `archive/`, `accept/`, or `output/`. `curation/` is i
 by Git but is included by `transport.py` when moving private corpus state to another
 computer.
 
-## 6A. Redo an accepted paper from Phase 1 or Phase 2
+## 6A. Redo or review an accepted paper
 
-Use a full redo when the accepted census or card extraction should be rebuilt rather than
-patched with Phase 5. Preparation creates `work/<publication-key>/` and a `redo.json`
-marker that authorises replacement of the current Phase 1–4 lineage.
+`prepare_redo.py` restores only the source and intermediate files required to resume the
+requested model phase. It does not authorise individual card edits or create card
+allowlists. Baseline hashes in `redo.json` are used only to detect stale accepted state at
+confirmation.
 
-Redo the census and every downstream phase:
-
-```bash
-python scripts/prepare_redo.py --key <publication-key> --phase 1
-```
-
-Phase 1 preparation restores `paper.md` and `metadata.json`, plus frozen baseline files
-used only by local confirmation. Generate a new `paper.census.json`, then continue through
-Phases 2–4.
-
-Keep the accepted census and rebuild cards from Phase 2:
+### Redo the census
 
 ```bash
-python scripts/prepare_redo.py --key <publication-key> --phase 2
+python scripts/prepare_redo.py census --key <publication-key>
 ```
 
-Phase 2 preparation additionally restores the accepted `paper.census.json`. The census
-must remain equivalent as JSON through confirmation; use `--phase 1` if it needs to
-change. `--cards` is not valid for Phase 1 or Phase 2 redo.
+Restores `paper.md` and `metadata.json`. `redo.json` names the next census, provisional,
+and review attempt so regenerated files cannot collide with archived legacy or versioned
+filenames. Complete Phases 1–4 and confirm normally.
 
-Both modes create:
-
-```text
-paper.base.final.json
-paper.base.census.json
-redo.json
-```
-
-Do not edit these baseline files or `redo.json`. After completing the remaining normal
-phases, confirm normally:
+### Redo the provisional extraction
 
 ```bash
-python scripts/confirm.py --key <publication-key>
+python scripts/prepare_redo.py provisional --key <publication-key>
 ```
 
-`confirm.py` detects `redo.json`, verifies that the accepted baseline has not changed since
-preparation, validates the complete replacement Phase 1–4 lineage, and replaces the
-accepted final/census and current archive. The superseded accepted envelope, census, and
-archive are retained under `archive/<publication-key>/redo/NNN/`. Repeated redos therefore
-do not require a release-version change. Existing Phase 5 supplement/revision records are
-not carried onto the new current lineage; they remain preserved in the redo snapshot.
+Restores `paper.md`, `metadata.json`, and the accepted census using its archived filename.
+The census is read-only; if it must change, use `census` mode. Complete Phases 2–4.
 
-## 7. Phase 5 — post-acceptance additions and card revisions
-
-Use Phase 5 after a paper has already been accepted. It supports two modes:
-
-- **additive mode** adds evidence-backed cards missed during Phases 1–4;
-- **revision mode** modifies or deletes explicitly authorised accepted cards.
-
-Neither mode may change the census. Structural changes to an accepted card's identity or
-applicability require a redo from Phase 2, or Phase 1 if the census must also change.
-
-### Browse accepted publications and cards
-
-List publication keys with their citations:
+### Review accepted cards
 
 ```bash
-python scripts/render_corpus.py --list
+python scripts/prepare_redo.py cards --key <publication-key>
 ```
 
-Render one publication's accepted cards to Markdown:
+Restores `paper.md`, `metadata.json`, the accepted census, and `paper.final.json` from the
+archive/accepted state into `work/`. Phase 2 review may add, delete, or modify any cards
+and emits a complete `paper.provisional-revNNN-vNNN.json`; Phase 3 and Phase 4 then use
+the normal review/adjudication workflow. There is no separate Phase 5 or Phase 5R.
 
-```bash
-python scripts/render_corpus.py --key <publication-key> --dest ./temp/corpus
-```
+### Confirmation and history
 
-This writes `./temp/corpus/<publication-key>.md`. Each card is headed by its short numeric
-ID (for example `0001`) so those IDs can be passed directly to `prepare_redo.py --phase 5 --cards`. The
-renderer is read-only and uses the committed corpus/index outputs.
-
-### Prepare additive Phase 5
-
-Restore an accepted paper for an additive supplement:
-
-```bash
-python scripts/prepare_redo.py --key <publication-key> --phase 5
-```
-
-This restores the archived Phase 1–4 files into `work/<publication-key>/`, overlays the
-current accepted final/census state, and creates:
-
-```text
-paper.base.final.json
-paper.base.census.json
-phase5.json
-phase5.existing-cards.json
-```
-
-Continue with the existing additive Phase 5 authoring/review workflow. On `FINALIZE`,
-Phase 5 shows the exact `ADD` / `DELETE` / `MODIFY` set. Additive mode has only `ADD`.
-Send `CONFIRM CHANGES` to approve that set; only then does Phase 5 produce the merged
-`paper.final.json`. Then use the normal confirm and incorporate commands below.
-
-### Prepare card revision Phase 5
-
-Select the accepted cards that may be modified/deleted, or release all accepted cards:
-
-```bash
-python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards 0001,0003,0005
-python scripts/prepare_redo.py --key <publication-key> --phase 5 --cards all
-```
-
-The selected IDs are a local allowlist; `all` expands to every accepted card in the
-publication. Phase 5 may act on any subset, and not every authorised card has to change. Preparation
-freezes the accepted baseline and additionally creates:
-
-```text
-paper.phase5-targets.json
-```
-
-`phase5.json` records the authorised cards and hashes of the accepted baseline and target
-objects. Do not edit these preparation files manually.
-
-### Revision Phase 5 — interactive ChatGPT authoring
-
-Start a fresh ChatGPT conversation with:
-
-- `paper.md`
-- `metadata.json`
-- `paper.census.json`
-- `paper.base.final.json`
-- `paper.phase5-targets.json`
-- `phase5.json`
-- `phase5.existing-cards.json`
-- `prompts/phase5_prompt.md`
-
-Phase 5 shows the authorised cards and asks what should change. Discuss and refine the
-actual modifications/deletions interactively. A modification may change only the card
-interpretation, locator, and paired evidence. Card ID, genes, diseases, disease ancestors,
-category, evidence tier, and secondary citation remain fixed. A deletion removes the
-accepted card, its paired evidence, and its matching audit result. Revision mode does not
-add cards; use additive mode for additions.
-
-When ready for independent review, send:
-
-```text
-PROVISIONAL
-```
-
-Phase 5 writes:
-
-```text
-paper.phase5-provisional.json
-```
-
-and runs the deterministic validation code embedded in `phase5_prompt.md` before returning
-the file. Save the validated provisional locally.
-
-### Revision Phase 5R — non-interactive Claude review
-
-Start a fresh Claude conversation using a different model from Phase 5. Provide exactly:
-
-- `paper.md`
-- `paper.phase5-targets.json`
-- `paper.phase5-provisional.json`
-- `prompts/phase5_review_prompt.md`
-
-Phase 5R is LLM-only: do not interact with or clarify the review. Save its only output as:
-
-```text
-paper.phase5-review.json
-```
-
-Upload that review to the original Phase 5 ChatGPT conversation. Phase 5 validates that
-the review covers the current per-change hashes. If any change fails, discuss and revise
-it in Phase 5, issue a new `PROVISIONAL`, and run a fresh Phase 5R review of the current
-batch.
-
-### Finalize a revision transaction
-
-When every proposed modification/deletion has a valid passing review, send to the Phase 5
-conversation:
-
-```text
-FINALIZE
-```
-
-Phase 5 shows the exact pending `ADD` / `DELETE` / `MODIFY` set. Revision mode has no
-`ADD`. Check it, then send:
-
-```text
-CONFIRM CHANGES
-```
-
-Only after that explicit confirmation does Phase 5 return a validated transaction asset.
-Revision mode does **not** let the LLM write `paper.final.json`:
-
-```text
-paper.phase5-revision.json
-```
-
-Save it under `work/<publication-key>/`, then apply it locally:
-
-```bash
-python scripts/apply_phase5.py --key <publication-key> --cards 0001,0003
-```
-
-`--cards` is mandatory and must exactly equal the existing card IDs actually modified or
-deleted in the reviewed transaction; do not pass the broader preparation allowlist.
-`apply_phase5.py` revalidates that restated change set, the authorised targets, current
-accepted baseline, reviewed hashes, and protected fields. It constructs the new
-`paper.final.json` from the frozen baseline, applies only the reviewed modifications/
-deletions, removes audit results for deleted cards, and recomputes derived coverage fields.
-
-### Confirm and re-incorporate
-
-For either Phase 5 mode, use the normal acceptance command:
+After completing the remaining phases:
 
 ```bash
 python scripts/confirm.py --key <publication-key>
-```
-
-There is no `--phase5` flag. `confirm.py` detects `phase5.json` and applies the matching
-additive or revision validation path. Additive supplements are archived under
-`archive/<publication-key>/phase5/NNN/`; revisions are archived separately under
-`archive/<publication-key>/phase5-revision/NNN/`.
-
-Finally rebuild the corpus:
-
-```bash
 python scripts/incorporate.py
 ```
+
+Confirmation verifies the accepted baseline has not changed since preparation, validates
+the complete new lineage, replaces the current accepted/archive state, and snapshots the
+superseded archive under `archive/<publication-key>/redo/NNN/`. Historical accepted
+packages and archived folders created by the former Phase 5 workflow remain readable;
+new workflows do not create Phase-5 artefacts.
+
+### Filename compatibility
+
+Legacy names are permanent read aliases for first attempts:
+
+| Legacy | Interpreted as |
+|---|---|
+| `paper.census.json` | census v001 |
+| `paper.provisional-001.json` | provisional v001 |
+| `paper.review-001.json` | review v001 |
+
+Do not rename old archives. New retries inspect both legacy and versioned names when
+choosing the next attempt, so a legacy `paper.provisional-001.json` is followed by
+`paper.provisional-v002.json`, not another v001.
 
 ## Development and prompt maintenance
 

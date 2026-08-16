@@ -37,27 +37,20 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertEqual(BUILD_PROMPTS.vocabulary_errors(), [])
 
     def test_all_phase_templates_render_without_unresolved_markers(self):
-        for phase in (1, 2, 3, 4, 5):
+        for phase in (1, 2, 3, 4):
             with self.subTest(phase=phase):
                 prompt = BUILD_PROMPTS.render(phase)
                 self.assertTrue(prompt.strip())
                 self.assertNotRegex(prompt, r"\{\{[^{}]+\}\}")
-        review = BUILD_PROMPTS.render_phase5_review()
-        self.assertTrue(review.strip())
-        self.assertNotRegex(review, r"\{\{[^{}]+\}\}")
 
     def test_file_assets_are_injected_whole(self):
         templates = {
             f"phase{phase}": ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
-            for phase in (1, 2, 3, 4, 5)
+            for phase in (1, 2, 3, 4)
         }
-        templates["phase5-review"] = (
-            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
-        )
         rendered = {
-            f"phase{phase}": BUILD_PROMPTS.render(phase) for phase in (1, 2, 3, 4, 5)
+            f"phase{phase}": BUILD_PROMPTS.render(phase) for phase in (1, 2, 3, 4)
         }
-        rendered["phase5-review"] = BUILD_PROMPTS.render_phase5_review()
         for name, template_path in templates.items():
             markers = set(MARKER_RE.findall(template_path.read_text(encoding="utf-8")))
             for marker in markers:
@@ -69,7 +62,7 @@ class PromptIntegrationTests(unittest.TestCase):
                     self.assertIn(expected, rendered[name])
 
     def test_phase_validation_assets_contain_declared_file_whole(self):
-        for phase in (1, 2, 4, 5):
+        for phase in (1, 2, 4):
             keyword = f"PHASE{phase}_VALIDATION_BUNDLE"
             content = BUILD_PROMPTS.asset_content(keyword)
             spec = self.manifest[keyword]
@@ -123,9 +116,8 @@ class PromptIntegrationTests(unittest.TestCase):
     def test_all_card_handling_prompts_use_canonical_source_disease_alias_policy(self):
         prompts = {
             f"phase{phase}": BUILD_PROMPTS.render(phase)
-            for phase in (2, 3, 4, 5)
+            for phase in (2, 3, 4)
         }
-        prompts["phase5-review"] = BUILD_PROMPTS.render_phase5_review()
         for name, rendered in prompts.items():
             with self.subTest(prompt=name):
                 prompt = " ".join(rendered.split())

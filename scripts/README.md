@@ -20,7 +20,6 @@ Scripts are grouped below by their primary role.
 
 ## Ingest
 
-- `apply_phase5.py`
 - `build_secondary_source_backlog.py`
 - `citations.py`
 - `confirm.py`
@@ -31,18 +30,17 @@ Scripts are grouped below by their primary role.
 - `make_key.py`
 - `package_validation.py`
 - `parse_pdfs.py`
-- `prepare_redo.py`
+- `prepare_redo.py` — restore accepted state for census, provisional, or accepted-card Phase 2 review
+- `ingest_artifacts.py` — versioned/legacy ingestion filename resolver
 - `quarantine.py`
 - `render_corpus.py`
 - `transport.py`
-- `validate_phase5.py`
 - `validate_review.py`
 - `phase_validation/`
   - `__init__.py`
   - `phase1.py`
   - `phase2.py`
   - `phase4.py`
-  - `phase5.py`
 
 ## Development
 

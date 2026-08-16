@@ -47,6 +47,7 @@ class PhaseValidationTests(unittest.TestCase):
             census_path=Path("c"),
             source_path=Path("s"),
             provisional_path=Path("p"),
+            base_final_path=None,
         )
 
     def test_phase_3_is_owned_by_phase4_entry_validator(self):
@@ -93,7 +94,7 @@ class PhaseValidationTests(unittest.TestCase):
                 2,
                 [
                     "--phase", "2", "--metadata", "m", "--census", "c",
-                    "--source", "s", "--provisional", "p",
+                    "--source", "s", "--provisional", "p", "--base-final", "b",
                 ],
             ),
             (3, ["--phase", "3", "--provisional", "p", "--review", "r"]),

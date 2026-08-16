@@ -120,13 +120,13 @@ def validate_package(package, metadata, census, source_text=None, require_final=
         errors.append("package census_entries does not match census")
     if "paper_nickname" in package:
         errors.append("provisional package must not contain paper_nickname")
+    if not require_final and package["publication_type_verified_by_phase3"]:
+        errors.append("provisional publication type cannot already be verified by Phase 3")
     if package["round"] == 1 and not require_final:
         if package["publication_type"] != census.get("publication_type"):
             errors.append("first-round package publication_type does not match census")
         if package["publication_type_basis"] != census.get("publication_type_basis"):
             errors.append("first-round package publication_type_basis does not match census")
-        if package["publication_type_verified_by_phase3"]:
-            errors.append("first-round provisional publication type cannot already be verified")
 
     card_ids = [card["card_id"] for card in package["cards"]]
     evidence_ids = [evidence["card_id"] for evidence in package["evidence"]]
@@ -275,7 +275,7 @@ def validate_package(package, metadata, census, source_text=None, require_final=
     return errors, warnings, report
 
 
-def validate_phase_files(*, metadata_path, census_path, source_path, provisional_path):
+def validate_phase_files(*, metadata_path, census_path, source_path, provisional_path, base_final_path=None):
     metadata = read_json(metadata_path, "metadata")
     census = read_json(census_path, "census")
     provisional = read_json(provisional_path, "provisional package")
@@ -283,6 +283,21 @@ def validate_phase_files(*, metadata_path, census_path, source_path, provisional
     package_errors, warnings, report = validate_package(
         provisional, metadata, census, source_text=source_text, require_final=False
     )
+    expected_publication = census
+    expected_label = "census"
+    if base_final_path is not None:
+        expected_publication = read_json(base_final_path, "accepted final package")
+        expected_label = "accepted final"
+        if expected_publication.get("paper_id") != provisional.get("paper_id"):
+            package_errors.append("accepted final paper_id does not match provisional package")
+    if provisional.get("publication_type") != expected_publication.get("publication_type"):
+        package_errors.append(
+            f"provisional publication_type does not match {expected_label}"
+        )
+    if provisional.get("publication_type_basis") != expected_publication.get("publication_type_basis"):
+        package_errors.append(
+            f"provisional publication_type_basis does not match {expected_label}"
+        )
     phase_report = {"phase": 2}
     phase_report.update(report or {})
     return [f"provisional: {error}" for error in package_errors], warnings, phase_report
@@ -294,6 +309,7 @@ def parse_args(argv=None):
     parser.add_argument("--census", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--provisional", type=Path, required=True)
+    parser.add_argument("--base-final", type=Path)
     return parser.parse_args(argv)
 
 
@@ -305,6 +321,7 @@ def main(argv=None):
             census_path=args.census,
             source_path=args.source,
             provisional_path=args.provisional,
+            base_final_path=args.base_final,
         )
     except (OSError, ValueError) as exc:
         sys.exit(f"PHASE 2 VALIDATION FAILED:\n{exc}")
