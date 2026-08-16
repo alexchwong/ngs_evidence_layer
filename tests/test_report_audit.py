@@ -68,6 +68,32 @@ class DraftValidationTests(unittest.TestCase):
         result = report_audit.validate_draft(draft_text(), EVIDENCE)
         self.assertEqual(result[0]["classification"], "REPORT")
 
+    def test_r0_1_allows_mandatory_no_pathogenic_variants_sentence(self):
+        classification, text, tags = report_audit.split_draft_line(
+            "R0.1 REPORT: No pathogenic variants were detected on NGS. (no citation required)",
+            expected_rule_id="R0.1",
+            line_number=1,
+        )
+        self.assertEqual(classification, "REPORT")
+        self.assertEqual(text, "No pathogenic variants were detected on NGS.")
+        self.assertEqual(tags, [])
+
+    def test_rejects_report_sentence_beginning_no(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: No reportable implication is present. (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "sentence beginning 'No'"):
+            report_audit.validate_draft(text, EVIDENCE)
+
+    def test_rejects_later_report_sentence_beginning_not_applicable(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: The assay result is available. Not applicable to this case. (no citation required)",
+        )
+        with self.assertRaisesRegex(ValueError, "sentence beginning 'Not applicable'"):
+            report_audit.validate_draft(text, EVIDENCE)
+
     def test_rejects_report_meta_instruction_with_actionable_message(self):
         text = draft_text().replace(
             "R1.1 REPORT: Answer for R1.1. (no citation required)",
@@ -176,6 +202,19 @@ class DraftValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "marker inside answer prose"):
             report_audit.validate_draft(text, EVIDENCE)
 
+
+    def test_inline_citation_error_instructs_terminal_union_repair(self):
+        text = draft_text().replace(
+            "R1.1 REPORT: Answer for R1.1. (no citation required)",
+            "R1.1 REPORT: First claim. [card:a1b2c3] Second claim. [card:d4e5f6]",
+        )
+        with self.assertRaises(ValueError) as ctx:
+            report_audit.validate_draft(text, EVIDENCE)
+        message = str(ctx.exception)
+        self.assertIn("remove every internal [card:...]", message)
+        self.assertIn("union of every directly supporting card tag", message)
+        self.assertIn("exactly one citation disposition after the final full stop", message)
+
     def test_rejects_no_citation_marker_inside_prose(self):
         text = draft_text().replace(
             "R1.1 REPORT: Answer for R1.1. (no citation required)",
@@ -195,6 +234,17 @@ class DraftValidationTests(unittest.TestCase):
     def test_evidence_requires_runtime_card_tags(self):
         with self.assertRaisesRegex(ValueError, "contains no runtime card tags"):
             report_audit.validate_draft(draft_text(), "# Evidence\n")
+
+    def test_prototype_may_allow_empty_evidence_when_draft_cites_no_cards(self):
+        rules = "# R2 — Prognosis\n\n1. **Question?**\n"
+        draft = "R2.1 OMIT: No reportable implication. (no citation required)\n"
+        parsed = report_audit.validate_draft(
+            draft,
+            "# Evidence\n",
+            rules,
+            allow_no_evidence_tags=True,
+        )
+        self.assertEqual(parsed[0]["card_tags"], [])
 
 
 if __name__ == "__main__":

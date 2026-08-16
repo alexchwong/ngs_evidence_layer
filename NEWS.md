@@ -1,5 +1,13 @@
 # NEWS
 
+## 0.2.2
+- Made `diagnosis-first-v1` the default reporting workflow while retaining `legacy-v1` through explicit selectors.
+- Bound each work directory to a registered workflow so deterministic commands cannot silently switch pipelines.
+- Added developer tooling to clone and check isolated experimental workflows without changing the default.
+- Expanded the corpus to 12 publications with IPSS-M and germline predisposition guidance.
+- Added function-targeted validation cases for specific AML, MDS, MPN, CMML, and germline reporting behaviours.
+- Modularized workflow-specific retrieval and reporting logic while retaining shared citation, validation, rendering, and packaging infrastructure.
+
 ## 0.2.1
 - Expanded the corpus to nine publications, adding WHO-HAEM5 lymphoid classification and reprocessing key ICC and ELN-DAVID sources.
 - Centralized lymphoid and myeloid disease vocabulary support while separating broad case-major categories from refined disease terms.

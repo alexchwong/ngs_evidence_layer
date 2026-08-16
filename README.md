@@ -3,12 +3,12 @@
 A corpus-grounded evidence layer for myeloid NGS interpretation.
 
 NEL uses `SKILL.md` to combine a supplied clinical case with the committed evidence
-corpus and produce either a citable evidence block or a concise NGS report. Reporting
+corpus and produce a concise NGS report with the current diagnosis-first workflow, while retaining the previous evidence-block/report workflow as `legacy-v1`. Reporting
 is bounded to the supplied case, retrieved corpus evidence, and explicit reporting
 rules; the model is not permitted to fill evidence gaps from general haematology
 knowledge.
 
-## Quick start for end users
+## Quick start
 
 1. Open the repository's GitHub **Releases** tab and download the latest release or
    pre-release ZIP file.
@@ -28,7 +28,16 @@ knowledge.
    - paste the clinical and morphological details and the NGS result, then add
      `ngs-report` on a line by itself;
    - run the first demonstration case with `nel-demo example 1`; or
-   - run the first validation case with `nel-validate 1A`.
+   - run the first validation case on the current workflow with `nel-validate 1A`; or
+   - run the first function-targeted validation case with `nel-validate-function 1A`.
+4. View the evidence card library in the [card browser](output/reports/card-browser.html).
+
+## Contents
+
+- [NGS reporting](#ngs-reporting)
+- [Current corpus](#current-corpus)
+- [Important boundaries](#important-boundaries)
+- [Other documentation](#other-documentation)
 
 ## NGS reporting
 
@@ -36,12 +45,14 @@ Use one of the modes defined in `SKILL.md`.
 
 | Mode | Use when | Output |
 |---|---|---|
-| `ngs-report` | You want a complete NGS report from a new case. | `report-final.md` rendered in chat |
-| `evidence-block` | You want the retrieved evidence without a final report. | `evidence.md` |
-| `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `evidence.md` |
-| `evidence-to-report` | You already have a completed evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
+| `ngs-report` | You want a complete NGS report using the current accepted `diagnosis-first-v1` workflow. | `report-final.md` rendered in chat |
+| `ngs-report --legacy` | You want the same report using the previous `legacy-v1` workflow. | `report-final.md` rendered in chat |
+| `evidence-block --legacy` | You want the legacy retrieved evidence without a final report. | `evidence.md` |
+| `evidence-block manual --legacy` | You want to review/revise the legacy proposed integrated diagnosis before full retrieval. | `evidence.md` |
+| `evidence-to-report --legacy` | You already have a completed legacy evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
 | `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
-| `nel-validate <case-id>` | You want to run a bundled validation case and score the generated report. | Generated report and marking result |
+| `nel-validate <case-id>` | You want to run a bundled validation case on the current workflow. | External-marking ZIP + debug ZIP |
+| `nel-validate-function <case-id>` | You want to test a specific reporting function using the functional validation suite. | Functional external-marking ZIP + debug ZIP |
 
 ### Generate a report
 
@@ -62,14 +73,12 @@ NEL will:
 1. preserve the supplied case;
 2. structure the case for deterministic retrieval;
 3. retrieve diagnosis evidence;
-4. adjudicate an integrated diagnosis;
-5. retrieve the full evidence set;
+4. refine the diagnostic routing and diagnosis conclusions;
+5. retrieve the downstream evidence set;
 6. build a citable evidence block;
 7. draft and format the final report.
 
-Automatic `ngs-report` does not pause for diagnosis confirmation. Use
-`evidence-block manual` when you want to review the proposed integrated diagnosis
-before downstream retrieval.
+The current `ngs-report` uses the accepted diagnosis-first workflow. To run the previous pipeline, use `ngs-report --legacy` (or the immutable selector `ngs-report --legacy-v1`). Legacy evidence-only/manual modes require the same explicit legacy selector.
 
 ### Working directory
 
@@ -109,7 +118,7 @@ specified at the start of the workflow if that prompt is present under
 Use:
 
 ```text
-evidence-block
+evidence-block --legacy
 
 <clinical case>
 ```
@@ -119,7 +128,7 @@ to return `evidence.md` without generating a final NGS report.
 Use:
 
 ```text
-evidence-block manual
+evidence-block manual --legacy
 
 <clinical case>
 ```
@@ -132,10 +141,10 @@ full evidence retrieval.
 If Steps 1–5 have already been completed, provide the retained work directory and run:
 
 ```text
-evidence-to-report
+evidence-to-report --legacy
 ```
 
-NEL verifies that the required `case.md` and `evidence.md` are present, then performs only
+This legacy-only mode verifies that the required `case.md` and `evidence.md` are present, then performs only
 the reporting steps.
 
 ### Demo mode
@@ -157,50 +166,66 @@ is not read until the generated report is complete.
 
 ### Validation mode
 
-Run `nel-validate <case-id>` (for example, `nel-validate 1A`) to execute a bundled
-validation case. Marking criteria are withheld until the report is complete, then used
-to score the generated report. Available case IDs are:
+Run `nel-validate <case-id>` (for example, `nel-validate 1A`) to execute the existing
+validation suite in `validation/case_summary.md`. Marking criteria are withheld until the
+report is complete. Available legacy case IDs are:
 
 `1A`, `1B`, `1C`, `1D`, `1E`; `2A`, `2B`, `2C`, `2D`, `2E`;
 `3A`, `3B`, `3C`, `3D`; `4A`, `4B`, `4C`, `4D`; `5A`, `5B`, `5C`, `5D`.
 
+Run `nel-validate-function <case-id>` to execute the parallel function-targeted suite in
+`validation/case_functional.md`. Its case IDs are:
+
+`1A`-`1H` (AML); `2A`-`2G` (MDS with 12% blasts); `3A`-`3G`
+(thrombocytosis/leukocytosis without marrow); and `4A`-`4D` (miscellaneous).
+
+`validation/case_functional_manifest.md` documents the reporting function isolated by each
+functional case. It is evaluator/developer-only and is never supplied to the report-generation
+model or included in the external marking ZIP.
+
 ## Current corpus
 
-The current 0.2.1 corpus contains nine publications. Publications are grouped below by
+The current 0.2.2 corpus contains 12 publications. Publications are grouped below by
 the corpus version in which they were most recently accepted or modified, using
 `latest_accepted_in_version` from `output/corpus/nel.index.json`. Complete citation,
 card, and acceptance-version metadata are stored in that index.
+
+### Last modified in v0.2.2
+
+| Publication key | DOI | Paper nickname | Contribution to corpus |
+|---|---|---|---|
+| `baliakas-2019-operational-germline-testing` | `10.1097/hs9.0000000000000321` | Nordic Germline Myeloid Guidelines 2019 | Germline predisposition recognition, testing indications, counselling, management, and follow-up guidance. |
+| `bernard-2022-nejm-evidence-1-na` | `10.1056/evidoa2200008` | IPSS-M Prognostic score for MDS | Molecularly integrated IPSS-M prognostic risk assessment for myelodysplastic syndromes. |
+| `feurstein-2021-myeloid-germline` | `10.1016/j.gim.2021.12.008` | Feurstein Germline Variant Interpretation Guide 2022 | Practical germline variant interpretation for haematological malignancy predisposition and related marrow-failure syndromes. |
 
 ### Last modified in v0.2.1
 
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
-| `cloos-2026-blood-147-1147` | `10.1182/blood.2025031480` | ELN-DAVID 2025 AML MRD Guidelines | AML measurable residual disease assessment and management guidance. |
-| `arber-2022-blood-140-1200` | `10.1182/blood.2022015850` | ICC Classification | ICC myeloid classification and diagnostic criteria. |
 | `alaggio-2022-leukemia-who5-lymphoid` | `10.1038/s41375-022-01620-2` | WHO-HAEM5 Lymphoid Neoplasms 2022 | WHO fifth-edition lymphoid classification and molecular diagnostic criteria. |
+| `arber-2022-blood-140-1200` | `10.1182/blood.2022015850` | ICC Classification of Myeloid Neoplasms and Acute Leukemias | ICC myeloid classification and diagnostic criteria. |
+| `cloos-2026-blood-147-1147` | `10.1182/blood.2025031480` | ELN-DAVID AML MRD Guidelines 2025 | AML measurable residual disease assessment, interpretation, and management guidance. |
 
 ### Last modified in v0.2.0
 
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
-| `elena-2016-blood-128-1408` | `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
+| `barbui-2015-blood-cancer-journal-5-e369` | `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
 | `d-hner-2022-blood-140-1345` | `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | AML diagnosis, genetic risk classification, and management guidance. |
 | `d-hner-2024-blood-144-2169` | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | AML genetic risk classification for less-intensive therapy. |
-| `barbui-2015-blood-cancer-journal-5-e369` | `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
-| `tefferi-2018-journal-of-clinical-oncology-36-1769` | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
+| `elena-2016-blood-128-1408` | `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
 | `khoury-2022-leukemia-36-1703` | `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
+| `tefferi-2018-journal-of-clinical-oncology-36-1769` | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
 
 ### Incompatible papers pending re-ingestion
 
-The following publication packages are present in the corpus index but are incompatible with the current ingestion schema. They are not part of the accepted corpus and require re-ingestion before they can contribute evidence.
+The following publication packages are present in the corpus index but are incompatible with the current ingestion schema. They do not contribute evidence and require re-ingestion before they can return to the active corpus.
 
 | Publication key | Status |
 |---|---|
 | `abelson-2018-predict-aml` | Pending re-ingestion |
 | `andrade-2018-tp53-gnomad` | Pending re-ingestion |
-| `baliakas-2019-operational-germline-testing` | Pending re-ingestion |
 | `bernard-2020-tp53-mds` | Pending re-ingestion |
-| `bernard-2022-nejm-evidence-1-na` | Pending re-ingestion |
 | `bluteau-2014-ankrd26` | Pending re-ingestion |
 | `bolton-2020-chemo-ch` | Pending re-ingestion |
 | `davidsson-2018-samd9-samd9l` | Pending re-ingestion |
@@ -208,7 +233,6 @@ The following publication packages are present in the corpus index but are incom
 | `dohner-2020-npm1-flt3-interaction` | Pending re-ingestion |
 | `drazer-2018-germline-vaf` | Pending re-ingestion |
 | `fabre-2022-chip-dnmt3a` | Pending re-ingestion |
-| `feurstein-2021-myeloid-germline` | Pending re-ingestion |
 | `flt3-ras-gilteritinib-resistance` | Pending re-ingestion |
 | `galera-2018-gata2-germline` | Pending re-ingestion |
 | `galli-2021-clone-metrics-ccus` | Pending re-ingestion |

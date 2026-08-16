@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "workflow_id": "legacy-v1",
+  "python_package": "workflows.legacy_v1",
+  "skill": "workflows/legacy_v1/SKILL.md",
+  "supported_modes": [
+    "evidence-block",
+    "evidence-block-manual",
+    "ngs-report",
+    "evidence-to-report",
+    "nel-demo",
+    "nel-validate",
+    "nel-validate-function"
+  ],
+  "artifacts": [
+    "workflow.json",
+    "case.md",
+    "case-major-categories.json",
+    "case-input.json",
+    "diagnostic_evidence.md",
+    "diagnostic_evidence.json",
+    "adjudication.json",
+    "bundle.json",
+    "evidence.md",
+    "card-tags.json",
+    "report-draft.md",
+    "report-final.md"
+  ],
+  "status": "legacy"
+}

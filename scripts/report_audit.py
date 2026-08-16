@@ -38,6 +38,7 @@ REPORT_META_PREFIX = re.compile(
     r"commentary\s+(?:is|should\s+be)\s+not\s+warranted\b)",
     re.IGNORECASE,
 )
+NON_REPORTABLE_SENTENCE_START = re.compile(r"(?:^|(?<=[.!?])\s+)(No\b|Not applicable\b)", re.IGNORECASE)
 REPORT_META_ANYWHERE = re.compile(
     r"\b(?:should|must)\s+be\s+omitted\b|"
     r"\bshould\s+not\s+be\s+(?:mentioned|reported|discussed)\b",
@@ -52,10 +53,10 @@ def read_text(path):
         raise ValueError(f"cannot read {path}: {exc}") from exc
 
 
-def evidence_card_tags(evidence_text):
+def evidence_card_tags(evidence_text, *, allow_empty=False):
     """Return runtime card tags exposed by evidence.md."""
     tags = CARD_MARKER.findall(evidence_text)
-    if not tags:
+    if not tags and not allow_empty:
         raise ValueError("evidence.md contains no runtime card tags")
     return set(tags)
 
@@ -149,7 +150,9 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         separator = content[: -len(NO_CITATION)]
         if not separator.endswith(" "):
             raise ValueError(
-                f"{expected_rule_id} must have one space before its citation disposition"
+                f"{expected_rule_id} citation disposition must be separated from the answer by exactly one space. "
+                "Expected '<conclusion>. [card:a1b2c3]' or '<conclusion>. (no citation required)'. "
+                "Keep exactly one terminal citation disposition at the end of the rule line."
             )
         text = separator[:-1]
         tags = []
@@ -164,7 +167,9 @@ def split_draft_line(line, *, expected_rule_id, line_number):
             )
         if match.start() == 0 or content[match.start() - 1] != " ":
             raise ValueError(
-                f"{expected_rule_id} must have one space before its citation disposition"
+                f"{expected_rule_id} citation disposition must be separated from the answer by exactly one space. "
+                "Expected '<conclusion>. [card:a1b2c3]' (or adjacent card tags). "
+                "Keep all directly supporting card tags together in this one terminal citation disposition."
             )
         text = content[: match.start() - 1]
         marker_block = match.group(1)
@@ -187,7 +192,11 @@ def split_draft_line(line, *, expected_rule_id, line_number):
         )
     if "[card:" in text or NO_CITATION in text:
         raise ValueError(
-            f"{expected_rule_id} contains a citation marker inside answer prose; markers are terminal only"
+            f"{expected_rule_id} contains a citation marker inside answer prose. Rule-draft citations are terminal only: "
+            "remove every internal [card:...] or (no citation required) marker, preserve the answer prose, then place "
+            "exactly one citation disposition after the final full stop. If different cards support different clauses "
+            "or sentences, put the union of every directly supporting card tag there, e.g. "
+            "'<conclusion>. [card:a1b2c3][card:d4e5f6]'."
         )
     if len(tags) != len(set(tags)):
         raise ValueError(
@@ -202,6 +211,18 @@ def split_draft_line(line, *, expected_rule_id, line_number):
 
     if classification == "REPORT":
         prose = text[:-1].strip()
+        non_reportable = NON_REPORTABLE_SENTENCE_START.search(prose)
+        if expected_rule_id != "R0.1" and non_reportable:
+            phrase = non_reportable.group(1)
+            raise ValueError(
+                f"{expected_rule_id} is classified REPORT but contains a sentence beginning "
+                f"{phrase!r}. Under prompts/workflow/reporting_rule_policy.md, generic "
+                "'No ...' and 'Not applicable ...' outcomes must be classified OMIT, except "
+                "for mandatory R0.1. If an absent finding is itself clinically material, "
+                "rewrite the REPORT line to lead with its patient-level clinical effect rather "
+                "than a generic absence sentence; otherwise change the line to "
+                f"'{expected_rule_id} OMIT: <non-reportable outcome>. <citation disposition>'."
+            )
         meta = REPORT_META_PREFIX.match(prose) or REPORT_META_ANYWHERE.search(prose)
         if meta:
             phrase = meta.group(0)
@@ -217,7 +238,9 @@ def split_draft_line(line, *, expected_rule_id, line_number):
     return classification, text, tags
 
 
-def validate_draft(draft_text, evidence_text, rules_text=None):
+def validate_draft(
+    draft_text, evidence_text, rules_text=None, *, allow_no_evidence_tags=False
+):
     """Validate strict Step 6A Markdown and return parsed rule records."""
     lines = draft_text.splitlines()
     if rules_text is None:
@@ -295,7 +318,9 @@ def validate_draft(draft_text, evidence_text, rules_text=None):
               "heading, or extra lines."
         )
 
-    known_tags = evidence_card_tags(evidence_text)
+    known_tags = evidence_card_tags(
+        evidence_text, allow_empty=allow_no_evidence_tags
+    )
     unknown = {}
     parsed = []
     for line_number, (line, rule_spec) in enumerate(
@@ -358,13 +383,23 @@ def main():
         type=Path,
         default=Path(__file__).resolve().parents[1] / "rules" / "agreed_reporting_rules.md",
     )
+    validate.add_argument(
+        "--allow-no-evidence-tags",
+        action="store_true",
+        help="allow an evidence view with zero runtime tags when the draft cites no cards",
+    )
     args = parser.parse_args()
 
     try:
         draft_text = read_text(args.draft)
         evidence_text = read_text(args.evidence)
         rules_text = read_text(args.rules)
-        validate_draft(draft_text, evidence_text, rules_text)
+        validate_draft(
+            draft_text,
+            evidence_text,
+            rules_text,
+            allow_no_evidence_tags=args.allow_no_evidence_tags,
+        )
     except ValueError as exc:
         print(f"REPORT AUDIT VALIDATE FAILED: {exc}", file=sys.stderr)
         return 1
