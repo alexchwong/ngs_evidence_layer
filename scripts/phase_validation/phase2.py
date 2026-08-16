@@ -8,6 +8,11 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+try:
+    from . import card_deltas
+except ImportError:  # direct execution from bundled validator
+    import card_deltas
+
 BUNDLE_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIR = BUNDLE_ROOT / "schema"
 
@@ -275,7 +280,11 @@ def validate_package(package, metadata, census, source_text=None, require_final=
     return errors, warnings, report
 
 
-def validate_phase_files(*, metadata_path, census_path, source_path, provisional_path, base_final_path=None):
+def validate_phase_files(
+    *, metadata_path, census_path, source_path, provisional_path,
+    base_final_path=None, base_provisional_path=None, base_review_path=None,
+    decisions_path=None, phase4_decisions_path=None,
+):
     metadata = read_json(metadata_path, "metadata")
     census = read_json(census_path, "census")
     provisional = read_json(provisional_path, "provisional package")
@@ -283,13 +292,81 @@ def validate_phase_files(*, metadata_path, census_path, source_path, provisional
     package_errors, warnings, report = validate_package(
         provisional, metadata, census, source_text=source_text, require_final=False
     )
+
     expected_publication = census
     expected_label = "census"
-    if base_final_path is not None:
-        expected_publication = read_json(base_final_path, "accepted final package")
+    review_baseline = None
+    if base_final_path is not None and base_provisional_path is not None:
+        package_errors.append("Phase 2R must use either --base-final or --base-provisional, not both")
+    elif base_final_path is not None:
+        review_baseline = read_json(base_final_path, "accepted final package")
+        expected_publication = review_baseline
         expected_label = "accepted final"
-        if expected_publication.get("paper_id") != provisional.get("paper_id"):
-            package_errors.append("accepted final paper_id does not match provisional package")
+    elif base_provisional_path is not None:
+        review_baseline = read_json(base_provisional_path, "Phase 2R baseline provisional")
+        expected_publication = review_baseline
+        expected_label = "Phase 2R baseline provisional"
+        if phase4_decisions_path is not None:
+            phase4_ledger = read_json(phase4_decisions_path, "Phase 4 decision ledger")
+            allowed_direct_ids = None
+            if base_review_path is not None:
+                base_review = read_json(base_review_path, "Phase 4 active review")
+                if phase4_ledger.get("review_filename") != Path(base_review_path).name:
+                    package_errors.append("Phase 4 handoff review_filename does not match --base-review")
+                allowed_direct_ids = {
+                    item.get("card_id") for item in base_review.get("card_results", [])
+                    if item.get("verdict") == "fail"
+                }
+            else:
+                package_errors.append("Phase 4 handoff requires --base-review")
+            package_errors.extend(
+                f"Phase 4 handoff: {error}"
+                for error in card_deltas.validate_ledger_against_baseline(
+                    phase4_ledger, review_baseline, stage="phase4",
+                    allowed_direct_ids=allowed_direct_ids,
+                )
+            )
+            review_baseline = card_deltas.apply_card_decisions(review_baseline, phase4_ledger)
+            review_baseline = card_deltas.apply_publication_type_decision(review_baseline, phase4_ledger)
+            expected_publication = review_baseline
+            expected_label = "Phase 4 current state"
+
+    if review_baseline is not None:
+        if provisional.get("schema_version") != "5.1":
+            package_errors.append("Phase 2R provisional packages must use schema_version 5.1")
+        if review_baseline.get("paper_id") != provisional.get("paper_id"):
+            package_errors.append(f"{expected_label} paper_id does not match provisional package")
+        baseline_round = review_baseline.get("round")
+        if isinstance(baseline_round, int) and provisional.get("round") != baseline_round + 1:
+            package_errors.append(
+                f"Phase 2R provisional round must be baseline round + 1 ({baseline_round + 1}); "
+                f"found {provisional.get('round')!r}"
+            )
+        if decisions_path is None:
+            package_errors.append("Phase 2R requires --decisions so every card delta is user-authorized")
+        else:
+            ledger = read_json(decisions_path, "Phase 2R decision ledger")
+            if ledger.get("baseline_filename") not in {
+                Path(base_final_path).name if base_final_path else None,
+                Path(base_provisional_path).name if base_provisional_path else None,
+            }:
+                package_errors.append("Phase 2R decision ledger baseline_filename does not match the supplied baseline file")
+            if ledger.get("output_filename") != Path(provisional_path).name:
+                package_errors.append("Phase 2R decision ledger output_filename does not match --provisional")
+            if phase4_decisions_path is not None:
+                if ledger.get("phase4_decisions_filename") != Path(phase4_decisions_path).name:
+                    package_errors.append("Phase 2R decision ledger phase4_decisions_filename does not match --phase4-decisions")
+            elif ledger.get("phase4_decisions_filename") is not None:
+                package_errors.append("Phase 2R decision ledger names Phase 4 decisions but --phase4-decisions was not supplied")
+            package_errors.extend(
+                f"Phase 2R decisions: {error}"
+                for error in card_deltas.validate_package_delta(
+                    review_baseline, provisional, ledger, stage="phase2r"
+                )
+            )
+            if not ledger.get("card_decisions"):
+                warnings.append("Phase 2R decision ledger contains no card changes")
+
     if provisional.get("publication_type") != expected_publication.get("publication_type"):
         package_errors.append(
             f"provisional publication_type does not match {expected_label}"
@@ -300,6 +377,8 @@ def validate_phase_files(*, metadata_path, census_path, source_path, provisional
         )
     phase_report = {"phase": 2}
     phase_report.update(report or {})
+    if decisions_path is not None:
+        phase_report["review_mode"] = "phase2r"
     return [f"provisional: {error}" for error in package_errors], warnings, phase_report
 
 
@@ -310,6 +389,10 @@ def parse_args(argv=None):
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--provisional", type=Path, required=True)
     parser.add_argument("--base-final", type=Path)
+    parser.add_argument("--base-provisional", type=Path)
+    parser.add_argument("--base-review", type=Path)
+    parser.add_argument("--decisions", type=Path)
+    parser.add_argument("--phase4-decisions", type=Path)
     return parser.parse_args(argv)
 
 
@@ -322,6 +405,10 @@ def main(argv=None):
             source_path=args.source,
             provisional_path=args.provisional,
             base_final_path=args.base_final,
+            base_provisional_path=args.base_provisional,
+            base_review_path=args.base_review,
+            decisions_path=args.decisions,
+            phase4_decisions_path=args.phase4_decisions,
         )
     except (OSError, ValueError) as exc:
         sys.exit(f"PHASE 2 VALIDATION FAILED:\n{exc}")

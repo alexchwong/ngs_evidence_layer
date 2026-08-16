@@ -119,7 +119,9 @@ compatibility. Otherwise write the exact confirmed positive allow-list to
 `category_scope`; do not encode exclusions or placeholders for out-of-scope
 categories.
 
-## Clinical relevance scope
+## Shared semantic principles
+
+### Clinical relevance scope
 
 # Clinical reporting gate
 
@@ -139,17 +141,86 @@ A negative or null finding is useful only when its absence or lack of effect is 
 
 When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
 
-## Geneless treatment claims
+Geneless diagnosis and treatment eligibility is governed by the separately injected `GENELESS_CLAIM_POLICY`.
 
-Geneless treatment claims (`genes: []`) use a stricter gate. Retain only claims that establish the usual or default treatment strategy for the stated disease or a routine treatment-defining clinical population, such as suitability for intensive therapy.
+### Source-bounded reasoning
 
-The claim must identify a standard regimen, treatment backbone, or standard alternative treatment strategy. Clinical actionability alone is insufficient.
+# Source-bounded reasoning
 
-Do not retain geneless claims whose usefulness depends on MRD or treatment response, transplant timing or conditioning, surveillance, clinical-trial eligibility, testing or work-up recommendations, or other downstream management advice.
+Derive ingestion content only from the supplied publication. Do not add facts from model knowledge, prior familiarity with the study, outside sources, or assumptions about usual clinical practice.
 
-Do not reclassify an otherwise ineligible geneless claim as `treatment` merely to permit `genes: []`.
+Use the whole publication to understand the meaning, boundaries, and governing qualifiers of a source assertion. In Phase 1, use that context only to identify and delimit source assertions; do not synthesize multiple observations into a new higher-level clinical conclusion.
 
-For Phase 1, use this only to identify potentially relevant claims. Phase 1 determines review boundaries, not card eligibility. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims that satisfy both this clinical relevance scope and the confirmed `category_scope`. Geneless claims are in scope only for `diagnosis` and `treatment`; geneless `treatment` claims outside the stricter gate are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
+For cards and final card amendments, source-supported synthesis is permitted only when the conclusion is directly entailed by the quoted evidence without an unstated external clinical or methodological premise.
+
+Do not strengthen the source beyond what it establishes. In particular, do not:
+
+- convert association into causation;
+- generalize a subgroup finding to a broader population;
+- generalize one disease, molecular class, treatment, comparator, analysis, or clinical setting to another;
+- convert absence of evidence into evidence of absence;
+- convert a recommendation for testing or evaluation into an established finding; or
+- convert uncertainty, possibility, or conditional language into certainty.
+
+Study names, cohort labels, arm names, analysis labels, table identifiers, and other paper-local terminology may identify source material but do not themselves supply clinical meaning.
+
+Whole-paper context may clarify what quoted evidence means, but unquoted publication content must not supply substantive support missing from a required evidence bundle. If support is missing, expand the evidence, narrow or split the assertion, or omit it.
+
+### Category semantics
+
+# Category semantics
+
+Assign category according to the clinical role actually established by the source assertion, not according to the paper section, keywords, gene, or intended downstream use.
+
+- `diagnosis`: the source states a molecular, morphologic, clinical, quantitative, or other criterion that defines, supports, excludes, differentiates, or changes a diagnosis or classification.
+- `prognosis`: the source explicitly establishes an outcome, risk, survival, progression, relapse, or named prognostic-model effect.
+- `treatment`: the source explicitly supports treatment selection, eligibility, standard treatment, sensitivity, resistance, response, or another treatment-specific clinical effect.
+- `biomarker`: the source explicitly assigns a testing, detection, monitoring, or discrimination role that remains independently useful rather than merely relabelling the same diagnostic assertion. State that independent biomarker function.
+- `germline`: the source explicitly concerns inherited, constitutional, or predisposition status, or germline evaluation. Preserve the source's degree of certainty; an indication or recommendation for germline evaluation does not establish constitutional status.
+
+Do not change category merely to satisfy a schema constraint or make an otherwise ineligible assertion ingestible.
+
+When one passage supports multiple independently useful clinical roles, treat those roles as separate assertions rather than combining their categories into one ingestion unit. The same evidence may legitimately support distinct roles when each role has independent clinical meaning.
+
+### Atomicity principles
+
+# Atomicity principles
+
+If one material clinical assertion could be retained or rejected independently of another, they are separate assertions.
+
+Disease, population, molecular context, treatment, comparator, threshold, analysis, exception, uncertainty, and other qualifiers required to preserve meaning or applicability belong with the assertion and must not be split from it.
+
+Do not merge assertions merely because they share a gene, disease, category, paragraph, sentence, table, study population, or underlying evidence.
+
+Statistics or component observations that only quantify or support the same clinical conclusion do not require separate ingestion units unless they are independently clinically useful.
+
+A single atomic assertion may require more than one source sentence or fragment for complete support. Conversely, one source sentence or census entry may contain multiple atomic assertions and must then be split.
+
+Prefer the smallest unit that preserves one complete, independently useful clinical meaning.
+
+### Geneless claim policy
+
+# Geneless claim policy
+
+`genes: []` is permitted only for genuinely geneless `diagnosis` or `treatment` assertions. Do not omit a participating gene merely to make an assertion geneless.
+
+## Geneless diagnosis
+
+A geneless `diagnosis` assertion must state an independently useful diagnostic or classification criterion, requirement, exclusion, threshold, or distinction. It must remain clinically meaningful without a molecular finding participating in that exact assertion.
+
+## Geneless treatment
+
+Geneless `treatment` assertions use a stricter clinical-usefulness gate. Retain only assertions that establish the usual or default treatment strategy for the stated disease or a routine treatment-defining clinical population, such as suitability or unsuitability for intensive therapy.
+
+The treatment conclusion must remain clinically meaningful **independent of a molecular treatment modifier** and must identify a standard regimen, treatment backbone, or standard alternative treatment strategy. Clinical actionability alone is insufficient.
+
+Standard disease-level treatment backbones and standard alternatives for broad clinical strata are in scope; for example, intensive AML induction for suitable patients or venetoclax-based lower-intensity therapy for patients unsuitable for intensive treatment.
+
+Do not retain as geneless treatment assertions claims whose usefulness depends primarily on MRD or treatment response, transplant timing or conditioning, surveillance, clinical-trial eligibility, testing or diagnostic work-up recommendations, or other downstream management advice.
+
+Do not reclassify an otherwise ineligible geneless assertion as `treatment` merely to permit `genes: []`.
+
+For Phase 1, use these only to identify and delimit potentially relevant source assertions. Phase 1 determines review boundaries, not card eligibility. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims that satisfy both this clinical relevance scope and the confirmed `category_scope`. Geneless claims are in scope only as permitted by `GENELESS_CLAIM_POLICY`; geneless treatment claims that fail that policy are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
 
 ## Output schema
 
@@ -325,9 +396,7 @@ For Phase 1, use this only to identify potentially relevant claims. Phase 1 dete
 Check that every section and table has been inspected, every entry has a locator,
 genes are valid symbols, claim IDs are unique, every entry category belongs to the
 confirmed scope, and no in-scope rule-covered paper claim is absent. Do not treat
-out-of-scope claims as omissions. For every entry, ask whether Phase 2 could reasonably retain one part while
-rejecting another, or create more than one independently useful card from it. If
-either is true, split the entry and repeat the audit. Confirm the publication type
+out-of-scope claims as omissions. For every entry, use the authoritative Phase 1 atomicity test: ask whether Phase 2 could reasonably retain one part while rejecting another. If yes, split the entry and repeat the audit. Do not split disease, population, comparator, threshold, molecular context, uncertainty, or other qualifiers required to preserve the assertion's meaning or applicability. Confirm the publication type
 and basis are supported by the paper. Repair and repeat, at most three passes. If
 defects remain, list each one under `validation_unresolved`; otherwise return an
 empty list.

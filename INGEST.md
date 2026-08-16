@@ -60,7 +60,7 @@ python scripts/prepare_redo.py census --key <publication-key>
 # Keep the accepted census and re-extract cards from Phase 2.
 python scripts/prepare_redo.py provisional --key <publication-key>
 
-# Review the accepted paper.final.json in Phase 2; cards may be added, deleted, or modified.
+# Review accepted cards interactively in Phase 2R; only explicitly finalized add/modify/delete deltas are applied.
 python scripts/prepare_redo.py cards --key <publication-key>
 
 # Complete the remaining normal phases, then confirm without --overwrite.
@@ -306,8 +306,8 @@ Run each phase in a fresh chat. Save the model's returned JSON file into the sam
 |---|---|---|---|---|
 | 1 — census | Fresh ChatGPT or Claude chat | `paper.md`, `metadata.json` | `prompts/phase1_prompt.md` | `paper.census-v001.json` |
 | 2 — carding | Fresh chat | `paper.md`, `metadata.json`, active census | `prompts/phase2_prompt.md` | `paper.provisional-v001.json` |
-| 3 — independent review | Fresh chat using a **different model from Phase 2** | `paper.md`, active provisional | `prompts/phase3_prompt.md` | matching `paper.review-vNNN.json` |
-| 4 — human adjudication | Fresh chat | `paper.md`, `metadata.json`, active census/provisional/review | `prompts/phase4_prompt.md` | `paper.final.json` |
+| 3 — independent review | Fresh chat using a **different model from Phase 2** | `paper.md`, active provisional; matching Phase 2R decision ledger when applicable | `prompts/phase3_prompt.md` | matching `paper.review-vNNN.json` |
+| 4 — human adjudication | Fresh chat | `paper.md`, `metadata.json`, active census/provisional/review; matching Phase 2R ledger when applicable | `prompts/phase4_prompt.md` | `paper.phase4-decisions[-revRRR]-vNNN.json` plus `paper.final.json`, or a Phase 2R handoff ledger |
 
 ### Phase 1 — census
 
@@ -341,30 +341,37 @@ provisional structurally, rerun Phase 2 with the prior provisional and critique;
 next package uses the next Phase 2 attempt, for example `paper.provisional-v002.json`.
 The package `round` advances with Phase 2 attempts.
 
-Accepted-card review is also Phase 2. Prepare it with:
+Accepted-card review uses the **Phase 2R** branch of the Phase 2 prompt. Prepare it with:
 
 ```bash
 python scripts/prepare_redo.py cards --key <publication-key>
 ```
 
 The work folder contains `paper.md`, `metadata.json`, the accepted census,
-`paper.final.json`, and `redo.json`. Phase 2 treats the accepted final as the existing
-card set and outputs a complete replacement provisional package. It may retain, add,
-delete, split, merge, or modify cards; there is no CLI card allowlist. Accepted-card
-revision numbering is separate from Phase-attempt numbering:
+`paper.final.json`, and `redo.json`. The accepted final is an immutable baseline during
+discussion. Phase 2R may propose changes, but a proposal is not authorization. Only
+explicit user-approved `add`, `modify`, or `delete` decisions are written when the user
+sends `FINALIZE`; all other accepted cards/evidence remain exactly unchanged.
+
+The finalized Phase 2R output is a matched pair:
 
 ```text
+paper.phase2r-decisions-rev001-v001.json
 paper.provisional-rev001-v001.json
-paper.provisional-rev001-v002.json   # Phase 2 retry within revision 001
-paper.provisional-rev002-v001.json   # later accepted-card review
 ```
+
+A Phase 2R retry stays in the same revision namespace and increments the attempt. A later
+accepted-card review uses the next revision namespace. `prepare_redo.py` records both
+matching filenames in `redo.json.next_outputs`. The Phase 2 validator deterministically
+checks that the provisional card/evidence diff is exactly the finalized decision ledger.
 
 ### Phase 3 — independent review
 
 Use a **different model** from Phase 2. Give it `paper.md`, the active provisional, and
-`prompts/phase3_prompt.md`. Phase 3 preserves any `revNNN` namespace. Its first review
-attempt uses at least the provisional attempt number; a Phase 3 retry increments only
-the review attempt. Examples:
+`prompts/phase3_prompt.md`. If that provisional came from Phase 2R, also give Phase 3 the
+matching `paper.phase2r-decisions[-revRRR]-vNNN.json`. Phase 3 preserves any `revNNN`
+namespace. Its first review attempt uses at least the provisional attempt number; a Phase
+3 retry increments only the review attempt. Examples:
 
 ```text
 paper.provisional-v002.json       -> paper.review-v002.json
@@ -372,19 +379,32 @@ paper.provisional-rev001-v001.json -> paper.review-rev001-v001.json
 ```
 
 A structurally invalid provisional is returned to Phase 2 as
-`paper.provisional-critique[-revNNN]-vNNN.md`. Clinical card pass/fail review otherwise
-continues exactly as before.
+`paper.provisional-critique[-revNNN]-vNNN.md`. In Phase 2R delta mode, Phase 3
+substantively reviews only added/modified cards; unchanged accepted cards carry forward
+their prior valid state rather than being reinterpreted under the current prompt.
 
 ### Phase 4 — human adjudication
 
 Give Phase 4 `paper.md`, `metadata.json`, the active census, the active provisional, its
-matching Phase 3 review, and `prompts/phase4_prompt.md`. The internal `round` values, not
-filename equality, bind the reviewed package. Phase 4 retains its existing nickname and
-human-adjudication workflow and returns `paper.final.json`.
+matching Phase 3 review, and `prompts/phase4_prompt.md`. If the active provisional came
+from Phase 2R, also provide its matching Phase 2R decision ledger. The internal `round`
+values bind the reviewed package.
+
+Phase 4 directly adjudicates only Phase 3-failed cards. Every direct `retain`, `modify`,
+`delete`, or failed-card replacement is recorded with the user's explicit decision in
+`paper.phase4-decisions[-revRRR]-vNNN.json`. The validator requires every
+provisional→final card/evidence difference to match that ledger exactly.
+
+If the user wants to change a Phase 3-passed card or add an unrelated card, Phase 4 must
+not refuse and must not finalize first. On user `PHASE2R`, it returns a Phase 4 handoff
+decision ledger. Phase 2R then uses the current Phase 4 state as its immutable baseline,
+applies only subsequently approved deltas, and sends added/modified cards through Phase
+3 again before returning to Phase 4.
 
 Legacy archives using `paper.census.json`, `paper.provisional-001.json`, and
-`paper.review-001.json` remain valid and require no migration. New outputs always use the
-versioned filename schema.
+`paper.review-001.json` remain valid and require no migration. Existing package filenames
+remain unchanged; new decision-ledger files follow the same optional `revRRR` plus `vNNN`
+namespace as their associated provisional/review.
 
 ## 5. Confirm the paper
 
@@ -395,7 +415,9 @@ python scripts/confirm.py --key <publication-key>
 ```
 
 `confirm.py` is the deterministic acceptance gate. If validation fails, nothing is
-accepted.
+accepted. For new schema-5.1 workflows it rechecks both Phase 2R and Phase 4 decision
+ledgers against the archived/current baselines, so an unapproved card/evidence change
+cannot be accepted merely because an earlier model step emitted it.
 
 On success it writes the accepted final/census pair under `accept/`, stamps the accepted
 package with the current `release/VERSION` as `accepted_in_version`, and moves the full
@@ -539,9 +561,9 @@ computer.
 ## 6A. Redo or review an accepted paper
 
 `prepare_redo.py` restores only the source and intermediate files required to resume the
-requested model phase. It does not authorise individual card edits or create card
-allowlists. Baseline hashes in `redo.json` are used only to detect stale accepted state at
-confirmation.
+requested model phase. In `cards` mode, authorization is recorded later by the interactive
+Phase 2R decision ledger; preparation itself does not authorize a card edit. Baseline
+hashes in `redo.json` are used to detect stale accepted state at confirmation.
 
 ### Redo the census
 
@@ -569,9 +591,12 @@ python scripts/prepare_redo.py cards --key <publication-key>
 ```
 
 Restores `paper.md`, `metadata.json`, the accepted census, and `paper.final.json` from the
-archive/accepted state into `work/`. Phase 2 review may add, delete, or modify any cards
-and emits a complete `paper.provisional-revNNN-vNNN.json`; Phase 3 and Phase 4 then use
-the normal review/adjudication workflow. There is no separate Phase 5 or Phase 5R.
+archive/accepted state into `work/`. Phase 2R is interactive: the accepted final is the
+immutable baseline, proposed changes do nothing until explicitly approved by the user,
+and `FINALIZE` writes both the decision ledger and the revised provisional. Deterministic
+validation rejects any card/evidence difference not represented by an approved
+`add`/`modify`/`delete` decision. Phase 3 reviews the changed/new subset and Phase 4 then
+uses the normal adjudication workflow. There is no separate Phase 5 or Phase 5R.
 
 ### Confirmation and history
 
@@ -583,10 +608,11 @@ python scripts/incorporate.py
 ```
 
 Confirmation verifies the accepted baseline has not changed since preparation, validates
-the complete new lineage, replaces the current accepted/archive state, and snapshots the
-superseded archive under `archive/<publication-key>/redo/NNN/`. Historical accepted
-packages and archived folders created by the former Phase 5 workflow remain readable;
-new workflows do not create Phase-5 artefacts.
+the complete new lineage, and deterministically rechecks the Phase 2R/Phase 4 authorized
+deltas before replacing the current accepted/archive state. It snapshots the superseded
+archive under `archive/<publication-key>/redo/NNN/`. Historical accepted packages and
+archived folders created by the former Phase 5 workflow remain readable; new workflows
+do not create Phase-5 artefacts.
 
 ### Filename compatibility
 
@@ -601,6 +627,17 @@ Legacy names are permanent read aliases for first attempts:
 Do not rename old archives. New retries inspect both legacy and versioned names when
 choosing the next attempt, so a legacy `paper.provisional-001.json` is followed by
 `paper.provisional-v002.json`, not another v001.
+
+Decision ledgers are additive workflow-control files and do not rename package artefacts:
+
+```text
+paper.phase2r-decisions-vNNN.json
+paper.phase2r-decisions-revRRR-vNNN.json
+paper.phase4-decisions-vNNN.json
+paper.phase4-decisions-revRRR-vNNN.json
+```
+
+Their namespace matches the provisional/review episode they authorize.
 
 ## Development and prompt maintenance
 

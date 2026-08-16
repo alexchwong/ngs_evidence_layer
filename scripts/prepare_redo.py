@@ -192,6 +192,9 @@ def prepare(args):
             next_outputs["review"] = ingest_artifacts.review_name(
                 next_review_attempt, revision=revision
             )
+            next_outputs["phase2r_decisions"] = ingest_artifacts.decision_name(
+                "phase2r", next_provisional_attempt, revision=revision
+            )
 
         marker = {
             "schema_version": "2.0",

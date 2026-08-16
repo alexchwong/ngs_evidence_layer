@@ -75,11 +75,29 @@ compatibility. Otherwise write the exact confirmed positive allow-list to
 `category_scope`; do not encode exclusions or placeholders for out-of-scope
 categories.
 
-## Clinical relevance scope
+## Shared semantic principles
+
+### Clinical relevance scope
 
 {{CLINICAL_REPORTING_GATE}}
 
-For Phase 1, use this only to identify potentially relevant claims. Phase 1 determines review boundaries, not card eligibility. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims that satisfy both this clinical relevance scope and the confirmed `category_scope`. Geneless claims are in scope only for `diagnosis` and `treatment`; geneless `treatment` claims outside the stricter gate are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
+### Source-bounded reasoning
+
+{{SOURCE_BOUNDED_REASONING}}
+
+### Category semantics
+
+{{CATEGORY_SEMANTICS}}
+
+### Atomicity principles
+
+{{ATOMICITY_PRINCIPLES}}
+
+### Geneless claim policy
+
+{{GENELESS_CLAIM_POLICY}}
+
+For Phase 1, use these only to identify and delimit potentially relevant source assertions. Phase 1 determines review boundaries, not card eligibility. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims that satisfy both this clinical relevance scope and the confirmed `category_scope`. Geneless claims are in scope only as permitted by `GENELESS_CLAIM_POLICY`; geneless treatment claims that fail that policy are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
 
 ## Output schema
 
@@ -91,9 +109,7 @@ For Phase 1, use this only to identify potentially relevant claims. Phase 1 dete
 Check that every section and table has been inspected, every entry has a locator,
 genes are valid symbols, claim IDs are unique, every entry category belongs to the
 confirmed scope, and no in-scope rule-covered paper claim is absent. Do not treat
-out-of-scope claims as omissions. For every entry, ask whether Phase 2 could reasonably retain one part while
-rejecting another, or create more than one independently useful card from it. If
-either is true, split the entry and repeat the audit. Confirm the publication type
+out-of-scope claims as omissions. For every entry, use the authoritative Phase 1 atomicity test: ask whether Phase 2 could reasonably retain one part while rejecting another. If yes, split the entry and repeat the audit. Do not split disease, population, comparator, threshold, molecular context, uncertainty, or other qualifiers required to preserve the assertion's meaning or applicability. Confirm the publication type
 and basis are supported by the paper. Repair and repeat, at most three passes. If
 defects remain, list each one under `validation_unresolved`; otherwise return an
 empty list.

@@ -60,6 +60,31 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
             wanted = {expected[phase]} if phase in expected else set()
             self.assertEqual(validation_markers, wanted, f"phase {phase}")
 
+
+    def test_shared_semantic_injection_matrix(self):
+        shared_all = {
+            "CLINICAL_REPORTING_GATE",
+            "SOURCE_BOUNDED_REASONING",
+            "CATEGORY_SEMANTICS",
+            "ATOMICITY_PRINCIPLES",
+            "GENELESS_CLAIM_POLICY",
+        }
+        shared_card = {
+            "INTERPRETATION_PRINCIPLES",
+            "SOURCE_SUPPORT_PRINCIPLES",
+        }
+        expected = {
+            1: shared_all,
+            2: shared_all | shared_card,
+            3: shared_all | shared_card,
+            4: shared_all | shared_card,
+        }
+        for phase, required in expected.items():
+            path = ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
+            with self.subTest(phase=phase):
+                markers = self.template_markers(path)
+                self.assertTrue(required <= markers, sorted(required - markers))
+
     def test_card_handling_prompts_use_phase_appropriate_shared_assets(self):
         common = {
             "CLINICAL_REPORTING_GATE",

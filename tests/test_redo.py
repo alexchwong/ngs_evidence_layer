@@ -103,6 +103,10 @@ class RedoTests(unittest.TestCase):
                 marker["next_outputs"]["provisional"],
                 "paper.provisional-rev001-v001.json",
             )
+            self.assertEqual(
+                marker["next_outputs"]["phase2r_decisions"],
+                "paper.phase2r-decisions-rev001-v001.json",
+            )
             self.assertNotIn("targets", marker)
             self.assertFalse((destination / "paper.phase5-targets.json").exists())
 

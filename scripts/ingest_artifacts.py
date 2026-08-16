@@ -14,6 +14,12 @@ REVIEW_NEW_RE = re.compile(
     r"^paper\.review(?:-rev(?P<revision>[0-9]{3}))?-v(?P<attempt>[0-9]{3})\.json$"
 )
 REVIEW_LEGACY_RE = re.compile(r"^paper\.review-(?P<attempt>[0-9]{3})\.json$")
+PHASE2R_DECISION_RE = re.compile(
+    r"^paper\.phase2r-decisions(?:-rev(?P<revision>[0-9]{3}))?-v(?P<attempt>[0-9]{3})\.json$"
+)
+PHASE4_DECISION_RE = re.compile(
+    r"^paper\.phase4-decisions(?:-rev(?P<revision>[0-9]{3}))?-v(?P<attempt>[0-9]{3})\.json$"
+)
 
 
 def _read_json(path):
@@ -38,6 +44,37 @@ def review_name(attempt, revision=None):
         return f"paper.review-v{attempt:03d}.json"
     return f"paper.review-rev{revision:03d}-v{attempt:03d}.json"
 
+
+
+
+def decision_name(stage, attempt, revision=None):
+    if stage not in {"phase2r", "phase4"}:
+        raise ValueError("decision stage must be phase2r or phase4")
+    prefix = f"paper.{stage}-decisions"
+    if revision is not None:
+        prefix += f"-rev{revision:03d}"
+    return f"{prefix}-v{attempt:03d}.json"
+
+
+def decision_identity(path, stage):
+    name = Path(path).name
+    pattern = PHASE2R_DECISION_RE if stage == "phase2r" else PHASE4_DECISION_RE if stage == "phase4" else None
+    if pattern is None:
+        raise ValueError("decision stage must be phase2r or phase4")
+    match = pattern.fullmatch(name)
+    if not match:
+        return None
+    revision = match.group("revision")
+    return (int(revision) if revision else None, int(match.group("attempt")))
+
+
+def resolve_decision_for_attempt(folder, stage, attempt, revision=None):
+    folder = Path(folder)
+    if not folder.is_dir():
+        return None
+    expected = decision_name(stage, attempt, revision=revision)
+    path = folder / expected
+    return path if path.is_file() else None
 
 def census_attempt(path):
     name = Path(path).name

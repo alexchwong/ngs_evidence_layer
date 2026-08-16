@@ -132,6 +132,42 @@ class FolderStateWorkflowTests(unittest.TestCase):
         )
         return working
 
+    def upgrade_complete_work_to_schema_51(self, working):
+        provisional_path = working / "paper.provisional-001.json"
+        review_path = working / "paper.review-001.json"
+        final_path = working / "paper.final.json"
+        provisional = read(provisional_path)
+        review = read(review_path)
+        final = read(final_path)
+        provisional["schema_version"] = "5.1"
+        review["schema_version"] = "5.1"
+        review["review_scope"] = "full"
+        for result in review["card_results"]:
+            result["review_basis"] = "phase3"
+        final["schema_version"] = "5.1"
+        for result in final["audit"]["results"]:
+            result["review_basis"] = "phase3"
+        provisional_path.write_text(json.dumps(provisional), encoding="utf-8")
+        review_path.write_text(json.dumps(review), encoding="utf-8")
+        final_path.write_text(json.dumps(final), encoding="utf-8")
+        ledger = {
+            "schema_version": "1.0",
+            "stage": "phase4",
+            "purpose": "finalize",
+            "paper_id": provisional["paper_id"],
+            "baseline_filename": "paper.provisional-001.json",
+            "baseline_round": provisional["round"],
+            "review_filename": "paper.review-001.json",
+            "output_filename": "paper.final.json",
+            "user_finalized": True,
+            "paper_nickname": final["paper_nickname"],
+            "card_decisions": [],
+        }
+        (working / "paper.phase4-decisions-v001.json").write_text(
+            json.dumps(ledger), encoding="utf-8"
+        )
+        return provisional, review, final, ledger
+
     def test_fanout_creates_identity_and_is_idempotent(self):
         output = self.fanout()
         working = self.work / PUBLICATION_KEY
@@ -337,6 +373,29 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertIn("CONFIRMED", output)
         self.assertFalse(working.exists())
         self.assertTrue((self.archive / PUBLICATION_KEY / "paper.provisional-001.json").is_file())
+
+    def test_confirm_accepts_schema51_when_phase4_diff_matches_decision_ledger(self):
+        working = self.prepare_complete_work()
+        self.upgrade_complete_work_to_schema_51(working)
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+        )
+        self.assertIn("CONFIRMED", output)
+
+    def test_confirm_rejects_schema51_unapproved_phase4_card_change(self):
+        working = self.prepare_complete_work()
+        self.upgrade_complete_work_to_schema_51(working)
+        final = read(working / "paper.final.json")
+        final["cards"][0]["interpretation"] += " Unauthorized change."
+        (working / "paper.final.json").write_text(json.dumps(final), encoding="utf-8")
+        output = self.run_script(
+            "confirm.py", "--key", PUBLICATION_KEY, "--work-dir", self.work,
+            "--accept-dir", self.accept, "--archive-dir", self.archive,
+            success=False,
+        )
+        self.assertIn("user-authorized decision ledger", output)
+        self.assertFalse((self.accept / f"{PUBLICATION_KEY}.final.json").exists())
 
     def test_confirm_rejects_invalid_final_quote(self):
         working = self.prepare_complete_work()

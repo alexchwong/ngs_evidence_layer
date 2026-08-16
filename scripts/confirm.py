@@ -14,6 +14,7 @@ from pathlib import Path
 import final_validation
 import ingest_artifacts
 import package_validation as validation
+from phase_validation import card_deltas
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = ROOT / "release" / "VERSION"
@@ -91,6 +92,21 @@ def _validate_original_history(paths, working, final, metadata, census, revision
     if errors:
         return errors, warnings, None, provisional_path, review_path
 
+    identity = ingest_artifacts.phase_identity(provisional_path, "provisional")
+    revision_id, attempt = identity if identity is not None else (revision, approved_round)
+    phase2r_decisions_path = ingest_artifacts.resolve_decision_for_attempt(
+        working, "phase2r", attempt, revision=revision_id
+    )
+    phase4_decisions_path = ingest_artifacts.resolve_decision_for_attempt(
+        working, "phase4", attempt, revision=revision_id
+    )
+    if phase4_decisions_path is None and final.get("schema_version") == "5.1":
+        errors.append(
+            "schema 5.1 final package has no matching Phase 4 decision ledger; "
+            "user-authorized provisional→final card deltas cannot be verified"
+        )
+        return errors, warnings, None, provisional_path, review_path
+
     provisional = validation.read_json(provisional_path, "approved provisional package")
     phase_1_errors, phase_1_warnings, _ = final_validation.validate_phase_files(
         phase=1,
@@ -112,6 +128,7 @@ def _validate_original_history(paths, working, final, metadata, census, revision
         phase=3,
         provisional_path=provisional_path,
         review_path=review_path,
+        phase2r_decisions_path=phase2r_decisions_path,
     )
     errors.extend(f"phase 3: {error}" for error in phase_3_errors)
     warnings.extend(f"phase 3: {warning}" for warning in phase_3_warnings)
@@ -123,11 +140,99 @@ def _validate_original_history(paths, working, final, metadata, census, revision
         provisional_path=provisional_path,
         review_path=review_path,
         final_path=paths["final"],
+        decisions_path=phase4_decisions_path,
+        phase2r_decisions_path=phase2r_decisions_path,
     )
     errors.extend(f"phase 4: {error}" for error in phase_4_errors)
     warnings.extend(f"phase 4: {warning}" for warning in phase_4_warnings)
     return errors, warnings, report, provisional_path, review_path
 
+
+
+def _has_prior_phase4_handoff(working, provisional_path):
+    """Return True when the active lineage has entered Phase 2R from Phase 4."""
+    identity = ingest_artifacts.phase_identity(provisional_path, "provisional")
+    if identity is None:
+        return False
+    revision, active_attempt = identity
+    for path in Path(working).glob("paper.phase4-decisions*.json"):
+        ledger_identity = ingest_artifacts.decision_identity(path, "phase4")
+        if ledger_identity is None:
+            continue
+        ledger_revision, ledger_attempt = ledger_identity
+        if ledger_revision != revision or ledger_attempt >= active_attempt:
+            continue
+        ledger = validation.read_json(path, "Phase 4 decision ledger")
+        if ledger.get("purpose") == "phase2r_handoff":
+            return True
+    return False
+
+
+def _validate_phase2r_delta_history(
+    *, working, provisional_path, current_accepted_final=None, require_ledger=False
+):
+    """Re-check the active Phase 2R package against its user decision ledger."""
+    errors = []
+    identity = ingest_artifacts.phase_identity(provisional_path, "provisional")
+    if identity is None:
+        return errors
+    revision, attempt = identity
+    decisions_path = ingest_artifacts.resolve_decision_for_attempt(
+        working, "phase2r", attempt, revision=revision
+    )
+    if decisions_path is None:
+        if require_ledger:
+            return [
+                "active Phase 2R provisional has no matching user decision ledger; "
+                "baseline→provisional card deltas cannot be verified"
+            ]
+        return errors
+    ledger = validation.read_json(decisions_path, "Phase 2R decision ledger")
+    provisional = validation.read_json(provisional_path, "Phase 2R provisional")
+    baseline_name = ledger.get("baseline_filename")
+    if baseline_name == "paper.final.json" and current_accepted_final is not None:
+        baseline = current_accepted_final
+    else:
+        baseline_path = working / str(baseline_name)
+        if not baseline_path.is_file():
+            return [f"Phase 2R decision baseline file is missing: {baseline_name}"]
+        baseline = validation.read_json(baseline_path, "Phase 2R baseline package")
+
+    phase4_name = ledger.get("phase4_decisions_filename")
+    if phase4_name:
+        phase4_path = working / phase4_name
+        if not phase4_path.is_file():
+            errors.append(f"Phase 2R referenced Phase 4 decision ledger is missing: {phase4_name}")
+        else:
+            phase4_ledger = validation.read_json(phase4_path, "Phase 4 handoff decision ledger")
+            review_name = phase4_ledger.get("review_filename")
+            review_path = working / str(review_name)
+            allowed_direct_ids = None
+            if not review_path.is_file():
+                errors.append(f"Phase 4 handoff review file is missing: {review_name}")
+            else:
+                review = validation.read_json(review_path, "Phase 4 handoff review")
+                allowed_direct_ids = {
+                    item.get("card_id") for item in review.get("card_results", [])
+                    if item.get("verdict") == "fail"
+                }
+            errors.extend(
+                f"Phase 4 handoff: {error}"
+                for error in card_deltas.validate_ledger_against_baseline(
+                    phase4_ledger, baseline, stage="phase4",
+                    allowed_direct_ids=allowed_direct_ids,
+                )
+            )
+            baseline = card_deltas.apply_card_decisions(baseline, phase4_ledger)
+            baseline = card_deltas.apply_publication_type_decision(baseline, phase4_ledger)
+
+    errors.extend(
+        f"Phase 2R decisions: {error}"
+        for error in card_deltas.validate_package_delta(
+            baseline, provisional, ledger, stage="phase2r"
+        )
+    )
+    return errors
 
 def _copy_directory_contents(source, destination, excluded=()):
     excluded = set(excluded)
@@ -312,7 +417,7 @@ def confirm(args):
     redo_marker = validation.read_json(redo_path, "redo marker") if is_redo else None
     revision = redo_marker.get("revision") if is_redo and redo_marker.get("mode") == "cards" else None
 
-    original_errors, original_warnings, report, _, _ = _validate_original_history(
+    original_errors, original_warnings, report, active_provisional_path, _ = _validate_original_history(
         paths, working, final, metadata, census, revision=revision
     )
     errors.extend(original_errors)
@@ -355,6 +460,25 @@ def confirm(args):
                 )
             elif not final_destination.is_file() or not census_destination.is_file() or not archive_root.is_dir():
                 errors.append("--overwrite destinations have unexpected file types")
+    if not errors and active_provisional_path is not None:
+        current_accepted_final = None
+        if is_redo and final_destination.is_file():
+            current_envelope_for_delta = validation.read_json(
+                final_destination, "current accepted package"
+            )
+            current_accepted_final = current_envelope_for_delta.get("final") or None
+        require_phase2r_ledger = bool(
+            is_redo and redo_marker.get("mode") == "cards"
+        ) or _has_prior_phase4_handoff(working, active_provisional_path)
+        errors.extend(
+            _validate_phase2r_delta_history(
+                working=working,
+                provisional_path=active_provisional_path,
+                current_accepted_final=current_accepted_final,
+                require_ledger=require_phase2r_ledger,
+            )
+        )
+
     if errors:
         raise ValueError("\n".join(errors))
 

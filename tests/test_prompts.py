@@ -197,6 +197,36 @@ class PromptIntegrationTests(unittest.TestCase):
         expected = (ROOT / relative).read_text(encoding="utf-8").rstrip()
         self.assertEqual(embedded, expected)
 
+    def test_shared_semantic_invariants_survive_refactor(self):
+        rendered = {phase: " ".join(BUILD_PROMPTS.render(phase).split()) for phase in (1, 2, 3, 4)}
+        for phase in (1, 2, 3, 4):
+            with self.subTest(phase=phase, invariant="geneless molecular modifier"):
+                self.assertIn("independent of a molecular treatment modifier", rendered[phase])
+            with self.subTest(phase=phase, invariant="atomic qualifier preservation"):
+                self.assertIn("qualifiers required to preserve meaning or applicability belong with the assertion", rendered[phase])
+        self.assertIn("Phase 1 determines review boundaries, not card eligibility", rendered[1])
+        self.assertIn("Phase 2 could reasonably retain one part while rejecting another", rendered[1])
+        self.assertIn("freeze the complete candidate evidence bundle before drafting the interpretation", rendered[2])
+        self.assertIn("Include methodological detail only when it changes the clinical meaning or strength of the claim", rendered[2])
+        self.assertIn("sentence immediately before and after", rendered[2])
+        self.assertIn("Do not author a finished replacement card", rendered[3])
+        self.assertIn("Do not fail a card merely because another wording would also be defensible", rendered[3])
+        self.assertIn("same evidence may legitimately support distinct roles", rendered[3])
+        self.assertIn("Any provisional→final card/evidence difference not represented exactly by an approved ledger decision is invalid", rendered[4])
+        self.assertIn("A card that Phase 3 passed is not directly editable in Phase 4", rendered[4])
+
+    def test_phase3_bound_shared_assets_are_free_of_forbidden_authoring_context(self):
+        template = (ROOT / "prompts" / "templates" / "phase3_prompt.md").read_text(encoding="utf-8")
+        markers = set(MARKER_RE.findall(template))
+        for marker in markers:
+            spec = self.manifest[marker]
+            if spec.get("type") != "file":
+                continue
+            content = BUILD_PROMPTS.asset_content(marker)
+            with self.subTest(asset=marker):
+                for forbidden in BUILD_PROMPTS.PHASE3_FORBIDDEN_TERMS:
+                    self.assertNotIn(forbidden, content)
+
     def test_phase4_requires_successful_validation_as_final_action(self):
         prompt = BUILD_PROMPTS.render(4)
         self.assertIn(

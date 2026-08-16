@@ -33,6 +33,11 @@ def validate_phase_files(
     review_path=None,
     final_path=None,
     base_final_path=None,
+    base_provisional_path=None,
+    base_review_path=None,
+    decisions_path=None,
+    phase4_decisions_path=None,
+    phase2r_decisions_path=None,
 ):
     """Dispatch to the canonical validator owned by the active/consuming phase."""
     paths = {
@@ -57,12 +62,17 @@ def validate_phase_files(
             source_path=source_path,
             provisional_path=provisional_path,
             base_final_path=base_final_path,
+            base_provisional_path=base_provisional_path,
+            base_review_path=base_review_path,
+            decisions_path=decisions_path,
+            phase4_decisions_path=phase4_decisions_path,
         )
     if phase == 3:
         # Phase 3 has no prompt validator. Phase 4 owns deterministic validation
         # of its incoming Phase 3 review before adjudication/finalization.
         return phase4.validate_review_files(
-            provisional_path=provisional_path, review_path=review_path
+            provisional_path=provisional_path, review_path=review_path,
+            phase2r_decisions_path=phase2r_decisions_path,
         )
     return phase4.validate_phase_files(
         metadata_path=metadata_path,
@@ -71,6 +81,8 @@ def validate_phase_files(
         provisional_path=provisional_path,
         review_path=review_path,
         final_path=final_path,
+        decisions_path=decisions_path,
+        phase2r_decisions_path=phase2r_decisions_path,
     )
 
 
@@ -82,7 +94,7 @@ def validate_final_files(**paths):
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", type=int, choices=(1, 2, 3, 4), required=True)
-    for name in ("metadata", "census", "source", "provisional", "review", "final", "base-final"):
+    for name in ("metadata", "census", "source", "provisional", "review", "final", "base-final", "base-provisional", "base-review", "decisions", "phase4-decisions", "phase2r-decisions"):
         parser.add_argument(f"--{name}", type=Path)
     args = parser.parse_args(argv)
     provided = {
@@ -111,6 +123,11 @@ def main(argv=None):
             review_path=args.review,
             final_path=args.final,
             base_final_path=args.base_final,
+            base_provisional_path=args.base_provisional,
+            base_review_path=args.base_review,
+            decisions_path=args.decisions,
+            phase4_decisions_path=args.phase4_decisions,
+            phase2r_decisions_path=args.phase2r_decisions,
         )
     except (OSError, ValueError) as exc:
         sys.exit(f"PHASE {args.phase} VALIDATION FAILED:\n{exc}")

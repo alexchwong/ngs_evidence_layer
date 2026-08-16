@@ -89,6 +89,13 @@ bundle of complete files. `scripts/build_prompts.py` is a generic renderer: addi
 moving a prompt asset should require a manifest edit and template marker, not new
 phase-specific Python dispatch.
 
+Cross-phase ingestion semantics are deliberately single-source assets. Phases 1–4 share
+clinical relevance, source-bounded reasoning, category semantics, atomicity, and the
+geneless-claim policy. Phases 2–4 additionally share interpretation and source-support
+principles. Phase templates retain workflow mechanics and phase-specific calibration; do
+not copy an authoritative semantic definition back into a template. The marker-matrix and
+golden-invariant tests protect this injection graph.
+
 Edit rules, vocabularies, schemas, executable validation code, and other canonical
 sources only at their owning paths. In particular, canonical disease names, source
 aliases, taxonomic parents, and retrieval relationships live together in
@@ -98,7 +105,10 @@ lives in `prompts/assets/publication_type_audit_policy.md`.
 
 Phase-specific online validators live under `scripts/phase_validation/`: the prompt
 manifest injects the relevant Phase 1, 2, or 4 validator, while Phase 3 has no
-executable prompt validator and is checked by Phase 4 on entry.
+executable prompt validator and is checked by Phase 4 on entry. Phase 2R and Phase 4
+share `scripts/phase_validation/card_deltas.py` plus `schema/card_decision_schema.json`
+to enforce user-authorized card/evidence deltas. New workflow packages use schema 5.1;
+legacy schema-5.0 packages remain valid without decision ledgers.
 `scripts/final_validation.py` remains the local compatibility CLI for Phases 1–4 and
 dispatches to the canonical phase validators. File assets are injected in full; bundle
 members are embedded verbatim in full. Read `prompts/meta_prompt.md` before changing
@@ -116,6 +126,20 @@ python scripts/build_prompts.py --phase 4
 Do not edit generated phase prompts directly. Edit the corresponding template or other
 canonical source, regenerate the prompt, inspect the diff, and commit the generated
 prompt with its source change.
+
+Any edit to `prompts/assets/interpretation_principles.md` is behaviour-affecting. In
+addition to the unit tests, rerun the maintained accepted-paper semantic regression set
+before promotion and compare card yield/changes by publication type and category. Build
+that regression set deliberately against live-corpus publication-type/category coverage
+and record any unrepresented strata. After promotion, manually review the Phase 2
+validator's existing `cards`, `census_entries`, and ratio summary across the first defined
+batch of live ingestions, with particular attention to unrepresented strata. This is an
+observation signal, not a pass/fail threshold.
+
+When promoting a changed interpretation standard, bump `release/VERSION` so
+`accepted_in_version` provides the existing acceptance-provenance boundary between
+pre- and post-standard acceptances. Bulk re-ingestion of older accepted papers remains a
+separate migration decision.
 
 ## Regenerate the blacklist
 
