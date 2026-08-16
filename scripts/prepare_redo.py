@@ -169,9 +169,10 @@ def prepare(args):
             json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
 
-        census_path = None
-        if mode in {"provisional", "cards"}:
-            census_path = _restore_census(archive_source, work_destination, census)
+        # Restore the accepted census for every redo mode. In census mode it is a
+        # read-only baseline that preserves the already-confirmed category scope;
+        # Phase 1 writes the next versioned census beside it rather than overwriting it.
+        census_path = _restore_census(archive_source, work_destination, census)
         if mode == "cards":
             _restore_final(archive_source, work_destination, base_final)
 

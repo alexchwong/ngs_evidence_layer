@@ -21,6 +21,10 @@
       "type": "file",
       "path": "prompts/assets/geneless_claim_policy.md"
     },
+    "CENSUS_SEMANTIC_GATE": {
+      "type": "file",
+      "path": "prompts/assets/census_semantic_gate.md"
+    },
     "INTERPRETATION_PRINCIPLES": {
       "type": "file",
       "path": "prompts/assets/interpretation_principles.md"
@@ -83,6 +87,7 @@
     "PHASE2_VALIDATION_BUNDLE": {
       "type": "bundle",
       "paths": [
+        "scripts/phase_validation/phase1.py",
         "scripts/phase_validation/phase2.py",
         "scripts/phase_validation/card_deltas.py",
         "schema/ingestion_package_schema.json",

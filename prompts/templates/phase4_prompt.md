@@ -16,7 +16,7 @@ The Phase 4 decision ledger uses the active provisional's attempt/revision names
 
 Do not overwrite any input.
 
-## Entry validation
+## Step 1 — deterministic input gate
 
 Before any adjudication or finalization, recreate the deterministic validation bundle and run:
 
@@ -69,7 +69,7 @@ Require matching `paper_id`, round, extraction identity, card IDs, and card coun
 
 {{EVIDENCE_BUNDLE_RULES}}
 
-## Mandatory human adjudication and revision
+## Step 2 — human adjudication and interactivity
 
 ### Paper nickname
 
@@ -163,13 +163,24 @@ For final `audit.results`, include exactly one pass entry for every resulting ca
 
 Do not record the user's discussion on cards. The separate Phase 4 decision ledger preserves the authorization record.
 
-## Canonical validation assets
+## Step 3 — apply agreed decisions and deterministic output gate
+
+Construct the requested output only from the current validated inputs and the user's explicit decisions. Before running the deterministic gate, ensure the candidate reflects these required invariants:
+- every direct Phase 4 card decision concerns a Phase 3-failed card, except replacement `add` operations that resolve such a failure;
+- no Phase 3-passed card is directly changed in Phase 4; requested changes to passed cards/new unrelated cards appear only as Phase 2R requests;
+- every direct add/modify decision contains the complete revised card/evidence alongside the explicit user decision/instruction;
+- no final card/evidence difference exists without an authorized ledger decision; and
+- every final audit result uses the correct `review_basis`.
 
 The deterministic bundle includes package/review/decision schemas, disease vocabulary, card-delta validation, and the Phase 4 validator.
 
-## Phase 2R handoff validation
+{{VALIDATION_BUNDLE_POLICY}}
 
-Before returning a handoff ledger, run:
+{{PHASE4_VALIDATION_BUNDLE}}
+
+### Phase 2R handoff deterministic gate
+
+After constructing the handoff ledger, run:
 
 ```bash
 python validation_bundle/scripts/phase_validation/phase4.py --handoff-only \
@@ -179,13 +190,11 @@ python validation_bundle/scripts/phase_validation/phase4.py --handoff-only \
   [--phase2r-decisions <matching-phase2r-decisions-file>]
 ```
 
-## Deterministic exit validation
+A non-zero exit means the handoff is invalid. Repair only within the user's explicit instructions and rerun. If repair would require a new substantive user decision, resume Step 2 interactivity first. The **final action** before returning a Phase 2R handoff must be this validator succeeding on the exact handoff ledger. Do not edit the ledger after success. Return exactly the Phase 4 handoff decision ledger.
 
-{{VALIDATION_BUNDLE_POLICY}}
+### Finalization deterministic gate
 
-{{PHASE4_VALIDATION_BUNDLE}}
-
-After writing the final ledger and `paper.final.json`, run:
+After constructing the final ledger and `paper.final.json`, run:
 
 ```bash
 python validation_bundle/scripts/phase_validation/phase4.py \
@@ -199,20 +208,6 @@ python validation_bundle/scripts/phase_validation/phase4.py \
   --final paper.final.json
 ```
 
-A non-zero exit means the product is invalid. In particular, validation must reject every unapproved card addition, modification, deletion, or evidence change. Repair and rerun until successful. Do not edit either finalized output after successful validation.
+A non-zero exit means the product is invalid. In particular, validation must reject every unapproved card addition, modification, deletion, or evidence change. Repair only within the user's already-agreed decisions and rerun. If repair requires a new substantive decision, resume Step 2 interactivity and obtain explicit approval first.
 
-The final action before returning `paper.final.json` must be a successful run of the Phase 4 validator on the exact finalized decision ledger and final package. Do not edit `paper.final.json` after the successful run.
-
-## Mandatory pre-output gate
-
-Before a handoff or final output verify privately that:
-1. the filename uses the active provisional's `vNNN` / `revRRR-vNNN` namespace;
-2. every direct Phase 4 card decision concerns a Phase 3-failed card, except replacement `add` operations that resolve such a failure;
-3. no Phase 3-passed card was directly changed in Phase 4;
-4. every requested change to a passed card/new unrelated card is represented only as a Phase 2R request;
-5. every direct add/modify decision contains the complete revised card/evidence alongside the explicit user decision/instruction;
-6. finalization contains no card/evidence difference absent from the decision ledger;
-7. every final audit result has the correct `review_basis`; and
-8. the deterministic validator succeeds on the exact outputs.
-
-For handoff return exactly the Phase 4 decision ledger. For finalization return exactly the Phase 4 decision ledger and `paper.final.json`.
+The final action before returning `paper.final.json` must be a successful run of this validator on the exact finalized decision ledger and final package. Do not edit `paper.final.json` after the successful run. Do not edit the decision ledger after the successful run. Return exactly the Phase 4 decision ledger and `paper.final.json`.

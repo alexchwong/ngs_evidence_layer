@@ -319,27 +319,45 @@ paper.census-v001.json
 ```
 
 If Phase 2 rejects that census, start a fresh Phase 1 conversation with the original
-Phase 1 inputs plus the prior census and its critique. The retry writes the next attempt,
-for example `paper.census-v002.json`. Never overwrite a failed attempt. Legacy
-`paper.census.json` is read as attempt v001; the next retry therefore writes v002.
+Phase 1 inputs plus the prior census and its critique. **Do not repeat scope normalization
+or ask for `CONFIRM` on a retry.** The prior census carries the already-confirmed scope
+(`category_scope` absent means all five categories). Phase 1 reads the complete critique,
+repairs the census, then reruns the complete shared census semantic audit rather than
+patching only the named defects. The retry writes the next attempt, for example
+`paper.census-v002.json`. Never overwrite a failed attempt. Legacy `paper.census.json`
+is read as attempt v001; the next retry therefore writes v002.
 
-A prepared accepted-paper census redo also includes `redo.json`; use its exact
-`next_outputs.census` filename for the first redo attempt.
+A prepared accepted-paper census redo restores the accepted census read-only to preserve
+the already-confirmed scope and also includes `redo.json`; Phase 1 does not ask for a new
+`CONFIRM` and uses `redo.json.next_outputs.census` for the first redo output filename.
+
+Phase 1 now uses four ordered passes: core census drafting; an independent whole-census
+semantic audit using the same census gate Phase 2 uses on entry; a model formatting-only
+pass; then deterministic structure validation. Any failure returns to census drafting and
+all downstream passes are repeated. Known semantic defects cannot be emitted via an
+"unresolved" escape.
 
 ### Phase 2 — carding and accepted-card review
 
 Normal Phase 2 receives `paper.md`, `metadata.json`, the active census, and
-`prompts/phase2_prompt.md`. New ingestion starts with:
+`prompts/phase2_prompt.md`. It first runs the exact Phase 1 deterministic census validator,
+then applies the shared census semantic gate. Only after both pass does carding begin.
+New ingestion starts with:
 
 ```text
 paper.provisional-v001.json
 ```
 
 If Phase 2 rejects the census, it returns `paper.census-critique-vNNN.md`, tied to the
-census attempt being criticised. Redo Phase 1 as above. If Phase 3 rejects the
+census attempt being criticised. Phase 2 must complete the full shared census semantic
+audit first and report all material defects identifiable in that pass, rather than
+stopping at the first defect. Redo Phase 1 as above. If Phase 3 rejects the
 provisional structurally, rerun Phase 2 with the prior provisional and critique; the
 next package uses the next Phase 2 attempt, for example `paper.provisional-v002.json`.
-The package `round` advances with Phase 2 attempts.
+The package `round` advances with Phase 2 attempts. After carding, Phase 2 performs a
+separate semantic output audit, then a model formatting-only pass, and finally deterministic
+package validation. Failure at any output gate returns to card/evidence generation and the
+later gates are repeated; nothing is edited after deterministic validation succeeds.
 
 Accepted-card review uses the **Phase 2R** branch of the Phase 2 prompt. Prepare it with:
 
@@ -352,6 +370,10 @@ The work folder contains `paper.md`, `metadata.json`, the accepted census,
 discussion. Phase 2R may propose changes, but a proposal is not authorization. Only
 explicit user-approved `add`, `modify`, or `delete` decisions are written when the user
 sends `FINALIZE`; all other accepted cards/evidence remain exactly unchanged.
+
+Phase 2R has no deterministic input gate. It remains an interactive user-approved delta
+workflow; after `FINALIZE`, it constructs only the agreed changes and deterministic delta/
+package validation is the final output gate.
 
 The finalized Phase 2R output is a matched pair:
 
@@ -367,7 +389,14 @@ checks that the provisional card/evidence diff is exactly the finalized decision
 
 ### Phase 3 — independent review
 
-Use a **different model** from Phase 2. Give it `paper.md`, the active provisional, and
+Use a **different model** from Phase 2. Phase 3 runs no deterministic validation script,
+but its review file is the direct input to Phase 4's deterministic entry validator. The
+Phase 3 prompt therefore gives the exact review JSON structure and filename convention.
+Its workflow is model-formatting input gate → substantive review → model-formatting output
+gate. Neither formatting gate performs semantic adjudication, and Phase 3 runs no scripts.
+Follow the output contract strictly so Phase 4 can accept it without structural repair.
+
+Give it `paper.md`, the active provisional, and
 `prompts/phase3_prompt.md`. If that provisional came from Phase 2R, also give Phase 3 the
 matching `paper.phase2r-decisions[-revRRR]-vNNN.json`. Phase 3 preserves any `revNNN`
 namespace. Its first review attempt uses at least the provisional attempt number; a Phase
@@ -386,7 +415,10 @@ their prior valid state rather than being reinterpreted under the current prompt
 ### Phase 4 — human adjudication
 
 Give Phase 4 `paper.md`, `metadata.json`, the active census, the active provisional, its
-matching Phase 3 review, and `prompts/phase4_prompt.md`. If the active provisional came
+matching Phase 3 review, and `prompts/phase4_prompt.md`. Phase 4 first runs deterministic
+input validation, then performs interactive adjudication, applies only agreed decisions,
+and finishes with deterministic handoff/final validation as the last operation on the
+returned files. If the active provisional came
 from Phase 2R, also provide its matching Phase 2R decision ledger. The internal `round`
 values bind the reviewed package.
 

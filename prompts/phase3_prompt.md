@@ -9,9 +9,24 @@ If the provisional is structurally malformed or cannot be reviewed, return exact
 
 You are the independent auditor for exactly one publication. You must be a different model from the provisional package's `extraction_model`. Use only `paper.md`, the provisional package, this prompt, the matching Phase 2R decision ledger when present, and permitted retry context. Do not use the full reporting rules, census, another publication, or model knowledge to improve extraction.
 
+## Step 1 — model input formatting gate
+
+Before substantive review, perform a **formatting/structure-only** inspection of the supplied provisional and required lineage files. Do not judge clinical meaning, evidence sufficiency, interpretation quality, category choice, or disease scope in this gate.
+
+Verify privately that:
+1. the provisional is parseable JSON with the expected top-level package fields;
+2. `audit` is `null`;
+3. `cards` and `evidence` are arrays and every provisional card ID has exactly one paired evidence bundle ID;
+4. package identity/round/extraction-model fields needed for the review are present; and
+5. when the provisional came from Phase 2R, the matching Phase 2R decision ledger and any named carry-forward provenance files are present and structurally readable.
+
+If this formatting gate fails, return the matching provisional-critique branch rather than creating a review. This gate is model-based only; **do not run any deterministic validation script in Phase 3**.
+
+## Step 2 — Phase 3 substantive review
+
 Phase 3 never creates `paper.final.json` and never repairs cards.
 
-## Shared semantic standards
+### Shared semantic standards
 
 Audit against the same semantic definition of correctness used to author cards.
 
@@ -204,10 +219,6 @@ When the matching Phase 2R decision ledger is supplied, set `review_scope` to `d
 - Cards approved for deletion are absent from the provisional and therefore absent from `card_results`.
 
 Even in delta mode, emit one `card_results` entry for every card present in the provisional, in provisional order. This preserves package lineage while preventing opportunistic migration of unchanged cards.
-
-## Entry validation
-
-Require a well-formed provisional package with `audit: null` and exactly one evidence bundle per card. In Phase 2R mode require the matching decision ledger. If entry validation fails, use the provisional-critique branch rather than creating a review.
 
 ## Audit calibrations
 
@@ -663,32 +674,92 @@ Audit `publication_type` against the paper's front matter, structure, primary pu
 
 The package's `publication_type_basis` is an assertion to verify, not an instruction to follow. Publisher labels such as "special report" are never allowed values. For an ICC-style expert classification paper, retain `consensus statement` when the main contribution is agreed classification, criteria, definitions, or terminology and no formal guideline methodology is shown.
 
-## Output shape
+## Output filename and exact Phase 4 input contract
 
-Use `schema_version: "5.1"` when reviewing a 5.1 provisional (legacy 5.0 provisional/review pairs remain valid). Include top-level `review_scope`. Every card result includes `review_basis`.
+Phase 3 runs no deterministic validation script. However, its review output is the direct input to Phase 4, whose entry validator is deterministic. Therefore **strictly author the review to the exact structure and filename convention below**. Do not invent fields, rename fields, flatten nested objects, or omit required fields.
 
-Example structural pattern (field values are placeholders, not card-authoring content):
+Filename mapping:
+- `paper.provisional-vNNN.json` -> `paper.review-vNNN.json`;
+- `paper.provisional-revRRR-vNNN.json` -> `paper.review-revRRR-vNNN.json`;
+- legacy `paper.provisional-NNN.json` -> legacy `paper.review-NNN.json`.
 
-```text
-review_scope: full | delta
-card_results:
-  - card_id: <id>
-    verdict: pass | fail
-    review_basis: phase3 | carried_forward
+For the first review of a provisional, use the matching provisional attempt number. If Phase 3 is retried against the same provisional after a review critique, preserve the same revision namespace and increment only the review attempt; always copy the provisional's internal `round` unchanged. Do not invent a different naming family.
+
+Use `schema_version: "5.1"` when reviewing a 5.1 provisional. Legacy 5.0 provisional/review pairs remain valid, but when authoring a new 5.1 review use the complete shape below.
+
+```json
+{
+  "schema_version": "5.1",
+  "paper_id": "<copy provisional paper_id>",
+  "round": 1,
+  "review_date": "YYYY-MM-DD",
+  "reviewer_model": "<your model identity>",
+  "extraction_model_reviewed": "<copy provisional extraction_model>",
+  "result": "review_complete",
+  "review_scope": "full",
+  "audit": {
+    "publication_type_verdict": {
+      "package_value": "<copy provisional publication_type>",
+      "auditor_value": "<one allowed publication-type taxonomy value>",
+      "verdict": "pass",
+      "verified_by_phase3": true,
+      "basis": "<concise paper-based reason>"
+    },
+    "cards_total": 2,
+    "cards_passed": 1,
+    "cards_failed": 1
+  },
+  "card_results": [
+    {
+      "card_id": "<passing card ID>",
+      "verdict": "pass",
+      "review_basis": "phase3"
+    },
+    {
+      "card_id": "<failed card ID>",
+      "verdict": "fail",
+      "review_basis": "phase3",
+      "details": {
+        "failure_type": "unsupported_assertion",
+        "reason": "<precise defect>",
+        "defensibility": "<whether and under what circumstances the card is defensible>",
+        "suggested_action": {
+          "category": "rewrite_interpretation",
+          "detail": "<concise source-bounded guidance>"
+        }
+      }
+    }
+  ]
+}
 ```
 
-A carried-forward pass contains no failure details. A carried-forward unresolved failure retains the prior failure details exactly. A substantively reviewed pass contains only its ID, verdict, and `review_basis`. New failure details are authored only for substantively reviewed Phase 2R add/modify cards.
+For delta review, set top-level `review_scope` to `"delta"`. Use `review_basis: "phase3"` only for Phase 2R-added or modified cards and `review_basis: "carried_forward"` for unchanged cards, as defined above.
 
-## Mandatory pre-output gate
+The exact structural rules required by Phase 4 are:
+- top-level `result` is exactly `"review_complete"`; per-card outcome is named `verdict`, not `result`;
+- `audit.publication_type_verdict` contains exactly `package_value`, `auditor_value`, `verdict`, `verified_by_phase3`, and `basis`;
+- `audit.cards_total`, `audit.cards_passed`, and `audit.cards_failed` exactly match `card_results`;
+- every `card_results` item contains `card_id`, `verdict`, and for 5.1 `review_basis`;
+- a passing card has no `details` object;
+- a failing card has one `details` object containing exactly `failure_type`, `reason`, `defensibility`, `suggested_action`, plus `quote_restatement` only for `quote_error`;
+- `suggested_action` is an object containing exactly `category` and `detail`;
+- a carried-forward pass contains no failure details;
+- a carried-forward unresolved failure retains its prior failure details exactly.
 
-Before writing, verify privately that:
-1. the output filename follows the active normal/revision namespace;
-2. review identity/round match the provisional and reviewer differs from extraction model;
-3. `card_results` contains every provisional card exactly once, in order;
-4. full mode uses `review_basis: phase3` for every card;
-5. delta mode uses `phase3` exactly for Phase 2R add/modify cards and `carried_forward` exactly for unchanged cards;
-6. counts match `card_results`;
-7. every substantive failure has valid details, every carried-forward pass has no details, and every carried-forward unresolved failure exactly preserves its prior details; and
-8. no extraction content was authored, repaired, removed, reordered, or returned.
+Do not add reviewer identity wrappers, extra count objects, alternative verdict/result keys, free-standing failure fields, or any other structure not shown or required above.
 
-Return exactly the required review file, or the provisional-critique file when entry validation fails.
+## Step 3 — model output formatting gate
+
+After the substantive review is complete, perform a final **formatting/structure-only** audit of the candidate review. Do not reconsider or change substantive verdicts in this gate. Verify privately that:
+1. the output filename follows the active normal/revision namespace exactly;
+2. review identity and `round` match the provisional, and `reviewer_model` differs from `extraction_model_reviewed`;
+3. all required top-level fields use the exact names shown in the Phase 4 input contract, including top-level `result: "review_complete"`;
+4. `card_results` contains every provisional card exactly once, in provisional order;
+5. full mode uses `review_basis: "phase3"` for every card, while delta mode uses `"phase3"` exactly for Phase 2R add/modify cards and `"carried_forward"` exactly for unchanged cards;
+6. `audit.cards_total`, `audit.cards_passed`, and `audit.cards_failed` exactly match `card_results`;
+7. each per-card outcome uses `verdict`, not `result`; passing items contain no `details`; failing items contain the exact nested `details`/`suggested_action` shape required above; and
+8. carried-forward unresolved failures preserve their prior failure details exactly.
+
+If the candidate fails this formatting gate, repair **formatting/structure only** and rerun Step 3. If a required repair would alter a substantive verdict or review finding, return to Step 2 first.
+
+Phase 3 runs no deterministic validation. Return exactly the required review file, or the provisional-critique file when Step 1 fails.

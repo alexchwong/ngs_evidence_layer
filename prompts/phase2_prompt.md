@@ -165,458 +165,111 @@ For germline content, distinguish established inherited or constitutional status
 
 Use evidence that is sufficient rather than merely short. If any material element is unsupported, expand the evidence, narrow the assertion, split it, or omit it.
 
-## Phase 2R — mandatory interactive delta review
+## Canonical deterministic validation assets
 
-Phase 2R is **not** a fresh extraction and must never re-author the complete package merely because the current prompt differs from the prompt that originally authored it.
+The deterministic bundle contains the exact Phase 1 census validator used at the Phase 1 output boundary, plus the canonical Phase 2 package validator, card-delta helper, schemas, and disease vocabulary. Recreate it once before any deterministic gate in this phase.
 
-The supplied baseline is immutable except for explicitly user-approved card decisions:
-- accepted-card review baseline: `paper.final.json`;
-- Phase 4 handoff baseline: the active provisional after applying the already user-approved card/publication decisions recorded in the Phase 4 handoff ledger.
-
-On entry to Phase 2R, discuss the requested or proposed card changes with the user. You may propose `add`, `modify`, or `delete`, but a proposal, Phase 3 suggestion, Phase 4 suggestion, or your own preference is **not** user authorization. Do not create files until the user sends `FINALIZE` on its own line after explicitly approving the desired changes.
-
-When `FINALIZE` is received:
-- include only explicitly approved `add`, `modify`, or `delete` operations in the Phase 2R decision ledger;
-- record each approved operation's concise `user_instruction`;
-- for every `add` or `modify`, place the complete revised card and complete paired evidence directly in that decision entry;
-- represent a split as delete + add operation(s), and a merge as delete operation(s) plus one add/modify;
-- preserve every unapproved card and paired evidence exactly;
-- preserve an existing card ID for a modification of the same clinical assertion; use a new unused ID for a genuinely new card;
-- do not alter publication type or paper nickname in Phase 2R.
-
-The ledger must use `stage: "phase2r"`, `purpose: "revise"`, the actual baseline filename/round, the provisional output filename, and `user_finalized: true`. For a Phase 4 handoff, also record the exact `phase4_decisions_filename` used to reconstruct the current Phase 4 state.
-
-Phase 2R outputs a complete provisional package because downstream phases consume packages, but that package is deterministically constrained to **baseline + approved ledger deltas only**. Omit `paper_nickname`, set `audit` to `null`, and set `publication_type_verified_by_phase3` to `false`.
-
-## Entry validation for normal Phase 2
-
-For normal extraction, first validate the census against the paper. Treat optional `category_scope` as the intentional positive allow-list for Phase 1; if absent, all five categories were in scope. Do not critique or card claims whose category is outside a declared `category_scope`. Within the declared scope, completeness and atomicity remain strict. Phase 1's operational boundary remains: **could Phase 2 retain one part while rejecting another?** If a census entry materially merges assertions under that test, return a census critique rather than silently splitting it during normal carding.
-
-Phase 2R does not reopen the accepted census merely because a current prompt would have authored it differently. It may identify a source conflict relevant to the specific proposed delta, but must not opportunistically migrate unrelated cards.
-
-## Normal Phase 2 working method
-
-Walk every in-scope census claim as a review obligation, not an output obligation. A census claim identifies a source assertion to inspect; it does not require a card. Emit a card only when the evidence directly supports a clinically useful interpretation. Never manufacture category coverage merely to match the census.
-
-Work evidence-first rather than gene-first:
-1. find the source passage that states the role claim;
-2. assemble the minimal sufficient evidence bundle;
-3. **freeze the complete candidate evidence bundle before drafting the interpretation**;
-4. identify only the role, population, disease, effect, and qualifiers explicitly supported by that bundle;
-5. create at most one card for each independently useful, directly supported role;
-6. include only genes participating in that exact assertion.
-
-Do not union assertions, diseases, populations, or qualifiers across separate locators. A card's locator, interpretation, diseases, genes, category, and evidence bundle must describe the same source assertion.
-
-### Evidence bundle construction rules
-
-# Evidence bundle construction rules
-
-Every card must have exactly one evidence bundle.
-
-Use `contiguous_text` when one coherent contiguous passage is sufficient. Its sole fragment has role `claim` and may contain multiple contiguous sentences. Expand around the explicit role claim only as needed to capture antecedents, scope, population, treatment, comparator, analysis, thresholds, exclusions, direction, or clinical consequence. Stop only when the fragment supports every material element of the interpretation without relying on unquoted context.
-
-Use `composite_text` only when no single coherent passage contains the minimal sufficient evidence. Use two to six independently verbatim fragments. One or more `claim` fragments may jointly support one source assertion; add `scope_heading`, `legend`, or `footnote` fragments only when they provide necessary governing context. Every fragment must contribute material support recorded in `support_map`, and all fragments must have compatible scope. If a fragment is unnecessary, use `contiguous_text`, narrow the interpretation, split the card, or omit it.
-
-A `scope_heading` is valid only when the substantive passage occurs within that heading's section and no intervening heading changes scope. A heading supplies context; it does not establish a role claim by itself.
-
-Use `table_relation` when a table value cannot be interpreted defensibly without its governing labels. Quote each required `column_header`, `row_header`, `cell`, `legend`, and `footnote` as a separate fragment. Omit the card when extraction damage or missing structure leaves the relation ambiguous. Do not replace source labels with model-authored key/value facts.
-
-Map every material assertion in the interpretation to explicit supporting source text in `support_map`. Once sufficient evidence is assembled, do not shorten it merely for concision.
-
-### Card construction rules
-
-# Card content rules
-
-- One card represents one independently useful, directly supported clinical assertion.
-- `genes` contains only genes participating in that assertion.
-- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
-- Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
-
-### Source disease alias policy
-
-A source-stated disease may ground a canonical card disease only when it is already
-canonical or exactly matches a reviewed alias in the canonical source-alias file,
-ignoring surrounding whitespace and letter case only.
-
-Emit only the canonical target in `diseases`, but preserve the source's actual disease
-or population wording in evidence and interpretation. Canonical disease granularity
-is intentionally broader than molecular subtype granularity; for example, reviewed
-molecular B-ALL subtype names resolve to `B-ALL` rather than becoming separate card
-diseases. Do not use fuzzy matching, stemming, punctuation substitution, semantic
-inference, or nearest-term mapping. A source term that is neither canonical nor a
-configured alias remains outside the controlled vocabulary.
-
-Keep vocabulary relationships distinct:
-- `diseases` = exact clinical applicability written on cards;
-- `parents` = taxonomic ancestry used to derive `disease_ancestors` for indexing;
-- `case_major_categories` = broad pre-adjudication case-retrieval buckets derived at
-  runtime from canonical card diseases; never write them into cards;
-- `retrieval_related` = directional, category-specific curated cross-disease
-  applicability used by retrieval; never substitute it for exact card `diseases`.
-
-Canonical source aliases:
-
-```json
-{
-  "clonal haematopoiesis": "CHIP",
-  "clonal haemopoiesis": "CHIP",
-  "clonal hematopoiesis": "CHIP",
-  "clonal hematopoiesis of indeterminate potential": "CHIP",
-  "clonal haematopoiesis of indeterminate potential": "CHIP",
-  "clonal haemopoiesis of indeterminate potential": "CHIP",
-  "clonal cytopenia of undetermined significance": "CCUS",
-  "clonal cytopaenia of undetermined significance": "CCUS",
-  "myelodysplastic syndrome": "MDS",
-  "myelodysplastic syndromes": "MDS",
-  "myelodysplastic neoplasm": "MDS",
-  "myelodysplastic neoplasms": "MDS",
-  "myelodysplastic syndrome/acute myeloid leukemia": "MDS/AML",
-  "myelodysplastic syndrome/acute myeloid leukaemia": "MDS/AML",
-  "myelodysplastic neoplasm/acute myeloid leukemia": "MDS/AML",
-  "myelodysplastic neoplasm/acute myeloid leukaemia": "MDS/AML",
-  "acute myeloid leukemia": "AML",
-  "acute myeloid leukaemia": "AML",
-  "acute promyelocytic leukemia": "APL",
-  "acute promyelocytic leukaemia": "APL",
-  "AML-M0": "AML with minimal differentiation",
-  "minimally differentiated AML": "AML with minimal differentiation",
-  "acute myeloid leukemia with minimal differentiation": "AML with minimal differentiation",
-  "acute myeloid leukaemia with minimal differentiation": "AML with minimal differentiation",
-  "AML-M1": "AML without maturation",
-  "acute myeloid leukemia without maturation": "AML without maturation",
-  "acute myeloid leukaemia without maturation": "AML without maturation",
-  "AML-M2": "AML with maturation",
-  "acute myeloid leukemia with maturation": "AML with maturation",
-  "acute myeloid leukaemia with maturation": "AML with maturation",
-  "AML-M4": "AMML",
-  "acute myelomonocytic leukemia": "AMML",
-  "acute myelomonocytic leukaemia": "AMML",
-  "acute myelomonocytic leukemia, FAB M4": "AMML",
-  "acute myelomonocytic leukaemia, FAB M4": "AMML",
-  "AML-M4Eo": "AMML with eosinophilia",
-  "acute myelomonocytic leukemia with eosinophilia": "AMML with eosinophilia",
-  "acute myelomonocytic leukaemia with eosinophilia": "AMML with eosinophilia",
-  "myelomonocytic leukemia with eosinophilia": "AMML with eosinophilia",
-  "myelomonocytic leukaemia with eosinophilia": "AMML with eosinophilia",
-  "AML-M5": "AMoL",
-  "acute monocytic leukemia": "AMoL",
-  "acute monocytic leukaemia": "AMoL",
-  "acute monoblastic leukemia": "AMoL",
-  "acute monoblastic leukaemia": "AMoL",
-  "AML-M6": "acute erythroid leukaemia",
-  "acute erythroid leukemia": "acute erythroid leukaemia",
-  "erythroleukemia": "acute erythroid leukaemia",
-  "erythroleukaemia": "acute erythroid leukaemia",
-  "Di Guglielmo disease": "acute erythroid leukaemia",
-  "Di Guglielmo syndrome": "acute erythroid leukaemia",
-  "AML-M7": "AMKL",
-  "acute megakaryoblastic leukemia": "AMKL",
-  "acute megakaryoblastic leukaemia": "AMKL",
-  "megakaryoblastic leukemia": "AMKL",
-  "megakaryoblastic leukaemia": "AMKL",
-  "pure erythroid leukemia": "pure erythroid leukaemia",
-  "acute pure erythroid leukaemia": "pure erythroid leukaemia",
-  "acute pure erythroid leukemia": "pure erythroid leukaemia",
-  "granulocytic sarcoma": "myeloid sarcoma",
-  "chloroma": "myeloid sarcoma",
-  "extramedullary AML": "myeloid sarcoma",
-  "extramedullary acute myeloid leukemia": "myeloid sarcoma",
-  "extramedullary acute myeloid leukaemia": "myeloid sarcoma",
-  "acute basophilic leukemia": "acute basophilic leukaemia",
-  "ABL": "acute basophilic leukaemia",
-  "acute basophilic/basophiloblastic leukaemia": "acute basophilic leukaemia",
-  "acute basophilic/basophiloblastic leukemia": "acute basophilic leukaemia",
-  "myelodysplastic/myeloproliferative neoplasm": "MDS/MPN",
-  "myelodysplastic/myeloproliferative neoplasms": "MDS/MPN",
-  "myelodysplastic syndrome/myeloproliferative neoplasm": "MDS/MPN",
-  "myelodysplastic/myeloproliferative neoplasm, unclassifiable": "MDS/MPN-U",
-  "myelodysplastic/myeloproliferative neoplasm unclassifiable": "MDS/MPN-U",
-  "myelodysplastic/myeloproliferative neoplasm, unspecified": "MDS/MPN-U",
-  "MDS/MPN NOS": "MDS/MPN-U",
-  "MDS/MPN, not otherwise specified": "MDS/MPN-U",
-  "chronic myelomonocytic leukemia": "CMML",
-  "chronic myelomonocytic leukaemia": "CMML",
-  "atypical chronic myeloid leukemia": "aCML",
-  "atypical chronic myeloid leukaemia": "aCML",
-  "atypical chronic myelogenous leukemia": "aCML",
-  "atypical chronic myelogenous leukaemia": "aCML",
-  "MDS/MPN with neutrophilia": "aCML",
-  "myelodysplastic/myeloproliferative neoplasm with neutrophilia": "aCML",
-  "MDS/MPN with SF3B1 mutation and thrombocytosis": "MDS/MPN-SF3B1-T",
-  "myelodysplastic/myeloproliferative neoplasm with SF3B1 mutation and thrombocytosis": "MDS/MPN-SF3B1-T",
-  "MDS/MPN with ring sideroblasts and thrombocytosis": "MDS/MPN-SF3B1-T",
-  "myelodysplastic/myeloproliferative neoplasm with ring sideroblasts and thrombocytosis": "MDS/MPN-SF3B1-T",
-  "juvenile myelomonocytic leukemia": "JMML",
-  "juvenile myelomonocytic leukaemia": "JMML",
-  "myeloproliferative neoplasm": "MPN",
-  "myeloproliferative neoplasms": "MPN",
-  "myeloproliferative neoplasm, unclassifiable": "MPN-U",
-  "myeloproliferative neoplasm unclassifiable": "MPN-U",
-  "myeloproliferative neoplasm, unspecified": "MPN-U",
-  "MPN NOS": "MPN-U",
-  "MPN, not otherwise specified": "MPN-U",
-  "polycythemia vera": "PV",
-  "polycythaemia vera": "PV",
-  "polycythemia rubra vera": "PV",
-  "polycythaemia rubra vera": "PV",
-  "essential thrombocythemia": "ET",
-  "essential thrombocythaemia": "ET",
-  "primary myelofibrosis": "PMF",
-  "post-polycythemia vera myelofibrosis": "post-PV/post-ET MF",
-  "post-polycythaemia vera myelofibrosis": "post-PV/post-ET MF",
-  "post-essential thrombocythemia myelofibrosis": "post-PV/post-ET MF",
-  "post-essential thrombocythaemia myelofibrosis": "post-PV/post-ET MF",
-  "post-PV myelofibrosis": "post-PV/post-ET MF",
-  "post-ET myelofibrosis": "post-PV/post-ET MF",
-  "myeloproliferative neoplasm blast phase": "MPN blast phase",
-  "blast-phase myeloproliferative neoplasm": "MPN blast phase",
-  "blast phase myeloproliferative neoplasm": "MPN blast phase",
-  "chronic myeloid leukemia": "CML",
-  "chronic myeloid leukaemia": "CML",
-  "chronic myelogenous leukemia": "CML",
-  "chronic myelogenous leukaemia": "CML",
-  "chronic neutrophilic leukemia": "CNL",
-  "chronic neutrophilic leukaemia": "CNL",
-  "chronic eosinophilic leukemia": "CEL",
-  "chronic eosinophilic leukaemia": "CEL",
-  "systemic mastocytosis": "mastocytosis",
-  "mast cell neoplasm": "mastocytosis",
-  "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase fusion": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-  "myeloid/lymphoid neoplasms with eosinophilia and tyrosine kinase gene fusions": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-  "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase gene fusion": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
-  "blastic plasmacytoid dendritic cell neoplasm": "BPDCN",
-  "myeloid neoplasm with germline predisposition": "germline predisposition syndrome",
-  "myeloid neoplasm with germ line predisposition": "germline predisposition syndrome",
-  "acute leukemia of ambiguous lineage": "acute leukaemia of ambiguous lineage",
-  "histiocytic and dendritic cell neoplasm": "histiocytic/dendritic neoplasm",
-  "histiocytic and dendritic neoplasm": "histiocytic/dendritic neoplasm",
-  "hematological malignancy, other": "haematological malignancy, other",
-  "acute lymphoblastic leukemia": "acute lymphoblastic leukaemia/lymphoma",
-  "acute lymphoblastic leukaemia": "acute lymphoblastic leukaemia/lymphoma",
-  "acute lymphoblastic leukemia/lymphoma": "acute lymphoblastic leukaemia/lymphoma",
-  "ALL": "acute lymphoblastic leukaemia/lymphoma",
-  "B-lymphoblastic leukaemia/lymphoma": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma": "B-ALL",
-  "B-cell acute lymphoblastic leukaemia": "B-ALL",
-  "B-cell acute lymphoblastic leukemia": "B-ALL",
-  "B lymphoblastic leukaemia/lymphoma": "B-ALL",
-  "B lymphoblastic leukemia/lymphoma": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma, NOS": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma, NOS": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with hyperdiploidy": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with hyperdiploidy": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with high hyperdiploidy": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with high hyperdiploidy": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with hypodiploidy": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with hypodiploidy": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with iAMP21": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with iAMP21": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with BCR::ABL1 fusion": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with BCR::ABL1 fusion": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with t(9;22)(q34;q11.2); BCR-ABL1": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with t(9;22)(q34;q11.2); BCR-ABL1": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma, BCR-ABL1-like": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma, BCR-ABL1-like": "B-ALL",
-  "Philadelphia chromosome-like acute lymphoblastic leukaemia": "B-ALL",
-  "Philadelphia chromosome-like acute lymphoblastic leukemia": "B-ALL",
-  "Ph-like acute lymphoblastic leukaemia": "B-ALL",
-  "Ph-like acute lymphoblastic leukemia": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with KMT2A rearrangement": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with KMT2A rearrangement": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with t(v;11q23.3); KMT2A-rearranged": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with t(v;11q23.3); KMT2A-rearranged": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1 fusion": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with ETV6::RUNX1 fusion": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with t(12;21)(p13.2;q22.1); ETV6-RUNX1": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with t(12;21)(p13.2;q22.1); ETV6-RUNX1": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1-like features": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with ETV6::RUNX1-like features": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with TCF3::PBX1 fusion": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with TCF3::PBX1 fusion": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with t(1;19)(q23;p13.3); TCF3-PBX1": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with t(1;19)(q23;p13.3); TCF3-PBX1": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with IGH::IL3 fusion": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with IGH::IL3 fusion": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with t(5;14)(q31.1;q32.1); IGH/IL3": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with t(5;14)(q31.1;q32.1); IGH/IL3": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with TCF3::HLF fusion": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with TCF3::HLF fusion": "B-ALL",
-  "B-lymphoblastic leukaemia/lymphoma with other defined genetic abnormalities": "B-ALL",
-  "B-lymphoblastic leukemia/lymphoma with other defined genetic abnormalities": "B-ALL",
-  "monoclonal B-cell lymphocytosis": "MBL",
-  "chronic lymphocytic leukaemia/small lymphocytic lymphoma": "CLL/SLL",
-  "chronic lymphocytic leukemia/small lymphocytic lymphoma": "CLL/SLL",
-  "chronic lymphocytic leukaemia": "CLL/SLL",
-  "chronic lymphocytic leukemia": "CLL/SLL",
-  "small lymphocytic lymphoma": "CLL/SLL",
-  "hairy cell leukaemia": "HCL",
-  "hairy cell leukemia": "HCL",
-  "splenic marginal zone lymphoma": "SMZL",
-  "splenic diffuse red pulp small B-cell lymphoma": "SDRPL",
-  "splenic B-cell lymphoma/leukaemia with prominent nucleoli": "SBLPN",
-  "splenic B-cell lymphoma/leukemia with prominent nucleoli": "SBLPN",
-  "lymphoplasmacytic lymphoma": "LPL",
-  "IgM lymphoplasmacytic lymphoma": "IgM LPL/WM",
-  "IgM lymphoplasmacytic lymphoma/Waldenström macroglobulinaemia": "IgM LPL/WM",
-  "IgM lymphoplasmacytic lymphoma/Waldenstrom macroglobulinemia": "IgM LPL/WM",
-  "Waldenström macroglobulinaemia": "IgM LPL/WM",
-  "Waldenström macroglobulinemia": "IgM LPL/WM",
-  "Waldenstrom macroglobulinemia": "IgM LPL/WM",
-  "WM": "IgM LPL/WM",
-  "non-IgM lymphoplasmacytic lymphoma": "non-IgM LPL",
-  "extranodal marginal zone lymphoma of mucosa-associated lymphoid tissue": "extranodal MZL of MALT",
-  "extranodal marginal zone lymphoma of mucosa associated lymphoid tissue": "extranodal MZL of MALT",
-  "MALT lymphoma": "extranodal MZL of MALT",
-  "primary cutaneous marginal zone lymphoma": "primary cutaneous MZL",
-  "nodal marginal zone lymphoma": "NMZL",
-  "paediatric marginal zone lymphoma": "paediatric MZL",
-  "pediatric marginal zone lymphoma": "paediatric MZL",
-  "in situ follicular neoplasia": "in situ follicular B-cell neoplasm",
-  "FL": "follicular lymphoma",
-  "paediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
-  "pediatric-type follicular lymphoma": "paediatric-type follicular lymphoma",
-  "pediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
-  "duodenal type follicular lymphoma": "duodenal-type follicular lymphoma",
-  "primary cutaneous follicle center lymphoma": "primary cutaneous follicle centre lymphoma",
-  "in situ mantle cell neoplasia": "in situ mantle cell neoplasm",
-  "MCL": "mantle cell lymphoma",
-  "leukemic non-nodal mantle cell lymphoma": "leukaemic non-nodal mantle cell lymphoma",
-  "DLBCL": "DLBCL, NOS",
-  "diffuse large B-cell lymphoma, not otherwise specified": "DLBCL, NOS",
-  "diffuse large B-cell lymphoma, NOS": "DLBCL, NOS",
-  "T-cell/histiocyte-rich large B-cell lymphoma": "THRLBCL",
-  "diffuse large B-cell lymphoma/high-grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
-  "diffuse large B-cell lymphoma/high grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
-  "DLBCL/HGBL with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
-  "large B-cell lymphoma/high-grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
-  "large B-cell lymphoma/high grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
-  "high-grade B-cell lymphoma with 11q aberrations": "HGBL-11q",
-  "high-grade B-cell lymphoma with 11q aberration": "HGBL-11q",
-  "Burkitt-like lymphoma with 11q aberration": "HGBL-11q",
-  "EBV-positive diffuse large B-cell lymphoma": "EBV-positive DLBCL",
-  "EBV-positive diffuse large B-cell lymphoma, NOS": "EBV-positive DLBCL",
-  "diffuse large B-cell lymphoma associated with chronic inflammation": "DLBCL associated with chronic inflammation",
-  "primary cutaneous diffuse large B-cell lymphoma, leg type": "primary cutaneous DLBCL, leg type",
-  "PMBCL": "primary mediastinal large B-cell lymphoma",
-  "primary mediastinal B-cell lymphoma": "primary mediastinal large B-cell lymphoma",
-  "high-grade B-cell lymphoma, NOS": "HGBL, NOS",
-  "high grade B-cell lymphoma, NOS": "HGBL, NOS",
-  "HGBL NOS": "HGBL, NOS",
-  "BL": "Burkitt lymphoma",
-  "PEL": "primary effusion lymphoma",
-  "HHV8-positive diffuse large B-cell lymphoma, NOS": "KSHV/HHV8-positive DLBCL",
-  "KSHV-positive diffuse large B-cell lymphoma": "KSHV/HHV8-positive DLBCL",
-  "HHV8-positive germinotropic lymphoproliferative disorder": "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
-  "KSHV-positive germinotropic lymphoproliferative disorder": "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
-  "CHL": "classic Hodgkin lymphoma",
-  "classical Hodgkin lymphoma": "classic Hodgkin lymphoma",
-  "NLPHL": "nodular lymphocyte predominant Hodgkin lymphoma",
-  "nodular lymphocyte-predominant Hodgkin lymphoma": "nodular lymphocyte predominant Hodgkin lymphoma",
-  "nodular lymphocyte predominant B-cell lymphoma": "nodular lymphocyte predominant Hodgkin lymphoma",
-  "monoclonal gammopathy of undetermined significance": "MGUS",
-  "IgM monoclonal gammopathy of undetermined significance": "IgM MGUS",
-  "non-IgM monoclonal gammopathy of undetermined significance": "non-IgM MGUS",
-  "monoclonal gammopathy of renal significance": "MGRS",
-  "immunoglobulin-related (AL) amyloidosis": "AL amyloidosis",
-  "immunoglobulin-related AL amyloidosis": "AL amyloidosis",
-  "primary amyloidosis": "AL amyloidosis",
-  "mu heavy-chain disease": "mu heavy chain disease",
-  "gamma heavy-chain disease": "gamma heavy chain disease",
-  "alpha heavy-chain disease": "alpha heavy chain disease",
-  "multiple myeloma": "plasma cell myeloma",
-  "MM": "plasma cell myeloma",
-  "T-lymphoblastic leukaemia/lymphoma": "T-ALL",
-  "T-lymphoblastic leukemia/lymphoma": "T-ALL",
-  "T-cell acute lymphoblastic leukaemia": "T-ALL",
-  "T-cell acute lymphoblastic leukemia": "T-ALL",
-  "T-lymphoblastic leukaemia/lymphoma, NOS": "T-ALL, NOS",
-  "T-lymphoblastic leukemia/lymphoma, NOS": "T-ALL, NOS",
-  "early T-precursor lymphoblastic leukaemia/lymphoma": "ETP-ALL",
-  "early T-precursor lymphoblastic leukemia/lymphoma": "ETP-ALL",
-  "early T-cell precursor lymphoblastic leukaemia": "ETP-ALL",
-  "early T-cell precursor lymphoblastic leukemia": "ETP-ALL",
-  "T-prolymphocytic leukaemia": "T-PLL",
-  "T-prolymphocytic leukemia": "T-PLL",
-  "T-cell large granular lymphocytic leukaemia": "T-LGLL",
-  "T-cell large granular lymphocytic leukemia": "T-LGLL",
-  "T-LGL leukaemia": "T-LGLL",
-  "T-LGL leukemia": "T-LGLL",
-  "NK-large granular lymphocytic leukaemia": "NK-LGLL",
-  "NK-large granular lymphocytic leukemia": "NK-LGLL",
-  "chronic lymphoproliferative disorder of NK cells": "NK-LGLL",
-  "adult T-cell leukaemia/lymphoma": "ATLL",
-  "adult T-cell leukemia/lymphoma": "ATLL",
-  "Sézary syndrome": "Sezary syndrome",
-  "aggressive NK-cell leukemia": "aggressive NK-cell leukaemia",
-  "cutaneous T-cell lymphoma": "primary cutaneous T-cell lymphoma",
-  "CTCL": "primary cutaneous T-cell lymphoma",
-  "primary cutaneous CD4-positive small or medium T-cell lymphoproliferative disorder": "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
-  "primary cutaneous acral CD8-positive T-cell lymphoma": "primary cutaneous acral CD8-positive lymphoproliferative disorder",
-  "primary cutaneous CD30-positive T-cell lymphoproliferative disorder: lymphomatoid papulosis": "lymphomatoid papulosis",
-  "primary cutaneous CD30-positive T-cell lymphoproliferative disorder: primary cutaneous anaplastic large cell lymphoma": "primary cutaneous anaplastic large cell lymphoma",
-  "primary cutaneous gamma-delta T-cell lymphoma": "primary cutaneous gamma/delta T-cell lymphoma",
-  "indolent T-cell lymphoproliferative disorder of the gastrointestinal tract": "indolent T-cell lymphoma of the gastrointestinal tract",
-  "indolent T-cell lymphoproliferative disorder of the GI tract": "indolent T-cell lymphoma of the gastrointestinal tract",
-  "indolent T-cell lymphoma of the GI tract": "indolent T-cell lymphoma of the gastrointestinal tract",
-  "indolent NK-cell lymphoproliferative disorder of the GI tract": "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
-  "NK-cell enteropathy": "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
-  "lymphomatoid gastropathy": "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
-  "EATL": "enteropathy-associated T-cell lymphoma",
-  "MEITL": "monomorphic epitheliotropic intestinal T-cell lymphoma",
-  "HSTCL": "hepatosplenic T-cell lymphoma",
-  "ALCL": "anaplastic large cell lymphoma",
-  "anaplastic large cell lymphoma, ALK-positive": "ALK-positive anaplastic large cell lymphoma",
-  "ALK+ ALCL": "ALK-positive anaplastic large cell lymphoma",
-  "anaplastic large cell lymphoma, ALK-negative": "ALK-negative anaplastic large cell lymphoma",
-  "ALK- ALCL": "ALK-negative anaplastic large cell lymphoma",
-  "BIA-ALCL": "breast implant-associated anaplastic large cell lymphoma",
-  "nodal T-follicular helper cell lymphoma": "nodal TFH cell lymphoma",
-  "nodal TFH-cell lymphoma": "nodal TFH cell lymphoma",
-  "nTFHL": "nodal TFH cell lymphoma",
-  "angioimmunoblastic T-cell lymphoma": "nodal TFH cell lymphoma, angioimmunoblastic-type",
-  "AITL": "nodal TFH cell lymphoma, angioimmunoblastic-type",
-  "nTFHL-AI": "nodal TFH cell lymphoma, angioimmunoblastic-type",
-  "follicular T-cell lymphoma": "nodal TFH cell lymphoma, follicular-type",
-  "nTFHL-F": "nodal TFH cell lymphoma, follicular-type",
-  "nodal peripheral T-cell lymphoma with TFH phenotype": "nodal TFH cell lymphoma, NOS",
-  "nTFHL-NOS": "nodal TFH cell lymphoma, NOS",
-  "peripheral T-cell lymphoma, not otherwise specified": "peripheral T-cell lymphoma, NOS",
-  "PTCL-NOS": "peripheral T-cell lymphoma, NOS",
-  "nodal EBV-positive T- and NK-cell lymphoma": "EBV-positive nodal T/NK-cell lymphoma",
-  "EBV-positive nodal T- and NK-cell lymphoma": "EBV-positive nodal T/NK-cell lymphoma",
-  "extranodal NK/T-cell lymphoma, nasal-type": "extranodal NK/T-cell lymphoma",
-  "ENKTL": "extranodal NK/T-cell lymphoma"
-}
-```
-
-For normal extraction, copy `publication_type` and `publication_type_basis` from the census. For Phase 2R, copy them from the effective baseline. Phase 2/2R does not independently reclassify publication type.
-
-Use `metadata.publication_key` as the human-readable card namespace. Assign new IDs as `<publication_key>-C0001`, `<publication_key>-C0002`, and so on, without reusing an existing/deleted ID in the active history. Never construct card IDs from `paper_id`.
-
-Use `diseases` only for exact clinical applicability. Mechanically populate `disease_ancestors` with every direct/transitive vocabulary parent, in canonical order, excluding exact diseases. `diseases_covered` is the exact unique union of card `diseases`; `genes_covered` is the exact unique union of card genes.
-
-## Exit self-audit
-
-For every newly authored or modified card ask:
-1. does its paired evidence support every material assertion?;
-2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`?; and
-3. is it independently useful rather than redundant?
-
-For every `claim` fragment, inspect the sentence immediately before and after it in the source passage. If either materially changes scope, certainty, direction, eligibility, exception, analysis, or clinical meaning, expand the fragment/bundle or narrow, split, or delete the card.
-
-For every `composite_text` bundle verify that every `claim` fragment contributes to the same source assertion, no intervening text changes the relevant scope/conclusion, and `support_map` identifies each material contribution. Once evidence is sufficient, do not shorten it merely for concision.
-
-## Canonical validation assets
-
-The deterministic bundle contains the canonical package schema, disease vocabulary, decision-ledger schema, and Phase 2 validator.
-
-## Deterministic exit validation
-
-The bundle below contains the canonical self-contained validator for this phase.
+The bundle below contains the canonical deterministic validation assets required by this phase.
 Recreate every displayed file verbatim under `validation_bundle/` at its displayed
-relative path. Do not search for or clone the repository, modify the bundled file,
+relative path. Do not search for or clone the repository, modify a bundled file,
 summarize or reinterpret it, rewrite imports, or substitute another validator.
+
+<!-- BEGIN VERBATIM scripts/phase_validation/phase1.py -->
+```python
+#!/usr/bin/env python3
+"""Self-contained deterministic validation for the Phase 1 census product."""
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from jsonschema import Draft202012Validator, FormatChecker
+
+METADATA_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/metadata_schema.json","title":"Publication metadata","description":"Publication metadata used in working and archived packages. Confirmation overwrite history is optional for working-package compatibility.","type":"object","required":["schema_version","paper_id","corpus","stem","publication_key","citation","citation_source","citation_resolved_at","source_filename","source_sha256","markdown_sha256","created_at"],"additionalProperties":false,"properties":{"schema_version":{"const":"1.1"},"paper_id":{"type":"string","format":"uuid"},"corpus":{"type":"string","minLength":1},"stem":{"type":"string","minLength":1},"publication_key":{"type":"string","pattern":"^[a-z0-9]+(-[a-z0-9]+)*$"},"citation":{"$ref":"#/$defs/citation"},"citation_source":{"enum":["crossref-doi","model-supplied-doi","operator"]},"citation_resolved_at":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]},"source_filename":{"type":"string","minLength":1},"source_sha256":{"type":["string","null"],"pattern":"^[a-f0-9]{64}$"},"markdown_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},"created_at":{"type":"string","format":"date-time"},"version_history":{"type":"array","minItems":1,"uniqueItems":true,"items":{"type":"string","minLength":1}},"latest_version":{"type":"string","minLength":1}},"$defs":{"citation":{"type":"object","required":["authors","title","journal","year","volume","issue","pages","doi","display","citation_incomplete"],"additionalProperties":false,"properties":{"authors":{"type":"array","minItems":1,"items":{"type":"string","minLength":1}},"title":{"type":"string","minLength":1},"journal":{"type":"string"},"year":{"type":"integer","minimum":1950,"maximum":2100},"month":{"type":"string"},"volume":{"type":"string"},"issue":{"type":"string"},"pages":{"type":"string"},"doi":{"type":"string"},"display":{"type":"string","minLength":1},"citation_incomplete":{"type":"array","uniqueItems":true,"items":{"type":"string","minLength":1}}}}}}''')
+CENSUS_SCHEMA = json.loads(r'''{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://local/ngs_evidence_layer/census_schema.json","title":"Publication census (Phase 1)","description":"One entry per distinct potentially report-relevant source claim. The census is the completeness contract: it makes under-extraction countable at claim level.","type":"object","required":["schema_version","paper_id","census_date","census_model","publication_type","publication_type_basis","entries","validation_unresolved"],"additionalProperties":false,"properties":{"schema_version":{"const":"3.2"},"paper_id":{"type":"string","format":"uuid"},"census_date":{"type":"string","format":"date"},"census_model":{"type":"string","minLength":1},"publication_type":{"enum":["guideline","consensus statement","primary study","systematic review","narrative review","other"]},"publication_type_basis":{"type":"string","minLength":1},"category_scope":{"type":"array","minItems":1,"uniqueItems":true,"description":"Optional positive allow-list of clinical claim categories intentionally censused in this ingestion. If absent, all categories are in scope.","items":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]}},"supplement_flags":{"type":"array","description":"Critical values referenced by the main text but living in supplementary material. Record, do not refuse.","items":{"type":"object","required":["locator","missing_value"],"additionalProperties":false,"properties":{"locator":{"type":"string"},"missing_value":{"type":"string"}}}},"entries":{"type":"array","minItems":1,"description":"One independently reviewable source claim per entry, including eligible geneless diagnosis/treatment claims.","items":{"type":"object","required":["claim_id","genes","category","locator","summary"],"additionalProperties":false,"properties":{"claim_id":{"type":"string","minLength":1},"genes":{"type":"array","uniqueItems":true,"items":{"type":"string","pattern":"^[A-Z0-9][A-Z0-9\\\\-]*$"}},"category":{"enum":["diagnosis","prognosis","treatment","biomarker","germline"]},"locator":{"type":"string","minLength":1},"summary":{"type":"string","minLength":1,"description":"Concise source-faithful discriminator for the claim; not a polished card interpretation."}},"allOf":[{"if":{"properties":{"category":{"enum":["prognosis","biomarker","germline"]}},"required":["category"]},"then":{"properties":{"genes":{"minItems":1}}}}]}},"validation_unresolved":{"type":"array","description":"Specific Phase 1 exit-validation defects still unresolved after the third pass.","items":{"type":"string","minLength":1}}}}''')
+
+
+def read_json(path, label="JSON"):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ValueError(f"cannot read {label} {path}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid {label} in {path}: {exc}") from exc
+
+
+def schema_errors(document, schema, label):
+    errors = sorted(
+        Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(document),
+        key=lambda error: list(error.absolute_path),
+    )
+    return [
+        f"{label} schema: {'/'.join(str(p) for p in error.absolute_path) or '<root>'}: "
+        f"{error.message}" for error in errors
+    ]
+
+
+def validate_metadata(metadata):
+    return schema_errors(metadata, METADATA_SCHEMA, "metadata")
+
+
+def validate_census(census, metadata=None):
+    errors = schema_errors(census, CENSUS_SCHEMA, "census")
+    claim_ids = [entry.get("claim_id") for entry in census.get("entries", [])]
+    if len(claim_ids) != len(set(claim_ids)):
+        errors.append("census contains duplicate claim_id values")
+    category_scope = census.get("category_scope")
+    if category_scope is not None:
+        allowed = set(category_scope)
+        for entry in census.get("entries", []):
+            category = entry.get("category")
+            if category not in allowed:
+                errors.append(
+                    f"{entry.get('claim_id', '<unknown>')}: category {category!r} "
+                    "is outside census category_scope"
+                )
+    if metadata and census.get("paper_id") != metadata.get("paper_id"):
+        errors.append("census paper_id does not match metadata")
+    return errors
+
+
+def validate_phase_files(*, metadata_path, census_path):
+    metadata = read_json(metadata_path, "metadata")
+    census = read_json(census_path, "census")
+    errors = [f"metadata: {error}" for error in validate_metadata(metadata)]
+    errors.extend(f"census: {error}" for error in validate_census(census, metadata))
+    report = {"phase": 1, "census_entries": len(census.get("entries", []))}
+    if "category_scope" in census:
+        report["category_scope"] = census["category_scope"]
+    return errors, [], report
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--metadata", type=Path, required=True)
+    parser.add_argument("--census", type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        errors, warnings, report = validate_phase_files(
+            metadata_path=args.metadata, census_path=args.census
+        )
+    except (OSError, ValueError) as exc:
+        sys.exit(f"PHASE 1 VALIDATION FAILED:\n{exc}")
+    if errors:
+        sys.exit("PHASE 1 VALIDATION FAILED:\n" + "\n".join(errors))
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    print(json.dumps({"valid": True, **report}, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
+```
+<!-- END VERBATIM scripts/phase_validation/phase1.py -->
 
 <!-- BEGIN VERBATIM scripts/phase_validation/phase2.py -->
 ```python
@@ -4448,7 +4101,483 @@ def apply_publication_type_decision(package, ledger):
 ```
 <!-- END VERBATIM schema/card_decision_schema.json -->
 
-Normal extraction:
+## Normal Phase 2 — required workflow
+
+Normal Phase 2 must follow Steps 1–6 in order. Phase 2R does **not** use Steps 1–6; its separate workflow appears later.
+
+### Step 1 — deterministic census input gate
+
+Before any semantic census review or carding, run the **exact same deterministic Phase 1 validator used on Phase 1 output**:
+
+```bash
+python validation_bundle/scripts/phase_validation/phase1.py \
+  --metadata metadata.json \
+  --census <active-census-file>
+```
+
+This gate checks formatting and structure only. If it fails, do not perform semantic review or carding. Return the matching `paper.census-critique-vNNN.md` containing the complete deterministic errors so Phase 1 can repair the census.
+
+### Step 2 — census semantic input gate
+
+Only after Step 1 passes, audit the complete census against the paper using the exact same semantic gate Phase 1 was required to pass before output:
+
+# Census semantic gate
+
+Apply this audit to the complete active census within its confirmed `category_scope` (or all five categories when `category_scope` is absent).
+
+A census passes only when all of the following are true:
+
+1. **Completeness:** every clinically relevant, paper-supported assertion in the confirmed scope is represented; intentionally out-of-scope categories are not omissions.
+2. **Atomicity:** each entry is one Phase 2 retain/reject review boundary. If Phase 2 could reasonably retain one part while rejecting another, the entry is not atomic and must be split.
+3. **Qualifier preservation:** disease, population, molecular context, treatment, comparator, threshold, analysis, exception, uncertainty, and other qualifiers required to preserve meaning or applicability remain attached to the assertion they govern and are not split away.
+4. **Category correctness:** each entry's category follows `CATEGORY_SEMANTICS` and lies within the confirmed scope.
+5. **Gene correctness:** `genes` contains only genes participating in that exact assertion; `genes: []` is used only as permitted by `GENELESS_CLAIM_POLICY`.
+6. **Source fidelity:** each summary states only the source-supported assertion and does not broaden, strengthen, combine, or clinically interpret beyond the paper.
+7. **Locator adequacy:** each locator identifies the source material supporting that census assertion closely enough for Phase 2 to find and review it.
+8. **Publication type:** `publication_type` and `publication_type_basis` are supported by the paper and use the allowed taxonomy.
+
+Audit the whole census, not only previously criticised entries. Do not stop after finding the first defect.
+
+Treat optional `category_scope` as the intentional positive allow-list for Phase 1; if absent, all five categories were in scope. Do not critique or card claims whose category is outside a declared `category_scope`.
+
+If the census fails this gate, complete the **entire census audit before returning the critique**. Report every material defect identifiable in that pass, with enough source-specific detail for Phase 1 to repair it without guessing. Do not stop after the first missing claim, merged assertion, category error, qualifier problem, gene problem, locator problem, or publication-type defect. Return the matching `paper.census-critique-vNNN.md` and stop; do not silently repair or split the census during normal carding.
+
+### Step 3 — Phase 2 card/evidence work
+
+Walk every in-scope census claim as a review obligation, not an output obligation. A census claim identifies a source assertion to inspect; it does not require a card. Emit a card only when the evidence directly supports a clinically useful interpretation. Never manufacture category coverage merely to match the census.
+
+Work evidence-first rather than gene-first:
+1. find the source passage that states the role claim;
+2. assemble the minimal sufficient evidence bundle;
+3. **freeze the complete candidate evidence bundle before drafting the interpretation**;
+4. identify only the role, population, disease, effect, and qualifiers explicitly supported by that bundle;
+5. create at most one card for each independently useful, directly supported role;
+6. include only genes participating in that exact assertion.
+
+Do not union assertions, diseases, populations, or qualifiers across separate locators. A card's locator, interpretation, diseases, genes, category, and evidence bundle must describe the same source assertion.
+
+### Evidence bundle construction rules
+
+# Evidence bundle construction rules
+
+Every card must have exactly one evidence bundle.
+
+Use `contiguous_text` when one coherent contiguous passage is sufficient. Its sole fragment has role `claim` and may contain multiple contiguous sentences. Expand around the explicit role claim only as needed to capture antecedents, scope, population, treatment, comparator, analysis, thresholds, exclusions, direction, or clinical consequence. Stop only when the fragment supports every material element of the interpretation without relying on unquoted context.
+
+Use `composite_text` only when no single coherent passage contains the minimal sufficient evidence. Use two to six independently verbatim fragments. One or more `claim` fragments may jointly support one source assertion; add `scope_heading`, `legend`, or `footnote` fragments only when they provide necessary governing context. Every fragment must contribute material support recorded in `support_map`, and all fragments must have compatible scope. If a fragment is unnecessary, use `contiguous_text`, narrow the interpretation, split the card, or omit it.
+
+A `scope_heading` is valid only when the substantive passage occurs within that heading's section and no intervening heading changes scope. A heading supplies context; it does not establish a role claim by itself.
+
+Use `table_relation` when a table value cannot be interpreted defensibly without its governing labels. Quote each required `column_header`, `row_header`, `cell`, `legend`, and `footnote` as a separate fragment. Omit the card when extraction damage or missing structure leaves the relation ambiguous. Do not replace source labels with model-authored key/value facts.
+
+Map every material assertion in the interpretation to explicit supporting source text in `support_map`. Once sufficient evidence is assembled, do not shorten it merely for concision.
+
+### Card construction rules
+
+# Card content rules
+
+- One card represents one independently useful, directly supported clinical assertion.
+- `genes` contains only genes participating in that assertion.
+- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
+- Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
+
+### Source disease alias policy
+
+A source-stated disease may ground a canonical card disease only when it is already
+canonical or exactly matches a reviewed alias in the canonical source-alias file,
+ignoring surrounding whitespace and letter case only.
+
+Emit only the canonical target in `diseases`, but preserve the source's actual disease
+or population wording in evidence and interpretation. Canonical disease granularity
+is intentionally broader than molecular subtype granularity; for example, reviewed
+molecular B-ALL subtype names resolve to `B-ALL` rather than becoming separate card
+diseases. Do not use fuzzy matching, stemming, punctuation substitution, semantic
+inference, or nearest-term mapping. A source term that is neither canonical nor a
+configured alias remains outside the controlled vocabulary.
+
+Keep vocabulary relationships distinct:
+- `diseases` = exact clinical applicability written on cards;
+- `parents` = taxonomic ancestry used to derive `disease_ancestors` for indexing;
+- `case_major_categories` = broad pre-adjudication case-retrieval buckets derived at
+  runtime from canonical card diseases; never write them into cards;
+- `retrieval_related` = directional, category-specific curated cross-disease
+  applicability used by retrieval; never substitute it for exact card `diseases`.
+
+Canonical source aliases:
+
+```json
+{
+  "clonal haematopoiesis": "CHIP",
+  "clonal haemopoiesis": "CHIP",
+  "clonal hematopoiesis": "CHIP",
+  "clonal hematopoiesis of indeterminate potential": "CHIP",
+  "clonal haematopoiesis of indeterminate potential": "CHIP",
+  "clonal haemopoiesis of indeterminate potential": "CHIP",
+  "clonal cytopenia of undetermined significance": "CCUS",
+  "clonal cytopaenia of undetermined significance": "CCUS",
+  "myelodysplastic syndrome": "MDS",
+  "myelodysplastic syndromes": "MDS",
+  "myelodysplastic neoplasm": "MDS",
+  "myelodysplastic neoplasms": "MDS",
+  "myelodysplastic syndrome/acute myeloid leukemia": "MDS/AML",
+  "myelodysplastic syndrome/acute myeloid leukaemia": "MDS/AML",
+  "myelodysplastic neoplasm/acute myeloid leukemia": "MDS/AML",
+  "myelodysplastic neoplasm/acute myeloid leukaemia": "MDS/AML",
+  "acute myeloid leukemia": "AML",
+  "acute myeloid leukaemia": "AML",
+  "acute promyelocytic leukemia": "APL",
+  "acute promyelocytic leukaemia": "APL",
+  "AML-M0": "AML with minimal differentiation",
+  "minimally differentiated AML": "AML with minimal differentiation",
+  "acute myeloid leukemia with minimal differentiation": "AML with minimal differentiation",
+  "acute myeloid leukaemia with minimal differentiation": "AML with minimal differentiation",
+  "AML-M1": "AML without maturation",
+  "acute myeloid leukemia without maturation": "AML without maturation",
+  "acute myeloid leukaemia without maturation": "AML without maturation",
+  "AML-M2": "AML with maturation",
+  "acute myeloid leukemia with maturation": "AML with maturation",
+  "acute myeloid leukaemia with maturation": "AML with maturation",
+  "AML-M4": "AMML",
+  "acute myelomonocytic leukemia": "AMML",
+  "acute myelomonocytic leukaemia": "AMML",
+  "acute myelomonocytic leukemia, FAB M4": "AMML",
+  "acute myelomonocytic leukaemia, FAB M4": "AMML",
+  "AML-M4Eo": "AMML with eosinophilia",
+  "acute myelomonocytic leukemia with eosinophilia": "AMML with eosinophilia",
+  "acute myelomonocytic leukaemia with eosinophilia": "AMML with eosinophilia",
+  "myelomonocytic leukemia with eosinophilia": "AMML with eosinophilia",
+  "myelomonocytic leukaemia with eosinophilia": "AMML with eosinophilia",
+  "AML-M5": "AMoL",
+  "acute monocytic leukemia": "AMoL",
+  "acute monocytic leukaemia": "AMoL",
+  "acute monoblastic leukemia": "AMoL",
+  "acute monoblastic leukaemia": "AMoL",
+  "AML-M6": "acute erythroid leukaemia",
+  "acute erythroid leukemia": "acute erythroid leukaemia",
+  "erythroleukemia": "acute erythroid leukaemia",
+  "erythroleukaemia": "acute erythroid leukaemia",
+  "Di Guglielmo disease": "acute erythroid leukaemia",
+  "Di Guglielmo syndrome": "acute erythroid leukaemia",
+  "AML-M7": "AMKL",
+  "acute megakaryoblastic leukemia": "AMKL",
+  "acute megakaryoblastic leukaemia": "AMKL",
+  "megakaryoblastic leukemia": "AMKL",
+  "megakaryoblastic leukaemia": "AMKL",
+  "pure erythroid leukemia": "pure erythroid leukaemia",
+  "acute pure erythroid leukaemia": "pure erythroid leukaemia",
+  "acute pure erythroid leukemia": "pure erythroid leukaemia",
+  "granulocytic sarcoma": "myeloid sarcoma",
+  "chloroma": "myeloid sarcoma",
+  "extramedullary AML": "myeloid sarcoma",
+  "extramedullary acute myeloid leukemia": "myeloid sarcoma",
+  "extramedullary acute myeloid leukaemia": "myeloid sarcoma",
+  "acute basophilic leukemia": "acute basophilic leukaemia",
+  "ABL": "acute basophilic leukaemia",
+  "acute basophilic/basophiloblastic leukaemia": "acute basophilic leukaemia",
+  "acute basophilic/basophiloblastic leukemia": "acute basophilic leukaemia",
+  "myelodysplastic/myeloproliferative neoplasm": "MDS/MPN",
+  "myelodysplastic/myeloproliferative neoplasms": "MDS/MPN",
+  "myelodysplastic syndrome/myeloproliferative neoplasm": "MDS/MPN",
+  "myelodysplastic/myeloproliferative neoplasm, unclassifiable": "MDS/MPN-U",
+  "myelodysplastic/myeloproliferative neoplasm unclassifiable": "MDS/MPN-U",
+  "myelodysplastic/myeloproliferative neoplasm, unspecified": "MDS/MPN-U",
+  "MDS/MPN NOS": "MDS/MPN-U",
+  "MDS/MPN, not otherwise specified": "MDS/MPN-U",
+  "chronic myelomonocytic leukemia": "CMML",
+  "chronic myelomonocytic leukaemia": "CMML",
+  "atypical chronic myeloid leukemia": "aCML",
+  "atypical chronic myeloid leukaemia": "aCML",
+  "atypical chronic myelogenous leukemia": "aCML",
+  "atypical chronic myelogenous leukaemia": "aCML",
+  "MDS/MPN with neutrophilia": "aCML",
+  "myelodysplastic/myeloproliferative neoplasm with neutrophilia": "aCML",
+  "MDS/MPN with SF3B1 mutation and thrombocytosis": "MDS/MPN-SF3B1-T",
+  "myelodysplastic/myeloproliferative neoplasm with SF3B1 mutation and thrombocytosis": "MDS/MPN-SF3B1-T",
+  "MDS/MPN with ring sideroblasts and thrombocytosis": "MDS/MPN-SF3B1-T",
+  "myelodysplastic/myeloproliferative neoplasm with ring sideroblasts and thrombocytosis": "MDS/MPN-SF3B1-T",
+  "juvenile myelomonocytic leukemia": "JMML",
+  "juvenile myelomonocytic leukaemia": "JMML",
+  "myeloproliferative neoplasm": "MPN",
+  "myeloproliferative neoplasms": "MPN",
+  "myeloproliferative neoplasm, unclassifiable": "MPN-U",
+  "myeloproliferative neoplasm unclassifiable": "MPN-U",
+  "myeloproliferative neoplasm, unspecified": "MPN-U",
+  "MPN NOS": "MPN-U",
+  "MPN, not otherwise specified": "MPN-U",
+  "polycythemia vera": "PV",
+  "polycythaemia vera": "PV",
+  "polycythemia rubra vera": "PV",
+  "polycythaemia rubra vera": "PV",
+  "essential thrombocythemia": "ET",
+  "essential thrombocythaemia": "ET",
+  "primary myelofibrosis": "PMF",
+  "post-polycythemia vera myelofibrosis": "post-PV/post-ET MF",
+  "post-polycythaemia vera myelofibrosis": "post-PV/post-ET MF",
+  "post-essential thrombocythemia myelofibrosis": "post-PV/post-ET MF",
+  "post-essential thrombocythaemia myelofibrosis": "post-PV/post-ET MF",
+  "post-PV myelofibrosis": "post-PV/post-ET MF",
+  "post-ET myelofibrosis": "post-PV/post-ET MF",
+  "myeloproliferative neoplasm blast phase": "MPN blast phase",
+  "blast-phase myeloproliferative neoplasm": "MPN blast phase",
+  "blast phase myeloproliferative neoplasm": "MPN blast phase",
+  "chronic myeloid leukemia": "CML",
+  "chronic myeloid leukaemia": "CML",
+  "chronic myelogenous leukemia": "CML",
+  "chronic myelogenous leukaemia": "CML",
+  "chronic neutrophilic leukemia": "CNL",
+  "chronic neutrophilic leukaemia": "CNL",
+  "chronic eosinophilic leukemia": "CEL",
+  "chronic eosinophilic leukaemia": "CEL",
+  "systemic mastocytosis": "mastocytosis",
+  "mast cell neoplasm": "mastocytosis",
+  "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase fusion": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+  "myeloid/lymphoid neoplasms with eosinophilia and tyrosine kinase gene fusions": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+  "myeloid/lymphoid neoplasm with eosinophilia and tyrosine kinase gene fusion": "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+  "blastic plasmacytoid dendritic cell neoplasm": "BPDCN",
+  "myeloid neoplasm with germline predisposition": "germline predisposition syndrome",
+  "myeloid neoplasm with germ line predisposition": "germline predisposition syndrome",
+  "acute leukemia of ambiguous lineage": "acute leukaemia of ambiguous lineage",
+  "histiocytic and dendritic cell neoplasm": "histiocytic/dendritic neoplasm",
+  "histiocytic and dendritic neoplasm": "histiocytic/dendritic neoplasm",
+  "hematological malignancy, other": "haematological malignancy, other",
+  "acute lymphoblastic leukemia": "acute lymphoblastic leukaemia/lymphoma",
+  "acute lymphoblastic leukaemia": "acute lymphoblastic leukaemia/lymphoma",
+  "acute lymphoblastic leukemia/lymphoma": "acute lymphoblastic leukaemia/lymphoma",
+  "ALL": "acute lymphoblastic leukaemia/lymphoma",
+  "B-lymphoblastic leukaemia/lymphoma": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma": "B-ALL",
+  "B-cell acute lymphoblastic leukaemia": "B-ALL",
+  "B-cell acute lymphoblastic leukemia": "B-ALL",
+  "B lymphoblastic leukaemia/lymphoma": "B-ALL",
+  "B lymphoblastic leukemia/lymphoma": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma, NOS": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma, NOS": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with hyperdiploidy": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with hyperdiploidy": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with high hyperdiploidy": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with high hyperdiploidy": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with hypodiploidy": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with hypodiploidy": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with iAMP21": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with iAMP21": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with BCR::ABL1 fusion": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with BCR::ABL1 fusion": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with t(9;22)(q34;q11.2); BCR-ABL1": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with t(9;22)(q34;q11.2); BCR-ABL1": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma, BCR-ABL1-like": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma, BCR-ABL1-like": "B-ALL",
+  "Philadelphia chromosome-like acute lymphoblastic leukaemia": "B-ALL",
+  "Philadelphia chromosome-like acute lymphoblastic leukemia": "B-ALL",
+  "Ph-like acute lymphoblastic leukaemia": "B-ALL",
+  "Ph-like acute lymphoblastic leukemia": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with KMT2A rearrangement": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with KMT2A rearrangement": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with t(v;11q23.3); KMT2A-rearranged": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with t(v;11q23.3); KMT2A-rearranged": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1 fusion": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with ETV6::RUNX1 fusion": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with t(12;21)(p13.2;q22.1); ETV6-RUNX1": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with t(12;21)(p13.2;q22.1); ETV6-RUNX1": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1-like features": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with ETV6::RUNX1-like features": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with TCF3::PBX1 fusion": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with TCF3::PBX1 fusion": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with t(1;19)(q23;p13.3); TCF3-PBX1": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with t(1;19)(q23;p13.3); TCF3-PBX1": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with IGH::IL3 fusion": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with IGH::IL3 fusion": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with t(5;14)(q31.1;q32.1); IGH/IL3": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with t(5;14)(q31.1;q32.1); IGH/IL3": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with TCF3::HLF fusion": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with TCF3::HLF fusion": "B-ALL",
+  "B-lymphoblastic leukaemia/lymphoma with other defined genetic abnormalities": "B-ALL",
+  "B-lymphoblastic leukemia/lymphoma with other defined genetic abnormalities": "B-ALL",
+  "monoclonal B-cell lymphocytosis": "MBL",
+  "chronic lymphocytic leukaemia/small lymphocytic lymphoma": "CLL/SLL",
+  "chronic lymphocytic leukemia/small lymphocytic lymphoma": "CLL/SLL",
+  "chronic lymphocytic leukaemia": "CLL/SLL",
+  "chronic lymphocytic leukemia": "CLL/SLL",
+  "small lymphocytic lymphoma": "CLL/SLL",
+  "hairy cell leukaemia": "HCL",
+  "hairy cell leukemia": "HCL",
+  "splenic marginal zone lymphoma": "SMZL",
+  "splenic diffuse red pulp small B-cell lymphoma": "SDRPL",
+  "splenic B-cell lymphoma/leukaemia with prominent nucleoli": "SBLPN",
+  "splenic B-cell lymphoma/leukemia with prominent nucleoli": "SBLPN",
+  "lymphoplasmacytic lymphoma": "LPL",
+  "IgM lymphoplasmacytic lymphoma": "IgM LPL/WM",
+  "IgM lymphoplasmacytic lymphoma/Waldenström macroglobulinaemia": "IgM LPL/WM",
+  "IgM lymphoplasmacytic lymphoma/Waldenstrom macroglobulinemia": "IgM LPL/WM",
+  "Waldenström macroglobulinaemia": "IgM LPL/WM",
+  "Waldenström macroglobulinemia": "IgM LPL/WM",
+  "Waldenstrom macroglobulinemia": "IgM LPL/WM",
+  "WM": "IgM LPL/WM",
+  "non-IgM lymphoplasmacytic lymphoma": "non-IgM LPL",
+  "extranodal marginal zone lymphoma of mucosa-associated lymphoid tissue": "extranodal MZL of MALT",
+  "extranodal marginal zone lymphoma of mucosa associated lymphoid tissue": "extranodal MZL of MALT",
+  "MALT lymphoma": "extranodal MZL of MALT",
+  "primary cutaneous marginal zone lymphoma": "primary cutaneous MZL",
+  "nodal marginal zone lymphoma": "NMZL",
+  "paediatric marginal zone lymphoma": "paediatric MZL",
+  "pediatric marginal zone lymphoma": "paediatric MZL",
+  "in situ follicular neoplasia": "in situ follicular B-cell neoplasm",
+  "FL": "follicular lymphoma",
+  "paediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
+  "pediatric-type follicular lymphoma": "paediatric-type follicular lymphoma",
+  "pediatric type follicular lymphoma": "paediatric-type follicular lymphoma",
+  "duodenal type follicular lymphoma": "duodenal-type follicular lymphoma",
+  "primary cutaneous follicle center lymphoma": "primary cutaneous follicle centre lymphoma",
+  "in situ mantle cell neoplasia": "in situ mantle cell neoplasm",
+  "MCL": "mantle cell lymphoma",
+  "leukemic non-nodal mantle cell lymphoma": "leukaemic non-nodal mantle cell lymphoma",
+  "DLBCL": "DLBCL, NOS",
+  "diffuse large B-cell lymphoma, not otherwise specified": "DLBCL, NOS",
+  "diffuse large B-cell lymphoma, NOS": "DLBCL, NOS",
+  "T-cell/histiocyte-rich large B-cell lymphoma": "THRLBCL",
+  "diffuse large B-cell lymphoma/high-grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
+  "diffuse large B-cell lymphoma/high grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
+  "DLBCL/HGBL with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
+  "large B-cell lymphoma/high-grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
+  "large B-cell lymphoma/high grade B-cell lymphoma with MYC and BCL2 rearrangements": "DLBCL/HGBL-MYC/BCL2",
+  "high-grade B-cell lymphoma with 11q aberrations": "HGBL-11q",
+  "high-grade B-cell lymphoma with 11q aberration": "HGBL-11q",
+  "Burkitt-like lymphoma with 11q aberration": "HGBL-11q",
+  "EBV-positive diffuse large B-cell lymphoma": "EBV-positive DLBCL",
+  "EBV-positive diffuse large B-cell lymphoma, NOS": "EBV-positive DLBCL",
+  "diffuse large B-cell lymphoma associated with chronic inflammation": "DLBCL associated with chronic inflammation",
+  "primary cutaneous diffuse large B-cell lymphoma, leg type": "primary cutaneous DLBCL, leg type",
+  "PMBCL": "primary mediastinal large B-cell lymphoma",
+  "primary mediastinal B-cell lymphoma": "primary mediastinal large B-cell lymphoma",
+  "high-grade B-cell lymphoma, NOS": "HGBL, NOS",
+  "high grade B-cell lymphoma, NOS": "HGBL, NOS",
+  "HGBL NOS": "HGBL, NOS",
+  "BL": "Burkitt lymphoma",
+  "PEL": "primary effusion lymphoma",
+  "HHV8-positive diffuse large B-cell lymphoma, NOS": "KSHV/HHV8-positive DLBCL",
+  "KSHV-positive diffuse large B-cell lymphoma": "KSHV/HHV8-positive DLBCL",
+  "HHV8-positive germinotropic lymphoproliferative disorder": "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
+  "KSHV-positive germinotropic lymphoproliferative disorder": "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
+  "CHL": "classic Hodgkin lymphoma",
+  "classical Hodgkin lymphoma": "classic Hodgkin lymphoma",
+  "NLPHL": "nodular lymphocyte predominant Hodgkin lymphoma",
+  "nodular lymphocyte-predominant Hodgkin lymphoma": "nodular lymphocyte predominant Hodgkin lymphoma",
+  "nodular lymphocyte predominant B-cell lymphoma": "nodular lymphocyte predominant Hodgkin lymphoma",
+  "monoclonal gammopathy of undetermined significance": "MGUS",
+  "IgM monoclonal gammopathy of undetermined significance": "IgM MGUS",
+  "non-IgM monoclonal gammopathy of undetermined significance": "non-IgM MGUS",
+  "monoclonal gammopathy of renal significance": "MGRS",
+  "immunoglobulin-related (AL) amyloidosis": "AL amyloidosis",
+  "immunoglobulin-related AL amyloidosis": "AL amyloidosis",
+  "primary amyloidosis": "AL amyloidosis",
+  "mu heavy-chain disease": "mu heavy chain disease",
+  "gamma heavy-chain disease": "gamma heavy chain disease",
+  "alpha heavy-chain disease": "alpha heavy chain disease",
+  "multiple myeloma": "plasma cell myeloma",
+  "MM": "plasma cell myeloma",
+  "T-lymphoblastic leukaemia/lymphoma": "T-ALL",
+  "T-lymphoblastic leukemia/lymphoma": "T-ALL",
+  "T-cell acute lymphoblastic leukaemia": "T-ALL",
+  "T-cell acute lymphoblastic leukemia": "T-ALL",
+  "T-lymphoblastic leukaemia/lymphoma, NOS": "T-ALL, NOS",
+  "T-lymphoblastic leukemia/lymphoma, NOS": "T-ALL, NOS",
+  "early T-precursor lymphoblastic leukaemia/lymphoma": "ETP-ALL",
+  "early T-precursor lymphoblastic leukemia/lymphoma": "ETP-ALL",
+  "early T-cell precursor lymphoblastic leukaemia": "ETP-ALL",
+  "early T-cell precursor lymphoblastic leukemia": "ETP-ALL",
+  "T-prolymphocytic leukaemia": "T-PLL",
+  "T-prolymphocytic leukemia": "T-PLL",
+  "T-cell large granular lymphocytic leukaemia": "T-LGLL",
+  "T-cell large granular lymphocytic leukemia": "T-LGLL",
+  "T-LGL leukaemia": "T-LGLL",
+  "T-LGL leukemia": "T-LGLL",
+  "NK-large granular lymphocytic leukaemia": "NK-LGLL",
+  "NK-large granular lymphocytic leukemia": "NK-LGLL",
+  "chronic lymphoproliferative disorder of NK cells": "NK-LGLL",
+  "adult T-cell leukaemia/lymphoma": "ATLL",
+  "adult T-cell leukemia/lymphoma": "ATLL",
+  "Sézary syndrome": "Sezary syndrome",
+  "aggressive NK-cell leukemia": "aggressive NK-cell leukaemia",
+  "cutaneous T-cell lymphoma": "primary cutaneous T-cell lymphoma",
+  "CTCL": "primary cutaneous T-cell lymphoma",
+  "primary cutaneous CD4-positive small or medium T-cell lymphoproliferative disorder": "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
+  "primary cutaneous acral CD8-positive T-cell lymphoma": "primary cutaneous acral CD8-positive lymphoproliferative disorder",
+  "primary cutaneous CD30-positive T-cell lymphoproliferative disorder: lymphomatoid papulosis": "lymphomatoid papulosis",
+  "primary cutaneous CD30-positive T-cell lymphoproliferative disorder: primary cutaneous anaplastic large cell lymphoma": "primary cutaneous anaplastic large cell lymphoma",
+  "primary cutaneous gamma-delta T-cell lymphoma": "primary cutaneous gamma/delta T-cell lymphoma",
+  "indolent T-cell lymphoproliferative disorder of the gastrointestinal tract": "indolent T-cell lymphoma of the gastrointestinal tract",
+  "indolent T-cell lymphoproliferative disorder of the GI tract": "indolent T-cell lymphoma of the gastrointestinal tract",
+  "indolent T-cell lymphoma of the GI tract": "indolent T-cell lymphoma of the gastrointestinal tract",
+  "indolent NK-cell lymphoproliferative disorder of the GI tract": "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+  "NK-cell enteropathy": "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+  "lymphomatoid gastropathy": "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+  "EATL": "enteropathy-associated T-cell lymphoma",
+  "MEITL": "monomorphic epitheliotropic intestinal T-cell lymphoma",
+  "HSTCL": "hepatosplenic T-cell lymphoma",
+  "ALCL": "anaplastic large cell lymphoma",
+  "anaplastic large cell lymphoma, ALK-positive": "ALK-positive anaplastic large cell lymphoma",
+  "ALK+ ALCL": "ALK-positive anaplastic large cell lymphoma",
+  "anaplastic large cell lymphoma, ALK-negative": "ALK-negative anaplastic large cell lymphoma",
+  "ALK- ALCL": "ALK-negative anaplastic large cell lymphoma",
+  "BIA-ALCL": "breast implant-associated anaplastic large cell lymphoma",
+  "nodal T-follicular helper cell lymphoma": "nodal TFH cell lymphoma",
+  "nodal TFH-cell lymphoma": "nodal TFH cell lymphoma",
+  "nTFHL": "nodal TFH cell lymphoma",
+  "angioimmunoblastic T-cell lymphoma": "nodal TFH cell lymphoma, angioimmunoblastic-type",
+  "AITL": "nodal TFH cell lymphoma, angioimmunoblastic-type",
+  "nTFHL-AI": "nodal TFH cell lymphoma, angioimmunoblastic-type",
+  "follicular T-cell lymphoma": "nodal TFH cell lymphoma, follicular-type",
+  "nTFHL-F": "nodal TFH cell lymphoma, follicular-type",
+  "nodal peripheral T-cell lymphoma with TFH phenotype": "nodal TFH cell lymphoma, NOS",
+  "nTFHL-NOS": "nodal TFH cell lymphoma, NOS",
+  "peripheral T-cell lymphoma, not otherwise specified": "peripheral T-cell lymphoma, NOS",
+  "PTCL-NOS": "peripheral T-cell lymphoma, NOS",
+  "nodal EBV-positive T- and NK-cell lymphoma": "EBV-positive nodal T/NK-cell lymphoma",
+  "EBV-positive nodal T- and NK-cell lymphoma": "EBV-positive nodal T/NK-cell lymphoma",
+  "extranodal NK/T-cell lymphoma, nasal-type": "extranodal NK/T-cell lymphoma",
+  "ENKTL": "extranodal NK/T-cell lymphoma"
+}
+```
+
+For normal extraction, copy `publication_type` and `publication_type_basis` from the census. For Phase 2R, copy them from the effective baseline. Phase 2/2R does not independently reclassify publication type.
+
+Use `metadata.publication_key` as the human-readable card namespace. Assign new IDs as `<publication_key>-C0001`, `<publication_key>-C0002`, and so on, without reusing an existing/deleted ID in the active history. Never construct card IDs from `paper_id`.
+
+Use `diseases` only for exact clinical applicability. Mechanically populate `disease_ancestors` with every direct/transitive vocabulary parent, in canonical order, excluding exact diseases. `diseases_covered` is the exact unique union of card `diseases`; `genes_covered` is the exact unique union of card genes.
+
+## Step 4 — independent semantic output audit
+
+After Step 3 produces a complete candidate provisional, stop authoring and perform a separate independent semantic audit of the **complete candidate package**. Do not audit and repair simultaneously: first identify all material defects as one internal critique.
+
+For every card in the candidate provisional ask:
+1. does its paired evidence support every material assertion?;
+2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`?; and
+3. is it independently useful rather than redundant?
+
+For every `claim` fragment, inspect the sentence immediately before and after it in the source passage. If either materially changes scope, certainty, direction, eligibility, exception, analysis, or clinical meaning, the candidate fails this audit.
+
+For every `composite_text` bundle verify that every `claim` fragment contributes to the same source assertion, no intervening text changes the relevant scope/conclusion, and `support_map` identifies each material contribution. Once evidence is sufficient, do not shorten it merely for concision.
+
+Also audit the package as a whole for unsupported scope expansion, missed required qualifiers, inappropriate category assignment, inappropriate geneless claims, and material redundancy.
+
+If **any** semantic defect is found, feed the complete internal critique back to Step 3, revise the candidate package, and then restart Step 4 on the complete revised package. Do not proceed to Step 5 with a known semantic defect.
+
+## Step 5 — model formatting gate
+
+Only after Step 4 passes, perform a separate **formatting/structure-only** audit. Do not reconsider clinical semantics here. Verify privately that:
+1. the output is exactly one provisional file (or the already-selected census-critique branch);
+2. the filename preserves the required `vNNN` / `revRRR-vNNN` namespace;
+3. the provisional uses the required schema version/round and `audit` is `null`;
+4. every card has exactly one paired evidence bundle and paired IDs match;
+5. card IDs use the publication-key namespace;
+6. `genes_covered`, `diseases_covered`, and `disease_ancestors` are structurally consistent with the package; and
+7. required top-level/card/evidence fields are present with the correct JSON types.
+
+If this formatting gate fails, create one internal formatting critique and return to Step 3. After repairing the candidate, repeat Steps 4 and 5; do not skip the semantic output audit.
+
+## Step 6 — deterministic output gate
+
+After Steps 4 and 5 pass, write the candidate provisional and run:
+
 ```bash
 python validation_bundle/scripts/phase_validation/phase2.py \
   --metadata metadata.json \
@@ -4456,6 +4585,45 @@ python validation_bundle/scripts/phase_validation/phase2.py \
   --source paper.md \
   --provisional <active-provisional-file>
 ```
+
+A non-zero exit is an output formatting/structure failure. Feed the validator's complete errors back to Step 3, repair the candidate, then repeat Steps 4, 5, and 6.
+
+The **final action** before returning a normal Phase 2 provisional must be a successful deterministic validation of that exact file. Do not edit it after the successful run.
+
+## Phase 2R — mandatory interactive delta review
+
+Phase 2R uses a separate workflow and **does not run a deterministic input gate**. Its baseline is already the accepted `paper.final.json` from Phase 4/confirmation or the deterministically validated current Phase 4 state. Do not reopen or normalize that baseline.
+
+Phase 2R is **not** a fresh extraction and must never re-author the complete package merely because the current prompt differs from the prompt that originally authored it.
+
+The supplied baseline is immutable except for explicitly user-approved card decisions:
+- accepted-card review baseline: `paper.final.json`;
+- Phase 4 handoff baseline: the active provisional after applying the already user-approved card/publication decisions recorded in the Phase 4 handoff ledger.
+
+### Phase 2R Step 1 — interactive discussion
+
+Discuss the requested or proposed card changes with the user. You may propose `add`, `modify`, or `delete`, but a proposal, Phase 3 suggestion, Phase 4 suggestion, or your own preference is **not** user authorization. Do not create files until the user sends `FINALIZE` on its own line after explicitly approving the desired changes.
+
+Phase 2R does not reopen the accepted census merely because a current prompt would have authored it differently. It may identify a source conflict relevant to the specific proposed delta, but must not opportunistically migrate unrelated cards.
+
+### Phase 2R Step 2 — apply only agreed changes
+
+When `FINALIZE` is received:
+- include only explicitly approved `add`, `modify`, or `delete` operations in the Phase 2R decision ledger;
+- record each approved operation's concise `user_instruction`;
+- for every `add` or `modify`, place the complete revised card and complete paired evidence directly in that decision entry;
+- represent a split as delete + add operation(s), and a merge as delete operation(s) plus one add/modify;
+- preserve every unapproved card and paired evidence exactly;
+- preserve an existing card ID for a modification of the same clinical assertion; use a new unused ID for a genuinely new card;
+- do not alter publication type or paper nickname in Phase 2R.
+
+The ledger must use `stage: "phase2r"`, `purpose: "revise"`, the actual baseline filename/round, the provisional output filename, and `user_finalized: true`. For a Phase 4 handoff, also record the exact `phase4_decisions_filename` used to reconstruct the current Phase 4 state.
+
+Phase 2R outputs a complete provisional package because downstream phases consume packages, but that package is constrained to **baseline + approved ledger deltas only**. Omit `paper_nickname`, set `audit` to `null`, and set `publication_type_verified_by_phase3` to `false`. Copy publication type/basis from the effective baseline.
+
+Before deterministic validation, construct the candidate ledger/provisional so that every difference is represented by one approved ledger operation and every unapproved baseline card/evidence object is unchanged. Do not introduce any unapproved semantic or formatting normalization.
+
+### Phase 2R Step 3 — deterministic output gate
 
 Accepted-card Phase 2R:
 ```bash
@@ -4481,17 +4649,6 @@ python validation_bundle/scripts/phase_validation/phase2.py \
   --provisional <new-active-provisional>
 ```
 
-A non-zero exit means the product is invalid. In Phase 2R this specifically includes any card/evidence difference not exactly authorized by the user decision ledger. Repair and rerun until successful. Do not edit an output after the successful run.
+A non-zero exit means the Phase 2R product is invalid, including any card/evidence difference not exactly authorized by the user decision ledger. Repair only within the user's already-approved decisions and rerun. If passing validation would require a new or changed substantive decision, resume interactive discussion and obtain explicit approval first.
 
-## Mandatory pre-output gate
-
-Before writing, verify privately that:
-1. exactly one branch applies and filenames preserve the current `vNNN` / `revRRR-vNNN` convention;
-2. normal Phase 2 outputs only the provisional (or census critique);
-3. Phase 2R outputs exactly the decision ledger plus its matching provisional, and only after user `FINALIZE`;
-4. every Phase 2R card/evidence difference is represented by one explicit approved ledger operation and every unapproved baseline card/evidence object is unchanged;
-5. every provisional card has exactly one paired evidence bundle and `audit` is `null`;
-6. card IDs use the publication key namespace and paired card/evidence IDs match; and
-7. derived genes/diseases/ancestors are exact.
-
-Return only the file(s) required by the active branch.
+The **final action** before returning Phase 2R outputs must be a successful deterministic validation of the exact ledger and provisional. Do not edit either file after the successful run. Return exactly the Phase 2R decision ledger plus its matching provisional.

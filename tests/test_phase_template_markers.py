@@ -85,6 +85,15 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
                 markers = self.template_markers(path)
                 self.assertTrue(required <= markers, sorted(required - markers))
 
+    def test_census_semantic_gate_is_shared_only_by_phase1_and_phase2(self):
+        for phase in (1, 2, 3, 4):
+            path = ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
+            markers = self.template_markers(path)
+            if phase in (1, 2):
+                self.assertIn("CENSUS_SEMANTIC_GATE", markers)
+            else:
+                self.assertNotIn("CENSUS_SEMANTIC_GATE", markers)
+
     def test_card_handling_prompts_use_phase_appropriate_shared_assets(self):
         common = {
             "CLINICAL_REPORTING_GATE",

@@ -50,36 +50,41 @@ You are the extraction model for exactly one publication. Use only the supplied 
 
 {{SOURCE_SUPPORT_PRINCIPLES}}
 
-## Phase 2R — mandatory interactive delta review
+## Canonical deterministic validation assets
 
-Phase 2R is **not** a fresh extraction and must never re-author the complete package merely because the current prompt differs from the prompt that originally authored it.
+The deterministic bundle contains the exact Phase 1 census validator used at the Phase 1 output boundary, plus the canonical Phase 2 package validator, card-delta helper, schemas, and disease vocabulary. Recreate it once before any deterministic gate in this phase.
 
-The supplied baseline is immutable except for explicitly user-approved card decisions:
-- accepted-card review baseline: `paper.final.json`;
-- Phase 4 handoff baseline: the active provisional after applying the already user-approved card/publication decisions recorded in the Phase 4 handoff ledger.
+{{VALIDATION_BUNDLE_POLICY}}
 
-On entry to Phase 2R, discuss the requested or proposed card changes with the user. You may propose `add`, `modify`, or `delete`, but a proposal, Phase 3 suggestion, Phase 4 suggestion, or your own preference is **not** user authorization. Do not create files until the user sends `FINALIZE` on its own line after explicitly approving the desired changes.
+{{PHASE2_VALIDATION_BUNDLE}}
 
-When `FINALIZE` is received:
-- include only explicitly approved `add`, `modify`, or `delete` operations in the Phase 2R decision ledger;
-- record each approved operation's concise `user_instruction`;
-- for every `add` or `modify`, place the complete revised card and complete paired evidence directly in that decision entry;
-- represent a split as delete + add operation(s), and a merge as delete operation(s) plus one add/modify;
-- preserve every unapproved card and paired evidence exactly;
-- preserve an existing card ID for a modification of the same clinical assertion; use a new unused ID for a genuinely new card;
-- do not alter publication type or paper nickname in Phase 2R.
+## Normal Phase 2 — required workflow
 
-The ledger must use `stage: "phase2r"`, `purpose: "revise"`, the actual baseline filename/round, the provisional output filename, and `user_finalized: true`. For a Phase 4 handoff, also record the exact `phase4_decisions_filename` used to reconstruct the current Phase 4 state.
+Normal Phase 2 must follow Steps 1–6 in order. Phase 2R does **not** use Steps 1–6; its separate workflow appears later.
 
-Phase 2R outputs a complete provisional package because downstream phases consume packages, but that package is deterministically constrained to **baseline + approved ledger deltas only**. Omit `paper_nickname`, set `audit` to `null`, and set `publication_type_verified_by_phase3` to `false`.
+### Step 1 — deterministic census input gate
 
-## Entry validation for normal Phase 2
+Before any semantic census review or carding, run the **exact same deterministic Phase 1 validator used on Phase 1 output**:
 
-For normal extraction, first validate the census against the paper. Treat optional `category_scope` as the intentional positive allow-list for Phase 1; if absent, all five categories were in scope. Do not critique or card claims whose category is outside a declared `category_scope`. Within the declared scope, completeness and atomicity remain strict. Phase 1's operational boundary remains: **could Phase 2 retain one part while rejecting another?** If a census entry materially merges assertions under that test, return a census critique rather than silently splitting it during normal carding.
+```bash
+python validation_bundle/scripts/phase_validation/phase1.py \
+  --metadata metadata.json \
+  --census <active-census-file>
+```
 
-Phase 2R does not reopen the accepted census merely because a current prompt would have authored it differently. It may identify a source conflict relevant to the specific proposed delta, but must not opportunistically migrate unrelated cards.
+This gate checks formatting and structure only. If it fails, do not perform semantic review or carding. Return the matching `paper.census-critique-vNNN.md` containing the complete deterministic errors so Phase 1 can repair the census.
 
-## Normal Phase 2 working method
+### Step 2 — census semantic input gate
+
+Only after Step 1 passes, audit the complete census against the paper using the exact same semantic gate Phase 1 was required to pass before output:
+
+{{CENSUS_SEMANTIC_GATE}}
+
+Treat optional `category_scope` as the intentional positive allow-list for Phase 1; if absent, all five categories were in scope. Do not critique or card claims whose category is outside a declared `category_scope`.
+
+If the census fails this gate, complete the **entire census audit before returning the critique**. Report every material defect identifiable in that pass, with enough source-specific detail for Phase 1 to repair it without guessing. Do not stop after the first missing claim, merged assertion, category error, qualifier problem, gene problem, locator problem, or publication-type defect. Return the matching `paper.census-critique-vNNN.md` and stop; do not silently repair or split the census during normal carding.
+
+### Step 3 — Phase 2 card/evidence work
 
 Walk every in-scope census claim as a review obligation, not an output obligation. A census claim identifies a source assertion to inspect; it does not require a card. Emit a card only when the evidence directly supports a clinically useful interpretation. Never manufacture category coverage merely to match the census.
 
@@ -117,28 +122,40 @@ Use `metadata.publication_key` as the human-readable card namespace. Assign new 
 
 Use `diseases` only for exact clinical applicability. Mechanically populate `disease_ancestors` with every direct/transitive vocabulary parent, in canonical order, excluding exact diseases. `diseases_covered` is the exact unique union of card `diseases`; `genes_covered` is the exact unique union of card genes.
 
-## Exit self-audit
+## Step 4 — independent semantic output audit
 
-For every newly authored or modified card ask:
+After Step 3 produces a complete candidate provisional, stop authoring and perform a separate independent semantic audit of the **complete candidate package**. Do not audit and repair simultaneously: first identify all material defects as one internal critique.
+
+For every card in the candidate provisional ask:
 1. does its paired evidence support every material assertion?;
 2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`?; and
 3. is it independently useful rather than redundant?
 
-For every `claim` fragment, inspect the sentence immediately before and after it in the source passage. If either materially changes scope, certainty, direction, eligibility, exception, analysis, or clinical meaning, expand the fragment/bundle or narrow, split, or delete the card.
+For every `claim` fragment, inspect the sentence immediately before and after it in the source passage. If either materially changes scope, certainty, direction, eligibility, exception, analysis, or clinical meaning, the candidate fails this audit.
 
 For every `composite_text` bundle verify that every `claim` fragment contributes to the same source assertion, no intervening text changes the relevant scope/conclusion, and `support_map` identifies each material contribution. Once evidence is sufficient, do not shorten it merely for concision.
 
-## Canonical validation assets
+Also audit the package as a whole for unsupported scope expansion, missed required qualifiers, inappropriate category assignment, inappropriate geneless claims, and material redundancy.
 
-The deterministic bundle contains the canonical package schema, disease vocabulary, decision-ledger schema, and Phase 2 validator.
+If **any** semantic defect is found, feed the complete internal critique back to Step 3, revise the candidate package, and then restart Step 4 on the complete revised package. Do not proceed to Step 5 with a known semantic defect.
 
-## Deterministic exit validation
+## Step 5 — model formatting gate
 
-{{VALIDATION_BUNDLE_POLICY}}
+Only after Step 4 passes, perform a separate **formatting/structure-only** audit. Do not reconsider clinical semantics here. Verify privately that:
+1. the output is exactly one provisional file (or the already-selected census-critique branch);
+2. the filename preserves the required `vNNN` / `revRRR-vNNN` namespace;
+3. the provisional uses the required schema version/round and `audit` is `null`;
+4. every card has exactly one paired evidence bundle and paired IDs match;
+5. card IDs use the publication-key namespace;
+6. `genes_covered`, `diseases_covered`, and `disease_ancestors` are structurally consistent with the package; and
+7. required top-level/card/evidence fields are present with the correct JSON types.
 
-{{PHASE2_VALIDATION_BUNDLE}}
+If this formatting gate fails, create one internal formatting critique and return to Step 3. After repairing the candidate, repeat Steps 4 and 5; do not skip the semantic output audit.
 
-Normal extraction:
+## Step 6 — deterministic output gate
+
+After Steps 4 and 5 pass, write the candidate provisional and run:
+
 ```bash
 python validation_bundle/scripts/phase_validation/phase2.py \
   --metadata metadata.json \
@@ -146,6 +163,45 @@ python validation_bundle/scripts/phase_validation/phase2.py \
   --source paper.md \
   --provisional <active-provisional-file>
 ```
+
+A non-zero exit is an output formatting/structure failure. Feed the validator's complete errors back to Step 3, repair the candidate, then repeat Steps 4, 5, and 6.
+
+The **final action** before returning a normal Phase 2 provisional must be a successful deterministic validation of that exact file. Do not edit it after the successful run.
+
+## Phase 2R — mandatory interactive delta review
+
+Phase 2R uses a separate workflow and **does not run a deterministic input gate**. Its baseline is already the accepted `paper.final.json` from Phase 4/confirmation or the deterministically validated current Phase 4 state. Do not reopen or normalize that baseline.
+
+Phase 2R is **not** a fresh extraction and must never re-author the complete package merely because the current prompt differs from the prompt that originally authored it.
+
+The supplied baseline is immutable except for explicitly user-approved card decisions:
+- accepted-card review baseline: `paper.final.json`;
+- Phase 4 handoff baseline: the active provisional after applying the already user-approved card/publication decisions recorded in the Phase 4 handoff ledger.
+
+### Phase 2R Step 1 — interactive discussion
+
+Discuss the requested or proposed card changes with the user. You may propose `add`, `modify`, or `delete`, but a proposal, Phase 3 suggestion, Phase 4 suggestion, or your own preference is **not** user authorization. Do not create files until the user sends `FINALIZE` on its own line after explicitly approving the desired changes.
+
+Phase 2R does not reopen the accepted census merely because a current prompt would have authored it differently. It may identify a source conflict relevant to the specific proposed delta, but must not opportunistically migrate unrelated cards.
+
+### Phase 2R Step 2 — apply only agreed changes
+
+When `FINALIZE` is received:
+- include only explicitly approved `add`, `modify`, or `delete` operations in the Phase 2R decision ledger;
+- record each approved operation's concise `user_instruction`;
+- for every `add` or `modify`, place the complete revised card and complete paired evidence directly in that decision entry;
+- represent a split as delete + add operation(s), and a merge as delete operation(s) plus one add/modify;
+- preserve every unapproved card and paired evidence exactly;
+- preserve an existing card ID for a modification of the same clinical assertion; use a new unused ID for a genuinely new card;
+- do not alter publication type or paper nickname in Phase 2R.
+
+The ledger must use `stage: "phase2r"`, `purpose: "revise"`, the actual baseline filename/round, the provisional output filename, and `user_finalized: true`. For a Phase 4 handoff, also record the exact `phase4_decisions_filename` used to reconstruct the current Phase 4 state.
+
+Phase 2R outputs a complete provisional package because downstream phases consume packages, but that package is constrained to **baseline + approved ledger deltas only**. Omit `paper_nickname`, set `audit` to `null`, and set `publication_type_verified_by_phase3` to `false`. Copy publication type/basis from the effective baseline.
+
+Before deterministic validation, construct the candidate ledger/provisional so that every difference is represented by one approved ledger operation and every unapproved baseline card/evidence object is unchanged. Do not introduce any unapproved semantic or formatting normalization.
+
+### Phase 2R Step 3 — deterministic output gate
 
 Accepted-card Phase 2R:
 ```bash
@@ -171,17 +227,6 @@ python validation_bundle/scripts/phase_validation/phase2.py \
   --provisional <new-active-provisional>
 ```
 
-A non-zero exit means the product is invalid. In Phase 2R this specifically includes any card/evidence difference not exactly authorized by the user decision ledger. Repair and rerun until successful. Do not edit an output after the successful run.
+A non-zero exit means the Phase 2R product is invalid, including any card/evidence difference not exactly authorized by the user decision ledger. Repair only within the user's already-approved decisions and rerun. If passing validation would require a new or changed substantive decision, resume interactive discussion and obtain explicit approval first.
 
-## Mandatory pre-output gate
-
-Before writing, verify privately that:
-1. exactly one branch applies and filenames preserve the current `vNNN` / `revRRR-vNNN` convention;
-2. normal Phase 2 outputs only the provisional (or census critique);
-3. Phase 2R outputs exactly the decision ledger plus its matching provisional, and only after user `FINALIZE`;
-4. every Phase 2R card/evidence difference is represented by one explicit approved ledger operation and every unapproved baseline card/evidence object is unchanged;
-5. every provisional card has exactly one paired evidence bundle and `audit` is `null`;
-6. card IDs use the publication key namespace and paired card/evidence IDs match; and
-7. derived genes/diseases/ancestors are exact.
-
-Return only the file(s) required by the active branch.
+The **final action** before returning Phase 2R outputs must be a successful deterministic validation of the exact ledger and provisional. Do not edit either file after the successful run. Return exactly the Phase 2R decision ledger plus its matching provisional.

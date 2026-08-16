@@ -22,6 +22,7 @@ PHASE_ASSETS = {
 PHASE_BUNDLE_PATHS = {
     1: ["scripts/phase_validation/phase1.py"],
     2: [
+        "scripts/phase_validation/phase1.py",
         "scripts/phase_validation/phase2.py",
         "scripts/phase_validation/card_deltas.py",
         "schema/ingestion_package_schema.json",

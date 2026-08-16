@@ -71,8 +71,9 @@ class RedoTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             values = self.prepare(Path(tmp), "census", legacy=True)
             destination, marker = values[-2:]
-            self.assertFalse((destination / "paper.census.json").exists())
+            self.assertTrue((destination / "paper.census.json").is_file())
             self.assertEqual(marker["mode"], "census")
+            self.assertEqual(marker["census_filename"], "paper.census.json")
             self.assertEqual(marker["next_outputs"]["census"], "paper.census-v002.json")
             self.assertEqual(marker["next_outputs"]["provisional"], "paper.provisional-v002.json")
 
