@@ -3,6 +3,13 @@
 This file is for repository maintenance. User reporting is documented in `README.md`;
 paper ingestion is documented in `INGEST.md`.
 
+
+## Reporting workflow modularisation (Phase 1)
+
+The two reporting workflows are now isolated under `workflows/legacy/` and `workflows/prototype/`. Root `SKILL.md` and `0.2.2_prototype_skill.md` are compatibility entry points; current routing is unchanged: `SKILL.md` selects legacy and the prototype remains explicit.
+
+Workflow-specific prompts and orchestration code belong under the corresponding workflow directory. `scripts/run_case.py` and `scripts/prototype_workflow.py` remain stable compatibility CLIs and delegate to workflow-owned implementations. Assets still under `prompts/workflow/`, and mixed policy inside retrieval/rendering/packaging, are intentionally left in place until Phase 2 determines which components are genuinely shared.
+
 ## Quick start
 
 From the repository root, create the local environment once:

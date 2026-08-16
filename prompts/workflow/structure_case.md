@@ -4,7 +4,7 @@
 
 Transform `case.md` into the structured case representation required by the workflow, using only the supplied case and the allowed case-major-category list.
 
-Apply the shared patient-result semantics in `SKILL.md` when interpreting missing, complete, negative, or assumed results.
+Apply the shared patient-result semantics in the active workflow specification (`workflows/legacy/SKILL.md` or `workflows/prototype/SKILL.md`, as selected by the entry point) when interpreting missing, complete, negative, or assumed results.
 
 ## Task-specific rules
 
@@ -54,4 +54,4 @@ Do not add explanatory prose or other top-level fields.
 
 ## Final check
 
-Before returning, verify privately that `case_major_category` is an exact allowed value, `provisional_disease` preserves the supplied wording, `genes` contains only genes with reported NGS variants, and every structured fact is grounded in `case.md` or is explicitly labelled as a workflow assumption permitted by `SKILL.md`.
+Before returning, verify privately that `case_major_category` is an exact allowed value, `provisional_disease` preserves the supplied wording, `genes` contains only genes with reported NGS variants, and every structured fact is grounded in `case.md` or is explicitly labelled as a workflow assumption permitted by the active workflow specification.

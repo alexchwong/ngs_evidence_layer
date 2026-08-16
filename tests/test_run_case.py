@@ -247,5 +247,25 @@ class RunCaseFullTests(IsolatedRunCaseTests):
         self.assertNotIn("card-tags.json", output)
 
 
+class RunCasePrototypeSmokeTests(IsolatedRunCaseTests):
+    def test_prototype_diagnosis_and_downstream_commands_run(self):
+        output, _ = self.run_case("prototype-diagnosis", "--work-dir", self.work)
+        self.assertIn("prototype step 2: retrieve diagnosis and germline evidence", output)
+        self.assertTrue((self.work / "diagnostic_evidence.md").is_file())
+        self.assertTrue((self.work / "diagnostic_evidence.json").is_file())
+
+        (self.work / "report-draft-dx.md").write_text(
+            "R0.1 REPORT: Fixture. (no citation required)\n"
+            "REFINED_CMC: myeloid neoplasm, unspecified\n",
+            encoding="utf-8",
+        )
+        output, _ = self.run_case("prototype-downstream", "--work-dir", self.work)
+        self.assertIn("prototype step 4: retrieve downstream evidence", output)
+        self.assertTrue((self.work / "bundle.json").is_file())
+        self.assertTrue((self.work / "downstream_evidence.md").is_file())
+        self.assertTrue((self.work / "evidence.md").is_file())
+        self.assertTrue((self.work / "card-tags.json").is_file())
+
+
 if __name__ == "__main__":
     unittest.main()

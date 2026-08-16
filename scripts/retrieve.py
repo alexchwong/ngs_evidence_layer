@@ -1329,7 +1329,7 @@ def run_diagnosis(args):
         [card["card_id"] for card in result["diagnosis_cards"]],
     )
     result["step3_instruction"] = (
-        "Use prompts/workflow/adjudicate_diagnosis.md to compare only case_facts with "
+        "Use workflows/legacy/prompts/adjudicate_diagnosis.md to compare only case_facts with "
         "the retrieved diagnosis_cards. provisional_disease is the supplied free-text "
         "starting diagnosis; refined_disease must be one allowed canonical value. A "
         "change outside case_major_category requires fully met diagnostic criteria."
@@ -1534,7 +1534,7 @@ def main():
     full = sub.add_parser("full", help="step 4")
     full.add_argument("--diagnosis-result", type=Path, required=True)
     full.add_argument("--adjudication-result", type=Path, required=True,
-                      help="JSON emitted under prompts/workflow/adjudicate_diagnosis.md")
+                      help="JSON emitted under workflows/legacy/prompts/adjudicate_diagnosis.md")
     full.add_argument("--genes", nargs="+")
     full.add_argument("--corpus", type=Path)
     full.add_argument("--index", type=Path)

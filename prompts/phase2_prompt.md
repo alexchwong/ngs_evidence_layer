@@ -172,12 +172,62 @@ Canonical source aliases:
   "acute myeloid leukaemia": "AML",
   "acute promyelocytic leukemia": "APL",
   "acute promyelocytic leukaemia": "APL",
+  "AML-M0": "AML with minimal differentiation",
+  "minimally differentiated AML": "AML with minimal differentiation",
+  "acute myeloid leukemia with minimal differentiation": "AML with minimal differentiation",
+  "acute myeloid leukaemia with minimal differentiation": "AML with minimal differentiation",
+  "AML-M1": "AML without maturation",
+  "acute myeloid leukemia without maturation": "AML without maturation",
+  "acute myeloid leukaemia without maturation": "AML without maturation",
+  "AML-M2": "AML with maturation",
+  "acute myeloid leukemia with maturation": "AML with maturation",
+  "acute myeloid leukaemia with maturation": "AML with maturation",
+  "AML-M4": "AMML",
+  "acute myelomonocytic leukemia": "AMML",
+  "acute myelomonocytic leukaemia": "AMML",
+  "acute myelomonocytic leukemia, FAB M4": "AMML",
+  "acute myelomonocytic leukaemia, FAB M4": "AMML",
+  "AML-M4Eo": "AMML with eosinophilia",
+  "acute myelomonocytic leukemia with eosinophilia": "AMML with eosinophilia",
+  "acute myelomonocytic leukaemia with eosinophilia": "AMML with eosinophilia",
+  "myelomonocytic leukemia with eosinophilia": "AMML with eosinophilia",
+  "myelomonocytic leukaemia with eosinophilia": "AMML with eosinophilia",
+  "AML-M5": "AMoL",
+  "acute monocytic leukemia": "AMoL",
+  "acute monocytic leukaemia": "AMoL",
+  "acute monoblastic leukemia": "AMoL",
+  "acute monoblastic leukaemia": "AMoL",
+  "AML-M6": "acute erythroid leukaemia",
+  "acute erythroid leukemia": "acute erythroid leukaemia",
+  "erythroleukemia": "acute erythroid leukaemia",
+  "erythroleukaemia": "acute erythroid leukaemia",
+  "Di Guglielmo disease": "acute erythroid leukaemia",
+  "Di Guglielmo syndrome": "acute erythroid leukaemia",
+  "AML-M7": "AMKL",
+  "acute megakaryoblastic leukemia": "AMKL",
+  "acute megakaryoblastic leukaemia": "AMKL",
+  "megakaryoblastic leukemia": "AMKL",
+  "megakaryoblastic leukaemia": "AMKL",
+  "pure erythroid leukemia": "pure erythroid leukaemia",
+  "acute pure erythroid leukaemia": "pure erythroid leukaemia",
+  "acute pure erythroid leukemia": "pure erythroid leukaemia",
+  "granulocytic sarcoma": "myeloid sarcoma",
+  "chloroma": "myeloid sarcoma",
+  "extramedullary AML": "myeloid sarcoma",
+  "extramedullary acute myeloid leukemia": "myeloid sarcoma",
+  "extramedullary acute myeloid leukaemia": "myeloid sarcoma",
+  "acute basophilic leukemia": "acute basophilic leukaemia",
+  "ABL": "acute basophilic leukaemia",
+  "acute basophilic/basophiloblastic leukaemia": "acute basophilic leukaemia",
+  "acute basophilic/basophiloblastic leukemia": "acute basophilic leukaemia",
   "myelodysplastic/myeloproliferative neoplasm": "MDS/MPN",
   "myelodysplastic/myeloproliferative neoplasms": "MDS/MPN",
   "myelodysplastic syndrome/myeloproliferative neoplasm": "MDS/MPN",
   "myelodysplastic/myeloproliferative neoplasm, unclassifiable": "MDS/MPN-U",
   "myelodysplastic/myeloproliferative neoplasm unclassifiable": "MDS/MPN-U",
   "myelodysplastic/myeloproliferative neoplasm, unspecified": "MDS/MPN-U",
+  "MDS/MPN NOS": "MDS/MPN-U",
+  "MDS/MPN, not otherwise specified": "MDS/MPN-U",
   "chronic myelomonocytic leukemia": "CMML",
   "chronic myelomonocytic leukaemia": "CMML",
   "atypical chronic myeloid leukemia": "aCML",
@@ -197,6 +247,8 @@ Canonical source aliases:
   "myeloproliferative neoplasm, unclassifiable": "MPN-U",
   "myeloproliferative neoplasm unclassifiable": "MPN-U",
   "myeloproliferative neoplasm, unspecified": "MPN-U",
+  "MPN NOS": "MPN-U",
+  "MPN, not otherwise specified": "MPN-U",
   "polycythemia vera": "PV",
   "polycythaemia vera": "PV",
   "polycythemia rubra vera": "PV",
@@ -1444,6 +1496,17 @@ if __name__ == "__main__":
     "AML": [
       "AML",
       "APL",
+      "AML with minimal differentiation",
+      "AML without maturation",
+      "AML with maturation",
+      "AMML",
+      "AMML with eosinophilia",
+      "AMoL",
+      "acute erythroid leukaemia",
+      "AMKL",
+      "pure erythroid leukaemia",
+      "myeloid sarcoma",
+      "acute basophilic leukaemia",
       "myeloid neoplasm, unspecified"
     ],
     "MDS/MPN": [
@@ -1481,6 +1544,17 @@ if __name__ == "__main__":
       "MDS/AML",
       "AML",
       "APL",
+      "AML with minimal differentiation",
+      "AML without maturation",
+      "AML with maturation",
+      "AMML",
+      "AMML with eosinophilia",
+      "AMoL",
+      "acute erythroid leukaemia",
+      "AMKL",
+      "pure erythroid leukaemia",
+      "myeloid sarcoma",
+      "acute basophilic leukaemia",
       "MDS/MPN",
       "MDS/MPN-U",
       "CMML",
@@ -1913,6 +1987,231 @@ if __name__ == "__main__":
       }
     },
     {
+      "name": "AML with minimal differentiation",
+      "aliases": [
+        "AML-M0",
+        "minimally differentiated AML",
+        "acute myeloid leukemia with minimal differentiation",
+        "acute myeloid leukaemia with minimal differentiation"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "AML without maturation",
+      "aliases": [
+        "AML-M1",
+        "acute myeloid leukemia without maturation",
+        "acute myeloid leukaemia without maturation"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "AML with maturation",
+      "aliases": [
+        "AML-M2",
+        "acute myeloid leukemia with maturation",
+        "acute myeloid leukaemia with maturation"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "AMML",
+      "aliases": [
+        "AML-M4",
+        "acute myelomonocytic leukemia",
+        "acute myelomonocytic leukaemia",
+        "acute myelomonocytic leukemia, FAB M4",
+        "acute myelomonocytic leukaemia, FAB M4"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "AMML with eosinophilia",
+      "aliases": [
+        "AML-M4Eo",
+        "acute myelomonocytic leukemia with eosinophilia",
+        "acute myelomonocytic leukaemia with eosinophilia",
+        "myelomonocytic leukemia with eosinophilia",
+        "myelomonocytic leukaemia with eosinophilia"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML",
+          "AMML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "AMoL",
+      "aliases": [
+        "AML-M5",
+        "acute monocytic leukemia",
+        "acute monocytic leukaemia",
+        "acute monoblastic leukemia",
+        "acute monoblastic leukaemia"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "acute erythroid leukaemia",
+      "aliases": [
+        "AML-M6",
+        "acute erythroid leukemia",
+        "erythroleukemia",
+        "erythroleukaemia",
+        "Di Guglielmo disease",
+        "Di Guglielmo syndrome"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "AMKL",
+      "aliases": [
+        "AML-M7",
+        "acute megakaryoblastic leukemia",
+        "acute megakaryoblastic leukaemia",
+        "megakaryoblastic leukemia",
+        "megakaryoblastic leukaemia"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "pure erythroid leukaemia",
+      "aliases": [
+        "pure erythroid leukemia",
+        "acute pure erythroid leukaemia",
+        "acute pure erythroid leukemia"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "myeloid sarcoma",
+      "aliases": [
+        "granulocytic sarcoma",
+        "chloroma",
+        "extramedullary AML",
+        "extramedullary acute myeloid leukemia",
+        "extramedullary acute myeloid leukaemia"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
+      "name": "acute basophilic leukaemia",
+      "aliases": [
+        "acute basophilic leukemia",
+        "ABL",
+        "acute basophilic/basophiloblastic leukaemia",
+        "acute basophilic/basophiloblastic leukemia"
+      ],
+      "parents": [
+        "AML"
+      ],
+      "retrieval_related": {
+        "diagnosis": [
+          "AML"
+        ],
+        "biomarker": [
+          "AML"
+        ]
+      }
+    },
+    {
       "name": "MDS/MPN",
       "aliases": [
         "myelodysplastic/myeloproliferative neoplasm",
@@ -1947,7 +2246,9 @@ if __name__ == "__main__":
       "aliases": [
         "myelodysplastic/myeloproliferative neoplasm, unclassifiable",
         "myelodysplastic/myeloproliferative neoplasm unclassifiable",
-        "myelodysplastic/myeloproliferative neoplasm, unspecified"
+        "myelodysplastic/myeloproliferative neoplasm, unspecified",
+        "MDS/MPN NOS",
+        "MDS/MPN, not otherwise specified"
       ],
       "parents": [
         "MDS/MPN"
@@ -2084,7 +2385,9 @@ if __name__ == "__main__":
       "aliases": [
         "myeloproliferative neoplasm, unclassifiable",
         "myeloproliferative neoplasm unclassifiable",
-        "myeloproliferative neoplasm, unspecified"
+        "myeloproliferative neoplasm, unspecified",
+        "MPN NOS",
+        "MPN, not otherwise specified"
       ],
       "parents": [
         "MPN"

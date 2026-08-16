@@ -12,7 +12,7 @@ Use only:
 - `diagnosis_cards`, their interpretations, and exact six-character runtime `card_tag` values;
 - `allowed_refined_diseases`.
 
-Apply the shared patient-result semantics in `SKILL.md`.
+Apply the shared patient-result semantics in `workflows/legacy/SKILL.md`.
 
 Diagnosis cards are the complete hard-evidence boundary. Do not add diagnostic rules, thresholds, exclusions, definitions, or qualifiers from model knowledge. Do not invent, normalise, or reinterpret patient facts.
 
@@ -47,7 +47,7 @@ If `diagnosis_cards` is empty:
 - set `driven_by` and `criterion_assessment` to `[]`;
 - state in `reason` that no corpus diagnosis evidence was retrieved.
 
-Top-level diagnostic fields preserve the model adjudication. Set `user_review` and the initial `downstream_filter_disease` exactly as required by the current workflow mode in `SKILL.md`. Do not anticipate a manual-review decision.
+Top-level diagnostic fields preserve the model adjudication. Set `user_review` and the initial `downstream_filter_disease` exactly as required by the current workflow mode in `workflows/legacy/SKILL.md`. Do not anticipate a manual-review decision.
 
 ## Output contract
 
@@ -98,4 +98,4 @@ Before returning, verify privately:
 
 - any `refined_disease` outside the supplied `case_major_category` has `criteria_met`, at least one driving card, at least one required criterion, and no required `unknown` or `not_met` criterion;
 - initial `downstream_filter_disease` equals model `refined_disease` except for the explicit no-diagnosis-card fallback above, where both still equal the selected major category;
-- `user_review` matches the workflow mode declared by `SKILL.md`.
+- `user_review` matches the workflow mode declared by `workflows/legacy/SKILL.md`.

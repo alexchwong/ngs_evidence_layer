@@ -10,7 +10,7 @@ from validation.cases import retrieve_case
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules" / "agreed_reporting_rules.md"
 POLICY = ROOT / "prompts" / "workflow" / "reporting_rule_policy.md"
-PROTOTYPE_PROMPT_DIR = ROOT / "prompts" / "workflow" / "prototype"
+PROTOTYPE_PROMPT_DIR = ROOT / "workflows" / "prototype" / "prompts" / "rule_views"
 
 
 def draft_for(rules_text, *, tag="a1b2c3"):
@@ -121,7 +121,7 @@ class PrototypeWorkflowTests(unittest.TestCase):
             self.assertIn(expected, view)
 
     def test_prototype_prompt_prose_is_not_hardcoded_in_python(self):
-        script = (ROOT / "scripts" / "prototype_workflow.py").read_text(encoding="utf-8")
+        script = (ROOT / "workflows" / "prototype" / "runtime.py").read_text(encoding="utf-8")
         for phrase in (
             "Answer R0-R1 only",
             "Answer R2-R5 only",

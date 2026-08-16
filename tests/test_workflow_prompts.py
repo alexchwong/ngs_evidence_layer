@@ -3,42 +3,62 @@ import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "SKILL.md"
-WORKFLOW_DIR = ROOT / "prompts" / "workflow"
+ROOT_SKILL = ROOT / "SKILL.md"
+PROTOTYPE_ENTRY = ROOT / "0.2.2_prototype_skill.md"
+LEGACY_SKILL = ROOT / "workflows" / "legacy" / "SKILL.md"
+PROTOTYPE_SKILL = ROOT / "workflows" / "prototype" / "SKILL.md"
+SHARED_PROMPT_DIR = ROOT / "prompts" / "workflow"
+LEGACY_PROMPT_DIR = ROOT / "workflows" / "legacy" / "prompts"
+PROTOTYPE_PROMPT_DIR = ROOT / "workflows" / "prototype" / "prompts"
+PROTOTYPE_RULE_DIR = PROTOTYPE_PROMPT_DIR / "rule_views"
 RELEASE_MANIFEST = ROOT / "release" / "skill.txt"
 
 
-REQUIRED_WORKFLOW_PROMPTS = {
+SHARED_PROMPTS = {
     "capture_case.md",
     "structure_case.md",
-    "adjudicate_diagnosis.md",
-    "revise_diagnosis.md",
-    "analyse_report.md",
     "reporting_rule_policy.md",
     "citation_rules.md",
     "format_report.md",
     "mark_validation_report.md",
-    "analyse_diagnosis_prototype.md",
-    "analyse_remainder_prototype.md",
+    "modify_blacklist.md",
 }
+LEGACY_PROMPTS = {"adjudicate_diagnosis.md", "revise_diagnosis.md", "analyse_report.md"}
+PROTOTYPE_PROMPTS = {"analyse_diagnosis_prototype.md", "analyse_remainder_prototype.md"}
+PROTOTYPE_RULE_PROMPTS = {"diagnosis_rule_view.md", "remainder_rule_view.md", "full_rule_view.md"}
 
 
-def test_required_workflow_prompts_exist():
-    assert REQUIRED_WORKFLOW_PROMPTS <= {path.name for path in WORKFLOW_DIR.glob("*.md")}
+def test_phase1_entry_points_preserve_current_routing():
+    root_skill = ROOT_SKILL.read_text(encoding="utf-8")
+    prototype_entry = PROTOTYPE_ENTRY.read_text(encoding="utf-8")
+    assert "workflows/legacy/SKILL.md" in root_skill
+    assert "current standard (legacy) workflow" in root_skill
+    assert "workflows/prototype/SKILL.md" in prototype_entry
+    assert "prototype workflow" in prototype_entry
 
 
-def test_every_workflow_prompt_referenced_by_skill_exists():
-    skill = SKILL.read_text(encoding="utf-8")
-    references = set(re.findall(r"prompts/workflow/[A-Za-z0-9_.-]+\.md", skill))
-    assert references
-    for reference in references:
-        assert (ROOT / reference).is_file(), reference
+def test_workflow_owned_and_shared_prompts_are_separated():
+    assert SHARED_PROMPTS <= {path.name for path in SHARED_PROMPT_DIR.glob("*.md")}
+    assert LEGACY_PROMPTS <= {path.name for path in LEGACY_PROMPT_DIR.glob("*.md")}
+    assert PROTOTYPE_PROMPTS <= {path.name for path in PROTOTYPE_PROMPT_DIR.glob("*.md")}
+    assert PROTOTYPE_RULE_PROMPTS <= {path.name for path in PROTOTYPE_RULE_DIR.glob("*.md")}
+    for name in LEGACY_PROMPTS | PROTOTYPE_PROMPTS:
+        assert not (SHARED_PROMPT_DIR / name).exists()
+
+
+def test_every_prompt_referenced_by_authoritative_workflow_specs_exists():
+    for skill_path in (LEGACY_SKILL, PROTOTYPE_SKILL):
+        skill = skill_path.read_text(encoding="utf-8")
+        references = set(re.findall(r"(?:prompts/workflow|workflows/(?:legacy|prototype)/prompts(?:/rule_views)?)/[A-Za-z0-9_.-]+\.md", skill))
+        assert references
+        for reference in references:
+            assert (ROOT / reference).is_file(), reference
 
 
 def test_skill_no_longer_references_obsolete_prompt_paths():
-    skill = SKILL.read_text(encoding="utf-8")
-    assert "prompts/diagnostic_adjudication_prompt.md" not in skill
-    assert "validation/marking_prompt.md" not in skill
+    combined = LEGACY_SKILL.read_text(encoding="utf-8") + PROTOTYPE_SKILL.read_text(encoding="utf-8")
+    assert "prompts/diagnostic_adjudication_prompt.md" not in combined
+    assert "validation/marking_prompt.md" not in combined
 
 
 def test_repository_no_longer_contains_obsolete_prompt_files():
@@ -46,26 +66,24 @@ def test_repository_no_longer_contains_obsolete_prompt_files():
     assert not (ROOT / "validation" / "marking_prompt.md").exists()
 
 
-def test_release_manifest_includes_all_workflow_prompts():
+def test_release_manifest_includes_workflow_modules_and_shared_prompts():
     manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
     assert "prompts/workflow/*" in manifest
-    assert "prompts/workflow/prototype/*" in manifest
-    assert "prompts/diagnostic_adjudication_prompt.md" not in manifest
-    assert "validation/marking_prompt.md" not in manifest
+    assert "workflows/legacy/*" in manifest
+    assert "workflows/legacy/prompts/*" in manifest
+    assert "workflows/prototype/*" in manifest
+    assert "workflows/prototype/prompts/*" in manifest
+    assert "workflows/prototype/prompts/rule_views/*" in manifest
+    assert "prompts/workflow/prototype/*" not in manifest
 
 
 def test_format_integrity_rules_are_shared_not_default_style_only():
-    workflow = (WORKFLOW_DIR / "format_report.md").read_text(encoding="utf-8")
-    citations = (WORKFLOW_DIR / "citation_rules.md").read_text(encoding="utf-8")
+    workflow = (SHARED_PROMPT_DIR / "format_report.md").read_text(encoding="utf-8")
+    citations = (SHARED_PROMPT_DIR / "citation_rules.md").read_text(encoding="utf-8")
     default = (ROOT / "prompts" / "formatting" / "default.md").read_text(encoding="utf-8")
 
-    for required in (
-        "sole source of report content",
-        "Do not write numeric citations",
-        "OMIT:",
-    ):
+    for required in ("sole source of report content", "Do not write numeric citations", "OMIT:"):
         assert required in workflow
-
     for required in (
         "## Rule-draft citation contract",
         "Cite **every evidence card directly supporting the answer**",
@@ -78,7 +96,6 @@ def test_format_integrity_rules_are_shared_not_default_style_only():
         "do not count toward formatting-prompt word limits",
     ):
         assert required in citations
-
     assert "## Handling negative statements" not in default
     assert "The first sentence MUST summarise the detected NGS variants." in default
     assert "Formatting, compression, and word-count instructions MUST NOT remove" in default
@@ -86,9 +103,9 @@ def test_format_integrity_rules_are_shared_not_default_style_only():
     assert "## Source and output constraints" not in default
 
 
-def test_analyse_report_uses_shared_reporting_rule_policy():
-    analyse = (WORKFLOW_DIR / "analyse_report.md").read_text(encoding="utf-8")
-    policy = (WORKFLOW_DIR / "reporting_rule_policy.md").read_text(encoding="utf-8")
+def test_legacy_analyse_report_uses_shared_reporting_rule_policy():
+    analyse = (LEGACY_PROMPT_DIR / "analyse_report.md").read_text(encoding="utf-8")
+    policy = (SHARED_PROMPT_DIR / "reporting_rule_policy.md").read_text(encoding="utf-8")
     assert "Follow `prompts/workflow/reporting_rule_policy.md` exactly" in analyse
     assert "exactly one classification token: `REPORT:` or `OMIT:`" in analyse
     assert "Every rule MUST be classified" in analyse
@@ -96,17 +113,17 @@ def test_analyse_report_uses_shared_reporting_rule_policy():
     assert "if a rule is conditional and its premise is not met" in policy
     assert "R0.1` is the explicit exception" in policy
     assert "Do not use `OMIT:` merely because a conclusion is negative in wording" in policy
-    assert "Only text after `REPORT:` is eligible source prose" in (WORKFLOW_DIR / "format_report.md").read_text(encoding="utf-8")
+    assert "Only text after `REPORT:` is eligible source prose" in (SHARED_PROMPT_DIR / "format_report.md").read_text(encoding="utf-8")
 
 
-def test_skill_refreshes_shared_citation_rules_at_required_steps():
-    skill = SKILL.read_text(encoding="utf-8")
+def test_legacy_skill_refreshes_shared_citation_rules_at_required_steps():
+    skill = LEGACY_SKILL.read_text(encoding="utf-8")
     assert "re-read `prompts/workflow/citation_rules.md` before repairing the citation defect" in skill
     assert skill.count("`prompts/workflow/citation_rules.md`;") >= 2
     assert "Step 6B citation invariant" in skill
 
 
-def test_release_manifest_includes_validation_packagers():
+def test_release_manifest_includes_validation_packagers_and_compatibility_clis():
     manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
     assert "validation/package_marking.py" in manifest
     assert "validation/case_functional.md" in manifest
@@ -117,7 +134,7 @@ def test_release_manifest_includes_validation_packagers():
 
 
 def test_prototype_skill_uses_merged_setup_and_render_validation():
-    prototype = (ROOT / "0.2.2_prototype_skill.md").read_text(encoding="utf-8")
+    prototype = PROTOTYPE_SKILL.read_text(encoding="utf-8")
     assert "prototype_workflow.py setup --mode ngs-report" in prototype
     assert "prototype_workflow.py setup --mode nel-demo --example <N>" in prototype
     assert "prototype_workflow.py setup --mode nel-validate --case-id <case-id>" in prototype
@@ -131,9 +148,8 @@ def test_prototype_skill_uses_merged_setup_and_render_validation():
 
 
 def test_prototype_skill_is_parallel_and_keeps_cmc_fixed_after_step3():
-    prototype = (ROOT / "0.2.2_prototype_skill.md").read_text(encoding="utf-8")
-    remainder = (WORKFLOW_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
-    assert "Do not modify or substitute `SKILL.md`" in prototype
+    prototype = PROTOTYPE_SKILL.read_text(encoding="utf-8")
+    remainder = (PROTOTYPE_PROMPT_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
     assert "`nel-validate-function <case-id>`" in prototype
     assert "--case-file validation/case_functional.md" in prototype
     assert "prototype-diagnosis" in prototype
@@ -142,11 +158,9 @@ def test_prototype_skill_is_parallel_and_keeps_cmc_fixed_after_step3():
     assert "Do not change, re-route, propose, or emit another CMC" in remainder
 
 
-
-
 def test_prototype_analysis_prompts_delegate_semantics_to_generated_rule_contracts():
-    diagnosis = (WORKFLOW_DIR / "analyse_diagnosis_prototype.md").read_text(encoding="utf-8")
-    remainder = (WORKFLOW_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
+    diagnosis = (PROTOTYPE_PROMPT_DIR / "analyse_diagnosis_prototype.md").read_text(encoding="utf-8")
+    remainder = (PROTOTYPE_PROMPT_DIR / "analyse_remainder_prototype.md").read_text(encoding="utf-8")
     for prompt in (diagnosis, remainder):
         assert "prompt-owned analysis contract" in prompt
         assert "REPORT/OMIT taxonomy" in prompt
@@ -154,14 +168,15 @@ def test_prototype_analysis_prompts_delegate_semantics_to_generated_rule_contrac
         assert "State the patient-level conclusion first" not in prompt
     assert "Do not change, re-route, propose, or emit another CMC" in remainder
 
+
 def test_model_steps_are_not_described_as_deterministic_model_hybrids():
-    skill = SKILL.read_text(encoding="utf-8")
+    skill = LEGACY_SKILL.read_text(encoding="utf-8")
     assert "deterministic/model" not in skill
     assert "Step 1B — model with deterministic setup" in skill
 
 
-def test_skill_forbids_script_inspection_for_model_tasks():
-    skill = SKILL.read_text(encoding="utf-8")
+def test_legacy_skill_forbids_script_inspection_for_model_tasks():
+    skill = LEGACY_SKILL.read_text(encoding="utf-8")
     for required in (
         "Treat declared deterministic commands as opaque operations",
         "do not open, read, search, grep, or otherwise inspect their Python source",
@@ -169,3 +184,16 @@ def test_skill_forbids_script_inspection_for_model_tasks():
         "The model, not a Python script, must author `<work-dir>/case-input.json`",
     ):
         assert required in skill
+
+
+def test_run_case_has_no_eager_prototype_dependency():
+    source = (ROOT / "scripts" / "run_case.py").read_text(encoding="utf-8")
+    pre_functions = source.split("def prototype_diagnosis", 1)[0]
+    assert "from prototype_workflow import" not in source
+    assert "workflows.prototype" not in pre_functions.split("def full", 1)[0]
+
+
+def test_prototype_compatibility_cli_delegates_to_workflow_runtime():
+    source = (ROOT / "scripts" / "prototype_workflow.py").read_text(encoding="utf-8")
+    assert "workflows.prototype.runtime" in source
+    assert "PROTOTYPE_PROMPT_DIR" not in source

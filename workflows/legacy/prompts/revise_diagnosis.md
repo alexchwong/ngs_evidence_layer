@@ -4,7 +4,7 @@
 
 Re-ground the user's requested diagnostic revision against the existing diagnostic evidence without changing the model's original adjudication.
 
-Use only the user's requested revised diagnostic label/downstream category, `diagnostic_evidence.md`, and the existing `adjudication.json`. Apply the shared patient-result semantics in `SKILL.md`.
+Use only the user's requested revised diagnostic label/downstream category, `diagnostic_evidence.md`, and the existing `adjudication.json`. Apply the shared patient-result semantics in `workflows/legacy/SKILL.md`.
 
 ## Task-specific rules
 

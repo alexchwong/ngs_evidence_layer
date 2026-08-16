@@ -13,8 +13,9 @@ Scripts are grouped below by their primary role.
 - `report_citations.py`
 - `resolve_demo.py`
 - `retrieve.py`
-- `run_case.py`
+- `run_case.py` — stable dispatcher; workflow implementations live under `workflows/*/case_pipeline.py`
 - `validate_adjudication.py`
+- `prototype_workflow.py` — compatibility CLI delegating to `workflows/prototype/runtime.py`
 
 ## Ingest
 
