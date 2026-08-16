@@ -774,7 +774,7 @@ In MDS, DDX41 mutation was associated with favorable overall survival after hypo
 
 **Category:** treatment
 
-**Genes:** 
+**Genes:**
 
 **Diseases:** MDS
 

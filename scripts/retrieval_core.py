@@ -894,5 +894,3 @@ def _adjudication_diagnosis_card_ids(adjudication):
     if isinstance(review, dict) and review.get("decision") in {"agree", "disagree"}:
         selected.update(review.get("card_ids") or [])
     return selected
-
-

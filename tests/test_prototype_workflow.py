@@ -34,7 +34,7 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
             case = work / "case.md"
             case.write_text("existing patient case\n", encoding="utf-8")
 
-            resolved, demo_case, demo_expected = setup_workflow(workflow="diagnosis-first-v1", 
+            resolved, demo_case, demo_expected = setup_workflow(workflow="diagnosis-first-v1",
                 mode="ngs-report", work_dir=work
             )
 
@@ -54,7 +54,7 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
     def test_setup_demo_resolves_paths_without_reading_or_copying_case(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp) / "demo-work"
-            resolved, demo_case, demo_expected = setup_workflow(workflow="diagnosis-first-v1", 
+            resolved, demo_case, demo_expected = setup_workflow(workflow="diagnosis-first-v1",
                 mode="nel-demo", work_dir=work, example=1
             )
             self.assertEqual(resolved, work.resolve())
@@ -65,26 +65,26 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
     def test_setup_validation_writes_case_additively_and_refuses_different_existing_case(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp) / "validation-work"
-            setup_workflow(workflow="diagnosis-first-v1", 
+            setup_workflow(workflow="diagnosis-first-v1",
                 mode="nel-validate", work_dir=work, case_id="1A"
             )
             first = (work / "case.md").read_text(encoding="utf-8")
             self.assertTrue(first.strip())
 
-            setup_workflow(workflow="diagnosis-first-v1", 
+            setup_workflow(workflow="diagnosis-first-v1",
                 mode="nel-validate", work_dir=work, case_id="1A"
             )
             self.assertEqual((work / "case.md").read_text(encoding="utf-8"), first)
 
             with self.assertRaisesRegex(ValueError, "will not overwrite case.md"):
-                setup_workflow(workflow="diagnosis-first-v1", 
+                setup_workflow(workflow="diagnosis-first-v1",
                     mode="nel-validate", work_dir=work, case_id="1B"
                 )
 
     def test_setup_function_validation_uses_functional_case_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp) / "functional-work"
-            setup_workflow(workflow="diagnosis-first-v1", 
+            setup_workflow(workflow="diagnosis-first-v1",
                 mode="nel-validate-function", work_dir=work, case_id="1A"
             )
             case = (work / "case.md").read_text(encoding="utf-8")

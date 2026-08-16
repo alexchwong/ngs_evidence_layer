@@ -243,5 +243,3 @@ def assemble_report_draft(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(assembled, encoding="utf-8")
     return output, changed, refined
-
-

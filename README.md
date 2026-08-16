@@ -8,7 +8,7 @@ is bounded to the supplied case, retrieved corpus evidence, and explicit reporti
 rules; the model is not permitted to fill evidence gaps from general haematology
 knowledge.
 
-## Quick start for end users
+## Quick start
 
 1. Open the repository's GitHub **Releases** tab and download the latest release or
    pre-release ZIP file.
@@ -31,6 +31,13 @@ knowledge.
    - run the first validation case on the current workflow with `nel-validate 1A`; or
    - run the first function-targeted validation case with `nel-validate-function 1A`.
 4. View the evidence card library in the [card browser](output/reports/card-browser.html).
+
+## Contents
+
+- [NGS reporting](#ngs-reporting)
+- [Current corpus](#current-corpus)
+- [Important boundaries](#important-boundaries)
+- [Other documentation](#other-documentation)
 
 ## NGS reporting
 
@@ -178,41 +185,47 @@ model or included in the external marking ZIP.
 
 ## Current corpus
 
-The current 0.2.1 corpus contains nine publications. Publications are grouped below by
+The current 0.2.2 corpus contains 12 publications. Publications are grouped below by
 the corpus version in which they were most recently accepted or modified, using
 `latest_accepted_in_version` from `output/corpus/nel.index.json`. Complete citation,
 card, and acceptance-version metadata are stored in that index.
+
+### Last modified in v0.2.2
+
+| Publication key | DOI | Paper nickname | Contribution to corpus |
+|---|---|---|---|
+| `baliakas-2019-operational-germline-testing` | `10.1097/hs9.0000000000000321` | Nordic Germline Myeloid Guidelines 2019 | Germline predisposition recognition, testing indications, counselling, management, and follow-up guidance. |
+| `bernard-2022-nejm-evidence-1-na` | `10.1056/evidoa2200008` | IPSS-M Prognostic score for MDS | Molecularly integrated IPSS-M prognostic risk assessment for myelodysplastic syndromes. |
+| `feurstein-2021-myeloid-germline` | `10.1016/j.gim.2021.12.008` | Feurstein Germline Variant Interpretation Guide 2022 | Practical germline variant interpretation for haematological malignancy predisposition and related marrow-failure syndromes. |
 
 ### Last modified in v0.2.1
 
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
-| `cloos-2026-blood-147-1147` | `10.1182/blood.2025031480` | ELN-DAVID 2025 AML MRD Guidelines | AML measurable residual disease assessment and management guidance. |
-| `arber-2022-blood-140-1200` | `10.1182/blood.2022015850` | ICC Classification | ICC myeloid classification and diagnostic criteria. |
 | `alaggio-2022-leukemia-who5-lymphoid` | `10.1038/s41375-022-01620-2` | WHO-HAEM5 Lymphoid Neoplasms 2022 | WHO fifth-edition lymphoid classification and molecular diagnostic criteria. |
+| `arber-2022-blood-140-1200` | `10.1182/blood.2022015850` | ICC Classification of Myeloid Neoplasms and Acute Leukemias | ICC myeloid classification and diagnostic criteria. |
+| `cloos-2026-blood-147-1147` | `10.1182/blood.2025031480` | ELN-DAVID AML MRD Guidelines 2025 | AML measurable residual disease assessment, interpretation, and management guidance. |
 
 ### Last modified in v0.2.0
 
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
-| `elena-2016-blood-128-1408` | `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
+| `barbui-2015-blood-cancer-journal-5-e369` | `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
 | `d-hner-2022-blood-140-1345` | `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | AML diagnosis, genetic risk classification, and management guidance. |
 | `d-hner-2024-blood-144-2169` | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | AML genetic risk classification for less-intensive therapy. |
-| `barbui-2015-blood-cancer-journal-5-e369` | `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
-| `tefferi-2018-journal-of-clinical-oncology-36-1769` | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
+| `elena-2016-blood-128-1408` | `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
 | `khoury-2022-leukemia-36-1703` | `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
+| `tefferi-2018-journal-of-clinical-oncology-36-1769` | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
 
 ### Incompatible papers pending re-ingestion
 
-The following publication packages are present in the corpus index but are incompatible with the current ingestion schema. They are not part of the accepted corpus and require re-ingestion before they can contribute evidence.
+The following publication packages are present in the corpus index but are incompatible with the current ingestion schema. They do not contribute evidence and require re-ingestion before they can return to the active corpus.
 
 | Publication key | Status |
 |---|---|
 | `abelson-2018-predict-aml` | Pending re-ingestion |
 | `andrade-2018-tp53-gnomad` | Pending re-ingestion |
-| `baliakas-2019-operational-germline-testing` | Pending re-ingestion |
 | `bernard-2020-tp53-mds` | Pending re-ingestion |
-| `bernard-2022-nejm-evidence-1-na` | Pending re-ingestion |
 | `bluteau-2014-ankrd26` | Pending re-ingestion |
 | `bolton-2020-chemo-ch` | Pending re-ingestion |
 | `davidsson-2018-samd9-samd9l` | Pending re-ingestion |
@@ -220,7 +233,6 @@ The following publication packages are present in the corpus index but are incom
 | `dohner-2020-npm1-flt3-interaction` | Pending re-ingestion |
 | `drazer-2018-germline-vaf` | Pending re-ingestion |
 | `fabre-2022-chip-dnmt3a` | Pending re-ingestion |
-| `feurstein-2021-myeloid-germline` | Pending re-ingestion |
 | `flt3-ras-gilteritinib-resistance` | Pending re-ingestion |
 | `galera-2018-gata2-germline` | Pending re-ingestion |
 | `galli-2021-clone-metrics-ccus` | Pending re-ingestion |
