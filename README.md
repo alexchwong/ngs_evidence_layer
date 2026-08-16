@@ -3,7 +3,7 @@
 A corpus-grounded evidence layer for myeloid NGS interpretation.
 
 NEL uses `SKILL.md` to combine a supplied clinical case with the committed evidence
-corpus and produce either a citable evidence block or a concise NGS report. Reporting
+corpus and produce a concise NGS report with the current diagnosis-first workflow, while retaining the previous evidence-block/report workflow as `legacy-v1`. Reporting
 is bounded to the supplied case, retrieved corpus evidence, and explicit reporting
 rules; the model is not permitted to fill evidence gaps from general haematology
 knowledge.
@@ -28,7 +28,7 @@ knowledge.
    - paste the clinical and morphological details and the NGS result, then add
      `ngs-report` on a line by itself;
    - run the first demonstration case with `nel-demo example 1`; or
-   - run the first legacy validation case with `nel-validate 1A`; or
+   - run the first validation case on the current workflow with `nel-validate 1A`; or
    - run the first function-targeted validation case with `nel-validate-function 1A`.
 4. View the evidence card library in the [card browser](output/reports/card-browser.html).
 
@@ -38,12 +38,13 @@ Use one of the modes defined in `SKILL.md`.
 
 | Mode | Use when | Output |
 |---|---|---|
-| `ngs-report` | You want a complete NGS report from a new case. | `report-final.md` rendered in chat |
-| `evidence-block` | You want the retrieved evidence without a final report. | `evidence.md` |
-| `evidence-block manual` | You want to review or revise the proposed integrated diagnosis before full retrieval. | `evidence.md` |
-| `evidence-to-report` | You already have a completed evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
+| `ngs-report` | You want a complete NGS report using the current accepted `diagnosis-first-v1` workflow. | `report-final.md` rendered in chat |
+| `ngs-report --legacy` | You want the same report using the previous `legacy-v1` workflow. | `report-final.md` rendered in chat |
+| `evidence-block --legacy` | You want the legacy retrieved evidence without a final report. | `evidence.md` |
+| `evidence-block manual --legacy` | You want to review/revise the legacy proposed integrated diagnosis before full retrieval. | `evidence.md` |
+| `evidence-to-report --legacy` | You already have a completed legacy evidence-block work directory and want the final report only. | `report-final.md` rendered in chat |
 | `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
-| `nel-validate <case-id>` | You want to run a bundled legacy validation case. | External-marking ZIP + debug ZIP |
+| `nel-validate <case-id>` | You want to run a bundled validation case on the current workflow. | External-marking ZIP + debug ZIP |
 | `nel-validate-function <case-id>` | You want to test a specific reporting function using the functional validation suite. | Functional external-marking ZIP + debug ZIP |
 
 ### Generate a report
@@ -65,14 +66,12 @@ NEL will:
 1. preserve the supplied case;
 2. structure the case for deterministic retrieval;
 3. retrieve diagnosis evidence;
-4. adjudicate an integrated diagnosis;
-5. retrieve the full evidence set;
+4. refine the diagnostic routing and diagnosis conclusions;
+5. retrieve the downstream evidence set;
 6. build a citable evidence block;
 7. draft and format the final report.
 
-Automatic `ngs-report` does not pause for diagnosis confirmation. Use
-`evidence-block manual` when you want to review the proposed integrated diagnosis
-before downstream retrieval.
+The current `ngs-report` uses the accepted diagnosis-first workflow. To run the previous pipeline, use `ngs-report --legacy` (or the immutable selector `ngs-report --legacy-v1`). Legacy evidence-only/manual modes require the same explicit legacy selector.
 
 ### Working directory
 
@@ -112,7 +111,7 @@ specified at the start of the workflow if that prompt is present under
 Use:
 
 ```text
-evidence-block
+evidence-block --legacy
 
 <clinical case>
 ```
@@ -122,7 +121,7 @@ to return `evidence.md` without generating a final NGS report.
 Use:
 
 ```text
-evidence-block manual
+evidence-block manual --legacy
 
 <clinical case>
 ```
@@ -135,10 +134,10 @@ full evidence retrieval.
 If Steps 1–5 have already been completed, provide the retained work directory and run:
 
 ```text
-evidence-to-report
+evidence-to-report --legacy
 ```
 
-NEL verifies that the required `case.md` and `evidence.md` are present, then performs only
+This legacy-only mode verifies that the required `case.md` and `evidence.md` are present, then performs only
 the reporting steps.
 
 ### Demo mode

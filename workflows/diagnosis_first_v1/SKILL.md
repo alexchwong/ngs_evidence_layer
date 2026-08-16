@@ -1,8 +1,8 @@
 ---
-name: ngs-evidence-layer-0.2.2-prototype
-description: Parallel diagnosis-first prototype for ngs-report, nel-demo, nel-validate, and nel-validate-function benchmarking.
+name: ngs-evidence-layer-diagnosis-first-v1
+description: Diagnosis-first workflow for ngs-report, nel-demo, nel-validate, and nel-validate-function.
 ---
-# NGS evidence layer — 0.2.2 diagnosis-first prototype
+# NGS evidence layer — diagnosis-first-v1
 
 ## Scope
 
@@ -13,7 +13,7 @@ Supported modes only:
 - `nel-validate <case-id>`
 - `nel-validate-function <case-id>`
 
-This prototype is parallel to the legacy workflow. Do not modify or substitute with the original workflow prompt.
+This workflow implements the diagnosis-first pipeline. Whether it is the default, legacy, or an explicitly selected development workflow is controlled by the root router and `workflows/registry.json`.
 
 The workflow is:
 
@@ -26,7 +26,7 @@ The workflow is:
 6. deterministically assemble `report-draft.md`, then format/render citations;
 7. use the existing delivery/validation behaviour and packager command.
 
-`downstream_filter_disease` is not used in this prototype. CMC2 is the downstream disease-routing value.
+`downstream_filter_disease` is not used in this diagnosis-first. CMC2 is the downstream disease-routing value.
 
 ## Global access/model rules
 
@@ -44,20 +44,20 @@ Choose the setup work-directory argument exactly once:
 - exact `->project` modifier: `<setup-work-arg>` is `--project`;
 - otherwise: `<setup-work-arg>` is empty.
 
-Run exactly one prototype setup command for the selected mode:
+Run exactly one diagnosis-first setup command for the selected mode:
 
 ```bash
 # ngs-report
-python scripts/prototype_workflow.py setup --mode ngs-report <setup-work-arg>
+python scripts/setup_workflow.py --workflow diagnosis-first-v1 --mode ngs-report <setup-work-arg>
 
 # nel-demo example <N>
-python scripts/prototype_workflow.py setup --mode nel-demo --example <N> <setup-work-arg>
+python scripts/setup_workflow.py --workflow diagnosis-first-v1 --mode nel-demo --example <N> <setup-work-arg>
 
 # nel-validate <case-id>
-python scripts/prototype_workflow.py setup --mode nel-validate --case-id <case-id> <setup-work-arg>
+python scripts/setup_workflow.py --workflow diagnosis-first-v1 --mode nel-validate --case-id <case-id> <setup-work-arg>
 
 # nel-validate-function <case-id>
-python scripts/prototype_workflow.py setup --mode nel-validate-function --case-id <case-id> <setup-work-arg>
+python scripts/setup_workflow.py --workflow diagnosis-first-v1 --mode nel-validate-function --case-id <case-id> <setup-work-arg>
 ```
 
 Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`.
@@ -98,7 +98,7 @@ The model writes only `<work-dir>/case-input.json`. Its `case_major_category` is
 Run exactly:
 
 ```bash
-python scripts/run_case.py prototype-diagnosis --work-dir <work-dir>
+python scripts/run_case.py diagnosis --work-dir <work-dir>
 ```
 
 This retrieves:
@@ -109,7 +109,7 @@ This retrieves:
 
 It writes model-facing `<work-dir>/diagnostic_evidence.md` and a private deterministic machine boundary. Runtime card tags are derived from the same full blacklist-eligible card universe used later.
 
-The diagnostic R0-R1 rule view was generated in Step 0 as `<work-dir>/reporting-rules-dx.md`; do not regenerate it here. It uses the prompt-owned diagnosis template under `workflows/prototype/prompts/rule_views/`, injects the shared `prompts/workflow/reporting_rule_policy.md`, and contains only canonical R0-R1 rules.
+The diagnostic R0-R1 rule view was generated in Step 0 as `<work-dir>/reporting-rules-dx.md`; do not regenerate it here. It uses the prompt-owned diagnosis template under `workflows/diagnosis_first_v1/prompts/rule_views/`, injects the shared `prompts/workflow/reporting_rule_policy.md`, and contains only canonical R0-R1 rules.
 
 Do not model-read either output until Step 3.
 
@@ -117,14 +117,14 @@ Do not model-read either output until Step 3.
 
 Use a fresh bounded model session. Read only:
 
-- `workflows/prototype/prompts/analyse_diagnosis_prototype.md`;
+- `workflows/diagnosis_first_v1/prompts/analyse_diagnosis.md`;
 - `prompts/workflow/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/case-major-categories.json`;
 - `<work-dir>/diagnostic_evidence.md`;
 - `<work-dir>/reporting-rules-dx.md`.
 
-Follow the prototype diagnosis prompt and the prompt-owned analysis contract rendered into `reporting-rules-dx.md`; apply the Rule-draft citation contract in `citation_rules.md`. Write only `<work-dir>/report-draft-dx.md`.
+Follow the diagnosis-first diagnosis prompt and the prompt-owned analysis contract rendered into `reporting-rules-dx.md`; apply the Rule-draft citation contract in `citation_rules.md`. Write only `<work-dir>/report-draft-dx.md`.
 
 The final line must be exactly:
 
@@ -135,23 +135,17 @@ REFINED_CMC: <canonical case major category>
 Validate and deterministically extract CMC2:
 
 ```bash
-python scripts/prototype_workflow.py cmc \
-  --draft <work-dir>/report-draft-dx.md \
-  --evidence <work-dir>/diagnostic_evidence.md \
-  --rules <work-dir>/reporting-rules-dx.md
+python scripts/workflow_runtime.py cmc --work-dir <work-dir>
 ```
 
 The command must succeed. Its output CMC is CMC2. If citation repair is required, use only the validator error, the current draft, `citation_rules.md`, and `diagnostic_evidence.md`; do not inspect private JSON/tag maps or corpus files.
 
 ## Step 4 — Downstream retrieval and Step-5 rule scope
 
-First generate the rule view and branch state exactly. The generator renders the appropriate prompt-owned branch template under `workflows/prototype/prompts/rule_views/`, injects the shared reporting-rule policy, and then appends either canonical R2-R5 rules or canonical R0-R5 rules when CMC changed:
+First generate the rule view and branch state exactly. The generator renders the appropriate prompt-owned branch template under `workflows/diagnosis_first_v1/prompts/rule_views/`, injects the shared reporting-rule policy, and then appends either canonical R2-R5 rules or canonical R0-R5 rules when CMC changed:
 
 ```bash
-python scripts/prototype_workflow.py remainder-rules \
-  --case-input <work-dir>/case-input.json \
-  --diagnosis-draft <work-dir>/report-draft-dx.md \
-  --output <work-dir>/reporting-rules-remainder.md
+python scripts/workflow_runtime.py remainder-rules --work-dir <work-dir>
 ```
 
 Record the deterministic `CMC_CHANGED=yes|no` output as `<cmc-changed>`.
@@ -159,7 +153,7 @@ Record the deterministic `CMC_CHANGED=yes|no` output as `<cmc-changed>`.
 Then run exactly:
 
 ```bash
-python scripts/run_case.py prototype-downstream --work-dir <work-dir>
+python scripts/run_case.py downstream --work-dir <work-dir>
 ```
 
 The command writes:
@@ -184,7 +178,7 @@ Use a fresh bounded model session.
 
 Always read only:
 
-- `workflows/prototype/prompts/analyse_remainder_prototype.md`;
+- `workflows/diagnosis_first_v1/prompts/analyse_remainder.md`;
 - `prompts/workflow/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/downstream_evidence.md`;
@@ -215,12 +209,7 @@ For citation repair, `downstream_evidence.md` is the only evidentiary file that 
 Run exactly:
 
 ```bash
-python scripts/prototype_workflow.py assemble \
-  --case-input <work-dir>/case-input.json \
-  --diagnosis-draft <work-dir>/report-draft-dx.md \
-  --remainder-draft <work-dir>/report-draft-remainder.md \
-  --evidence <work-dir>/evidence.md \
-  --output <work-dir>/report-draft.md
+python scripts/workflow_runtime.py assemble --work-dir <work-dir>
 ```
 
 If CMC was unchanged, this concatenates R0-R1 from the diagnosis draft with R2-R5 from the remainder. If CMC changed, `report-draft.md` is the Step-5 R0-R5 replacement draft. The `REFINED_CMC:` line is never copied. The command validates the assembled draft against the complete canonical reporting rules and combined evidence.
@@ -265,7 +254,7 @@ python scripts/package_run.py \
   --output <work-dir>/ngs-report-debug.zip
 ```
 
-`package_run.py` deterministically detects the prototype machine boundary and uses the prototype artifact allowlist; legacy workflow runs continue to use the legacy allowlist and CLI unchanged.
+`package_run.py` reads `<work-dir>/workflow.json` and uses the artifact allowlist declared by diagnosis-first-v1; it never infers workflow identity from evidence files.
 
 Mode-specific delivery remains:
 

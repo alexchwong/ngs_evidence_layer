@@ -1,10 +1,8 @@
 SKILL.md
-scripts/create_work_dir.py
-scripts/case_major_categories.py
 scripts/card_tags.py
-scripts/resolve_demo.py
 scripts/run_case.py
 scripts/retrieve.py
+scripts/retrieval_core.py
 scripts/render.py
 scripts/vocab.py
 scripts/append_integrated_diagnosis.py
@@ -12,6 +10,9 @@ scripts/validate_adjudication.py
 scripts/report_audit.py
 scripts/report_citations.py
 scripts/package_run.py
+scripts/setup_workflow.py
+scripts/workflow_registry.py
+scripts/workflow_runtime.py
 schema/disease_vocabulary.json
 schema/ingestion_package_schema.json
 output/corpus/nel.corpus.json
@@ -19,11 +20,13 @@ output/corpus/nel.index.json
 output/corpus/blacklist.json
 prompts/workflow/*
 workflows/__init__.py
-workflows/legacy/*
-workflows/legacy/prompts/*
-workflows/prototype/*
-workflows/prototype/prompts/*
-workflows/prototype/prompts/rule_views/*
+workflows/common.py
+workflows/registry.json
+workflows/legacy_v1/*
+workflows/legacy_v1/prompts/*
+workflows/diagnosis_first_v1/*
+workflows/diagnosis_first_v1/prompts/*
+workflows/diagnosis_first_v1/prompts/rule_views/*
 prompts/formatting/*
 rules/agreed_reporting_rules.md
 validation/__init__.py
@@ -45,5 +48,3 @@ examples/expected/03-ambiguous-disease.md
 examples/expected/04-genes-the-corpus-cannot-address.md
 examples/expected/05-germline-architecture.md
 examples/expected/06-sf3b1-diagnostic-adjudication.md
-0.2.2_prototype_skill.md
-scripts/prototype_workflow.py

@@ -25,7 +25,7 @@ def card(card_id, category, genes, diseases):
     }
 
 
-class PrototypeRetrievalTests(unittest.TestCase):
+class DiagnosisFirstRetrievalTests(unittest.TestCase):
     def test_diagnosis_retrieval_is_cmc_or_gene_plus_gene_germline(self):
         cards = [
             card("dx-cmc", "diagnosis", [], ["AML"]),
@@ -35,7 +35,7 @@ class PrototypeRetrievalTests(unittest.TestCase):
             card("germ-other", "germline", ["RUNX1"], []),
             card("prog", "prognosis", ["SF3B1"], ["AML"]),
         ]
-        result = retrieve.prototype_step2(
+        result = retrieve.diagnosis_first_step2(
             cards, ["SF3B1"], "AML", [], "AML"
         )
         self.assertEqual(
@@ -53,7 +53,7 @@ class PrototypeRetrievalTests(unittest.TestCase):
             card("tx-geneless", "treatment", [], ["AML"]),
             card("germ", "germline", ["SF3B1"], []),
         ]
-        result = retrieve.prototype_step4(
+        result = retrieve.diagnosis_first_step4(
             cards, ["SF3B1"], "MDS", "AML", []
         )
         ids = {c["card_id"] for c in result["retrieved"]}
@@ -66,7 +66,7 @@ class PrototypeRetrievalTests(unittest.TestCase):
             card("prog", "prognosis", ["SF3B1"], ["MDS"]),
             card("germ", "germline", ["SF3B1"], []),
         ]
-        result = retrieve.prototype_step4(cards, ["SF3B1"], "MDS", "MDS", [])
+        result = retrieve.diagnosis_first_step4(cards, ["SF3B1"], "MDS", "MDS", [])
         self.assertEqual({c["card_id"] for c in result["retrieved"]}, {"prog", "germ"})
 
 

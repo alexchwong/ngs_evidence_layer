@@ -1,1 +1,0 @@
-"""Legacy reporting workflow implementation."""

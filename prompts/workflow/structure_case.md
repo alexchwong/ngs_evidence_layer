@@ -4,7 +4,7 @@
 
 Transform `case.md` into the structured case representation required by the workflow, using only the supplied case and the allowed case-major-category list.
 
-Apply the shared patient-result semantics in the active workflow specification (`workflows/legacy/SKILL.md` or `workflows/prototype/SKILL.md`, as selected by the entry point) when interpreting missing, complete, negative, or assumed results.
+Apply the shared patient-result semantics in the active workflow specification selected by root `SKILL.md` when interpreting missing, complete, negative, or assumed results.
 
 ## Task-specific rules
 

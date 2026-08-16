@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "workflow_id": "diagnosis-first-v1",
+  "python_package": "workflows.diagnosis_first_v1",
+  "skill": "workflows/diagnosis_first_v1/SKILL.md",
+  "supported_modes": [
+    "ngs-report",
+    "nel-demo",
+    "nel-validate",
+    "nel-validate-function"
+  ],
+  "artifacts": [
+    "workflow.json",
+    "case.md",
+    "case-major-categories.json",
+    "case-input.json",
+    "diagnostic_evidence.md",
+    "diagnostic_evidence.json",
+    "reporting-rules-dx.md",
+    "report-draft-dx.md",
+    "bundle.json",
+    "downstream_evidence.md",
+    "reporting-rules-remainder.md",
+    "evidence.md",
+    "card-tags.json",
+    "report-draft-remainder.md",
+    "report-draft.md",
+    "report-final.md"
+  ],
+  "status": "accepted"
+}

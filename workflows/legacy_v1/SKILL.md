@@ -23,11 +23,11 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 1A — model via `prompts/workflow/capture_case.md`: capture the supplied clinical case verbatim in `case.md`.
 - Step 1B — model with deterministic setup via `prompts/workflow/structure_case.md`: deterministically expose only the small case-major-category list, then model-author `case-input.json` from `case.md` and that list.
 - Step 2 — deterministic: broadly retrieve diagnosis evidence by case-major category or case gene into `diagnostic_evidence.md`, exposing only six-character runtime card tags while retaining stable IDs privately.
-- Step 3A — model via `workflows/legacy/prompts/adjudicate_diagnosis.md`: adjudicate the diagnosis into `adjudication.json`.
-- Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `workflows/legacy/prompts/revise_diagnosis.md`.
+- Step 3A — model via `workflows/legacy_v1/prompts/adjudicate_diagnosis.md`: adjudicate the diagnosis into `adjudication.json`.
+- Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `workflows/legacy_v1/prompts/revise_diagnosis.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
 - Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, then render the single model-facing `evidence.md` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
-- Step 6A — model via `workflows/legacy/prompts/analyse_report.md` + shared `prompts/workflow/reporting_rule_policy.md` + `prompts/workflow/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
+- Step 6A — model via `workflows/legacy_v1/prompts/analyse_report.md` + shared `prompts/workflow/reporting_rule_policy.md` + `prompts/workflow/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
 - Step 6B — model via `prompts/workflow/format_report.md` + shared `prompts/workflow/citation_rules.md` plus `<format-prompt>` + deterministic validation: render only `REPORT:` content from `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
 - Step 7 — post-report delivery and deterministic packaging; full `ngs-report`-equivalent runs get a debug ZIP containing every workflow artifact, while `nel-validate` and `nel-validate-function` additionally get separate external-marking ZIPs containing only the report, selected validation case, and self-contained marking prompt.
@@ -98,58 +98,57 @@ These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudicat
 
 ### Required action
 
-1. Select the explicit operating mode before reading case-specific inputs.
-   - For `nel-demo example <N>`, require one integer `N` from 1 through 6 and run exactly:
+1. Select the explicit operating mode before reading case-specific inputs. Map `evidence-block manual` to deterministic setup mode `evidence-block-manual`.
+2. Choose the setup work-directory argument exactly once:
+   - supplied directory: `<setup-work-arg>` is `--work-dir <supplied-directory>`;
+   - exact `->project` modifier, except for `evidence-to-report`: `<setup-work-arg>` is `--project`;
+   - otherwise, except for `evidence-to-report`: `<setup-work-arg>` is empty;
+   - `evidence-to-report` requires a supplied/identified work directory and must use `--work-dir <work-dir>`.
+3. Run exactly one legacy-v1 setup command for the selected mode:
 
-     ```bash
-     python scripts/resolve_demo.py <N>
-     ```
+   ```bash
+   # evidence-block
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode evidence-block <setup-work-arg>
 
-   - Record the command's first output line as `<demo-case>` and second as `<demo-expected>`.
-   - Do not read either file in Step 0.
-   - For `nel-validate <case-id>` or `nel-validate-function <case-id>`, require one case variant identifier such as `1A` and record it as `<validation-case>`. Do not retrieve the case or read any validation file in Step 0.
-2. Establish `<work-dir>`:
-   - if the user supplies a directory, resolve it to an absolute path and create it if necessary;
-   - if the invocation contains the exact modifier `->project`, except for `evidence-to-report`, run exactly:
+   # evidence-block manual
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode evidence-block-manual <setup-work-arg>
 
-     ```bash
-     python scripts/create_work_dir.py --project
-     ```
+   # ngs-report
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode ngs-report <setup-work-arg>
 
-   - otherwise, except for `evidence-to-report`, run exactly:
+   # evidence-to-report
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode evidence-to-report --work-dir <work-dir>
 
-     ```bash
-     python scripts/create_work_dir.py
-     ```
+   # nel-demo example <N>
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode nel-demo --example <N> <setup-work-arg>
 
-   - Treat the command's single output line as `<work-dir>`. Do not substitute another directory. Do not infer `->project` from natural-language requests.
-   - for `evidence-to-report`, the user must supply or identify the working directory. Do not search for one.
-3. Fail if `<work-dir>` is not a directory or is unreadable or unwritable. Do not fall back to another directory.
-4. Print:
+   # nel-validate <case-id>
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode nel-validate --case-id <case-id> <setup-work-arg>
 
-   ```text
-   Working directory: <absolute-path>
+   # nel-validate-function <case-id>
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode nel-validate-function --case-id <case-id> <setup-work-arg>
    ```
 
-5. For `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`, record `<format-prompt>`:
+4. Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`. For `nel-demo`, record output line 2 as `<demo-case>` and line 3 as `<demo-expected>` without reading either file yet. For validation modes record `<validation-case>` as the supplied case ID.
+5. Setup writes `<work-dir>/workflow.json` and binds the work directory to `legacy-v1`. It also writes `<work-dir>/case-major-categories.json` for modes that run Step 1. Do not infer workflow identity from other files.
+6. For `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`, record `<format-prompt>`:
    - default: `prompts/formatting/default.md`;
    - if the user explicitly specifies another file from `prompts/formatting/`, record that path;
    - do not list or search `prompts/formatting/`;
    - do not use a formatting prompt outside `prompts/formatting/`;
    - **record the path only. Do not read `<format-prompt>` until Step 6B.**
-6. For `evidence-to-report`, verify only that `<work-dir>/case.md`,
-   `<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist, and `<work-dir>/evidence.md` is non-empty.
-   Do not read their contents in Step 0.
-7. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
+7. For `evidence-to-report`, verify only that `<work-dir>/case.md`, `<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist, and `<work-dir>/evidence.md` is non-empty. Do not read their contents in Step 0.
+8. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
 
 ### Exit
 
 - Operating mode is fixed.
-- `<work-dir>` is fixed.
+- `<work-dir>` is fixed and bound to `legacy-v1`.
+- `<work-dir>/case-major-categories.json` already exists when Steps 1–5 are required.
 - If reporting is requested, `<format-prompt>` is fixed but unread.
 - For `evidence-to-report`, the required Step 5 outputs exist.
 - For `nel-demo`, `<demo-case>` and `<demo-expected>` are fixed but unread.
-- For `nel-validate` and `nel-validate-function`, `<validation-case>` is fixed and validation files remain unread.
+- For validation modes, `<validation-case>` is fixed and validation files remain unread.
 
 ## Step 1A — Capture the case
 
@@ -195,17 +194,7 @@ Follow `prompts/workflow/capture_case.md` exactly and write only `<work-dir>/cas
 
 ## Step 1B — Structure the case
 
-This is a **model-authored step with deterministic setup**. The Python command below creates only the allowed category list; it does not create `case-input.json`. Do not inspect the script or search for another script to structure the case.
-
-### Deterministic setup
-
-Run exactly:
-
-```bash
-python scripts/case_major_categories.py --output <work-dir>/case-major-categories.json
-```
-
-Treat this command as opaque. After it succeeds, use a fresh bounded model session for the model task below.
+This is a **model-authored step using deterministic setup output**. Step 0 already created `<work-dir>/case-major-categories.json`; do not regenerate it or inspect setup source. Use a fresh bounded model session for the model task below.
 
 ### Model-readable inputs
 
@@ -259,12 +248,12 @@ Use a fresh bounded model session.
 
 Read only:
 
-- `workflows/legacy/prompts/adjudicate_diagnosis.md`;
+- `workflows/legacy_v1/prompts/adjudicate_diagnosis.md`;
 - `<work-dir>/diagnostic_evidence.md`.
 
 #### Required action
 
-Follow `workflows/legacy/prompts/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary.
+Follow `workflows/legacy_v1/prompts/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary.
 
 For `evidence-block`, `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`:
 - set `user_review` to `"automatic"`;
@@ -305,12 +294,12 @@ Do not start another model adjudication.
 
 Use a fresh bounded model session and read only:
 
-- `workflows/legacy/prompts/revise_diagnosis.md`;
+- `workflows/legacy_v1/prompts/revise_diagnosis.md`;
 - `<work-dir>/diagnostic_evidence.md`;
 - `<work-dir>/adjudication.json`;
 - the user's revised diagnostic label and downstream category.
 
-Follow `workflows/legacy/prompts/revise_diagnosis.md` exactly.
+Follow `workflows/legacy_v1/prompts/revise_diagnosis.md` exactly.
 
 If the requested revision is supportable, replace `<work-dir>/adjudication.json` only with the complete updated JSON returned by that task.
 
@@ -336,7 +325,7 @@ The command validates the completed adjudication and appends exactly one line us
 Run exactly:
 
 ```bash
-python scripts/run_case.py full --work-dir <work-dir>
+python scripts/run_case.py downstream --work-dir <work-dir>
 ```
 
 #### Exit
@@ -365,14 +354,14 @@ Use one fresh bounded model session.
 
 Read only:
 
-- `workflows/legacy/prompts/analyse_report.md`;
+- `workflows/legacy_v1/prompts/analyse_report.md`;
 - `prompts/workflow/reporting_rule_policy.md`;
 - `prompts/workflow/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/evidence.md`;
 - `rules/agreed_reporting_rules.md`.
 
-Follow `workflows/legacy/prompts/analyse_report.md` exactly and write only `<work-dir>/report-draft.md`.
+Follow `workflows/legacy_v1/prompts/analyse_report.md` exactly and write only `<work-dir>/report-draft.md`.
 
 Run exactly:
 
@@ -394,7 +383,7 @@ If validation fails for a citation-tag reason (unknown, malformed, misplaced, or
 - do **not** read or re-read `case.md`, `rules/agreed_reporting_rules.md`, `card-tags.json`, `bundle.json`, `diagnostic_evidence.md`, `adjudication.json`, `cards/`, the corpus/index, the original case document, or any other source file;
 - never use `card-tags.json` to recover, translate, verify, or substitute a tag.
 
-For non-citation structural or classification validation failures, correct only the reported rule(s) and defect(s), using the validator message, `workflows/legacy/prompts/analyse_report.md`, and `prompts/workflow/reporting_rule_policy.md`; do not reopen case or evidence sources unless the failure is specifically a citation-tag repair permitted above. Unknown tags are reported with the affected rule IDs.
+For non-citation structural or classification validation failures, correct only the reported rule(s) and defect(s), using the validator message, `workflows/legacy_v1/prompts/analyse_report.md`, and `prompts/workflow/reporting_rule_policy.md`; do not reopen case or evidence sources unless the failure is specifically a citation-tag repair permitted above. Unknown tags are reported with the affected rule IDs.
 
 ### Step 6B — Format the final report
 

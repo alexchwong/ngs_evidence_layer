@@ -314,7 +314,7 @@ def render_body(groups):
 
 def render_header(bundle):
     profile = bundle.get("render_profile")
-    if profile in {"prototype_diagnosis", "prototype_downstream"}:
+    if profile in {"diagnosis_first_diagnosis", "diagnosis_first_downstream"}:
         provenance = bundle.get("provenance", {})
         initial_cmc = bundle.get("initial_case_major_category") or bundle.get("case_major_category")
         refined_cmc = bundle.get("refined_case_major_category") or initial_cmc
@@ -331,7 +331,7 @@ def render_header(bundle):
             f"Genes submitted: {', '.join(bundle.get('genes', [])) or 'none'}",
             f"Step-1 case major category: {initial_cmc}",
         ]
-        if profile == "prototype_downstream":
+        if profile == "diagnosis_first_downstream":
             out.extend([
                 f"Step-3 refined case major category: {refined_cmc}",
                 f"Case major category changed: {'yes' if refined_cmc != initial_cmc else 'no'}",
@@ -420,11 +420,11 @@ def render_header(bundle):
 
 def render_tail(bundle, references, dropped, reference_map):
     out = []
-    prototype_profile = bundle.get("render_profile") in {
-        "prototype_diagnosis",
-        "prototype_downstream",
+    diagnosis_first_profile = bundle.get("render_profile") in {
+        "diagnosis_first_diagnosis",
+        "diagnosis_first_downstream",
     }
-    if not prototype_profile:
+    if not diagnosis_first_profile:
         not_assessed = bundle.get("not_assessed") or []
         out.append("")
         out.append("## Genes not assessed")
@@ -613,7 +613,7 @@ def main():
     parser.add_argument(
         "--retrieved-only",
         action="store_true",
-        help="render only bundle.retrieved, omitting diagnostic_context (prototype downstream view)",
+        help="render only bundle.retrieved, omitting diagnostic_context (diagnosis-first downstream view)",
     )
     parser.add_argument(
         "--card-tag-output",

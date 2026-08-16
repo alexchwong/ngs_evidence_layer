@@ -1,11 +1,35 @@
 ---
 name: ngs-evidence-layer
-description: Builds a deterministic evidence block or NGS report for a myeloid NGS case, supports automatic or manual diagnostic adjudication, and can run repository examples or validation cases.
+description: Routes NGS evidence/report requests to the accepted diagnosis-first workflow or an explicitly selected registered workflow.
 ---
-# NGS Evidence Layer — current standard workflow entry point
+# NGS Evidence Layer — workflow router
 
-This compatibility entry point preserves the current standard (legacy) workflow during the Phase 1 modularisation.
+This file routes the request only. The selected workflow's `SKILL.md` is authoritative for execution.
 
-For every invocation, read `workflows/legacy/SKILL.md` in full and follow it exactly. Treat that file as the authoritative workflow specification. Do not substitute the prototype workflow.
+## Workflow selection
 
-The diagnosis-first prototype remains separately available through `0.2.2_prototype_skill.md`.
+Read `workflows/registry.json` and resolve exactly one workflow before reading case-specific inputs.
+
+- No workflow selector: use `default_workflow` from the registry (`diagnosis-first-v1`).
+- `--legacy`: resolve the registry alias `legacy` (`legacy-v1`).
+- `--legacy-v1`: select `legacy-v1` explicitly.
+- Any other explicit `--<workflow-id>`: select that exact enabled workflow only if it is registered.
+- Never infer a workflow from files already present in a work directory. Workflow state is established by the selected workflow's setup command and subsequently enforced deterministically.
+
+After selection, read only the registered workflow's `SKILL.md` and follow it exactly.
+
+## Mode compatibility
+
+The accepted diagnosis-first workflow supports `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`.
+
+`evidence-block`, `evidence-block manual`, and `evidence-to-report` are legacy-only. If one of these is requested without an explicit legacy selector, stop and state that the mode requires `--legacy` or `--legacy-v1`; do not silently route it to legacy.
+
+Examples:
+
+```text
+ngs-report
+ngs-report --legacy
+ngs-report --legacy-v1
+nel-validate-function 3B
+nel-validate-function 3B --legacy
+```

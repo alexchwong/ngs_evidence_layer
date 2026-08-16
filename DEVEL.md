@@ -4,11 +4,20 @@ This file is for repository maintenance. User reporting is documented in `README
 paper ingestion is documented in `INGEST.md`.
 
 
-## Reporting workflow modularisation (Phase 1)
+## Reporting workflow architecture
 
-The two reporting workflows are now isolated under `workflows/legacy/` and `workflows/prototype/`. Root `SKILL.md` and `0.2.2_prototype_skill.md` are compatibility entry points; current routing is unchanged: `SKILL.md` selects legacy and the prototype remains explicit.
+Phase 2 promotes `diagnosis-first-v1` as the default workflow while retaining `legacy-v1` as an explicit selectable pipeline. Root `SKILL.md` is a router backed by `workflows/registry.json`; the work directory is bound once through `scripts/setup_workflow.py`, which writes `<work-dir>/workflow.json`. Subsequent deterministic commands read that state rather than inferring workflow identity from evidence files.
 
-Workflow-specific prompts and orchestration code belong under the corresponding workflow directory. `scripts/run_case.py` and `scripts/prototype_workflow.py` remain stable compatibility CLIs and delegate to workflow-owned implementations. Assets still under `prompts/workflow/`, and mixed policy inside retrieval/rendering/packaging, are intentionally left in place until Phase 2 determines which components are genuinely shared.
+Workflow-owned strategy lives under `workflows/diagnosis_first_v1/` and `workflows/legacy_v1/`, including orchestration prompts and retrieval selection policy. Canonical reporting/citation prompts, corpus/blacklist/tag mechanics, rendering, validation, and packaging infrastructure remain shared. `scripts/retrieval_core.py` contains shared retrieval mechanics; each workflow's `retrieval.py` owns its selection algorithm.
+
+Create an isolated experimental workflow with:
+
+```bash
+python scripts/devel_workflow.py new --from diagnosis-first-v1 --name <new-workflow-id>
+python scripts/devel_workflow.py check <new-workflow-id>
+```
+
+The helper clones only the workflow-owned tree, updates its identifiers/import paths, registers it without changing the default, and leaves shared contracts referenced in place. Promotion to default remains a deliberate edit of `workflows/registry.json`.
 
 ## Quick start
 

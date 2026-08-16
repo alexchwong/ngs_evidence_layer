@@ -5,17 +5,18 @@ Scripts are grouped below by their primary role.
 ## Skill
 
 - `append_integrated_diagnosis.py`
-- `case_major_categories.py`
 - `card_tags.py` — shared deterministic runtime card-tag assignment/deconvolution
-- `create_work_dir.py`
-- `render.py`
+- `package_run.py` — workflow-state-driven debug packaging
+- `render.py` — shared evidence renderer
 - `report_audit.py`
 - `report_citations.py`
-- `resolve_demo.py`
-- `retrieve.py`
-- `run_case.py` — stable dispatcher; workflow implementations live under `workflows/*/case_pipeline.py`
+- `retrieval_core.py` — shared corpus, blacklist, validation, provenance and tag mechanics
+- `retrieve.py` — workflow-state-driven retrieval dispatcher
+- `run_case.py` — workflow-state-driven case-stage dispatcher
+- `setup_workflow.py` — create/reuse a work directory and bind workflow identity
 - `validate_adjudication.py`
-- `prototype_workflow.py` — compatibility CLI delegating to `workflows/prototype/runtime.py`
+- `workflow_registry.py` — workflow registry/state loader
+- `workflow_runtime.py` — dispatch workflow-owned deterministic runtime helpers
 
 ## Ingest
 
@@ -48,6 +49,7 @@ Scripts are grouped below by their primary role.
 - `build_blacklist.py`
 - `build_prompts.py`
 - `build_skill_zip.py`
+- `devel_workflow.py` — clone/check isolated workflow implementations
 
 ## Other
 
