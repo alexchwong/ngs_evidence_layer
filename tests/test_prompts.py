@@ -232,8 +232,32 @@ class Phase1CategoryScopePromptTests(unittest.TestCase):
         prompt = " ".join(BUILD_PROMPTS.render(1).split())
         self.assertIn("Phase 1, diagnosis only", prompt)
         self.assertIn("ask the user to reply exactly `CONFIRM`", prompt)
-        self.assertIn("Plain `Phase 1` means all five categories", prompt)
+        self.assertIn(
+            "Plain `Phase 1`, or any invocation without an explicit category restriction, "
+            "means all five categories",
+            prompt,
+        )
         self.assertIn("reading remains whole-paper", prompt)
+
+    def test_phase1_summary_and_scope_suggestion_do_not_change_effective_scope(self):
+        prompt = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertIn("In 50 words or fewer", prompt)
+        self.assertIn("summary of what the paper is about", prompt)
+        self.assertIn(
+            "recommend a Phase 1 category scope suited to that purpose", prompt
+        )
+        self.assertIn("the recommendation is advisory", prompt)
+        self.assertIn(
+            "must not narrow or otherwise change the normalized scope unless the user "
+            "explicitly instructs that scope",
+            prompt,
+        )
+        self.assertIn(
+            "Disregard any advisory scope suggestion during extraction", prompt
+        )
+        self.assertIn(
+            "retain claims from every category in the confirmed scope", prompt
+        )
 
     def test_phase2_respects_declared_category_scope(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())

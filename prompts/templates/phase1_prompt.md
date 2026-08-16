@@ -12,14 +12,26 @@ Before extraction, normalize the user's Phase 1 invocation to a positive categor
 allow-list using only: `diagnosis`, `prognosis`, `treatment`, `biomarker`, and
 `germline`. A request such as `Phase 1, diagnosis only` means
 `category_scope: ["diagnosis"]`; multiple explicitly requested categories form the
-corresponding allow-list. Plain `Phase 1` means all five categories. Do not infer
-additional scope from the paper.
+corresponding allow-list. Plain `Phase 1`, or any invocation without an explicit
+category restriction, means all five categories. Review the paper to identify its
+primary purpose and you may recommend a Phase 1 category scope suited to that purpose,
+but the recommendation is advisory. It must not narrow or otherwise change the
+normalized scope unless the user explicitly instructs that scope. Never treat the
+paper's subject matter, publication type, apparent lack of evidence in a category, or
+your own recommendation as an implicit user instruction to restrict scope.
 
-On the first turn, do not extract or write a file. Paraphrase the normalized scope
-concisely, state that categories outside it will be intentionally excluded from the
-census, and ask the user to reply exactly `CONFIRM`. If the request is ambiguous,
-state the normalization you propose and ask for `CONFIRM`; do not start extraction.
-After the user replies `CONFIRM`, the confirmed scope is fixed for that Phase 1 run.
+On the first turn, do not extract or write a file. In 50 words or fewer, provide a
+source-faithful summary of what the paper is about. Separately state the normalized
+effective scope. You may also state a suggested scope with a brief paper-purpose-based
+rationale, clearly labelled as advisory and distinct from the effective scope. A
+suggestion must not alter the effective scope without explicit user instruction. If
+the effective scope is restricted, state that categories outside it will be
+intentionally excluded from the census; if all five categories are effective, state
+that no categories will be intentionally excluded. In either case, ask the user to
+reply exactly `CONFIRM`. If the request is ambiguous, state the normalization you propose, defaulting
+to all five categories unless the user clearly requested a restriction, and ask for
+`CONFIRM`; do not start extraction. After the user replies `CONFIRM`, the confirmed
+effective scope is fixed for that Phase 1 run.
 
 After confirmation, the only allowed output is exactly one file named
 `paper.census.json`. Do not create, return, or overwrite a provisional package,
@@ -31,6 +43,9 @@ Walk the complete paper sequentially, including intact tables and footnotes, eve
 when the confirmed scope contains only one category. Census only claims whose
 semantic category is inside the confirmed scope; reading remains whole-paper so that
 in-scope claims are not missed merely because they appear in unexpected sections.
+Disregard any advisory scope suggestion during extraction and census according only to
+the confirmed effective scope. Even when the paper's primary purpose emphasizes one
+category, inspect and retain claims from every category in the confirmed scope.
 Treat each census entry as one independently adjudicable Phase 2 review boundary: the
 smallest source-supported assertion that Phase 2 could retain or omit as a unit. For
 every claim, record its participating genes, category, locator, and a concise
