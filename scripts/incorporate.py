@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from collections import defaultdict
@@ -279,6 +280,28 @@ def replace_markdown_documents(directory, documents):
             shutil.rmtree(backup)
 
 
+def build_card_outputs(corpus_path, report_path):
+    """Run every card-output builder against the newly incorporated corpus."""
+    scripts_dir = Path(__file__).resolve().parent
+    output_dir = report_path.parent
+    for builder in sorted(scripts_dir.glob("build_card_*.py")):
+        output_name = builder.stem.removeprefix("build_").replace("_", "-") + ".html"
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(builder),
+                    "--corpus",
+                    str(corpus_path),
+                    "--output",
+                    str(output_dir / output_name),
+                ],
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            raise ValueError(f"{builder.name} failed with exit status {exc.returncode}") from exc
+
+
 def build(args):
     final_paths = sorted(args.accept_dir.glob("*.final.json"))
     census_paths = {
@@ -497,6 +520,7 @@ def main():
         atomic_json(args.report, report)
         replace_markdown_documents(args.cards_dir, cards_documents)
         replace_markdown_documents(args.evidence_dir, evidence_documents)
+        build_card_outputs(args.output_dir / "nel.corpus.json", args.report)
     except (OSError, ValueError) as exc:
         sys.exit(f"INCORPORATION FAILED:\n{exc}")
     print(
