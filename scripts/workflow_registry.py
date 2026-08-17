@@ -105,11 +105,24 @@ def write_workflow_state(work_dir: Path, workflow_id: str, mode: str) -> Path:
 
 
 def import_workflow_module(workflow_id: str, module_name: str):
+    """Import one module from a workflow package by module name."""
     metadata = load_workflow_metadata(workflow_id)
     package = metadata.get("python_package")
     if not isinstance(package, str) or not package:
         raise ValueError(f"workflow {workflow_id!r} has no python_package")
     return importlib.import_module(f"{package}.{module_name}")
+
+
+def import_workflow_entrypoint(workflow_id: str, entrypoint: str):
+    """Import a workflow-declared implementation without naming workflows here."""
+    metadata = load_workflow_metadata(workflow_id)
+    entrypoints = metadata.get("entrypoints") or {}
+    module_name = entrypoints.get(entrypoint)
+    if not isinstance(module_name, str) or not module_name:
+        raise ValueError(
+            f"workflow {workflow_id!r} has no declared {entrypoint!r} entrypoint"
+        )
+    return import_workflow_module(workflow_id, module_name)
 
 
 def workflow_for_work_dir(work_dir: Path) -> tuple[str, dict]:

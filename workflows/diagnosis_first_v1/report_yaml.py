@@ -9,11 +9,8 @@ from typing import Any
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = REPO_ROOT / "scripts"
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
-import report_audit  # noqa: E402
-import report_citations  # noqa: E402
+from scripts.core import citations as report_citations
+from workflows.diagnosis_first_v1 import audit_policy as report_audit
 
 SCHEMA_VERSION = 1
 NO_CITATION = "(no citation required)"

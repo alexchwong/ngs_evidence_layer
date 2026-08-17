@@ -13,7 +13,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts import vocab  # noqa: E402
 from scripts.workflow_registry import (  # noqa: E402
-    import_workflow_module,
+    import_workflow_entrypoint,
     load_registry,
     load_workflow_metadata,
     normalise_selector,
@@ -72,13 +72,8 @@ def setup_workflow(
         demo_case, demo_expected = demo_paths(example)
 
     # Optional workflow-owned setup hook for genuinely workflow-specific assets.
-    try:
-        runtime = import_workflow_module(workflow_id, "runtime")
-    except ModuleNotFoundError as exc:
-        package = metadata["python_package"]
-        if exc.name != f"{package}.runtime":
-            raise
-    else:
+    if (metadata.get("entrypoints") or {}).get("runtime"):
+        runtime = import_workflow_entrypoint(workflow_id, "runtime")
         hook = getattr(runtime, "setup_assets", None)
         if hook is not None:
             hook(work, mode=mode, case_id=case_id)

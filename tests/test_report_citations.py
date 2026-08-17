@@ -11,8 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "report_citations.py"
-sys.path.insert(0, str(ROOT / "scripts"))
-import card_tags  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from scripts.core import card_tags  # noqa: E402
 
 SPEC = importlib.util.spec_from_file_location("report_citations", SCRIPT)
 report_citations = importlib.util.module_from_spec(SPEC)

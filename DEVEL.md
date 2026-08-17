@@ -69,6 +69,14 @@ The helper clones only the workflow-owned tree, updates its identifiers/import p
 registers it without changing the default, and leaves shared contracts referenced in
 place. Promotion to default remains a deliberate edit of `workflows/registry.json`.
 
+Reporting runtime code has three dependency layers. Stable CLIs in `scripts/` resolve the
+workflow from `<work-dir>/workflow.json` and dispatch only to entrypoints declared by the
+workflow metadata. Policy-neutral mechanics live in `scripts/core/`; they must not import,
+name, or branch on a workflow. Retrieval, rendering, adjudication, report-audit policy and
+other behaviour that can differ between pipelines belongs in `workflows/<workflow>/`.
+This keeps workflow changes isolated while retaining one implementation of corpus, tag,
+citation and provenance invariants.
+
 ## Regenerate ingestion prompts
 
 The committed Phase 1–4 prompts are generated artefacts.

@@ -8,9 +8,9 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = ROOT / "scripts" / "append_integrated_diagnosis.py"
-sys.path.insert(0, str(ROOT / "scripts"))
-import retrieve  # noqa: E402
+SCRIPT = ROOT / "workflows" / "legacy_v1" / "append_integrated_diagnosis.py"
+sys.path.insert(0, str(ROOT))
+from scripts.core import retrieval as retrieval_core  # noqa: E402
 
 
 class AppendIntegratedDiagnosisTests(unittest.TestCase):
@@ -32,8 +32,8 @@ class AppendIntegratedDiagnosisTests(unittest.TestCase):
                 "genes_with_no_diagnosis_card": [],
                 "corpus": {"path": "corpus.json", "index": "index.json"},
             }
-            step2.write_text(retrieve.render_step_markdown(step2_result), encoding="utf-8")
-            retrieve.write_step_json(step2_result, step2.with_suffix(".json"))
+            step2.write_text(retrieval_core.render_step_markdown(step2_result), encoding="utf-8")
+            retrieval_core.write_step_json(step2_result, step2.with_suffix(".json"))
             adj.write_text(json.dumps({
                 "status": "indeterminate",
                 "provisional_disease": "MDS",

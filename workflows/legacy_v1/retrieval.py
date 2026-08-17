@@ -4,7 +4,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts import retrieval_core as core
+from scripts.core import card_tags, corpus, provenance
+from scripts.core import retrieval as core
+from workflows.legacy_v1 import adjudication as adjudication_policy
 
 WORKFLOW_ID = "legacy-v1"
 
@@ -99,7 +101,7 @@ def step4(
         carry_used_only = False
         broad_major_fallback = False
     else:
-        selected_diagnosis_ids = core._adjudication_diagnosis_card_ids(adjudication)
+        selected_diagnosis_ids = adjudication_policy._adjudication_diagnosis_card_ids(adjudication)
         unknown_ids = selected_diagnosis_ids - set(diagnosis_by_id)
         if unknown_ids:
             raise ValueError(
@@ -214,8 +216,8 @@ def diagnosis(work_dir: Path) -> Path:
     case_input_path = work_dir / "case-input.json"
     output = work_dir / "diagnostic_evidence.md"
     case_input = core.validate_case_input(case_input_path)
-    corpus, _index, digest = core.load_corpus(core.DEFAULT_CORPUS, core.DEFAULT_INDEX)
-    cards = core.blacklist_cards(core.flatten(corpus), core.DEFAULT_BLACKLIST)
+    corpus_doc, _index, digest = corpus.load_corpus(corpus.DEFAULT_CORPUS, corpus.DEFAULT_INDEX)
+    cards = corpus.blacklist_cards(corpus.flatten(corpus_doc), corpus.DEFAULT_BLACKLIST)
     result = step2(
         cards,
         case_input["genes"],
@@ -223,11 +225,11 @@ def diagnosis(work_dir: Path) -> Path:
         case_input["case_facts"],
         case_major_category=case_input["case_major_category"],
     )
-    global_tag_map = core.card_tags.build_card_tags(card["card_id"] for card in cards)
+    global_tag_map = card_tags.build_card_tags(card["card_id"] for card in cards)
     result["card_tags"] = global_tag_map
-    result["corpus"] = {"path": str(core.DEFAULT_CORPUS), "index": str(core.DEFAULT_INDEX)}
-    result["provenance"] = core.provenance(
-        corpus, core.DEFAULT_CORPUS, core.DEFAULT_INDEX, digest,
+    result["corpus"] = {"path": str(corpus.DEFAULT_CORPUS), "index": str(corpus.DEFAULT_INDEX)}
+    result["provenance"] = provenance.provenance(
+        corpus_doc, corpus.DEFAULT_CORPUS, corpus.DEFAULT_INDEX, digest,
         [card["card_id"] for card in result["diagnosis_cards"]],
     )
     result["step3_instruction"] = (
@@ -248,21 +250,21 @@ def downstream(work_dir: Path) -> Path:
 
     step2_result = core.load_step_json(diagnosis_result)
     adjudication_raw = json.loads(adjudication_result.read_text(encoding="utf-8"))
-    adjudication = core.normalise_adjudication(
+    adjudication = adjudication_policy.normalise_adjudication(
         step2_result, adjudication_raw, require_completed_review=True
     )
     corpus_path = Path(step2_result["corpus"]["path"])
     index_path = Path(step2_result["corpus"]["index"])
-    corpus, _index, digest = core.load_corpus(corpus_path, index_path)
+    corpus_doc, _index, digest = corpus.load_corpus(corpus_path, index_path)
     provisional = step2_result["provisional_disease"]
     refined = adjudication["downstream_filter_disease"]
     genes = step2_result["genes"]
-    cards = core.blacklist_cards(core.flatten(corpus), core.DEFAULT_BLACKLIST)
+    cards = corpus.blacklist_cards(corpus.flatten(corpus_doc), corpus.DEFAULT_BLACKLIST)
     eligible_card_ids = {card["card_id"] for card in cards}
-    current_tag_map = core.card_tags.build_card_tags(eligible_card_ids)
+    current_tag_map = card_tags.build_card_tags(eligible_card_ids)
     step2_tag_map = step2_result.get("card_tags")
-    step2_tags = core.card_tags.tag_by_id(step2_tag_map or {})
-    current_tags = core.card_tags.tag_by_id(current_tag_map)
+    step2_tags = card_tags.tag_by_id(step2_tag_map or {})
+    current_tags = card_tags.tag_by_id(current_tag_map)
     changed_tags = sorted(
         card_id for card_id in {card["card_id"] for card in step2_result["diagnosis_cards"]}
         if step2_tag_map and step2_tags.get(card_id) != current_tags.get(card_id)
@@ -274,7 +276,7 @@ def downstream(work_dir: Path) -> Path:
             + ". Rerun diagnosis and adjudication under the current corpus/blacklist before downstream retrieval."
         )
     newly_blocked_diagnosis = sorted(
-        core._adjudication_diagnosis_card_ids(adjudication) - eligible_card_ids
+        adjudication_policy._adjudication_diagnosis_card_ids(adjudication) - eligible_card_ids
     )
     if newly_blocked_diagnosis:
         raise ValueError(
@@ -303,8 +305,8 @@ def downstream(work_dir: Path) -> Path:
         "runtime_card_tags": current_tag_map,
         **selected,
     }
-    result["provenance"] = core.provenance(
-        corpus, corpus_path, index_path, digest,
+    result["provenance"] = provenance.provenance(
+        corpus_doc, corpus_path, index_path, digest,
         [card["card_id"] for card in result["retrieved"]],
     )
     bundle_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

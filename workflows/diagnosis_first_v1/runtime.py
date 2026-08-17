@@ -7,11 +7,8 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = REPO_ROOT / "scripts"
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
-import report_audit  # noqa: E402
-import vocab  # noqa: E402
+from workflows.diagnosis_first_v1 import audit_policy as report_audit
+from scripts import vocab  # noqa: E402
 from workflows.diagnosis_first_v1 import report_yaml  # noqa: E402
 
 DEFAULT_RULES = REPO_ROOT / "rules" / "agreed_reporting_rules.md"
@@ -240,3 +237,51 @@ def render_report_summary(
     output: Path,
 ) -> Path:
     return report_yaml.render_summary(summary, report_draft, evidence, card_tags, output)
+
+
+def run(command: str, work_dir: Path) -> list[str]:
+    """Execute one diagnosis-first deterministic runtime command."""
+    work = work_dir.resolve()
+    if command == "cmc":
+        refined = validate_diagnosis_draft(
+            work / "report-draft-dx.yaml",
+            work / "diagnostic_evidence.md",
+            work / "reporting-rules-dx.md",
+        )
+        return [refined]
+    if command == "remainder-rules":
+        initial, refined, changed = diagnosis_first_branch(
+            work / "case-input.json", work / "report-draft-dx.yaml"
+        )
+        sections = set(range(0, 6)) if changed else {2, 3, 4, 5}
+        path = write_rule_slice(DEFAULT_RULES, work / "reporting-rules-remainder.md", sections)
+        return [str(path), f"INITIAL_CMC={initial}", f"REFINED_CMC={refined}", f"CMC_CHANGED={'yes' if changed else 'no'}"]
+    if command == "validate-remainder":
+        validate_remainder_draft(
+            work / "report-draft-remainder.yaml",
+            work / "downstream_evidence.md",
+            work / "reporting-rules-remainder.md",
+        )
+        return [str(work / "report-draft-remainder.yaml")]
+    if command == "assemble":
+        path, changed, refined = assemble_report_draft(
+            work / "case-input.json",
+            work / "report-draft-dx.yaml",
+            work / "report-draft-remainder.yaml",
+            work / "report-draft.yaml",
+            work / "diagnostic_evidence.md",
+            work / "downstream_evidence.md",
+            work / "reporting-rules-dx.md",
+            work / "reporting-rules-remainder.md",
+        )
+        return [str(path), str(path.with_name("report-summary.yaml")), f"REFINED_CMC={refined}", f"CMC_CHANGED={'yes' if changed else 'no'}"]
+    if command == "render":
+        path = render_report_summary(
+            work / "report-summary.yaml",
+            work / "report-draft.yaml",
+            work / "evidence.md",
+            work / "card-tags.json",
+            work / "report-final.md",
+        )
+        return [str(path)]
+    raise ValueError(f"diagnosis-first-v1 does not implement runtime command {command!r}")

@@ -321,7 +321,7 @@ This step is compulsory after automatic adjudication or completed manual review.
 Run exactly:
 
 ```bash
-python scripts/append_integrated_diagnosis.py \
+python -m workflows.legacy_v1.append_integrated_diagnosis \
   --case <work-dir>/case.md \
   --diagnosis-result <work-dir>/diagnostic_evidence.md \
   --adjudication-result <work-dir>/adjudication.json

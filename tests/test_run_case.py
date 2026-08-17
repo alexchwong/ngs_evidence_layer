@@ -150,6 +150,24 @@ class RunCaseTests(unittest.TestCase):
         self.assertNotIn("prototype-diagnosis", source)
         self.assertNotIn("legacy-diagnosis", source)
 
+    def test_shared_runtime_layers_do_not_name_registered_workflows(self):
+        paths = [
+            ROOT / "scripts" / "retrieve.py",
+            ROOT / "scripts" / "render.py",
+            ROOT / "scripts" / "run_case.py",
+            ROOT / "scripts" / "package_run.py",
+            ROOT / "scripts" / "report_audit.py",
+            ROOT / "scripts" / "report_citations.py",
+            ROOT / "scripts" / "workflow_runtime.py",
+            ROOT / "scripts" / "workflow_registry.py",
+            *sorted((ROOT / "scripts" / "core").glob("*.py")),
+        ]
+        forbidden = ("legacy-v1", "legacy_v1", "diagnosis-first-v1", "diagnosis_first_v1")
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            for token in forbidden:
+                self.assertNotIn(token, text, f"{path.relative_to(ROOT)} names workflow {token}")
+
 
 if __name__ == "__main__":
     unittest.main()

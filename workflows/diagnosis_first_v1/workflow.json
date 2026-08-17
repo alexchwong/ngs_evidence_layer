@@ -2,6 +2,13 @@
   "schema_version": 1,
   "workflow_id": "diagnosis-first-v1",
   "python_package": "workflows.diagnosis_first_v1",
+  "entrypoints": {
+    "case_pipeline": "case_pipeline",
+    "retrieval": "retrieval",
+    "rendering": "rendering",
+    "audit_policy": "audit_policy",
+    "runtime": "runtime"
+  },
   "skill": "workflows/diagnosis_first_v1/SKILL.md",
   "supported_modes": [
     "ngs-report",

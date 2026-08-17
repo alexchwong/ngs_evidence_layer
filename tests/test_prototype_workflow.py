@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from scripts import report_audit
+from workflows.diagnosis_first_v1 import audit_policy as report_audit
 from scripts.setup_workflow import setup_workflow
 from workflows.diagnosis_first_v1 import report_yaml
 from workflows.diagnosis_first_v1 import runtime as diagnosis_first

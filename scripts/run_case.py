@@ -15,13 +15,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.workflow_registry import import_workflow_module, workflow_for_work_dir  # noqa: E402
+from scripts.workflow_registry import import_workflow_entrypoint, workflow_for_work_dir  # noqa: E402
 
 
 def run_stage(stage: str, work_dir: Path, python: str) -> None:
     work = work_dir.resolve()
     workflow_id, _metadata = workflow_for_work_dir(work)
-    pipeline = import_workflow_module(workflow_id, "case_pipeline")
+    pipeline = import_workflow_entrypoint(workflow_id, "case_pipeline")
     implementation = getattr(pipeline, stage, None)
     if implementation is None:
         raise ValueError(f"workflow {workflow_id!r} does not implement case stage {stage!r}")

@@ -2,6 +2,13 @@
   "schema_version": 1,
   "workflow_id": "legacy-v1",
   "python_package": "workflows.legacy_v1",
+  "entrypoints": {
+    "case_pipeline": "case_pipeline",
+    "retrieval": "retrieval",
+    "rendering": "rendering",
+    "audit_policy": "audit_policy",
+    "adjudication": "adjudication"
+  },
   "skill": "workflows/legacy_v1/SKILL.md",
   "supported_modes": [
     "evidence-block",

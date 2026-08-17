@@ -79,10 +79,23 @@ def check_workflow(selector: str) -> list[str]:
     workflow_id = normalise_selector(selector, registry)
     directory = workflow_dir(workflow_id, registry)
     metadata = load_workflow_metadata(workflow_id, registry)
-    required = [directory / "SKILL.md", directory / "workflow.json", directory / "case_pipeline.py", directory / "retrieval.py"]
+    required = [directory / "SKILL.md", directory / "workflow.json"]
     missing = [str(path.relative_to(REPO_ROOT)) for path in required if not path.is_file()]
     if missing:
         raise ValueError("workflow is missing required file(s): " + ", ".join(missing))
+    entrypoints = metadata.get("entrypoints")
+    if not isinstance(entrypoints, dict):
+        raise ValueError("workflow metadata must declare an entrypoints object")
+    for name in ("case_pipeline", "retrieval", "rendering", "audit_policy"):
+        module_name = entrypoints.get(name)
+        if not isinstance(module_name, str) or not module_name:
+            raise ValueError(f"workflow metadata must declare non-empty entrypoint {name!r}")
+        module_path = directory / (module_name.replace(".", "/") + ".py")
+        if not module_path.is_file():
+            raise ValueError(
+                f"workflow entrypoint {name!r} points to missing module "
+                f"{module_path.relative_to(REPO_ROOT)}"
+            )
     package = metadata.get("python_package")
     expected_package = f"workflows.{directory.name}"
     if package != expected_package:
