@@ -1,6 +1,6 @@
 # Default NGS report formatting
 
-This file controls report style and content prioritisation only. Mandatory source-integrity and citation-marker constraints are defined by the reporting workflow and `prompts/workflow/citation_rules.md`.
+This file controls report style and content prioritisation only. Mandatory source-integrity and citation-marker constraints are defined by the active reporting workflow and its workflow-local `citation_rules.md`.
 
 <!--
 Customise report length, content emphasis, section ordering, and omission rules below.

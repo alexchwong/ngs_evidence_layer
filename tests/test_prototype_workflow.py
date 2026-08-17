@@ -13,8 +13,8 @@ from validation.cases import retrieve_case
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RULES = ROOT / "rules" / "agreed_reporting_rules.md"
-POLICY = ROOT / "prompts" / "workflow" / "reporting_rule_policy.md"
+RULES = ROOT / "workflows" / "diagnosis_first_v1" / "prompts" / "agreed_reporting_rules.md"
+POLICY = ROOT / "workflows" / "diagnosis_first_v1" / "prompts" / "reporting_rule_policy.md"
 DIAGNOSIS_FIRST_PROMPT_DIR = ROOT / "workflows" / "diagnosis_first_v1" / "prompts" / "rule_views"
 
 

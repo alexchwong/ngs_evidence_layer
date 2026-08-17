@@ -6,7 +6,7 @@ This directory contains the standalone validation corpus used to test NGS Eviden
 - `case_functional.md` contains the parallel function-targeted suite used by `nel-validate-function`.
 - `case_functional_manifest.md` describes the purpose of every functional case and is evaluator/developer-only; it is never a runtime model input.
 - `cases.py` provides helpers to retrieve case inputs and marking criteria.
-- `prompts/workflow/mark_validation_report.md` is the template used to generate the external categorical marking prompt.
+- `validation/mark_validation_report.md` is the template used to generate the external categorical marking prompt.
 - Marking criteria are evaluator-only and must not be supplied to NEL before `report-final.md` is complete.
 
 Typical Python usage:

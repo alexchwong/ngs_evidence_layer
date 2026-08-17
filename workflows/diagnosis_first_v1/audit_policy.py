@@ -215,7 +215,7 @@ def split_draft_line(line, *, expected_rule_id, line_number):
             phrase = non_reportable.group(1)
             raise ValueError(
                 f"{expected_rule_id} is classified REPORT but contains a sentence beginning "
-                f"{phrase!r}. Under prompts/workflow/reporting_rule_policy.md, generic "
+                f"{phrase!r}. Under workflows/diagnosis_first_v1/prompts/reporting_rule_policy.md, generic "
                 "'No ...' and 'Not applicable ...' outcomes must be classified OMIT, except "
                 "for mandatory R0.1. If an absent finding is itself clinically material, "
                 "rewrite the REPORT line to lead with its patient-level clinical effect rather "
@@ -380,7 +380,7 @@ def main():
     validate.add_argument(
         "--rules",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "rules" / "agreed_reporting_rules.md",
+        default=Path(__file__).resolve().parent / "prompts" / "agreed_reporting_rules.md",
     )
     validate.add_argument(
         "--allow-no-evidence-tags",

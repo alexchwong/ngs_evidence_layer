@@ -11,9 +11,10 @@ from workflows.diagnosis_first_v1 import audit_policy as report_audit
 from scripts import vocab  # noqa: E402
 from workflows.diagnosis_first_v1 import report_yaml  # noqa: E402
 
-DEFAULT_RULES = REPO_ROOT / "rules" / "agreed_reporting_rules.md"
-REPORTING_RULE_POLICY = REPO_ROOT / "prompts" / "workflow" / "reporting_rule_policy.md"
-PROMPT_DIR = REPO_ROOT / "workflows" / "diagnosis_first_v1" / "prompts" / "rule_views"
+WORKFLOW_PROMPT_DIR = REPO_ROOT / "workflows" / "diagnosis_first_v1" / "prompts"
+DEFAULT_RULES = WORKFLOW_PROMPT_DIR / "agreed_reporting_rules.md"
+REPORTING_RULE_POLICY = WORKFLOW_PROMPT_DIR / "reporting_rule_policy.md"
+PROMPT_DIR = WORKFLOW_PROMPT_DIR / "rule_views"
 RULE_TEMPLATES = {
     "diagnosis": PROMPT_DIR / "diagnosis_rule_view.md",
     "remainder": PROMPT_DIR / "remainder_rule_view.md",

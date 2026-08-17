@@ -4,7 +4,7 @@
 
 Answer every rule supplied in `reporting-rules-remainder.md` using the patient case, `ngs-panel-scope.md`, and the evidence made available for this pass.
 
-`reporting-rules-remainder.md` is the prompt-owned analysis contract for this pass. The shared policy still uses REPORT/OMIT terminology; encode REPORT as `omit: false` and OMIT as `omit: true` in the YAML template. Apply `workflows/diagnosis_first_v1/prompts/citation_rules.md`.
+`reporting-rules-remainder.md` is the prompt-owned analysis contract for this pass. The workflow-local reporting policy embedded in this rule view uses REPORT/OMIT terminology; encode REPORT as `omit: false` and OMIT as `omit: true` in the YAML template. Apply `workflows/diagnosis_first_v1/prompts/citation_rules.md`.
 
 ## Branch semantics
 

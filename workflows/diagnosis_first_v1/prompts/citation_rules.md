@@ -9,7 +9,7 @@ This contract applies to `report-draft-dx.yaml` and `report-draft-remainder.yaml
 - Do not create a new document. Modify the deterministic YAML template supplied by the evidence-gathering step.
 - Preserve every rule `id` exactly and in order. Never add, delete, rename, or reorder rules.
 - Every rule MUST contain at least one item under `statements`, including rules with `omit: true`.
-- Use `omit: false` or `omit: No` for content that corresponds to `REPORT:` under the shared reporting policy.
+- Use `omit: false` or `omit: No` for content that corresponds to `REPORT:` under the workflow-local reporting policy.
 - Use `omit: true` or `omit: Yes` for content that corresponds to `OMIT:`. The deterministic Step 6A assembly removes these rules completely.
 - Each `statements` item is one atomic patient-level assertion with exactly two fields:
   - `text`: report-ready prose without any citation marker;

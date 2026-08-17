@@ -215,7 +215,7 @@ def split_draft_line(line, *, expected_rule_id, line_number):
             phrase = non_reportable.group(1)
             raise ValueError(
                 f"{expected_rule_id} is classified REPORT but contains a sentence beginning "
-                f"{phrase!r}. Under prompts/workflow/reporting_rule_policy.md, generic "
+                f"{phrase!r}. Under workflows/legacy_v1/prompts/reporting_rule_policy.md, generic "
                 "'No ...' and 'Not applicable ...' outcomes must be classified OMIT, except "
                 "for mandatory R0.1. If an absent finding is itself clinically material, "
                 "rewrite the REPORT line to lead with its patient-level clinical effect rather "

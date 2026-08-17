@@ -4,7 +4,7 @@
 
 Answer every rule supplied in `reporting-rules-dx.md` using the patient case, `diagnostic_evidence.md`, and `ngs-panel-scope.md`, then make one broad case-major-category routing decision.
 
-`reporting-rules-dx.md` is the prompt-owned analysis contract for this pass. The shared policy still uses REPORT/OMIT terminology; encode REPORT as `omit: false` and OMIT as `omit: true` in the YAML template. Apply `workflows/diagnosis_first_v1/prompts/citation_rules.md`.
+`reporting-rules-dx.md` is the prompt-owned analysis contract for this pass. The workflow-local reporting policy embedded in this rule view uses REPORT/OMIT terminology; encode REPORT as `omit: false` and OMIT as `omit: true` in the YAML template. Apply `workflows/diagnosis_first_v1/prompts/citation_rules.md`.
 
 ## YAML draft
 

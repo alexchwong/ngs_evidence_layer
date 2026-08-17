@@ -36,7 +36,7 @@ Shared patient-result semantics from the original workflow apply to Steps 1B, 3 
 
 For Steps 3 and 5, `<work-dir>/ngs-panel-scope.md` is the complete assay-scope boundary for gene-level NGS negative inference. When the patient NGS result is complete, a gene listed in that file but absent from the detected-variant list is negative only for the variant classes stated in the panel-scope file. Use that negative result to resolve reporting-rule criteria and exclusions; do not treat the gene as unresolved merely because it is not individually listed. Do not call this whole-gene biological wild type or extend the inference to unlisted variant classes.
 
-For diagnosis-first rule drafting, the shared reporting policy's REPORT/OMIT taxonomy is encoded in YAML as follows:
+For diagnosis-first rule drafting, the workflow-local reporting policy's REPORT/OMIT taxonomy is encoded in YAML as follows:
 
 - REPORT -> `omit: false` or `omit: No`;
 - OMIT -> `omit: true` or `omit: Yes`.

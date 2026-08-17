@@ -42,6 +42,7 @@ validation/case_functional_manifest.md
 validation/cases.py
 validation/retrieve_cli.py
 validation/package_marking.py
+validation/mark_validation_report.md
 examples/cases/01-escalation-fires.md
 examples/cases/02-escalation-does-not-fire.md
 examples/cases/03-ambiguous-disease.md

@@ -115,10 +115,11 @@ The helper performs the mechanical clone. It:
 5. leaves `default_workflow` unchanged;
 6. runs the structural workflow check before returning success.
 
-It does **not** copy shared repository contracts such as `scripts/core/`,
-`prompts/workflow/`, `rules/agreed_reporting_rules.md`, the corpus, schemas, or assay
-scope. The clone continues to reference those shared sources unless you deliberately
-make a workflow-owned alternative.
+It does **not** copy shared repository contracts such as `scripts/core/`, the shared
+case prompts under `prompts/workflow/`, the corpus, schemas, or assay scope. Diagnosis-first
+reporting policy, citation rules, formatting rules, and canonical reporting rules are already
+workflow-owned under `workflows/diagnosis_first_v1/prompts/`, so they are copied with the
+workflow and can diverge without changing legacy behaviour.
 
 Immediately verify the clone explicitly:
 
@@ -164,19 +165,18 @@ import, name, or branch on a particular workflow.
 
 ### Shared prompts and rules
 
-A cloned workflow still references shared sources where the original workflow did. These
-include files such as:
+The intentionally shared workflow prompts are limited to:
 
 - `prompts/workflow/capture_case.md`;
 - `prompts/workflow/structure_case.md`;
-- `prompts/workflow/reporting_rule_policy.md`;
-- `rules/agreed_reporting_rules.md`;
-- `config/ngs-panel-scope.md`.
+- `config/ngs-panel-scope.md` remains a shared assay contract.
 
-Edit a shared source only when the change is intended for every workflow that consumes
-it. If the experiment needs different behaviour, create a workflow-owned copy under the
-new workflow and update only the cloned `SKILL.md`, prompt, or runtime reference to use
-it.
+Reporting policy is workflow-owned. For diagnosis-first this includes
+`reporting_rule_policy.md`, `citation_rules.md`, `format_report.md`, and
+`agreed_reporting_rules.md` under `workflows/diagnosis_first_v1/prompts/`. Legacy owns
+its three reporting prompts under `workflows/legacy_v1/prompts/` while continuing to use
+the legacy canonical `rules/agreed_reporting_rules.md`. Edit a shared source only when
+the change is intended for every workflow that consumes it.
 
 ### Entrypoints and runtime commands
 
