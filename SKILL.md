@@ -27,6 +27,7 @@ Read `workflows/registry.json` and resolve exactly one workflow before reading c
 
 After selection, read only the registered workflow's `SKILL.md` and follow it exactly.
 
+
 ## Mode compatibility
 
 The accepted diagnosis-first workflow supports `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`.

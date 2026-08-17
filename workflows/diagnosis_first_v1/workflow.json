@@ -18,14 +18,15 @@
     "diagnostic_evidence.md",
     "diagnostic_evidence.json",
     "reporting-rules-dx.md",
-    "report-draft-dx.md",
+    "report-draft-dx.yaml",
     "bundle.json",
     "downstream_evidence.md",
     "reporting-rules-remainder.md",
     "evidence.md",
     "card-tags.json",
-    "report-draft-remainder.md",
-    "report-draft.md",
+    "report-draft-remainder.yaml",
+    "report-draft.yaml",
+    "report-summary.yaml",
     "report-final.md"
   ],
   "status": "accepted"

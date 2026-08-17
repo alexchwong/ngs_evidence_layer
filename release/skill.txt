@@ -1,4 +1,5 @@
 SKILL.md
+requirements.txt
 scripts/card_tags.py
 scripts/run_case.py
 scripts/retrieve.py
@@ -27,6 +28,7 @@ workflows/legacy_v1/prompts/*
 workflows/diagnosis_first_v1/*
 workflows/diagnosis_first_v1/prompts/*
 workflows/diagnosis_first_v1/prompts/rule_views/*
+workflows/diagnosis_first_v1/prompts/formatting/*
 prompts/formatting/*
 rules/agreed_reporting_rules.md
 validation/__init__.py

@@ -23,10 +23,20 @@ from retrieval_core import *  # noqa: F401,F403,E402
 from retrieval_core import _adjudication_diagnosis_card_ids  # noqa: E402
 from scripts.workflow_registry import import_workflow_module, workflow_for_work_dir  # noqa: E402
 from workflows.legacy_v1.retrieval import step2, step4  # noqa: E402,F401
-from workflows.diagnosis_first_v1.retrieval import (  # noqa: E402,F401
-    step2 as diagnosis_first_step2,
-    step4 as diagnosis_first_step4,
-)
+
+
+def diagnosis_first_step2(*args, **kwargs):
+    """Compatibility API; import diagnosis-first policy only when explicitly requested."""
+    from workflows.diagnosis_first_v1.retrieval import step2 as implementation
+
+    return implementation(*args, **kwargs)
+
+
+def diagnosis_first_step4(*args, **kwargs):
+    """Compatibility API; import diagnosis-first policy only when explicitly requested."""
+    from workflows.diagnosis_first_v1.retrieval import step4 as implementation
+
+    return implementation(*args, **kwargs)
 
 
 

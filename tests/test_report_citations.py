@@ -162,6 +162,14 @@ class ValidateTests(unittest.TestCase):
 
 
 class RenderTests(unittest.TestCase):
+    def test_render_default_still_requires_disposition_after_every_sentence_full_stop(self):
+        with self.assertRaisesRegex(ValueError, "required citation disposition"):
+            report_citations.render(
+                "First sentence. Second sentence. [card:a1b2c3]\n",
+                EVIDENCE,
+                CARD_TAGS,
+            )
+
     def test_assigns_numbers_in_first_appearance_order_and_reuses_them(self):
         report = "Second then first. [card:b1c2d3][card:a1b2c3]\n\nSecond again. [card:b1c2d3]\n"
         result = report_citations.render(report, EVIDENCE, CARD_TAGS)

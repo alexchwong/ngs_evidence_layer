@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 
 from scripts import retrieval_core as core
-from workflows.diagnosis_first_v1.runtime import extract_refined_cmc
 
 WORKFLOW_ID = "diagnosis-first-v1"
 
@@ -209,6 +208,10 @@ def diagnosis(work_dir: Path) -> Path:
 
 
 def downstream(work_dir: Path) -> Path:
+    # YAML parsing is diagnosis-first-only. Keep this import local so importing
+    # shared retrieval code for legacy-v1 never requires PyYAML.
+    from workflows.diagnosis_first_v1.runtime import extract_refined_cmc
+
     diagnosis_path = work_dir / "diagnostic_evidence.json"
     diagnosis_bundle = json.loads(diagnosis_path.read_text(encoding="utf-8"))
     if diagnosis_bundle.get("workflow_profile") != WORKFLOW_ID:
@@ -217,7 +220,7 @@ def downstream(work_dir: Path) -> Path:
             "by diagnosis-first-v1"
         )
     initial_cmc = diagnosis_bundle.get("initial_case_major_category")
-    refined_cmc = extract_refined_cmc(work_dir / "report-draft-dx.md")
+    refined_cmc = extract_refined_cmc(work_dir / "report-draft-dx.yaml")
     genes = diagnosis_bundle.get("genes", [])
     corpus_path = Path(diagnosis_bundle["corpus"]["path"])
     index_path = Path(diagnosis_bundle["corpus"]["index"])

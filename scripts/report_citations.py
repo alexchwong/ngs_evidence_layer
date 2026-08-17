@@ -329,14 +329,27 @@ def validate(
     return document_text
 
 
-def render(report_text, evidence_text, card_tags_text):
-    """Canonicalize, resolve Step 6B card-tag markers, and append primary entries."""
+def render(
+    report_text,
+    evidence_text,
+    card_tags_text,
+    *,
+    require_citation_after_full_stop=True,
+):
+    """Canonicalize, resolve card-tag markers, and append primary entries.
+
+    The legacy/model-facing Markdown contract requires a citation disposition after
+    every sentence-ending full stop. Structured diagnosis-first YAML already binds
+    one citation disposition to the complete statement, which may contain multiple
+    sentences, so that workflow explicitly disables the sentence-level placement
+    check while retaining all marker/evidence/card-tag validation.
+    """
     validate(
         report_text,
         evidence_text,
         card_tags_text,
         source="final report",
-        require_citation_after_full_stop=True,
+        require_citation_after_full_stop=require_citation_after_full_stop,
     )
     report_text = normalize_citation_placement(report_text)
     _evidence_body, source_references = split_references(evidence_text, source="evidence")

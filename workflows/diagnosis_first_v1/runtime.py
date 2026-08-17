@@ -12,6 +12,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 import report_audit  # noqa: E402
 import vocab  # noqa: E402
+from workflows.diagnosis_first_v1 import report_yaml  # noqa: E402
 
 DEFAULT_RULES = REPO_ROOT / "rules" / "agreed_reporting_rules.md"
 REPORTING_RULE_POLICY = REPO_ROOT / "prompts" / "workflow" / "reporting_rule_policy.md"
@@ -22,7 +23,6 @@ RULE_TEMPLATES = {
     "full": PROMPT_DIR / "full_rule_view.md",
 }
 SECTION_HEADING = re.compile(r"^# R(\d+)\b")
-REFINED_CMC_LINE = re.compile(r"^REFINED_CMC: (.+)$")
 
 
 def _validation_case_text(mode: str, case_id: str) -> str:
@@ -164,32 +164,8 @@ def write_rule_slice(source: Path, output: Path, sections: set[int]) -> Path:
     return output
 
 
-def split_diagnosis_draft(draft_text: str) -> tuple[str, str]:
-    """Return (R0-R1 draft, refined CMC) after validating terminal-line shape."""
-    lines = draft_text.splitlines()
-    if not lines:
-        raise ValueError("report-draft-dx.md is empty")
-    match = REFINED_CMC_LINE.fullmatch(lines[-1])
-    if match is None:
-        raise ValueError(
-            "report-draft-dx.md must end with exactly one routing line in the form "
-            "'REFINED_CMC: <canonical case major category>'. No text, citation marker, "
-            "or punctuation may follow that line."
-        )
-    refined = match.group(1)
-    if refined not in vocab.CASE_MAJOR_CATEGORY_SET:
-        raise ValueError(
-            f"REFINED_CMC value {refined!r} is not canonical. Replace it with exactly one of: "
-            + " | ".join(vocab.CASE_MAJOR_CATEGORIES)
-        )
-    rule_text = "\n".join(lines[:-1])
-    if not rule_text:
-        raise ValueError("report-draft-dx.md contains no reporting-rule lines before REFINED_CMC")
-    return rule_text + "\n", refined
-
-
 def extract_refined_cmc(path: Path) -> str:
-    return split_diagnosis_draft(_read(path))[1]
+    return report_yaml.read_refined_cmc(path, vocab.CASE_MAJOR_CATEGORY_SET)
 
 
 def diagnosis_first_branch(case_input: Path, diagnosis_draft: Path) -> tuple[str, str, bool]:
@@ -207,14 +183,23 @@ def diagnosis_first_branch(case_input: Path, diagnosis_draft: Path) -> tuple[str
 
 
 def validate_diagnosis_draft(draft: Path, evidence: Path, rules: Path) -> str:
-    rule_draft, refined = split_diagnosis_draft(_read(draft))
-    report_audit.validate_draft(
-        rule_draft,
-        _read(evidence),
-        _read(rules),
-        allow_no_evidence_tags=True,
+    document = report_yaml.validate_rule_document(
+        draft,
+        evidence,
+        rules,
+        require_refined_cmc=True,
+        valid_cmcs=vocab.CASE_MAJOR_CATEGORY_SET,
     )
-    return refined
+    return document["refined_cmc"]
+
+
+def validate_remainder_draft(draft: Path, evidence: Path, rules: Path) -> None:
+    report_yaml.validate_rule_document(
+        draft,
+        evidence,
+        rules,
+        require_refined_cmc=False,
+    )
 
 
 def assemble_report_draft(
@@ -222,24 +207,36 @@ def assemble_report_draft(
     diagnosis_draft: Path,
     remainder_draft: Path,
     output: Path,
-    evidence: Path,
-    rules: Path,
+    diagnosis_evidence: Path,
+    downstream_evidence: Path,
+    diagnosis_rules: Path,
+    remainder_rules: Path,
 ) -> tuple[Path, bool, str]:
     initial, refined, changed = diagnosis_first_branch(case_input, diagnosis_draft)
-    dx_rules, refined = split_diagnosis_draft(_read(diagnosis_draft))
-    remainder = _read(remainder_draft)
-    if not remainder.strip():
-        raise ValueError("report-draft-remainder.md is empty")
-
-    assembled = remainder if changed else dx_rules.rstrip() + "\n" + remainder.lstrip()
-    if not assembled.endswith("\n"):
-        assembled += "\n"
-    report_audit.validate_draft(
-        assembled,
-        _read(evidence),
-        _read(rules),
-        allow_no_evidence_tags=True,
+    dx = report_yaml.validate_rule_document(
+        diagnosis_draft,
+        diagnosis_evidence,
+        diagnosis_rules,
+        require_refined_cmc=True,
+        valid_cmcs=vocab.CASE_MAJOR_CATEGORY_SET,
     )
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(assembled, encoding="utf-8")
+    remainder = report_yaml.validate_rule_document(
+        remainder_draft,
+        downstream_evidence,
+        remainder_rules,
+        require_refined_cmc=False,
+    )
+    assembled_rules = remainder["rules"] if changed else dx["rules"] + remainder["rules"]
+    report_yaml.write_report_draft(assembled_rules, output)
+    report_yaml.write_summary_template(output.with_name("report-summary.yaml"))
     return output, changed, refined
+
+
+def render_report_summary(
+    summary: Path,
+    report_draft: Path,
+    evidence: Path,
+    card_tags: Path,
+    output: Path,
+) -> Path:
+    return report_yaml.render_summary(summary, report_draft, evidence, card_tags, output)

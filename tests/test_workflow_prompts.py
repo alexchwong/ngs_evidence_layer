@@ -23,7 +23,7 @@ SHARED_PROMPTS = {
     "modify_blacklist.md",
 }
 LEGACY_PROMPTS = {"adjudicate_diagnosis.md", "revise_diagnosis.md", "analyse_report.md"}
-CURRENT_PROMPTS = {"analyse_diagnosis.md", "analyse_remainder.md"}
+CURRENT_PROMPTS = {"analyse_diagnosis.md", "analyse_remainder.md", "citation_rules.md", "format_report.md"}
 CURRENT_RULE_PROMPTS = {"diagnosis_rule_view.md", "remainder_rule_view.md", "full_rule_view.md"}
 
 
@@ -36,6 +36,8 @@ def test_root_skill_routes_default_and_legacy_through_registry():
     assert "--legacy" in skill
     assert "--legacy-v1" in skill
     assert "diagnosis-first-v1" in skill
+    assert "python3 -m venv .env" not in skill
+    assert ".env/bin/python -m pip install -r requirements.txt" not in skill
 
 
 
@@ -57,7 +59,7 @@ def test_workflow_owned_and_shared_prompts_are_separated():
 
 def test_every_prompt_referenced_by_authoritative_workflow_specs_exists():
     pattern = re.compile(
-        r"(?:prompts/workflow|workflows/(?:legacy_v1|diagnosis_first_v1)/prompts(?:/rule_views)?)/[A-Za-z0-9_.-]+\.md"
+        r"(?:prompts/workflow|workflows/(?:legacy_v1|diagnosis_first_v1)/prompts(?:/(?:rule_views|formatting))?)/[A-Za-z0-9_.-]+\.md"
     )
     for skill_path in (LEGACY_SKILL, CURRENT_SKILL):
         references = set(pattern.findall(skill_path.read_text(encoding="utf-8")))
@@ -87,6 +89,14 @@ def test_current_skill_uses_state_driven_shared_clis():
     assert "workflow_runtime.py cmc --work-dir <work-dir>" in skill
     assert "workflow_runtime.py remainder-rules --work-dir <work-dir>" in skill
     assert "workflow_runtime.py assemble --work-dir <work-dir>" in skill
+    assert "workflow_runtime.py validate-remainder --work-dir <work-dir>" in skill
+    assert "workflow_runtime.py render --work-dir <work-dir>" in skill
+    assert "report-draft-dx.yaml" in skill
+    assert "report-summary.yaml" in skill
+    assert "At Step 0 only" in skill
+    assert "python3 -m venv .env" in skill
+    assert ".env/bin/python -m pip install -r requirements.txt" in skill
+    assert "PyYAML>=6.0" in skill
     assert "prototype" not in skill.lower()
 
 
@@ -98,6 +108,8 @@ def test_legacy_skill_uses_same_state_driven_case_clis():
     assert "case_major_categories.py" not in skill
     assert "create_work_dir.py" not in skill
     assert "resolve_demo.py" not in skill
+    assert "python3 -m venv .env" not in skill
+    assert "pip install -r requirements.txt" not in skill
 
 
 def test_release_manifest_contains_new_runtime_and_no_phase1_shims():
@@ -111,6 +123,8 @@ def test_release_manifest_contains_new_runtime_and_no_phase1_shims():
         "scripts/workflow_registry.py",
         "scripts/workflow_runtime.py",
         "scripts/retrieval_core.py",
+        "requirements.txt",
+        "workflows/diagnosis_first_v1/prompts/formatting/*",
     ):
         assert required in manifest
     assert "0.2.2_prototype_skill.md" not in manifest

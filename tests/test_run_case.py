@@ -5,12 +5,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+
 from pathlib import Path
 
 from scripts.setup_workflow import setup_workflow
 
 ROOT = Path(__file__).resolve().parent.parent
 RUN_CASE = ROOT / "scripts" / "run_case.py"
+WORKFLOW_RUNTIME = ROOT / "scripts" / "workflow_runtime.py"
 
 
 def run(*arguments, success=True, cwd=None):
@@ -78,7 +80,47 @@ class RunCaseTests(unittest.TestCase):
             self.assertTrue((work / "evidence.md").is_file())
             self.assertTrue((work / "card-tags.json").is_file())
 
+    def test_legacy_setup_and_retrieval_do_not_require_pyyaml(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            work = base / "work"
+            blocker = base / "blocker"
+            blocker.mkdir()
+            (blocker / "yaml.py").write_text(
+                'raise ModuleNotFoundError("No module named \'yaml\'")\n',
+                encoding="utf-8",
+            )
+            env = dict(__import__("os").environ)
+            existing = env.get("PYTHONPATH")
+            env["PYTHONPATH"] = str(blocker) + ((":" + existing) if existing else "")
+
+            setup = subprocess.run(
+                [
+                    sys.executable, str(ROOT / "scripts" / "setup_workflow.py"),
+                    "--workflow", "legacy-v1", "--mode", "ngs-report",
+                    "--work-dir", str(work),
+                ],
+                capture_output=True, text=True, env=env, cwd=ROOT,
+            )
+            self.assertEqual(setup.returncode, 0, setup.stdout + setup.stderr)
+            write_case_input(work / "case-input.json")
+
+            diagnosis = subprocess.run(
+                [sys.executable, str(RUN_CASE), "diagnosis", "--work-dir", str(work)],
+                capture_output=True, text=True, env=env, cwd=ROOT,
+            )
+            self.assertEqual(diagnosis.returncode, 0, diagnosis.stdout + diagnosis.stderr)
+            write_adjudication(work / "adjudication.json")
+
+            downstream = subprocess.run(
+                [sys.executable, str(RUN_CASE), "downstream", "--work-dir", str(work)],
+                capture_output=True, text=True, env=env, cwd=ROOT,
+            )
+            self.assertEqual(downstream.returncode, 0, downstream.stdout + downstream.stderr)
+
     def test_diagnosis_first_diagnosis_and_downstream_run(self):
+        import yaml
+
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
             setup_workflow(workflow="diagnosis-first-v1", mode="ngs-report", work_dir=work)
@@ -86,15 +128,21 @@ class RunCaseTests(unittest.TestCase):
             output = run("diagnosis", "--work-dir", work)
             self.assertIn("diagnosis-first step 2", output)
             self.assertTrue((work / "diagnostic_evidence.md").is_file())
-            (work / "report-draft-dx.md").write_text(
-                "R0.1 REPORT: Fixture. (no citation required)\n"
-                "REFINED_CMC: myeloid neoplasm, unspecified\n",
-                encoding="utf-8",
+            self.assertTrue((work / "report-draft-dx.yaml").is_file())
+            draft_path = work / "report-draft-dx.yaml"
+            draft = yaml.safe_load(draft_path.read_text(encoding="utf-8"))
+            draft["refined_cmc"] = "myeloid neoplasm, unspecified"
+            draft_path.write_text(yaml.safe_dump(draft, sort_keys=False), encoding="utf-8")
+            generated = subprocess.run(
+                [sys.executable, str(WORKFLOW_RUNTIME), "remainder-rules", "--work-dir", str(work)],
+                capture_output=True, text=True,
             )
+            self.assertEqual(generated.returncode, 0, generated.stdout + generated.stderr)
             output = run("downstream", "--work-dir", work)
             self.assertIn("diagnosis-first step 4", output)
             self.assertTrue((work / "downstream_evidence.md").is_file())
             self.assertTrue((work / "evidence.md").is_file())
+            self.assertTrue((work / "report-draft-remainder.yaml").is_file())
 
     def test_run_case_uses_same_cli_for_both_workflows(self):
         source = RUN_CASE.read_text(encoding="utf-8")
