@@ -2,6 +2,15 @@
 name: ngs-evidence-layer
 description: Routes NGS evidence/report requests to the accepted diagnosis-first workflow or an explicitly selected registered workflow.
 ---
+
+## Model-step execution
+
+You are the model executor for this workflow.
+
+When a step is described as a **model step**, perform that reasoning yourself in the current session and write the required output. Do not attempt to call another LLM, invoke an LLM API, or merely describe what another model should do.
+
+Only use repository scripts for steps explicitly identified as deterministic CLI operations.
+
 # NGS Evidence Layer — workflow router
 
 This file routes the request only. The selected workflow's `SKILL.md` is authoritative for execution.

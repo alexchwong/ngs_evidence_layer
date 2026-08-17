@@ -31,6 +31,8 @@ Use `REPORT:` only when the rule produces patient-specific content that belongs 
 
 A reportable negative finding must lead with its **clinical effect**, not with a generic absence statement. For example, write `The absence of <finding> argues against <diagnosis>.` rather than `No <finding> was detected.`
 
+A negative or absent finding is `OMIT:`. The only exception to change this to `REPORT:` is when its absence materially changes the patient-level diagnosis, prognosis, treatment, or interpretation. 
+
 ### OMIT
 
 Use `OMIT:` when the rule has been evaluated but produces no patient-specific content that should appear in the final report. In particular:
@@ -43,9 +45,8 @@ Use `OMIT:` when the rule has been evaluated but produces no patient-specific co
 - omit generic statements that none of the detected variants raise germline concern;
 - omit generic statements that there is no relevant prognostic evidence, no actionable alteration, no relevant kinase alteration, no treatment-specific effect, no transplant implication, no validated MRD marker, no applicable follow-up result, no informative germline architecture, or no other rule-specific finding;
 - omit a rule whose requested finding, event, follow-up specimen, molecular class, allelic state, or other prerequisite is absent and where no separate clinically useful interpretation follows.
-
+- apply these omission rules by meaning, not wording: rephrasing `No X` as `X is not present`, `X does not apply`, or `X does not alter Y` does not make it reportable.
 `R0.1` is the explicit exception: it is always `REPORT:` even when the required result sentence is `No pathogenic variants were detected on NGS.`
 
-Do not use `OMIT:` merely because a conclusion is negative in wording. A **specific detected finding with a clinically useful negative/cautionary interpretation** may still be `REPORT:` when that interpretation changes how the detected finding should be understood or used. Conversely, the presence of a citation does not make a non-applicable rule reportable.
-
+Do not use `OMIT:` merely because a clinically material conclusion is negative in wording. A **specific detected finding with a clinically useful negative/cautionary interpretation** may still be `REPORT:` when that interpretation changes how the detected finding should be understood or used. A negative statement about an absent or non-applicable finding is otherwise `OMIT:`. Conversely, the presence of a citation does not make a non-applicable rule reportable.
 When a canonical reporting rule explicitly requires `OMIT:` in a stated circumstance, that instruction is binding.
