@@ -49,6 +49,9 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 
 ## Reporting workflow architecture
 
+See [`WORKFLOW.md`](WORKFLOW.md) for the full workflow-separation contract, cloning
+procedure, modification boundaries, validation, and promotion/removal steps.
+
 **Default workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
 the integrated diagnosis, then passes that diagnosis into a second pass over the remaining
 agreed reporting rules.
@@ -301,6 +304,7 @@ Keep documentation separated by audience:
 
 - `README.md` — end-user NGS reporting and current corpus contents;
 - `INGEST.md` — corpus-curation workflow;
+- `WORKFLOW.md` — reporting-workflow architecture, cloning, modification, and promotion;
 - `DEVEL.md` — developer and release maintenance;
 - `NEWS.md` — changelog.
 

@@ -274,5 +274,6 @@ evidence to the active corpus. They remain pending re-ingestion.
 ## Other documentation
 
 - [`INGEST.md`](INGEST.md) — add, review, accept, and re-ingest publications.
+- [`WORKFLOW.md`](WORKFLOW.md) — reporting-workflow separation, cloning, modification, validation, and promotion.
 - [`DEVEL.md`](DEVEL.md) — prompt maintenance, testing, versioning, and releases.
 - [`NEWS.md`](NEWS.md) — changelog.

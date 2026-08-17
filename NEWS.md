@@ -1,6 +1,8 @@
 # NEWS
 
 ## 0.2.3
+- Added `WORKFLOW.md` documenting workflow isolation, cloning, modification, validation, and promotion.
+- Refactored shared workflow scripts for better separation of workflows. Note `prompt/workflow/` prompts remain shared between workflows. 
 - Expanded the active corpus from 12 to 29 publications across diagnosis, prognosis, treatment, MRD, CHIP, CCUS, and germline evidence.
 - Diagnosis-first rule drafting now supports multiple atomic statements per rule with statement-level citations.
 - Diagnosis-first reporting suppresses generic negative or not-applicable statements unless their absence materially changes interpretation.
