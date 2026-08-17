@@ -53,6 +53,9 @@ python scripts/quarantine.py review --key <publication-key> --note "<review-note
 
 Redo/review commands for an accepted paper:
 
+Historical Phase 5/5R commands are compatibility-only. New accepted-card review uses
+`prepare_redo.py cards` followed by Phase 2R → Phase 3 → Phase 4.
+
 ```bash
 # Rebuild the census and all downstream phases.
 python scripts/prepare_redo.py census --key <publication-key>
@@ -75,6 +78,18 @@ python scripts/transport.py export --output nel-private-state.tar.gz
 python scripts/transport.py import nel-private-state.tar.gz --dry-run
 python scripts/transport.py import nel-private-state.tar.gz
 ```
+
+## Contents
+
+- [Move private corpus state between computers](#move-private-corpus-state-between-computers)
+- [1. Parse PDFs](#1-parse-pdfs)
+- [2. Curate missing DOI/citation metadata](#2-curate-missing-doicitation-metadata)
+- [3. Fan out papers](#3-fan-out-papers)
+- [4. Run Phases 1–4](#4-run-phases-14)
+- [5. Confirm the paper](#5-confirm-the-paper)
+- [6. Incorporate accepted papers](#6-incorporate-accepted-papers)
+- [6A. Redo or review an accepted paper](#6a-redo-or-review-an-accepted-paper)
+- [Development and prompt maintenance](#development-and-prompt-maintenance)
 
 The normal workflow is:
 
@@ -299,8 +314,9 @@ separate withdrawal or corpus-versioning procedure.
 
 ## 4. Run Phases 1–4
 
-Run each phase in a fresh chat. Save the model's returned JSON file into the same
-`work/<publication-key>/` folder before starting the next phase.
+Run each phase in a fresh chat. Save every returned phase artefact into the same
+`work/<publication-key>/` folder before starting the next phase, including critique or
+handoff files when a phase routes work backward.
 
 | Phase | Chat/session | Give the model | Prompt | Save output as |
 |---|---|---|---|---|

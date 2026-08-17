@@ -49,18 +49,14 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 
 ## Reporting workflow architecture
 
-`diagnosis-first-v1` is the default workflow while `legacy-v1` remains an explicit
-selectable pipeline. Root `SKILL.md` is a router backed by `workflows/registry.json`.
-The work directory is bound once through `scripts/setup_workflow.py`, which writes
-`<work-dir>/workflow.json`; subsequent deterministic commands read that state rather
-than inferring workflow identity from evidence files.
+**Default workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
+the integrated diagnosis, then passes that diagnosis into a second pass over the remaining
+agreed reporting rules.
 
-Workflow-owned strategy lives under `workflows/diagnosis_first_v1/` and
-`workflows/legacy_v1/`, including orchestration prompts and retrieval selection policy.
-Canonical reporting/citation prompts, corpus/blacklist/tag mechanics, rendering,
-validation, and packaging infrastructure remain shared. `scripts/retrieval_core.py`
-contains shared retrieval mechanics; each workflow's `retrieval.py` owns its selection
-algorithm.
+**Alternate workflows:**
+
+- `legacy-v1` — Adjudicates and appends the integrated diagnosis before a single later
+  pass evaluates the complete case against all agreed reporting rules.
 
 Create an isolated experimental workflow with:
 
@@ -253,8 +249,9 @@ The `README.md` `Current corpus` section must use this structure:
    version first.
 4. Under each version heading, use a four-column table in this exact order:
    `Publication key`, `DOI`, `Paper nickname`, `Contribution to corpus`.
-5. List each active publication exactly once. Use the publication key and metadata from
-   `output/corpus/nel.index.json`, and summarize its corpus contribution concisely.
+5. List each active publication exactly once. Use publication/version/nickname metadata
+   from `output/corpus/nel.index.json`, DOI from the matching citation in
+   `output/corpus/nel.corpus.json`, and summarize its corpus contribution concisely.
 6. After the active groups, add `### Incompatible papers pending re-ingestion` when the
    index contains rejected incompatible packages. Explain that these packages do not
    contribute evidence, then use a two-column `Publication key` and `Status` table with

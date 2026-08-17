@@ -1,5 +1,6 @@
 SKILL.md
 requirements.txt
+config/ngs-panel-scope.md
 scripts/card_tags.py
 scripts/run_case.py
 scripts/retrieve.py

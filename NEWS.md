@@ -1,6 +1,10 @@
 # NEWS
 
 ## 0.2.3
+- Expanded the active corpus from 12 to 29 publications across diagnosis, prognosis, treatment, MRD, CHIP, CCUS, and germline evidence.
+- Diagnosis-first rule drafting now supports multiple atomic statements per rule with statement-level citations.
+- Diagnosis-first reporting suppresses generic negative or not-applicable statements unless their absence materially changes interpretation.
+- Bundled the canonical NGS panel-scope definition required during workflow setup.
 - Replaced Phase 5 with accepted-card review inside the standard Phase 2–4 workflow.
 - Added collision-safe per-phase attempt filenames while retaining legacy archive filename compatibility.
 - Simplified redo preparation to census, provisional, and cards restoration modes without card edit allowlists.
