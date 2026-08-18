@@ -144,8 +144,16 @@ def questions_for_group(work: Path, domain: str, ids: list[str]) -> list[dict]:
 def _load_json(path: Path):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ValueError(f"invalid JSON {path}: {exc}") from exc
+    except OSError as exc:
+        raise ValueError(
+            f"invalid JSON {path}: could not read the model artifact ({exc}). "
+            "Required fix: return the complete JSON artifact again."
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"invalid JSON {path}: parser error at line {exc.lineno}, column {exc.colno}: {exc.msg}. "
+            "Required fix: return one complete syntactically valid JSON object only, with no Markdown fence or commentary."
+        ) from exc
 
 
 def _raise_issues(context: str, issues: list[str]) -> None:
@@ -157,37 +165,125 @@ def _raise_issues(context: str, issues: list[str]) -> None:
 def validate_case_input(work: Path) -> str:
     doc = _load_json(Path(work) / "case-input.json")
     expected = {"provisional_cmcs", "provisional_disease", "genes", "case_facts"}
-    if not isinstance(doc, dict) or set(doc) != expected:
-        raise ValueError("case-input.json must contain exactly provisional_cmcs, provisional_disease, genes, case_facts")
     issues = []
-    genes = doc["genes"]
-    if not isinstance(genes, list) or any(not isinstance(g, str) or not g.strip() or g != g.upper() for g in genes):
-        issues.append("genes must be a list of non-empty uppercase gene symbols")
-    elif len(genes) != len(set(genes)):
-        issues.append("genes contains duplicates")
-    cmcs = doc["provisional_cmcs"]
-    if not isinstance(cmcs, list) or not cmcs:
-        issues.append("provisional_cmcs must be a non-empty list")
-    else:
-        if len(cmcs) != len(set(cmcs)):
-            issues.append("provisional_cmcs contains duplicates")
-        for cmc in cmcs:
-            if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
-                issues.append(f"invalid provisional CMC {cmc!r}")
-    if not isinstance(doc["provisional_disease"], str) or not doc["provisional_disease"].strip():
-        issues.append("provisional_disease must be non-empty")
-    facts = doc["case_facts"]
-    if not isinstance(facts, list) or not facts:
-        issues.append("case_facts must be a non-empty list")
-    else:
-        ids = []
-        for index, fact in enumerate(facts):
-            if not isinstance(fact, dict) or not isinstance(fact.get("fact_id"), str) or not fact["fact_id"].strip():
-                issues.append(f"case_facts[{index}] requires non-empty fact_id")
-            else:
-                ids.append(fact["fact_id"])
-        if len(ids) != len(set(ids)):
-            issues.append("case_facts contains duplicate fact_id values")
+    if not isinstance(doc, dict):
+        _raise_issues(
+            "case-input.json",
+            [
+                "Top level — Problem: expected one JSON object. "
+                f"Received {type(doc).__name__}. Required fix: return one object containing exactly "
+                "provisional_cmcs, provisional_disease, genes and case_facts."
+            ],
+        )
+    missing = sorted(expected - set(doc))
+    unexpected = sorted(set(doc) - expected)
+    if missing:
+        issues.append(
+            "Top level — Problem: missing required field(s): " + ", ".join(missing) + ". "
+            "Required fix: add every missing field."
+        )
+    if unexpected:
+        issues.append(
+            "Top level — Problem: unexpected field(s): " + ", ".join(unexpected) + ". "
+            "Required fix: remove these fields; only provisional_cmcs, provisional_disease, genes and case_facts are allowed."
+        )
+
+    if "genes" in doc:
+        genes = doc["genes"]
+        if not isinstance(genes, list):
+            issues.append(
+                f"genes — Problem: expected a list, received {type(genes).__name__}. "
+                "Required fix: return a list of unique non-empty uppercase gene symbols."
+            )
+        else:
+            seen_genes = set()
+            for index, gene in enumerate(genes):
+                if not isinstance(gene, str) or not gene.strip() or gene != gene.upper():
+                    issues.append(
+                        f"genes[{index}] — Problem: {gene!r} is not a non-empty uppercase gene symbol. "
+                        "Required fix: replace it with the exact uppercase reported gene symbol."
+                    )
+                if isinstance(gene, str):
+                    if gene in seen_genes:
+                        issues.append(
+                            f"genes[{index}] — Problem: duplicate gene {gene!r}. Required fix: keep each reported gene once."
+                        )
+                    else:
+                        seen_genes.add(gene)
+
+    if "provisional_cmcs" in doc:
+        cmcs = doc["provisional_cmcs"]
+        if not isinstance(cmcs, list):
+            issues.append(
+                f"provisional_cmcs — Problem: expected a non-empty list, received {type(cmcs).__name__}. "
+                "Required fix: return one or more exact allowed CMC strings."
+            )
+        elif not cmcs:
+            issues.append(
+                "provisional_cmcs — Problem: list is empty. Required fix: supply at least one exact allowed CMC string."
+            )
+        else:
+            seen = set()
+            for index, cmc in enumerate(cmcs):
+                if not isinstance(cmc, str):
+                    issues.append(
+                        f"provisional_cmcs[{index}] — Problem: expected an allowed CMC string, received {cmc!r}. "
+                        "Required fix: replace it with an exact value from case-major-categories.json."
+                    )
+                    continue
+                if cmc in seen:
+                    issues.append(
+                        f"provisional_cmcs[{index}] — Problem: duplicate CMC {cmc!r}. Required fix: keep each CMC once."
+                    )
+                else:
+                    seen.add(cmc)
+                if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
+                    issues.append(
+                        f"provisional_cmcs[{index}] — Problem: {cmc!r} is not an allowed CMC. "
+                        "Required fix: replace it with an exact value from case-major-categories.json."
+                    )
+
+    if "provisional_disease" in doc:
+        disease = doc["provisional_disease"]
+        if not isinstance(disease, str) or not disease.strip():
+            issues.append(
+                "provisional_disease — Problem: value is blank or not a string. "
+                "Required fix: preserve the supplied clinicopathological diagnostic wording as a non-empty string."
+            )
+
+    if "case_facts" in doc:
+        facts = doc["case_facts"]
+        if not isinstance(facts, list):
+            issues.append(
+                f"case_facts — Problem: expected a non-empty list, received {type(facts).__name__}. "
+                "Required fix: return the material patient facts as a list of objects."
+            )
+        elif not facts:
+            issues.append(
+                "case_facts — Problem: list is empty. Required fix: include the material patient-level facts from the case."
+            )
+        else:
+            ids = []
+            for index, fact in enumerate(facts):
+                if not isinstance(fact, dict):
+                    issues.append(
+                        f"case_facts[{index}] — Problem: expected an object, received {fact!r}. "
+                        "Required fix: return a fact object containing a non-empty fact_id."
+                    )
+                    continue
+                fact_id = fact.get("fact_id")
+                if not isinstance(fact_id, str) or not fact_id.strip():
+                    issues.append(
+                        f"case_facts[{index}].fact_id — Problem: missing or blank. "
+                        "Required fix: supply a unique non-empty string fact_id."
+                    )
+                elif fact_id in ids:
+                    issues.append(
+                        f"case_facts[{index}].fact_id — Problem: duplicate value {fact_id!r}. "
+                        "Required fix: give every case fact a unique fact_id."
+                    )
+                else:
+                    ids.append(fact_id)
     _raise_issues("case-input.json", issues)
     return "case-input.json validated"
 
@@ -195,69 +291,179 @@ def validate_case_input(work: Path) -> str:
 def _load_yaml(path: Path):
     try:
         return yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
-        raise ValueError(f"invalid YAML {path}: {exc}") from exc
+    except OSError as exc:
+        raise ValueError(
+            f"invalid YAML {path}: could not read the model artifact ({exc}). "
+            "Required fix: return the complete YAML artifact again."
+        ) from exc
+    except yaml.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None)
+        where = f" at line {mark.line + 1}, column {mark.column + 1}" if mark is not None else ""
+        problem = getattr(exc, "problem", None) or str(exc)
+        raise ValueError(
+            f"invalid YAML {path}: parser error{where}: {problem}. "
+            "Required fix: return one complete syntactically valid YAML artifact only, with no Markdown fence or commentary."
+        ) from exc
 
 
 def _fact_rows(rows, *, aligned: bool, context: str) -> list[dict]:
     if not isinstance(rows, list):
-        raise ValueError(f"{context} facts must be a YAML list")
+        raise ValueError(
+            f"{context} facts failed validation with 1 issue(s):\n"
+            f"1. {context} facts — Problem: expected a YAML list, received {type(rows).__name__}. "
+            "Required fix: return a YAML list of fact/reason rows" + (" with citation fields." if aligned else ".")
+        )
     expected = {"fact", "reason", "citation"} if aligned else {"fact", "reason"}
-    output = []
     issues = []
-    for index, row in enumerate(rows):
-        if not isinstance(row, dict) or set(row) != expected:
-            issues.append(f"{context} fact {index + 1} must contain exactly {', '.join(sorted(expected))}")
+    for index, row in enumerate(rows, start=1):
+        location = f"{context} fact {index}"
+        if not isinstance(row, dict):
+            issues.append(
+                f"{location} — Problem: expected an object, received {row!r}. Required fix: return an object containing exactly "
+                + ", ".join(sorted(expected)) + "."
+            )
             continue
-        fact = row["fact"]
-        reason = row["reason"]
-        if not isinstance(fact, str) or not fact.strip():
-            issues.append(f"{context} fact {index + 1} has blank fact")
-        if not isinstance(reason, str) or not reason.strip():
-            issues.append(f"{context} fact {index + 1} has blank reason")
-        if (isinstance(fact, str) and CARD_RE.search(fact)) or (isinstance(reason, str) and CARD_RE.search(reason)):
-            issues.append(f"{context} fact {index + 1} embeds card tags in fact/reason")
-        if aligned:
-            citation = row["citation"]
+        missing = sorted(expected - set(row))
+        unexpected = sorted(set(row) - expected)
+        if missing:
+            issues.append(
+                f"{location} — Problem: missing field(s): {', '.join(missing)}. Required fix: add the missing field(s)."
+            )
+        if unexpected:
+            issues.append(
+                f"{location} — Problem: unexpected field(s): {', '.join(unexpected)}. Required fix: remove them; allowed fields are "
+                + ", ".join(sorted(expected)) + "."
+            )
+        fact = row.get("fact")
+        reason = row.get("reason")
+        if "fact" in row and (not isinstance(fact, str) or not fact.strip()):
+            issues.append(f"{location}.fact — Problem: blank or not a string. Required fix: supply the complete non-empty fact text.")
+        if "reason" in row and (not isinstance(reason, str) or not reason.strip()):
+            issues.append(f"{location}.reason — Problem: blank or not a string. Required fix: supply the complete non-empty reason text.")
+        if isinstance(fact, str) and CARD_RE.search(fact):
+            issues.append(f"{location}.fact — Problem: embeds a runtime card tag. Required fix: remove card tags from fact text.")
+        if isinstance(reason, str) and CARD_RE.search(reason):
+            issues.append(f"{location}.reason — Problem: embeds a runtime card tag. Required fix: remove card tags from reason text.")
+        if aligned and "citation" in row:
+            citation = row.get("citation")
             if citation is not None and (not isinstance(citation, str) or CITATION_RE.fullmatch(citation) is None):
-                issues.append(f"{context} fact {index + 1} citation must be null or adjacent runtime card tags")
-        output.append(row)
+                issues.append(
+                    f"{location}.citation — Problem: {citation!r} is not null or adjacent runtime card tags. "
+                    "Required fix: use null or only adjacent tags such as [card:abcdef][card:123456]."
+                )
     _raise_issues(f"{context} facts", issues)
-    return output
+    return rows
 
 
 def _validate_diagnosis_doc(doc, *, aligned: bool, final: bool) -> dict:
-    if not isinstance(doc, dict) or set(doc) != {"provisional_cmcs", "diagnoses", "facts"}:
-        raise ValueError("diagnosis state must contain exactly provisional_cmcs, diagnoses, facts")
+    expected = {"provisional_cmcs", "diagnoses", "facts"}
     issues = []
-    cmcs = doc["provisional_cmcs"]
-    if not isinstance(cmcs, list) or not cmcs or len(cmcs) != len(set(cmcs)):
-        issues.append("diagnosis provisional_cmcs must be a non-empty unique list")
-    else:
-        for cmc in cmcs:
-            if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
-                issues.append(f"diagnosis contains invalid provisional CMC {cmc!r}")
-    diagnoses = doc["diagnoses"]
-    if not isinstance(diagnoses, list):
-        issues.append("diagnoses must be a list")
-    else:
-        if final and not diagnoses:
-            issues.append("final diagnostic terrace must accept at least one WHO5 diagnosis")
-        for index, row in enumerate(diagnoses):
-            if not isinstance(row, dict) or set(row) != {"schema_disease", "narrow_diagnosis"}:
-                issues.append(f"diagnoses[{index}] must contain schema_disease and narrow_diagnosis")
-                continue
-            disease = row["schema_disease"]
-            if disease in WHO5_EXCLUDED_SCHEMA_DISEASES:
-                issues.append("MDS/AML is ICC-only and cannot be the accepted WHO5 routing diagnosis")
-            elif disease not in vocab.CASE_DISEASE_SET:
-                issues.append(f"diagnoses[{index}].schema_disease {disease!r} is not canonical")
-            if not isinstance(row["narrow_diagnosis"], str) or not row["narrow_diagnosis"].strip():
-                issues.append(f"diagnoses[{index}].narrow_diagnosis must be non-empty WHO5 wording")
-    try:
-        _fact_rows(doc["facts"], aligned=aligned, context="diagnosis")
-    except ValueError as exc:
-        issues.extend(str(exc).splitlines()[1:] or [str(exc)])
+    if not isinstance(doc, dict):
+        _raise_issues(
+            "diagnosis state",
+            [
+                "Top level — Problem: expected a YAML object. "
+                f"Received {type(doc).__name__}. Required fix: return one object containing exactly provisional_cmcs, diagnoses and facts."
+            ],
+        )
+    missing = sorted(expected - set(doc))
+    unexpected = sorted(set(doc) - expected)
+    if missing:
+        issues.append(f"Top level — Problem: missing field(s): {', '.join(missing)}. Required fix: add every missing field.")
+    if unexpected:
+        issues.append(
+            f"Top level — Problem: unexpected field(s): {', '.join(unexpected)}. "
+            "Required fix: remove them; only provisional_cmcs, diagnoses and facts are allowed."
+        )
+
+    if "provisional_cmcs" in doc:
+        cmcs = doc["provisional_cmcs"]
+        if not isinstance(cmcs, list):
+            issues.append(
+                f"provisional_cmcs — Problem: expected a non-empty list, received {type(cmcs).__name__}. "
+                "Required fix: return one or more exact allowed CMC strings."
+            )
+        elif not cmcs:
+            issues.append("provisional_cmcs — Problem: list is empty. Required fix: supply at least one exact allowed CMC string.")
+        else:
+            seen = set()
+            for index, cmc in enumerate(cmcs):
+                if not isinstance(cmc, str):
+                    issues.append(
+                        f"provisional_cmcs[{index}] — Problem: expected an allowed CMC string, received {cmc!r}. "
+                        "Required fix: replace it with an exact allowed CMC value."
+                    )
+                    continue
+                if cmc in seen:
+                    issues.append(f"provisional_cmcs[{index}] — Problem: duplicate CMC {cmc!r}. Required fix: keep each CMC once.")
+                else:
+                    seen.add(cmc)
+                if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
+                    issues.append(
+                        f"provisional_cmcs[{index}] — Problem: {cmc!r} is not an allowed CMC. "
+                        "Required fix: replace it with an exact allowed CMC value."
+                    )
+
+    if "diagnoses" in doc:
+        diagnoses = doc["diagnoses"]
+        if not isinstance(diagnoses, list):
+            issues.append(
+                f"diagnoses — Problem: expected a list, received {type(diagnoses).__name__}. "
+                "Required fix: return a list of WHO5 routing diagnoses."
+            )
+        else:
+            if final and not diagnoses:
+                issues.append("diagnoses — Problem: final diagnostic terrace accepted no diagnosis. Required fix: include at least one WHO5 diagnosis.")
+            for index, row in enumerate(diagnoses):
+                location = f"diagnoses[{index}]"
+                if not isinstance(row, dict):
+                    issues.append(
+                        f"{location} — Problem: expected an object, received {row!r}. "
+                        "Required fix: return an object containing exactly schema_disease and narrow_diagnosis."
+                    )
+                    continue
+                row_expected = {"schema_disease", "narrow_diagnosis"}
+                missing_row = sorted(row_expected - set(row))
+                unexpected_row = sorted(set(row) - row_expected)
+                if missing_row:
+                    issues.append(f"{location} — Problem: missing field(s): {', '.join(missing_row)}. Required fix: add them.")
+                if unexpected_row:
+                    issues.append(
+                        f"{location} — Problem: unexpected field(s): {', '.join(unexpected_row)}. "
+                        "Required fix: remove them; only schema_disease and narrow_diagnosis are allowed."
+                    )
+                if "schema_disease" in row:
+                    disease = row["schema_disease"]
+                    if not isinstance(disease, str):
+                        issues.append(
+                            f"{location}.schema_disease — Problem: expected a canonical disease string, received {disease!r}. "
+                            "Required fix: use one exact value from allowed-schema-diseases.json."
+                        )
+                    elif disease in WHO5_EXCLUDED_SCHEMA_DISEASES:
+                        issues.append(
+                            f"{location}.schema_disease — Problem: {disease!r} is ICC-only and cannot be the accepted WHO5 routing diagnosis. "
+                            "Required fix: use the corresponding WHO5 diagnosis/routing value from allowed-schema-diseases.json."
+                        )
+                    elif disease not in vocab.CASE_DISEASE_SET:
+                        issues.append(
+                            f"{location}.schema_disease — Problem: {disease!r} is not canonical. "
+                            "Required fix: use one exact value from allowed-schema-diseases.json."
+                        )
+                if "narrow_diagnosis" in row and (
+                    not isinstance(row["narrow_diagnosis"], str) or not row["narrow_diagnosis"].strip()
+                ):
+                    issues.append(
+                        f"{location}.narrow_diagnosis — Problem: blank or not a string. "
+                        "Required fix: supply non-empty WHO5 diagnostic wording."
+                    )
+
+    if "facts" in doc:
+        try:
+            _fact_rows(doc["facts"], aligned=aligned, context="diagnosis")
+        except ValueError as exc:
+            lines = str(exc).splitlines()
+            nested = lines[1:] if len(lines) > 1 else lines
+            issues.extend(re.sub(r"^\d+\.\s+", "", line) for line in nested)
     _raise_issues("diagnosis state", issues)
     return doc
 
@@ -273,19 +479,53 @@ def validate_category_answer(path: Path, domain: str, *, final: bool = True, ali
 
 def validate_review(path: Path) -> tuple[bool, list[str]]:
     doc = _load_json(Path(path))
-    if not isinstance(doc, dict) or set(doc) != {"pass", "issues"}:
-        raise ValueError("semantic review must contain exactly pass and issues")
+    expected = {"pass", "issues"}
     issues = []
-    valid_pass = isinstance(doc["pass"], bool)
-    valid_issues = isinstance(doc["issues"], list) and all(isinstance(x, str) for x in doc["issues"])
-    if not valid_pass:
-        issues.append("semantic review pass must be boolean")
-    if not valid_issues:
-        issues.append("semantic review issues must be a string list")
-    if valid_pass and valid_issues and doc["pass"] and doc["issues"]:
-        issues.append("passing semantic review must have no issues")
-    if valid_pass and valid_issues and not doc["pass"] and not doc["issues"]:
-        issues.append("failing semantic review must identify at least one issue")
+    if not isinstance(doc, dict):
+        _raise_issues(
+            "semantic review",
+            [
+                "Top level — Problem: expected one JSON object. "
+                f"Received {type(doc).__name__}. Required fix: return exactly pass and issues."
+            ],
+        )
+    missing = sorted(expected - set(doc))
+    unexpected = sorted(set(doc) - expected)
+    if missing:
+        issues.append(f"Top level — Problem: missing field(s): {', '.join(missing)}. Required fix: add every missing field.")
+    if unexpected:
+        issues.append(
+            f"Top level — Problem: unexpected field(s): {', '.join(unexpected)}. Required fix: remove them; only pass and issues are allowed."
+        )
+    valid_pass = isinstance(doc.get("pass"), bool) if "pass" in doc else False
+    if "pass" in doc and not valid_pass:
+        issues.append(
+            f"pass — Problem: expected true or false, received {doc.get('pass')!r}. Required fix: use a JSON boolean."
+        )
+    valid_issue_list = isinstance(doc.get("issues"), list) if "issues" in doc else False
+    valid_issue_strings = False
+    if "issues" in doc and not valid_issue_list:
+        issues.append(
+            f"issues — Problem: expected a list, received {type(doc.get('issues')).__name__}. "
+            "Required fix: return a JSON list of concise actionable issue strings."
+        )
+    elif valid_issue_list:
+        valid_issue_strings = True
+        for index, value in enumerate(doc["issues"]):
+            if not isinstance(value, str) or not value.strip():
+                valid_issue_strings = False
+                issues.append(
+                    f"issues[{index}] — Problem: issue is blank or not a string ({value!r}). "
+                    "Required fix: provide a non-empty actionable description of the semantic defect."
+                )
+    if valid_pass and valid_issue_list and valid_issue_strings:
+        if doc["pass"] and doc["issues"]:
+            issues.append("pass/issues — Problem: pass is true but issues is non-empty. Required fix: when pass is true, return issues: [].")
+        if not doc["pass"] and not doc["issues"]:
+            issues.append(
+                "pass/issues — Problem: pass is false but no issue is identified. "
+                "Required fix: include at least one non-empty actionable semantic defect in issues."
+            )
     _raise_issues("semantic review", issues)
     return doc["pass"], doc["issues"]
 
@@ -298,26 +538,49 @@ def known_tags_from_evidence(path: Path) -> set[str]:
 def validate_alignment(source_path: Path, aligned_path: Path, domain: str, evidence_path: Path) -> str:
     source = _load_yaml(Path(source_path))
     aligned = _load_yaml(Path(aligned_path))
+    # Source is previously accepted workflow state. The model-owned aligned artifact must first be structurally usable.
     validate_category_answer(source_path, domain, final=True, aligned=False)
     validate_category_answer(aligned_path, domain, final=True, aligned=True)
     issues = []
     if domain == "diagnosis":
-        if source["provisional_cmcs"] != aligned["provisional_cmcs"] or source["diagnoses"] != aligned["diagnoses"]:
-            issues.append("evidence alignment changed diagnosis routing state")
+        if source["provisional_cmcs"] != aligned["provisional_cmcs"]:
+            issues.append(
+                "provisional_cmcs — Problem: evidence alignment changed diagnostic routing state. "
+                "Required fix: copy provisional_cmcs character-for-character from the supplied final diagnosis answer."
+            )
+        if source["diagnoses"] != aligned["diagnoses"]:
+            issues.append(
+                "diagnoses — Problem: evidence alignment changed accepted diagnoses. "
+                "Required fix: copy diagnoses character-for-character from the supplied final diagnosis answer."
+            )
         source_rows, aligned_rows = source["facts"], aligned["facts"]
     else:
         source_rows, aligned_rows = source, aligned
     if len(source_rows) != len(aligned_rows):
-        issues.append("evidence alignment changed fact count")
+        issues.append(
+            f"facts — Problem: evidence alignment changed fact count from {len(source_rows)} to {len(aligned_rows)}. "
+            "Required fix: return exactly the same fact rows in the same order and add only citation."
+        )
     known = known_tags_from_evidence(evidence_path)
     for index, (before, after) in enumerate(zip(source_rows, aligned_rows), start=1):
-        if before["fact"] != after["fact"] or before["reason"] != after["reason"]:
-            issues.append(f"evidence alignment changed fact/reason at row {index}")
+        if before["fact"] != after["fact"]:
+            issues.append(
+                f"fact {index}.fact — Problem: evidence alignment changed the accepted fact text. "
+                "Required fix: restore the supplied fact character-for-character."
+            )
+        if before["reason"] != after["reason"]:
+            issues.append(
+                f"fact {index}.reason — Problem: evidence alignment changed the accepted reason text. "
+                "Required fix: restore the supplied reason character-for-character."
+            )
         citation = after["citation"]
         if citation:
             unknown = sorted(set(CARD_RE.findall(citation)) - known)
             if unknown:
-                issues.append(f"evidence alignment cites unknown tag(s) at row {index}: {', '.join(unknown)}")
+                issues.append(
+                    f"fact {index}.citation — Problem: cites runtime tag(s) not present in permitted evidence: {', '.join(unknown)}. "
+                    "Required fix: remove those tags and use only exact tags from the supplied evidence, or null when unsupported."
+                )
     _raise_issues("evidence alignment", issues)
     return f"validated {Path(aligned_path).name}"
 

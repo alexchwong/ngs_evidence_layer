@@ -653,11 +653,27 @@ def step_5(work: Path, profile: str | None) -> int:
 
 def _summary_validator(path: Path) -> str:
     text = _read(path).strip()
+    issues = []
     if not text:
-        raise ValueError("summary is empty")
-    if "[card:" in text or "## References" in text or "(no citation required)" in text:
-        raise ValueError("uncited summary must not contain citation syntax or bibliography")
-    _summary_sentence_manifest(text)
+        issues.append(
+            "Report — Problem: summary is empty. Required fix: return the complete uncited report under supported domain headings."
+        )
+    else:
+        if "[card:" in text:
+            issues.append(
+                "Report — Problem: uncited summary contains runtime card-tag syntax. Required fix: remove every [card:......] tag."
+            )
+        if "## References" in text:
+            issues.append(
+                "Report — Problem: uncited summary contains a References heading/bibliography. Required fix: remove the bibliography entirely."
+            )
+        if "(no citation required)" in text:
+            issues.append(
+                "Report — Problem: uncited summary contains '(no citation required)'. Required fix: remove every citation disposition marker."
+            )
+        _, manifest_issues = _summary_manifest_and_issues(text)
+        issues.extend(manifest_issues)
+    _raise_model_validation_issues("uncited report draft", issues)
     return "uncited report draft validated"
 
 
@@ -675,50 +691,115 @@ SUMMARY_HEADINGS = {
     "Germline": "germline",
 }
 SUMMARY_HEADING_RE = re.compile(r"^\*\*(?P<title>[^*]+)\*\*[ \t]*$", re.MULTILINE)
+SUMMARY_MARKDOWN_HEADING_RE = re.compile(r"^#{1,6}[ \t]+(?P<title>.+?)[ \t]*$", re.MULTILINE)
 SUMMARY_SENTENCE_END_RE = re.compile(r"\.(?=\s|$)")
 RUNTIME_CARD_TAG_RE = re.compile(r"\[card:([0-9a-f]{6})\]")
 
 
-def _summary_sentence_manifest(draft: str) -> list[dict]:
-    """Index sentence spans without changing any report bytes."""
-    headings = list(SUMMARY_HEADING_RE.finditer(draft))
-    if not headings:
-        expected = ", ".join(f"**{title}**" for title in SUMMARY_HEADINGS)
-        raise ValueError(
-            "uncited summary contains no indexed sentences because it has no supported domain headings; "
-            f"place every report sentence under an exact standalone heading from: {expected}"
-        )
-    sentences = []
-    for heading_index, heading in enumerate(headings):
-        title = heading.group("title")
+def _raise_model_validation_issues(context: str, issues: list[str]) -> None:
+    if issues:
+        rendered = "\n".join(f"{index}. {issue}" for index, issue in enumerate(issues, start=1))
+        raise ValueError(f"{context} failed validation with {len(issues)} issue(s):\n{rendered}")
+
+
+def _summary_manifest_and_issues(draft: str) -> tuple[list[dict], list[str]]:
+    """Return sentence spans plus every deterministic summary-format defect detectable in one pass."""
+    allowed = ", ".join(f"**{title}**" for title in SUMMARY_HEADINGS)
+    issues = []
+    markers = []
+    for match in SUMMARY_HEADING_RE.finditer(draft):
+        title = match.group("title")
+        markers.append((match.start(), match.end(), "bold", title, match))
         if title not in SUMMARY_HEADINGS:
-            raise ValueError(f"uncited summary contains unknown heading {title!r}")
+            issues.append(
+                f"Heading {title!r} — Problem: unsupported standalone bold heading. Required fix: remove it or replace it with one exact allowed heading: {allowed}."
+            )
+    for match in SUMMARY_MARKDOWN_HEADING_RE.finditer(draft):
+        title = match.group("title")
+        markers.append((match.start(), match.end(), "markdown", title, match))
+        issues.append(
+            f"Markdown heading {match.group(0)!r} — Problem: Markdown '#' headings are not supported. Required fix: remove it or use one exact standalone bold heading: {allowed}."
+        )
+    markers.sort(key=lambda row: row[0])
+    supported = [row for row in markers if row[2] == "bold" and row[3] in SUMMARY_HEADINGS]
+    if not supported:
+        issues.append(
+            "Report — Problem: no supported domain heading was found, so no report sentence can be indexed. "
+            f"Required fix: put every report sentence under an exact standalone heading from: {allowed}."
+        )
+
+    first_marker_start = markers[0][0] if markers else len(draft)
+    if draft[:first_marker_start].strip():
+        issues.append(
+            "Report preamble — Problem: text appears before the first domain heading. "
+            f"Required fix: remove the preamble or move each sentence under an exact allowed heading: {allowed}."
+        )
+
+    title_counts = {}
+    sentences = []
+    domain_counts = {domain: 0 for domain in SUMMARY_HEADINGS.values()}
+    for marker_index, marker in enumerate(markers):
+        start, end, kind, title, _match = marker
+        section_end = markers[marker_index + 1][0] if marker_index + 1 < len(markers) else len(draft)
+        body = draft[end:section_end]
+        if kind != "bold" or title not in SUMMARY_HEADINGS:
+            if body.strip():
+                issues.append(
+                    f"Unsupported heading {title!r} — Problem: text follows a heading that cannot be indexed into a clinical domain. "
+                    f"Required fix: move that text under one exact allowed heading: {allowed}."
+                )
+            continue
+        title_counts[title] = title_counts.get(title, 0) + 1
+        if title_counts[title] > 1:
+            issues.append(
+                f"Heading **{title}** — Problem: duplicate supported heading. "
+                "Required fix: merge all content for this domain under a single heading and remove the duplicate heading."
+            )
         domain = SUMMARY_HEADINGS[title]
-        section_start = heading.end()
-        section_end = headings[heading_index + 1].start() if heading_index + 1 < len(headings) else len(draft)
-        sentence_start = section_start
-        domain_index = 0
-        for ending in SUMMARY_SENTENCE_END_RE.finditer(draft, section_start, section_end):
-            domain_index += 1
+        sentence_start = end
+        section_sentence_count = 0
+        for ending in SUMMARY_SENTENCE_END_RE.finditer(draft, end, section_end):
             sentence_end = ending.end()
             sentence_text = draft[sentence_start:sentence_end].strip()
             if not sentence_text:
-                raise ValueError(f"uncited summary {domain} sentence {domain_index} is empty")
-            sentences.append(
-                {
-                    "sentence_id": f"{domain}-{domain_index}",
-                    "domain": domain,
-                    "sentence": sentence_text,
-                    "end": sentence_end,
-                }
-            )
+                issues.append(
+                    f"**{title}** — Problem: an empty full-stop-delimited sentence was detected. Required fix: remove the stray full stop/whitespace."
+                )
+            else:
+                domain_counts[domain] += 1
+                section_sentence_count += 1
+                sentences.append(
+                    {
+                        "sentence_id": f"{domain}-{domain_counts[domain]}",
+                        "domain": domain,
+                        "sentence": sentence_text,
+                        "end": sentence_end,
+                    }
+                )
             sentence_start = sentence_end
-        if draft[sentence_start:section_end].strip():
-            raise ValueError(f"uncited summary {domain} contains text that does not end in a full stop")
-    if not sentences:
-        raise ValueError("uncited summary contains supported headings but no complete full-stop-terminated sentences")
-    return sentences
+        trailing = draft[sentence_start:section_end].strip()
+        if trailing:
+            issues.append(
+                f"**{title}** — Problem: trailing text does not end in a full stop: {trailing!r}. "
+                "Required fix: make every sentence complete and end it with a full stop."
+            )
+        if section_sentence_count == 0 and not body.strip():
+            issues.append(
+                f"**{title}** — Problem: heading has no report sentence. Required fix: remove the empty heading, or add a fact-supported full-stop-terminated sentence."
+            )
+    if supported and not sentences:
+        issues.append(
+            "Report — Problem: supported headings were present but no complete full-stop-terminated sentences were found. "
+            "Required fix: include at least one complete fact-supported sentence under a supported heading."
+        )
+    return sentences, issues
 
+
+def _summary_sentence_manifest(draft: str) -> list[dict]:
+    """Index sentence spans without changing any report bytes."""
+    sentences, issues = _summary_manifest_and_issues(draft)
+    _raise_model_validation_issues("uncited report draft", issues)
+    return sentences
 
 def _accepted_fact_manifest(work: Path) -> list[dict]:
     facts = []
@@ -758,74 +839,256 @@ def _load_sentence_fact_alignment(work: Path, path: Path) -> tuple[list[dict], d
     try:
         document = yaml.safe_load(_read(path))
     except yaml.YAMLError as exc:
-        raise ValueError(f"citation alignment is not valid YAML: {exc}") from exc
-    if not isinstance(document, dict) or set(document) != {"alignments"}:
-        raise ValueError("citation alignment must contain exactly one 'alignments' field")
+        mark = getattr(exc, "problem_mark", None)
+        where = f" at line {mark.line + 1}, column {mark.column + 1}" if mark is not None else ""
+        problem = getattr(exc, "problem", None) or str(exc)
+        raise ValueError(
+            f"citation alignment failed validation with 1 issue(s):\n"
+            f"1. YAML — Problem: parser error{where}: {problem}. Required fix: return one complete syntactically valid YAML object only."
+        ) from exc
+
+    issues = []
+    if not isinstance(document, dict):
+        _raise_model_validation_issues(
+            "citation alignment",
+            [
+                "Top level — Problem: expected a YAML object containing exactly 'alignments'. "
+                f"Received {type(document).__name__}. Required fix: return the complete alignments object."
+            ],
+        )
+    expected_top = {"alignments"}
+    missing_top = sorted(expected_top - set(document))
+    unexpected_top = sorted(set(document) - expected_top)
+    if missing_top:
+        issues.append("Top level — Problem: missing 'alignments'. Required fix: add the alignments field.")
+    if unexpected_top:
+        issues.append(
+            f"Top level — Problem: unexpected field(s): {', '.join(unexpected_top)}. "
+            "Required fix: for a matched result return only 'alignments'; use only 'unmatched_sentences' for a semantic-unmatched result."
+        )
+    if "alignments" not in document:
+        _raise_model_validation_issues("citation alignment", issues)
+
     rows = document["alignments"]
     if not isinstance(rows, list):
-        raise ValueError("citation alignment alignments must be a list")
-    expected_ids = [row["sentence_id"] for row in sentences]
-    actual_ids = []
-    alignment = {}
-    for index, row in enumerate(rows, start=1):
-        if not isinstance(row, dict) or set(row) != {"sentence_id", "fact_ids"}:
-            raise ValueError(f"citation alignment row {index} must contain exactly sentence_id and fact_ids")
-        sentence_id = row["sentence_id"]
-        fact_ids = row["fact_ids"]
-        if not isinstance(sentence_id, str):
-            raise ValueError(f"citation alignment row {index} sentence_id must be a string")
-        if not isinstance(fact_ids, list) or not fact_ids or any(not isinstance(value, str) for value in fact_ids):
-            raise ValueError(f"citation alignment row {index} fact_ids must be a non-empty string list")
-        if len(fact_ids) != len(set(fact_ids)):
-            raise ValueError(f"citation alignment row {index} fact_ids contains duplicates")
-        actual_ids.append(sentence_id)
-        alignment[sentence_id] = fact_ids
-    if actual_ids != expected_ids:
-        raise ValueError(
-            "citation alignment sentence IDs must appear exactly once in report order; "
-            f"expected {expected_ids!r}, received {actual_ids!r}"
+        issues.append(
+            f"alignments — Problem: expected a list, received {type(rows).__name__}. Required fix: return one row per supplied sentence in report order."
         )
+        _raise_model_validation_issues("citation alignment", issues)
+
+    expected_ids = [row["sentence_id"] for row in sentences]
     sentence_domains = {row["sentence_id"]: row["domain"] for row in sentences}
-    for sentence_id, fact_ids in alignment.items():
+    same_domain_fact_ids = {
+        domain: [fact_id for fact_id, fact in facts.items() if fact["domain"] == domain]
+        for domain in DOMAINS
+    }
+    actual_ids = []
+    valid_rows = []
+    for index, row in enumerate(rows, start=1):
+        location = f"alignments[{index - 1}]"
+        expected_sentence_id = expected_ids[index - 1] if index <= len(expected_ids) else None
+        if not isinstance(row, dict):
+            issues.append(
+                f"{location} — Problem: expected an object, received {row!r}. Required fix: return exactly sentence_id and fact_ids."
+            )
+            continue
+        expected_fields = {"sentence_id", "fact_ids"}
+        missing = sorted(expected_fields - set(row))
+        unexpected = sorted(set(row) - expected_fields)
+        if missing:
+            issues.append(f"{location} — Problem: missing field(s): {', '.join(missing)}. Required fix: add them.")
+        if unexpected:
+            issues.append(
+                f"{location} — Problem: unexpected field(s): {', '.join(unexpected)}. Required fix: remove them; only sentence_id and fact_ids are allowed."
+            )
+        sentence_id = row.get("sentence_id")
+        fact_ids = row.get("fact_ids")
+        valid_sentence_id = isinstance(sentence_id, str) and bool(sentence_id.strip())
+        if "sentence_id" in row and not valid_sentence_id:
+            fix = f"set sentence_id to {expected_sentence_id!r}" if expected_sentence_id else "use the exact supplied sentence_id for this row"
+            issues.append(
+                f"{location}.sentence_id — Problem: expected a non-empty string, received {sentence_id!r}. Required fix: {fix}."
+            )
+        if valid_sentence_id:
+            actual_ids.append(sentence_id)
+        valid_fact_ids = isinstance(fact_ids, list) and bool(fact_ids)
+        fact_strings = []
+        if "fact_ids" in row:
+            if not isinstance(fact_ids, list):
+                issues.append(
+                    f"{location}.fact_ids — Problem: expected a non-empty list, received {type(fact_ids).__name__}. "
+                    "Required fix: return one or more exact supplied fact_id strings from the same domain."
+                )
+                valid_fact_ids = False
+            elif not fact_ids:
+                domain = sentence_domains.get(sentence_id)
+                allowed = same_domain_fact_ids.get(domain, []) if domain else []
+                issues.append(
+                    f"{location}.fact_ids — Problem: list is empty. Required fix: supply one or more same-domain fact IDs"
+                    + (f"; allowed here: {allowed!r}." if allowed else ".")
+                )
+                valid_fact_ids = False
+            else:
+                seen = set()
+                for fact_index, fact_id in enumerate(fact_ids):
+                    if not isinstance(fact_id, str) or not fact_id.strip():
+                        issues.append(
+                            f"{location}.fact_ids[{fact_index}] — Problem: expected a non-empty fact_id string, received {fact_id!r}. "
+                            "Required fix: replace it with an exact supplied same-domain fact_id."
+                        )
+                        valid_fact_ids = False
+                        continue
+                    fact_strings.append(fact_id)
+                    if fact_id in seen:
+                        issues.append(
+                            f"{location}.fact_ids[{fact_index}] — Problem: duplicate fact_id {fact_id!r}. Required fix: list each fact_id once."
+                        )
+                        valid_fact_ids = False
+                    else:
+                        seen.add(fact_id)
+        if valid_sentence_id and isinstance(fact_ids, list) and fact_strings:
+            # Continue semantic checks even when the same row also has duplicate or malformed fact IDs,
+            # so one retry receives every independently detectable repair.
+            valid_rows.append((index, sentence_id, fact_strings))
+
+    counts = {sentence_id: actual_ids.count(sentence_id) for sentence_id in set(actual_ids)}
+    missing_ids = [sentence_id for sentence_id in expected_ids if counts.get(sentence_id, 0) == 0]
+    duplicate_ids = [sentence_id for sentence_id in expected_ids if counts.get(sentence_id, 0) > 1]
+    unexpected_ids = [sentence_id for sentence_id in actual_ids if sentence_id not in sentence_domains]
+    if missing_ids:
+        issues.append(
+            f"alignments — Problem: missing sentence_id(s): {missing_ids!r}. Required fix: add exactly one row for each missing sentence in report order."
+        )
+    if duplicate_ids:
+        issues.append(
+            f"alignments — Problem: duplicate sentence_id(s): {duplicate_ids!r}. Required fix: keep exactly one row for each supplied sentence_id."
+        )
+    if unexpected_ids:
+        issues.append(
+            f"alignments — Problem: unknown sentence_id(s): {unexpected_ids!r}. Required fix: remove them and use only supplied sentence IDs."
+        )
+    if actual_ids != expected_ids:
+        issues.append(
+            f"alignments — Problem: sentence IDs are not exactly once in report order. Expected {expected_ids!r}; received {actual_ids!r}. "
+            "Required fix: return the rows in the exact expected sequence."
+        )
+
+    for row_index, sentence_id, fact_ids in valid_rows:
+        if sentence_id not in sentence_domains:
+            continue
+        domain = sentence_domains[sentence_id]
+        allowed = same_domain_fact_ids.get(domain, [])
         for fact_id in fact_ids:
             if fact_id not in facts:
-                raise ValueError(f"citation alignment {sentence_id} refers to unknown fact {fact_id!r}")
-            if facts[fact_id]["domain"] != sentence_domains[sentence_id]:
-                raise ValueError(f"citation alignment {sentence_id} refers to cross-domain fact {fact_id!r}")
+                issues.append(
+                    f"alignments[{row_index - 1}].fact_ids — Problem: {fact_id!r} is not a supplied fact_id. "
+                    f"Required fix: remove it and use only same-domain fact IDs; allowed here: {allowed!r}."
+                )
+            elif facts[fact_id]["domain"] != domain:
+                issues.append(
+                    f"alignments[{row_index - 1}].fact_ids — Problem: {fact_id!r} is a cross-domain fact for sentence {sentence_id!r}. "
+                    f"Required fix: use only {domain} fact IDs; allowed here: {allowed!r}."
+                )
+    _raise_model_validation_issues("citation alignment", issues)
+    alignment = {row["sentence_id"]: list(row["fact_ids"]) for row in rows}
     return sentences, facts, alignment
 
 
 def _sentence_fact_alignment_validator(work: Path, path: Path) -> str:
-    if _unmatched_summary_feedback(path) is not None:
+    if _unmatched_summary_feedback(work, path) is not None:
         return "summary sentence unmatched"
     _load_sentence_fact_alignment(work, path)
     return "sentence-to-fact citation alignment validated"
 
 
-def _unmatched_summary_feedback(path: Path) -> str | None:
+def _unmatched_summary_feedback(work: Path, path: Path) -> str | None:
     text = _read(path).strip()
     if text == "UNMATCHED_SUMMARY_SENTENCE":
-        return "The citation aligner reported an unmatched summary sentence without details."
+        raise ValueError(
+            "unmatched sentence result failed validation with 1 issue(s):\n"
+            "1. Top level — Problem: bare UNMATCHED_SUMMARY_SENTENCE provides no sentence or repair reason. "
+            "Required fix: return unmatched_sentences YAML with each unmatched supplied sentence_id, its exact supplied sentence text, and a non-empty actionable reason."
+        )
     try:
         document = yaml.safe_load(text)
     except yaml.YAMLError:
         return None
-    if not isinstance(document, dict) or set(document) != {"unmatched_sentences"}:
+    if not isinstance(document, dict) or "unmatched_sentences" not in document:
         return None
+    issues = []
+    if set(document) != {"unmatched_sentences"}:
+        unexpected = sorted(set(document) - {"unmatched_sentences"})
+        missing_text = ""
+        if unexpected:
+            missing_text = f" Unexpected field(s): {', '.join(unexpected)}."
+        issues.append(
+            "Top level — Problem: an unmatched result must contain exactly unmatched_sentences." + missing_text +
+            " Required fix: remove every other top-level field."
+        )
     rows = document["unmatched_sentences"]
-    if not isinstance(rows, list) or not rows:
-        raise ValueError("unmatched_sentences must be a non-empty list")
+    if not isinstance(rows, list):
+        issues.append(
+            f"unmatched_sentences — Problem: expected a non-empty list, received {type(rows).__name__}. "
+            "Required fix: return one detail row for each unmatched report sentence."
+        )
+        _raise_model_validation_issues("unmatched sentence result", issues)
+    if not rows:
+        issues.append(
+            "unmatched_sentences — Problem: list is empty. Required fix: if nothing is unmatched, return alignments; otherwise include each unmatched sentence detail."
+        )
+
+    manifest = _summary_sentence_manifest(_read(work / "report-draft.md"))
+    by_id = {row["sentence_id"]: row for row in manifest}
+    seen = set()
     feedback = []
     for index, row in enumerate(rows, start=1):
-        if not isinstance(row, dict) or set(row) != {"sentence_id", "sentence", "reason"}:
-            raise ValueError(
-                f"unmatched_sentences row {index} must contain exactly sentence_id, sentence and reason"
+        location = f"unmatched_sentences[{index - 1}]"
+        if not isinstance(row, dict):
+            issues.append(
+                f"{location} — Problem: expected an object, received {row!r}. Required fix: return exactly sentence_id, sentence and reason."
             )
-        if any(not isinstance(row[key], str) or not row[key].strip() for key in row):
-            raise ValueError(f"unmatched_sentences row {index} fields must be non-empty strings")
-        feedback.append(
-            f"- {row['sentence_id']}: {row['sentence']}\n  Reason: {row['reason']}"
-        )
+            continue
+        expected_fields = {"sentence_id", "sentence", "reason"}
+        missing = sorted(expected_fields - set(row))
+        unexpected = sorted(set(row) - expected_fields)
+        if missing:
+            issues.append(f"{location} — Problem: missing field(s): {', '.join(missing)}. Required fix: add them.")
+        if unexpected:
+            issues.append(
+                f"{location} — Problem: unexpected field(s): {', '.join(unexpected)}. Required fix: remove them; only sentence_id, sentence and reason are allowed."
+            )
+        values = {}
+        for key in expected_fields:
+            if key not in row:
+                continue
+            value = row[key]
+            if not isinstance(value, str) or not value.strip():
+                issues.append(
+                    f"{location}.{key} — Problem: blank or not a string ({value!r}). Required fix: provide a non-empty string."
+                )
+            else:
+                values[key] = value
+        sentence_id = values.get("sentence_id")
+        if sentence_id:
+            if sentence_id in seen:
+                issues.append(
+                    f"{location}.sentence_id — Problem: duplicate unmatched sentence {sentence_id!r}. Required fix: report each unmatched sentence once."
+                )
+            else:
+                seen.add(sentence_id)
+            if sentence_id not in by_id:
+                issues.append(
+                    f"{location}.sentence_id — Problem: {sentence_id!r} is not a supplied report sentence ID. "
+                    f"Required fix: use one exact supplied ID: {list(by_id)!r}."
+                )
+            elif "sentence" in values and values["sentence"] != by_id[sentence_id]["sentence"]:
+                issues.append(
+                    f"{location}.sentence — Problem: text does not exactly match supplied {sentence_id!r}. "
+                    f"Expected {by_id[sentence_id]['sentence']!r}; received {values['sentence']!r}. Required fix: copy the supplied sentence text exactly."
+                )
+        if all(key in values for key in expected_fields):
+            feedback.append(f"- {values['sentence_id']}: {values['sentence']}\n  Reason: {values['reason']}")
+    _raise_model_validation_issues("unmatched sentence result", issues)
     return "\n".join(feedback)
 
 
@@ -865,16 +1128,20 @@ def _citation_alignment_validator(work: Path, path: Path) -> str:
 
 
 def _final_alignment_validator(work: Path, alignment_path: Path) -> str:
-    feedback = _unmatched_summary_feedback(alignment_path)
+    feedback = _unmatched_summary_feedback(work, alignment_path)
     if feedback is not None:
         return "summary sentence unmatched"
     _load_sentence_fact_alignment(work, alignment_path)
     cited = _assemble_cited_report(work, alignment_path)
     try:
         return _citation_alignment_validator(work, cited)
-    except (ValueError, OSError, KeyError):
+    except (ValueError, OSError, KeyError) as exc:
         cited.unlink(missing_ok=True)
-        raise
+        raise StepFailure(
+            "deterministic cited-report assembly failed after the model's sentence-to-fact alignment had already "
+            "passed validation. This is not repairable by changing the alignment model output. "
+            f"Internal invariant failure: {exc}"
+        ) from exc
 
 
 def step_6(work: Path, profile: str | None) -> int:
@@ -921,7 +1188,7 @@ def step_6(work: Path, profile: str | None) -> int:
                 validator=lambda path: _final_alignment_validator(work, path),
                 profile=profile,
             )
-        summary_feedback = _unmatched_summary_feedback(alignment)
+        summary_feedback = _unmatched_summary_feedback(work, alignment)
         if summary_feedback is not None:
             alignment.unlink(missing_ok=True)
             draft.rename(work / f"report-draft-unmatched-{cycle}.md")

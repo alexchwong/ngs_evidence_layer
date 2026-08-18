@@ -207,12 +207,14 @@ class TerracedWorkflowTests(unittest.TestCase):
             with self.assertRaises(ValueError) as raised:
                 runtime.validate_case_input(work)
             message = str(raised.exception)
-            self.assertIn("genes must be a list", message)
-            self.assertIn("provisional_cmcs contains duplicates", message)
-            self.assertIn("invalid provisional CMC", message)
-            self.assertIn("provisional_disease must be non-empty", message)
-            self.assertIn("case_facts[0] requires non-empty fact_id", message)
-            self.assertIn("case_facts[1] requires non-empty fact_id", message)
+            self.assertIn("genes[0]", message)
+            self.assertIn("uppercase gene symbol", message)
+            self.assertIn("duplicate CMC", message)
+            self.assertIn("not an allowed CMC", message)
+            self.assertIn("provisional_disease", message)
+            self.assertIn("non-empty string", message)
+            self.assertIn("case_facts[0].fact_id", message)
+            self.assertIn("case_facts[1].fact_id", message)
 
     def test_model_retry_receives_all_errors_and_records_usage(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -306,14 +308,14 @@ class TerracedWorkflowTests(unittest.TestCase):
 
             self.assertEqual(len(calls), 2)
             retry = calls[1][-1]["content"]
-            self.assertIn("no supported domain headings", retry)
+            self.assertIn("no supported domain heading", retry)
             self.assertIn("**Diagnosis**", retry)
             bundle = work / step.BUNDLE_DIR / "001-summary-1"
-            self.assertIn("no supported domain headings", (bundle / "attempt-1.validation.txt").read_text())
+            self.assertIn("no supported domain heading", (bundle / "attempt-1.validation.txt").read_text())
             self.assertTrue((bundle / "validated.txt").is_file())
             self.assertEqual(output.read_text(), "**Diagnosis**\n\nCorrectly headed diagnosis.\n")
 
-    def test_final_alignment_downstream_validation_retries_and_cleans_rejected_report(self):
+    def test_final_alignment_deterministic_assembly_failure_does_not_retry_model(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
             self._write_citation_alignment_fixture(work)
@@ -338,8 +340,6 @@ class TerracedWorkflowTests(unittest.TestCase):
 
             def complete(_binding, messages):
                 calls.append(messages)
-                if len(calls) == 2:
-                    self.assertFalse((work / "report-cited.md").exists())
                 return model_client.Completion(completion, None)
 
             with (
@@ -349,22 +349,22 @@ class TerracedWorkflowTests(unittest.TestCase):
                 patch.object(
                     step.runtime,
                     "validate_cited_report",
-                    side_effect=[ValueError("assembled cited report has invalid disposition"), "validated"],
+                    side_effect=ValueError("assembled cited report has invalid disposition"),
                 ),
             ):
-                step._model_call(
-                    work,
-                    call_id="final-citations-1",
-                    role="final_citation_alignment",
-                    messages=[{"role": "user", "content": "align"}],
-                    output=output,
-                    validator=lambda path: step._final_alignment_validator(work, path),
-                    profile=None,
-                )
+                with self.assertRaisesRegex(step.StepFailure, "not repairable by changing the alignment model output"):
+                    step._model_call(
+                        work,
+                        call_id="final-citations-1",
+                        role="final_citation_alignment",
+                        messages=[{"role": "user", "content": "align"}],
+                        output=output,
+                        validator=lambda path: step._final_alignment_validator(work, path),
+                        profile=None,
+                    )
 
-            self.assertEqual(len(calls), 2)
-            self.assertIn("assembled cited report has invalid disposition", calls[1][-1]["content"])
-            self.assertTrue((work / "report-cited.md").is_file())
+            self.assertEqual(len(calls), 1)
+            self.assertFalse((work / "report-cited.md").exists())
 
     def test_unmatched_sentence_details_are_fed_to_next_summary_cycle(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -380,8 +380,8 @@ class TerracedWorkflowTests(unittest.TestCase):
                     output.write_text(
                         "unmatched_sentences:\n"
                         "  - sentence_id: germline-1\n"
-                        "    sentence: No germline predisposition is identified.\n"
-                        "    reason: The accepted fact states only that no fact is reportable.\n",
+                        "    sentence: No germline fact is reportable.\n"
+                        "    reason: The accepted fact does not support the drafted sentence strongly enough.\n",
                         encoding="utf-8",
                     )
                 else:
@@ -400,8 +400,138 @@ class TerracedWorkflowTests(unittest.TestCase):
             self.assertEqual(len(captured_summary_messages), 2)
             correction = captured_summary_messages[1][1]["content"]
             self.assertIn("germline-1", correction)
-            self.assertIn("No germline predisposition is identified.", correction)
-            self.assertIn("no fact is reportable", correction)
+            self.assertIn("No germline fact is reportable.", correction)
+            self.assertIn("does not support the drafted sentence", correction)
+
+    def test_case_and_diagnosis_validation_handle_unhashable_cmcs_as_repairable_errors(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            (work / "case-input.json").write_text(
+                json.dumps(
+                    {
+                        "provisional_cmcs": [{"bad": "shape"}],
+                        "provisional_disease": "AML",
+                        "genes": ["NPM1"],
+                        "case_facts": [{"fact_id": "F1"}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as raised:
+                runtime.validate_case_input(work)
+            self.assertIn("provisional_cmcs[0]", str(raised.exception))
+            self.assertIn("Required fix", str(raised.exception))
+
+            diagnosis = work / "dx.yaml"
+            diagnosis.write_text(
+                yaml.safe_dump(
+                    {
+                        "provisional_cmcs": [{"bad": "shape"}],
+                        "diagnoses": [{"schema_disease": "AML", "narrow_diagnosis": "AML"}],
+                        "facts": [{"fact": "x", "reason": "y"}],
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as raised:
+                runtime.validate_category_answer(diagnosis, "diagnosis", final=True, aligned=False)
+            self.assertIn("provisional_cmcs[0]", str(raised.exception))
+            self.assertNotIn("unhashable", str(raised.exception))
+
+    def test_semantic_review_rejects_blank_issue_with_actionable_feedback(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "review.json"
+            path.write_text('{"pass": false, "issues": [""]}\n', encoding="utf-8")
+            with self.assertRaises(ValueError) as raised:
+                runtime.validate_review(path)
+            message = str(raised.exception)
+            self.assertIn("issues[0]", message)
+            self.assertIn("non-empty actionable", message)
+            self.assertIn("Required fix", message)
+
+    def test_summary_validator_aggregates_preamble_duplicate_heading_markdown_and_trailing_text(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "report-draft.md"
+            path.write_text(
+                "Preamble. [card:a1b2c3]\n\n"
+                "**Diagnosis**\n\nFirst diagnosis.\n\n"
+                "**Diagnosis**\n\nSecond diagnosis without stop\n\n"
+                "## Prognosis\n\nPrognosis statement.\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as raised:
+                step._summary_validator(path)
+            message = str(raised.exception)
+            self.assertIn("runtime card-tag syntax", message)
+            self.assertIn("text appears before the first domain heading", message)
+            self.assertIn("duplicate supported heading", message)
+            self.assertIn("does not end in a full stop", message)
+            self.assertIn("Markdown '#' headings are not supported", message)
+            self.assertGreaterEqual(message.count("Required fix"), 5)
+
+    def test_unmatched_sentence_rows_must_match_supplied_manifest_exactly(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            path = work / "report-citation-alignment.yaml"
+            path.write_text(
+                yaml.safe_dump(
+                    {
+                        "unmatched_sentences": [
+                            {
+                                "sentence_id": "fake-99",
+                                "sentence": "Invented sentence.",
+                                "reason": "Unsupported.",
+                            },
+                            {
+                                "sentence_id": "diagnosis-1",
+                                "sentence": "Wrong diagnosis text.",
+                                "reason": "Changed wording.",
+                            },
+                        ]
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as raised:
+                step._unmatched_summary_feedback(work, path)
+            message = str(raised.exception)
+            self.assertIn("fake-99", message)
+            self.assertIn("not a supplied report sentence ID", message)
+            self.assertIn("does not exactly match supplied 'diagnosis-1'", message)
+            self.assertIn("Expected 'First diagnosis.'", message)
+
+    def test_final_alignment_reports_multiple_independent_repairs_in_one_pass(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            path = work / "report-citation-alignment.yaml"
+            path.write_text(
+                yaml.safe_dump(
+                    {
+                        "alignments": [
+                            {"sentence_id": 123, "fact_ids": []},
+                            {"sentence_id": "diagnosis-2", "fact_ids": ["prognosis-1", "bogus", "bogus"]},
+                            {"sentence_id": "diagnosis-2", "fact_ids": ["diagnosis-2"]},
+                        ]
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as raised:
+                step._load_sentence_fact_alignment(work, path)
+            message = str(raised.exception)
+            self.assertIn("set sentence_id to 'diagnosis-1'", message)
+            self.assertIn("list is empty", message)
+            self.assertIn("duplicate fact_id 'bogus'", message)
+            self.assertIn("cross-domain fact", message)
+            self.assertIn("not a supplied fact_id", message)
+            self.assertIn("duplicate sentence_id", message)
+            self.assertIn("missing sentence_id", message)
+            self.assertGreaterEqual(message.count("Required fix"), 7)
 
     def test_bundle_folders_sort_chronologically_and_resume(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -493,6 +623,32 @@ class TerracedWorkflowTests(unittest.TestCase):
                 runtime.validate_alignment(source, aligned, "prognosis", evidence),
             )
 
+    def test_evidence_alignment_reports_all_independent_repairs_in_one_pass(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            source = work / "answer-prognosis.yaml"
+            aligned = work / "category-prognosis.yaml"
+            evidence = work / "evidence-prognosis.md"
+            source.write_text(
+                '- fact: "Original fact."\n'
+                '  reason: "Original reason."\n',
+                encoding="utf-8",
+            )
+            aligned.write_text(
+                '- fact: "Changed fact."\n'
+                '  reason: "Changed reason."\n'
+                '  citation: "[card:abcdef]"\n',
+                encoding="utf-8",
+            )
+            evidence.write_text("# Evidence\n\n[card:123456]\n", encoding="utf-8")
+            with self.assertRaises(ValueError) as raised:
+                runtime.validate_alignment(source, aligned, "prognosis", evidence)
+            message = str(raised.exception)
+            self.assertIn("changed the accepted fact text", message)
+            self.assertIn("changed the accepted reason text", message)
+            self.assertIn("not present in permitted evidence", message)
+            self.assertGreaterEqual(message.count("Required fix"), 3)
+
     def test_structured_citation_alignment_preserves_exact_draft_prose_and_layout(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
@@ -535,7 +691,7 @@ class TerracedWorkflowTests(unittest.TestCase):
                 "    fact_ids: [prognosis-1]\n",
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ValueError, "sentence IDs must appear exactly once in report order"):
+            with self.assertRaisesRegex(ValueError, "sentence IDs are not exactly once in report order"):
                 step._load_sentence_fact_alignment(work, alignment)
 
             rows = [
