@@ -7,7 +7,7 @@ Transform `report-draft.md` into the final clinical report. Apply the selected f
 ## Task-specific rules
 
 - `report-draft.md` is the sole source of report content.
-- Follow `prompts/workflow/citation_rules.md` exactly. Citation integrity takes precedence over formatting, compression, and word-count targets.
+- Follow `workflows/legacy_v1/prompts/citation_rules.md` exactly. Citation integrity takes precedence over formatting, compression, and word-count targets.
 - Every draft line is explicitly classified after its rule ID as either `REPORT:` or `OMIT:`.
 - Only text after `REPORT:` is eligible source prose for the final report. Strip the rule ID and `REPORT:` token when rendering it.
 - `R0.1 REPORT:` content is mandatory final-report content. Render it as a standalone variant-result sentence and preserve its `(no citation required)` disposition; do not merge it with literature-supported interpretation.

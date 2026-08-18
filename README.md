@@ -109,9 +109,9 @@ The default final report:
 - uses Vancouver-style citations in square brackets;
 - numbers references in order of first citation.
 
-For `ngs-report` or `evidence-to-report`, a different formatting prompt may be
-specified at the start of the workflow if that prompt is present under
-`prompts/formatting/`.
+`diagnosis-first-v1` uses its workflow-owned default formatting prompt. Custom files
+under `prompts/formatting/` apply only to legacy reporting modes such as
+`ngs-report --legacy` and `evidence-to-report --legacy`.
 
 ### Evidence-only use
 
@@ -185,10 +185,33 @@ model or included in the external marking ZIP.
 
 ## Current corpus
 
-The current 0.2.2 corpus contains 12 publications. Publications are grouped below by
+The current 0.2.3 corpus contains 29 active publications. Publications are grouped below by
 the corpus version in which they were most recently accepted or modified, using
-`latest_accepted_in_version` from `output/corpus/nel.index.json`. Complete citation,
-card, and acceptance-version metadata are stored in that index.
+`latest_accepted_in_version` from `output/corpus/nel.index.json`. Card and acceptance-
+version metadata are stored in the index; matching citation metadata, including DOI, is
+stored in `output/corpus/nel.corpus.json`.
+
+### Last modified in v0.2.3
+
+| Publication key | DOI | Paper nickname | Contribution to corpus |
+|---|---|---|---|
+| `abelson-2018-predict-aml` | `10.1038/s41586-018-0317-6` | Abelson AML Prediction 2018 | Clonal-haematopoiesis features associated with future AML risk, including variant-specific clone-size effects. |
+| `bolton-2020-chemo-ch` | `10.1038/s41588-020-00710-0` | Bolton 2020 — Cancer Therapy and Clonal Hematopoiesis | Effects of cancer therapy on clonal-haematopoiesis selection, including therapy-associated TP53, PPM1D, and CHEK2 clones. |
+| `dinardo-2020-genotype-specific-venetoclax` | `10.1182/blood.2019003988` | DiNardo 2020 Venetoclax Response and Resistance in AML | Genotype-specific response, resistance, and relapse patterns after frontline venetoclax combinations in AML. |
+| `dohner-2020-npm1-flt3-interaction` | `10.1182/blood.2019002697` | Döhner 2020 RATIFY NPM1/FLT3-ITD analysis | NPM1/FLT3-ITD genotype interactions, prognostic effects, and treatment associations in AML. |
+| `fabre-2022-chip-dnmt3a` | `10.1038/s41586-022-04785-z` | Fabre 2022 Clonal Haematopoiesis Dynamics | Longitudinal clonal-haematopoiesis dynamics and mutation-specific associations with clonal expansion and malignant progression. |
+| `flt3-ras-gilteritinib-resistance` | `10.1182/bloodadvances.2021006489` | ADMIRAL Molecular Profile 2022 | Molecular correlates of gilteritinib outcome and resistance in FLT3-mutated relapsed or refractory AML. |
+| `idh-comutations-inhibitor-resistance` | `10.1038/s41467-021-22874-x` | IDH Inhibitor Resistance in AML 2021 | Co-mutation and stemness patterns associated with response and resistance to IDH inhibitors in AML. |
+| `kraft-godley-2020-germline-guide` | `10.1182/blood.2020006910` | Kraft & Godley 2020 Germline NGS Review | Recognition and confirmation of potential germline variants detected during sequencing of haematological malignancies. |
+| `malcovati-2017-ccus-foundation` | `10.1182/blood-2017-01-763425` | Malcovati 2017 CCUS Foundation | Mutation patterns supporting clonal cytopenia assessment and progression risk in unexplained cytopenias. |
+| `mf-genomics-ruxolitinib-response` | `10.1038/leu.2014.3` | COMFORT-II MF Genomics 2014 | Driver and high-risk mutation associations with phenotype, prognosis, and ruxolitinib-related outcomes in myelofibrosis. |
+| `mpn-genomics-interferon-response` | `10.1182/bloodadvances.2021004856` | DALIAH 2022 MPN genomics | Mutation-specific molecular and clinical responses to interferon-α versus hydroxyurea in myeloproliferative neoplasms. |
+| `passamonti-2017-mysec-pm-secondary` | `10.1038/leu.2017.169` | MYSEC-PM 2017 secondary myelofibrosis | MYSEC-PM prognostic assessment and molecular features in post-PV and post-ET myelofibrosis. |
+| `sf3b1-luspatercept-response` | `10.1016/s1470-2045(17)30615-0` | PACE-MDS 2017 luspatercept in MDS | SF3B1 and spliceosome-mutation associations with luspatercept erythroid response in lower-risk MDS. |
+| `tefferi-2018-genomics-only-pmf` | `10.1038/s41375-018-0107-z` | Genetically Inspired Prognostic Scoring System (GIPPS) for primary myelofibrosis | GIPSS genetics-based prognostic scoring and high-risk molecular features in primary myelofibrosis. |
+| `tet2-asxl1-hma-response` | `10.1182/blood-2014-06-582809` | Bejar 2014 TET2–HMA Response | TET2 and ASXL1 associations with hypomethylating-agent response and outcomes in MDS. |
+| `tp53-lenalidomide-clonal-dynamics` | `10.1182/blood-2015-11-679167` | Mossner 2016 MDS clonal dynamics | MDS clonal evolution under therapy, progression biomarkers, and limitations of lymphocyte germline comparators. |
+| `xie-2024-ccrs-ccus` | `10.1182/blood.2024024756` | Xie 2024 CCRS-CCUS | CCUS definitions and the clonal cytopenia risk score for progression to myeloid neoplasia. |
 
 ### Last modified in v0.2.2
 
@@ -202,59 +225,43 @@ card, and acceptance-version metadata are stored in that index.
 
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
-| `alaggio-2022-leukemia-who5-lymphoid` | `10.1038/s41375-022-01620-2` | WHO-HAEM5 Lymphoid Neoplasms 2022 | WHO fifth-edition lymphoid classification and molecular diagnostic criteria. |
-| `arber-2022-blood-140-1200` | `10.1182/blood.2022015850` | ICC Classification of Myeloid Neoplasms and Acute Leukemias | ICC myeloid classification and diagnostic criteria. |
-| `cloos-2026-blood-147-1147` | `10.1182/blood.2025031480` | ELN-DAVID AML MRD Guidelines 2025 | AML measurable residual disease assessment, interpretation, and management guidance. |
+| `alaggio-2022-leukemia-who5-lymphoid` | `10.1038/s41375-022-01620-2` | WHO-HAEM5 Lymphoid Neoplasms 2022 | WHO fifth-edition lymphoid classification, molecular diagnostic criteria, biomarkers, prognosis, and selected treatment implications. |
+| `arber-2022-blood-140-1200` | `10.1182/blood.2022015850` | ICC Classification of Myeloid Neoplasms and Acute Leukemias | ICC myeloid and acute-leukaemia classification, molecular diagnostic criteria, prognostic features, biomarkers, and germline considerations. |
+| `cloos-2026-blood-147-1147` | `10.1182/blood.2025031480` | ELN-DAVID AML MRD Guidelines 2025 | AML measurable residual disease assessment, interpretation, prognostic use, and management guidance. |
 
 ### Last modified in v0.2.0
 
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
-| `barbui-2015-blood-cancer-journal-5-e369` | `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised thrombosis-risk model for essential thrombocythaemia. |
-| `d-hner-2022-blood-140-1345` | `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | AML diagnosis, genetic risk classification, and management guidance. |
-| `d-hner-2024-blood-144-2169` | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | AML genetic risk classification for less-intensive therapy. |
-| `elena-2016-blood-128-1408` | `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | Molecularly integrated prognostic risk assessment for CMML. |
-| `khoury-2022-leukemia-36-1703` | `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification and diagnostic criteria. |
-| `tefferi-2018-journal-of-clinical-oncology-36-1769` | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | Molecular and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
+| `barbui-2015-blood-cancer-journal-5-e369` | `10.1038/bcj.2015.94` | IPSET-Thrombosis | Revised IPSET-thrombosis risk stratification and genotype-informed thrombosis and treatment considerations in essential thrombocythaemia. |
+| `d-hner-2022-blood-140-1345` | `10.1182/blood.2022016867` | ELN 2022 Risk Classification for AML | ELN 2022 AML diagnosis, genetic risk classification, molecular biomarkers, treatment guidance, and germline considerations. |
+| `d-hner-2024-blood-144-2169` | `10.1182/blood.2024025409` | ELN 2024 Less-Intensive AML Risk Classification | ELN 2024 genetic risk classification for adults with AML receiving less-intensive therapy. |
+| `elena-2016-blood-128-1408` | `10.1182/blood-2016-05-714030` | CMML-specific CPSS-Mol score | CPSS-Mol molecular prognostic scoring and selected diagnostic features for chronic myelomonocytic leukaemia. |
+| `khoury-2022-leukemia-36-1703` | `10.1038/s41375-022-01613-1` | WHO 5th Edition 2022 | WHO fifth-edition myeloid classification, molecular diagnostic criteria, prognosis, biomarkers, treatment, and germline guidance. |
+| `tefferi-2018-journal-of-clinical-oncology-36-1769` | `10.1200/jco.2018.78.9867` | MIPSS70+ Version 2.0 Prognostic Score for Primary Myelofibrosis | MIPSS70+ version 2.0 mutation and karyotype-enhanced prognostic scoring for primary myelofibrosis. |
 
 ### Incompatible papers pending re-ingestion
 
-The following publication packages are present in the corpus index but are incompatible with the current ingestion schema. They do not contribute evidence and require re-ingestion before they can return to the active corpus.
+These packages are incompatible with the current ingestion schema and do not contribute
+evidence to the active corpus. They remain pending re-ingestion.
 
 | Publication key | Status |
 |---|---|
-| `abelson-2018-predict-aml` | Pending re-ingestion |
 | `andrade-2018-tp53-gnomad` | Pending re-ingestion |
 | `bernard-2020-tp53-mds` | Pending re-ingestion |
 | `bluteau-2014-ankrd26` | Pending re-ingestion |
-| `bolton-2020-chemo-ch` | Pending re-ingestion |
 | `davidsson-2018-samd9-samd9l` | Pending re-ingestion |
-| `dinardo-2020-genotype-specific-venetoclax` | Pending re-ingestion |
-| `dohner-2020-npm1-flt3-interaction` | Pending re-ingestion |
 | `drazer-2018-germline-vaf` | Pending re-ingestion |
-| `fabre-2022-chip-dnmt3a` | Pending re-ingestion |
-| `flt3-ras-gilteritinib-resistance` | Pending re-ingestion |
 | `galera-2018-gata2-germline` | Pending re-ingestion |
 | `galli-2021-clone-metrics-ccus` | Pending re-ingestion |
 | `grief-2012-gata-cebpa` | Pending re-ingestion |
 | `hsu-2011-gata2-momomac` | Pending re-ingestion |
-| `idh-comutations-inhibitor-resistance` | Pending re-ingestion |
 | `kessler-2022-large-biobank-genetics` | Pending re-ingestion |
-| `kraft-godley-2020-germline-guide` | Pending re-ingestion |
-| `malcovati-2017-ccus-foundation` | Pending re-ingestion |
-| `mf-genomics-ruxolitinib-response` | Pending re-ingestion |
-| `mpn-genomics-interferon-response` | Pending re-ingestion |
 | `noetzli-2015-etv6-phenotype` | Pending re-ingestion |
-| `passamonti-2017-mysec-pm-secondary` | Pending re-ingestion |
-| `sf3b1-luspatercept-response` | Pending re-ingestion |
 | `stahl-2021-independent-treatment-context` | Pending re-ingestion |
-| `tefferi-2018-genomics-only-pmf` | Pending re-ingestion |
 | `tefferi-2020-mipss-et-pv` | Pending re-ingestion |
-| `tet2-asxl1-hma-response` | Pending re-ingestion |
-| `tp53-lenalidomide-clonal-dynamics` | Pending re-ingestion |
 | `weeks-2023-nejm-evidence-2-na` | Pending re-ingestion |
 | `wlodarski-2016-gata2` | Pending re-ingestion |
-| `xie-2024-ccrs-ccus` | Pending re-ingestion |
 
 ## Important boundaries
 
@@ -267,5 +274,6 @@ The following publication packages are present in the corpus index but are incom
 ## Other documentation
 
 - [`INGEST.md`](INGEST.md) — add, review, accept, and re-ingest publications.
+- [`WORKFLOW.md`](WORKFLOW.md) — reporting-workflow separation, cloning, modification, validation, and promotion.
 - [`DEVEL.md`](DEVEL.md) — prompt maintenance, testing, versioning, and releases.
 - [`NEWS.md`](NEWS.md) — changelog.

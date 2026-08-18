@@ -6,7 +6,7 @@
   "required": ["schema_version", "paper_id", "round", "review_date", "reviewer_model", "extraction_model_reviewed", "result", "audit", "card_results"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "5.0" },
+    "schema_version": { "enum": ["5.0", "5.1"] },
     "paper_id": { "type": "string", "format": "uuid" },
     "round": { "type": "integer", "minimum": 1 },
     "review_date": { "type": "string", "format": "date" },
@@ -27,7 +27,8 @@
     "card_results": {
       "type": "array",
       "items": { "$ref": "#/$defs/card_result" }
-    }
+    },
+    "review_scope": { "enum": ["full", "delta"] }
   },
   "$defs": {
     "publication_type": {
@@ -62,6 +63,7 @@
       "properties": {
         "card_id": { "type": "string", "minLength": 1 },
         "verdict": { "enum": ["pass", "fail"] },
+        "review_basis": { "enum": ["phase3", "carried_forward"] },
         "details": { "$ref": "#/$defs/failure_details" }
       },
       "allOf": [

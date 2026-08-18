@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "scripts"))
-import report_audit  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from workflows.legacy_v1 import audit_policy as report_audit  # noqa: E402
 
 
 def draft_text():

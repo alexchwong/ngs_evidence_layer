@@ -148,13 +148,13 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append("paper_nickname must be a trimmed single-line string")
     elif "paper_nickname" in package:
         errors.append("provisional package must not contain paper_nickname")
+    if not require_final and package["publication_type_verified_by_phase3"]:
+        errors.append("provisional publication type cannot already be verified by Phase 3")
     if package["round"] == 1 and not require_final:
         if package["publication_type"] != census.get("publication_type"):
             errors.append("first-round package publication_type does not match census")
         if package["publication_type_basis"] != census.get("publication_type_basis"):
             errors.append("first-round package publication_type_basis does not match census")
-        if package["publication_type_verified_by_phase3"]:
-            errors.append("first-round provisional publication type cannot already be verified")
 
     card_ids = [card["card_id"] for card in package["cards"]]
     evidence_ids = [evidence["card_id"] for evidence in package["evidence"]]

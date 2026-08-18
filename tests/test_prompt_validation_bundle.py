@@ -18,20 +18,24 @@ PHASE_ASSETS = {
     1: "PHASE1_VALIDATION_BUNDLE",
     2: "PHASE2_VALIDATION_BUNDLE",
     4: "PHASE4_VALIDATION_BUNDLE",
-    5: "PHASE5_VALIDATION_BUNDLE",
 }
 PHASE_BUNDLE_PATHS = {
     1: ["scripts/phase_validation/phase1.py"],
     2: [
+        "scripts/phase_validation/phase1.py",
         "scripts/phase_validation/phase2.py",
+        "scripts/phase_validation/card_deltas.py",
         "schema/ingestion_package_schema.json",
         "schema/disease_vocabulary.json",
+        "schema/card_decision_schema.json",
     ],
     4: [
         "scripts/phase_validation/phase4.py",
+        "scripts/phase_validation/card_deltas.py",
         "schema/ingestion_package_schema.json",
         "schema/review_schema.json",
         "schema/disease_vocabulary.json",
+        "schema/card_decision_schema.json",
     ],
 }
 
@@ -91,12 +95,8 @@ class PromptValidationBundleTests(unittest.TestCase):
         phase3 = (ROOT / "prompts" / "templates" / "phase3_prompt.md").read_text(
             encoding="utf-8"
         )
-        phase5_review = (
-            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
-        ).read_text(encoding="utf-8")
         for keyword in PHASE_ASSETS.values():
             self.assertNotIn("{{" + keyword + "}}", phase3)
-            self.assertNotIn("{{" + keyword + "}}", phase5_review)
 
     def test_extracted_phase2_bundle_executes_outside_repository(self):
         prompt = build_prompts.render(2)

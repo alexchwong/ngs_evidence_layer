@@ -2,9 +2,9 @@
 
 ## Task
 
-Adjudicate the provisional major diagnostic category using exactly one Step 2 Markdown document (`diagnostic_evidence.md`) produced by `scripts/retrieve.py diagnosis`.
+Adjudicate the provisional major diagnostic category using the Step 2 Markdown document (`diagnostic_evidence.md`) produced by `scripts/retrieve.py diagnosis` plus the canonical `ngs-panel-scope.md` assay definition.
 
-Use only:
+Use `diagnostic_evidence.md` for the supplied patient facts and retrieved diagnosis evidence, and `ngs-panel-scope.md` only for the assay boundary used to interpret negative gene findings. Within those files, use only:
 
 - `case_major_category`;
 - free-text `provisional_disease`;
@@ -14,7 +14,7 @@ Use only:
 
 Apply the shared patient-result semantics in `workflows/legacy_v1/SKILL.md`.
 
-Diagnosis cards are the complete hard-evidence boundary. Do not add diagnostic rules, thresholds, exclusions, definitions, or qualifiers from model knowledge. Do not invent, normalise, or reinterpret patient facts.
+Diagnosis cards are the complete hard-evidence boundary for diagnostic knowledge. `ngs-panel-scope.md` is the complete assay-scope boundary for gene-level negative inference. Do not add diagnostic rules, thresholds, exclusions, definitions, qualifiers, or panel membership from model knowledge. Do not invent or normalise patient facts; apply only the shared negative-result inference defined by the workflow and panel-scope file.
 
 ## Task-specific rules
 

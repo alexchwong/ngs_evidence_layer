@@ -8,8 +8,8 @@ from package_validation import read_json, validate_review
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--review", required=True, help="path to paper.review-001.json")
-    parser.add_argument("--provisional", required=True, help="path to paper.provisional-001.json")
+    parser.add_argument("--review", required=True, help="path to the active Phase 3 review JSON")
+    parser.add_argument("--provisional", required=True, help="path to the active Phase 2 provisional JSON")
     args = parser.parse_args()
     try:
         review = read_json(args.review, "review")

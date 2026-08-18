@@ -7,8 +7,14 @@ import os
 import re
 import tempfile
 import unicodedata
+import sys
 from collections import defaultdict
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+import ingest_artifacts
 
 
 DEFAULT_ARCHIVE_DIR = Path("archive")
@@ -112,17 +118,41 @@ def representative_citation(citations):
 
 
 def archive_candidate(folder):
-    required = {
-        "metadata": folder / "metadata.json",
-        "provisional": folder / "paper.provisional-001.json",
-        "review": folder / "paper.review-001.json",
-        "final": folder / "paper.final.json",
-    }
-    missing = [name for name, path in required.items() if not path.is_file()]
-    if missing:
+    metadata_path = folder / "metadata.json"
+    final_path = folder / "paper.final.json"
+    if not metadata_path.is_file() or not final_path.is_file():
+        missing = [
+            name for name, path in (("metadata", metadata_path), ("final", final_path))
+            if not path.is_file()
+        ]
         return None, f"missing {', '.join(missing)}"
     try:
-        loaded = {name: read_json(path, name) for name, path in required.items()}
+        final = read_json(final_path, "final")
+        approved_round = (final.get("audit") or {}).get("approved_round")
+        if isinstance(approved_round, int):
+            provisional_path = ingest_artifacts.resolve_phase_any_revision_for_round(
+                folder, "provisional", approved_round
+            )
+            review_path = ingest_artifacts.resolve_phase_any_revision_for_round(
+                folder, "review", approved_round
+            )
+        else:
+            # Compatibility for old curator fixtures and very early archives.
+            provisional_path = folder / "paper.provisional-001.json"
+            review_path = folder / "paper.review-001.json"
+        required = {
+            "metadata": metadata_path,
+            "provisional": provisional_path,
+            "review": review_path,
+            "final": final_path,
+        }
+        missing = [
+            name for name, path in required.items()
+            if path is None or not path.is_file()
+        ]
+        if missing:
+            return None, f"missing {', '.join(missing)}"
+        loaded = {name: (final if name == "final" else read_json(path, name)) for name, path in required.items()}
     except ValueError as exc:
         return None, str(exc)
     return loaded, None

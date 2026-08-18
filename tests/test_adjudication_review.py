@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Tests for the mandatory Step 3 human-review gate."""
-import argparse
 import copy
 import json
 import sys
@@ -10,11 +9,12 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS = ROOT / "scripts"
-sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(ROOT))
 
-import render  # noqa: E402
-import retrieve  # noqa: E402
+from scripts.core import retrieval as retrieval_core  # noqa: E402
+from workflows.legacy_v1 import adjudication as adjudication_policy  # noqa: E402
+from workflows.legacy_v1 import rendering as render  # noqa: E402
+from workflows.legacy_v1 import retrieval as retrieve  # noqa: E402
 
 
 class AdjudicationReviewTests(unittest.TestCase):
@@ -71,9 +71,9 @@ class AdjudicationReviewTests(unittest.TestCase):
         }
 
     def test_pending_review_is_valid_during_step3_but_blocks_step4(self):
-        retrieve.validate_adjudication(self.step2, self.pending)
+        adjudication_policy.validate_adjudication(self.step2, self.pending)
         with self.assertRaisesRegex(ValueError, "Step 4 is blocked"):
-            retrieve.validate_adjudication(
+            adjudication_policy.validate_adjudication(
                 self.step2,
                 self.pending,
                 require_completed_review=True,
@@ -88,7 +88,7 @@ class AdjudicationReviewTests(unittest.TestCase):
             "reason": adjudication["reason"],
             "card_ids": adjudication["driven_by"],
         }
-        retrieve.validate_adjudication(
+        adjudication_policy.validate_adjudication(
             self.step2,
             adjudication,
             require_completed_review=True,
@@ -96,7 +96,7 @@ class AdjudicationReviewTests(unittest.TestCase):
 
         adjudication["user_review"]["diagnostic_label"] = "MDS, SF3B1-mutated"
         with self.assertRaisesRegex(ValueError, "must copy the model"):
-            retrieve.validate_adjudication(
+            adjudication_policy.validate_adjudication(
                 self.step2,
                 adjudication,
                 require_completed_review=True,
@@ -112,7 +112,7 @@ class AdjudicationReviewTests(unittest.TestCase):
             "reason": "The revised AML diagnosis is supported by the retrieved criterion.",
             "card_ids": ["classifier-C0004"],
         }
-        retrieve.validate_adjudication(
+        adjudication_policy.validate_adjudication(
             self.step2,
             adjudication,
             require_completed_review=True,
@@ -131,7 +131,7 @@ class AdjudicationReviewTests(unittest.TestCase):
             "card_ids": ["classifier-C0001"],
         }
         with self.assertRaisesRegex(ValueError, "requires the user's integrated"):
-            retrieve.validate_adjudication(
+            adjudication_policy.validate_adjudication(
                 self.step2,
                 adjudication,
                 require_completed_review=True,
@@ -146,13 +146,13 @@ class AdjudicationReviewTests(unittest.TestCase):
         }
         adjudication["downstream_filter_disease"] = "not-a-vocabulary-disease"
         with self.assertRaisesRegex(ValueError, "adjudication downstream_filter_disease has invalid value 'not-a-vocabulary-disease'"):
-            retrieve.validate_adjudication(
+            adjudication_policy.validate_adjudication(
                 self.step2,
                 adjudication,
                 require_completed_review=True,
             )
 
-    def test_run_full_uses_the_user_reviewed_disease(self):
+    def test_downstream_uses_the_user_reviewed_disease(self):
         adjudication = copy.deepcopy(self.pending)
         adjudication["downstream_filter_disease"] = "AML"
         adjudication["user_review"] = {
@@ -179,30 +179,25 @@ class AdjudicationReviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             step2_path = tmp / "diagnostic_evidence.md"
-            adjudication_path = tmp / "adjudication.json"
-            blacklist_path = tmp / "blacklist.json"
-            step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
-            retrieve.write_step_json(self.step2, step2_path.with_suffix(".json"))
-            adjudication_path.write_text(json.dumps(adjudication), encoding="utf-8")
-            blacklist_path.write_text(json.dumps({"enabled": True}), encoding="utf-8")
-            args = argparse.Namespace(
-                diagnosis_result=step2_path,
-                adjudication_result=adjudication_path,
-                corpus=None,
-                index=None,
-                genes=None,
-                blacklist=blacklist_path,
-            )
+            step2_path.write_text(retrieval_core.render_step_markdown(self.step2), encoding="utf-8")
+            retrieval_core.write_step_json(self.step2, step2_path.with_suffix(".json"))
+            (tmp / "adjudication.json").write_text(json.dumps(adjudication), encoding="utf-8")
+            cards = [self.card, self.aml_diagnosis_card, aml_card, mds_card]
             with mock.patch.object(
-                retrieve,
+                retrieve.corpus,
                 "load_corpus",
                 return_value=({}, {}, "0" * 64),
             ), mock.patch.object(
-                retrieve,
+                retrieve.corpus,
                 "flatten",
-                return_value=[self.card, self.aml_diagnosis_card, aml_card, mds_card],
+                return_value=cards,
+            ), mock.patch.object(
+                retrieve.corpus,
+                "blacklist_cards",
+                side_effect=lambda values, _path: values,
             ):
-                result = retrieve.run_full(args)
+                bundle_path = retrieve.downstream(tmp)
+                result = json.loads(bundle_path.read_text(encoding="utf-8"))
         retrieved_ids = {card["card_id"] for card in result["retrieved"]}
         self.assertEqual(result["refined_disease"], "AML")
         self.assertIn("classifier-C0002", retrieved_ids)
@@ -226,28 +221,20 @@ class AdjudicationReviewTests(unittest.TestCase):
         self.assertNotIn("classifier-C0004", ids)
         self.assertNotIn("classifier-C0099", ids)
 
-    def test_run_full_rejects_pending_before_corpus_access(self):
+    def test_downstream_rejects_pending_before_corpus_access(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             step2_path = tmp / "diagnostic_evidence.md"
-            adjudication_path = tmp / "adjudication.json"
-            step2_path.write_text(retrieve.render_step_markdown(self.step2), encoding="utf-8")
-            retrieve.write_step_json(self.step2, step2_path.with_suffix(".json"))
-            adjudication_path.write_text(json.dumps(self.pending), encoding="utf-8")
-            args = argparse.Namespace(
-                diagnosis_result=step2_path,
-                adjudication_result=adjudication_path,
-                corpus=None,
-                index=None,
-                genes=None,
-            )
+            step2_path.write_text(retrieval_core.render_step_markdown(self.step2), encoding="utf-8")
+            retrieval_core.write_step_json(self.step2, step2_path.with_suffix(".json"))
+            (tmp / "adjudication.json").write_text(json.dumps(self.pending), encoding="utf-8")
             with mock.patch.object(
-                retrieve,
+                retrieve.corpus,
                 "load_corpus",
                 side_effect=AssertionError("corpus must not be read"),
             ):
                 with self.assertRaisesRegex(ValueError, "Step 4 is blocked"):
-                    retrieve.run_full(args)
+                    retrieve.downstream(tmp)
 
     def test_render_distinguishes_model_and_user_diagnoses(self):
         adjudication = copy.deepcopy(self.pending)

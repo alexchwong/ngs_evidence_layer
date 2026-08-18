@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts import retrieval_core as core
-from workflows.diagnosis_first_v1.runtime import extract_refined_cmc
+from scripts.core import card_tags, corpus, provenance
+from scripts.core import retrieval as core
 
 WORKFLOW_ID = "diagnosis-first-v1"
 
@@ -167,8 +167,8 @@ def step4(
 
 def diagnosis(work_dir: Path) -> Path:
     case_input = core.validate_case_input(work_dir / "case-input.json")
-    corpus, _index, digest = core.load_corpus(core.DEFAULT_CORPUS, core.DEFAULT_INDEX)
-    cards = core.blacklist_cards(core.flatten(corpus), core.DEFAULT_BLACKLIST)
+    corpus_doc, _index, digest = corpus.load_corpus(corpus.DEFAULT_CORPUS, corpus.DEFAULT_INDEX)
+    cards = corpus.blacklist_cards(corpus.flatten(corpus_doc), corpus.DEFAULT_BLACKLIST)
     selected = step2(
         cards,
         case_input["genes"],
@@ -176,7 +176,7 @@ def diagnosis(work_dir: Path) -> Path:
         case_input["case_facts"],
         case_input["case_major_category"],
     )
-    global_tag_map = core.card_tags.build_card_tags(card["card_id"] for card in cards)
+    global_tag_map = card_tags.build_card_tags(card["card_id"] for card in cards)
     result = {
         "step": 4,
         "workflow_profile": WORKFLOW_ID,
@@ -192,11 +192,11 @@ def diagnosis(work_dir: Path) -> Path:
         "diagnostic_context": [],
         "retrieved": selected["retrieved"],
         "runtime_card_tags": global_tag_map,
-        "corpus": {"path": str(core.DEFAULT_CORPUS), "index": str(core.DEFAULT_INDEX)},
-        "provenance": core.provenance(
-            corpus,
-            core.DEFAULT_CORPUS,
-            core.DEFAULT_INDEX,
+        "corpus": {"path": str(corpus.DEFAULT_CORPUS), "index": str(corpus.DEFAULT_INDEX)},
+        "provenance": provenance.provenance(
+            corpus_doc,
+            corpus.DEFAULT_CORPUS,
+            corpus.DEFAULT_INDEX,
             digest,
             [card["card_id"] for card in selected["retrieved"]],
         ),
@@ -209,6 +209,10 @@ def diagnosis(work_dir: Path) -> Path:
 
 
 def downstream(work_dir: Path) -> Path:
+    # YAML parsing is diagnosis-first-only. Keep this import local so importing
+    # shared retrieval code for legacy-v1 never requires PyYAML.
+    from workflows.diagnosis_first_v1.runtime import extract_refined_cmc
+
     diagnosis_path = work_dir / "diagnostic_evidence.json"
     diagnosis_bundle = json.loads(diagnosis_path.read_text(encoding="utf-8"))
     if diagnosis_bundle.get("workflow_profile") != WORKFLOW_ID:
@@ -217,17 +221,17 @@ def downstream(work_dir: Path) -> Path:
             "by diagnosis-first-v1"
         )
     initial_cmc = diagnosis_bundle.get("initial_case_major_category")
-    refined_cmc = extract_refined_cmc(work_dir / "report-draft-dx.md")
+    refined_cmc = extract_refined_cmc(work_dir / "report-draft-dx.yaml")
     genes = diagnosis_bundle.get("genes", [])
     corpus_path = Path(diagnosis_bundle["corpus"]["path"])
     index_path = Path(diagnosis_bundle["corpus"]["index"])
-    corpus, _index, digest = core.load_corpus(corpus_path, index_path)
-    cards = core.blacklist_cards(core.flatten(corpus), core.DEFAULT_BLACKLIST)
+    corpus_doc, _index, digest = corpus.load_corpus(corpus_path, index_path)
+    cards = corpus.blacklist_cards(corpus.flatten(corpus_doc), corpus.DEFAULT_BLACKLIST)
 
-    current_tag_map = core.card_tags.build_card_tags(card["card_id"] for card in cards)
+    current_tag_map = card_tags.build_card_tags(card["card_id"] for card in cards)
     previous_tag_map = diagnosis_bundle.get("runtime_card_tags") or {}
-    previous_tags = core.card_tags.tag_by_id(previous_tag_map)
-    current_tags = core.card_tags.tag_by_id(current_tag_map)
+    previous_tags = card_tags.tag_by_id(previous_tag_map)
+    current_tags = card_tags.tag_by_id(current_tag_map)
     diagnosis_context = diagnosis_bundle.get("retrieved", [])
     changed_tags = sorted(
         card["card_id"]
@@ -265,8 +269,8 @@ def downstream(work_dir: Path) -> Path:
         "refined_disease": refined_cmc,
         "runtime_card_tags": current_tag_map,
         "corpus": {"path": str(corpus_path), "index": str(index_path)},
-        "provenance": core.provenance(
-            corpus,
+        "provenance": provenance.provenance(
+            corpus_doc,
             corpus_path,
             index_path,
             digest,

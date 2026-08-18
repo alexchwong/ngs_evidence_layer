@@ -27,8 +27,8 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 3B — model/user: manual review only; agreement is a direct copy, while a revision is re-grounded via `workflows/legacy_v1/prompts/revise_diagnosis.md`.
 - Step 3C — deterministic: validate the completed adjudication and append its effective integrated diagnosis to `case.md`.
 - Steps 3D–5 — deterministic: retrieve the full evidence bundle into `bundle.json`, then render the single model-facing `evidence.md` using short opaque runtime card tags plus a private `card-tags.json` deconvolution map.
-- Step 6A — model via `workflows/legacy_v1/prompts/analyse_report.md` + shared `prompts/workflow/reporting_rule_policy.md` + `prompts/workflow/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
-- Step 6B — model via `prompts/workflow/format_report.md` + shared `prompts/workflow/citation_rules.md` plus `<format-prompt>` + deterministic validation: render only `REPORT:` content from `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
+- Step 6A — model via `workflows/legacy_v1/prompts/analyse_report.md` + workflow-local `workflows/legacy_v1/prompts/reporting_rule_policy.md` + `workflows/legacy_v1/prompts/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
+- Step 6B — model via `workflows/legacy_v1/prompts/format_report.md` + `workflows/legacy_v1/prompts/citation_rules.md` plus `<format-prompt>` + deterministic validation: render only `REPORT:` content from `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
 - Step 7 — post-report delivery and deterministic packaging; full `ngs-report`-equivalent runs get a debug ZIP containing every workflow artifact, while `nel-validate` and `nel-validate-function` additionally get separate external-marking ZIPs containing only the report, selected validation case, and self-contained marking prompt.
 
@@ -65,8 +65,8 @@ File access is **deny by default**.
 - If a step says the model writes an output, the model must generate that output only from the declared model-readable inputs; do not look for repository code that could generate it instead.
 - Do not modify an output written by a deterministic command.
 - If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
-- For `nel-validate`, do not model-read `validation/case_summary.md`, `prompts/workflow/mark_validation_report.md`, or marking criteria at any point. Step 7 may read them only through the declared deterministic packaging command.
-- For `nel-validate-function`, do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, `prompts/workflow/mark_validation_report.md`, or marking criteria at any point. `case_functional_manifest.md` is never a runtime model input. Step 7 may read `case_functional.md` only through the declared deterministic packaging command.
+- For `nel-validate`, do not model-read `validation/case_summary.md`, `validation/mark_validation_report.md`, or marking criteria at any point. Step 7 may read them only through the declared deterministic packaging command.
+- For `nel-validate-function`, do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, `validation/mark_validation_report.md`, or marking criteria at any point. `case_functional_manifest.md` is never a runtime model input. Step 7 may read `case_functional.md` only through the declared deterministic packaging command.
 
 
 ## Model-task policy
@@ -79,12 +79,11 @@ For every model step:
 4. Write only the declared output.
 5. Do not carry information from an earlier bounded model step unless it is present in an allowed input.
 
-`SKILL.md` controls workflow state, file access, shared invariants, commands, branching, validation loops, and delivery. `prompts/workflow/*.md` controls only the model task performed inside those boundaries. If a task prompt conflicts with a workflow or access rule in `SKILL.md`, `SKILL.md` prevails.
+`SKILL.md` controls workflow state, file access, shared invariants, commands, branching, validation loops, and delivery. The declared shared or workflow-local prompt file controls only the model task performed inside those boundaries. If a task prompt conflicts with a workflow or access rule in `SKILL.md`, `SKILL.md` prevails.
 
 ## Shared patient-result semantics
 
-These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudication, and Step 3B diagnostic revision. Reporting steps must not independently reconstruct missing results from these rules.
-
+The general rules below apply only to Step 1B case structuring, Step 3A diagnostic adjudication, and Step 3B diagnostic revision. Step 6A must not independently reconstruct other missing test results from them.
 
 - Treat a reported test result as complete unless explicitly described as partial, selected, limited, abbreviated, pending, or otherwise incomplete.
 - In a complete test, an unlisted abnormal finding is negative only within that test's scope.
@@ -93,6 +92,14 @@ These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudicat
 - If cytogenetic results are not supplied, assume normal conventional cytogenetics for interpretation and record this as a `workflow_assumption`, not a patient result.
 - Do not state that cytogenetics were performed or that a specific cytogenetic abnormality was formally excluded.
 - Do not use the normal-cytogenetics assumption when supplied karyotype, FISH, copy-number, or other findings conflict with it.
+
+### NGS panel-negative semantics
+
+This additional assay-scope rule applies to Steps 3A, 3B and 6A. For these steps, treat the reported NGS result as complete unless it is explicitly described as partial, selected, limited, abbreviated, pending, or otherwise incomplete.
+
+- `<work-dir>/ngs-panel-scope.md` is the complete assay-scope boundary for gene-level NGS negative inference.
+- When the NGS result is complete, a gene listed there but absent from the detected-variant list is negative only for the variant classes stated in the panel-scope file. Use that negative result to resolve criteria and exclusions; do not treat the gene as unresolved merely because it is not individually listed.
+- Do not call an inferred panel-negative gene whole-gene biological wild type and do not extend the inference to variant classes outside the supplied panel scope.
 
 ## Step 0 — Establish workflow state
 
@@ -130,14 +137,14 @@ These rules apply only to Step 1B case structuring, Step 3A diagnostic adjudicat
    ```
 
 4. Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`. For `nel-demo`, record output line 2 as `<demo-case>` and line 3 as `<demo-expected>` without reading either file yet. For validation modes record `<validation-case>` as the supplied case ID.
-5. Setup writes `<work-dir>/workflow.json` and binds the work directory to `legacy-v1`. It also writes `<work-dir>/case-major-categories.json` for modes that run Step 1. Do not infer workflow identity from other files.
+5. Setup writes `<work-dir>/workflow.json`, binds the work directory to `legacy-v1`, and copies the canonical assay definition to `<work-dir>/ngs-panel-scope.md`. It also writes `<work-dir>/case-major-categories.json` for modes that run Step 1. Do not infer workflow identity from other files.
 6. For `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`, record `<format-prompt>`:
    - default: `prompts/formatting/default.md`;
    - if the user explicitly specifies another file from `prompts/formatting/`, record that path;
    - do not list or search `prompts/formatting/`;
    - do not use a formatting prompt outside `prompts/formatting/`;
    - **record the path only. Do not read `<format-prompt>` until Step 6B.**
-7. For `evidence-to-report`, verify only that `<work-dir>/case.md`, `<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist, and `<work-dir>/evidence.md` is non-empty. Do not read their contents in Step 0.
+7. For `evidence-to-report`, verify only that `<work-dir>/case.md`, `<work-dir>/evidence.md`, `<work-dir>/card-tags.json`, and the newly copied `<work-dir>/ngs-panel-scope.md` exist, and `<work-dir>/evidence.md` is non-empty. Do not read their contents in Step 0.
 8. Retain `<work-dir>` after success or failure. Do not clean it up automatically.
 
 ### Exit
@@ -249,11 +256,12 @@ Use a fresh bounded model session.
 Read only:
 
 - `workflows/legacy_v1/prompts/adjudicate_diagnosis.md`;
-- `<work-dir>/diagnostic_evidence.md`.
+- `<work-dir>/diagnostic_evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`.
 
 #### Required action
 
-Follow `workflows/legacy_v1/prompts/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary.
+Follow `workflows/legacy_v1/prompts/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary and `ngs-panel-scope.md` as the complete gene-level NGS assay-scope boundary.
 
 For `evidence-block`, `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`:
 - set `user_review` to `"automatic"`;
@@ -296,6 +304,7 @@ Use a fresh bounded model session and read only:
 
 - `workflows/legacy_v1/prompts/revise_diagnosis.md`;
 - `<work-dir>/diagnostic_evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`;
 - `<work-dir>/adjudication.json`;
 - the user's revised diagnostic label and downstream category.
 
@@ -312,7 +321,7 @@ This step is compulsory after automatic adjudication or completed manual review.
 Run exactly:
 
 ```bash
-python scripts/append_integrated_diagnosis.py \
+python -m workflows.legacy_v1.append_integrated_diagnosis \
   --case <work-dir>/case.md \
   --diagnosis-result <work-dir>/diagnostic_evidence.md \
   --adjudication-result <work-dir>/adjudication.json
@@ -355,10 +364,11 @@ Use one fresh bounded model session.
 Read only:
 
 - `workflows/legacy_v1/prompts/analyse_report.md`;
-- `prompts/workflow/reporting_rule_policy.md`;
-- `prompts/workflow/citation_rules.md`;
+- `workflows/legacy_v1/prompts/reporting_rule_policy.md`;
+- `workflows/legacy_v1/prompts/citation_rules.md`;
 - `<work-dir>/case.md`;
 - `<work-dir>/evidence.md`;
+- `<work-dir>/ngs-panel-scope.md`;
 - `rules/agreed_reporting_rules.md`.
 
 Follow `workflows/legacy_v1/prompts/analyse_report.md` exactly and write only `<work-dir>/report-draft.md`.
@@ -377,13 +387,13 @@ If validation fails for a citation-tag reason (unknown, malformed, misplaced, or
 
 - use the validator error to identify the affected rule(s);
 - inspect/edit `report-draft.md`;
-- re-read `prompts/workflow/citation_rules.md` before repairing the citation defect;
+- re-read `workflows/legacy_v1/prompts/citation_rules.md` before repairing the citation defect;
 - `evidence.md` is the **only evidentiary/source-content file you may read or re-read** to repair the affected answer or its citation tags;
 - find the supporting evidence in `evidence.md` and copy the exact runtime `card_tag` shown there;
 - do **not** read or re-read `case.md`, `rules/agreed_reporting_rules.md`, `card-tags.json`, `bundle.json`, `diagnostic_evidence.md`, `adjudication.json`, `cards/`, the corpus/index, the original case document, or any other source file;
 - never use `card-tags.json` to recover, translate, verify, or substitute a tag.
 
-For non-citation structural or classification validation failures, correct only the reported rule(s) and defect(s), using the validator message, `workflows/legacy_v1/prompts/analyse_report.md`, and `prompts/workflow/reporting_rule_policy.md`; do not reopen case or evidence sources unless the failure is specifically a citation-tag repair permitted above. Unknown tags are reported with the affected rule IDs.
+For non-citation structural or classification validation failures, correct only the reported rule(s) and defect(s), using the validator message, `workflows/legacy_v1/prompts/analyse_report.md`, and `workflows/legacy_v1/prompts/reporting_rule_policy.md`; do not reopen case or evidence sources unless the failure is specifically a citation-tag repair permitted above. Unknown tags are reported with the affected rule IDs.
 
 ### Step 6B — Format the final report
 
@@ -393,8 +403,8 @@ Use a fresh bounded model session.
 
 Read only:
 
-- `prompts/workflow/format_report.md`;
-- `prompts/workflow/citation_rules.md`;
+- `workflows/legacy_v1/prompts/format_report.md`;
+- `workflows/legacy_v1/prompts/citation_rules.md`;
 - `<format-prompt>`;
 - `<work-dir>/report-draft.md`.
 
@@ -404,7 +414,7 @@ If any required input is missing, unreadable, or malformed, stop and report the 
 
 #### Required action
 
-Follow `prompts/workflow/format_report.md` exactly. Apply `<format-prompt>` only for report style, ordering, emphasis, compression, and optional-content choices within the mandatory workflow constraints. Use `report-draft.md` as the sole source of report content.
+Follow `workflows/legacy_v1/prompts/format_report.md` exactly. Apply `<format-prompt>` only for report style, ordering, emphasis, compression, and optional-content choices within the mandatory workflow constraints. Use `report-draft.md` as the sole source of report content.
 
 **Step 6B citation invariant:** citation preservation takes precedence over formatting, compression, and word-count targets. A retained or merged assertion must retain the complete citation disposition of its supporting draft content; merged assertions must retain the union of all supporting card markers. In model-written Step 6A and Step 6B Markdown, the citation disposition MUST follow the sentence-ending full stop: `Sentence. [card:abcdef]`, `Sentence. [card:abcdef][card:123456]`, or `Sentence. (no citation required)`. The required order is sentence → full stop → one space → citation disposition; never place a runtime citation marker before the full stop.
 
@@ -422,7 +432,7 @@ python scripts/report_citations.py validate \
   --require-citation-after-full-stop
 ```
 
-The command is read-only and must succeed before Step 6C. In Step 6B mode it requires every sentence-ending full stop to be followed by one space and either one or more exact runtime card-tag markers or `(no citation required)`. A placement failure reports the affected line and the exact expected syntax, so do not read the validation script to troubleshoot it. This does not rewrite `report-final.md`. If validation fails, use only the validator error, `prompts/workflow/format_report.md`, `prompts/workflow/citation_rules.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
+The command is read-only and must succeed before Step 6C. In Step 6B mode it requires every sentence-ending full stop to be followed by one space and either one or more exact runtime card-tag markers or `(no citation required)`. A placement failure reports the affected line and the exact expected syntax, so do not read the validation script to troubleshoot it. This does not rewrite `report-final.md`. If validation fails, use only the validator error, `workflows/legacy_v1/prompts/format_report.md`, `workflows/legacy_v1/prompts/citation_rules.md`, `<format-prompt>`, and `report-draft.md` to correct `report-final.md`, then rerun it.
 
 ### Step 6C — Render citations and references
 
@@ -482,7 +492,7 @@ Do not run this step for `evidence-to-report`, because that mode does not genera
   ```
 
   The command must succeed. It deterministically creates a separate external-marking ZIP containing exactly:
-  - `marking-prompt.md` — `prompts/workflow/mark_validation_report.md` with the validation case identifier and case-specific marking criteria embedded;
+  - `marking-prompt.md` — `validation/mark_validation_report.md` with the validation case identifier and case-specific marking criteria embedded;
   - `validation-case.md` — the original validation case content;
   - `report-final.md` — the completed candidate report.
 
@@ -497,7 +507,7 @@ Do not run this step for `evidence-to-report`, because that mode does not genera
   ```
 
   The command must succeed. It deterministically creates a separate external-marking ZIP containing exactly:
-  - `marking-prompt.md` — `prompts/workflow/mark_validation_report.md` with the functional validation case identifier and case-specific marking criteria embedded from `validation/case_functional.md`;
+  - `marking-prompt.md` — `validation/mark_validation_report.md` with the functional validation case identifier and case-specific marking criteria embedded from `validation/case_functional.md`;
   - `validation-case.md` — the original functional validation case content;
   - `report-final.md` — the completed candidate report.
 

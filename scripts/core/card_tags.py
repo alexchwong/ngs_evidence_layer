@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Deterministic opaque runtime tags for model-facing evidence cards."""
 import hashlib
 

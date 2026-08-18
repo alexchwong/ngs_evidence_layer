@@ -1,26 +1,32 @@
 # Scripts
 
-Scripts are grouped below by their primary role.
+Runtime code uses a three-layer boundary: stable CLI dispatchers in `scripts/`, policy-neutral mechanics in `scripts/core/`, and workflow behaviour in `workflows/<workflow>/`. Shared core code must not branch on workflow identity.
 
-## Skill
+## Skill runtime dispatchers
 
-- `append_integrated_diagnosis.py`
-- `card_tags.py` — shared deterministic runtime card-tag assignment/deconvolution
-- `package_run.py` — workflow-state-driven debug packaging
-- `render.py` — shared evidence renderer
-- `report_audit.py`
-- `report_citations.py`
-- `retrieval_core.py` — shared corpus, blacklist, validation, provenance and tag mechanics
-- `retrieve.py` — workflow-state-driven retrieval dispatcher
-- `run_case.py` — workflow-state-driven case-stage dispatcher
-- `setup_workflow.py` — create/reuse a work directory and bind workflow identity
-- `validate_adjudication.py`
-- `workflow_registry.py` — workflow registry/state loader
-- `workflow_runtime.py` — dispatch workflow-owned deterministic runtime helpers
+- `run_case.py` — dispatch a case-pipeline stage to the workflow bound to the work directory.
+- `retrieve.py` — dispatch retrieval to the bound workflow.
+- `render.py` — dispatch evidence rendering to the bound workflow.
+- `report_audit.py` — dispatch report-draft audit policy to the bound workflow.
+- `report_citations.py` — stable CLI over shared citation mechanics.
+- `package_run.py` — package workflow-declared debug artifacts.
+- `setup_workflow.py` — create/reuse a work directory and bind workflow identity.
+- `workflow_registry.py` — resolve workflow metadata, state and declared entrypoints.
+- `workflow_runtime.py` — dispatch optional workflow-owned runtime commands.
+
+## Shared skill core (`scripts/core/`)
+
+- `corpus.py` — load, validate, flatten and blacklist corpus cards.
+- `retrieval.py` — policy-neutral case validation and retrieval helper primitives.
+- `rendering.py` — policy-neutral evidence rendering primitives parameterised by workflow callbacks.
+- `card_tags.py` — deterministic runtime card-tag assignment and deconvolution.
+- `citations.py` — citation marker validation, normalisation and final reference rendering.
+- `provenance.py` — construct deterministic corpus provenance metadata.
+
+Workflow-specific retrieval, rendering, adjudication, audit and report policy belongs under `workflows/<workflow>/`, not in `scripts/core/`.
 
 ## Ingest
 
-- `apply_phase5.py`
 - `build_secondary_source_backlog.py`
 - `citations.py`
 - `confirm.py`
@@ -31,27 +37,26 @@ Scripts are grouped below by their primary role.
 - `make_key.py`
 - `package_validation.py`
 - `parse_pdfs.py`
-- `prepare_redo.py`
+- `prepare_redo.py` — restore accepted state for census, provisional, or accepted-card Phase 2 review.
+- `ingest_artifacts.py` — versioned/legacy ingestion filename resolver.
 - `quarantine.py`
 - `render_corpus.py`
 - `transport.py`
-- `validate_phase5.py`
 - `validate_review.py`
 - `phase_validation/`
   - `__init__.py`
   - `phase1.py`
   - `phase2.py`
   - `phase4.py`
-  - `phase5.py`
 
 ## Development
 
 - `build_blacklist.py`
 - `build_prompts.py`
 - `build_skill_zip.py`
-- `devel_workflow.py` — clone/check isolated workflow implementations
+- `devel_workflow.py` — clone/check isolated workflow implementations and declared entrypoints.
 
 ## Other
 
-- `backfill_acceptance_version.py` — maintenance/migration utility
-- `vocab.py` — shared vocabulary definitions
+- `backfill_acceptance_version.py` — maintenance/migration utility.
+- `vocab.py` — shared vocabulary definitions.

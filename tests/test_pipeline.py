@@ -29,8 +29,11 @@ def load(name, filename):
 vocab = load("nel_vocab", "vocab.py")
 make_key = load("nel_make_key", "make_key.py")
 validation = load("nel_validation", "package_validation.py")
-retrieve = load("nel_retrieve", "retrieve.py")
-render = load("nel_render", "render.py")
+sys.path.insert(0, str(ROOT))
+from scripts.core import corpus as retrieval_corpus  # noqa: E402
+from workflows.legacy_v1 import adjudication as legacy_adjudication  # noqa: E402
+from workflows.legacy_v1 import retrieval as retrieve  # noqa: E402
+from workflows.legacy_v1 import rendering as render  # noqa: E402
 
 
 def read(path):
@@ -634,8 +637,8 @@ class RetrievalAndRenderTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.corpus_path, cls.index_path = build_fixture_corpus(Path(cls.tmp.name))
-        cls.corpus, _index, _digest = retrieve.load_corpus(cls.corpus_path, cls.index_path)
-        cls.cards = retrieve.flatten(cls.corpus)
+        cls.corpus, _index, _digest = retrieval_corpus.load_corpus(cls.corpus_path, cls.index_path)
+        cls.cards = retrieval_corpus.flatten(cls.corpus)
 
     @classmethod
     def tearDownClass(cls):
@@ -685,7 +688,7 @@ class RetrievalAndRenderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             index = read(self.index_path); index["corpus_sha256"] = "0" * 64
             stale = Path(tmp) / "index.json"; stale.write_text(json.dumps(index), encoding="utf-8")
-            with self.assertRaises(ValueError): retrieve.load_corpus(self.corpus_path, stale)
+            with self.assertRaises(ValueError): retrieval_corpus.load_corpus(self.corpus_path, stale)
 
     def test_diagnosis_cards_are_not_gated_by_legacy_escalation_metadata(self):
         diagnosis = retrieve.step2(self.cards, ["GENEA"], "MDS")
@@ -753,7 +756,7 @@ class RetrievalAndRenderTests(unittest.TestCase):
             ],
             "reason": "Both source-stated criteria are met by supplied facts.",
         }
-        retrieve.validate_adjudication(step2, adjudication)
+        legacy_adjudication.validate_adjudication(step2, adjudication)
         full = retrieve.step4(
             [diagnosis_card, mds_card, aml_card], ["SF3B1"],
             adjudication["downstream_filter_disease"], step2["diagnosis_cards"],
@@ -793,13 +796,13 @@ class RetrievalAndRenderTests(unittest.TestCase):
             "reason": "Ring sideroblast percentage was not supplied.",
         }
         with self.assertRaisesRegex(ValueError, "every required criterion"):
-            retrieve.validate_adjudication(step2, adjudication)
+            legacy_adjudication.validate_adjudication(step2, adjudication)
 
         adjudication["criterion_assessment"][0].update(
             status="met", case_fact_ids=["F-HALLUCINATED"]
         )
         with self.assertRaisesRegex(ValueError, "unsupplied case fact"):
-            retrieve.validate_adjudication(step2, adjudication)
+            legacy_adjudication.validate_adjudication(step2, adjudication)
 
     def test_germline_and_unknown_gene_behavior(self):
         diagnosis = retrieve.step2(self.cards, ["GENED", "GENEZ"], "MDS")

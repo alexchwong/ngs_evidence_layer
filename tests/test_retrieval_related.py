@@ -10,20 +10,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS = ROOT / "scripts"
-sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(ROOT))
 
-
-def load(name, filename):
-    spec = importlib.util.spec_from_file_location(name, SCRIPTS / filename)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-vocab = load("nel_vocab_retrieval_related", "vocab.py")
-retrieve = load("nel_retrieve_retrieval_related", "retrieve.py")
-render = load("nel_render_retrieval_related", "render.py")
+from scripts import vocab  # noqa: E402
+from scripts.core import retrieval as retrieval_core  # noqa: E402
+from workflows.legacy_v1 import rendering as render  # noqa: E402
+from workflows.legacy_v1 import retrieval as retrieve  # noqa: E402
 
 
 def card(card_id, disease, category="prognosis", gene="ASXL1"):
@@ -91,7 +83,7 @@ class NoHaematologicalMalignancyTests(unittest.TestCase):
     def test_empty_genes_are_allowed_for_no_malignancy(self):
         tmp, path = self.write_case(vocab.NO_HAEMATOLOGICAL_MALIGNANCY, [])
         try:
-            result = retrieve.validate_case_input(path)
+            result = retrieval_core.validate_case_input(path)
             self.assertEqual(result["genes"], [])
             self.assertEqual(result["provisional_disease"], vocab.NO_HAEMATOLOGICAL_MALIGNANCY)
             step2 = retrieve.step2(
@@ -107,14 +99,14 @@ class NoHaematologicalMalignancyTests(unittest.TestCase):
         tmp, path = self.write_case(vocab.NO_HAEMATOLOGICAL_MALIGNANCY, ["TET2"])
         try:
             with self.assertRaisesRegex(ValueError, "requires no reported variants"):
-                retrieve.validate_case_input(path)
+                retrieval_core.validate_case_input(path)
         finally:
             tmp.cleanup()
 
     def test_empty_genes_are_allowed_for_specified_case_disease(self):
         tmp, path = self.write_case("MDS", [])
         try:
-            result = retrieve.validate_case_input(path)
+            result = retrieval_core.validate_case_input(path)
             self.assertEqual(result["provisional_disease"], "MDS")
             self.assertEqual(result["genes"], [])
             step2 = retrieve.step2(

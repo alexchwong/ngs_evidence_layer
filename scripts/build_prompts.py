@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = ROOT / "prompts" / "assets" / "manifest.json"
 MARKER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
+PHASE3_FORBIDDEN_TERMS = ("agreed_reporting_rules", '"diseases": [', '"$schema"')
 
 
 def read(path):
@@ -260,44 +261,36 @@ def vocabulary_errors():
 
 
 def render(phase):
-    template = render_template(
-        ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
-    )
-    if phase == 3 and any(
-        term in template
-        for term in (
-            "agreed_reporting_rules",
-            '"diseases": [',
-            '"$schema"',
-        )
-    ):
+    template_path = ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
+    if phase == 3:
+        raw_template = read(template_path)
+        manifest = load_manifest()
+        for marker in template_markers(raw_template):
+            content = asset_content(marker, manifest=manifest)
+            found = [term for term in PHASE3_FORBIDDEN_TERMS if term in content]
+            if found:
+                raise ValueError(
+                    f"Phase 3 shared asset {marker} contains forbidden authoring context: "
+                    + ", ".join(found)
+                )
+    template = render_template(template_path)
+    if phase == 3 and any(term in template for term in PHASE3_FORBIDDEN_TERMS):
         raise ValueError("Phase 3 prompt contains forbidden authoring context")
     return template + "\n"
-
-
-def render_phase5_review():
-    return render_template(
-        ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
-    ) + "\n"
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--phase", type=int, choices=(1, 2, 3, 4, 5))
-    mode.add_argument("--phase5-review", action="store_true")
+    mode.add_argument("--phase", type=int, choices=(1, 2, 3, 4))
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     try:
         errors = vocabulary_errors()
         if errors:
             raise ValueError("\n".join(errors))
-        if args.phase5_review:
-            destination = args.output or ROOT / "prompts" / "phase5_review_prompt.md"
-            content = render_phase5_review()
-        else:
-            destination = args.output or ROOT / "prompts" / f"phase{args.phase}_prompt.md"
-            content = render(args.phase)
+        destination = args.output or ROOT / "prompts" / f"phase{args.phase}_prompt.md"
+        content = render(args.phase)
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:

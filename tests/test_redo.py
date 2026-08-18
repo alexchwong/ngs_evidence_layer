@@ -16,7 +16,7 @@ import prepare_redo  # noqa: E402
 
 
 class RedoTests(unittest.TestCase):
-    def make_state(self, root):
+    def make_state(self, root, *, legacy=True):
         key = "example-paper"
         paper_id = "11111111-1111-1111-1111-111111111111"
         accept = root / "accept"
@@ -27,7 +27,7 @@ class RedoTests(unittest.TestCase):
         archive_paper.mkdir(parents=True)
         metadata = {"publication_key": key, "paper_id": paper_id}
         census = {"paper_id": paper_id, "entries": [{"claim_id": "Q001"}]}
-        old_final = {"paper_id": paper_id, "generation": 1}
+        old_final = {"paper_id": paper_id, "round": 1, "generation": 1}
         envelope = {
             "schema_version": "1.4",
             "acceptance_path": "confirmed",
@@ -44,68 +44,74 @@ class RedoTests(unittest.TestCase):
         (archive_paper / "paper.md").write_text("source text")
         (archive_paper / "metadata.json").write_text(json.dumps(metadata))
         (archive_paper / "paper.final.json").write_text(json.dumps(old_final))
+        census_name = "paper.census.json" if legacy else "paper.census-v003.json"
+        (archive_paper / census_name).write_text(json.dumps(census))
+        provisional_name = "paper.provisional-001.json" if legacy else "paper.provisional-v004.json"
+        review_name = "paper.review-001.json" if legacy else "paper.review-v004.json"
+        (archive_paper / provisional_name).write_text(json.dumps({"round": 1}))
+        (archive_paper / review_name).write_text(json.dumps({"round": 1}))
         (archive_paper / "phase5").mkdir()
         (archive_paper / "phase5" / "001").mkdir()
         (archive_paper / "phase5" / "001" / "old.txt").write_text("old supplement")
         return key, paper_id, accept, archive, work, envelope, census
 
-    def prepare(self, root, phase):
-        key, paper_id, accept, archive, work, envelope, census = self.make_state(root)
+    def prepare(self, root, mode, *, legacy=True):
+        key, paper_id, accept, archive, work, envelope, census = self.make_state(root, legacy=legacy)
         args = SimpleNamespace(
             publication_key=key,
-            phase=phase,
-            cards=None,
+            mode=mode,
             accept_dir=accept,
             archive_dir=archive,
             work_dir=work,
         )
-        destination, redo = prepare_redo.prepare(args)
-        return key, paper_id, accept, archive, work, envelope, census, destination, redo
+        destination, marker = prepare_redo.prepare(args)
+        return key, paper_id, accept, archive, work, envelope, census, destination, marker
 
-    def test_phase1_redo_does_not_restore_census(self):
+    def test_census_redo_uses_new_filename_after_legacy_attempt(self):
         with tempfile.TemporaryDirectory() as tmp:
-            values = self.prepare(Path(tmp), 1)
-            destination, redo = values[-2:]
-            self.assertEqual(redo, 1)
-            self.assertTrue((destination / "paper.md").is_file())
-            self.assertTrue((destination / "metadata.json").is_file())
-            self.assertFalse((destination / "paper.census.json").exists())
-            self.assertTrue((destination / "paper.base.census.json").is_file())
-            self.assertTrue((destination / "paper.base.final.json").is_file())
-            marker = json.loads((destination / "redo.json").read_text())
-            self.assertEqual(marker["start_phase"], 1)
-            self.assertEqual(marker["redo"], 1)
+            values = self.prepare(Path(tmp), "census", legacy=True)
+            destination, marker = values[-2:]
+            self.assertTrue((destination / "paper.census.json").is_file())
+            self.assertEqual(marker["mode"], "census")
+            self.assertEqual(marker["census_filename"], "paper.census.json")
+            self.assertEqual(marker["next_outputs"]["census"], "paper.census-v002.json")
+            self.assertEqual(marker["next_outputs"]["provisional"], "paper.provisional-v002.json")
 
-    def test_phase2_redo_restores_accepted_census_and_rejects_cards(self):
+    def test_versioned_archive_advances_attempts(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            key, _, accept, archive, work, _, census = self.make_state(root)
-            args = SimpleNamespace(
-                publication_key=key,
-                phase=2,
-                cards=None,
-                accept_dir=accept,
-                archive_dir=archive,
-                work_dir=work,
+            values = self.prepare(Path(tmp), "census", legacy=False)
+            marker = values[-1]
+            self.assertEqual(marker["next_outputs"]["census"], "paper.census-v004.json")
+            self.assertEqual(marker["next_outputs"]["provisional"], "paper.provisional-v005.json")
+            self.assertEqual(marker["next_outputs"]["review"], "paper.review-v005.json")
+
+    def test_provisional_redo_restores_archived_census_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            values = self.prepare(Path(tmp), "provisional")
+            destination, marker = values[-2:]
+            self.assertTrue((destination / "paper.census.json").is_file())
+            self.assertFalse((destination / "paper.final.json").exists())
+            self.assertEqual(marker["mode"], "provisional")
+
+    def test_cards_review_restores_final_and_uses_separate_revision_namespace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            values = self.prepare(Path(tmp), "cards")
+            destination, marker = values[-2:]
+            self.assertTrue((destination / "paper.census.json").is_file())
+            self.assertTrue((destination / "paper.final.json").is_file())
+            self.assertEqual(marker["revision"], 1)
+            self.assertEqual(
+                marker["next_outputs"]["provisional"],
+                "paper.provisional-rev001-v001.json",
             )
-            destination, _ = prepare_redo.prepare(args)
-            self.assertEqual(json.loads((destination / "paper.census.json").read_text()), census)
-
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            key, _, accept, archive, work, _, _ = self.make_state(root)
-            args = SimpleNamespace(
-                publication_key=key,
-                phase=2,
-                cards="0001",
-                accept_dir=accept,
-                archive_dir=archive,
-                work_dir=work,
+            self.assertEqual(
+                marker["next_outputs"]["phase2r_decisions"],
+                "paper.phase2r-decisions-rev001-v001.json",
             )
-            with self.assertRaisesRegex(ValueError, "--cards is valid only with --phase 5"):
-                prepare_redo.prepare(args)
+            self.assertNotIn("targets", marker)
+            self.assertFalse((destination / "paper.phase5-targets.json").exists())
 
-    def _finish_and_confirm(self, root, phase=2, mutate=None):
+    def _finish_and_confirm(self, root, mode="provisional", mutate=None):
         (
             key,
             paper_id,
@@ -115,20 +121,35 @@ class RedoTests(unittest.TestCase):
             envelope,
             census,
             destination,
-            _,
-        ) = self.prepare(root, phase)
-        if phase == 1:
-            (destination / "paper.census.json").write_text(
+            marker,
+        ) = self.prepare(root, mode)
+        if mode == "census":
+            census_name = marker["next_outputs"]["census"]
+            (destination / census_name).write_text(
                 json.dumps({"paper_id": paper_id, "entries": [{"claim_id": "Q999"}]})
             )
-        new_final = {"paper_id": paper_id, "generation": 2, "audit": {"approved_round": 1}}
+        if mode == "cards":
+            provisional_name = marker["next_outputs"]["provisional"]
+            revision = marker["revision"]
+            round_number = 2
+            review_name = f"paper.review-rev{revision:03d}-v001.json"
+        else:
+            provisional_name = marker["next_outputs"]["provisional"]
+            round_number = int(provisional_name.split("-v")[-1].split(".")[0])
+            review_name = f"paper.review-v{round_number:03d}.json"
+        (destination / provisional_name).write_text(json.dumps({"round": round_number}))
+        (destination / review_name).write_text(json.dumps({"round": round_number}))
+        new_final = {
+            "paper_id": paper_id,
+            "round": round_number,
+            "generation": 2,
+            "audit": {"approved_round": round_number},
+        }
         (destination / "paper.final.json").write_text(json.dumps(new_final))
-        (destination / "paper.provisional-001.json").write_text("{}")
-        (destination / "paper.review-001.json").write_text("{}")
         if mutate is not None:
             mutate(key, accept, archive, destination)
         version_file = root / "VERSION"
-        version_file.write_text("0.2.0\n")
+        version_file.write_text("0.2.3\n")
         args = SimpleNamespace(
             publication_key=key,
             work_dir=work,
@@ -149,7 +170,7 @@ class RedoTests(unittest.TestCase):
             result = confirm.confirm(args)
         return key, accept, archive, work, envelope, census, result
 
-    def test_confirm_redo_replaces_lineage_and_snapshots_superseded_state(self):
+    def test_confirm_redo_preserves_legacy_history_and_snapshots_archive(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             key, accept, archive, work, old_envelope, old_census, result = self._finish_and_confirm(root)
@@ -158,21 +179,14 @@ class RedoTests(unittest.TestCase):
             self.assertEqual(accepted["schema_version"], "1.5")
             self.assertEqual(accepted["accepted_in_version"], "0.1.0")
             self.assertEqual(accepted["final"]["generation"], 2)
-            self.assertEqual(accepted["redos"][0]["redo"], 1)
-            self.assertEqual(accepted["redos"][0]["start_phase"], 2)
-            self.assertEqual(accepted["redos"][0]["accepted_in_version"], "0.2.0")
-            self.assertNotIn("supplements", accepted)
-            self.assertNotIn("revisions", accepted)
+            self.assertEqual(accepted["redos"][0]["mode"], "provisional")
+            self.assertIn("supplements", accepted)
+            self.assertIn("revisions", accepted)
             snapshot = archive / key / "redo" / "001"
-            self.assertEqual(
-                json.loads((snapshot / "accepted.final.json").read_text()), old_envelope
-            )
-            self.assertEqual(
-                json.loads((snapshot / "accepted.census.json").read_text()), old_census
-            )
+            self.assertEqual(json.loads((snapshot / "accepted.final.json").read_text()), old_envelope)
+            self.assertEqual(json.loads((snapshot / "accepted.census.json").read_text()), old_census)
             self.assertEqual((snapshot / "phase5" / "001" / "old.txt").read_text(), "old supplement")
             self.assertFalse((archive / key / "redo.json").exists())
-            self.assertFalse((archive / key / "paper.base.final.json").exists())
             self.assertFalse(work.joinpath(key).exists())
 
     def test_confirm_rejects_stale_accepted_baseline(self):
@@ -188,20 +202,21 @@ class RedoTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "redo baseline is stale"):
                 self._finish_and_confirm(root, mutate=mutate)
 
-    def test_phase2_redo_rejects_census_change_but_phase1_allows_it(self):
+    def test_provisional_redo_rejects_census_change_but_census_mode_allows_it(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
 
             def mutate(_key, _accept, _archive, destination):
-                census = json.loads((destination / "paper.census.json").read_text())
+                path = destination / "paper.census.json"
+                census = json.loads(path.read_text())
                 census["entries"] = [{"claim_id": "Q999"}]
-                (destination / "paper.census.json").write_text(json.dumps(census))
+                path.write_text(json.dumps(census))
 
-            with self.assertRaisesRegex(ValueError, "Phase 2 redo must preserve"):
-                self._finish_and_confirm(root, phase=2, mutate=mutate)
+            with self.assertRaisesRegex(ValueError, "provisional redo must preserve"):
+                self._finish_and_confirm(root, mode="provisional", mutate=mutate)
 
         with tempfile.TemporaryDirectory() as tmp:
-            self._finish_and_confirm(Path(tmp), phase=1)
+            self._finish_and_confirm(Path(tmp), mode="census")
 
 
 if __name__ == "__main__":

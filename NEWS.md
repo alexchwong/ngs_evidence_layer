@@ -1,5 +1,16 @@
 # NEWS
 
+## 0.2.3
+- Added `WORKFLOW.md` documenting workflow isolation, cloning, modification, validation, and promotion.
+- Refactored shared workflow scripts for better separation of workflows. Note `prompt/workflow/` prompts remain shared between workflows. 
+- Expanded the active corpus from 12 to 29 publications across diagnosis, prognosis, treatment, MRD, CHIP, CCUS, and germline evidence.
+- Diagnosis-first rule drafting now supports multiple atomic statements per rule with statement-level citations.
+- Diagnosis-first reporting suppresses generic negative or not-applicable statements unless their absence materially changes interpretation.
+- Bundled the canonical NGS panel-scope definition required during workflow setup.
+- Replaced Phase 5 with accepted-card review inside the standard Phase 2–4 workflow.
+- Added collision-safe per-phase attempt filenames while retaining legacy archive filename compatibility.
+- Simplified redo preparation to census, provisional, and cards restoration modes without card edit allowlists.
+
 ## 0.2.2
 - Made `diagnosis-first-v1` the default reporting workflow while retaining `legacy-v1` through explicit selectors.
 - Bound each work directory to a registered workflow so deterministic commands cannot silently switch pipelines.

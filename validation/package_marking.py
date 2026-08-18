@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
 
 from validation.cases import retrieve_case, retrieve_MC  # noqa: E402
 
-DEFAULT_PROMPT = ROOT / "prompts" / "workflow" / "mark_validation_report.md"
+DEFAULT_PROMPT = ROOT / "validation" / "mark_validation_report.md"
 DEFAULT_CASE_FILE = ROOT / "validation" / "case_summary.md"
 CASE_TOKEN = "{{CASE_IDENTIFIER}}"
 CRITERIA_TOKEN = "{{CASE_SPECIFIC_MARKING_CRITERIA}}"
@@ -95,7 +95,7 @@ def main() -> None:
         "--prompt",
         type=Path,
         default=DEFAULT_PROMPT,
-        help="Marking prompt template (default: prompts/workflow/mark_validation_report.md)",
+        help="Marking prompt template (default: validation/mark_validation_report.md)",
     )
     args = parser.parse_args()
 

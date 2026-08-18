@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/ngs_evidence_layer/card_decision_schema.json",
+  "title": "Human-authorized card delta ledger",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "stage",
+    "purpose",
+    "paper_id",
+    "baseline_filename",
+    "baseline_round",
+    "user_finalized",
+    "card_decisions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "stage": {
+      "enum": [
+        "phase2r",
+        "phase4"
+      ]
+    },
+    "purpose": {
+      "enum": [
+        "revise",
+        "finalize",
+        "phase2r_handoff"
+      ]
+    },
+    "paper_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "baseline_filename": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline_round": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "output_filename": {
+      "type": "string",
+      "minLength": 1
+    },
+    "user_finalized": {
+      "const": true
+    },
+    "paper_nickname": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "publication_type_decision": {
+      "type": "object",
+      "required": [
+        "decision",
+        "publication_type",
+        "publication_type_basis",
+        "user_instruction"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "retain",
+            "modify"
+          ]
+        },
+        "publication_type": {
+          "enum": [
+            "guideline",
+            "consensus statement",
+            "primary study",
+            "systematic review",
+            "narrative review",
+            "other"
+          ]
+        },
+        "publication_type_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "user_instruction": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "card_decisions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/card_decision"
+      }
+    },
+    "phase2r_requests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/phase2r_request"
+      }
+    },
+    "phase4_decisions_filename": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_filename": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "card_decision": {
+      "type": "object",
+      "required": [
+        "decision",
+        "card_id",
+        "user_instruction"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "add",
+            "modify",
+            "delete",
+            "retain"
+          ]
+        },
+        "card_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "user_instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "card": {
+          "type": "object"
+        },
+        "evidence": {
+          "type": "object"
+        },
+        "related_card_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "enum": [
+                  "add",
+                  "modify"
+                ]
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "required": [
+              "card",
+              "evidence"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "enum": [
+                  "delete",
+                  "retain"
+                ]
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "card"
+                  ]
+                },
+                {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "phase2r_request": {
+      "type": "object",
+      "required": [
+        "action",
+        "user_instruction"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "add",
+            "modify",
+            "delete"
+          ]
+        },
+        "card_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "user_instruction": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "modify",
+                  "delete"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "required": [
+              "card_id"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "purpose": {
+            "const": "phase2r_handoff"
+          }
+        },
+        "required": [
+          "purpose"
+        ]
+      },
+      "then": {
+        "properties": {
+          "stage": {
+            "const": "phase4"
+          }
+        },
+        "required": [
+          "phase2r_requests"
+        ],
+        "not": {
+          "required": [
+            "output_filename"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "purpose": {
+            "enum": [
+              "revise",
+              "finalize"
+            ]
+          }
+        },
+        "required": [
+          "purpose"
+        ]
+      },
+      "then": {
+        "required": [
+          "output_filename"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "phase4"
+          }
+        },
+        "required": [
+          "stage"
+        ]
+      },
+      "then": {
+        "required": [
+          "review_filename"
+        ]
+      }
+    }
+  ]
+}

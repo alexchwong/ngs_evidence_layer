@@ -5,12 +5,14 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS = ROOT / "scripts"
-sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(ROOT))
 
-import card_tags  # noqa: E402
-import render  # noqa: E402
-import retrieve  # noqa: E402
+from scripts.core import card_tags  # noqa: E402
+from scripts.core import rendering as rendering_core  # noqa: E402
+from scripts.core import retrieval as retrieval_core  # noqa: E402
+from workflows.legacy_v1 import adjudication  # noqa: E402
+from workflows.legacy_v1 import rendering as render  # noqa: E402
+from workflows.legacy_v1 import retrieval as retrieve  # noqa: E402
 
 
 def card(card_id, category="diagnosis", disease="MDS"):
@@ -49,7 +51,7 @@ class RuntimeCardTagTests(unittest.TestCase):
         self.step2["card_tags"] = self.tag_map
 
     def test_diagnostic_markdown_exposes_tags_not_stable_ids(self):
-        text = retrieve.render_step_markdown(self.step2)
+        text = retrieval_core.render_step_markdown(self.step2)
         self.assertIn(f"[card:{self.tags['fixture-C0001']}]", text)
         self.assertIn(f"[card:{self.tags['fixture-C0002']}]", text)
         self.assertNotIn("fixture-C0001", text)
@@ -73,7 +75,7 @@ class RuntimeCardTagTests(unittest.TestCase):
             "reason": "Fixture.",
             "user_review": "automatic",
         }
-        normalised = retrieve.normalise_adjudication(
+        normalised = adjudication.normalise_adjudication(
             self.step2, raw, require_completed_review=True
         )
         self.assertEqual(normalised["driven_by"], ["fixture-C0001"])
@@ -117,7 +119,7 @@ class RuntimeCardTagTests(unittest.TestCase):
         subset = card_tags.subset_tag_map(
             self.tag_map, [c["card_id"] for c in result["rendered_cards"]]
         )
-        text = render.evidence_markdown(result, subset)
+        text = rendering_core.evidence_markdown(result, subset)
         self.assertEqual({c["card_id"] for c in bundle["retrieved"]}, {"fixture-C0001", "fixture-C0003"})
         self.assertIn(f"[card:{self.tags['fixture-C0002']}]", text)
         self.assertIn(f"[card:{self.tags['fixture-C0001']}]", text)

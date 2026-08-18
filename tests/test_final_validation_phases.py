@@ -47,6 +47,11 @@ class PhaseValidationTests(unittest.TestCase):
             census_path=Path("c"),
             source_path=Path("s"),
             provisional_path=Path("p"),
+            base_final_path=None,
+            base_provisional_path=None,
+            base_review_path=None,
+            decisions_path=None,
+            phase4_decisions_path=None,
         )
 
     def test_phase_3_is_owned_by_phase4_entry_validator(self):
@@ -59,7 +64,8 @@ class PhaseValidationTests(unittest.TestCase):
             )
         self.assertEqual(actual, expected)
         validator.assert_called_once_with(
-            provisional_path=Path("p"), review_path=Path("r")
+            provisional_path=Path("p"), review_path=Path("r"),
+            phase2r_decisions_path=None,
         )
 
     def test_phase_4_delegates_to_phase4_module(self):
@@ -84,6 +90,8 @@ class PhaseValidationTests(unittest.TestCase):
             provisional_path=Path("p"),
             review_path=Path("r"),
             final_path=Path("f"),
+            decisions_path=None,
+            phase2r_decisions_path=None,
         )
 
     def test_cli_accepts_phase_specific_arguments(self):
@@ -93,7 +101,7 @@ class PhaseValidationTests(unittest.TestCase):
                 2,
                 [
                     "--phase", "2", "--metadata", "m", "--census", "c",
-                    "--source", "s", "--provisional", "p",
+                    "--source", "s", "--provisional", "p", "--base-final", "b",
                 ],
             ),
             (3, ["--phase", "3", "--provisional", "p", "--review", "r"]),

@@ -5,6 +5,34 @@
       "type": "file",
       "path": "prompts/assets/clinical_reporting_gate.md"
     },
+    "SOURCE_BOUNDED_REASONING": {
+      "type": "file",
+      "path": "prompts/assets/source_bounded_reasoning.md"
+    },
+    "CATEGORY_SEMANTICS": {
+      "type": "file",
+      "path": "prompts/assets/category_semantics.md"
+    },
+    "ATOMICITY_PRINCIPLES": {
+      "type": "file",
+      "path": "prompts/assets/atomicity_principles.md"
+    },
+    "GENELESS_CLAIM_POLICY": {
+      "type": "file",
+      "path": "prompts/assets/geneless_claim_policy.md"
+    },
+    "CENSUS_SEMANTIC_GATE": {
+      "type": "file",
+      "path": "prompts/assets/census_semantic_gate.md"
+    },
+    "INTERPRETATION_PRINCIPLES": {
+      "type": "file",
+      "path": "prompts/assets/interpretation_principles.md"
+    },
+    "SOURCE_SUPPORT_PRINCIPLES": {
+      "type": "file",
+      "path": "prompts/assets/source_support_principles.md"
+    },
     "CARD_CONTENT_RULES": {
       "type": "file",
       "path": "prompts/assets/card_content_rules.md"
@@ -59,23 +87,24 @@
     "PHASE2_VALIDATION_BUNDLE": {
       "type": "bundle",
       "paths": [
+        "scripts/phase_validation/phase1.py",
         "scripts/phase_validation/phase2.py",
+        "scripts/phase_validation/card_deltas.py",
         "schema/ingestion_package_schema.json",
-        "schema/disease_vocabulary.json"
+        "schema/disease_vocabulary.json",
+        "schema/card_decision_schema.json"
       ]
     },
     "PHASE4_VALIDATION_BUNDLE": {
       "type": "bundle",
       "paths": [
         "scripts/phase_validation/phase4.py",
+        "scripts/phase_validation/card_deltas.py",
         "schema/ingestion_package_schema.json",
         "schema/review_schema.json",
-        "schema/disease_vocabulary.json"
+        "schema/disease_vocabulary.json",
+        "schema/card_decision_schema.json"
       ]
-    },
-    "PHASE5_VALIDATION_BUNDLE": {
-      "type": "file",
-      "path": "scripts/phase_validation/phase5.py"
     }
   }
 }

@@ -7,22 +7,21 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = REPO_ROOT / "scripts"
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
-import report_audit  # noqa: E402
-import vocab  # noqa: E402
+from workflows.diagnosis_first_v1 import audit_policy as report_audit
+from scripts import vocab  # noqa: E402
+from workflows.diagnosis_first_v1 import report_yaml  # noqa: E402
 
-DEFAULT_RULES = REPO_ROOT / "rules" / "agreed_reporting_rules.md"
-REPORTING_RULE_POLICY = REPO_ROOT / "prompts" / "workflow" / "reporting_rule_policy.md"
-PROMPT_DIR = REPO_ROOT / "workflows" / "diagnosis_first_v1" / "prompts" / "rule_views"
+WORKFLOW_PROMPT_DIR = REPO_ROOT / "workflows" / "diagnosis_first_v1" / "prompts"
+DEFAULT_RULES = WORKFLOW_PROMPT_DIR / "agreed_reporting_rules.md"
+REPORTING_RULE_POLICY = WORKFLOW_PROMPT_DIR / "reporting_rule_policy.md"
+PROMPT_DIR = WORKFLOW_PROMPT_DIR / "rule_views"
+DIAGNOSIS_CONTEXT_TEMPLATE = PROMPT_DIR / "diagnosis_context.md"
 RULE_TEMPLATES = {
     "diagnosis": PROMPT_DIR / "diagnosis_rule_view.md",
     "remainder": PROMPT_DIR / "remainder_rule_view.md",
     "full": PROMPT_DIR / "full_rule_view.md",
 }
 SECTION_HEADING = re.compile(r"^# R(\d+)\b")
-REFINED_CMC_LINE = re.compile(r"^REFINED_CMC: (.+)$")
 
 
 def _validation_case_text(mode: str, case_id: str) -> str:
@@ -103,16 +102,23 @@ def _rule_view_kind(sections: set[int]) -> str:
     return kind
 
 
-def _render_rule_view(kind: str, rules: str) -> str:
+def _render_rule_view(kind: str, rules: str, *, diagnosis_context: str = "") -> str:
     template = RULE_TEMPLATES.get(kind)
     if template is None:  # pragma: no cover - internal programming error
         raise ValueError(f"unsupported diagnosis-first rule-view kind: {kind}")
+    replacements = {
+        "REPORTING_RULE_POLICY": _read(REPORTING_RULE_POLICY),
+        "CANONICAL_RULES": rules,
+    }
+    if kind == "remainder":
+        replacements["DIAGNOSIS_CONTEXT"] = diagnosis_context
+    return _render_prompt_template(template, replacements)
+
+
+def _render_diagnosis_context(diagnosis_draft: Path) -> str:
     return _render_prompt_template(
-        template,
-        {
-            "REPORTING_RULE_POLICY": _read(REPORTING_RULE_POLICY),
-            "CANONICAL_RULES": rules,
-        },
+        DIAGNOSIS_CONTEXT_TEMPLATE,
+        {"REPORT_DRAFT_DX": _read(diagnosis_draft)},
     )
 
 
@@ -135,7 +141,9 @@ def _canonical_rule_sections(rules_text: str, sections: set[int]) -> str:
     return "\n".join(out).rstrip() + "\n"
 
 
-def slice_rules_text(rules_text: str, sections: set[int]) -> str:
+def slice_rules_text(
+    rules_text: str, sections: set[int], *, diagnosis_context: str = ""
+) -> str:
     """Render one diagnosis-first rule view with a purpose-built analysis contract."""
     if not sections:
         raise ValueError("at least one reporting-rule section is required")
@@ -145,7 +153,7 @@ def slice_rules_text(rules_text: str, sections: set[int]) -> str:
 
     kind = _rule_view_kind(sections)
     rules = _canonical_rule_sections(rules_text, sections)
-    result = _render_rule_view(kind, rules)
+    result = _render_rule_view(kind, rules, diagnosis_context=diagnosis_context)
     specs = report_audit.agreed_rule_specs(result)
     found_sections = {int(spec["rule_id"].split(".", 1)[0][1:]) for spec in specs}
     missing = sorted(sections - found_sections)
@@ -157,39 +165,17 @@ def slice_rules_text(rules_text: str, sections: set[int]) -> str:
     return result
 
 
-def write_rule_slice(source: Path, output: Path, sections: set[int]) -> Path:
-    payload = slice_rules_text(_read(source), sections)
+def write_rule_slice(
+    source: Path, output: Path, sections: set[int], *, diagnosis_context: str = ""
+) -> Path:
+    payload = slice_rules_text(_read(source), sections, diagnosis_context=diagnosis_context)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(payload, encoding="utf-8")
     return output
 
 
-def split_diagnosis_draft(draft_text: str) -> tuple[str, str]:
-    """Return (R0-R1 draft, refined CMC) after validating terminal-line shape."""
-    lines = draft_text.splitlines()
-    if not lines:
-        raise ValueError("report-draft-dx.md is empty")
-    match = REFINED_CMC_LINE.fullmatch(lines[-1])
-    if match is None:
-        raise ValueError(
-            "report-draft-dx.md must end with exactly one routing line in the form "
-            "'REFINED_CMC: <canonical case major category>'. No text, citation marker, "
-            "or punctuation may follow that line."
-        )
-    refined = match.group(1)
-    if refined not in vocab.CASE_MAJOR_CATEGORY_SET:
-        raise ValueError(
-            f"REFINED_CMC value {refined!r} is not canonical. Replace it with exactly one of: "
-            + " | ".join(vocab.CASE_MAJOR_CATEGORIES)
-        )
-    rule_text = "\n".join(lines[:-1])
-    if not rule_text:
-        raise ValueError("report-draft-dx.md contains no reporting-rule lines before REFINED_CMC")
-    return rule_text + "\n", refined
-
-
 def extract_refined_cmc(path: Path) -> str:
-    return split_diagnosis_draft(_read(path))[1]
+    return report_yaml.read_refined_cmc(path, vocab.CASE_MAJOR_CATEGORY_SET)
 
 
 def diagnosis_first_branch(case_input: Path, diagnosis_draft: Path) -> tuple[str, str, bool]:
@@ -207,14 +193,23 @@ def diagnosis_first_branch(case_input: Path, diagnosis_draft: Path) -> tuple[str
 
 
 def validate_diagnosis_draft(draft: Path, evidence: Path, rules: Path) -> str:
-    rule_draft, refined = split_diagnosis_draft(_read(draft))
-    report_audit.validate_draft(
-        rule_draft,
-        _read(evidence),
-        _read(rules),
-        allow_no_evidence_tags=True,
+    document = report_yaml.validate_rule_document(
+        draft,
+        evidence,
+        rules,
+        require_refined_cmc=True,
+        valid_cmcs=vocab.CASE_MAJOR_CATEGORY_SET,
     )
-    return refined
+    return document["refined_cmc"]
+
+
+def validate_remainder_draft(draft: Path, evidence: Path, rules: Path) -> None:
+    report_yaml.validate_rule_document(
+        draft,
+        evidence,
+        rules,
+        require_refined_cmc=False,
+    )
 
 
 def assemble_report_draft(
@@ -222,24 +217,92 @@ def assemble_report_draft(
     diagnosis_draft: Path,
     remainder_draft: Path,
     output: Path,
-    evidence: Path,
-    rules: Path,
+    diagnosis_evidence: Path,
+    downstream_evidence: Path,
+    diagnosis_rules: Path,
+    remainder_rules: Path,
 ) -> tuple[Path, bool, str]:
     initial, refined, changed = diagnosis_first_branch(case_input, diagnosis_draft)
-    dx_rules, refined = split_diagnosis_draft(_read(diagnosis_draft))
-    remainder = _read(remainder_draft)
-    if not remainder.strip():
-        raise ValueError("report-draft-remainder.md is empty")
-
-    assembled = remainder if changed else dx_rules.rstrip() + "\n" + remainder.lstrip()
-    if not assembled.endswith("\n"):
-        assembled += "\n"
-    report_audit.validate_draft(
-        assembled,
-        _read(evidence),
-        _read(rules),
-        allow_no_evidence_tags=True,
+    dx = report_yaml.validate_rule_document(
+        diagnosis_draft,
+        diagnosis_evidence,
+        diagnosis_rules,
+        require_refined_cmc=True,
+        valid_cmcs=vocab.CASE_MAJOR_CATEGORY_SET,
     )
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(assembled, encoding="utf-8")
+    remainder = report_yaml.validate_rule_document(
+        remainder_draft,
+        downstream_evidence,
+        remainder_rules,
+        require_refined_cmc=False,
+    )
+    assembled_rules = remainder["rules"] if changed else dx["rules"] + remainder["rules"]
+    report_yaml.write_report_draft(assembled_rules, output)
+    report_yaml.write_summary_template(output.with_name("report-summary.yaml"))
     return output, changed, refined
+
+
+def render_report_summary(
+    summary: Path,
+    report_draft: Path,
+    evidence: Path,
+    card_tags: Path,
+    output: Path,
+) -> Path:
+    return report_yaml.render_summary(summary, report_draft, evidence, card_tags, output)
+
+
+def run(command: str, work_dir: Path) -> list[str]:
+    """Execute one diagnosis-first deterministic runtime command."""
+    work = work_dir.resolve()
+    if command == "cmc":
+        refined = validate_diagnosis_draft(
+            work / "report-draft-dx.yaml",
+            work / "diagnostic_evidence.md",
+            work / "reporting-rules-dx.md",
+        )
+        return [refined]
+    if command == "remainder-rules":
+        initial, refined, changed = diagnosis_first_branch(
+            work / "case-input.json", work / "report-draft-dx.yaml"
+        )
+        sections = set(range(0, 6)) if changed else {2, 3, 4, 5}
+        diagnosis_context = "" if changed else _render_diagnosis_context(
+            work / "report-draft-dx.yaml"
+        )
+        path = write_rule_slice(
+            DEFAULT_RULES,
+            work / "reporting-rules-remainder.md",
+            sections,
+            diagnosis_context=diagnosis_context,
+        )
+        return [str(path), f"INITIAL_CMC={initial}", f"REFINED_CMC={refined}", f"CMC_CHANGED={'yes' if changed else 'no'}"]
+    if command == "validate-remainder":
+        validate_remainder_draft(
+            work / "report-draft-remainder.yaml",
+            work / "downstream_evidence.md",
+            work / "reporting-rules-remainder.md",
+        )
+        return [str(work / "report-draft-remainder.yaml")]
+    if command == "assemble":
+        path, changed, refined = assemble_report_draft(
+            work / "case-input.json",
+            work / "report-draft-dx.yaml",
+            work / "report-draft-remainder.yaml",
+            work / "report-draft.yaml",
+            work / "diagnostic_evidence.md",
+            work / "downstream_evidence.md",
+            work / "reporting-rules-dx.md",
+            work / "reporting-rules-remainder.md",
+        )
+        return [str(path), str(path.with_name("report-summary.yaml")), f"REFINED_CMC={refined}", f"CMC_CHANGED={'yes' if changed else 'no'}"]
+    if command == "render":
+        path = render_report_summary(
+            work / "report-summary.yaml",
+            work / "report-draft.yaml",
+            work / "evidence.md",
+            work / "card-tags.json",
+            work / "report-final.md",
+        )
+        return [str(path)]
+    raise ValueError(f"diagnosis-first-v1 does not implement runtime command {command!r}")

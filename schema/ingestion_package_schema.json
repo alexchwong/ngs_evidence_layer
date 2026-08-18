@@ -22,7 +22,10 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "5.0"
+      "enum": [
+        "5.0",
+        "5.1"
+      ]
     },
     "paper_id": {
       "type": "string",
@@ -573,6 +576,13 @@
               "reason": {
                 "type": "string",
                 "minLength": 1
+              },
+              "review_basis": {
+                "enum": [
+                  "phase3",
+                  "carried_forward",
+                  "phase4_adjudicated"
+                ]
               }
             },
             "allOf": [

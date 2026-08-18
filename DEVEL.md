@@ -19,8 +19,7 @@ Activate it in each new shell, then use the relevant maintenance commands:
 . .env/bin/activate
 
 # Regenerate any prompt affected by canonical template, asset, rule, vocabulary, or schema changes.
-python scripts/build_prompts.py --phase <1|2|3|4|5>
-python scripts/build_prompts.py --phase5-review
+python scripts/build_prompts.py --phase <1|2|3|4>
 
 # Regenerate runtime JSON after editing output/corpus/blacklist.yaml.
 python scripts/build_blacklist.py
@@ -50,18 +49,17 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 
 ## Reporting workflow architecture
 
-`diagnosis-first-v1` is the default workflow while `legacy-v1` remains an explicit
-selectable pipeline. Root `SKILL.md` is a router backed by `workflows/registry.json`.
-The work directory is bound once through `scripts/setup_workflow.py`, which writes
-`<work-dir>/workflow.json`; subsequent deterministic commands read that state rather
-than inferring workflow identity from evidence files.
+See [`WORKFLOW.md`](WORKFLOW.md) for the full workflow-separation contract, cloning
+procedure, modification boundaries, validation, and promotion/removal steps.
 
-Workflow-owned strategy lives under `workflows/diagnosis_first_v1/` and
-`workflows/legacy_v1/`, including orchestration prompts and retrieval selection policy.
-Canonical reporting/citation prompts, corpus/blacklist/tag mechanics, rendering,
-validation, and packaging infrastructure remain shared. `scripts/retrieval_core.py`
-contains shared retrieval mechanics; each workflow's `retrieval.py` owns its selection
-algorithm.
+**Default workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
+the integrated diagnosis, then passes that diagnosis into a second pass over the remaining
+agreed reporting rules.
+
+**Alternate workflows:**
+
+- `legacy-v1` — Adjudicates and appends the integrated diagnosis before a single later
+  pass evaluates the complete case against all agreed reporting rules.
 
 Create an isolated experimental workflow with:
 
@@ -74,9 +72,17 @@ The helper clones only the workflow-owned tree, updates its identifiers/import p
 registers it without changing the default, and leaves shared contracts referenced in
 place. Promotion to default remains a deliberate edit of `workflows/registry.json`.
 
+Reporting runtime code has three dependency layers. Stable CLIs in `scripts/` resolve the
+workflow from `<work-dir>/workflow.json` and dispatch only to entrypoints declared by the
+workflow metadata. Policy-neutral mechanics live in `scripts/core/`; they must not import,
+name, or branch on a workflow. Retrieval, rendering, adjudication, report-audit policy and
+other behaviour that can differ between pipelines belongs in `workflows/<workflow>/`.
+This keeps workflow changes isolated while retaining one implementation of corpus, tag,
+citation and provenance invariants.
+
 ## Regenerate ingestion prompts
 
-The committed Phase 1–5 prompts are generated artefacts.
+The committed Phase 1–4 prompts are generated artefacts.
 
 Edit phase-specific prose under:
 
@@ -90,6 +96,13 @@ bundle of complete files. `scripts/build_prompts.py` is a generic renderer: addi
 moving a prompt asset should require a manifest edit and template marker, not new
 phase-specific Python dispatch.
 
+Cross-phase ingestion semantics are deliberately single-source assets. Phases 1–4 share
+clinical relevance, source-bounded reasoning, category semantics, atomicity, and the
+geneless-claim policy. Phases 2–4 additionally share interpretation and source-support
+principles. Phase templates retain workflow mechanics and phase-specific calibration; do
+not copy an authoritative semantic definition back into a template. The marker-matrix and
+golden-invariant tests protect this injection graph.
+
 Edit rules, vocabularies, schemas, executable validation code, and other canonical
 sources only at their owning paths. In particular, canonical disease names, source
 aliases, taxonomic parents, and retrieval relationships live together in
@@ -98,8 +111,11 @@ aliases, taxonomic parents, and retrieval relationships live together in
 lives in `prompts/assets/publication_type_audit_policy.md`.
 
 Phase-specific online validators live under `scripts/phase_validation/`: the prompt
-manifest injects the relevant Phase 1, 2, 4, or 5 validator, while Phase 3 has no
-executable prompt validator and is checked by Phase 4 on entry.
+manifest injects the relevant Phase 1, 2, or 4 validator, while Phase 3 has no
+executable prompt validator and is checked by Phase 4 on entry. Phase 2R and Phase 4
+share `scripts/phase_validation/card_deltas.py` plus `schema/card_decision_schema.json`
+to enforce user-authorized card/evidence deltas. New workflow packages use schema 5.1;
+legacy schema-5.0 packages remain valid without decision ledgers.
 `scripts/final_validation.py` remains the local compatibility CLI for Phases 1–4 and
 dispatches to the canonical phase validators. File assets are injected in full; bundle
 members are embedded verbatim in full. Read `prompts/meta_prompt.md` before changing
@@ -112,27 +128,25 @@ python scripts/build_prompts.py --phase 1
 python scripts/build_prompts.py --phase 2
 python scripts/build_prompts.py --phase 3
 python scripts/build_prompts.py --phase 4
-python scripts/build_prompts.py --phase 5
-python scripts/build_prompts.py --phase5-review
-```
-
-The canonical Phase 5 sources are:
-
-```text
-prompts/templates/phase5_prompt.md
-prompts/templates/phase5_review_prompt.md
-```
-
-The generated committed outputs are:
-
-```text
-prompts/phase5_prompt.md
-prompts/phase5_review_prompt.md
 ```
 
 Do not edit generated phase prompts directly. Edit the corresponding template or other
 canonical source, regenerate the prompt, inspect the diff, and commit the generated
 prompt with its source change.
+
+Any edit to `prompts/assets/interpretation_principles.md` is behaviour-affecting. In
+addition to the unit tests, rerun the maintained accepted-paper semantic regression set
+before promotion and compare card yield/changes by publication type and category. Build
+that regression set deliberately against live-corpus publication-type/category coverage
+and record any unrepresented strata. After promotion, manually review the Phase 2
+validator's existing `cards`, `census_entries`, and ratio summary across the first defined
+batch of live ingestions, with particular attention to unrepresented strata. This is an
+observation signal, not a pass/fail threshold.
+
+When promoting a changed interpretation standard, bump `release/VERSION` so
+`accepted_in_version` provides the existing acceptance-provenance boundary between
+pre- and post-standard acceptances. Bulk re-ingestion of older accepted papers remains a
+separate migration decision.
 
 ## Regenerate the blacklist
 
@@ -246,8 +260,9 @@ The `README.md` `Current corpus` section must use this structure:
    version first.
 4. Under each version heading, use a four-column table in this exact order:
    `Publication key`, `DOI`, `Paper nickname`, `Contribution to corpus`.
-5. List each active publication exactly once. Use the publication key and metadata from
-   `output/corpus/nel.index.json`, and summarize its corpus contribution concisely.
+5. List each active publication exactly once. Use publication/version/nickname metadata
+   from `output/corpus/nel.index.json`, DOI from the matching citation in
+   `output/corpus/nel.corpus.json`, and summarize its corpus contribution concisely.
 6. After the active groups, add `### Incompatible papers pending re-ingestion` when the
    index contains rejected incompatible packages. Explain that these packages do not
    contribute evidence, then use a two-column `Publication key` and `Status` table with
@@ -289,6 +304,7 @@ Keep documentation separated by audience:
 
 - `README.md` — end-user NGS reporting and current corpus contents;
 - `INGEST.md` — corpus-curation workflow;
+- `WORKFLOW.md` — reporting-workflow architecture, cloning, modification, and promotion;
 - `DEVEL.md` — developer and release maintenance;
 - `NEWS.md` — changelog.
 

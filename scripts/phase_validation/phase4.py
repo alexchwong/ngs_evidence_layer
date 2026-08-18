@@ -8,6 +8,11 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+try:
+    from . import card_deltas
+except ImportError:  # direct execution from bundled validator
+    import card_deltas
+
 BUNDLE_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIR = BUNDLE_ROOT / "schema"
 
@@ -109,12 +114,38 @@ def schema_errors(document, schema, label):
     ]
 
 
-def validate_review(review, provisional):
-    """Validate a complete Phase 3 review against its Phase 2 package."""
+def load_delta_carry_context(phase2r_decisions_path):
+    if phase2r_decisions_path is None:
+        return None, None, None
+    path = Path(phase2r_decisions_path)
+    ledger = read_json(path, "Phase 2R decision ledger")
+    phase4_name = ledger.get("phase4_decisions_filename")
+    if not phase4_name:
+        return ledger, None, None
+    phase4_path = path.parent / phase4_name
+    if not phase4_path.is_file():
+        raise ValueError(f"Phase 2R references missing Phase 4 decision ledger: {phase4_name}")
+    phase4_ledger = read_json(phase4_path, "Phase 4 handoff decision ledger")
+    review_name = phase4_ledger.get("review_filename")
+    prior_review_path = path.parent / str(review_name)
+    if not prior_review_path.is_file():
+        raise ValueError(f"Phase 4 handoff references missing prior review: {review_name}")
+    prior_review = read_json(prior_review_path, "prior Phase 3 review")
+    return ledger, phase4_ledger, prior_review
+
+
+def validate_review(review, provisional, phase2r_ledger=None, phase4_ledger=None, prior_review=None):
+    """Validate a Phase 3 review against its Phase 2 package.
+
+    In Phase 2R delta mode, unchanged cards are carried forward rather than
+    substantively re-audited under the current interpretation standard.
+    """
     errors = schema_errors(review, REVIEW_SCHEMA, "review")
     if errors:
         return errors
 
+    if provisional.get("schema_version") == "5.1" and review.get("schema_version") != "5.1":
+        errors.append("a 5.1 provisional requires a 5.1 Phase 3 review")
     if review["paper_id"] != provisional.get("paper_id"):
         errors.append("review paper_id does not match provisional package")
     if review["round"] != provisional.get("round"):
@@ -146,6 +177,55 @@ def validate_review(review, provisional):
     if result_ids != provisional_ids:
         errors.append("review card_results must preserve provisional card order")
 
+    if phase2r_ledger is None:
+        if review.get("review_scope") not in {None, "full"}:
+            errors.append("review_scope delta requires the matching Phase 2R decision ledger")
+        if provisional.get("schema_version") == "5.1" and review.get("review_scope") != "full":
+            errors.append("a 5.1 full review must set review_scope to full")
+        for result in card_results:
+            basis = result.get("review_basis")
+            if provisional.get("schema_version") == "5.1" and basis != "phase3":
+                errors.append(f"{result['card_id']}: a 5.1 full review must use review_basis phase3")
+            elif provisional.get("schema_version") != "5.1" and basis not in {None, "phase3"}:
+                errors.append(f"{result['card_id']}: full review cannot use carried_forward review_basis")
+    else:
+        errors.extend(
+            f"Phase 2R decisions: {error}"
+            for error in card_deltas.schema_errors(phase2r_ledger)
+        )
+        changed = set(card_deltas.changed_card_ids(phase2r_ledger))
+        if review.get("review_scope") != "delta":
+            errors.append("Phase 2R review must set review_scope to delta")
+        prior_by_id = {item.get("card_id"): item for item in (prior_review or {}).get("card_results", [])}
+        phase4_direct = {item.get("card_id"): item.get("decision") for item in (phase4_ledger or {}).get("card_decisions", [])}
+        for result in card_results:
+            card_id = result["card_id"]
+            if card_id in changed:
+                if result.get("review_basis") != "phase3":
+                    errors.append(f"{card_id}: added/modified Phase 2R card must use review_basis phase3")
+                continue
+            if result.get("review_basis") != "carried_forward":
+                errors.append(f"{card_id}: unchanged Phase 2R card must use review_basis carried_forward")
+            if phase4_ledger is None:
+                expected_verdict = "pass"
+                expected_details = None
+            elif card_id in phase4_direct:
+                expected_verdict = "pass"
+                expected_details = None
+            else:
+                prior = prior_by_id.get(card_id)
+                if prior is None:
+                    errors.append(f"{card_id}: cannot determine carried-forward verdict from the prior Phase 3 review")
+                    continue
+                expected_verdict = prior.get("verdict")
+                expected_details = prior.get("details")
+            if result.get("verdict") != expected_verdict:
+                errors.append(f"{card_id}: carried-forward verdict must remain {expected_verdict}")
+            if expected_verdict == "fail" and result.get("details") != expected_details:
+                errors.append(f"{card_id}: carried-forward failure details must exactly match the prior Phase 3 review")
+            if expected_verdict == "pass" and "details" in result:
+                errors.append(f"{card_id}: carried-forward pass must not contain failure details")
+
     publication_verdict = review["audit"]["publication_type_verdict"]
     if publication_verdict["package_value"] != provisional.get("publication_type"):
         errors.append("review publication package_value does not match provisional publication_type")
@@ -172,13 +252,13 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             errors.append("paper_nickname must be a trimmed single-line string")
     elif "paper_nickname" in package:
         errors.append("provisional package must not contain paper_nickname")
+    if not require_final and package["publication_type_verified_by_phase3"]:
+        errors.append("provisional publication type cannot already be verified by Phase 3")
     if package["round"] == 1 and not require_final:
         if package["publication_type"] != census.get("publication_type"):
             errors.append("first-round package publication_type does not match census")
         if package["publication_type_basis"] != census.get("publication_type_basis"):
             errors.append("first-round package publication_type_basis does not match census")
-        if package["publication_type_verified_by_phase3"]:
-            errors.append("first-round provisional publication type cannot already be verified")
 
     card_ids = [card["card_id"] for card in package["cards"]]
     evidence_ids = [evidence["card_id"] for evidence in package["evidence"]]
@@ -328,7 +408,7 @@ def validate_package(package, metadata, census, source_text=None, require_final=
 
 
 def validate_final_against_provisional(final, provisional):
-    """Validate Phase 4 identity and lineage without forbidding adjudicated edits."""
+    """Validate Phase 4 identity and lineage while allowing authorized card deltas."""
     errors = []
     if final.get("round") != provisional.get("round"):
         errors.append("final and approved provisional rounds differ")
@@ -339,29 +419,104 @@ def validate_final_against_provisional(final, provisional):
     return errors
 
 
-def validate_review_files(*, provisional_path, review_path):
+def validate_review_files(*, provisional_path, review_path, phase2r_decisions_path=None):
     provisional = read_json(provisional_path, "provisional package")
     review = read_json(review_path, "Phase 3 review")
-    errors = [f"review: {error}" for error in validate_review(review, provisional)]
+    phase2r_ledger, phase4_ledger, prior_review = load_delta_carry_context(phase2r_decisions_path)
+    errors = [
+        f"review: {error}"
+        for error in validate_review(
+            review, provisional, phase2r_ledger, phase4_ledger, prior_review
+        )
+    ]
     return errors, [], {
         "phase": 3,
         "cards": len(provisional.get("cards", [])),
         "review_results": len(review.get("card_results", [])),
+        "review_scope": review.get("review_scope", "full"),
     }
 
 
+def validate_phase4_decisions(*, provisional, review, final, ledger, provisional_filename, review_filename, final_filename):
+    errors = []
+    failed_ids = {result["card_id"] for result in review.get("card_results", []) if result.get("verdict") == "fail"}
+    if ledger.get("purpose") != "finalize":
+        errors.append("Phase 4 finalization requires a decision ledger with purpose finalize")
+    if ledger.get("baseline_filename") != provisional_filename:
+        errors.append("Phase 4 decision ledger baseline_filename does not match the approved provisional")
+    if ledger.get("review_filename") != review_filename:
+        errors.append("Phase 4 decision ledger review_filename does not match the active Phase 3 review")
+    if ledger.get("output_filename") != final_filename:
+        errors.append("Phase 4 decision ledger output_filename does not match paper.final.json")
+    if ledger.get("paper_nickname") != final.get("paper_nickname"):
+        errors.append("final paper_nickname does not match the user-finalized Phase 4 decision ledger")
+    errors.extend(
+        card_deltas.validate_package_delta(
+            provisional, final, ledger, stage="phase4", allowed_direct_ids=failed_ids
+        )
+    )
+    decisions_by_id = {item.get("card_id"): item.get("decision") for item in ledger.get("card_decisions", [])}
+    unresolved_failed = sorted(card_id for card_id in failed_ids if card_id not in decisions_by_id)
+    if unresolved_failed:
+        errors.append(
+            "Phase 4 decision ledger does not explicitly adjudicate every Phase 3-failed card: "
+            + ", ".join(unresolved_failed)
+        )
+    if any(item.get("decision") == "add" for item in ledger.get("card_decisions", [])) and not failed_ids:
+        errors.append("Phase 4 may not directly add cards when Phase 3 had no failed card; route additions through Phase 2R")
+
+    publication = ledger.get("publication_type_decision")
+    publication_verdict = (review.get("audit") or {}).get("publication_type_verdict") or {}
+    if publication is None:
+        if publication_verdict.get("verdict") == "fail":
+            errors.append("Phase 4 decision ledger must explicitly adjudicate the failed publication type")
+        if final.get("publication_type") != provisional.get("publication_type") or final.get("publication_type_basis") != provisional.get("publication_type_basis"):
+            errors.append("publication type changed without a user-finalized Phase 4 publication_type_decision")
+    else:
+        if publication.get("decision") == "modify" and publication_verdict.get("verdict") != "fail":
+            errors.append("Phase 4 may modify publication type only when Phase 3 failed it")
+        if final.get("publication_type") != publication.get("publication_type"):
+            errors.append("final publication_type does not match the Phase 4 decision ledger")
+        if final.get("publication_type_basis") != publication.get("publication_type_basis"):
+            errors.append("final publication_type_basis does not match the Phase 4 decision ledger")
+
+    direct = {item["card_id"]: item["decision"] for item in ledger.get("card_decisions", [])}
+    review_by_id = {item["card_id"]: item for item in review.get("card_results", [])}
+    audit_by_id = {item["card_id"]: item for item in (final.get("audit") or {}).get("results", [])}
+    for card in final.get("cards", []):
+        card_id = card.get("card_id")
+        audit_item = audit_by_id.get(card_id, {})
+        if card_id in direct and direct[card_id] in {"modify", "retain"}:
+            expected_basis = "phase4_adjudicated"
+        elif card_id not in review_by_id:
+            expected_basis = "phase4_adjudicated"
+        else:
+            expected_basis = review_by_id[card_id].get("review_basis", "phase3")
+        if audit_item.get("review_basis") != expected_basis:
+            errors.append(f"{card_id}: final audit review_basis must be {expected_basis}")
+    return errors
+
+
 def validate_phase_files(
-    *, metadata_path, census_path, source_path, provisional_path, review_path, final_path
+    *, metadata_path, census_path, source_path, provisional_path, review_path, final_path,
+    decisions_path=None, phase2r_decisions_path=None,
 ):
     metadata = read_json(metadata_path, "metadata")
     census = read_json(census_path, "census")
     provisional = read_json(provisional_path, "approved provisional package")
     review = read_json(review_path, "Phase 3 review")
     final = read_json(final_path, "final package")
+    phase2r_ledger, phase4_ledger, prior_review = load_delta_carry_context(phase2r_decisions_path)
     errors = [
+        f"review: {error}"
+        for error in validate_review(
+            review, provisional, phase2r_ledger, phase4_ledger, prior_review
+        )
+    ]
+    errors.extend(
         f"final lineage: {error}"
         for error in validate_final_against_provisional(final, provisional)
-    ]
+    )
     approved_round = (final.get("audit") or {}).get("approved_round")
     if approved_round != provisional.get("round"):
         errors.append("final audit approved_round does not match provisional round")
@@ -371,11 +526,24 @@ def validate_phase_files(
     if audit.get("audit_model") != review.get("reviewer_model"):
         errors.append("final audit_model does not match Phase 3 reviewer_model")
     if audit.get("extraction_model_reviewed") != provisional.get("extraction_model"):
-        errors.append(
-            "final extraction_model_reviewed does not match provisional extraction_model"
-        )
+        errors.append("final extraction_model_reviewed does not match provisional extraction_model")
     if review.get("reviewer_model") == provisional.get("extraction_model"):
         errors.append("Phase 3 reviewer model must differ from Phase 2 extraction model")
+
+    if decisions_path is None:
+        if final.get("schema_version") == "5.1":
+            errors.append("Phase 4 schema 5.1 requires --decisions so every final card delta is user-authorized")
+    else:
+        ledger = read_json(decisions_path, "Phase 4 decision ledger")
+        errors.extend(
+            f"Phase 4 decisions: {error}" for error in validate_phase4_decisions(
+                provisional=provisional, review=review, final=final, ledger=ledger,
+                provisional_filename=Path(provisional_path).name,
+                review_filename=Path(review_path).name,
+                final_filename=Path(final_path).name,
+            )
+        )
+
     source_text = Path(source_path).read_text(encoding="utf-8")
     final_errors, warnings, report = validate_package(
         final, metadata, census, source_text=source_text, require_final=True
@@ -386,17 +554,59 @@ def validate_phase_files(
     return errors, warnings, phase_report
 
 
+
+def validate_handoff_files(*, provisional_path, review_path, decisions_path, phase2r_decisions_path=None):
+    provisional = read_json(provisional_path, "provisional package")
+    review = read_json(review_path, "Phase 3 review")
+    phase2r_ledger, prior_phase4_ledger, prior_review = load_delta_carry_context(phase2r_decisions_path)
+    ledger = read_json(decisions_path, "Phase 4 handoff decision ledger")
+    errors = [
+        f"review: {error}"
+        for error in validate_review(
+            review, provisional, phase2r_ledger, prior_phase4_ledger, prior_review
+        )
+    ]
+    failed_ids = {result["card_id"] for result in review.get("card_results", []) if result.get("verdict") == "fail"}
+    errors.extend(
+        f"Phase 4 handoff: {error}"
+        for error in card_deltas.validate_ledger_against_baseline(
+            ledger, provisional, stage="phase4", allowed_direct_ids=failed_ids
+        )
+    )
+    if ledger.get("purpose") != "phase2r_handoff":
+        errors.append("Phase 4 handoff decision ledger purpose must be phase2r_handoff")
+    if ledger.get("baseline_filename") != Path(provisional_path).name:
+        errors.append("Phase 4 handoff baseline_filename does not match active provisional")
+    if ledger.get("review_filename") != Path(review_path).name:
+        errors.append("Phase 4 handoff review_filename does not match active Phase 3 review")
+    if not ledger.get("phase2r_requests"):
+        errors.append("Phase 4 handoff requires at least one explicit phase2r_request")
+    if any(item.get("decision") == "add" for item in ledger.get("card_decisions", [])) and not failed_ids:
+        errors.append("Phase 4 may not directly add cards without a Phase 3 failure; route the addition through Phase 2R")
+    return errors, [], {
+        "phase": 4,
+        "handoff": "phase2r",
+        "requests": len(ledger.get("phase2r_requests", [])),
+        "direct_decisions": len(ledger.get("card_decisions", [])),
+    }
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--review-only", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--review-only", action="store_true")
+    mode.add_argument("--handoff-only", action="store_true")
     parser.add_argument("--metadata", type=Path)
     parser.add_argument("--census", type=Path)
     parser.add_argument("--source", type=Path)
     parser.add_argument("--provisional", type=Path, required=True)
     parser.add_argument("--review", type=Path, required=True)
     parser.add_argument("--final", type=Path)
+    parser.add_argument("--decisions", type=Path)
+    parser.add_argument("--phase2r-decisions", type=Path)
     args = parser.parse_args(argv)
-    required = () if args.review_only else ("metadata", "census", "source", "final")
+    if args.handoff_only and args.decisions is None:
+        parser.error("Phase 4 handoff validation requires --decisions")
+    required = () if (args.review_only or args.handoff_only) else ("metadata", "census", "source", "final")
     missing = [name for name in required if getattr(args, name) is None]
     if missing:
         parser.error("Phase 4 exit validation requires " + ", ".join(f"--{name}" for name in missing))
@@ -408,9 +618,17 @@ def main(argv=None):
     try:
         if args.review_only:
             errors, warnings, report = validate_review_files(
-                provisional_path=args.provisional, review_path=args.review
+                provisional_path=args.provisional, review_path=args.review,
+                phase2r_decisions_path=args.phase2r_decisions,
             )
             label = "PHASE 4 ENTRY"
+        elif args.handoff_only:
+            errors, warnings, report = validate_handoff_files(
+                provisional_path=args.provisional, review_path=args.review,
+                decisions_path=args.decisions,
+                phase2r_decisions_path=args.phase2r_decisions,
+            )
+            label = "PHASE 4 HANDOFF"
         else:
             errors, warnings, report = validate_phase_files(
                 metadata_path=args.metadata,
@@ -419,6 +637,8 @@ def main(argv=None):
                 provisional_path=args.provisional,
                 review_path=args.review,
                 final_path=args.final,
+                decisions_path=args.decisions,
+                phase2r_decisions_path=args.phase2r_decisions,
             )
             label = "PHASE 4"
     except (OSError, ValueError) as exc:

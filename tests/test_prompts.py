@@ -37,27 +37,20 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertEqual(BUILD_PROMPTS.vocabulary_errors(), [])
 
     def test_all_phase_templates_render_without_unresolved_markers(self):
-        for phase in (1, 2, 3, 4, 5):
+        for phase in (1, 2, 3, 4):
             with self.subTest(phase=phase):
                 prompt = BUILD_PROMPTS.render(phase)
                 self.assertTrue(prompt.strip())
                 self.assertNotRegex(prompt, r"\{\{[^{}]+\}\}")
-        review = BUILD_PROMPTS.render_phase5_review()
-        self.assertTrue(review.strip())
-        self.assertNotRegex(review, r"\{\{[^{}]+\}\}")
 
     def test_file_assets_are_injected_whole(self):
         templates = {
             f"phase{phase}": ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
-            for phase in (1, 2, 3, 4, 5)
+            for phase in (1, 2, 3, 4)
         }
-        templates["phase5-review"] = (
-            ROOT / "prompts" / "templates" / "phase5_review_prompt.md"
-        )
         rendered = {
-            f"phase{phase}": BUILD_PROMPTS.render(phase) for phase in (1, 2, 3, 4, 5)
+            f"phase{phase}": BUILD_PROMPTS.render(phase) for phase in (1, 2, 3, 4)
         }
-        rendered["phase5-review"] = BUILD_PROMPTS.render_phase5_review()
         for name, template_path in templates.items():
             markers = set(MARKER_RE.findall(template_path.read_text(encoding="utf-8")))
             for marker in markers:
@@ -69,7 +62,7 @@ class PromptIntegrationTests(unittest.TestCase):
                     self.assertIn(expected, rendered[name])
 
     def test_phase_validation_assets_contain_declared_file_whole(self):
-        for phase in (1, 2, 4, 5):
+        for phase in (1, 2, 4):
             keyword = f"PHASE{phase}_VALIDATION_BUNDLE"
             content = BUILD_PROMPTS.asset_content(keyword)
             spec = self.manifest[keyword]
@@ -123,9 +116,8 @@ class PromptIntegrationTests(unittest.TestCase):
     def test_all_card_handling_prompts_use_canonical_source_disease_alias_policy(self):
         prompts = {
             f"phase{phase}": BUILD_PROMPTS.render(phase)
-            for phase in (2, 3, 4, 5)
+            for phase in (2, 3, 4)
         }
-        prompts["phase5-review"] = BUILD_PROMPTS.render_phase5_review()
         for name, rendered in prompts.items():
             with self.subTest(prompt=name):
                 prompt = " ".join(rendered.split())
@@ -181,14 +173,14 @@ class PromptIntegrationTests(unittest.TestCase):
 
     def test_validation_occurs_at_phase2_exit_and_phase4_entry(self):
         phase2 = BUILD_PROMPTS.render(2)
-        self.assertIn("## Deterministic exit validation", phase2)
+        self.assertIn("## Step 6 — deterministic output gate", phase2)
         self.assertIn(
             "python validation_bundle/scripts/phase_validation/phase2.py",
             phase2,
         )
         phase4 = BUILD_PROMPTS.render(4)
-        entry = phase4.split("## Entry validation", 1)[1].split(
-            "## Mandatory human adjudication", 1
+        entry = phase4.split("## Step 1 — deterministic input gate", 1)[1].split(
+            "## Shared semantic principles", 1
         )[0]
         self.assertIn(
             "python validation_bundle/scripts/phase_validation/phase4.py --review-only",
@@ -204,6 +196,122 @@ class PromptIntegrationTests(unittest.TestCase):
         embedded = rendered.split(start_marker, 1)[1].split(end_marker, 1)[0]
         expected = (ROOT / relative).read_text(encoding="utf-8").rstrip()
         self.assertEqual(embedded, expected)
+
+    def test_shared_semantic_invariants_survive_refactor(self):
+        rendered = {phase: " ".join(BUILD_PROMPTS.render(phase).split()) for phase in (1, 2, 3, 4)}
+        for phase in (1, 2, 3, 4):
+            with self.subTest(phase=phase, invariant="geneless molecular modifier"):
+                self.assertIn("independent of a molecular treatment modifier", rendered[phase])
+            with self.subTest(phase=phase, invariant="atomic qualifier preservation"):
+                self.assertIn("qualifiers required to preserve meaning or applicability belong with the assertion", rendered[phase])
+        self.assertIn("Phase 1 determines review boundaries, not card eligibility", rendered[1])
+        self.assertIn("Phase 2 could reasonably retain one part while rejecting another", rendered[1])
+        self.assertIn("freeze the complete candidate evidence bundle before drafting the interpretation", rendered[2])
+        self.assertIn("Include methodological detail only when it changes the clinical meaning or strength of the claim", rendered[2])
+        self.assertIn("sentence immediately before and after", rendered[2])
+        self.assertIn("Do not author a finished replacement card", rendered[3])
+        self.assertIn("Do not fail a card merely because another wording would also be defensible", rendered[3])
+        self.assertIn("same evidence may legitimately support distinct roles", rendered[3])
+        self.assertIn("Any provisional→final card/evidence difference not represented exactly by an approved ledger decision is invalid", rendered[4])
+        self.assertIn("A card that Phase 3 passed is not directly editable in Phase 4", rendered[4])
+
+    def test_phase3_bound_shared_assets_are_free_of_forbidden_authoring_context(self):
+        template = (ROOT / "prompts" / "templates" / "phase3_prompt.md").read_text(encoding="utf-8")
+        markers = set(MARKER_RE.findall(template))
+        for marker in markers:
+            spec = self.manifest[marker]
+            if spec.get("type") != "file":
+                continue
+            content = BUILD_PROMPTS.asset_content(marker)
+            with self.subTest(asset=marker):
+                for forbidden in BUILD_PROMPTS.PHASE3_FORBIDDEN_TERMS:
+                    self.assertNotIn(forbidden, content)
+
+    def test_phase1_retry_skips_scope_reconfirmation_and_reaudits_whole_census(self):
+        prompt = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertIn("For a **Phase 1 retry/redo**, do **not** repeat", prompt)
+        self.assertIn("do not ask for another `CONFIRM`", prompt)
+        self.assertIn("Its `category_scope` is the already-confirmed scope", prompt)
+        self.assertIn("independent audit must reassess the whole census", prompt)
+
+    def test_phase1_and_phase2_share_identical_census_semantic_gate(self):
+        gate = (ROOT / "prompts" / "assets" / "census_semantic_gate.md").read_text(encoding="utf-8").rstrip()
+        self.assertIn(gate, BUILD_PROMPTS.render(1))
+        self.assertIn(gate, BUILD_PROMPTS.render(2))
+
+    def test_phase3_output_contract_matches_phase4_review_schema_names(self):
+        prompt = BUILD_PROMPTS.render(3)
+        schema = json.loads((ROOT / "schema" / "review_schema.json").read_text(encoding="utf-8"))
+        for field in schema["required"]:
+            with self.subTest(scope="top-level", field=field):
+                self.assertIn(f'"{field}"', prompt)
+        for field in schema["properties"]["audit"]["required"]:
+            with self.subTest(scope="audit", field=field):
+                self.assertIn(f'"{field}"', prompt)
+        for field in schema["$defs"]["publication_type_verdict"]["required"]:
+            with self.subTest(scope="publication_type_verdict", field=field):
+                self.assertIn(f'"{field}"', prompt)
+        for field in schema["$defs"]["failure_details"]["required"]:
+            with self.subTest(scope="failure_details", field=field):
+                self.assertIn(f'"{field}"', prompt)
+        self.assertIn('"result": "review_complete"', prompt)
+        self.assertIn('"verdict": "pass"', prompt)
+        self.assertIn('"review_basis": "phase3"', prompt)
+        self.assertIn("paper.review-vNNN.json", prompt)
+        self.assertIn("paper.review-revRRR-vNNN.json", prompt)
+        self.assertIn("strictly author the review to the exact structure", prompt)
+
+
+    def test_phase_workflow_gate_ordering_matches_contract(self):
+        phase1 = BUILD_PROMPTS.render(1)
+        self.assertLess(phase1.index("## Step 1 — core census work"), phase1.index("## Step 2 — independent semantic audit"))
+        self.assertLess(phase1.index("## Step 2 — independent semantic audit"), phase1.index("## Step 3 — model formatting gate"))
+        self.assertLess(phase1.index("## Step 3 — model formatting gate"), phase1.index("## Step 4 — deterministic formatting/structure gate"))
+        self.assertIn("There is no fixed-pass escape for unresolved semantic defects", phase1)
+
+        phase2 = BUILD_PROMPTS.render(2)
+        positions = [phase2.index(label) for label in (
+            "### Step 1 — deterministic census input gate",
+            "### Step 2 — census semantic input gate",
+            "### Step 3 — Phase 2 card/evidence work",
+            "## Step 4 — independent semantic output audit",
+            "## Step 5 — model formatting gate",
+            "## Step 6 — deterministic output gate",
+        )]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn("exact same deterministic Phase 1 validator used on Phase 1 output", phase2)
+        self.assertIn("Phase 2R uses a separate workflow and **does not run a deterministic input gate**", phase2)
+
+        phase3 = BUILD_PROMPTS.render(3)
+        self.assertLess(phase3.index("## Step 1 — model input formatting gate"), phase3.index("## Step 2 — Phase 3 substantive review"))
+        self.assertLess(phase3.index("## Step 2 — Phase 3 substantive review"), phase3.index("## Step 3 — model output formatting gate"))
+        self.assertIn("formatting/structure-only", phase3)
+        self.assertNotIn("## Deterministic exit validation", phase3)
+
+        phase4 = BUILD_PROMPTS.render(4)
+        self.assertLess(phase4.index("## Step 1 — deterministic input gate"), phase4.index("## Step 2 — human adjudication and interactivity"))
+        self.assertLess(phase4.index("## Step 2 — human adjudication and interactivity"), phase4.index("## Step 3 — apply agreed decisions and deterministic output gate"))
+        self.assertNotIn("## Mandatory pre-output gate", phase4)
+        self.assertIn("The final action before returning `paper.final.json` must be a successful run", phase4)
+
+    def test_phase2_input_gate_embeds_exact_phase1_validator(self):
+        phase2 = BUILD_PROMPTS.render(2)
+        relative = "scripts/phase_validation/phase1.py"
+        start_marker = f"<!-- BEGIN VERBATIM {relative} -->\n```python\n"
+        end_marker = f"\n```\n<!-- END VERBATIM {relative} -->"
+        embedded = phase2.split(start_marker, 1)[1].split(end_marker, 1)[0]
+        expected = (ROOT / relative).read_text(encoding="utf-8").rstrip()
+        self.assertEqual(embedded, expected)
+        self.assertIn("validation_bundle/scripts/phase_validation/phase1.py", phase2)
+
+    def test_deterministic_validation_is_the_final_output_gate_where_required(self):
+        phase1 = BUILD_PROMPTS.render(1)
+        self.assertGreater(phase1.index("## Step 4 — deterministic formatting/structure gate"), phase1.index("## Step 3 — model formatting gate"))
+        phase2 = BUILD_PROMPTS.render(2)
+        self.assertGreater(phase2.index("## Step 6 — deterministic output gate"), phase2.index("## Step 5 — model formatting gate"))
+        phase4 = BUILD_PROMPTS.render(4)
+        self.assertNotIn("Mandatory pre-output gate", phase4)
+        self.assertIn("Do not edit `paper.final.json` after the successful run", phase4)
 
     def test_phase4_requires_successful_validation_as_final_action(self):
         prompt = BUILD_PROMPTS.render(4)
@@ -232,11 +340,36 @@ class Phase1CategoryScopePromptTests(unittest.TestCase):
         prompt = " ".join(BUILD_PROMPTS.render(1).split())
         self.assertIn("Phase 1, diagnosis only", prompt)
         self.assertIn("ask the user to reply exactly `CONFIRM`", prompt)
-        self.assertIn("Plain `Phase 1` means all five categories", prompt)
+        self.assertIn(
+            "Plain `Phase 1`, or any invocation without an explicit category restriction, "
+            "means all five categories",
+            prompt,
+        )
         self.assertIn("reading remains whole-paper", prompt)
+
+    def test_phase1_summary_and_scope_suggestion_do_not_change_effective_scope(self):
+        prompt = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertIn("In 50 words or fewer", prompt)
+        self.assertIn("summary of what the paper is about", prompt)
+        self.assertIn(
+            "recommend a Phase 1 category scope suited to that purpose", prompt
+        )
+        self.assertIn("the recommendation is advisory", prompt)
+        self.assertIn(
+            "must not narrow or otherwise change the normalized scope unless the user "
+            "explicitly instructs that scope",
+            prompt,
+        )
+        self.assertIn(
+            "Disregard any advisory scope suggestion during extraction", prompt
+        )
+        self.assertIn(
+            "retain claims from every category in the confirmed scope", prompt
+        )
 
     def test_phase2_respects_declared_category_scope(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())
         self.assertIn("optional `category_scope`", prompt)
         self.assertIn("outside a declared `category_scope`", prompt)
-        self.assertIn("Within the declared scope, completeness and atomicity remain strict", prompt)
+        self.assertIn("Census semantic gate", prompt)
+        self.assertIn("complete the **entire census audit before returning the critique**", BUILD_PROMPTS.render(2))

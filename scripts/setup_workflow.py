@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -12,7 +13,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts import vocab  # noqa: E402
 from scripts.workflow_registry import (  # noqa: E402
-    import_workflow_module,
+    import_workflow_entrypoint,
     load_registry,
     load_workflow_metadata,
     normalise_selector,
@@ -51,6 +52,16 @@ def setup_workflow(
     work = resolve_work_dir(work_dir, project=project)
     write_workflow_state(work, workflow_id, mode)
 
+    # Canonical assay-scope asset. Every workflow/model step that interprets an
+    # NGS negative result reads the work-directory copy, never panel membership
+    # from model knowledge. This is also created for evidence-to-report so a
+    # resumed legacy reporting run has the same assay boundary.
+    panel_scope_source = REPO_ROOT / "config" / "ngs-panel-scope.md"
+    panel_scope_output = work / "ngs-panel-scope.md"
+    if not panel_scope_source.is_file():
+        raise ValueError(f"canonical NGS panel scope is missing: {panel_scope_source}")
+    shutil.copyfile(panel_scope_source, panel_scope_output)
+
     # Common procedural asset. evidence-to-report intentionally reuses existing
     # Step-5 outputs and does not create irrelevant Step-1 state.
     if mode != "evidence-to-report":
@@ -61,13 +72,8 @@ def setup_workflow(
         demo_case, demo_expected = demo_paths(example)
 
     # Optional workflow-owned setup hook for genuinely workflow-specific assets.
-    try:
-        runtime = import_workflow_module(workflow_id, "runtime")
-    except ModuleNotFoundError as exc:
-        package = metadata["python_package"]
-        if exc.name != f"{package}.runtime":
-            raise
-    else:
+    if (metadata.get("entrypoints") or {}).get("runtime"):
+        runtime = import_workflow_entrypoint(workflow_id, "runtime")
         hook = getattr(runtime, "setup_assets", None)
         if hook is not None:
             hook(work, mode=mode, case_id=case_id)
