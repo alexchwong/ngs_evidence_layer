@@ -86,7 +86,24 @@ If the census fails this gate, complete the **entire census audit before returni
 
 ### Step 3 — Phase 2 card/evidence work
 
-Walk every in-scope census claim as a review obligation, not an output obligation. A census claim identifies a source assertion to inspect; it does not require a card. Emit a card only when the evidence directly supports a clinically useful interpretation. Never manufacture category coverage merely to match the census.
+Walk every in-scope census claim as a **mandatory review-and-disposition obligation**. A census claim does not require a unique card, but no in-scope claim may disappear silently. Before drafting cards, build and maintain an internal census disposition ledger covering every in-scope `claim_id`. This is working state for semantic completeness under the existing 5.1 package contract; do **not** add it as a new provisional-package field.
+
+Assign exactly one internal disposition to every in-scope census claim:
+
+- `carded` — one or more candidate cards represent the claim; record those candidate `card_id` values internally.
+- `covered` — another candidate card already represents the **complete clinical meaning** of the claim, including every material disease, molecular, population, threshold, exception, uncertainty, and other qualifier; record the covering `card_id` value(s) internally. Shared genes, category, table, paragraph, framework, evidence, or general topic are not sufficient for `covered`.
+- `not_carded` — no defensible clinically useful card can be produced from the source evidence. Use exactly one of these internal reasons: `insufficient_source_support`, `ambiguous_source_structure`, `no_independent_clinical_meaning`, or `outside_confirmed_scope`.
+
+Do not use generic omission rationales such as `redundant`, `low importance`, `not necessary`, `already discussed`, or `not clinically material`. If a claim is genuinely redundant, use `covered` and identify the exact card that fully preserves it.
+
+`not_carded` reasons mean:
+
+- `insufficient_source_support` — source review shows that the census identified a potentially relevant assertion, but the source does not directly support a card meeting the Phase 2 evidence standard.
+- `ambiguous_source_structure` — relevant source material is present, but extraction damage or table/figure structure prevents the relationship from being reconstructed reliably.
+- `no_independent_clinical_meaning` — the claim is only a component observation/statistic supporting another clinical conclusion and has no independently useful clinical meaning.
+- `outside_confirmed_scope` — the claim is outside the active census `category_scope`; this should ordinarily already have been excluded before carding.
+
+Emit a card only when the evidence directly supports a clinically useful interpretation. Never manufacture category coverage merely to match the census, but never omit a clinically useful census assertion merely because related material is already represented.
 
 Work evidence-first rather than gene-first:
 1. find the source passage that states the role claim;
@@ -97,6 +114,14 @@ Work evidence-first rather than gene-first:
 6. include only genes participating in that exact assertion.
 
 Do not union assertions, diseases, populations, or qualifiers across separate locators. A card's locator, interpretation, diseases, genes, category, and evidence bundle must describe the same source assertion.
+
+### Tables, classifications, algorithms, and enumerated criteria
+
+When the census contains separate rows, branches, categories, criteria, exceptions, or footnotes from a clinically operative table, classification, algorithm, or recommendation set, review each census claim independently.
+
+Do **not** treat a table-derived claim as redundant merely because surrounding narrative summarizes changes to that table or discusses neighbouring categories. A narrative summary of selected changes does not replace unchanged or separately stated table rules.
+
+For a classification or risk table, each independently applicable patient-level classification rule represented in the census must be `carded`, demonstrably `covered` in full by another candidate card, or defensibly `not_carded` under one of the permitted reasons above.
 
 ### Evidence bundle construction rules
 
@@ -125,6 +150,16 @@ Use `diseases` only for exact clinical applicability. Mechanically populate `dis
 ## Step 4 — independent semantic output audit
 
 After Step 3 produces a complete candidate provisional, stop authoring and perform a separate independent semantic audit of the **complete candidate package**. Do not audit and repair simultaneously: first identify all material defects as one internal critique.
+
+First audit the complete in-scope census against the candidate package and the internal disposition ledger. For every in-scope census claim verify that:
+
+1. exactly one internal disposition exists;
+2. `carded` card IDs genuinely represent the complete clinically useful assertion;
+3. `covered` identifies one or more candidate cards that semantically preserve the complete assertion, including every material qualifier;
+4. `not_carded` uses one permitted reason and that reason is actually justified by the source and shared semantic standards; and
+5. no clinically useful table row, classification branch, exception, threshold, treatment rule, prognostic group, biomarker role, or germline rule disappeared merely because related material was carded elsewhere.
+
+Perform this audit **claim-by-claim, not by aggregate card count**. If a covering card preserves only part of the census claim, or omits a material qualifier/exception, the candidate fails: create or revise the necessary card rather than accepting partial coverage. In particular, surrounding narrative describing selected changes to a table does not cover distinct operative rules present only in the table.
 
 For every card in the candidate provisional ask:
 1. does its paired evidence support every material assertion?;
@@ -182,7 +217,7 @@ The supplied baseline is immutable except for explicitly user-approved card deci
 
 Discuss the requested or proposed card changes with the user. You may propose `add`, `modify`, or `delete`, but a proposal, Phase 3 suggestion, Phase 4 suggestion, or your own preference is **not** user authorization. Do not create files until the user sends `FINALIZE` on its own line after explicitly approving the desired changes.
 
-Phase 2R does not reopen the accepted census merely because a current prompt would have authored it differently. It may identify a source conflict relevant to the specific proposed delta, but must not opportunistically migrate unrelated cards.
+Phase 2R does not reopen the accepted census merely because a current prompt would have authored it differently. It may identify a source conflict relevant to the specific proposed delta, but must not opportunistically migrate unrelated cards. Do not reconstruct, backfill, or re-adjudicate whole-census dispositions in Phase 2R, including for legacy baselines created before this completeness rule. If the user wants to reassess whether the accepted census was completely represented, route that work through a **normal Phase 2 redo**, not Phase 2R.
 
 ### Phase 2R Step 2 — apply only agreed changes
 
