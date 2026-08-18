@@ -30,7 +30,7 @@ CURRENT_PROMPTS = {
     "citation_rules.md",
     "format_report.md",
 }
-CURRENT_RULE_PROMPTS = {"diagnosis_rule_view.md", "remainder_rule_view.md", "full_rule_view.md"}
+CURRENT_RULE_PROMPTS = {"diagnosis_context.md", "diagnosis_rule_view.md", "remainder_rule_view.md", "full_rule_view.md"}
 
 
 def test_root_skill_routes_default_and_legacy_through_registry():

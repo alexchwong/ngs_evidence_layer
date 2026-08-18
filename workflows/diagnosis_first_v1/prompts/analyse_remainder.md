@@ -10,7 +10,7 @@ Answer every rule supplied in `reporting-rules-remainder.md` using the patient c
 
 The supplied rules deterministically define the branch:
 
-- If the rule file begins at R2, the Step-3 CMC was unchanged. Use `report-draft-dx.yaml` only as established R0/R1 patient-level diagnostic context and answer R2-R5.
+- If the rule file begins at R2, the Step-3 CMC was unchanged. `reporting-rules-remainder.md` contains the completed `report-draft-dx.yaml` injected as established R0/R1 patient-level diagnostic context; use that context and answer R2-R5.
 - If the rule file includes R0 and R1, the Step-3 CMC changed. Re-answer R0-R5 from scratch using `downstream_evidence.md`; its diagnosis section contains the recalled diagnosis evidence required for this branch.
 
 The Step-3 refined CMC is fixed. Do not change, re-route, propose, or emit another CMC.

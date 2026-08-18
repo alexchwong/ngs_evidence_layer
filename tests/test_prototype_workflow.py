@@ -153,6 +153,39 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
             self.assertIn("{{REPORTING_RULE_POLICY}}", template)
             self.assertIn("{{CANONICAL_RULES}}", template)
 
+    def test_remainder_rules_inject_diagnosis_draft_only_when_cmc_unchanged(self):
+        source = RULES.read_text(encoding="utf-8")
+        dx_rules_text = diagnosis_first.slice_rules_text(source, {0, 1})
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            case_input = tmp / "case-input.json"
+            diagnosis_draft = tmp / "report-draft-dx.yaml"
+            case_input.write_text(json.dumps({"case_major_category": "AML"}), encoding="utf-8")
+            write_yaml(
+                diagnosis_draft,
+                draft_document(dx_rules_text, refined="AML", retained_ids={"R1.1"}),
+            )
+
+            diagnosis_first.run("remainder-rules", tmp)
+            unchanged = (tmp / "reporting-rules-remainder.md").read_text(encoding="utf-8")
+            self.assertIn("## Established diagnostic context", unchanged)
+            self.assertIn("refined_cmc: AML", unchanged)
+            self.assertIn("Clinically material retained conclusion.", unchanged)
+            self.assertEqual(
+                {int(spec["rule_id"].split(".", 1)[0][1:]) for spec in report_audit.agreed_rule_specs(unchanged)},
+                {2, 3, 4, 5},
+            )
+
+            case_input.write_text(json.dumps({"case_major_category": "MDS"}), encoding="utf-8")
+            diagnosis_first.run("remainder-rules", tmp)
+            changed = (tmp / "reporting-rules-remainder.md").read_text(encoding="utf-8")
+            self.assertNotIn("## Established diagnostic context", changed)
+            self.assertNotIn("refined_cmc: AML", changed)
+            self.assertEqual(
+                {int(spec["rule_id"].split(".", 1)[0][1:]) for spec in report_audit.agreed_rule_specs(changed)},
+                set(range(0, 6)),
+            )
+
     def test_refined_cmc_is_yaml_field_and_strictly_canonical(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "dx.yaml"

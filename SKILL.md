@@ -7,9 +7,9 @@ description: Routes NGS evidence/report requests to the accepted diagnosis-first
 
 You are the model executor for this workflow.
 
-When a step is described as a **model step**, perform that reasoning yourself in the current session and write the required output. Do not attempt to call another LLM, invoke an LLM API, or merely describe what another model should do.
+When a step is described as a **model step**, perform that reasoning yourself in the current session and write the required output. Do not delegate it on your own initiative: do not call another model yourself, invoke an LLM API yourself, or merely describe what another model should do.
 
-Only use repository scripts for steps explicitly identified as deterministic CLI operations.
+Use repository scripts wherever the selected workflow names them, and only there.
 
 # NGS Evidence Layer — workflow router
 

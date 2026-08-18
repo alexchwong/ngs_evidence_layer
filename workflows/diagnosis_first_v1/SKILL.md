@@ -213,9 +213,9 @@ Always read only:
 - `<work-dir>/reporting-rules-remainder.md`;
 - `<work-dir>/report-draft-remainder.yaml`.
 
-If `<cmc-changed>` is `no`, additionally read `<work-dir>/report-draft-dx.yaml` as established patient-level diagnostic context. The remainder template contains only R2-R5.
+If `<cmc-changed>` is `no`, `<work-dir>/reporting-rules-remainder.md` already contains the completed `<work-dir>/report-draft-dx.yaml` injected as established patient-level diagnostic context. The remainder template contains only R2-R5. Do not separately re-read `report-draft-dx.yaml`.
 
-If `<cmc-changed>` is `yes`, do not read `report-draft-dx.yaml` in this model step. The remainder template contains R0-R5; answer every rule again using the expanded Step-4 evidence. CMC2 is fixed and must not be changed or re-emitted.
+If `<cmc-changed>` is `yes`, `report-draft-dx.yaml` is not injected into the remainder rule view and must not be read in this model step. The remainder template contains R0-R5; answer every rule again using the expanded Step-4 evidence. CMC2 is fixed and must not be changed or re-emitted.
 
 Modify only `<work-dir>/report-draft-remainder.yaml`. Preserve every deterministic rule ID and order, retain at least one atomic statement per rule, and keep statement-level citations separate from `text`.
 
