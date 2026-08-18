@@ -47,7 +47,6 @@ class ModelStep:
     seed_output: bool
     validate: Callable[[Path], str]
     modes: tuple[str, ...] | None = None
-    max_attempts: int = 3
     prepare: Callable[[Path], None] | None = None
     required: Callable[[Path], tuple[bool, str]] | None = None
 
@@ -343,7 +342,6 @@ _STEPS: list[ModelStep | DeterministicStep] = [
         output="report-summary-dx.yaml",
         seed_output=True,
         validate=_validate_dx_summary,
-        max_attempts=2,
         prepare=lambda work: runtime.prepare_dx_summary(Path(work)),
     ),
     DeterministicStep(
@@ -386,7 +384,6 @@ for _step_id, _category in CATEGORY_STEP_IDS.items():
             output=f"report-summary-{_category}.yaml",
             seed_output=True,
             validate=_validate_category(_category),
-            max_attempts=2,
             required=_category_required(_category),
         )
     )

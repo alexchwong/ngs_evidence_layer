@@ -345,3 +345,85 @@ def test_successful_complete_clears_the_pending_error(tmp_path):
     )
     assert step.main(["1b", "--work-dir", str(work), "--complete"]) == step.EXIT_OK
     assert step._read_last_error(work, "1b") is None
+
+
+# ---------------------------------------------------------------------------
+# Settings and truncation handling
+# ---------------------------------------------------------------------------
+
+
+def test_settings_default_when_file_absent(tmp_path):
+    settings = step.load_settings(tmp_path / "missing.json")
+    assert settings["max_attempts"]["default"] == 3
+
+
+def test_settings_per_step_override(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text(
+        json.dumps({"schema_version": 1, "max_attempts": {"default": 3, "3a": 6}}),
+        encoding="utf-8",
+    )
+    settings = step.load_settings(path)
+    assert step._max_attempts_for("3a", settings, None) == 6
+    assert step._max_attempts_for("1b", settings, None) == 3
+    assert step._max_attempts_for("3a", settings, 1) == 1  # CLI override wins
+
+
+def test_truncated_completion_carries_partial_content_and_cap():
+    exc = model_client.TruncatedCompletion("partial text so far", max_tokens=512)
+    assert exc.content == "partial text so far"
+    assert exc.max_tokens == 512
+    assert "finish_reason=length" in str(exc)
+
+
+def test_delegated_retry_grows_max_tokens_on_truncation(tmp_path, monkeypatch):
+    work = _work_dir(tmp_path, profile="local-llm")
+    (work / "case.md").write_text("case\n", encoding="utf-8")
+    (work / "case-major-categories.json").write_text('{"case_major_categories": ["aml"]}\n', encoding="utf-8")
+
+    calls: list[int] = []
+
+    def fake_complete(binding, system, user):
+        calls.append(binding.max_tokens)
+        if len(calls) == 1:
+            raise model_client.TruncatedCompletion('{"case_major_category": "aml"', binding.max_tokens)
+        return json.dumps(
+            {
+                "case_major_category": "aml",
+                "provisional_disease": "AML",
+                "genes": ["NPM1"],
+                "case_facts": [{"fact_id": "f1", "text": "blasts 40%"}],
+            }
+        )
+
+    monkeypatch.setattr(model_client, "complete", fake_complete)
+    code = step.main(["1b", "--work-dir", str(work), "--profile", "local-llm"])
+    assert code == step.EXIT_OK
+    assert len(calls) == 2
+    assert calls[1] > calls[0]  # max_tokens grew between attempts
+
+
+def test_delegated_retry_fails_cleanly_at_the_ceiling(tmp_path, monkeypatch, capsys):
+    work = _work_dir(tmp_path, profile="local-llm")
+    (work / "case.md").write_text("case\n", encoding="utf-8")
+    (work / "case-major-categories.json").write_text('{"case_major_categories": ["aml"]}\n', encoding="utf-8")
+    (work / "settings.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "max_attempts": {"default": 3},
+                "max_tokens_growth_on_truncation": 1.0,  # cannot grow
+                "max_tokens_ceiling": 100,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv(step.SETTINGS_ENV, str(work / "settings.json"))
+
+    def always_truncates(binding, system, user):
+        raise model_client.TruncatedCompletion("partial", binding.max_tokens)
+
+    monkeypatch.setattr(model_client, "complete", always_truncates)
+    code = step.main(["1b", "--work-dir", str(work), "--profile", "local-llm"])
+    assert code == step.EXIT_FAILURE
+    assert "cannot be grown further" in capsys.readouterr().err

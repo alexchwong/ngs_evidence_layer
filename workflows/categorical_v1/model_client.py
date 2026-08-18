@@ -30,6 +30,19 @@ def _endpoint(binding: Binding) -> str:
     return f"{binding.base_url.rstrip('/')}/chat/completions"
 
 
+class TruncatedCompletion(RuntimeError):
+    """The provider stopped generating before finishing, most often max_tokens."""
+
+    def __init__(self, content: str, max_tokens: int):
+        self.content = content
+        self.max_tokens = max_tokens
+        super().__init__(
+            f"provider stopped generating before the response was complete "
+            f"(finish_reason=length, max_tokens={max_tokens}). The output is truncated, "
+            "not wrong: raise max_tokens for this role rather than retrying as-is."
+        )
+
+
 def complete(binding: Binding, system: str, user: str) -> str:
     """Send one non-streaming completion request and return the message content."""
     if binding.is_self:
@@ -89,6 +102,7 @@ def complete(binding: Binding, system: str, user: str) -> str:
 
     try:
         content = document["choices"][0]["message"]["content"]
+        finish_reason = document["choices"][0].get("finish_reason")
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(
             f"provider completion has no message content: {body[:400]}"
@@ -98,6 +112,10 @@ def complete(binding: Binding, system: str, user: str) -> str:
         raise RuntimeError(
             f"provider returned an empty completion for model {binding.model!r}"
         )
+
+    if finish_reason == "length":
+        raise TruncatedCompletion(content, binding.max_tokens)
+
     return content
 
 

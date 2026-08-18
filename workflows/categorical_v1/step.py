@@ -19,10 +19,20 @@ Usage:
     step.py --all --work-dir DIR [--profile P]
     step.py package-bundles --work-dir DIR
     step.py profile --work-dir DIR [--profile P]
+    step.py settings
+
+Override the settings file for one invocation with NEL_STEP_SETTINGS=<path>.
+
+Per-step retry counts and truncation-recovery behaviour are read from
+workflows/categorical_v1/settings.json (not models.json, which is the model
+registry). --max-attempts on the command line overrides the file for that
+invocation only.
 """
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import json
 import os
 import shutil
 import sys
@@ -39,6 +49,7 @@ from workflows.categorical_v1 import model_client, model_registry, model_steps  
 WORKFLOW_ID = "categorical-v1"
 BUNDLE_DIR = ".model-steps"
 BUNDLE_ZIP = "ngs-report-model-steps.zip"
+SETTINGS_PATH = Path(__file__).resolve().parent / "settings.json"
 
 EXIT_OK = 0
 EXIT_FAILURE = 1
@@ -46,6 +57,43 @@ EXIT_HANDOFF = 10
 EXIT_NOT_REQUIRED = 20
 
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+
+_DEFAULT_SETTINGS = {
+    "schema_version": 1,
+    "max_attempts": {"default": 3},
+    "max_tokens_growth_on_truncation": 1.5,
+    "max_tokens_ceiling": 32768,
+}
+
+
+SETTINGS_ENV = "NEL_STEP_SETTINGS"
+
+
+def load_settings(path: Path | None = None) -> dict:
+    """Runtime-tunable settings, separate from the model registry.
+
+    Resolution: explicit path, then NEL_STEP_SETTINGS, then the workflow-local
+    settings.json. Missing or unreadable falls back to built-in defaults rather
+    than failing -- this file is a convenience knob, not part of the enforced
+    permitted-input contract.
+    """
+    if path is None:
+        override = os.environ.get(SETTINGS_ENV, "").strip()
+        path = Path(override) if override else SETTINGS_PATH
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return dict(_DEFAULT_SETTINGS)
+    if not isinstance(data, dict) or data.get("schema_version") != 1:
+        return dict(_DEFAULT_SETTINGS)
+    return data
+
+
+def _max_attempts_for(step_id: str, settings: dict, override: int | None) -> int:
+    if override is not None:
+        return override
+    table = settings.get("max_attempts") or {}
+    return int(table.get(step_id, table.get("default", 3)))
 
 
 class StepFailure(RuntimeError):
@@ -307,10 +355,14 @@ def run_model_step(
             )
         return EXIT_HANDOFF
 
-    attempts = max_attempts or step.max_attempts
+    settings = load_settings()
+    attempts = _max_attempts_for(step.step_id, settings, max_attempts)
+    growth = float(settings.get("max_tokens_growth_on_truncation", 1.5))
+    ceiling = int(settings.get("max_tokens_ceiling", 32768))
     bundle_dir = _bundle_dir(work, step.step_id)
     last_error: str | None = None
     last_output: str | None = None
+    active_binding = binding
 
     for attempt in range(1, attempts + 1):
         bundle = build_bundle(
@@ -319,12 +371,42 @@ def run_model_step(
         prompt_path = _write_bundle(step, work, bundle, attempt=attempt)
         kind = "revision" if last_output is not None else "draft"
         print(
-            f"[{step.step_id}] attempt {attempt}/{attempts} ({kind}) model={binding.model} "
-            f"bundle={len(bundle)} chars -> {prompt_path.name}"
+            f"[{step.step_id}] attempt {attempt}/{attempts} ({kind}) model={active_binding.model} "
+            f"max_tokens={active_binding.max_tokens} bundle={len(bundle)} chars -> {prompt_path.name}"
         )
 
         try:
-            raw = model_client.complete(binding, model_client.SYSTEM_PROMPT, bundle)
+            raw = model_client.complete(active_binding, model_client.SYSTEM_PROMPT, bundle)
+        except model_client.TruncatedCompletion as exc:
+            # The response was cut off, not wrong. Retrying the same bundle with
+            # the same cap reproduces the same cutoff -- observed in practice as
+            # "one more item answered per retry" while everything past the cap
+            # stays blank. Raise the cap for this step's remaining attempts and
+            # treat the partial text as ordinary revision material, not a
+            # rejected draft, so the next attempt continues it rather than
+            # re-deriving what it already got right.
+            grown = min(int(active_binding.max_tokens * growth), ceiling)
+            print(
+                f"[{step.step_id}] attempt {attempt} truncated at max_tokens="
+                f"{active_binding.max_tokens} (finish_reason=length)."
+            )
+            if grown <= active_binding.max_tokens:
+                raise StepFailure(
+                    f"step {step.step_id} is truncating at the configured ceiling "
+                    f"({ceiling} tokens) and cannot be grown further. This step's output "
+                    "does not fit the model's response budget. Raise max_tokens_ceiling "
+                    "in settings.json, or reduce this step's input bundle."
+                ) from exc
+            print(f"[{step.step_id}] raising max_tokens to {grown} for the remaining attempts.")
+            active_binding = dataclasses.replace(active_binding, max_tokens=grown)
+            last_error = (
+                "The previous response was cut off before finishing (it ran out of output "
+                "space partway through). Continue it: keep everything already written and "
+                "answer every remaining rule/category the input requires. Do not restart "
+                "from the beginning and do not shorten earlier answers to make room."
+            )
+            last_output = exc.content
+            continue
         except RuntimeError as exc:
             raise StepFailure(str(exc)) from exc
 
@@ -534,6 +616,12 @@ def main(argv: list[str] | None = None) -> int:
                 print("no model-step bundles to package")
             else:
                 print(path)
+            return EXIT_OK
+
+        if args.step_id == "settings":
+            settings = load_settings()
+            print(f"settings file: {SETTINGS_PATH}")
+            print(json.dumps(settings, indent=2))
             return EXIT_OK
 
         if args.step_id == "profile":
