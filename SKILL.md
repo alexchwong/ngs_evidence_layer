@@ -27,7 +27,7 @@ Read `workflows/registry.json` and resolve exactly one workflow before reading c
 - Any other explicit `--<workflow-id>`: select that exact enabled workflow only if it is registered.
 - Never infer a workflow from files already present in a work directory. Workflow state is established by the selected workflow's setup command and subsequently enforced deterministically.
 
-After selection, read only the registered workflow's `SKILL.md` and follow it exactly.
+After selection, the next repository file you read must be the registered workflow's `SKILL.md`; before reading it, do not run commands or infer execution syntax from user-facing mode names. Then follow that workflow `SKILL.md` exactly.
 
 ## Mode compatibility
 
