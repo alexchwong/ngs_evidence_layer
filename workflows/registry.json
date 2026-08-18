@@ -3,7 +3,8 @@
   "default_workflow": "categorical-v1",
   "aliases": {
     "legacy": "legacy-v1",
-    "diagnosis-first": "diagnosis-first-v1"
+    "diagnosis-first": "diagnosis-first-v1",
+    "terraced": "terraced-v1"
   },
   "workflows": {
     "categorical-v1": {
@@ -16,6 +17,10 @@
     },
     "legacy-v1": {
       "path": "workflows/legacy_v1",
+      "enabled": true
+    },
+    "terraced-v1": {
+      "path": "workflows/terraced_v1",
       "enabled": true
     }
   }

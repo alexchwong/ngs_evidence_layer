@@ -52,6 +52,7 @@ WORKFLOW_ID = "categorical-v1"
 BUNDLE_DIR = ".model-steps"
 BUNDLE_ZIP = "ngs-report-model-steps.zip"
 SETTINGS_PATH = Path(__file__).resolve().parent / "settings.json"
+SETTINGS_TEMPLATE_PATH = Path(__file__).resolve().parent / "settings.json.template"
 PROJECT_ROOT = REPO_ROOT / "temp"
 PROJECT_POINTER = PROJECT_ROOT / ".categorical-v1-project"
 WORK_DIR_ENV = "NEL_WORK_DIR"
@@ -85,6 +86,8 @@ def load_settings(path: Path | None = None) -> dict:
     if path is None:
         override = os.environ.get(SETTINGS_ENV, "").strip()
         path = Path(override) if override else SETTINGS_PATH
+        if not override and not path.is_file():
+            path = SETTINGS_TEMPLATE_PATH
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):

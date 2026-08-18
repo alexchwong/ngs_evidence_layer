@@ -22,6 +22,8 @@ Read `workflows/registry.json` and resolve exactly one workflow before reading c
 - No workflow selector: use `default_workflow` from the registry (`categorical-v1`).
 - `--diagnosis-first`: resolve the registry alias `diagnosis-first` (`diagnosis-first-v1`).
 - `--diagnosis-first-v1`: select `diagnosis-first-v1` explicitly.
+- `--terraced`: resolve the registry alias `terraced` (`terraced-v1`).
+- `--terraced-v1`: select `terraced-v1` explicitly.
 - `--legacy`: resolve the registry alias `legacy` (`legacy-v1`).
 - `--legacy-v1`: select `legacy-v1` explicitly.
 - Any other explicit `--<workflow-id>`: select that exact enabled workflow only if it is registered.
@@ -35,6 +37,8 @@ The default `categorical-v1` workflow supports `ngs-report`, `nel-demo`, `nel-va
 
 `diagnosis-first-v1` supports the same four modes and remains available through `--diagnosis-first` or `--diagnosis-first-v1`.
 
+`terraced-v1` supports the same four modes and remains available through `--terraced` or `--terraced-v1`.
+
 `evidence-block`, `evidence-block manual`, and `evidence-to-report` are legacy-only. If one of these is requested without an explicit legacy selector, stop and state that the mode requires `--legacy` or `--legacy-v1`; do not silently route it to legacy.
 
 Examples:
@@ -43,6 +47,8 @@ Examples:
 ngs-report
 ngs-report --diagnosis-first
 ngs-report --diagnosis-first-v1
+ngs-report --terraced
+ngs-report --terraced-v1
 ngs-report --legacy
 nel-validate-function 3B
 nel-validate-function 3B --diagnosis-first

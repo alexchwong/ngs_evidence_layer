@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve categorical-v1 model-role bindings from the workflow-local model registry.
+"""Resolve terraced-v1 model-role bindings from the workflow-local model registry.
 
 Pure resolution logic. No network access, no workflow-step knowledge. Standard
 library only, so that a registry check remains possible before the repository

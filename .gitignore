@@ -22,3 +22,11 @@ step2.json
 bundle.json
 block.md
 
+# Workflow-local user configuration. Copy the repository-shipped `.template`
+# files to these paths, then customise the local copies as needed.
+/workflows/categorical_v1/models.json
+/workflows/categorical_v1/settings.json
+/workflows/terraced_v1/models.json
+/workflows/terraced_v1/questions.yaml
+/workflows/terraced_v1/settings.json
+

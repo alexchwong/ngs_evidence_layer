@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "semantic_review_cycles": 2,
+  "structural_attempts": 3,
+  "token_budget": 120000
+}

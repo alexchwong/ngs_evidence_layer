@@ -1,11 +1,15 @@
 """Stage-1 coverage for the categorical-v1 script-driven model steps."""
 from __future__ import annotations
 
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
+import inspect
+import io
 import json
+import os
 import sys
+import tempfile
+import unittest
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -13,6 +17,85 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.workflow_registry import write_workflow_state  # noqa: E402
 from workflows.categorical_v1 import model_client, model_registry, model_steps, step  # noqa: E402
+
+
+class _Raises:
+    def __init__(self, exception_type):
+        self.exception_type = exception_type
+        self.value = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception, traceback):
+        if exception_type is None:
+            raise AssertionError(f"{self.exception_type.__name__} was not raised")
+        if not issubclass(exception_type, self.exception_type):
+            return False
+        self.value = exception
+        return True
+
+
+class _MonkeyPatch:
+    _MISSING = object()
+
+    def __init__(self):
+        self._undo = []
+
+    def setenv(self, name, value):
+        previous = os.environ.get(name, self._MISSING)
+        os.environ[name] = value
+        self._undo.append(("env", name, previous))
+
+    def delenv(self, name, raising=True):
+        previous = os.environ.get(name, self._MISSING)
+        if previous is self._MISSING and raising:
+            raise KeyError(name)
+        os.environ.pop(name, None)
+        self._undo.append(("env", name, previous))
+
+    def setattr(self, target, name, value):
+        previous = getattr(target, name, self._MISSING)
+        setattr(target, name, value)
+        self._undo.append(("attr", target, name, previous))
+
+    def undo(self):
+        while self._undo:
+            kind, target, *values = self._undo.pop()
+            if kind == "env":
+                previous = values[0]
+                if previous is self._MISSING:
+                    os.environ.pop(target, None)
+                else:
+                    os.environ[target] = previous
+            else:
+                name, previous = values
+                if previous is self._MISSING:
+                    delattr(target, name)
+                else:
+                    setattr(target, name, previous)
+
+
+class _CapturedOutput:
+    def __init__(self, stdout, stderr):
+        self._stdout = stdout
+        self._stderr = stderr
+
+    def readouterr(self):
+        captured = type(
+            "Captured",
+            (),
+            {"out": self._stdout.getvalue(), "err": self._stderr.getvalue()},
+        )()
+        self._stdout.seek(0)
+        self._stdout.truncate(0)
+        self._stderr.seek(0)
+        self._stderr.truncate(0)
+        return captured
+
+
+def raises(exception_type):
+    return _Raises(exception_type)
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +138,7 @@ def test_profile_resolution_order(tmp_path, monkeypatch):
 
 
 def test_unknown_profile_lists_registered_profiles():
-    with pytest.raises(ValueError) as excinfo:
+    with raises(ValueError) as excinfo:
         model_registry.resolve_profile("nope")
     assert "local-llm" in str(excinfo.value)
     assert "self" in str(excinfo.value)
@@ -95,7 +178,7 @@ def test_step_1a_is_gated_out_of_validation_modes():
 
 
 def test_unknown_step_lists_canonical_order():
-    with pytest.raises(ValueError) as excinfo:
+    with raises(ValueError) as excinfo:
         model_steps.get_step("6b9")
     assert "6b1" in str(excinfo.value)
 
@@ -150,7 +233,7 @@ def test_bundle_fails_loudly_on_missing_input(tmp_path):
     work = _work_dir(tmp_path)
     (work / "case.md").write_text("case\n", encoding="utf-8")
     spec = model_steps.get_step("1b")
-    with pytest.raises(step.StepFailure) as excinfo:
+    with raises(step.StepFailure) as excinfo:
         step.build_bundle(spec, work)
     assert "case-major-categories.json" in str(excinfo.value)
 
@@ -262,7 +345,7 @@ def test_strip_code_fence_removes_one_wrapper():
 
 def test_complete_refuses_a_self_binding():
     binding = model_registry.resolve("judgment", "self")
-    with pytest.raises(model_client.SelfExecution):
+    with raises(model_client.SelfExecution):
         model_client.complete(binding, "system", "user")
 
 
@@ -427,3 +510,38 @@ def test_delegated_retry_fails_cleanly_at_the_ceiling(tmp_path, monkeypatch, cap
     code = step.main(["1b", "--work-dir", str(work), "--profile", "local-llm"])
     assert code == step.EXIT_FAILURE
     assert "cannot be grown further" in capsys.readouterr().err
+
+
+def _run_test_function(test_function):
+    parameters = inspect.signature(test_function).parameters
+    monkeypatch = _MonkeyPatch()
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+
+    with ExitStack() as stack:
+        arguments = {}
+        if "tmp_path" in parameters:
+            arguments["tmp_path"] = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+        if "monkeypatch" in parameters:
+            arguments["monkeypatch"] = monkeypatch
+        if "capsys" in parameters:
+            arguments["capsys"] = _CapturedOutput(stdout, stderr)
+            stack.enter_context(redirect_stdout(stdout))
+            stack.enter_context(redirect_stderr(stderr))
+        try:
+            test_function(**arguments)
+        finally:
+            monkeypatch.undo()
+
+
+def load_tests(loader, tests, pattern):
+    suite = unittest.TestSuite()
+    for name, value in globals().items():
+        if name.startswith("test_") and inspect.isfunction(value):
+            suite.addTest(
+                unittest.FunctionTestCase(
+                    lambda test_function=value: _run_test_function(test_function),
+                    description=name,
+                )
+            )
+    return suite
