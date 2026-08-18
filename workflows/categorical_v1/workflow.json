@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "workflow_id": "categorical-v1",
+  "python_package": "workflows.categorical_v1",
+  "entrypoints": {
+    "case_pipeline": "case_pipeline",
+    "retrieval": "retrieval",
+    "rendering": "rendering",
+    "audit_policy": "audit_policy",
+    "runtime": "runtime"
+  },
+  "skill": "workflows/categorical_v1/SKILL.md",
+  "supported_modes": [
+    "ngs-report",
+    "nel-demo",
+    "nel-validate",
+    "nel-validate-function"
+  ],
+  "artifacts": [
+    "workflow.json",
+    "case.md",
+    "case-major-categories.json",
+    "ngs-panel-scope.md",
+    "case-input.json",
+    "diagnostic_evidence.md",
+    "diagnostic_evidence.json",
+    "reporting-rules-dx.md",
+    "report-draft-dx.yaml",
+    "report-summary-dx.yaml",
+    "bundle.json",
+    "downstream_evidence.md",
+    "reporting-rules-remainder.md",
+    "evidence.md",
+    "card-tags.json",
+    "report-draft-remainder.yaml",
+    "report-draft.yaml",
+    "report-summary-manifest.yaml",
+    "report-summary-diagnosis.yaml",
+    "report-summary-prognosis.yaml",
+    "report-summary-treatment.yaml",
+    "report-summary-mrd.yaml",
+    "report-summary-germline.yaml",
+    "report-summary.yaml",
+    "report-final.md"
+  ],
+  "status": "accepted",
+  "cloned_from": "diagnosis-first-v1"
+}

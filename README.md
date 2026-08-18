@@ -45,7 +45,7 @@ Use one of the modes defined in `SKILL.md`.
 
 | Mode | Use when | Output |
 |---|---|---|
-| `ngs-report` | You want a complete NGS report using the current accepted `diagnosis-first-v1` workflow. | `report-final.md` rendered in chat |
+| `ngs-report` | You want a complete NGS report using the default `categorical-v1` workflow. | `report-final.md` rendered in chat |
 | `ngs-report --legacy` | You want the same report using the previous `legacy-v1` workflow. | `report-final.md` rendered in chat |
 | `evidence-block --legacy` | You want the legacy retrieved evidence without a final report. | `evidence.md` |
 | `evidence-block manual --legacy` | You want to review/revise the legacy proposed integrated diagnosis before full retrieval. | `evidence.md` |
@@ -78,7 +78,7 @@ NEL will:
 6. build a citable evidence block;
 7. draft and format the final report.
 
-The current `ngs-report` uses the accepted diagnosis-first workflow. To run the previous pipeline, use `ngs-report --legacy` (or the immutable selector `ngs-report --legacy-v1`). Legacy evidence-only/manual modes require the same explicit legacy selector.
+The current `ngs-report` uses `categorical-v1`. Use `ngs-report --diagnosis-first` (or `--diagnosis-first-v1`) for the previous diagnosis-first summarisation workflow, and `ngs-report --legacy` (or `--legacy-v1`) for the legacy pipeline. Legacy evidence-only/manual modes require an explicit legacy selector.
 
 ### Working directory
 
@@ -98,18 +98,17 @@ directory containing the completed evidence-block outputs.
 
 ### Report format
 
-The default final report:
+The default categorical final report:
 
-- is no more than 200 words, excluding references;
-- uses full sentences;
-- opens with the detected genes in alphabetical order, with variant type or recognised
-  hotspot name and VAF;
-- gives the exact variant when a gene is being reported as a biomarker;
+- uses full sentences and independently synthesises diagnosis, prognosis, treatment, MRD-marker and germline categories;
+- limits diagnosis to 70 words and each other drafted category to 50 words;
+- skips categories deterministically when they contain no reportable rules;
+- integrates detected variants into the diagnosis rather than emitting a separate variant section;
 - prioritises clinically important conclusions and qualifications;
 - uses Vancouver-style citations in square brackets;
 - numbers references in order of first citation.
 
-`diagnosis-first-v1` uses its workflow-owned default formatting prompt. Custom files
+`categorical-v1` uses workflow-owned category formatting prompts. `--diagnosis-first` selects `diagnosis-first-v1`. Custom files
 under `prompts/formatting/` apply only to legacy reporting modes such as
 `ngs-report --legacy` and `evidence-to-report --legacy`.
 

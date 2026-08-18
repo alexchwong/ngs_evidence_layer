@@ -52,7 +52,9 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 See [`WORKFLOW.md`](WORKFLOW.md) for the full workflow-separation contract, cloning
 procedure, modification boundaries, validation, and promotion/removal steps.
 
-**Default workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
+**Default workflow:** `categorical-v1` — Uses diagnosis-first evidence retrieval, then drafts diagnosis/prognosis/treatment/MRD/germline categories independently.
+
+**Diagnosis-first compatibility workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
 the integrated diagnosis, then passes that diagnosis into a second pass over the remaining
 agreed reporting rules.
 
@@ -64,7 +66,7 @@ agreed reporting rules.
 Create an isolated experimental workflow with:
 
 ```bash
-python scripts/devel_workflow.py new --from diagnosis-first-v1 --name <new-workflow-id>
+python scripts/devel_workflow.py new --from categorical-v1 --name <new-workflow-id>
 python scripts/devel_workflow.py check <new-workflow-id>
 ```
 

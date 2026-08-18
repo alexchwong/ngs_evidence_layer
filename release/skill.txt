@@ -30,9 +30,13 @@ workflows/registry.json
 workflows/legacy_v1/*
 workflows/legacy_v1/prompts/*
 workflows/diagnosis_first_v1/*
+workflows/categorical_v1/*
+workflows/categorical_v1/prompts/*
 workflows/diagnosis_first_v1/prompts/*
 workflows/diagnosis_first_v1/prompts/rule_views/*
 workflows/diagnosis_first_v1/prompts/formatting/*
+workflows/categorical_v1/prompts/formatting/*
+workflows/categorical_v1/prompts/rule_views/*
 prompts/formatting/*
 rules/agreed_reporting_rules.md
 validation/__init__.py

@@ -1,10 +1,15 @@
 {
   "schema_version": 1,
-  "default_workflow": "diagnosis-first-v1",
+  "default_workflow": "categorical-v1",
   "aliases": {
-    "legacy": "legacy-v1"
+    "legacy": "legacy-v1",
+    "diagnosis-first": "diagnosis-first-v1"
   },
   "workflows": {
+    "categorical-v1": {
+      "path": "workflows/categorical_v1",
+      "enabled": true
+    },
     "diagnosis-first-v1": {
       "path": "workflows/diagnosis_first_v1",
       "enabled": true
