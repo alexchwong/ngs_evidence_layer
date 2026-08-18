@@ -148,36 +148,47 @@ def _load_json(path: Path):
         raise ValueError(f"invalid JSON {path}: {exc}") from exc
 
 
+def _raise_issues(context: str, issues: list[str]) -> None:
+    if issues:
+        rendered = "\n".join(f"{index}. {issue}" for index, issue in enumerate(issues, start=1))
+        raise ValueError(f"{context} failed validation with {len(issues)} issue(s):\n{rendered}")
+
+
 def validate_case_input(work: Path) -> str:
     doc = _load_json(Path(work) / "case-input.json")
     expected = {"provisional_cmcs", "provisional_disease", "genes", "case_facts"}
     if not isinstance(doc, dict) or set(doc) != expected:
         raise ValueError("case-input.json must contain exactly provisional_cmcs, provisional_disease, genes, case_facts")
+    issues = []
     genes = doc["genes"]
     if not isinstance(genes, list) or any(not isinstance(g, str) or not g.strip() or g != g.upper() for g in genes):
-        raise ValueError("genes must be a list of non-empty uppercase gene symbols")
-    if len(genes) != len(set(genes)):
-        raise ValueError("genes contains duplicates")
+        issues.append("genes must be a list of non-empty uppercase gene symbols")
+    elif len(genes) != len(set(genes)):
+        issues.append("genes contains duplicates")
     cmcs = doc["provisional_cmcs"]
     if not isinstance(cmcs, list) or not cmcs:
-        raise ValueError("provisional_cmcs must be a non-empty list")
-    if len(cmcs) != len(set(cmcs)):
-        raise ValueError("provisional_cmcs contains duplicates")
-    for cmc in cmcs:
-        if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
-            raise ValueError(f"invalid provisional CMC {cmc!r}")
+        issues.append("provisional_cmcs must be a non-empty list")
+    else:
+        if len(cmcs) != len(set(cmcs)):
+            issues.append("provisional_cmcs contains duplicates")
+        for cmc in cmcs:
+            if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
+                issues.append(f"invalid provisional CMC {cmc!r}")
     if not isinstance(doc["provisional_disease"], str) or not doc["provisional_disease"].strip():
-        raise ValueError("provisional_disease must be non-empty")
+        issues.append("provisional_disease must be non-empty")
     facts = doc["case_facts"]
     if not isinstance(facts, list) or not facts:
-        raise ValueError("case_facts must be a non-empty list")
-    ids = []
-    for index, fact in enumerate(facts):
-        if not isinstance(fact, dict) or not isinstance(fact.get("fact_id"), str) or not fact["fact_id"].strip():
-            raise ValueError(f"case_facts[{index}] requires non-empty fact_id")
-        ids.append(fact["fact_id"])
-    if len(ids) != len(set(ids)):
-        raise ValueError("case_facts contains duplicate fact_id values")
+        issues.append("case_facts must be a non-empty list")
+    else:
+        ids = []
+        for index, fact in enumerate(facts):
+            if not isinstance(fact, dict) or not isinstance(fact.get("fact_id"), str) or not fact["fact_id"].strip():
+                issues.append(f"case_facts[{index}] requires non-empty fact_id")
+            else:
+                ids.append(fact["fact_id"])
+        if len(ids) != len(set(ids)):
+            issues.append("case_facts contains duplicate fact_id values")
+    _raise_issues("case-input.json", issues)
     return "case-input.json validated"
 
 
@@ -193,48 +204,61 @@ def _fact_rows(rows, *, aligned: bool, context: str) -> list[dict]:
         raise ValueError(f"{context} facts must be a YAML list")
     expected = {"fact", "reason", "citation"} if aligned else {"fact", "reason"}
     output = []
+    issues = []
     for index, row in enumerate(rows):
         if not isinstance(row, dict) or set(row) != expected:
-            raise ValueError(f"{context} fact {index + 1} must contain exactly {', '.join(sorted(expected))}")
-        if not isinstance(row["fact"], str) or not row["fact"].strip():
-            raise ValueError(f"{context} fact {index + 1} has blank fact")
-        if not isinstance(row["reason"], str) or not row["reason"].strip():
-            raise ValueError(f"{context} fact {index + 1} has blank reason")
-        if CARD_RE.search(row["fact"]) or CARD_RE.search(row["reason"]):
-            raise ValueError(f"{context} fact {index + 1} embeds card tags in fact/reason")
+            issues.append(f"{context} fact {index + 1} must contain exactly {', '.join(sorted(expected))}")
+            continue
+        fact = row["fact"]
+        reason = row["reason"]
+        if not isinstance(fact, str) or not fact.strip():
+            issues.append(f"{context} fact {index + 1} has blank fact")
+        if not isinstance(reason, str) or not reason.strip():
+            issues.append(f"{context} fact {index + 1} has blank reason")
+        if (isinstance(fact, str) and CARD_RE.search(fact)) or (isinstance(reason, str) and CARD_RE.search(reason)):
+            issues.append(f"{context} fact {index + 1} embeds card tags in fact/reason")
         if aligned:
             citation = row["citation"]
             if citation is not None and (not isinstance(citation, str) or CITATION_RE.fullmatch(citation) is None):
-                raise ValueError(f"{context} fact {index + 1} citation must be null or adjacent runtime card tags")
+                issues.append(f"{context} fact {index + 1} citation must be null or adjacent runtime card tags")
         output.append(row)
+    _raise_issues(f"{context} facts", issues)
     return output
 
 
 def _validate_diagnosis_doc(doc, *, aligned: bool, final: bool) -> dict:
     if not isinstance(doc, dict) or set(doc) != {"provisional_cmcs", "diagnoses", "facts"}:
         raise ValueError("diagnosis state must contain exactly provisional_cmcs, diagnoses, facts")
+    issues = []
     cmcs = doc["provisional_cmcs"]
     if not isinstance(cmcs, list) or not cmcs or len(cmcs) != len(set(cmcs)):
-        raise ValueError("diagnosis provisional_cmcs must be a non-empty unique list")
-    for cmc in cmcs:
-        if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
-            raise ValueError(f"diagnosis contains invalid provisional CMC {cmc!r}")
+        issues.append("diagnosis provisional_cmcs must be a non-empty unique list")
+    else:
+        for cmc in cmcs:
+            if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
+                issues.append(f"diagnosis contains invalid provisional CMC {cmc!r}")
     diagnoses = doc["diagnoses"]
     if not isinstance(diagnoses, list):
-        raise ValueError("diagnoses must be a list")
-    if final and not diagnoses:
-        raise ValueError("final diagnostic terrace must accept at least one WHO5 diagnosis")
-    for index, row in enumerate(diagnoses):
-        if not isinstance(row, dict) or set(row) != {"schema_disease", "narrow_diagnosis"}:
-            raise ValueError(f"diagnoses[{index}] must contain schema_disease and narrow_diagnosis")
-        disease = row["schema_disease"]
-        if disease in WHO5_EXCLUDED_SCHEMA_DISEASES:
-            raise ValueError("MDS/AML is ICC-only and cannot be the accepted WHO5 routing diagnosis")
-        if disease not in vocab.CASE_DISEASE_SET:
-            raise ValueError(f"diagnoses[{index}].schema_disease {disease!r} is not canonical")
-        if not isinstance(row["narrow_diagnosis"], str) or not row["narrow_diagnosis"].strip():
-            raise ValueError(f"diagnoses[{index}].narrow_diagnosis must be non-empty WHO5 wording")
-    _fact_rows(doc["facts"], aligned=aligned, context="diagnosis")
+        issues.append("diagnoses must be a list")
+    else:
+        if final and not diagnoses:
+            issues.append("final diagnostic terrace must accept at least one WHO5 diagnosis")
+        for index, row in enumerate(diagnoses):
+            if not isinstance(row, dict) or set(row) != {"schema_disease", "narrow_diagnosis"}:
+                issues.append(f"diagnoses[{index}] must contain schema_disease and narrow_diagnosis")
+                continue
+            disease = row["schema_disease"]
+            if disease in WHO5_EXCLUDED_SCHEMA_DISEASES:
+                issues.append("MDS/AML is ICC-only and cannot be the accepted WHO5 routing diagnosis")
+            elif disease not in vocab.CASE_DISEASE_SET:
+                issues.append(f"diagnoses[{index}].schema_disease {disease!r} is not canonical")
+            if not isinstance(row["narrow_diagnosis"], str) or not row["narrow_diagnosis"].strip():
+                issues.append(f"diagnoses[{index}].narrow_diagnosis must be non-empty WHO5 wording")
+    try:
+        _fact_rows(doc["facts"], aligned=aligned, context="diagnosis")
+    except ValueError as exc:
+        issues.extend(str(exc).splitlines()[1:] or [str(exc)])
+    _raise_issues("diagnosis state", issues)
     return doc
 
 
@@ -251,12 +275,18 @@ def validate_review(path: Path) -> tuple[bool, list[str]]:
     doc = _load_json(Path(path))
     if not isinstance(doc, dict) or set(doc) != {"pass", "issues"}:
         raise ValueError("semantic review must contain exactly pass and issues")
-    if not isinstance(doc["pass"], bool) or not isinstance(doc["issues"], list) or any(not isinstance(x, str) for x in doc["issues"]):
-        raise ValueError("semantic review pass must be boolean and issues must be a string list")
-    if doc["pass"] and doc["issues"]:
-        raise ValueError("passing semantic review must have no issues")
-    if not doc["pass"] and not doc["issues"]:
-        raise ValueError("failing semantic review must identify at least one issue")
+    issues = []
+    valid_pass = isinstance(doc["pass"], bool)
+    valid_issues = isinstance(doc["issues"], list) and all(isinstance(x, str) for x in doc["issues"])
+    if not valid_pass:
+        issues.append("semantic review pass must be boolean")
+    if not valid_issues:
+        issues.append("semantic review issues must be a string list")
+    if valid_pass and valid_issues and doc["pass"] and doc["issues"]:
+        issues.append("passing semantic review must have no issues")
+    if valid_pass and valid_issues and not doc["pass"] and not doc["issues"]:
+        issues.append("failing semantic review must identify at least one issue")
+    _raise_issues("semantic review", issues)
     return doc["pass"], doc["issues"]
 
 
@@ -270,23 +300,25 @@ def validate_alignment(source_path: Path, aligned_path: Path, domain: str, evide
     aligned = _load_yaml(Path(aligned_path))
     validate_category_answer(source_path, domain, final=True, aligned=False)
     validate_category_answer(aligned_path, domain, final=True, aligned=True)
+    issues = []
     if domain == "diagnosis":
         if source["provisional_cmcs"] != aligned["provisional_cmcs"] or source["diagnoses"] != aligned["diagnoses"]:
-            raise ValueError("evidence alignment changed diagnosis routing state")
+            issues.append("evidence alignment changed diagnosis routing state")
         source_rows, aligned_rows = source["facts"], aligned["facts"]
     else:
         source_rows, aligned_rows = source, aligned
     if len(source_rows) != len(aligned_rows):
-        raise ValueError("evidence alignment changed fact count")
+        issues.append("evidence alignment changed fact count")
     known = known_tags_from_evidence(evidence_path)
     for index, (before, after) in enumerate(zip(source_rows, aligned_rows), start=1):
         if before["fact"] != after["fact"] or before["reason"] != after["reason"]:
-            raise ValueError(f"evidence alignment changed fact/reason at row {index}")
+            issues.append(f"evidence alignment changed fact/reason at row {index}")
         citation = after["citation"]
         if citation:
             unknown = sorted(set(CARD_RE.findall(citation)) - known)
             if unknown:
-                raise ValueError(f"evidence alignment cites unknown tag(s): {', '.join(unknown)}")
+                issues.append(f"evidence alignment cites unknown tag(s) at row {index}: {', '.join(unknown)}")
+    _raise_issues("evidence alignment", issues)
     return f"validated {Path(aligned_path).name}"
 
 

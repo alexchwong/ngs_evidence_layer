@@ -30,7 +30,7 @@ The clinical pipeline is:
 
 ## Global model/file rules
 
-File access is deny-by-default. The CLI packages every permitted model input into `<work-dir>/.model-steps/<operation>/prompt.md`.
+File access is deny-by-default. The CLI packages every permitted model input into `<work-dir>/.model-steps/<sequence>-<operation>/prompt.md`, where the zero-padded sequence preserves chronological sort order.
 
 For the frontier/session-model execution path, use model profile `self`. When a command exits `10`, read only the printed `PROMPT=<path>` bundle, perform that model operation in the current session, write only the printed `OUTPUT=<path>`, then rerun the same workflow step. Do not inspect repository Python to infer missing inputs.
 

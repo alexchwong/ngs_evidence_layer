@@ -36,6 +36,7 @@ SETTINGS_PATH = WORKFLOW_DIR / "settings.json"
 SETTINGS_TEMPLATE_PATH = WORKFLOW_DIR / "settings.json.template"
 BUNDLE_DIR = ".model-steps"
 BUNDLE_ZIP = "ngs-report-model-steps.zip"
+USAGE_FILE = "model-usage.json"
 PROJECT_ROOT = REPO_ROOT / "temp"
 PROJECT_POINTER = PROJECT_ROOT / ".terraced-v1-project"
 WORK_DIR_ENV = "NEL_WORK_DIR"
@@ -47,6 +48,16 @@ EXIT_HANDOFF = 10
 EXIT_NOT_REQUIRED = 20
 DOMAINS = runtime.DOMAINS
 DOWNSTREAM = ("prognosis", "treatment", "mrd", "germline")
+STEP_DESCRIPTIONS = {
+    "1a": "capture case",
+    "1b": "structure case",
+    "2": "retrieve diagnostic evidence",
+    "3": "run terraced diagnosis",
+    "4": "review and align diagnosis evidence",
+    "5": "run downstream categories",
+    "6": "synthesise, align citations, and render",
+    "7": "package workflow outputs",
+}
 
 
 class StepFailure(RuntimeError):
@@ -66,8 +77,18 @@ def load_settings() -> dict:
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {"semantic_review_cycles": 2, "structural_attempts": 3, "token_budget": 120000}
+        return {"semantic_review_cycles": 2, "structural_attempts": 10, "token_budget": 120000}
     return doc
+
+
+def configured_profiles() -> tuple[str | None, str | None]:
+    settings = load_settings()
+    model_profile = settings.get("model_profile")
+    terrace_profile = settings.get("terrace_profile")
+    return (
+        model_profile if isinstance(model_profile, str) and model_profile else None,
+        terrace_profile if isinstance(terrace_profile, str) and terrace_profile else None,
+    )
 
 
 def _atomic_write(path: Path, text: str) -> Path:
@@ -136,9 +157,77 @@ def _read(path: Path) -> str:
 
 
 def _bundle_paths(work: Path, call_id: str) -> tuple[Path, Path, Path]:
-    root = work / BUNDLE_DIR / call_id
+    bundle_root = work / BUNDLE_DIR
+    bundle_root.mkdir(parents=True, exist_ok=True)
+    matching = sorted(bundle_root.glob(f"[0-9][0-9][0-9]-{call_id}"))
+    legacy = bundle_root / call_id
+    if matching:
+        root = matching[0]
+    elif legacy.is_dir():
+        root = legacy
+    else:
+        sequence = max(
+            (
+                int(match.group(1))
+                for path in bundle_root.iterdir()
+                if path.is_dir() and (match := re.match(r"^(\d+)-", path.name))
+            ),
+            default=0,
+        ) + 1
+        root = bundle_root / f"{sequence:03d}-{call_id}"
     root.mkdir(parents=True, exist_ok=True)
     return root, root / "prompt.md", root / "messages.json"
+
+
+def _record_usage(
+    work: Path,
+    call_id: str,
+    model: str,
+    attempt: int,
+    usage: dict[str, int] | None,
+) -> None:
+    path = work / USAGE_FILE
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        document = {"schema_version": 1, "calls": []}
+    document.setdefault("calls", []).append(
+        {
+            "operation": call_id,
+            "model": model,
+            "attempt": attempt,
+            "usage": usage,
+        }
+    )
+    _atomic_write(path, json.dumps(document, indent=2, ensure_ascii=False) + "\n")
+
+
+def _print_usage(work: Path) -> None:
+    path = work / USAGE_FILE
+    if not path.is_file():
+        print("Token usage: unavailable (self handoff or provider did not report usage)", file=sys.stderr)
+        return
+    try:
+        calls = json.loads(path.read_text(encoding="utf-8")).get("calls", [])
+    except (OSError, json.JSONDecodeError):
+        print("Token usage: unavailable (usage ledger could not be read)", file=sys.stderr)
+        return
+    reported = [row["usage"] for row in calls if isinstance(row.get("usage"), dict)]
+    missing = len(calls) - len(reported)
+    totals = {
+        key: sum(usage.get(key, 0) for usage in reported)
+        for key in ("prompt_tokens", "completion_tokens", "total_tokens")
+    }
+    if not reported:
+        print("Token usage: unavailable (provider did not report usage)", file=sys.stderr)
+        return
+    suffix = f"; partial, {missing} attempt(s) unreported" if missing else ""
+    print(
+        "Token usage: "
+        f"prompt {totals['prompt_tokens']:,}, completion {totals['completion_tokens']:,}, "
+        f"total {totals['total_tokens']:,}{suffix}",
+        file=sys.stderr,
+    )
 
 
 def _render_bundle(call_id: str, messages: list[dict[str, str]], output: Path, validator_error: str | None = None) -> str:
@@ -177,7 +266,7 @@ def _model_call(
     """Complete one model operation, handing off to the session model when needed."""
     binding = _profile(work, profile, role)
     root, prompt_path, messages_path = _bundle_paths(work, call_id)
-    attempts = int(load_settings().get("structural_attempts", 3))
+    attempts = int(load_settings().get("structural_attempts", 10))
 
     # A self handoff resumes by validating the already-authored target.
     if binding.is_self:
@@ -186,9 +275,12 @@ def _model_call(
             try:
                 message = validator(output)
                 _atomic_write(root / "validated.txt", message + "\n")
+                print(f"  {call_id}: validated", file=sys.stderr)
                 return message
             except (ValueError, OSError, KeyError) as exc:
                 validator_error = str(exc)
+                _atomic_write(root / "attempt-self.validation.txt", validator_error + "\n")
+                print(f"  {call_id}: validation failed; handoff needs correction", file=sys.stderr)
         _atomic_write(messages_path, json.dumps(messages, indent=2, ensure_ascii=False) + "\n")
         _atomic_write(prompt_path, _render_bundle(call_id, messages, output, validator_error))
         raise Handoff(call_id, prompt_path, output)
@@ -196,6 +288,7 @@ def _model_call(
     last_error = ""
     previous = None
     for attempt in range(1, attempts + 1):
+        print(f"  {call_id}: model attempt {attempt} of {attempts}", file=sys.stderr)
         call_messages = list(messages)
         if previous is not None:
             call_messages.extend([
@@ -211,13 +304,24 @@ def _model_call(
         _atomic_write(messages_path, json.dumps(call_messages, indent=2, ensure_ascii=False) + "\n")
         _atomic_write(prompt_path, _render_bundle(call_id, call_messages, output, last_error or None))
         try:
-            raw = model_client.complete_messages(binding, call_messages)
+            completion = model_client.complete_messages(binding, call_messages)
         except model_client.TruncatedCompletion as exc:
+            _record_usage(work, call_id, binding.model, attempt, exc.usage)
             previous = exc.content
             last_error = str(exc)
+            _atomic_write(root / f"attempt-{attempt}.validation.txt", last_error + "\n")
+            print(f"  {call_id}: output truncated; retrying", file=sys.stderr)
             continue
         except RuntimeError as exc:
             raise StepFailure(str(exc)) from exc
+        if isinstance(completion, model_client.Completion):
+            raw = completion.content
+            usage = completion.usage
+        else:
+            # Preserve compatibility with local integrations and test doubles that return text.
+            raw = completion
+            usage = None
+        _record_usage(work, call_id, binding.model, attempt, usage)
         text = model_client.strip_code_fence(raw)
         _atomic_write(root / f"attempt-{attempt}.output", text)
         previous_existing = output.read_text(encoding="utf-8") if output.is_file() else None
@@ -226,13 +330,16 @@ def _model_call(
             message = validator(output)
         except (ValueError, OSError, KeyError) as exc:
             last_error = str(exc)
+            _atomic_write(root / f"attempt-{attempt}.validation.txt", last_error + "\n")
             previous = text
             if previous_existing is None:
                 output.unlink(missing_ok=True)
             else:
                 _atomic_write(output, previous_existing)
+            print(f"  {call_id}: validation failed; retrying", file=sys.stderr)
             continue
         _atomic_write(root / "validated.txt", message + "\n")
+        print(f"  {call_id}: validated", file=sys.stderr)
         return message
     raise StepFailure(f"model operation {call_id} failed structural validation after {attempts} attempts: {last_error}")
 
@@ -529,10 +636,12 @@ def step_4(work: Path, profile: str | None) -> int:
 
 
 def step_5(work: Path, profile: str | None) -> int:
-    for domain in DOWNSTREAM:
+    for index, domain in enumerate(DOWNSTREAM, start=1):
+        print(f"  Downstream category {index} of {len(DOWNSTREAM)} — {domain}", file=sys.stderr)
         category = work / f"category-{domain}.yaml"
         if category.is_file():
             runtime.validate_category_answer(category, domain, final=True, aligned=True)
+            print(f"  {domain}: existing aligned category validated", file=sys.stderr)
             continue
         retrieval.downstream(work, domain)
         runtime.render_evidence(work, domain)
@@ -548,6 +657,7 @@ def _summary_validator(path: Path) -> str:
         raise ValueError("summary is empty")
     if "[card:" in text or "## References" in text or "(no citation required)" in text:
         raise ValueError("uncited summary must not contain citation syntax or bibliography")
+    _summary_sentence_manifest(text)
     return "uncited report draft validated"
 
 
@@ -555,6 +665,192 @@ def _plain_from_cited(text: str) -> str:
     text = re.sub(r"\. (?:\[card:[0-9a-f]{6}\])+(?=\s|$)", ".", text)
     text = re.sub(r"\. \(no citation required\)(?=\s|$)", ".", text)
     return text
+
+
+SUMMARY_HEADINGS = {
+    "Diagnosis": "diagnosis",
+    "Prognosis": "prognosis",
+    "Treatment Implications": "treatment",
+    "MRD": "mrd",
+    "Germline": "germline",
+}
+SUMMARY_HEADING_RE = re.compile(r"^\*\*(?P<title>[^*]+)\*\*[ \t]*$", re.MULTILINE)
+SUMMARY_SENTENCE_END_RE = re.compile(r"\.(?=\s|$)")
+RUNTIME_CARD_TAG_RE = re.compile(r"\[card:([0-9a-f]{6})\]")
+
+
+def _summary_sentence_manifest(draft: str) -> list[dict]:
+    """Index sentence spans without changing any report bytes."""
+    headings = list(SUMMARY_HEADING_RE.finditer(draft))
+    if not headings:
+        expected = ", ".join(f"**{title}**" for title in SUMMARY_HEADINGS)
+        raise ValueError(
+            "uncited summary contains no indexed sentences because it has no supported domain headings; "
+            f"place every report sentence under an exact standalone heading from: {expected}"
+        )
+    sentences = []
+    for heading_index, heading in enumerate(headings):
+        title = heading.group("title")
+        if title not in SUMMARY_HEADINGS:
+            raise ValueError(f"uncited summary contains unknown heading {title!r}")
+        domain = SUMMARY_HEADINGS[title]
+        section_start = heading.end()
+        section_end = headings[heading_index + 1].start() if heading_index + 1 < len(headings) else len(draft)
+        sentence_start = section_start
+        domain_index = 0
+        for ending in SUMMARY_SENTENCE_END_RE.finditer(draft, section_start, section_end):
+            domain_index += 1
+            sentence_end = ending.end()
+            sentence_text = draft[sentence_start:sentence_end].strip()
+            if not sentence_text:
+                raise ValueError(f"uncited summary {domain} sentence {domain_index} is empty")
+            sentences.append(
+                {
+                    "sentence_id": f"{domain}-{domain_index}",
+                    "domain": domain,
+                    "sentence": sentence_text,
+                    "end": sentence_end,
+                }
+            )
+            sentence_start = sentence_end
+        if draft[sentence_start:section_end].strip():
+            raise ValueError(f"uncited summary {domain} contains text that does not end in a full stop")
+    if not sentences:
+        raise ValueError("uncited summary contains supported headings but no complete full-stop-terminated sentences")
+    return sentences
+
+
+def _accepted_fact_manifest(work: Path) -> list[dict]:
+    facts = []
+    for domain in DOMAINS:
+        document = yaml.safe_load(_read(work / f"category-{domain}.yaml"))
+        rows = document["facts"] if domain == "diagnosis" else document
+        for index, row in enumerate(rows, start=1):
+            facts.append(
+                {
+                    "fact_id": f"{domain}-{index}",
+                    "domain": domain,
+                    "fact": row["fact"],
+                    "reason": row["reason"],
+                    "citation": row["citation"],
+                }
+            )
+    return facts
+
+
+def _citation_alignment_input(work: Path, draft: str) -> str:
+    sentences = [
+        {key: row[key] for key in ("sentence_id", "domain", "sentence")}
+        for row in _summary_sentence_manifest(draft)
+    ]
+    return yaml.safe_dump(
+        {"sentences": sentences, "accepted_facts": _accepted_fact_manifest(work)},
+        sort_keys=False,
+        allow_unicode=True,
+        width=100,
+    )
+
+
+def _load_sentence_fact_alignment(work: Path, path: Path) -> tuple[list[dict], dict[str, dict], dict[str, list[str]]]:
+    draft = _read(work / "report-draft.md")
+    sentences = _summary_sentence_manifest(draft)
+    facts = {row["fact_id"]: row for row in _accepted_fact_manifest(work)}
+    try:
+        document = yaml.safe_load(_read(path))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"citation alignment is not valid YAML: {exc}") from exc
+    if not isinstance(document, dict) or set(document) != {"alignments"}:
+        raise ValueError("citation alignment must contain exactly one 'alignments' field")
+    rows = document["alignments"]
+    if not isinstance(rows, list):
+        raise ValueError("citation alignment alignments must be a list")
+    expected_ids = [row["sentence_id"] for row in sentences]
+    actual_ids = []
+    alignment = {}
+    for index, row in enumerate(rows, start=1):
+        if not isinstance(row, dict) or set(row) != {"sentence_id", "fact_ids"}:
+            raise ValueError(f"citation alignment row {index} must contain exactly sentence_id and fact_ids")
+        sentence_id = row["sentence_id"]
+        fact_ids = row["fact_ids"]
+        if not isinstance(sentence_id, str):
+            raise ValueError(f"citation alignment row {index} sentence_id must be a string")
+        if not isinstance(fact_ids, list) or not fact_ids or any(not isinstance(value, str) for value in fact_ids):
+            raise ValueError(f"citation alignment row {index} fact_ids must be a non-empty string list")
+        if len(fact_ids) != len(set(fact_ids)):
+            raise ValueError(f"citation alignment row {index} fact_ids contains duplicates")
+        actual_ids.append(sentence_id)
+        alignment[sentence_id] = fact_ids
+    if actual_ids != expected_ids:
+        raise ValueError(
+            "citation alignment sentence IDs must appear exactly once in report order; "
+            f"expected {expected_ids!r}, received {actual_ids!r}"
+        )
+    sentence_domains = {row["sentence_id"]: row["domain"] for row in sentences}
+    for sentence_id, fact_ids in alignment.items():
+        for fact_id in fact_ids:
+            if fact_id not in facts:
+                raise ValueError(f"citation alignment {sentence_id} refers to unknown fact {fact_id!r}")
+            if facts[fact_id]["domain"] != sentence_domains[sentence_id]:
+                raise ValueError(f"citation alignment {sentence_id} refers to cross-domain fact {fact_id!r}")
+    return sentences, facts, alignment
+
+
+def _sentence_fact_alignment_validator(work: Path, path: Path) -> str:
+    if _unmatched_summary_feedback(path) is not None:
+        return "summary sentence unmatched"
+    _load_sentence_fact_alignment(work, path)
+    return "sentence-to-fact citation alignment validated"
+
+
+def _unmatched_summary_feedback(path: Path) -> str | None:
+    text = _read(path).strip()
+    if text == "UNMATCHED_SUMMARY_SENTENCE":
+        return "The citation aligner reported an unmatched summary sentence without details."
+    try:
+        document = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+    if not isinstance(document, dict) or set(document) != {"unmatched_sentences"}:
+        return None
+    rows = document["unmatched_sentences"]
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("unmatched_sentences must be a non-empty list")
+    feedback = []
+    for index, row in enumerate(rows, start=1):
+        if not isinstance(row, dict) or set(row) != {"sentence_id", "sentence", "reason"}:
+            raise ValueError(
+                f"unmatched_sentences row {index} must contain exactly sentence_id, sentence and reason"
+            )
+        if any(not isinstance(row[key], str) or not row[key].strip() for key in row):
+            raise ValueError(f"unmatched_sentences row {index} fields must be non-empty strings")
+        feedback.append(
+            f"- {row['sentence_id']}: {row['sentence']}\n  Reason: {row['reason']}"
+        )
+    return "\n".join(feedback)
+
+
+def _assemble_cited_report(work: Path, alignment_path: Path) -> Path:
+    draft = _read(work / "report-draft.md")
+    sentences, facts, alignment = _load_sentence_fact_alignment(work, alignment_path)
+    parts = []
+    cursor = 0
+    for sentence in sentences:
+        end = sentence["end"]
+        parts.append(draft[cursor:end])
+        tags = []
+        for fact_id in alignment[sentence["sentence_id"]]:
+            citation = facts[fact_id]["citation"]
+            if citation:
+                for tag in RUNTIME_CARD_TAG_RE.findall(citation):
+                    if tag not in tags:
+                        tags.append(tag)
+        disposition = "".join(f"[card:{tag}]" for tag in tags) if tags else "(no citation required)"
+        parts.append(" " + disposition)
+        cursor = end
+    parts.append(draft[cursor:])
+    output = work / "report-cited.md"
+    _atomic_write(output, "".join(parts))
+    return output
 
 
 def _citation_alignment_validator(work: Path, path: Path) -> str:
@@ -568,31 +864,51 @@ def _citation_alignment_validator(work: Path, path: Path) -> str:
     return "final citation alignment validated"
 
 
+def _final_alignment_validator(work: Path, alignment_path: Path) -> str:
+    feedback = _unmatched_summary_feedback(alignment_path)
+    if feedback is not None:
+        return "summary sentence unmatched"
+    _load_sentence_fact_alignment(work, alignment_path)
+    cited = _assemble_cited_report(work, alignment_path)
+    try:
+        return _citation_alignment_validator(work, cited)
+    except (ValueError, OSError, KeyError):
+        cited.unlink(missing_ok=True)
+        raise
+
+
 def step_6(work: Path, profile: str | None) -> int:
     runtime.facts_only(work)
     runtime.prepare_combined_evidence(work)
     max_summary_cycles = 2
+    summary_feedback = None
     for cycle in range(1, max_summary_cycles + 1):
         draft = work / "report-draft.md"
         if not draft.is_file():
-            suffix = "" if cycle == 1 else "\n\nA previous summary introduced a sentence that could not be matched to any accepted fact. Ensure every sentence is directly represented by the supplied facts."
+            suffix = ""
+            if summary_feedback:
+                suffix = (
+                    "\n\n## Required correction from the previous citation-alignment pass\n\n"
+                    "Rewrite the complete report so every sentence is directly represented by accepted facts. "
+                    "Correct each reported sentence without adding outside assertions:\n\n"
+                    + summary_feedback
+                )
             messages = [
                 {"role": "system", "content": model_client.SYSTEM_PROMPT},
                 {"role": "user", "content": _read(PROMPTS / "final_summary.md") + suffix + "\n\n## Accepted facts only\n\n" + _read(work / "report-facts.yaml")},
             ]
             _model_call(work, call_id=f"summary-{cycle}", role="summarisation", messages=messages, output=draft, validator=_summary_validator, profile=profile)
-        cited = work / "report-cited.md"
-        if not cited.is_file():
+        alignment = work / "report-citation-alignment.yaml"
+        if not alignment.is_file():
             messages = [
                 {"role": "system", "content": model_client.SYSTEM_PROMPT},
                 {
                     "role": "user",
                     "content": (
                         _read(PROMPTS / "final_citation_alignment.md")
-                        + "\n\n## Uncited report\n\n"
-                        + _read(draft)
-                        + "\n\n## Accepted fact/reason/citation states\n\n"
-                        + runtime.accepted_categories_document(work)
+                        + "\n\n## Sentence and accepted-fact manifest\n\n```yaml\n"
+                        + _citation_alignment_input(work, _read(draft))
+                        + "```\n"
                     ),
                 },
             ]
@@ -601,15 +917,15 @@ def step_6(work: Path, profile: str | None) -> int:
                 call_id=f"final-citations-{cycle}",
                 role="final_citation_alignment",
                 messages=messages,
-                output=cited,
-                validator=lambda path: _citation_alignment_validator(work, path),
+                output=alignment,
+                validator=lambda path: _final_alignment_validator(work, path),
                 profile=profile,
             )
-        if _read(cited).strip() == "UNMATCHED_SUMMARY_SENTENCE":
-            cited.unlink(missing_ok=True)
+        summary_feedback = _unmatched_summary_feedback(alignment)
+        if summary_feedback is not None:
+            alignment.unlink(missing_ok=True)
             draft.rename(work / f"report-draft-unmatched-{cycle}.md")
             continue
-        _citation_alignment_validator(work, cited)
         runtime.render_final(work)
         return EXIT_OK
     raise StepFailure("summary remained semantically unmatched to accepted facts after two synthesis cycles")
@@ -640,18 +956,26 @@ def step_7(work: Path) -> int:
     bundles = package_bundles(work)
     if bundles:
         print(bundles)
+    _print_usage(work)
     return EXIT_OK
 
 
 def run_setup(args: argparse.Namespace) -> int:
     from scripts.setup_workflow import setup_workflow
 
+    configured_model, configured_terrace = configured_profiles()
     registry = model_registry.load_registry()
-    model_profile = model_registry.resolve_profile(args.model_profile, None, registry)
+    model_profile = model_registry.resolve_profile(
+        args.model_profile or configured_model, None, registry
+    )
     for role in registry["roles"]:
         model_registry.resolve(role, model_profile, None, registry)
     config = runtime.load_questions()
-    terrace_profile = args.terrace_profile or config["default_execution_profile"]
+    terrace_profile = (
+        args.terrace_profile
+        or configured_terrace
+        or config["default_execution_profile"]
+    )
     if terrace_profile not in config["execution_profiles"]:
         raise StepFailure(
             f"unknown terrace profile {terrace_profile!r}; choose one of: " + ", ".join(config["execution_profiles"])
@@ -696,6 +1020,40 @@ def run_setup(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def run_provider(model_profile: str | None, terrace_profile: str | None) -> int:
+    if (model_profile is None) != (terrace_profile is None):
+        raise StepFailure(
+            "provider requires both profiles: provider <model-profile> <terrace-profile>"
+        )
+
+    configured_model, configured_terrace = configured_profiles()
+    registry = model_registry.load_registry()
+    questions = runtime.load_questions()
+    if model_profile is not None:
+        model_profile = model_registry.resolve_profile(model_profile, None, registry)
+        for role in registry["roles"]:
+            model_registry.resolve(role, model_profile, None, registry)
+        if terrace_profile not in questions["execution_profiles"]:
+            raise StepFailure(
+                f"unknown terrace profile {terrace_profile!r}; choose one of: "
+                + ", ".join(questions["execution_profiles"])
+            )
+        settings = load_settings()
+        settings["model_profile"] = model_profile
+        settings["terrace_profile"] = terrace_profile
+        _atomic_write(
+            SETTINGS_PATH,
+            json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+        )
+        configured_model, configured_terrace = model_profile, terrace_profile
+
+    effective_model = model_registry.resolve_profile(configured_model, None, registry)
+    effective_terrace = configured_terrace or questions["default_execution_profile"]
+    print(f"MODEL_PROFILE={effective_model}")
+    print(f"TERRACE_PROFILE={effective_terrace}")
+    return EXIT_OK
+
+
 def run_step(step_id: str, work: Path, profile: str | None) -> int:
     _require_work(work)
     mapping = {
@@ -709,7 +1067,13 @@ def run_step(step_id: str, work: Path, profile: str | None) -> int:
         "7": lambda: step_7(work),
     }
     try:
-        return mapping[step_id]()
+        description = STEP_DESCRIPTIONS[step_id]
+        display = step_id if step_id not in {"1a", "1b"} else f"1{step_id[-1]}"
+        print(f"Step {display} of 7 — {description}", file=sys.stderr)
+        code = mapping[step_id]()
+        status = "not required" if code == EXIT_NOT_REQUIRED else "complete"
+        print(f"Step {display} of 7 — {status}", file=sys.stderr)
+        return code
     except KeyError as exc:
         raise StepFailure("unknown step; canonical order: 1a 1b 2 3 4 5 6 7") from exc
 
@@ -728,6 +1092,8 @@ def run_all(work: Path, profile: str | None) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("step_id", nargs="?")
+    p.add_argument("provider_model_profile", nargs="?")
+    p.add_argument("provider_terrace_profile", nargs="?")
     p.add_argument("--all", action="store_true")
     p.add_argument("--work-dir", type=Path)
     p.add_argument("--project", action="store_true")
@@ -744,6 +1110,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        if args.step_id == "provider":
+            return run_provider(
+                args.provider_model_profile, args.provider_terrace_profile
+            )
+        if args.provider_model_profile or args.provider_terrace_profile:
+            raise StepFailure(
+                "extra positional arguments are valid only for the provider command"
+            )
         if args.step_id == "setup":
             if not args.mode:
                 raise StepFailure("setup requires --mode")

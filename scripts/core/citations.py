@@ -111,6 +111,26 @@ def ordered_unique(numbers):
     return result
 
 
+def format_citation_numbers(numbers):
+    """Return sorted unique Vancouver numbers with consecutive values collapsed."""
+    values = sorted(set(numbers))
+    if not values:
+        return ""
+    ranges = []
+    start = end = values[0]
+    for value in values[1:]:
+        if value == end + 1:
+            end = value
+            continue
+        ranges.append((start, end))
+        start = end = value
+    ranges.append((start, end))
+    return ",".join(
+        str(start) if start == end else f"{start}-{end}"
+        for start, end in ranges
+    )
+
+
 def parse_card_references(evidence_text, source_references):
     """Return evidence.md runtime-card-tag to primary-reference mapping."""
     lines = evidence_text.rstrip().splitlines()
@@ -362,11 +382,11 @@ def render(
 
     rendered = SOURCE_MARKER.sub(replace_marker, report_text)
     rendered = ADJACENT_REPORT_MARKERS.sub(
-        lambda match: "[" + ",".join(map(str, ordered_unique(
+        lambda match: "[" + format_citation_numbers(
             int(number)
             for marker in REPORT_MARKER.findall(match.group(0))
             for number in marker.split(",")
-        ))) + "]",
+        ) + "]",
         rendered,
     )
     rendered = NO_CITATION_MARKER.sub("", rendered)

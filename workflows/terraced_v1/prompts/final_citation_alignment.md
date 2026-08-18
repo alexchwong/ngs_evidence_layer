@@ -1,18 +1,32 @@
 # Final sentence-to-fact citation alignment
 
-Add citation dispositions to the supplied uncited report by semantically matching each report sentence to the accepted category facts.
+Semantically match every indexed report sentence to one or more accepted facts in the same clinical domain.
 
-The accepted fact records include citations that were assigned earlier by direct reason-to-card semantic matching. Do not search for new evidence and do not change the clinical prose.
+Return only this YAML structure:
 
-For every sentence-ending full stop in the report:
-- identify the accepted fact or facts represented by that sentence;
-- append the union of their non-null runtime card tags immediately after the full stop;
-- if all matched source facts have `citation: null`, append `(no citation required)`;
-- if a sentence cannot be reasonably matched to any accepted fact, return exactly `UNMATCHED_SUMMARY_SENTENCE` instead of a report. This indicates synthesis drift and requires the summary to be redrafted.
+```yaml
+alignments:
+  - sentence_id: diagnosis-1
+    fact_ids: [diagnosis-1]
+  - sentence_id: diagnosis-2
+    fact_ids: [diagnosis-2, diagnosis-3]
+```
 
-Required syntax:
-`Sentence. [card:abcdef][card:123456]`
-or
-`Sentence. (no citation required)`
+Rules:
+- include every supplied `sentence_id` exactly once and preserve their supplied order;
+- use only supplied `fact_id` values from the same domain as the sentence;
+- list every accepted fact represented by the sentence, without duplicates;
+- do not copy report prose, facts, reasons, citations or runtime card tags into the output;
+- do not search for new evidence and do not create numeric citations or a bibliography;
+- if every sentence cannot be reasonably matched, return `unmatched_sentences` instead of `alignments`, with every unmatched sentence's supplied ID, exact supplied text, and a concise actionable reason:
 
-Return the complete report only. Do not add or remove words, headings or sentences. Do not create numeric citations or a bibliography.
+```yaml
+unmatched_sentences:
+  - sentence_id: germline-1
+    sentence: "No germline predisposition is identified."
+    reason: "The accepted fact says only that no germline-predisposition fact is reportable; the sentence strengthens this into a negative finding."
+```
+
+- unmatched reasons must identify the unsupported or materially altered wording and explain how it differs from the supplied accepted facts; do not propose outside evidence or replacement clinical facts.
+
+Citation dispositions and final prose are assembled deterministically from this mapping. Your only task is sentence-to-fact semantic alignment.

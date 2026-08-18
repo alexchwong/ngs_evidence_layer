@@ -79,18 +79,56 @@ python3 -m venv .env
 .env/bin/python -m pip install -r requirements.txt
 ```
 
+Set the provider and terrace grouping defaults once:
+
+```bash
+.env/bin/python workflows/terraced_v1/step.py provider openrouter balanced
+```
+
+This writes the validated defaults to the local, Git-ignored `settings.json`. Future
+`setup` commands use them automatically. Run `provider` without arguments to show
+the current effective defaults:
+
+```bash
+.env/bin/python workflows/terraced_v1/step.py provider
+```
+
 Example with LM Studio:
 
 ```bash
+.env/bin/python workflows/terraced_v1/step.py provider lmstudio balanced
+
 .env/bin/python workflows/terraced_v1/step.py setup \
   --mode ngs-report \
   --case-file case.md \
-  --model-profile lmstudio \
-  --terrace-profile balanced \
   --project
 
 .env/bin/python workflows/terraced_v1/step.py --all
 ```
+
+Run a bundled `nel-demo` example:
+
+```bash
+.env/bin/python workflows/terraced_v1/step.py setup \
+  --mode nel-demo \
+  --example 1 \
+  --project
+
+.env/bin/python workflows/terraced_v1/step.py --all
+```
+
+Run a named `nel-validate` case:
+
+```bash
+.env/bin/python workflows/terraced_v1/step.py setup \
+  --mode nel-validate \
+  --case-id 1C \
+  --project
+
+.env/bin/python workflows/terraced_v1/step.py --all
+```
+
+For functional validation, use `--mode nel-validate-function` with a functional validation case ID.
 
 Equivalent model profiles are:
 
@@ -107,6 +145,9 @@ export OPENROUTER_API_KEY='...'
 ```
 
 Provider endpoints, model IDs, token limits, and role bindings are read from local `models.json` when present, otherwise from `models.json.template`.
+
+`setup --model-profile ... --terrace-profile ...` remains available for a one-run
+override and takes precedence over the defaults saved by `provider`.
 
 ## Terrace grouping profiles
 
@@ -277,7 +318,15 @@ Its single task is to write concise report prose without introducing a new clini
 
 The report is initially uncited.
 
-A separate pass maps each report sentence back to the accepted facts and inherits their already-aligned citations:
+A deterministic sentence manifest assigns stable IDs while preserving the exact report bytes. A separate model pass returns only an ordered YAML mapping from each sentence ID to accepted fact IDs; it never reproduces the report prose or citation tags:
+
+```yaml
+alignments:
+  - sentence_id: diagnosis-1
+    fact_ids: [diagnosis-1]
+```
+
+Deterministic code then inherits the facts' already-aligned citations and inserts each citation disposition into the untouched report draft:
 
 ```text
 CARD
@@ -288,13 +337,13 @@ CARD
 
 If all matched source facts have `citation: null`, the sentence receives `(no citation required)`.
 
-If a sentence cannot be matched to an accepted fact, the pass returns `UNMATCHED_SUMMARY_SENTENCE` and the workflow retries synthesis rather than reopening the clinical terraces.
+If a sentence cannot be matched to an accepted fact, the pass returns structured `unmatched_sentences` diagnostics containing each sentence ID, exact text, and reason. The workflow supplies those diagnostics to the next synthesis cycle rather than reopening the clinical terraces.
 
-The citation pass cannot alter report prose or search for new evidence.
+The citation pass cannot alter report prose or search for new evidence. Removing the deterministically inserted dispositions must recover `report-draft.md` byte-for-byte.
 
 ## 9. Deterministic render and packaging
 
-After semantic mapping, deterministic code validates runtime card tags, deduplicates publications, assigns Vancouver numbers, writes `report-final.md`, and invokes the existing repository packaging behaviour.
+After semantic mapping, deterministic code validates runtime card tags, deduplicates publications, assigns Vancouver numbers, sorts and collapses each displayed citation group into ranges (for example `[3,1,7,2]` becomes `[1-3,7]`), writes `report-final.md`, and invokes the existing repository packaging behaviour.
 
 Supported modes are:
 
@@ -474,12 +523,14 @@ Model IDs are configuration. Change them to models actually installed or availab
 Every model operation is packaged under:
 
 ```text
-<work-dir>/.model-steps/<operation>/prompt.md
+<work-dir>/.model-steps/<sequence>-<operation>/prompt.md
 ```
 
 Only the case, permitted evidence, accepted upstream state, reporting questions, conversation history, and operation-specific instructions are exposed. The model should not inspect arbitrary repository files to infer missing context.
 
 The same bundle contract is used by `self` and direct-provider profiles.
+
+Sequence prefixes are zero-padded (`001-`, `002-`, …), so directory-name sorting shows model operations in execution order. Resuming or retrying an operation reuses its existing directory. Each failed provider attempt preserves both `attempt-<n>.output` and `attempt-<n>.validation.txt`.
 
 ## Important artifacts
 
@@ -507,6 +558,7 @@ report-facts.yaml
 report-draft.md
 report-cited.md
 report-final.md
+model-usage.json
 
 evidence-all.json
 evidence.md
@@ -539,17 +591,28 @@ The key rule is: **once a narrow WHO5 diagnosis is accepted, broad starting CMCs
 
 ```json
 {
+  "model_profile": "openrouter",
+  "terrace_profile": "balanced",
   "semantic_review_cycles": 2,
-  "structural_attempts": 3,
+  "structural_attempts": 10,
   "token_budget": 120000
 }
 ```
 
-Deterministic validators enforce JSON/YAML shape, allowed diagnosis routing values, final WHO5 diagnosis presence, exact fact/reason/citation schemas, known runtime card tags, and final citation disposition syntax.
+The two profile keys are added to local `settings.json` by the `provider` command;
+they are not required in the shipped template.
+
+Deterministic validators enforce JSON/YAML shape, allowed diagnosis routing values, final WHO5 diagnosis presence, exact fact/reason/citation schemas, known runtime card tags, and final citation disposition syntax. Where checks are independent, all detected defects are returned together as a numbered list. Every retry receives the complete previous output and that complete validator list; the `self` handoff prompt is regenerated with the same feedback.
+
+A model operation is marked `validated` only after every deterministic, model-attributable consumer of that candidate has succeeded. For example, summary validation includes downstream sentence-manifest construction, while final citation-alignment validation includes deterministic cited-report assembly and report-citation validation. A failure in any such consumer remains inside the producing model operation's retry boundary, is preserved as `attempt-<n>.validation.txt`, and is returned to the model as actionable correction feedback. Only provider, filesystem, renderer, or other non-model operational failures abort outside that retry boundary.
+
+When a summary sentence cannot be matched semantically to accepted facts, the citation aligner returns the sentence ID, exact sentence text, and reason. The complete diagnostic is supplied to the next summary synthesis cycle; it is not reduced to a generic retry instruction.
 
 Semantic repair may reconsider clinical content. Structural repair should change only what is needed to restore the required serialization/schema.
 
 Final synthesis is retried if a generated sentence cannot be mapped to an accepted fact.
+
+The CLI writes concise progress to stderr, including the current workflow step (for example, `Step 4 of 7`), downstream category progress, and provider attempt counts. Direct-provider usage reported by the OpenAI-compatible API is accumulated across calls and retries in `model-usage.json` and summarised after Step 7. Providers that omit usage, and `self` handoffs, are reported as unavailable or partial rather than estimated.
 
 ## Empty categories and null citations
 
