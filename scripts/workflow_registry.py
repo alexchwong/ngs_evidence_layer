@@ -83,9 +83,15 @@ def read_workflow_state(work_dir: Path) -> dict:
     return state
 
 
-def write_workflow_state(work_dir: Path, workflow_id: str, mode: str) -> Path:
+def write_workflow_state(
+    work_dir: Path,
+    workflow_id: str,
+    mode: str,
+    model_profile: str | None = None,
+) -> Path:
     work_dir = Path(work_dir).resolve()
     existing_path = state_path(work_dir)
+    existing_profile = None
     if existing_path.is_file():
         existing = read_workflow_state(work_dir)
         if existing["workflow_id"] != workflow_id:
@@ -93,11 +99,17 @@ def write_workflow_state(work_dir: Path, workflow_id: str, mode: str) -> Path:
                 f"work directory is already bound to workflow {existing['workflow_id']!r}; "
                 f"refusing to reopen it as {workflow_id!r}. Use a new work directory."
             )
+        existing_profile = existing.get("model_profile")
     payload = {
         "schema_version": 1,
         "workflow_id": workflow_id,
         "mode": mode,
     }
+    # Additive and optional. Persisting it means a resumed work directory keeps
+    # its binding without the caller repeating flags on every later command.
+    profile = model_profile if model_profile is not None else existing_profile
+    if profile:
+        payload["model_profile"] = profile
     existing_path.write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )

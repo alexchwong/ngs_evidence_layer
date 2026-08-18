@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "default_profile": "self",
+  "roles": ["structure", "judgment", "summarisation"],
+  "profiles": {
+    "self": {
+      "description": "The session model executes every model step. Default profile; reproduces pre-refactor behaviour exactly.",
+      "provider": { "type": "self" },
+      "roles": {
+        "structure": { "model": "self", "temperature": 0.0, "max_tokens": 8192 },
+        "judgment": { "model": "self", "temperature": 0.0, "max_tokens": 8192 },
+        "summarisation": { "model": "self", "temperature": 0.0, "max_tokens": 8192 }
+      }
+    },
+    "local-llm": {
+      "description": "LM Studio OpenAI-compatible server. Every model ID below is a PLACEHOLDER; reconcile against GET /v1/models on the target machine before use.",
+      "provider": {
+        "type": "openai-compatible",
+        "base_url": "http://localhost:1234/v1",
+        "base_url_env": "NEL_LLM_BASE_URL",
+        "api_key_env": "NEL_LLM_API_KEY",
+        "timeout_s": 900
+      },
+      "roles": {
+        "structure": {
+          "model": "PLACEHOLDER-STRUCTURE-MODEL-ID",
+          "temperature": 0.0,
+          "max_tokens": 4096
+        },
+        "judgment": {
+          "model": "PLACEHOLDER-JUDGMENT-MODEL-ID",
+          "temperature": 0.0,
+          "max_tokens": 8192
+        },
+        "summarisation": {
+          "model": "PLACEHOLDER-SUMMARISATION-MODEL-ID",
+          "temperature": 0.0,
+          "max_tokens": 2048
+        }
+      }
+    }
+  }
+}
