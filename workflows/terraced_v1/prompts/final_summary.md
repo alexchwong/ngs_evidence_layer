@@ -1,8 +1,8 @@
 # Terraced-v1 final synthesis
 
-Write the final clinical interpretative report using only the supplied accepted facts.
+Write the final clinical interpretative report using only the supplied retained accepted facts.
 
-The input deliberately contains no reasons, cards or citations. Do not add a clinical assertion that is not represented by an input fact.
+The input deliberately contains no reasons, cards or citations. Do not add a clinical assertion that is not represented by a retained input fact.
 
 Requirements:
 - Produce concise patient-level prose for clinical haematologists.

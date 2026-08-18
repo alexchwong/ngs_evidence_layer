@@ -19,6 +19,9 @@ from workflows.terraced_v1 import model_client, model_registry, retrieval, runti
 
 
 class TerracedWorkflowTests(unittest.TestCase):
+    def setUp(self):
+        step._EXECUTION_STARTED_AT = None
+
     def _write_citation_alignment_fixture(self, work: Path) -> str:
         draft = (
             "**Diagnosis**  \n"
@@ -375,11 +378,14 @@ class TerracedWorkflowTests(unittest.TestCase):
     def test_unmatched_sentence_details_are_fed_to_next_summary_cycle(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
-            (work / "report-facts.yaml").write_text("germline: []\n", encoding="utf-8")
+            self._write_citation_alignment_fixture(work)
+            (work / "case-input.json").write_text("{}\n", encoding="utf-8")
             captured_summary_messages = []
 
             def model_call(_work, *, call_id, messages, output, **_kwargs):
-                if call_id.startswith("summary-"):
+                if call_id == "reportability":
+                    output.write_text("quarantine_fact_ids: []\n", encoding="utf-8")
+                elif call_id.startswith("summary-"):
                     captured_summary_messages.append(messages)
                     output.write_text("**Germline**\n\nNo germline fact is reportable.\n", encoding="utf-8")
                 elif call_id == "final-citations-1":
@@ -395,7 +401,6 @@ class TerracedWorkflowTests(unittest.TestCase):
                 return "validated"
 
             with (
-                patch.object(step.runtime, "facts_only"),
                 patch.object(step.runtime, "prepare_combined_evidence"),
                 patch.object(step.runtime, "render_final"),
                 patch.object(step, "_citation_alignment_input", return_value="manifest: true\n"),
@@ -408,6 +413,69 @@ class TerracedWorkflowTests(unittest.TestCase):
             self.assertIn("germline-1", correction)
             self.assertIn("No germline fact is reportable.", correction)
             self.assertIn("does not support the drafted sentence", correction)
+
+
+    def test_reportability_split_quarantines_by_id_without_mutating_categories(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            step.layout.ensure_dirs(work)
+            original = (work / "category-diagnosis.yaml").read_bytes()
+
+            retained_path, quarantine_path = runtime.apply_reportability_review(
+                work, {"diagnosis-2", "mrd-1"}
+            )
+
+            retained = yaml.safe_load(retained_path.read_text(encoding="utf-8"))
+            quarantined = yaml.safe_load(quarantine_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                [row["fact"] for row in retained["diagnosis"]],
+                ["First diagnosis.", "Second diagnosis part two."],
+            )
+            self.assertEqual(quarantined["diagnosis"][0]["fact_id"], "diagnosis-2")
+            self.assertEqual(quarantined["diagnosis"][0]["reason"], "Reason two.")
+            self.assertIsNone(quarantined["diagnosis"][0]["citation"])
+            self.assertEqual(quarantined["mrd"][0]["fact_id"], "mrd-1")
+            self.assertEqual((work / "category-diagnosis.yaml").read_bytes(), original)
+
+    def test_negative_safety_restores_only_selected_quarantined_facts_deterministically(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            step.layout.ensure_dirs(work)
+            reportability = step.layout.synthesis(work, "reportability-review.yaml")
+            reportability.write_text(
+                "quarantine_fact_ids:\n  - diagnosis-2\n  - mrd-1\n  - germline-1\n",
+                encoding="utf-8",
+            )
+            runtime.apply_reportability_review(
+                work, {"diagnosis-2", "mrd-1", "germline-1"}
+            )
+            pre = step.layout.synthesis(work, "report-draft-pre-rescue.md")
+            pre.write_text(
+                "**Diagnosis**\n\nFirst diagnosis.\n\n"
+                "**Prognosis**\n\nPrognosis statement.\n",
+                encoding="utf-8",
+            )
+            safety = step.layout.synthesis(work, "negative-safety-review.yaml")
+            safety.write_text(
+                "restore:\n"
+                "  - fact_id: diagnosis-2\n"
+                "    after_sentence_id: diagnosis-1\n"
+                "  - fact_id: germline-1\n"
+                "    after_sentence_id: null\n",
+                encoding="utf-8",
+            )
+
+            output = step._apply_negative_safety_review(work, safety)
+            text = output.read_text(encoding="utf-8")
+            self.assertIn("First diagnosis. Second diagnosis part one.", text)
+            self.assertIn("**Germline**\n\n", text)
+            self.assertIn("germline fact.", text)
+            eligible = {row["fact_id"] for row in step._accepted_fact_manifest(work)}
+            self.assertIn("diagnosis-2", eligible)
+            self.assertIn("germline-1", eligible)
+            self.assertNotIn("mrd-1", eligible)
 
     def test_case_and_diagnosis_validation_handle_unhashable_cmcs_as_repairable_errors(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -603,16 +671,24 @@ class TerracedWorkflowTests(unittest.TestCase):
             self.assertIn("[retrieve] hidden retrieval detail", log)
             self.assertIn("[terraced render] hidden render detail", log)
 
-    def test_elapsed_status_uses_persisted_task_start(self):
+    def test_elapsed_status_uses_current_execution_start(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
             state_path = step.layout.state(work, "terraced-run.json", existing=False)
             state_path.parent.mkdir(parents=True, exist_ok=True)
             state_path.write_text(json.dumps({"started_at": 63.0}), encoding="utf-8")
             stderr = io.StringIO()
+            step._EXECUTION_STARTED_AT = 95.0
             with patch.object(step.time, "time", return_value=100.0), contextlib.redirect_stderr(stderr):
                 step._status(work, "hello")
-            self.assertEqual(stderr.getvalue(), "[ 0037 ] - hello\n")
+            self.assertEqual(stderr.getvalue(), "[ 0005 ] - hello\n")
+
+    def test_elapsed_status_initializes_at_zero_without_execution_start(self):
+        stderr = io.StringIO()
+        step._EXECUTION_STARTED_AT = None
+        with patch.object(step.time, "time", return_value=100.0), contextlib.redirect_stderr(stderr):
+            step._status(Path("unused"), "hello")
+        self.assertEqual(stderr.getvalue(), "[ 0000 ] - hello\n")
 
     def test_setup_keeps_new_project_root_clean(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -6,8 +6,9 @@
 terraced answering
 → fact + reason
 → evidence alignment adds citation where directly supported
-→ accepted facts only
-→ one report synthesis
+→ negative-reportability quarantine
+→ retained-facts synthesis
+→ exceptional-negative safety rescue
 → sentence-to-fact citation inheritance
 → deterministic Vancouver rendering
 ```
@@ -100,8 +101,8 @@ Example with LM Studio:
 
 .env/bin/python workflows/terraced_v1/step.py setup \
   --mode ngs-report \
-  --case-file case.md \
-  --project
+  --project \
+  --case-file case.md
 
 .env/bin/python workflows/terraced_v1/step.py --all
 ```
@@ -111,8 +112,8 @@ Run a bundled `nel-demo` example:
 ```bash
 .env/bin/python workflows/terraced_v1/step.py setup \
   --mode nel-demo \
-  --example 1 \
-  --project
+  --project \
+  --example 1
 
 .env/bin/python workflows/terraced_v1/step.py --all
 ```
@@ -122,8 +123,8 @@ Run a named `nel-validate` case:
 ```bash
 .env/bin/python workflows/terraced_v1/step.py setup \
   --mode nel-validate \
-  --case-id 1C \
-  --project
+  --project \
+  --case-id 1C
 
 .env/bin/python workflows/terraced_v1/step.py --all
 ```
@@ -172,7 +173,7 @@ The canonical workflow is:
 3   terraced diagnosis
 4   diagnosis review + evidence alignment
 5   downstream terraced categories
-6   facts-only synthesis + final citation alignment + render
+6   negative quarantine + retained-facts synthesis + safety rescue + final citation alignment + render
 7   package/deliver
 ```
 
@@ -306,17 +307,25 @@ or:
 
 `citation: null` is valid. The aligner must not rescue a claim with a vaguely related card.
 
-## 7. Facts-only synthesis
+## 7. Negative-reportability quarantine and retained-facts synthesis
 
-Once all categories are accepted, the CLI builds `report-facts.yaml` by stripping every `reason` and `citation`.
+Once all categories are accepted, a dedicated reportability pass receives stable fact IDs plus `fact` and `reason` only. It identifies routine negative, absent, non-applicable, and no-finding statements using the same patient-level principles as `diagnosis-first-v1` reporting policy. The model returns only `quarantine_fact_ids`; it cannot rewrite facts.
 
-The summariser therefore receives **facts only**. It does not see corpus cards, reasons, or citation tags.
+The CLI deterministically writes:
 
-Its single task is to write concise report prose without introducing a new clinical assertion.
+- `reportability-review.yaml`;
+- `report-facts-quarantined.yaml`, preserving each quarantined fact's original `fact_id`, domain, fact, reason and citation; and
+- `report-facts.yaml`, containing only retained fact text for synthesis.
+
+The accepted `category-*.yaml` files remain unchanged and continue to be the complete clinical source of truth.
+
+The summariser receives **retained facts only**. It does not see reasons, corpus cards, quarantined facts, or citation tags.
+
+After synthesis, a second high-threshold audit compares `case-input.json`, the uncited report, and the quarantined fact text. It may restore only an existing quarantined `fact_id` and choose its placement after a sentence in the same domain or at domain end. The CLI inserts the original fact deterministically; the audit cannot author replacement prose. Routine negative premises are not restored merely because they helped derive a retained positive conclusion.
 
 ## 8. Final citation alignment
 
-The report is initially uncited.
+The final report is initially uncited. Only retained facts plus explicitly restored quarantined facts are eligible for sentence-to-fact alignment.
 
 A deterministic sentence manifest assigns stable IDs while preserving the exact report bytes. A separate model pass returns only an ordered YAML mapping from each sentence ID to accepted fact IDs; it never reproduces the report prose or citation tags:
 
@@ -402,11 +411,23 @@ Used only after semantic-review failure. It returns a complete replacement categ
 
 Preserves each final `fact` and `reason` and adds only `citation`, using exact runtime card tags where a supplied card directly supports the stated reason. No direct match becomes `citation: null`.
 
+## `prompts/reportability_filter.md`
+
+**Role:** `reportability`
+
+Classifies accepted facts by stable ID and quarantines routine negative/non-reportable facts before synthesis without rewriting the clinical state.
+
 ## `prompts/final_summary.md`
 
 **Role:** `summarisation`
 
-Receives `report-facts.yaml` only and writes one uncited clinical report using accepted facts only.
+Receives `report-facts.yaml` only and writes one uncited clinical report using retained facts only.
+
+## `prompts/negative_safety_review.md`
+
+**Role:** `negative_safety_review`
+
+Compares the structured case, current summary and quarantined negatives, then selects only exceptional negative fact IDs that must be restored and their insertion position.
 
 ## `prompts/final_citation_alignment.md`
 
@@ -485,6 +506,8 @@ structure
 answer
 semantic_review
 evidence_alignment
+reportability
+negative_safety_review
 summarisation
 final_citation_alignment
 ```
@@ -564,7 +587,11 @@ New terraced-v1 work directories keep only user-facing/root control files at the
 │   ├── repair-<domain>-<n>.yaml
 │   └── category-<domain>.yaml
 ├── synthesis/
+│   ├── reportability-review.yaml
 │   ├── report-facts.yaml
+│   ├── report-facts-quarantined.yaml
+│   ├── report-draft-pre-rescue.md
+│   ├── negative-safety-review.yaml
 │   ├── report-draft.md
 │   ├── report-citation-alignment.yaml
 │   └── report-cited.md
@@ -675,4 +702,4 @@ The main areas to measure before promotion are:
 - final sentence-to-fact matching fidelity; and
 - exact per-role/per-provider runtime.
 
-The workflow is intentionally structured so these can be tuned without changing the central `fact → reason → citation → facts-only synthesis` contract.
+The workflow is intentionally structured so these can be tuned without changing the central `fact → reason → citation → negative quarantine → retained-facts synthesis → safety rescue` contract.

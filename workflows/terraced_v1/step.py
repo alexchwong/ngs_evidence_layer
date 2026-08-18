@@ -41,7 +41,7 @@ BUNDLE_ZIP = "ngs-report-model-steps.zip"
 USAGE_FILE = "model-usage.json"
 LOG_FILE = "workflow.log"
 MASKED_TERMINAL_MARKERS = ("[retrieve]", "[terraced render]")
-_FALLBACK_STARTS: dict[str, float] = {}
+_EXECUTION_STARTED_AT: float | None = None
 PROJECT_ROOT = REPO_ROOT / "temp"
 PROJECT_POINTER = PROJECT_ROOT / ".terraced-v1-project"
 WORK_DIR_ENV = "NEL_WORK_DIR"
@@ -156,18 +156,13 @@ def _cli_logging(work: Path):
 
 
 def _elapsed_seconds(work: Path) -> int:
-    try:
-        state = _load_run_state(work)
-    except StepFailure:
-        key = str(Path(work).resolve())
-        started_at = _FALLBACK_STARTS.setdefault(key, time.time())
-        return max(0, int(time.time() - started_at))
-    started_at = state.get("started_at")
-    if not isinstance(started_at, (int, float)):
-        started_at = time.time()
-        state["started_at"] = started_at
-        _save_run_state(work, state)
-    return max(0, int(time.time() - started_at))
+    """Return elapsed seconds for this CLI invocation, not the persisted workflow."""
+    del work  # Retained in the signature for status-call compatibility.
+    global _EXECUTION_STARTED_AT
+    now = time.time()
+    if _EXECUTION_STARTED_AT is None:
+        _EXECUTION_STARTED_AT = now
+    return max(0, int(now - _EXECUTION_STARTED_AT))
 
 
 def _status(work: Path, message: str) -> None:
@@ -876,22 +871,295 @@ def _summary_sentence_manifest(draft: str) -> list[dict]:
     _raise_model_validation_issues("uncited report draft", issues)
     return sentences
 
-def _accepted_fact_manifest(work: Path) -> list[dict]:
-    facts = []
-    for domain in DOMAINS:
-        document = yaml.safe_load(_read(layout.category(work, f"category-{domain}.yaml")))
-        rows = document["facts"] if domain == "diagnosis" else document
-        for index, row in enumerate(rows, start=1):
-            facts.append(
-                {
-                    "fact_id": f"{domain}-{index}",
-                    "domain": domain,
-                    "fact": row["fact"],
-                    "reason": row["reason"],
-                    "citation": row["citation"],
-                }
+def _load_yaml_object(path: Path, context: str) -> dict:
+    try:
+        document = yaml.safe_load(_read(path))
+    except yaml.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None)
+        where = f" at line {mark.line + 1}, column {mark.column + 1}" if mark is not None else ""
+        problem = getattr(exc, "problem", None) or str(exc)
+        raise ValueError(
+            f"{context} failed validation with 1 issue(s):\n"
+            f"1. YAML — Problem: parser error{where}: {problem}. Required fix: return one complete syntactically valid YAML object only."
+        ) from exc
+    if not isinstance(document, dict):
+        _raise_model_validation_issues(
+            context,
+            [
+                f"Top level — Problem: expected a YAML object, received {type(document).__name__}. "
+                "Required fix: return the requested YAML object only."
+            ],
+        )
+    return document
+
+
+def _reportability_validator(work: Path, path: Path) -> str:
+    document = _load_yaml_object(path, "reportability review")
+    issues = []
+    if set(document) != {"quarantine_fact_ids"}:
+        missing = sorted({"quarantine_fact_ids"} - set(document))
+        unexpected = sorted(set(document) - {"quarantine_fact_ids"})
+        if missing:
+            issues.append(
+                "Top level — Problem: missing quarantine_fact_ids. Required fix: return exactly quarantine_fact_ids."
             )
-    return facts
+        if unexpected:
+            issues.append(
+                f"Top level — Problem: unexpected field(s): {', '.join(unexpected)}. "
+                "Required fix: remove them; only quarantine_fact_ids is allowed."
+            )
+    rows = document.get("quarantine_fact_ids")
+    if not isinstance(rows, list):
+        issues.append(
+            f"quarantine_fact_ids — Problem: expected a list, received {type(rows).__name__}. "
+            "Required fix: return a list of supplied fact_id strings; an empty list is valid."
+        )
+        _raise_model_validation_issues("reportability review", issues)
+    known = {row["fact_id"] for row in runtime.accepted_fact_manifest(work)}
+    seen = set()
+    for index, fact_id in enumerate(rows):
+        location = f"quarantine_fact_ids[{index}]"
+        if not isinstance(fact_id, str) or not fact_id.strip():
+            issues.append(
+                f"{location} — Problem: expected a non-empty supplied fact_id string, received {fact_id!r}. "
+                "Required fix: use an exact supplied fact_id."
+            )
+            continue
+        if fact_id in seen:
+            issues.append(
+                f"{location} — Problem: duplicate fact_id {fact_id!r}. Required fix: list each quarantined fact once."
+            )
+        else:
+            seen.add(fact_id)
+        if fact_id not in known:
+            issues.append(
+                f"{location} — Problem: {fact_id!r} is not a supplied accepted fact ID. "
+                "Required fix: use only fact_id values from the supplied accepted_facts manifest."
+            )
+    _raise_model_validation_issues("reportability review", issues)
+    return "reportability review validated"
+
+
+def _quarantine_fact_ids(work: Path) -> set[str]:
+    path = layout.synthesis(work, "reportability-review.yaml")
+    if not path.is_file():
+        return set()
+    _reportability_validator(work, path)
+    document = yaml.safe_load(_read(path))
+    return set(document["quarantine_fact_ids"])
+
+
+def _negative_safety_validator(work: Path, path: Path) -> str:
+    document = _load_yaml_object(path, "negative safety review")
+    issues = []
+    if set(document) != {"restore"}:
+        missing = sorted({"restore"} - set(document))
+        unexpected = sorted(set(document) - {"restore"})
+        if missing:
+            issues.append("Top level — Problem: missing restore. Required fix: return exactly restore.")
+        if unexpected:
+            issues.append(
+                f"Top level — Problem: unexpected field(s): {', '.join(unexpected)}. "
+                "Required fix: remove them; only restore is allowed."
+            )
+    rows = document.get("restore")
+    if not isinstance(rows, list):
+        issues.append(
+            f"restore — Problem: expected a list, received {type(rows).__name__}. "
+            "Required fix: return a list of restoration rows; an empty list is valid."
+        )
+        _raise_model_validation_issues("negative safety review", issues)
+
+    facts = {row["fact_id"]: row for row in runtime.accepted_fact_manifest(work)}
+    quarantined = _quarantine_fact_ids(work)
+    pre_draft = _read(layout.synthesis(work, "report-draft-pre-rescue.md"))
+    sentences = {row["sentence_id"]: row for row in _summary_sentence_manifest(pre_draft)}
+    seen = set()
+    for index, row in enumerate(rows):
+        location = f"restore[{index}]"
+        if not isinstance(row, dict):
+            issues.append(
+                f"{location} — Problem: expected an object, received {row!r}. "
+                "Required fix: return exactly fact_id and after_sentence_id."
+            )
+            continue
+        expected = {"fact_id", "after_sentence_id"}
+        missing = sorted(expected - set(row))
+        unexpected = sorted(set(row) - expected)
+        if missing:
+            issues.append(f"{location} — Problem: missing field(s): {', '.join(missing)}. Required fix: add them.")
+        if unexpected:
+            issues.append(
+                f"{location} — Problem: unexpected field(s): {', '.join(unexpected)}. "
+                "Required fix: remove them; only fact_id and after_sentence_id are allowed."
+            )
+        fact_id = row.get("fact_id")
+        after = row.get("after_sentence_id")
+        if not isinstance(fact_id, str) or not fact_id.strip():
+            issues.append(
+                f"{location}.fact_id — Problem: expected a non-empty quarantined fact_id string, received {fact_id!r}. "
+                "Required fix: use an exact supplied quarantined fact_id."
+            )
+            continue
+        if fact_id in seen:
+            issues.append(
+                f"{location}.fact_id — Problem: duplicate restoration {fact_id!r}. Required fix: restore each fact at most once."
+            )
+        else:
+            seen.add(fact_id)
+        if fact_id not in quarantined:
+            issues.append(
+                f"{location}.fact_id — Problem: {fact_id!r} is not a quarantined fact. "
+                "Required fix: select only fact_id values from the supplied quarantined facts."
+            )
+        if after is not None and (not isinstance(after, str) or not after.strip()):
+            issues.append(
+                f"{location}.after_sentence_id — Problem: expected null or a non-empty supplied sentence ID, received {after!r}. "
+                "Required fix: use null or an exact sentence_id from the current report manifest."
+            )
+        elif isinstance(after, str):
+            if after not in sentences:
+                issues.append(
+                    f"{location}.after_sentence_id — Problem: {after!r} is not a current report sentence ID. "
+                    "Required fix: use an exact supplied sentence_id or null."
+                )
+            elif fact_id in facts and sentences[after]["domain"] != facts[fact_id]["domain"]:
+                issues.append(
+                    f"{location}.after_sentence_id — Problem: {after!r} is in domain {sentences[after]['domain']!r}, "
+                    f"but {fact_id!r} is in domain {facts[fact_id]['domain']!r}. "
+                    "Required fix: place the fact after a sentence in the same domain or use null."
+                )
+    _raise_model_validation_issues("negative safety review", issues)
+    return "negative safety review validated"
+
+
+def _restored_fact_ids(work: Path) -> set[str]:
+    path = layout.synthesis(work, "negative-safety-review.yaml")
+    if not path.is_file():
+        return set()
+    _negative_safety_validator(work, path)
+    document = yaml.safe_load(_read(path))
+    return {row["fact_id"] for row in document["restore"]}
+
+
+def _accepted_fact_manifest(work: Path) -> list[dict]:
+    """Facts eligible for final sentence alignment: retained plus explicitly restored negatives."""
+    facts = runtime.accepted_fact_manifest(work)
+    review = layout.synthesis(work, "reportability-review.yaml")
+    if not review.is_file():
+        return facts
+    quarantined = _quarantine_fact_ids(work)
+    restored = _restored_fact_ids(work)
+    return [
+        row for row in facts
+        if row["fact_id"] not in quarantined or row["fact_id"] in restored
+    ]
+
+
+def _safety_review_input(work: Path, draft: str) -> str:
+    quarantined = _quarantine_fact_ids(work)
+    facts = [
+        {"fact_id": row["fact_id"], "domain": row["domain"], "fact": row["fact"]}
+        for row in runtime.accepted_fact_manifest(work)
+        if row["fact_id"] in quarantined
+    ]
+    sentences = [
+        {key: row[key] for key in ("sentence_id", "domain", "sentence")}
+        for row in _summary_sentence_manifest(draft)
+    ]
+    return yaml.safe_dump(
+        {
+            "case": json.loads(_read(layout.input(work, "case-input.json"))),
+            "report_sentences": sentences,
+            "quarantined_facts": facts,
+        },
+        sort_keys=False,
+        allow_unicode=True,
+        width=100,
+    )
+
+
+def _fact_report_sentence(fact: str) -> str:
+    text = fact.strip()
+    if not text:
+        raise StepFailure("cannot restore an empty quarantined fact")
+    if "\n" in text or "[card:" in text or text.startswith("**"):
+        raise StepFailure(
+            "cannot deterministically restore a quarantined fact containing a newline, heading, or runtime card tag"
+        )
+    if not text.endswith("."):
+        text += "."
+    return text
+
+
+def _insert_missing_domain_section(draft: str, domain: str, sentences: list[str]) -> str:
+    title = next(title for title, value in SUMMARY_HEADINGS.items() if value == domain)
+    section = f"**{title}**\n\n" + " ".join(sentences)
+    heading_matches = list(SUMMARY_HEADING_RE.finditer(draft))
+    domain_order = list(DOMAINS)
+    current_rank = domain_order.index(domain)
+    insertion = len(draft)
+    for match in heading_matches:
+        existing_domain = SUMMARY_HEADINGS.get(match.group("title").strip())
+        if existing_domain is not None and domain_order.index(existing_domain) > current_rank:
+            insertion = match.start()
+            break
+    if insertion == len(draft):
+        prefix = draft.rstrip()
+        return (prefix + ("\n\n" if prefix else "") + section + "\n")
+    before = draft[:insertion].rstrip()
+    after = draft[insertion:].lstrip("\n")
+    return (before + ("\n\n" if before else "") + section + "\n\n" + after)
+
+
+def _apply_negative_safety_review(work: Path, review_path: Path) -> Path:
+    _negative_safety_validator(work, review_path)
+    document = yaml.safe_load(_read(review_path))
+    pre_path = layout.synthesis(work, "report-draft-pre-rescue.md")
+    draft = _read(pre_path)
+    if not document["restore"]:
+        output = layout.synthesis(work, "report-draft.md")
+        _atomic_write(output, draft)
+        return output
+
+    facts = {row["fact_id"]: row for row in runtime.accepted_fact_manifest(work)}
+    manifest = _summary_sentence_manifest(draft)
+    by_sentence = {row["sentence_id"]: row for row in manifest}
+    last_by_domain = {}
+    for row in manifest:
+        last_by_domain[row["domain"]] = row["sentence_id"]
+
+    insertions: dict[int, list[str]] = {}
+    missing_domains: dict[str, list[str]] = {}
+    for row in document["restore"]:
+        fact = facts[row["fact_id"]]
+        sentence = _fact_report_sentence(fact["fact"])
+        after = row["after_sentence_id"]
+        if after is None:
+            after = last_by_domain.get(fact["domain"])
+        if after is None:
+            missing_domains.setdefault(fact["domain"], []).append(sentence)
+        else:
+            insertions.setdefault(by_sentence[after]["end"], []).append(sentence)
+
+    for position in sorted(insertions, reverse=True):
+        payload = " " + " ".join(insertions[position])
+        draft = draft[:position] + payload + draft[position:]
+    for domain in DOMAINS:
+        if domain in missing_domains:
+            draft = _insert_missing_domain_section(draft, domain, missing_domains[domain])
+
+    output = layout.synthesis(work, "report-draft.md")
+    _atomic_write(output, draft)
+    try:
+        _summary_validator(output)
+    except ValueError as exc:
+        output.unlink(missing_ok=True)
+        raise StepFailure(
+            "deterministic exceptional-negative insertion produced an invalid report layout; "
+            f"this is not repairable by changing citation alignment: {exc}"
+        ) from exc
+    return output
 
 
 def _citation_alignment_input(work: Path, draft: str) -> str:
@@ -1221,28 +1489,100 @@ def _final_alignment_validator(work: Path, alignment_path: Path) -> str:
 
 def step_6(work: Path, profile: str | None) -> int:
     layout.ensure_dirs(work)
-    runtime.facts_only(work)
     runtime.prepare_combined_evidence(work)
+
+    reportability = layout.synthesis(work, "reportability-review.yaml")
+    if not reportability.is_file() or _profile(work, profile, "reportability").is_self:
+        messages = [
+            {"role": "system", "content": model_client.SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    _read(PROMPTS / "reportability_filter.md")
+                    + "\n\n## Accepted fact manifest\n\n```yaml\n"
+                    + runtime.reportability_manifest(work)
+                    + "```\n"
+                ),
+            },
+        ]
+        _model_call(
+            work,
+            call_id="reportability",
+            role="reportability",
+            messages=messages,
+            output=reportability,
+            validator=lambda path: _reportability_validator(work, path),
+            profile=profile,
+        )
+    quarantine = _quarantine_fact_ids(work)
+    runtime.apply_reportability_review(work, quarantine)
+
     max_summary_cycles = 2
     summary_feedback = None
     for cycle in range(1, max_summary_cycles + 1):
-        draft = layout.synthesis(work, "report-draft.md")
-        if not draft.is_file():
+        pre_draft = layout.synthesis(work, "report-draft-pre-rescue.md")
+        if not pre_draft.is_file() or _profile(work, profile, "summarisation").is_self:
             suffix = ""
             if summary_feedback:
                 suffix = (
                     "\n\n## Required correction from the previous citation-alignment pass\n\n"
-                    "Rewrite the complete report so every sentence is directly represented by accepted facts. "
+                    "Rewrite the complete report so every sentence is directly represented by retained accepted facts. "
                     "Correct each reported sentence without adding outside assertions:\n\n"
                     + summary_feedback
                 )
             messages = [
                 {"role": "system", "content": model_client.SYSTEM_PROMPT},
-                {"role": "user", "content": _read(PROMPTS / "final_summary.md") + suffix + "\n\n## Accepted facts only\n\n" + _read(layout.synthesis(work, "report-facts.yaml"))},
+                {
+                    "role": "user",
+                    "content": (
+                        _read(PROMPTS / "final_summary.md")
+                        + suffix
+                        + "\n\n## Retained accepted facts only\n\n"
+                        + _read(layout.synthesis(work, "report-facts.yaml"))
+                    ),
+                },
             ]
-            _model_call(work, call_id=f"summary-{cycle}", role="summarisation", messages=messages, output=draft, validator=_summary_validator, profile=profile)
+            _model_call(
+                work,
+                call_id=f"summary-{cycle}",
+                role="summarisation",
+                messages=messages,
+                output=pre_draft,
+                validator=_summary_validator,
+                profile=profile,
+            )
+
+        safety = layout.synthesis(work, "negative-safety-review.yaml")
+        if not safety.is_file() or (quarantine and _profile(work, profile, "negative_safety_review").is_self):
+            if quarantine:
+                messages = [
+                    {"role": "system", "content": model_client.SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": (
+                            _read(PROMPTS / "negative_safety_review.md")
+                            + "\n\n## Case, report and quarantined-fact manifest\n\n```yaml\n"
+                            + _safety_review_input(work, _read(pre_draft))
+                            + "```\n"
+                        ),
+                    },
+                ]
+                _model_call(
+                    work,
+                    call_id=f"negative-safety-{cycle}",
+                    role="negative_safety_review",
+                    messages=messages,
+                    output=safety,
+                    validator=lambda path: _negative_safety_validator(work, path),
+                    profile=profile,
+                )
+            else:
+                _atomic_write(safety, "restore: []\n")
+
+        _apply_negative_safety_review(work, safety)
+        draft = layout.synthesis(work, "report-draft.md")
         alignment = layout.synthesis(work, "report-citation-alignment.yaml")
-        if not alignment.is_file():
+        if not alignment.is_file() or _profile(work, profile, "final_citation_alignment").is_self:
             messages = [
                 {"role": "system", "content": model_client.SYSTEM_PROMPT},
                 {
@@ -1268,10 +1608,13 @@ def step_6(work: Path, profile: str | None) -> int:
         if summary_feedback is not None:
             alignment.unlink(missing_ok=True)
             draft.rename(layout.synthesis(work, f"report-draft-unmatched-{cycle}.md"))
+            pre_draft.rename(layout.synthesis(work, f"report-draft-pre-rescue-unmatched-{cycle}.md"))
+            safety.rename(layout.synthesis(work, f"negative-safety-review-unmatched-{cycle}.yaml"))
+            layout.synthesis(work, "report-cited.md").unlink(missing_ok=True)
             continue
         runtime.render_final(work)
         return EXIT_OK
-    raise StepFailure("summary remained semantically unmatched to accepted facts after two synthesis cycles")
+    raise StepFailure("summary remained semantically unmatched to retained/restored accepted facts after two synthesis cycles")
 
 
 def package_bundles(work: Path, output: Path | None = None) -> Path | None:
@@ -1305,8 +1648,6 @@ def step_7(work: Path) -> int:
 
 def run_setup(args: argparse.Namespace) -> int:
     from scripts.setup_workflow import setup_workflow
-
-    started_at = time.time()
 
     configured_model, configured_terrace = configured_profiles()
     registry = model_registry.load_registry()
@@ -1352,7 +1693,6 @@ def run_setup(args: argparse.Namespace) -> int:
             "model_profile": model_profile,
             "mode": args.mode,
             "validation_case": args.case_id,
-            "started_at": started_at,
         },
     )
     if args.project:
@@ -1482,6 +1822,8 @@ def _run_bound_command(args: argparse.Namespace, work: Path) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    global _EXECUTION_STARTED_AT
+    _EXECUTION_STARTED_AT = time.time()
     args = build_parser().parse_args(argv)
     try:
         if args.step_id == "provider":

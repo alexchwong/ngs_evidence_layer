@@ -25,7 +25,7 @@ The clinical pipeline is:
 3. run terraced diagnosis, allowing additional CMCs/evidence to be introduced, and finish with one or more accepted WHO5 diagnoses;
 4. independently review the diagnosis at a high semantic threshold, then align each fact/reason pair to directly supporting cards where available;
 5. for prognosis, treatment, MRD and germline in order: retrieve evidence by the accepted narrow WHO5 routing diagnosis(es), run the configured terraces, review, and align evidence;
-6. strip reasons/citations, perform one facts-only report synthesis, then semantically map each final sentence back to accepted facts to inherit citations and render deterministically;
+6. quarantine routine negative facts, synthesise retained facts, run an exceptional-negative rescue audit, then semantically map each final sentence to retained/restored facts for deterministic citation inheritance and rendering;
 7. use the existing delivery/validation packaging behaviour.
 
 ## Global model/file rules
@@ -192,7 +192,7 @@ For each category it performs narrow retrieval against every accepted diagnosis,
 
 Accepted artifacts are `categories/category-prognosis.yaml`, `categories/category-treatment.yaml`, `categories/category-mrd.yaml`, and `categories/category-germline.yaml`.
 
-## Step 6 — Single synthesis, final citation alignment, render
+## Step 6 — Negative quarantine, synthesis, safety rescue, citation alignment, render
 
 Run until exit `0`:
 
@@ -200,13 +200,19 @@ Run until exit `0`:
 <python> workflows/terraced_v1/step.py 6 --work-dir <work-dir>
 ```
 
-The CLI deterministically creates `synthesis/report-facts.yaml` by stripping every `reason` and `citation`. The model receives facts only and writes one uncited `synthesis/report-draft.md`.
+First, a reportability model pass receives stable accepted fact IDs plus `fact` and `reason` and returns only `quarantine_fact_ids`. Apply the workflow-local negative-reportability policy: routine absence, non-applicability, unmet-premise, no-action, no-MRD, no-germline and similar default-negative statements are quarantined; exceptional negatives that independently contradict/exclude a patient-specific diagnosis remain reportable.
 
-A separate final model pass receives the accepted category artifacts and semantically matches every final report sentence back to its source fact(s). It may only append inherited runtime card tags or `(no citation required)`; it cannot change prose or search for new evidence.
+The CLI performs the split deterministically without changing any `categories/category-*.yaml`. It writes `synthesis/report-facts.yaml` with retained fact text only and `synthesis/report-facts-quarantined.yaml` with the quarantined source facts and provenance.
 
-If a sentence cannot be matched to any accepted fact, summarisation is redrafted rather than reopening clinical terraces.
+The summarisation model receives retained facts only and writes `synthesis/report-draft-pre-rescue.md`. A second high-threshold negative-safety audit then compares `input/case-input.json`, that report, and the quarantined facts. It may return only quarantined `fact_id` values plus an insertion position. Do not restore a negative merely because it supported a retained positive conclusion or made the explanation more complete.
 
-The CLI then builds combined citation evidence, validates runtime tags, renders Vancouver references deterministically, and writes `report-final.md`.
+The CLI inserts selected facts verbatim into `synthesis/report-draft.md`. No model may rewrite a quarantined fact during rescue.
+
+A separate final model pass semantically matches every final report sentence only to retained facts plus explicitly restored negatives. Deterministic code inherits runtime card tags or `(no citation required)` and renders Vancouver references. The citation model cannot change prose or search for new evidence.
+
+If a sentence cannot be matched to an eligible fact, summarisation/rescue is redrafted rather than reopening clinical terraces.
+
+The CLI then validates runtime tags and writes `report-final.md`.
 
 ## Step 7 — Existing delivery behaviour
 

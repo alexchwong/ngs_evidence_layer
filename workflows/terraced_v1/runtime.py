@@ -608,15 +608,65 @@ def render_evidence(work: Path, domain: str) -> Path:
     return output
 
 
-def facts_only(work: Path) -> Path:
-    result = {}
+def accepted_fact_manifest(work: Path) -> list[dict]:
+    """Return the immutable accepted fact state with stable domain-local fact IDs."""
+    facts = []
     for domain in DOMAINS:
         path = layout.category(Path(work), f"category-{domain}.yaml")
         doc = _load_yaml(path)
         rows = doc["facts"] if domain == "diagnosis" else doc
-        result[domain] = [{"fact": row["fact"]} for row in rows]
-    output = layout.synthesis(Path(work), "report-facts.yaml")
-    output.write_text(yaml.safe_dump(result, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8")
+        for index, row in enumerate(rows, start=1):
+            facts.append(
+                {
+                    "fact_id": f"{domain}-{index}",
+                    "domain": domain,
+                    "fact": row["fact"],
+                    "reason": row["reason"],
+                    "citation": row["citation"],
+                }
+            )
+    return facts
+
+
+def reportability_manifest(work: Path) -> str:
+    rows = [
+        {
+            "fact_id": row["fact_id"],
+            "domain": row["domain"],
+            "fact": row["fact"],
+            "reason": row["reason"],
+        }
+        for row in accepted_fact_manifest(work)
+    ]
+    return yaml.safe_dump({"accepted_facts": rows}, sort_keys=False, allow_unicode=True, width=100)
+
+
+def apply_reportability_review(work: Path, quarantine_fact_ids: set[str]) -> tuple[Path, Path]:
+    """Deterministically split accepted facts without modifying category source files."""
+    retained = {domain: [] for domain in DOMAINS}
+    quarantined = {domain: [] for domain in DOMAINS}
+    for row in accepted_fact_manifest(work):
+        if row["fact_id"] in quarantine_fact_ids:
+            quarantined[row["domain"]].append(dict(row))
+        else:
+            retained[row["domain"]].append({"fact": row["fact"]})
+
+    retained_path = layout.synthesis(Path(work), "report-facts.yaml")
+    quarantine_path = layout.synthesis(Path(work), "report-facts-quarantined.yaml")
+    retained_path.write_text(
+        yaml.safe_dump(retained, sort_keys=False, allow_unicode=True, width=100),
+        encoding="utf-8",
+    )
+    quarantine_path.write_text(
+        yaml.safe_dump(quarantined, sort_keys=False, allow_unicode=True, width=100),
+        encoding="utf-8",
+    )
+    return retained_path, quarantine_path
+
+
+def facts_only(work: Path) -> Path:
+    """Backward-compatible all-facts synthesis view used by the deterministic runtime command."""
+    output, _ = apply_reportability_review(work, set())
     return output
 
 
