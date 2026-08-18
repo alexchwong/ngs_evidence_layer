@@ -7,6 +7,7 @@ from pathlib import Path
 from scripts import vocab
 from scripts.core import card_tags, corpus, provenance
 from scripts.core import retrieval as core
+from workflows.terraced_v1 import layout
 
 WORKFLOW_ID = "terraced-v1"
 DOMAIN_CATEGORY = {
@@ -24,7 +25,7 @@ def _load_cards():
 
 
 def _read_case_input(work: Path) -> dict:
-    path = work / "case-input.json"
+    path = layout.input(work, "case-input.json")
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -91,13 +92,13 @@ def diagnosis(work_dir: Path, cmcs: list[str] | None = None) -> Path:
             [card["card_id"] for card in selected],
         ),
     }
-    output = work / "evidence-diagnosis.json"
+    output = layout.evidence(work, "evidence-diagnosis.json")
     output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return output
 
 
 def _accepted_schema_diseases(work: Path) -> list[str]:
-    path = work / "category-diagnosis.yaml"
+    path = layout.category(work, "category-diagnosis.yaml")
     if not path.is_file():
         raise ValueError("accepted diagnosis state is missing; complete diagnosis evidence alignment first")
     import yaml
@@ -181,7 +182,7 @@ def downstream(work_dir: Path, domain: str = "prognosis") -> Path:
             [card["card_id"] for card in hits],
         ),
     }
-    output = work / f"evidence-{domain}.json"
+    output = layout.evidence(work, f"evidence-{domain}.json")
     output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return output
 
@@ -192,7 +193,7 @@ def combined(work_dir: Path) -> Path:
     corpus_doc, digest, cards = _load_cards()
     by_id = {}
     for domain in ("diagnosis", "prognosis", "treatment", "mrd", "germline"):
-        path = work / f"evidence-{domain}.json"
+        path = layout.evidence(work, f"evidence-{domain}.json")
         if not path.is_file():
             continue
         doc = json.loads(path.read_text(encoding="utf-8"))
@@ -214,6 +215,6 @@ def combined(work_dir: Path) -> Path:
             corpus_doc, corpus.DEFAULT_CORPUS, corpus.DEFAULT_INDEX, digest, sorted(by_id),
         ),
     }
-    output = work / "evidence-all.json"
+    output = layout.evidence(work, "evidence-all.json")
     output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return output

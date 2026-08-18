@@ -11,10 +11,12 @@ Canonical workflow steps: 1a 1b 2 3 4 5 6 7
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
 import shutil
+import time
 import sys
 import zipfile
 from pathlib import Path
@@ -26,7 +28,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.workflow_registry import read_workflow_state, write_workflow_state  # noqa: E402
-from workflows.terraced_v1 import model_client, model_registry, retrieval, runtime  # noqa: E402
+from workflows.terraced_v1 import layout, model_client, model_registry, retrieval, runtime  # noqa: E402
 
 WORKFLOW_ID = "terraced-v1"
 WORKFLOW_DIR = Path(__file__).resolve().parent
@@ -34,9 +36,12 @@ PROMPTS = WORKFLOW_DIR / "prompts"
 SHARED_PROMPTS = REPO_ROOT / "prompts" / "workflow"
 SETTINGS_PATH = WORKFLOW_DIR / "settings.json"
 SETTINGS_TEMPLATE_PATH = WORKFLOW_DIR / "settings.json.template"
-BUNDLE_DIR = ".model-steps"
+BUNDLE_DIR = "state/model-steps"
 BUNDLE_ZIP = "ngs-report-model-steps.zip"
 USAGE_FILE = "model-usage.json"
+LOG_FILE = "workflow.log"
+MASKED_TERMINAL_MARKERS = ("[retrieve]", "[terraced render]")
+_FALLBACK_STARTS: dict[str, float] = {}
 PROJECT_ROOT = REPO_ROOT / "temp"
 PROJECT_POINTER = PROJECT_ROOT / ".terraced-v1-project"
 WORK_DIR_ENV = "NEL_WORK_DIR"
@@ -99,6 +104,76 @@ def _atomic_write(path: Path, text: str) -> Path:
     return path
 
 
+class _LoggedStream:
+    """Mirror a CLI stream to workflow.log while optionally hiding noisy terminal lines."""
+
+    def __init__(self, terminal, log_handle, *, mask_terminal: bool):
+        self._terminal = terminal
+        self._log = log_handle
+        self._mask_terminal = mask_terminal
+        self._buffer = ""
+
+    def _emit_terminal(self, text: str) -> None:
+        if not self._mask_terminal or not any(marker in text for marker in MASKED_TERMINAL_MARKERS):
+            self._terminal.write(text)
+
+    def write(self, text: str) -> int:
+        if not isinstance(text, str):
+            text = str(text)
+        self._log.write(text)
+        self._log.flush()
+        self._buffer += text
+        while "\n" in self._buffer:
+            line, self._buffer = self._buffer.split("\n", 1)
+            self._emit_terminal(line + "\n")
+        return len(text)
+
+    def flush(self) -> None:
+        if self._buffer:
+            self._emit_terminal(self._buffer)
+            self._buffer = ""
+        self._terminal.flush()
+        self._log.flush()
+
+    def __getattr__(self, name):
+        return getattr(self._terminal, name)
+
+
+@contextlib.contextmanager
+def _cli_logging(work: Path):
+    """Append the complete terraced CLI stream to workflow.log."""
+    log_path = layout.public(work, LOG_FILE)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as log_handle:
+        stdout = _LoggedStream(sys.stdout, log_handle, mask_terminal=False)
+        stderr = _LoggedStream(sys.stderr, log_handle, mask_terminal=True)
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            try:
+                yield
+            finally:
+                stdout.flush()
+                stderr.flush()
+
+
+def _elapsed_seconds(work: Path) -> int:
+    try:
+        state = _load_run_state(work)
+    except StepFailure:
+        key = str(Path(work).resolve())
+        started_at = _FALLBACK_STARTS.setdefault(key, time.time())
+        return max(0, int(time.time() - started_at))
+    started_at = state.get("started_at")
+    if not isinstance(started_at, (int, float)):
+        started_at = time.time()
+        state["started_at"] = started_at
+        _save_run_state(work, state)
+    return max(0, int(time.time() - started_at))
+
+
+def _status(work: Path, message: str) -> None:
+    print(f"[ {_elapsed_seconds(work):04d} ] - {message}", file=sys.stderr)
+
+
 def _require_work(work: Path) -> dict:
     state = read_workflow_state(work)
     if state.get("workflow_id") != WORKFLOW_ID:
@@ -130,7 +205,7 @@ def resolve_work_dir(explicit: Path | None) -> Path:
 
 
 def _run_state_path(work: Path) -> Path:
-    return work / "terraced-run.json"
+    return layout.state(work, "terraced-run.json")
 
 
 def _load_run_state(work: Path) -> dict:
@@ -157,7 +232,7 @@ def _read(path: Path) -> str:
 
 
 def _bundle_paths(work: Path, call_id: str) -> tuple[Path, Path, Path]:
-    bundle_root = work / BUNDLE_DIR
+    bundle_root = layout.model_steps(work)
     bundle_root.mkdir(parents=True, exist_ok=True)
     matching = sorted(bundle_root.glob(f"[0-9][0-9][0-9]-{call_id}"))
     legacy = bundle_root / call_id
@@ -186,7 +261,7 @@ def _record_usage(
     attempt: int,
     usage: dict[str, int] | None,
 ) -> None:
-    path = work / USAGE_FILE
+    path = layout.state(work, USAGE_FILE)
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -203,14 +278,14 @@ def _record_usage(
 
 
 def _print_usage(work: Path) -> None:
-    path = work / USAGE_FILE
+    path = layout.state(work, USAGE_FILE)
     if not path.is_file():
-        print("Token usage: unavailable (self handoff or provider did not report usage)", file=sys.stderr)
+        _status(work, "Token usage: unavailable (self handoff or provider did not report usage)")
         return
     try:
         calls = json.loads(path.read_text(encoding="utf-8")).get("calls", [])
     except (OSError, json.JSONDecodeError):
-        print("Token usage: unavailable (usage ledger could not be read)", file=sys.stderr)
+        _status(work, "Token usage: unavailable (usage ledger could not be read)")
         return
     reported = [row["usage"] for row in calls if isinstance(row.get("usage"), dict)]
     missing = len(calls) - len(reported)
@@ -219,14 +294,14 @@ def _print_usage(work: Path) -> None:
         for key in ("prompt_tokens", "completion_tokens", "total_tokens")
     }
     if not reported:
-        print("Token usage: unavailable (provider did not report usage)", file=sys.stderr)
+        _status(work, "Token usage: unavailable (provider did not report usage)")
         return
     suffix = f"; partial, {missing} attempt(s) unreported" if missing else ""
-    print(
+    _status(
+        work,
         "Token usage: "
         f"prompt {totals['prompt_tokens']:,}, completion {totals['completion_tokens']:,}, "
         f"total {totals['total_tokens']:,}{suffix}",
-        file=sys.stderr,
     )
 
 
@@ -275,12 +350,12 @@ def _model_call(
             try:
                 message = validator(output)
                 _atomic_write(root / "validated.txt", message + "\n")
-                print(f"  {call_id}: validated", file=sys.stderr)
+                _status(work, f"  {call_id}: validated")
                 return message
             except (ValueError, OSError, KeyError) as exc:
                 validator_error = str(exc)
                 _atomic_write(root / "attempt-self.validation.txt", validator_error + "\n")
-                print(f"  {call_id}: validation failed; handoff needs correction", file=sys.stderr)
+                _status(work, f"  {call_id}: validation failed; handoff needs correction")
         _atomic_write(messages_path, json.dumps(messages, indent=2, ensure_ascii=False) + "\n")
         _atomic_write(prompt_path, _render_bundle(call_id, messages, output, validator_error))
         raise Handoff(call_id, prompt_path, output)
@@ -288,7 +363,7 @@ def _model_call(
     last_error = ""
     previous = None
     for attempt in range(1, attempts + 1):
-        print(f"  {call_id}: model attempt {attempt} of {attempts}", file=sys.stderr)
+        _status(work, f"  {call_id}: answering" if attempt == 1 else f"  {call_id}: retry {attempt - 1}/{attempts - 1}")
         call_messages = list(messages)
         if previous is not None:
             call_messages.extend([
@@ -310,7 +385,7 @@ def _model_call(
             previous = exc.content
             last_error = str(exc)
             _atomic_write(root / f"attempt-{attempt}.validation.txt", last_error + "\n")
-            print(f"  {call_id}: output truncated; retrying", file=sys.stderr)
+            _status(work, f"  {call_id}: output truncated; retrying")
             continue
         except RuntimeError as exc:
             raise StepFailure(str(exc)) from exc
@@ -336,16 +411,16 @@ def _model_call(
                 output.unlink(missing_ok=True)
             else:
                 _atomic_write(output, previous_existing)
-            print(f"  {call_id}: validation failed; retrying", file=sys.stderr)
+            _status(work, f"  {call_id}: validation failed; retrying")
             continue
         _atomic_write(root / "validated.txt", message + "\n")
-        print(f"  {call_id}: validated", file=sys.stderr)
+        _status(work, f"  {call_id}: validated")
         return message
     raise StepFailure(f"model operation {call_id} failed structural validation after {attempts} attempts: {last_error}")
 
 
 def _conversation_path(work: Path, domain: str) -> Path:
-    return work / f"conversation-{domain}.json"
+    return layout.category(work, f"conversation-{domain}.json")
 
 
 def _conversation(work: Path, domain: str) -> list[dict]:
@@ -379,30 +454,30 @@ def _upstream_context(work: Path, domain: str) -> str:
     for prior in DOMAINS:
         if prior == domain:
             break
-        path = work / f"category-{prior}.yaml"
+        path = layout.category(work, f"category-{prior}.yaml")
         if path.is_file():
             parts.extend([f"## Accepted {prior}", _read(path)])
     return "\n\n".join(parts) if parts else "None."
 
 
 def _base_context(work: Path, domain: str) -> str:
-    evidence = work / f"evidence-{domain}.md"
+    evidence = layout.evidence(work, f"evidence-{domain}.md")
     sections = [
         "# Stable clinical context for this category",
         "",
         "## Case",
-        _read(work / "case.md"),
+        _read(layout.input(work, "case.md")),
         "## Structured case",
-        _read(work / "case-input.json"),
+        _read(layout.input(work, "case-input.json")),
         "## NGS assay scope",
-        _read(work / "ngs-panel-scope.md"),
+        _read(layout.input(work, "ngs-panel-scope.md")),
         "## Accepted upstream clinical state",
         _upstream_context(work, domain),
         f"## {domain} evidence cards",
         _read(evidence),
     ]
     if domain == "diagnosis":
-        sections.extend(["## Allowed final schema_disease routing values", _read(work / "allowed-schema-diseases.json")])
+        sections.extend(["## Allowed final schema_disease routing values", _read(layout.input(work, "allowed-schema-diseases.json"))])
     return "\n\n".join(section.rstrip() for section in sections) + "\n"
 
 
@@ -436,17 +511,17 @@ def _terrace_messages(work: Path, domain: str, group_ids: list[str]) -> list[dic
 
 
 def _domain_answer_path(work: Path, domain: str) -> Path:
-    return work / f"answer-{domain}.yaml"
+    return layout.category(work, f"answer-{domain}.yaml")
 
 
 def _latest_group_path(work: Path, domain: str, index: int) -> Path:
-    return work / f"terrace-{domain}-{index}.yaml"
+    return layout.category(work, f"terrace-{domain}-{index}.yaml")
 
 
 def _refresh_diagnosis_if_needed(work: Path, answer_path: Path) -> None:
     doc = yaml.safe_load(answer_path.read_text(encoding="utf-8"))
     requested = list(doc.get("provisional_cmcs") or [])
-    existing_doc = json.loads((work / "evidence-diagnosis.json").read_text(encoding="utf-8"))
+    existing_doc = json.loads(layout.evidence(work, "evidence-diagnosis.json").read_text(encoding="utf-8"))
     existing = list(existing_doc.get("provisional_cmcs") or [])
     combined = list(dict.fromkeys(existing + requested))
     if combined != existing:
@@ -518,7 +593,7 @@ def semantic_review_and_repair(work: Path, domain: str, profile: str | None) -> 
     max_cycles = int(settings.get("semantic_review_cycles", 2))
     answer = _domain_answer_path(work, domain)
     for cycle in range(0, max_cycles + 1):
-        review = work / f"review-{domain}.json"
+        review = layout.category(work, f"review-{domain}.json")
         call_id = f"review-{domain}-{cycle + 1}"
         _model_call(
             work,
@@ -534,7 +609,7 @@ def semantic_review_and_repair(work: Path, domain: str, profile: str | None) -> 
             return
         if cycle >= max_cycles:
             raise StepFailure(f"{domain} retained material semantic defects after {max_cycles} repair cycle(s): {'; '.join(issues)}")
-        repair = work / f"repair-{domain}-{cycle + 1}.yaml"
+        repair = layout.category(work, f"repair-{domain}-{cycle + 1}.yaml")
         _model_call(
             work,
             call_id=f"repair-{domain}-{cycle + 1}",
@@ -559,8 +634,8 @@ def semantic_review_and_repair(work: Path, domain: str, profile: str | None) -> 
 
 def evidence_alignment(work: Path, domain: str, profile: str | None) -> Path:
     answer = _domain_answer_path(work, domain)
-    aligned = work / f"category-{domain}.yaml"
-    evidence = work / f"evidence-{domain}.md"
+    aligned = layout.category(work, f"category-{domain}.yaml")
+    evidence = layout.evidence(work, f"evidence-{domain}.md")
     messages = [
         {"role": "system", "content": model_client.SYSTEM_PROMPT},
         {
@@ -596,12 +671,12 @@ def step_1a(work: Path, profile: str | None) -> int:
     mode = _require_work(work).get("mode")
     if mode in {"nel-validate", "nel-validate-function"}:
         return EXIT_NOT_REQUIRED
-    source = work / "case-source.md"
+    source = layout.input(work, "case-source.md")
     messages = [
         {"role": "system", "content": model_client.SYSTEM_PROMPT},
         {"role": "user", "content": _read(SHARED_PROMPTS / "capture_case.md") + "\n\n## Case source\n\n" + _read(source)},
     ]
-    _model_call(work, call_id="1a-case-capture", role="structure", messages=messages, output=work / "case.md", validator=_case_capture_validator, profile=profile)
+    _model_call(work, call_id="1a-case-capture", role="structure", messages=messages, output=layout.input(work, "case.md"), validator=_case_capture_validator, profile=profile)
     return EXIT_OK
 
 
@@ -610,10 +685,10 @@ def step_1b(work: Path, profile: str | None) -> int:
         {"role": "system", "content": model_client.SYSTEM_PROMPT},
         {
             "role": "user",
-            "content": _read(PROMPTS / "structure_case.md") + "\n\n## Case\n\n" + _read(work / "case.md") + "\n\n## Allowed CMCs\n\n" + _read(work / "case-major-categories.json"),
+            "content": _read(PROMPTS / "structure_case.md") + "\n\n## Case\n\n" + _read(layout.input(work, "case.md")) + "\n\n## Allowed CMCs\n\n" + _read(layout.input(work, "case-major-categories.json")),
         },
     ]
-    _model_call(work, call_id="1b-structure-case", role="structure", messages=messages, output=work / "case-input.json", validator=lambda _p: runtime.validate_case_input(work), profile=profile)
+    _model_call(work, call_id="1b-structure-case", role="structure", messages=messages, output=layout.input(work, "case-input.json"), validator=lambda _p: runtime.validate_case_input(work), profile=profile)
     return EXIT_OK
 
 
@@ -637,11 +712,11 @@ def step_4(work: Path, profile: str | None) -> int:
 
 def step_5(work: Path, profile: str | None) -> int:
     for index, domain in enumerate(DOWNSTREAM, start=1):
-        print(f"  Downstream category {index} of {len(DOWNSTREAM)} — {domain}", file=sys.stderr)
-        category = work / f"category-{domain}.yaml"
+        _status(work, f"  Downstream category {index} of {len(DOWNSTREAM)} — {domain}")
+        category = layout.category(work, f"category-{domain}.yaml")
         if category.is_file():
             runtime.validate_category_answer(category, domain, final=True, aligned=True)
-            print(f"  {domain}: existing aligned category validated", file=sys.stderr)
+            _status(work, f"  {domain}: existing aligned category validated")
             continue
         retrieval.downstream(work, domain)
         runtime.render_evidence(work, domain)
@@ -804,7 +879,7 @@ def _summary_sentence_manifest(draft: str) -> list[dict]:
 def _accepted_fact_manifest(work: Path) -> list[dict]:
     facts = []
     for domain in DOMAINS:
-        document = yaml.safe_load(_read(work / f"category-{domain}.yaml"))
+        document = yaml.safe_load(_read(layout.category(work, f"category-{domain}.yaml")))
         rows = document["facts"] if domain == "diagnosis" else document
         for index, row in enumerate(rows, start=1):
             facts.append(
@@ -833,7 +908,7 @@ def _citation_alignment_input(work: Path, draft: str) -> str:
 
 
 def _load_sentence_fact_alignment(work: Path, path: Path) -> tuple[list[dict], dict[str, dict], dict[str, list[str]]]:
-    draft = _read(work / "report-draft.md")
+    draft = _read(layout.synthesis(work, "report-draft.md"))
     sentences = _summary_sentence_manifest(draft)
     facts = {row["fact_id"]: row for row in _accepted_fact_manifest(work)}
     try:
@@ -1037,7 +1112,7 @@ def _unmatched_summary_feedback(work: Path, path: Path) -> str | None:
             "unmatched_sentences — Problem: list is empty. Required fix: if nothing is unmatched, return alignments; otherwise include each unmatched sentence detail."
         )
 
-    manifest = _summary_sentence_manifest(_read(work / "report-draft.md"))
+    manifest = _summary_sentence_manifest(_read(layout.synthesis(work, "report-draft.md")))
     by_id = {row["sentence_id"]: row for row in manifest}
     seen = set()
     feedback = []
@@ -1093,7 +1168,7 @@ def _unmatched_summary_feedback(work: Path, path: Path) -> str | None:
 
 
 def _assemble_cited_report(work: Path, alignment_path: Path) -> Path:
-    draft = _read(work / "report-draft.md")
+    draft = _read(layout.synthesis(work, "report-draft.md"))
     sentences, facts, alignment = _load_sentence_fact_alignment(work, alignment_path)
     parts = []
     cursor = 0
@@ -1111,7 +1186,7 @@ def _assemble_cited_report(work: Path, alignment_path: Path) -> Path:
         parts.append(" " + disposition)
         cursor = end
     parts.append(draft[cursor:])
-    output = work / "report-cited.md"
+    output = layout.synthesis(work, "report-cited.md")
     _atomic_write(output, "".join(parts))
     return output
 
@@ -1120,7 +1195,7 @@ def _citation_alignment_validator(work: Path, path: Path) -> str:
     text = _read(path)
     if text.strip() == "UNMATCHED_SUMMARY_SENTENCE":
         return "summary sentence unmatched"
-    draft = _read(work / "report-draft.md")
+    draft = _read(layout.synthesis(work, "report-draft.md"))
     if _plain_from_cited(text).strip() != draft.strip():
         raise ValueError("final citation alignment changed report prose instead of only adding citation dispositions")
     runtime.validate_cited_report(work)
@@ -1145,12 +1220,13 @@ def _final_alignment_validator(work: Path, alignment_path: Path) -> str:
 
 
 def step_6(work: Path, profile: str | None) -> int:
+    layout.ensure_dirs(work)
     runtime.facts_only(work)
     runtime.prepare_combined_evidence(work)
     max_summary_cycles = 2
     summary_feedback = None
     for cycle in range(1, max_summary_cycles + 1):
-        draft = work / "report-draft.md"
+        draft = layout.synthesis(work, "report-draft.md")
         if not draft.is_file():
             suffix = ""
             if summary_feedback:
@@ -1162,10 +1238,10 @@ def step_6(work: Path, profile: str | None) -> int:
                 )
             messages = [
                 {"role": "system", "content": model_client.SYSTEM_PROMPT},
-                {"role": "user", "content": _read(PROMPTS / "final_summary.md") + suffix + "\n\n## Accepted facts only\n\n" + _read(work / "report-facts.yaml")},
+                {"role": "user", "content": _read(PROMPTS / "final_summary.md") + suffix + "\n\n## Accepted facts only\n\n" + _read(layout.synthesis(work, "report-facts.yaml"))},
             ]
             _model_call(work, call_id=f"summary-{cycle}", role="summarisation", messages=messages, output=draft, validator=_summary_validator, profile=profile)
-        alignment = work / "report-citation-alignment.yaml"
+        alignment = layout.synthesis(work, "report-citation-alignment.yaml")
         if not alignment.is_file():
             messages = [
                 {"role": "system", "content": model_client.SYSTEM_PROMPT},
@@ -1191,7 +1267,7 @@ def step_6(work: Path, profile: str | None) -> int:
         summary_feedback = _unmatched_summary_feedback(work, alignment)
         if summary_feedback is not None:
             alignment.unlink(missing_ok=True)
-            draft.rename(work / f"report-draft-unmatched-{cycle}.md")
+            draft.rename(layout.synthesis(work, f"report-draft-unmatched-{cycle}.md"))
             continue
         runtime.render_final(work)
         return EXIT_OK
@@ -1199,13 +1275,13 @@ def step_6(work: Path, profile: str | None) -> int:
 
 
 def package_bundles(work: Path, output: Path | None = None) -> Path | None:
-    root = work / BUNDLE_DIR
+    root = layout.model_steps(work)
     if not root.is_dir():
         return None
     files = sorted(p for p in root.rglob("*") if p.is_file())
     if not files:
         return None
-    output = output or work / BUNDLE_ZIP
+    output = output or layout.public(work, BUNDLE_ZIP)
     with zipfile.ZipFile(output, "w") as zf:
         for path in files:
             info = zipfile.ZipInfo(str(path.relative_to(work)), ZIP_TIMESTAMP)
@@ -1217,7 +1293,7 @@ def package_bundles(work: Path, output: Path | None = None) -> Path | None:
 
 def step_7(work: Path) -> int:
     from scripts import package_run
-    debug = work / "ngs-report-debug.zip"
+    debug = layout.public(work, "ngs-report-debug.zip")
     package_run.package_run_bundle(work, debug)
     print(debug)
     bundles = package_bundles(work)
@@ -1229,6 +1305,8 @@ def step_7(work: Path) -> int:
 
 def run_setup(args: argparse.Namespace) -> int:
     from scripts.setup_workflow import setup_workflow
+
+    started_at = time.time()
 
     configured_model, configured_terrace = configured_profiles()
     registry = model_registry.load_registry()
@@ -1256,7 +1334,7 @@ def run_setup(args: argparse.Namespace) -> int:
         case_id=args.case_id,
     )
     write_workflow_state(work, WORKFLOW_ID, args.mode, model_profile=model_profile)
-    source = work / "case-source.md"
+    source = layout.input(work, "case-source.md")
     if args.case_file:
         supplied = args.case_file.expanduser().resolve()
         if not supplied.is_file():
@@ -1264,8 +1342,8 @@ def run_setup(args: argparse.Namespace) -> int:
         shutil.copyfile(supplied, source)
     elif args.mode == "nel-demo" and demo_case:
         shutil.copyfile(demo_case, source)
-    elif (work / "case.md").is_file():
-        shutil.copyfile(work / "case.md", source)
+    elif layout.input(work, "case.md").is_file():
+        shutil.copyfile(layout.input(work, "case.md"), source)
     _save_run_state(
         work,
         {
@@ -1274,16 +1352,18 @@ def run_setup(args: argparse.Namespace) -> int:
             "model_profile": model_profile,
             "mode": args.mode,
             "validation_case": args.case_id,
+            "started_at": started_at,
         },
     )
     if args.project:
         _write_project_pointer(work)
-    print(work)
-    if demo_case:
-        print(demo_case.relative_to(REPO_ROOT))
-        print(demo_expected.relative_to(REPO_ROOT))
-    print(f"MODEL_PROFILE={model_profile}")
-    print(f"TERRACE_PROFILE={terrace_profile}")
+    with _cli_logging(work):
+        print(work)
+        if demo_case:
+            print(demo_case.relative_to(REPO_ROOT))
+            print(demo_expected.relative_to(REPO_ROOT))
+        print(f"MODEL_PROFILE={model_profile}")
+        print(f"TERRACE_PROFILE={terrace_profile}")
     return EXIT_OK
 
 
@@ -1336,10 +1416,10 @@ def run_step(step_id: str, work: Path, profile: str | None) -> int:
     try:
         description = STEP_DESCRIPTIONS[step_id]
         display = step_id if step_id not in {"1a", "1b"} else f"1{step_id[-1]}"
-        print(f"Step {display} of 7 — {description}", file=sys.stderr)
+        _status(work, f"Step {display} of 7 — {description}")
         code = mapping[step_id]()
         status = "not required" if code == EXIT_NOT_REQUIRED else "complete"
-        print(f"Step {display} of 7 — {status}", file=sys.stderr)
+        _status(work, f"Step {display} of 7 — {status}")
         return code
     except KeyError as exc:
         raise StepFailure("unknown step; canonical order: 1a 1b 2 3 4 5 6 7") from exc
@@ -1374,6 +1454,33 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _run_bound_command(args: argparse.Namespace, work: Path) -> int:
+    try:
+        if args.step_id == "profile":
+            state = _load_run_state(work)
+            print(f"model_profile: {state['model_profile']}")
+            print(f"terrace_profile: {state['terrace_profile']}")
+            return EXIT_OK
+        if args.step_id == "package-bundles":
+            result = package_bundles(work)
+            print(result or "no model bundles")
+            return EXIT_OK
+        if args.all:
+            return run_all(work, args.profile)
+        if not args.step_id:
+            raise StepFailure("supply a step ID or --all")
+        return run_step(args.step_id, work, args.profile)
+    except Handoff as handoff:
+        # These three stdout lines are orchestration protocol and must remain unprefixed.
+        print(f"HANDOFF={handoff.call_id}")
+        print(f"PROMPT={handoff.prompt}")
+        print(f"OUTPUT={handoff.output}")
+        return EXIT_HANDOFF
+    except (StepFailure, ValueError, OSError, KeyError) as exc:
+        _status(work, f"step failed: {exc}")
+        return EXIT_FAILURE
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
@@ -1390,25 +1497,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise StepFailure("setup requires --mode")
             return run_setup(args)
         work = resolve_work_dir(args.work_dir)
-        if args.step_id == "profile":
-            state = _load_run_state(work)
-            print(f"model_profile: {state['model_profile']}")
-            print(f"terrace_profile: {state['terrace_profile']}")
-            return EXIT_OK
-        if args.step_id == "package-bundles":
-            result = package_bundles(work)
-            print(result or "no model bundles")
-            return EXIT_OK
-        if args.all:
-            return run_all(work, args.profile)
-        if not args.step_id:
-            raise StepFailure("supply a step ID or --all")
-        return run_step(args.step_id, work, args.profile)
-    except Handoff as handoff:
-        print(f"HANDOFF={handoff.call_id}")
-        print(f"PROMPT={handoff.prompt}")
-        print(f"OUTPUT={handoff.output}")
-        return EXIT_HANDOFF
+        with _cli_logging(work):
+            return _run_bound_command(args, work)
     except (StepFailure, ValueError, OSError, KeyError) as exc:
         print(f"step failed: {exc}", file=sys.stderr)
         return EXIT_FAILURE

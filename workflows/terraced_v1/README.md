@@ -523,7 +523,7 @@ Model IDs are configuration. Change them to models actually installed or availab
 Every model operation is packaged under:
 
 ```text
-<work-dir>/.model-steps/<sequence>-<operation>/prompt.md
+<work-dir>/state/model-steps/<sequence>-<operation>/prompt.md
 ```
 
 Only the case, permitted evidence, accepted upstream state, reporting questions, conversation history, and operation-specific instructions are exposed. The model should not inspect arbitrary repository files to infer missing context.
@@ -534,36 +534,47 @@ Sequence prefixes are zero-padded (`001-`, `002-`, …), so directory-name sorti
 
 ## Important artifacts
 
-Typical outputs include:
+New terraced-v1 work directories keep only user-facing/root control files at the project root:
 
 ```text
-case-source.md
-case.md
-case-input.json
-terraced-config.yaml
-terraced-run.json
-
-evidence-diagnosis.{json,md}
-conversation-diagnosis.json
-answer-diagnosis.yaml
-review-diagnosis.json
-category-diagnosis.yaml
-
-category-prognosis.yaml
-category-treatment.yaml
-category-mrd.yaml
-category-germline.yaml
-
-report-facts.yaml
-report-draft.md
-report-cited.md
-report-final.md
-model-usage.json
-
-evidence-all.json
-evidence.md
-card-tags.json
+<work-dir>/
+├── workflow.json
+├── workflow.log
+├── report-final.md
+├── ngs-report-debug.zip
+├── ngs-report-model-steps.zip
+├── input/
+│   ├── case-source.md
+│   ├── case.md
+│   ├── case-input.json
+│   ├── case-major-categories.json
+│   ├── allowed-schema-diseases.json
+│   ├── ngs-panel-scope.md
+│   └── terraced-config.yaml
+├── evidence/
+│   ├── evidence-<domain>.{json,md}
+│   ├── evidence-all.json
+│   ├── evidence.md
+│   └── card-tags.json
+├── categories/
+│   ├── conversation-<domain>.json
+│   ├── terrace-<domain>-<n>.yaml
+│   ├── answer-<domain>.yaml
+│   ├── review-<domain>.json
+│   ├── repair-<domain>-<n>.yaml
+│   └── category-<domain>.yaml
+├── synthesis/
+│   ├── report-facts.yaml
+│   ├── report-draft.md
+│   ├── report-citation-alignment.yaml
+│   └── report-cited.md
+└── state/
+    ├── terraced-run.json
+    ├── model-usage.json
+    └── model-steps/
 ```
+
+Legacy flat terraced-v1 work directories remain readable/resumable; new artifacts use the nested layout unless an existing legacy artifact is being resumed.
 
 `category-<domain>.yaml` is the accepted `fact + reason + citation` state for that domain.
 
@@ -612,7 +623,7 @@ Semantic repair may reconsider clinical content. Structural repair should change
 
 Final synthesis is retried if a generated sentence cannot be mapped to an accepted fact.
 
-The CLI writes concise progress to stderr, including the current workflow step (for example, `Step 4 of 7`), downstream category progress, and provider attempt counts. Direct-provider usage reported by the OpenAI-compatible API is accumulated across calls and retries in `model-usage.json` and summarised after Step 7. Providers that omit usage, and `self` handoffs, are reported as unavailable or partial rather than estimated.
+The CLI writes concise progress to stderr. Human-facing status lines are prefixed with elapsed task time, for example `[ 0037 ] - Step 4 of 7 — review and align diagnosis evidence`. The first provider attempt is labelled `answering`; subsequent attempts are `retry 1/9`, `retry 2/9`, and so on. Low-level `[retrieve]` and `[terraced render]` diagnostics are hidden from the terminal but retained in `<work-dir>/workflow.log`. The log appends the complete terraced CLI stdout/stderr stream across invocations; orchestration protocol lines such as `HANDOFF=`, `PROMPT=` and `OUTPUT=` remain unprefixed on stdout. Direct-provider usage is accumulated in `state/model-usage.json` and summarised after Step 7. Providers that omit usage, and `self` handoffs, are reported as unavailable or partial rather than estimated.
 
 ## Empty categories and null citations
 

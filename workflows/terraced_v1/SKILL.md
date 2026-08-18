@@ -30,7 +30,7 @@ The clinical pipeline is:
 
 ## Global model/file rules
 
-File access is deny-by-default. The CLI packages every permitted model input into `<work-dir>/.model-steps/<sequence>-<operation>/prompt.md`, where the zero-padded sequence preserves chronological sort order.
+File access is deny-by-default. The CLI packages every permitted model input into `<work-dir>/state/model-steps/<sequence>-<operation>/prompt.md`, where the zero-padded sequence preserves chronological sort order.
 
 For the frontier/session-model execution path, use model profile `self`. When a command exits `10`, read only the printed `PROMPT=<path>` bundle, perform that model operation in the current session, write only the printed `OUTPUT=<path>`, then rerun the same workflow step. Do not inspect repository Python to infer missing inputs.
 
@@ -92,7 +92,7 @@ Use the frontier/session-model defaults unless the user explicitly requested a d
 
 Record output line 1 as `<work-dir>`. For `nel-demo`, record output lines 2 and 3 as the demo case and expected-behaviour paths; do not read them until delivery.
 
-For interactive `ngs-report` under the frontier/session-model harness, write the user-supplied case source from the current request verbatim to `<work-dir>/case-source.md` before Step 1A. This is the only non-CLI source-ingest action: the subsequent capture prompt, model handoffs, validation, retrieval, reasoning, alignment, synthesis and packaging are all CLI-orchestrated. For direct CLI execution, supply the case with `setup --case-file <path>` instead.
+For interactive `ngs-report` under the frontier/session-model harness, write the user-supplied case source from the current request verbatim to `<work-dir>/input/case-source.md` before Step 1A. This is the only non-CLI source-ingest action: the subsequent capture prompt, model handoffs, validation, retrieval, reasoning, alignment, synthesis and packaging are all CLI-orchestrated. For direct CLI execution, supply the case with `setup --case-file <path>` instead.
 
 Alternative terrace grouping profiles are `balanced` and `deliberate`. Direct-provider model profiles are `lmstudio`, `ollama`, and `openrouter` and can be selected at setup with `--model-profile`.
 
@@ -110,7 +110,7 @@ A deterministic structural validator may return the same operation for repair. F
 
 ## Step 1 — Capture and structure case
 
-For validation modes, setup already writes `case.md`; skip Step 1A.
+For validation modes, setup already writes `input/case.md`; skip Step 1A.
 
 Otherwise run Step 1A until exit `0`:
 
@@ -124,7 +124,7 @@ Then run Step 1B until exit `0`:
 <python> workflows/terraced_v1/step.py 1b --work-dir <work-dir>
 ```
 
-`case-input.json` contains provisional plural CMCs, the supplied provisional disease wording, detected genes and preserved case facts. These CMCs are retrieval scaffolding only.
+`input/case-input.json` contains provisional plural CMCs, the supplied provisional disease wording, detected genes and preserved case facts. These CMCs are retrieval scaffolding only.
 
 ## Step 2 — Broad diagnostic evidence
 
@@ -134,7 +134,7 @@ Run once:
 <python> workflows/terraced_v1/step.py 2 --work-dir <work-dir>
 ```
 
-This retrieves diagnosis cards matching any provisional CMC or detected gene, plus gene-matched germline cards, and writes `evidence-diagnosis.{json,md}`.
+This retrieves diagnosis cards matching any provisional CMC or detected gene, plus gene-matched germline cards, and writes `evidence/evidence-diagnosis.{json,md}`.
 
 ## Step 3 — Terraced diagnosis
 
@@ -171,7 +171,7 @@ A fresh semantic reviewer uses a deliberately high threshold: only material cont
 
 The owning diagnosis conversation repairs material defects when required. A subsequent evidence-alignment pass preserves each `fact` and `reason` exactly and adds only `citation`, using exact runtime card tags where a card directly supports the reason; otherwise `citation: null`.
 
-`category-diagnosis.yaml` is then the accepted downstream routing state.
+`categories/category-diagnosis.yaml` is then the accepted downstream routing state.
 
 ## Step 5 — Downstream terraced categories
 
@@ -190,7 +190,7 @@ The CLI processes, in order:
 
 For each category it performs narrow retrieval against every accepted diagnosis, runs the configured terraced conversation using accepted upstream clinical state, performs the same high-threshold semantic review/repair loop, and finally aligns fact/reason pairs to direct card support.
 
-Accepted artifacts are `category-prognosis.yaml`, `category-treatment.yaml`, `category-mrd.yaml`, and `category-germline.yaml`.
+Accepted artifacts are `categories/category-prognosis.yaml`, `categories/category-treatment.yaml`, `categories/category-mrd.yaml`, and `categories/category-germline.yaml`.
 
 ## Step 6 — Single synthesis, final citation alignment, render
 
@@ -200,7 +200,7 @@ Run until exit `0`:
 <python> workflows/terraced_v1/step.py 6 --work-dir <work-dir>
 ```
 
-The CLI deterministically creates `report-facts.yaml` by stripping every `reason` and `citation`. The model receives facts only and writes one uncited `report-draft.md`.
+The CLI deterministically creates `synthesis/report-facts.yaml` by stripping every `reason` and `citation`. The model receives facts only and writes one uncited `synthesis/report-draft.md`.
 
 A separate final model pass receives the accepted category artifacts and semantically matches every final report sentence back to its source fact(s). It may only append inherited runtime card tags or `(no citation required)`; it cannot change prose or search for new evidence.
 

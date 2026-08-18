@@ -12,7 +12,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 from scripts import vocab  # noqa: E402
 from scripts.core import citations as report_citations  # noqa: E402
-from workflows.terraced_v1 import rendering, retrieval  # noqa: E402
+from workflows.terraced_v1 import layout, rendering, retrieval  # noqa: E402
 
 WORKFLOW_DIR = Path(__file__).resolve().parent
 QUESTIONS_PATH = WORKFLOW_DIR / "questions.yaml"
@@ -38,7 +38,7 @@ def _validation_case_text(mode: str, case_id: str) -> str:
 
 
 def _write_case_if_absent(work: Path, text: str) -> None:
-    path = work / "case.md"
+    path = layout.input(work, "case.md")
     payload = text.rstrip() + "\n"
     if path.exists() and path.read_text(encoding="utf-8") != payload:
         raise ValueError(f"{path} exists with different validation case content")
@@ -48,8 +48,19 @@ def _write_case_if_absent(work: Path, text: str) -> None:
 
 def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> None:
     work = Path(work_dir)
+    legacy_layout = layout.is_legacy(work)
+    layout.ensure_dirs(work)
+
+    # Shared setup creates these two procedural assets at the work-dir root.
+    # Terraced-v1 relocates them immediately so new project roots stay clean.
+    panel_root = work / "ngs-panel-scope.md"
+    panel_output = work / "ngs-panel-scope.md" if legacy_layout else layout.input(work, "ngs-panel-scope.md", existing=False)
+    if panel_root.is_file() and panel_output != panel_root:
+        shutil.move(str(panel_root), str(panel_output))
+
     # Terraced diagnosis may provisionally entertain multiple broad disease families.
-    (work / "case-major-categories.json").write_text(
+    category_output = work / "case-major-categories.json" if legacy_layout else layout.input(work, "case-major-categories.json", existing=False)
+    category_output.write_text(
         json.dumps({
             "case_major_categories": list(vocab.CASE_MAJOR_CATEGORIES),
             "instruction": (
@@ -59,14 +70,19 @@ def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> No
         }, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+    if category_output != work / "case-major-categories.json":
+        (work / "case-major-categories.json").unlink(missing_ok=True)
+
     if mode in {"nel-validate", "nel-validate-function"}:
         if not case_id:
             raise ValueError(f"{mode} requires a validation case ID")
         _write_case_if_absent(work, _validation_case_text(mode, case_id))
     questions_source = QUESTIONS_PATH if QUESTIONS_PATH.is_file() else QUESTIONS_TEMPLATE_PATH
-    shutil.copyfile(questions_source, work / "terraced-config.yaml")
+    config_output = work / "terraced-config.yaml" if legacy_layout else layout.input(work, "terraced-config.yaml", existing=False)
+    shutil.copyfile(questions_source, config_output)
     allowed = [d for d in vocab.CASE_DISEASES if d not in WHO5_EXCLUDED_SCHEMA_DISEASES]
-    (work / "allowed-schema-diseases.json").write_text(
+    allowed_output = work / "allowed-schema-diseases.json" if legacy_layout else layout.input(work, "allowed-schema-diseases.json", existing=False)
+    allowed_output.write_text(
         json.dumps(
             {
                 "schema_version": 1,
@@ -82,7 +98,7 @@ def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> No
 
 
 def load_questions(work: Path | None = None) -> dict:
-    path = (Path(work) / "terraced-config.yaml") if work is not None else QUESTIONS_PATH
+    path = layout.input(Path(work), "terraced-config.yaml") if work is not None else QUESTIONS_PATH
     if work is None and not path.is_file():
         path = QUESTIONS_TEMPLATE_PATH
     try:
@@ -163,7 +179,7 @@ def _raise_issues(context: str, issues: list[str]) -> None:
 
 
 def validate_case_input(work: Path) -> str:
-    doc = _load_json(Path(work) / "case-input.json")
+    doc = _load_json(layout.input(Path(work), "case-input.json"))
     expected = {"provisional_cmcs", "provisional_disease", "genes", "case_facts"}
     issues = []
     if not isinstance(doc, dict):
@@ -586,8 +602,8 @@ def validate_alignment(source_path: Path, aligned_path: Path, domain: str, evide
 
 
 def render_evidence(work: Path, domain: str) -> Path:
-    bundle = Path(work) / f"evidence-{domain}.json"
-    output = Path(work) / f"evidence-{domain}.md"
+    bundle = layout.evidence(Path(work), f"evidence-{domain}.json")
+    output = layout.evidence(Path(work), f"evidence-{domain}.md")
     rendering.render_to_files(bundle, output=output, retrieved_only=True)
     return output
 
@@ -595,11 +611,11 @@ def render_evidence(work: Path, domain: str) -> Path:
 def facts_only(work: Path) -> Path:
     result = {}
     for domain in DOMAINS:
-        path = Path(work) / f"category-{domain}.yaml"
+        path = layout.category(Path(work), f"category-{domain}.yaml")
         doc = _load_yaml(path)
         rows = doc["facts"] if domain == "diagnosis" else doc
         result[domain] = [{"fact": row["fact"]} for row in rows]
-    output = Path(work) / "report-facts.yaml"
+    output = layout.synthesis(Path(work), "report-facts.yaml")
     output.write_text(yaml.safe_dump(result, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8")
     return output
 
@@ -607,28 +623,28 @@ def facts_only(work: Path) -> Path:
 def accepted_categories_document(work: Path) -> str:
     parts = []
     for domain in DOMAINS:
-        path = Path(work) / f"category-{domain}.yaml"
+        path = layout.category(Path(work), f"category-{domain}.yaml")
         parts.append(f"## {domain}\n\n{path.read_text(encoding='utf-8').rstrip()}")
     return "\n\n".join(parts) + "\n"
 
 
 def prepare_combined_evidence(work: Path) -> tuple[Path, Path]:
     bundle = retrieval.combined(work)
-    evidence = Path(work) / "evidence.md"
-    tags = Path(work) / "card-tags.json"
+    evidence = layout.evidence(Path(work), "evidence.md")
+    tags = layout.evidence(Path(work), "card-tags.json")
     rendering.render_to_files(bundle, output=evidence, card_tag_output=tags, retrieved_only=True)
     return evidence, tags
 
 
 def validate_cited_report(work: Path) -> str:
-    report = Path(work) / "report-cited.md"
+    report = layout.synthesis(Path(work), "report-cited.md")
     text = report.read_text(encoding="utf-8")
     if text.strip() == "UNMATCHED_SUMMARY_SENTENCE":
         raise ValueError("final citation alignment found an unmatched summary sentence; redo summarisation")
     report_citations.validate(
         text,
-        (Path(work) / "evidence.md").read_text(encoding="utf-8"),
-        (Path(work) / "card-tags.json").read_text(encoding="utf-8"),
+        layout.evidence(Path(work), "evidence.md").read_text(encoding="utf-8"),
+        layout.evidence(Path(work), "card-tags.json").read_text(encoding="utf-8"),
         source="terraced report-cited.md",
         require_citation_after_full_stop=True,
     )
@@ -638,12 +654,12 @@ def validate_cited_report(work: Path) -> str:
 def render_final(work: Path) -> Path:
     validate_cited_report(work)
     rendered = report_citations.render(
-        (Path(work) / "report-cited.md").read_text(encoding="utf-8"),
-        (Path(work) / "evidence.md").read_text(encoding="utf-8"),
-        (Path(work) / "card-tags.json").read_text(encoding="utf-8"),
+        layout.synthesis(Path(work), "report-cited.md").read_text(encoding="utf-8"),
+        layout.evidence(Path(work), "evidence.md").read_text(encoding="utf-8"),
+        layout.evidence(Path(work), "card-tags.json").read_text(encoding="utf-8"),
         require_citation_after_full_stop=True,
     )
-    output = Path(work) / "report-final.md"
+    output = layout.public(Path(work), "report-final.md")
     report_citations.atomic_write(output, rendered)
     return output
 

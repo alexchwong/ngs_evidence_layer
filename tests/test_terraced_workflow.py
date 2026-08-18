@@ -147,7 +147,7 @@ class TerracedWorkflowTests(unittest.TestCase):
                 configured_work = tmp_path / "configured"
                 step.run_setup(args_for(configured_work))
                 configured = json.loads(
-                    (configured_work / "terraced-run.json").read_text(encoding="utf-8")
+                    (configured_work / "state" / "terraced-run.json").read_text(encoding="utf-8")
                 )
                 self.assertEqual(configured["model_profile"], "openrouter")
                 self.assertEqual(configured["terrace_profile"], "balanced")
@@ -161,7 +161,7 @@ class TerracedWorkflowTests(unittest.TestCase):
                     )
                 )
                 overridden = json.loads(
-                    (overridden_work / "terraced-run.json").read_text(encoding="utf-8")
+                    (overridden_work / "state" / "terraced-run.json").read_text(encoding="utf-8")
                 )
                 self.assertEqual(overridden["model_profile"], "self")
                 self.assertEqual(overridden["terrace_profile"], "frontier")
@@ -242,10 +242,12 @@ class TerracedWorkflowTests(unittest.TestCase):
                     raise ValueError("artifact failed validation with 2 issue(s):\n1. first defect\n2. second defect")
                 return "validated"
 
+            stderr = io.StringIO()
             with (
                 patch.object(step, "_profile", return_value=binding),
                 patch.object(step.model_client, "complete_messages", side_effect=complete),
                 patch.object(step, "load_settings", return_value={"structural_attempts": 10}),
+                contextlib.redirect_stderr(stderr),
             ):
                 step._model_call(
                     work,
@@ -258,6 +260,10 @@ class TerracedWorkflowTests(unittest.TestCase):
                 )
 
             self.assertEqual(len(calls), 2)
+            status = stderr.getvalue()
+            self.assertIn("test-operation: answering", status)
+            self.assertIn("test-operation: retry 1/9", status)
+            self.assertNotIn("model attempt", status)
             retry = calls[1][-1]["content"]
             self.assertIn("first defect", retry)
             self.assertIn("second defect", retry)
@@ -265,7 +271,7 @@ class TerracedWorkflowTests(unittest.TestCase):
             self.assertEqual(folders, ["001-test-operation"])
             feedback = work / step.BUNDLE_DIR / folders[0] / "attempt-1.validation.txt"
             self.assertIn("second defect", feedback.read_text(encoding="utf-8"))
-            usage = json.loads((work / step.USAGE_FILE).read_text(encoding="utf-8"))
+            usage = json.loads(step.layout.state(work, step.USAGE_FILE).read_text(encoding="utf-8"))
             self.assertEqual(len(usage["calls"]), 2)
             self.assertEqual(sum(row["usage"]["total_tokens"] for row in usage["calls"]), 24)
 
@@ -546,7 +552,8 @@ class TerracedWorkflowTests(unittest.TestCase):
     def test_step_status_and_token_summary_are_concise(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
-            (work / step.USAGE_FILE).write_text(
+            step.layout.state(work, step.USAGE_FILE, existing=False).parent.mkdir(parents=True, exist_ok=True)
+            step.layout.state(work, step.USAGE_FILE, existing=False).write_text(
                 json.dumps(
                     {
                         "calls": [
@@ -571,9 +578,72 @@ class TerracedWorkflowTests(unittest.TestCase):
                 self.assertEqual(step.run_step("4", work, None), step.EXIT_OK)
                 step._print_usage(work)
             output = stderr.getvalue()
-            self.assertIn("Step 4 of 7 — review and align diagnosis evidence", output)
-            self.assertIn("Step 4 of 7 — complete", output)
+            self.assertRegex(output, r"\[ \d{4} \] - Step 4 of 7 — review and align diagnosis evidence")
+            self.assertRegex(output, r"\[ \d{4} \] - Step 4 of 7 — complete")
             self.assertIn("prompt 100, completion 20, total 120", output)
+
+    def test_cli_log_masks_retrieve_and_render_only_from_terminal(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            terminal_out = io.StringIO()
+            terminal_err = io.StringIO()
+            with contextlib.redirect_stdout(terminal_out), contextlib.redirect_stderr(terminal_err):
+                with step._cli_logging(work):
+                    print("VISIBLE-STDOUT")
+                    print("VISIBLE-STDERR", file=sys.stderr)
+                    print("[retrieve] hidden retrieval detail", file=sys.stderr)
+                    print("[terraced render] hidden render detail", file=sys.stderr)
+            self.assertIn("VISIBLE-STDOUT", terminal_out.getvalue())
+            self.assertIn("VISIBLE-STDERR", terminal_err.getvalue())
+            self.assertNotIn("hidden retrieval detail", terminal_err.getvalue())
+            self.assertNotIn("hidden render detail", terminal_err.getvalue())
+            log = (work / "workflow.log").read_text(encoding="utf-8")
+            self.assertIn("VISIBLE-STDOUT", log)
+            self.assertIn("VISIBLE-STDERR", log)
+            self.assertIn("[retrieve] hidden retrieval detail", log)
+            self.assertIn("[terraced render] hidden render detail", log)
+
+    def test_elapsed_status_uses_persisted_task_start(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            state_path = step.layout.state(work, "terraced-run.json", existing=False)
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            state_path.write_text(json.dumps({"started_at": 63.0}), encoding="utf-8")
+            stderr = io.StringIO()
+            with patch.object(step.time, "time", return_value=100.0), contextlib.redirect_stderr(stderr):
+                step._status(work, "hello")
+            self.assertEqual(stderr.getvalue(), "[ 0037 ] - hello\n")
+
+    def test_setup_keeps_new_project_root_clean(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            work = tmp_path / "work"
+            case_file = tmp_path / "case.md"
+            case_file.write_text("Test case.\n", encoding="utf-8")
+            args = argparse.Namespace(
+                model_profile="self", terrace_profile="frontier", mode="ngs-report",
+                work_dir=work, project=False, example=None, case_id=None, case_file=case_file,
+            )
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(step.run_setup(args), step.EXIT_OK)
+            self.assertEqual(
+                {path.name for path in work.iterdir()},
+                {"workflow.json", "workflow.log", "input", "evidence", "categories", "synthesis", "state"},
+            )
+            self.assertTrue((work / "input" / "case-source.md").is_file())
+            self.assertTrue((work / "input" / "ngs-panel-scope.md").is_file())
+            self.assertTrue((work / "state" / "terraced-run.json").is_file())
+
+    def test_layout_reads_existing_legacy_flat_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            legacy = work / "case-input.json"
+            legacy.write_text("{}\n", encoding="utf-8")
+            self.assertEqual(step.layout.input(work, "case-input.json"), legacy)
+            self.assertEqual(
+                step.layout.input(work, "new-input.json"),
+                work / "input" / "new-input.json",
+            )
 
     def test_narrow_retrieval_does_not_inherit_parent_disease_treatment_cards(self):
         self.assertEqual(
