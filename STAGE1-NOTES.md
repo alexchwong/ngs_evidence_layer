@@ -49,6 +49,84 @@ two cannot diverge.
 | 10 | Handoff — role bound to the session model; bundle written, complete the output and re-invoke with `--complete` |
 | 20 | Step not required — the category manifest forbids a model call; continue |
 
+## CLI quick-start
+
+Run from the repository root. Create the project virtual environment once, then
+activate it for setup, deterministic workflow steps, and tests:
+
+```bash
+python -m venv .env
+source .env/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Confirm that the local OpenAI-compatible server is running and that the configured
+model IDs resolve, then inspect the retry settings:
+
+```bash
+python workflows/categorical_v1/model_registry.py --profile local-llm
+python workflows/categorical_v1/step.py settings --work-dir .
+```
+
+Create a repository-local project for a case. `--project` creates a unique work
+directory under `temp/` and records it as the current categorical-v1 project in
+`temp/.categorical-v1-project`:
+
+```bash
+python workflows/categorical_v1/step.py setup \
+  --mode ngs-report \
+  --project \
+  --case-file /path/to/case.md \
+  --model-profile local-llm
+```
+
+Later invocations automatically use that current project, including from a new
+shell. There is no need to copy or re-enter its directory path. Run the complete
+delegated pipeline as follows. Workflow settings provide per-step attempt counts;
+`--max-attempts` overrides every delegated model step for this invocation:
+
+```bash
+python workflows/categorical_v1/step.py --all \
+  --profile local-llm
+
+# Optional one-run override for troubleshooting:
+python workflows/categorical_v1/step.py --all \
+  --profile local-llm \
+  --max-attempts 5
+```
+
+Work-directory precedence is explicit `--work-dir`, then the `NEL_WORK_DIR`
+environment variable, then the repository's current-project pointer. To select an
+existing work directory temporarily without changing the persistent pointer:
+
+```bash
+export NEL_WORK_DIR=/path/to/existing/work-dir
+python workflows/categorical_v1/step.py --all --profile local-llm
+unset NEL_WORK_DIR
+```
+
+Running another successful `setup --project` replaces the persistent pointer. Use
+an explicit `--work-dir` when running a non-current case concurrently.
+
+To resume or troubleshoot one failed step, invoke its token directly. Re-running a
+delegated step creates a fresh draft from the deterministic artifact; validation
+failures within that invocation automatically carry the rejected output and all
+reported defects into the next attempt:
+
+```bash
+python workflows/categorical_v1/step.py 3a \
+  --profile local-llm
+```
+
+For a `self` profile handoff, read the printed `PROMPT`, write the printed `OUTPUT`,
+then validate it without another model call:
+
+```bash
+python workflows/categorical_v1/step.py 3a
+# edit the printed OUTPUT using only the printed PROMPT
+python workflows/categorical_v1/step.py 3a --complete
+```
+
 ## Commands
 
 ```bash
@@ -100,9 +178,10 @@ path; if validation fails the previous content (the deterministic template) is
 restored. A failed run therefore never leaves an unvalidated draft where a later
 `--complete` could accept it. Nothing is deleted.
 
-**Retries.** Three attempts for `1a`, `1b`, `3a`, `5`; two for `3b` and `6b1`–`6b5`,
-where failures are dominated by word-limit overshoot and a third attempt rarely
-helps. Overridable per invocation with `--max-attempts`.
+**Retries.** Attempt counts are read from `workflows/categorical_v1/settings.json`.
+The default is three; Step 3A, Step 3B and the five category-summary steps have five.
+Overridable per invocation with `--max-attempts`, including whole-sequence `--all`
+runs.
 
 **Step 5 inputs are unconditional.** The CMC branch is already carried inside
 `reporting-rules-remainder.md`, which deterministic step 4 writes with or without

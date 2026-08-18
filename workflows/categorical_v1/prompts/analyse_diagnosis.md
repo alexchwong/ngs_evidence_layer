@@ -12,6 +12,8 @@ Modify the existing deterministic `<work-dir>/report-draft-dx.yaml` template onl
 
 - Preserve every rule ID and rule order.
 - Every rule must retain at least one atomic statement, including omitted rules.
+- An omitted rule's statement is an audit conclusion that is removed downstream,
+  not final-report prose. `omit: true` never permits a blank template placeholder.
 - Add statement items when a rule requires more than one independently citable fact.
 - `text` contains only the assertion prose; `citation` contains only its citation disposition.
 - `R0.1` remains `omit: false` with `(no citation required)`.
@@ -32,5 +34,11 @@ Set the top-level `refined_cmc` field to exactly one value copied from `case-maj
 If validation fails, repair only the rule(s), statement(s), or field identified by the validator. For citation defects, use `diagnostic_evidence.md` as the only evidence source for replacement runtime tags. Do not inspect private JSON/tag maps, corpus files, or validator source.
 
 ## Output contract
+
+Before returning the YAML, inspect every rule from R0.1 through the final R1 rule.
+Confirm that every `omit` value is boolean and that no `text: ""`, `citation: ""`,
+or null template placeholder remains in any statement, including statements under
+`omit: true`. Answer all rules in the first response; do not defer omitted rules to
+validation retries.
 
 Write only the modified `report-draft-dx.yaml` file. Do not create a second draft, Markdown rule list, code fence, or commentary.

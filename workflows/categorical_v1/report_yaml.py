@@ -143,6 +143,84 @@ def _statement(statement: Any, *, context: str, known_tags: set[str]) -> dict[st
     return {"text": text, "citation": citation}
 
 
+def _raise_rule_document_defects(defects: list[str]) -> None:
+    """Report independent template-completion defects in one actionable error."""
+    if not defects:
+        return
+    heading = f"Validation found {len(defects)} defect(s); repair all of them:"
+    raise ValueError(heading + "\n" + "\n".join(f"- {defect}" for defect in defects))
+
+
+def _preflight_rule_rows(rows: list[Any], specs: list[dict[str, Any]], known_tags: set[str]) -> None:
+    """Collect independent row and statement defects before semantic validation.
+
+    Model-filled templates commonly retain several blank placeholders. A fail-fast
+    traversal makes the repair loop reveal one placeholder per attempt, so inspect
+    every canonical row first and return all mechanically actionable defects.
+    """
+    defects: list[str] = []
+    for row, spec in zip(rows, specs):
+        rule_id = spec["rule_id"]
+        if not isinstance(row, dict):
+            defects.append(f"{rule_id} must be a YAML mapping.")
+            continue
+        if set(row) != {"id", "omit", "statements"}:
+            defects.append(
+                f"{rule_id} must contain exactly 'id', 'omit', and 'statements'; found: "
+                + ", ".join(sorted(map(str, row)))
+            )
+            continue
+        try:
+            _normalise_omit(row.get("omit"), rule_id=rule_id)
+        except ValueError as exc:
+            defects.append(str(exc))
+
+        statements = row.get("statements")
+        if not isinstance(statements, list) or not statements:
+            defects.append(
+                f"{rule_id} must contain at least one statement even when omit is true. "
+                "Address the rule in one or more atomic statements; omission only controls downstream inclusion."
+            )
+            continue
+        for index, statement in enumerate(statements, start=1):
+            context = f"{rule_id} statement {index}"
+            if not isinstance(statement, dict):
+                defects.append(
+                    f"{context} must be a YAML mapping with exactly 'text' and 'citation' fields."
+                )
+                continue
+            if set(statement) != {"text", "citation"}:
+                defects.append(
+                    f"{context} must contain exactly 'text' and 'citation'; found: "
+                    + ", ".join(sorted(map(str, statement)))
+                )
+                continue
+
+            text = statement.get("text")
+            if not isinstance(text, str) or not text.strip():
+                defects.append(
+                    f"{context} field 'text' is blank. Write one atomic patient-level assertion."
+                )
+            elif CARD_MARKER.search(text) or NO_CITATION in text:
+                defects.append(
+                    f"{context} embeds citation syntax inside 'text'. Remove it from the prose and put the "
+                    "citation disposition only in the separate 'citation' field."
+                )
+
+            try:
+                _, tags = _citation_tags(statement.get("citation"), context=context)
+            except ValueError as exc:
+                defects.append(str(exc))
+            else:
+                unknown = [tag for tag in tags if tag not in known_tags]
+                if unknown:
+                    defects.append(
+                        f"{context} cites unknown runtime card tag(s): {', '.join(unknown)}. Copy replacement "
+                        "tag(s) only from the evidence file permitted for this model step."
+                    )
+    _raise_rule_document_defects(defects)
+
+
 def write_rule_template(rules_path: Path, output: Path, *, include_refined_cmc: bool) -> Path:
     specs = report_audit.agreed_rule_specs(_read(rules_path))
     rules = []
@@ -219,6 +297,7 @@ def validate_rule_document(
         )
 
     known_tags = report_audit.evidence_card_tags(_read(evidence_path), allow_empty=True)
+    _preflight_rule_rows(rows, specs, known_tags)
     normalised_rules = []
     for row, spec in zip(rows, specs):
         rule_id = spec["rule_id"]

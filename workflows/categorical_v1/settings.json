@@ -2,6 +2,7 @@
   "schema_version": 1,
   "max_attempts": {
     "default": 3,
+    "3a": 5,
     "3b": 5,
     "6b1": 5,
     "6b2": 5,
@@ -10,5 +11,5 @@
     "6b5": 5
   },
   "max_tokens_growth_on_truncation": 1.5,
-  "max_tokens_ceiling": 32768
+  "max_tokens_ceiling": 131072
 }

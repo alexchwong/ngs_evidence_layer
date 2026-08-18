@@ -15,13 +15,15 @@ Usage:
     step.py setup --mode <mode> [--example N | --case-id ID]
                   [--work-dir DIR | --project] [--case-file FILE]
                   [--model-profile PROFILE]
-    step.py <step-id> --work-dir DIR [--profile P] [--complete] [--max-attempts N]
-    step.py --all --work-dir DIR [--profile P]
-    step.py package-bundles --work-dir DIR
-    step.py profile --work-dir DIR [--profile P]
+    step.py <step-id> [--work-dir DIR] [--profile P] [--complete] [--max-attempts N]
+    step.py --all [--work-dir DIR] [--profile P]
+    step.py package-bundles [--work-dir DIR]
+    step.py profile [--work-dir DIR] [--profile P]
     step.py settings
 
 Override the settings file for one invocation with NEL_STEP_SETTINGS=<path>.
+For commands that need a work directory, resolution order is explicit
+--work-dir, NEL_WORK_DIR, then the current project selected by setup --project.
 
 Per-step retry counts and truncation-recovery behaviour are read from
 workflows/categorical_v1/settings.json (not models.json, which is the model
@@ -50,6 +52,9 @@ WORKFLOW_ID = "categorical-v1"
 BUNDLE_DIR = ".model-steps"
 BUNDLE_ZIP = "ngs-report-model-steps.zip"
 SETTINGS_PATH = Path(__file__).resolve().parent / "settings.json"
+PROJECT_ROOT = REPO_ROOT / "temp"
+PROJECT_POINTER = PROJECT_ROOT / ".categorical-v1-project"
+WORK_DIR_ENV = "NEL_WORK_DIR"
 
 EXIT_OK = 0
 EXIT_FAILURE = 1
@@ -91,9 +96,13 @@ def load_settings(path: Path | None = None) -> dict:
 
 def _max_attempts_for(step_id: str, settings: dict, override: int | None) -> int:
     if override is not None:
-        return override
-    table = settings.get("max_attempts") or {}
-    return int(table.get(step_id, table.get("default", 3)))
+        attempts = override
+    else:
+        table = settings.get("max_attempts") or {}
+        attempts = int(table.get(step_id, table.get("default", 3)))
+    if attempts < 1:
+        raise StepFailure(f"max attempts for step {step_id} must be at least 1; found {attempts}")
+    return attempts
 
 
 class StepFailure(RuntimeError):
@@ -128,6 +137,51 @@ def _atomic_write(path: Path, text: str) -> Path:
     temp.write_text(text, encoding="utf-8")
     os.replace(temp, path)
     return path
+
+
+def _write_project_pointer(work: Path) -> None:
+    """Persist the current repository-local project selected by setup --project."""
+    work = Path(work).resolve()
+    project_root = PROJECT_ROOT.resolve()
+    if not work.is_relative_to(project_root):
+        raise StepFailure(f"project work directory must be under {project_root}: {work}")
+    _atomic_write(PROJECT_POINTER, str(work) + "\n")
+
+
+def _validated_implicit_work_dir(path: Path, *, source: str) -> Path:
+    work = Path(path).expanduser().resolve()
+    if not work.is_dir():
+        raise StepFailure(f"{source} points to a missing work directory: {work}")
+    state = read_workflow_state(work)
+    if state.get("workflow_id") != WORKFLOW_ID:
+        raise StepFailure(
+            f"{source} points to workflow {state.get('workflow_id')!r}, not {WORKFLOW_ID!r}: {work}"
+        )
+    return work
+
+
+def resolve_cli_work_dir(explicit: Path | None) -> Path:
+    """Resolve explicit path, shell override, then the current project pointer."""
+    if explicit is not None:
+        return Path(explicit).expanduser().resolve()
+
+    environment = os.environ.get(WORK_DIR_ENV, "").strip()
+    if environment:
+        return _validated_implicit_work_dir(Path(environment), source=WORK_DIR_ENV)
+
+    if PROJECT_POINTER.is_file():
+        recorded = PROJECT_POINTER.read_text(encoding="utf-8").strip()
+        if not recorded:
+            raise StepFailure(f"project pointer is blank: {PROJECT_POINTER}")
+        work = (PROJECT_ROOT / recorded).expanduser().resolve()
+        if not work.is_relative_to(PROJECT_ROOT.resolve()):
+            raise StepFailure(f"project pointer escapes repository temp directory: {work}")
+        return _validated_implicit_work_dir(work, source=str(PROJECT_POINTER))
+
+    raise StepFailure(
+        f"--work-dir is required unless {WORK_DIR_ENV} is set or setup --project has selected "
+        f"a current project in {PROJECT_POINTER}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -230,9 +284,11 @@ def build_bundle(
     if previous_output is not None:
         sections.append(
             "The previous attempt shown above failed the deterministic validator with "
-            "the error shown. Revise that text to correct the reported defect. Change "
-            "nothing else: preserve every rule ID, every retained statement, every "
-            "citation marker and the existing ordering."
+            "the error(s) shown. Repair every defect listed inside <validator-error> in "
+            "this one revision. Preserve fields not implicated by a listed defect, "
+            "including every rule ID, valid statement, valid citation marker and the "
+            "existing ordering. Before returning, scan the complete output and confirm "
+            "that none of the listed defects remains."
         )
         sections.append("")
         sections.append(f"Output the complete corrected content of `{step.output}` only.")
@@ -358,7 +414,12 @@ def run_model_step(
     settings = load_settings()
     attempts = _max_attempts_for(step.step_id, settings, max_attempts)
     growth = float(settings.get("max_tokens_growth_on_truncation", 1.5))
-    ceiling = int(settings.get("max_tokens_ceiling", 32768))
+    configured_ceiling = int(settings.get("max_tokens_ceiling", 32768))
+    # A growth ceiling below the profile's starting cap must never reduce the
+    # active response budget or make the first truncation unrecoverable. Allow
+    # at least one configured growth increment from the profile's initial cap.
+    minimum_growth_ceiling = int(binding.max_tokens * growth)
+    ceiling = max(minimum_growth_ceiling, configured_ceiling)
     bundle_dir = _bundle_dir(work, step.step_id)
     last_error: str | None = None
     last_output: str | None = None
@@ -498,11 +559,18 @@ def run_setup(args: argparse.Namespace) -> int:
         # uniform across modes, so mirror the case text that setup already wrote.
         shutil.copyfile(work / "case.md", case_source)
 
+    # Select the project only after all setup validation and file operations have
+    # succeeded, so a failed setup cannot replace a known-good current project.
+    if args.project:
+        _write_project_pointer(work)
+
     print(work)
     if demo_case is not None:
         print(demo_case.relative_to(REPO_ROOT))
         print(demo_expected.relative_to(REPO_ROOT))
     print(f"MODEL_PROFILE={profile_id}")
+    if args.project:
+        print(f"{WORK_DIR_ENV}={work}")
     return EXIT_OK
 
 
@@ -534,7 +602,12 @@ def package_bundles(work: Path, output: Path | None = None) -> Path | None:
 # ---------------------------------------------------------------------------
 
 
-def run_all(work: Path, profile: str | None, python: str) -> int:
+def run_all(
+    work: Path,
+    profile: str | None,
+    python: str,
+    max_attempts: int | None = None,
+) -> int:
     work = Path(work)
     state = _require_categorical(work)
     mode = state.get("mode")
@@ -542,7 +615,7 @@ def run_all(work: Path, profile: str | None, python: str) -> int:
         step = model_steps.get_step(step_id)
         if isinstance(step, model_steps.ModelStep):
             code = run_model_step(
-                step, work, profile=profile, complete=False, max_attempts=None
+                step, work, profile=profile, complete=False, max_attempts=max_attempts
             )
         else:
             code = run_deterministic_step(step, work, python)
@@ -603,20 +676,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_setup(args)
 
         if args.all:
-            if args.work_dir is None:
-                raise StepFailure("--all requires --work-dir")
-            return run_all(args.work_dir, args.profile, args.python)
-
-        if args.work_dir is None:
-            raise StepFailure("--work-dir is required")
-
-        if args.step_id == "package-bundles":
-            path = package_bundles(args.work_dir, args.output)
-            if path is None:
-                print("no model-step bundles to package")
-            else:
-                print(path)
-            return EXIT_OK
+            work_dir = resolve_cli_work_dir(args.work_dir)
+            return run_all(work_dir, args.profile, args.python, args.max_attempts)
 
         if args.step_id == "settings":
             settings = load_settings()
@@ -624,12 +685,22 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(settings, indent=2))
             return EXIT_OK
 
+        work_dir = resolve_cli_work_dir(args.work_dir)
+
+        if args.step_id == "package-bundles":
+            path = package_bundles(work_dir, args.output)
+            if path is None:
+                print("no model-step bundles to package")
+            else:
+                print(path)
+            return EXIT_OK
+
         if args.step_id == "profile":
             registry = model_registry.load_registry()
-            profile_id = model_registry.resolve_profile(args.profile, args.work_dir, registry)
+            profile_id = model_registry.resolve_profile(args.profile, work_dir, registry)
             print(f"profile: {profile_id}")
             for role in registry["roles"]:
-                print("  " + model_registry.resolve(role, profile_id, args.work_dir, registry).describe())
+                print("  " + model_registry.resolve(role, profile_id, work_dir, registry).describe())
             return EXIT_OK
 
         if not args.step_id:
@@ -639,14 +710,14 @@ def main(argv: list[str] | None = None) -> int:
         if isinstance(step, model_steps.ModelStep):
             return run_model_step(
                 step,
-                args.work_dir,
+                work_dir,
                 profile=args.profile,
                 complete=args.complete,
                 max_attempts=args.max_attempts,
             )
         if args.complete:
             raise StepFailure(f"step {args.step_id} is deterministic; --complete does not apply")
-        return run_deterministic_step(step, args.work_dir, args.python)
+        return run_deterministic_step(step, work_dir, args.python)
 
     except (StepFailure, ValueError, KeyError, OSError) as exc:
         print(f"step failed: {exc}", file=sys.stderr)
