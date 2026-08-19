@@ -56,6 +56,7 @@
     "categories/answer-germline.yaml",
     "categories/review-germline.json",
     "categories/category-germline.yaml",
+    "synthesis/reportability-classification.yaml",
     "synthesis/reportability-review.yaml",
     "synthesis/report-facts.yaml",
     "synthesis/report-facts-quarantined.yaml",

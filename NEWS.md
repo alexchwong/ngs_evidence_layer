@@ -1,6 +1,7 @@
 # NEWS
 
 ## 0.2.3
+- Strengthened `terraced-v1` negative-statement gating with an exhaustive per-fact reportability classification contract and deterministic quarantine derivation. Resuming an older work directory without `synthesis/reportability-classification.yaml` reruns the reportability stage before synthesis.
 - Added `WORKFLOW.md` documenting workflow isolation, cloning, modification, validation, and promotion.
 - Refactored shared workflow scripts for better separation of workflows. Note `prompt/workflow/` prompts remain shared between workflows. 
 - Expanded the active corpus from 12 to 29 publications across diagnosis, prognosis, treatment, MRD, CHIP, CCUS, and germline evidence.

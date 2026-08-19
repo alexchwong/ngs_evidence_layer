@@ -46,4 +46,6 @@ For prognosis, treatment, MRD and germline calls, return a YAML list only:
 
 An empty list is valid when that category has no reportable patient-level facts.
 
+For germline specifically, return exactly `[]` unless a positive germline suspicion, testing recommendation, donor implication, or constitutional-origin uncertainty that affects patient management is supported. Do not return a fact stating that no germline concern exists, that no germline fact is reportable, or that the findings are consistent with somatic origin. Do not infer somatic or constitutional origin from tumour-only VAF, a normal karyotype, absent variants, or the absence of supplied family history.
+
 Return YAML only, with no code fence or commentary.

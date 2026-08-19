@@ -558,11 +558,15 @@ Step 6 contains several deliberately separated operations.
 
 A constrained pass identifies routine negative, absent, non-applicable and no-finding statements that should not clutter the clinical report.
 
-It returns only fact IDs to quarantine; it cannot rewrite the accepted clinical state.
+It must classify every accepted fact exactly once as `positive_conclusion`, `routine_negative`, or `exceptional_negative`; it cannot rewrite the accepted clinical state. A deterministic validator requires exact manifest coverage and rejects missing, duplicate or unknown fact IDs and unknown classes. The exhaustive model decisions are retained in `synthesis/reportability-classification.yaml`.
+
+The CLI then derives `synthesis/reportability-review.yaml`, placing only `routine_negative` fact IDs into the existing `quarantine_fact_ids` contract in accepted-manifest order. This preserves the downstream split and safety-rescue behaviour while making silent model omission structurally invalid.
 
 The workflow writes:
 
 ```text
+synthesis/reportability-classification.yaml
+synthesis/reportability-review.yaml
 synthesis/report-facts.yaml
 synthesis/report-facts-quarantined.yaml
 ```
@@ -922,13 +926,23 @@ evidence/evidence-mrd.md
 evidence/evidence-germline.md
 ```
 
-## 8.7 `synthesis/report-facts.yaml`
+## 8.7 `synthesis/reportability-classification.yaml`
+
+The model-authored exhaustive classification of every accepted fact as `positive_conclusion`, `routine_negative`, or `exceptional_negative`.
+
+Use this to inspect the reportability decision itself and to distinguish semantic misclassification from an invalid incomplete response. Missing facts cannot pass structural validation.
+
+## 8.8 `synthesis/reportability-review.yaml`
+
+The code-derived compatibility contract containing `quarantine_fact_ids` for facts classified `routine_negative`, ordered by the accepted fact manifest.
+
+## 8.9 `synthesis/report-facts.yaml`
 
 The retained accepted facts handed to report synthesis after the reportability filter.
 
 Use this to determine whether an accepted clinical fact was eligible for ordinary report generation.
 
-## 8.8 `synthesis/report-facts-quarantined.yaml`
+## 8.10 `synthesis/report-facts-quarantined.yaml`
 
 Accepted facts deliberately held out of ordinary synthesis because they were classified as routine negative/non-reportable material.
 
@@ -936,21 +950,21 @@ This is the key file when asking:
 
 > Why did the report not mention this accepted clinical fact?
 
-## 8.9 `synthesis/report-draft-pre-rescue.md`
+## 8.11 `synthesis/report-draft-pre-rescue.md`
 
 The report written from retained facts before exceptional-negative rescue.
 
-## 8.10 `synthesis/negative-safety-review.yaml`
+## 8.12 `synthesis/negative-safety-review.yaml`
 
 Records the high-threshold decision about whether any quarantined fact had to be restored to prevent a materially misleading report.
 
-## 8.11 `synthesis/report-draft.md`
+## 8.13 `synthesis/report-draft.md`
 
 The final uncited report text after any exceptional-negative rescue.
 
 This is the prose that the final citation-alignment stage must preserve.
 
-## 8.12 `synthesis/report-citation-alignment.yaml`
+## 8.14 `synthesis/report-citation-alignment.yaml`
 
 The semantic mapping from final report sentence IDs back to accepted fact IDs.
 
@@ -958,7 +972,7 @@ This is the key audit layer for the question:
 
 > Why does this report sentence carry these references?
 
-## 8.13 `synthesis/report-cited.md`
+## 8.15 `synthesis/report-cited.md`
 
 The immediate cited representation before final Vancouver rendering.
 
@@ -975,7 +989,11 @@ Useful when isolating whether a citation problem occurred during sentence-to-fac
        ↓
 4. relevant evidence/evidence-*.md
        ↓
-5. synthesis/report-facts.yaml
+5. synthesis/reportability-classification.yaml
+       ↓
+6. synthesis/reportability-review.yaml
+       ↓
+7. synthesis/report-facts.yaml
    or report-facts-quarantined.yaml
 ```
 
@@ -1120,6 +1138,10 @@ categories/category-<domain>.yaml
 FINAL REPORT / CITATION ERROR
 categories/category-*.yaml
     ↓
+synthesis/reportability-classification.yaml
+    ↓
+synthesis/reportability-review.yaml
+    ↓
 synthesis/report-facts*.yaml
     ↓
 synthesis/report-draft*.md
@@ -1162,6 +1184,8 @@ POWER USER / CLINICAL AUDIT
 │
 ├── categories/category-*.yaml       ← accepted clinical conclusions
 ├── evidence/evidence-*.md           ← evidence available to each domain
+├── synthesis/reportability-classification.yaml
+├── synthesis/reportability-review.yaml
 ├── synthesis/report-facts.yaml      ← retained for synthesis
 ├── synthesis/report-facts-quarantined.yaml
 ├── synthesis/report-draft.md

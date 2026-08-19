@@ -1,16 +1,30 @@
 # Terraced-v1 negative-reportability filter
 
-Identify accepted clinical facts that are routine negative, absent, non-applicable, or no-finding statements that should be quarantined before final report synthesis.
+Classify every accepted clinical fact for reportability before final report synthesis.
 
-Return only:
+Return exactly one classification row for every supplied `fact_id`, including facts that are clearly reportable. Preserve the supplied fact order and return only:
 
 ```yaml
-quarantine_fact_ids:
-  - prognosis-2
-  - treatment-3
+classifications:
+  - fact_id: diagnosis-1
+    class: positive_conclusion
+  - fact_id: mrd-2
+    class: routine_negative
+  - fact_id: germline-1
+    class: routine_negative
+  - fact_id: diagnosis-3
+    class: exceptional_negative
 ```
 
-An empty list is valid.
+Use exactly one of these closed class values:
+
+- `positive_conclusion` — a positive patient-level conclusion, including one derived from negative premises;
+- `routine_negative` — quarantine material under the routine-negative policy below; or
+- `exceptional_negative` — a negative that independently qualifies under the exceptional-negative rule below and must remain eligible for reporting.
+
+It is valid for no fact to be classified `routine_negative`, but the `classifications` list itself must still contain every supplied fact exactly once.
+
+Examples: an MRD fact saying that DNMT3A is unsuitable or not reportable as a marker is `routine_negative` when appropriate positive NPM1 or FLT3 marker guidance can be reported and the caution does not independently change management. A fact saying that no germline concern or no germline-predisposition fact is reportable is `routine_negative`; this includes a no-concern paragraph reframed as reassurance that findings are consistent with somatic origin. A dedicated negative result that independently resolves a supplied patient-specific diagnosis, requested test, or management decision may instead be `exceptional_negative`.
 
 Classify the patient-level fact, not the importance of the question and not whether evidence exists for it.
 
@@ -43,7 +57,8 @@ Also retain a clinically useful negative or cautionary interpretation of a speci
 
 ## Strict operation boundary
 
-- Select only supplied `fact_id` values.
+- Classify every supplied `fact_id` exactly once; do not omit facts you consider reportable.
+- Use only supplied `fact_id` values and the three allowed class values.
 - Do not rewrite, merge, add, or delete facts yourself.
 - Use `reason` only as context for classifying the associated fact.
 - Do not make citation decisions and do not search for new evidence.

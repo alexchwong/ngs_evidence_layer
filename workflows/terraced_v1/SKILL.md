@@ -205,7 +205,9 @@ Run until exit `0`:
 <python> workflows/terraced_v1/step.py 6 --work-dir <work-dir>
 ```
 
-First, a reportability model pass receives stable accepted fact IDs plus `fact` and `reason` and returns only `quarantine_fact_ids`. Apply the workflow-local negative-reportability policy: routine absence, non-applicability, unmet-premise, no-action, no-MRD, no-germline and similar default-negative statements are quarantined; exceptional negatives that independently contradict/exclude a patient-specific diagnosis remain reportable.
+First, a reportability model pass receives stable accepted fact IDs plus `fact` and `reason` and writes `synthesis/reportability-classification.yaml`, classifying every supplied fact exactly once as `positive_conclusion`, `routine_negative`, or `exceptional_negative`. The structural validator requires exact accepted-manifest coverage, rejects duplicate or unknown IDs and classes, and therefore prevents a fact from becoming reportable merely because the model omitted it. Apply the workflow-local negative-reportability policy: routine absence, non-applicability, unmet-premise, no-action, no-MRD, no-germline and similar default-negative statements are `routine_negative`; exceptional negatives that independently contradict/exclude a patient-specific diagnosis remain reportable as `exceptional_negative`.
+
+The CLI deterministically derives `synthesis/reportability-review.yaml` by placing only `routine_negative` fact IDs into `quarantine_fact_ids`, in accepted-manifest order. This preserves the downstream quarantine and exceptional-negative rescue contracts while retaining the exhaustive model decisions for inspection and resume validation.
 
 The CLI performs the split deterministically without changing any `categories/category-*.yaml`. It writes `synthesis/report-facts.yaml` with retained fact text only and `synthesis/report-facts-quarantined.yaml` with the quarantined source facts and provenance.
 

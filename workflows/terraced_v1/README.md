@@ -314,11 +314,12 @@ or:
 
 ## 7. Negative-reportability quarantine and retained-facts synthesis
 
-Once all categories are accepted, a dedicated reportability pass receives stable fact IDs plus `fact` and `reason` only. It identifies routine negative, absent, non-applicable, and no-finding statements using the same patient-level principles as `diagnosis-first-v1` reporting policy. The model returns only `quarantine_fact_ids`; it cannot rewrite facts.
+Once all categories are accepted, a dedicated reportability pass receives stable fact IDs plus `fact` and `reason` only. It classifies every supplied fact exactly once as `positive_conclusion`, `routine_negative`, or `exceptional_negative` using the same patient-level principles as `diagnosis-first-v1` reporting policy. Exhaustive manifest coverage is validated deterministically, so a fact cannot be silently omitted from the decision. The model cannot rewrite facts.
 
 The CLI deterministically writes:
 
-- `reportability-review.yaml`;
+- `reportability-classification.yaml`, preserving the model's inspectable decision for every fact;
+- `reportability-review.yaml`, derived from facts classified `routine_negative`;
 - `report-facts-quarantined.yaml`, preserving each quarantined fact's original `fact_id`, domain, fact, reason and citation; and
 - `report-facts.yaml`, containing only retained fact text for synthesis.
 
@@ -593,6 +594,7 @@ New terraced-v1 work directories keep only user-facing/root control files at the
 │   ├── repair-<domain>-<n>.yaml
 │   └── category-<domain>.yaml
 ├── synthesis/
+│   ├── reportability-classification.yaml
 │   ├── reportability-review.yaml
 │   ├── report-facts.yaml
 │   ├── report-facts-quarantined.yaml

@@ -55,6 +55,15 @@ class TerracedWorkflowTests(unittest.TestCase):
             )
         return draft
 
+    def _reportability_classifications(self, work: Path, **classes: str) -> list[dict[str, str]]:
+        return [
+            {
+                "fact_id": row["fact_id"],
+                "class": classes.get(row["fact_id"], "positive_conclusion"),
+            }
+            for row in runtime.accepted_fact_manifest(work)
+        ]
+
     def test_default_structural_attempts_is_ten(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             missing = Path(tmp_dir) / "missing.json"
@@ -547,7 +556,13 @@ class TerracedWorkflowTests(unittest.TestCase):
 
             def model_call(_work, *, call_id, messages, output, **_kwargs):
                 if call_id == "reportability":
-                    output.write_text("quarantine_fact_ids: []\n", encoding="utf-8")
+                    output.write_text(
+                        yaml.safe_dump(
+                            {"classifications": self._reportability_classifications(_work)},
+                            sort_keys=False,
+                        ),
+                        encoding="utf-8",
+                    )
                 elif call_id.startswith("summary-"):
                     captured_summary_messages.append(messages)
                     output.write_text("**Germline**\n\nNo germline fact is reportable.\n", encoding="utf-8")
@@ -600,6 +615,137 @@ class TerracedWorkflowTests(unittest.TestCase):
             self.assertIsNone(quarantined["diagnosis"][0]["citation"])
             self.assertEqual(quarantined["mrd"][0]["fact_id"], "mrd-1")
             self.assertEqual((work / "category-diagnosis.yaml").read_bytes(), original)
+
+    def test_reportability_classification_requires_every_supplied_fact(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            classification = work / "classification.yaml"
+            rows = self._reportability_classifications(work)
+            rows = [row for row in rows if row["fact_id"] != "mrd-1"]
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError) as raised:
+                step._reportability_classification_validator(work, classification)
+
+            message = str(raised.exception)
+            self.assertIn("mrd-1", message)
+            self.assertIn("every fact", message)
+
+    def test_reportability_classification_rejects_unknown_and_duplicate_ids(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            classification = work / "classification.yaml"
+            rows = self._reportability_classifications(work)
+            rows.extend(
+                [
+                    dict(rows[0]),
+                    {"fact_id": "unknown-1", "class": "routine_negative"},
+                ]
+            )
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError) as raised:
+                step._reportability_classification_validator(work, classification)
+
+            message = str(raised.exception)
+            self.assertIn("duplicate fact_id", message)
+            self.assertIn("unknown-1", message)
+
+    def test_reportability_classification_rejects_unknown_class_value(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            classification = work / "classification.yaml"
+            rows = self._reportability_classifications(work, **{"mrd-1": "negative"})
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError) as raised:
+                step._reportability_classification_validator(work, classification)
+
+            message = str(raised.exception)
+            self.assertIn("negative", message)
+            for klass in step.REPORTABILITY_CLASSES:
+                self.assertIn(klass, message)
+
+    def test_reportability_review_is_derived_from_routine_negative_class_only(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            step.layout.ensure_dirs(work)
+            classification = step.layout.synthesis(work, "reportability-classification.yaml")
+            rows = self._reportability_classifications(
+                work,
+                **{
+                    "diagnosis-2": "routine_negative",
+                    "mrd-1": "exceptional_negative",
+                },
+            )
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            review = step._derive_reportability_review(work, classification)
+            self.assertEqual(
+                yaml.safe_load(review.read_text(encoding="utf-8")),
+                {"quarantine_fact_ids": ["diagnosis-2"]},
+            )
+            retained, _ = runtime.apply_reportability_review(work, step._quarantine_fact_ids(work))
+            retained_doc = yaml.safe_load(retained.read_text(encoding="utf-8"))
+            self.assertEqual(retained_doc["mrd"][0]["fact"], "mrd fact.")
+
+    def test_reportability_classification_orders_derived_quarantine_by_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            step.layout.ensure_dirs(work)
+            classification = step.layout.synthesis(work, "reportability-classification.yaml")
+            rows = self._reportability_classifications(
+                work,
+                **{
+                    "diagnosis-3": "routine_negative",
+                    "prognosis-1": "routine_negative",
+                    "germline-1": "routine_negative",
+                },
+            )
+            classification.write_text(
+                yaml.safe_dump({"classifications": list(reversed(rows))}, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            review = step._derive_reportability_review(work, classification)
+            self.assertEqual(
+                yaml.safe_load(review.read_text(encoding="utf-8"))["quarantine_fact_ids"],
+                ["diagnosis-3", "prognosis-1", "germline-1"],
+            )
+
+    def test_empty_germline_category_produces_no_germline_heading(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            (work / "category-germline.yaml").write_text("[]\n", encoding="utf-8")
+            draft = work / "report-draft.md"
+            draft.write_text("**Diagnosis**\n\nFixture diagnosis.\n", encoding="utf-8")
+
+            self.assertEqual(step._summary_validator(draft), "uncited report draft validated")
+            self.assertNotIn("**Germline**", draft.read_text(encoding="utf-8"))
+
+    def test_answer_prompt_requires_empty_germline_list_when_no_concern(self):
+        prompt = (REPO_ROOT / "workflows" / "terraced_v1" / "prompts" / "terrace_answer.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("For germline specifically, return exactly `[]`", prompt)
+        self.assertIn("Do not return a fact stating that no germline concern exists", prompt)
 
     def test_negative_safety_restores_only_selected_quarantined_facts_deterministically(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

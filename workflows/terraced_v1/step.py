@@ -947,6 +947,104 @@ def _reportability_validator(work: Path, path: Path) -> str:
     return "reportability review validated"
 
 
+REPORTABILITY_CLASSES = (
+    "positive_conclusion",
+    "routine_negative",
+    "exceptional_negative",
+)
+
+
+def _reportability_classification_validator(work: Path, path: Path) -> str:
+    document = _load_yaml_object(path, "reportability classification")
+    issues = []
+    if set(document) != {"classifications"}:
+        if "classifications" not in document:
+            issues.append(
+                "Top level — Problem: missing classifications. Required fix: return exactly classifications."
+            )
+        unexpected = sorted(set(document) - {"classifications"})
+        if unexpected:
+            issues.append(
+                f"Top level — Problem: unexpected field(s): {', '.join(unexpected)}. "
+                "Required fix: remove them; only classifications is allowed."
+            )
+    rows = document.get("classifications")
+    if not isinstance(rows, list):
+        issues.append(
+            f"classifications — Problem: expected a list, received {type(rows).__name__}. "
+            "Required fix: return one row per supplied accepted fact."
+        )
+        _raise_model_validation_issues("reportability classification", issues)
+
+    manifest = runtime.accepted_fact_manifest(work)
+    known_order = [row["fact_id"] for row in manifest]
+    known = set(known_order)
+    allowed = ", ".join(REPORTABILITY_CLASSES)
+    seen = set()
+    for index, row in enumerate(rows):
+        location = f"classifications[{index}]"
+        if not isinstance(row, dict) or set(row) != {"fact_id", "class"}:
+            issues.append(
+                f"{location} — Problem: expected a mapping with exactly fact_id and class. "
+                "Required fix: return one mapping per fact with those two keys only."
+            )
+            continue
+        fact_id = row["fact_id"]
+        klass = row["class"]
+        if not isinstance(fact_id, str) or fact_id not in known:
+            issues.append(
+                f"{location}.fact_id — Problem: {fact_id!r} is not a supplied accepted fact ID. "
+                "Required fix: use only fact_id values from the supplied accepted_facts manifest."
+            )
+        elif fact_id in seen:
+            issues.append(
+                f"{location}.fact_id — Problem: duplicate fact_id {fact_id!r}. "
+                "Required fix: classify each supplied fact exactly once."
+            )
+        else:
+            seen.add(fact_id)
+        if klass not in REPORTABILITY_CLASSES:
+            issues.append(
+                f"{location}.class — Problem: {klass!r} is not an allowed class. "
+                f"Required fix: use exactly one of: {allowed}."
+            )
+
+    missing = [fact_id for fact_id in known_order if fact_id not in seen]
+    if missing:
+        issues.append(
+            f"classifications — Problem: {len(missing)} supplied fact(s) were not classified: "
+            f"{', '.join(missing)}. Required fix: return exactly one classification row for every "
+            "fact in the supplied accepted_facts manifest, including facts you consider clearly reportable."
+        )
+
+    _raise_model_validation_issues("reportability classification", issues)
+    return "reportability classification validated"
+
+
+def _derive_reportability_review(work: Path, classification: Path) -> Path:
+    """Validate exhaustive model classifications and derive the existing quarantine contract."""
+    _reportability_classification_validator(work, classification)
+    document = yaml.safe_load(_read(classification))
+    classes = {row["fact_id"]: row["class"] for row in document["classifications"]}
+    quarantine = [
+        row["fact_id"]
+        for row in runtime.accepted_fact_manifest(work)
+        if classes[row["fact_id"]] == "routine_negative"
+    ]
+    review = layout.synthesis(work, "reportability-review.yaml")
+    _atomic_write(
+        review,
+        yaml.safe_dump(
+            {"quarantine_fact_ids": quarantine},
+            sort_keys=False,
+            allow_unicode=True,
+            width=100,
+        ),
+    )
+    _reportability_validator(work, review)
+    return review
+
+
 def _quarantine_fact_ids(work: Path) -> set[str]:
     path = layout.synthesis(work, "reportability-review.yaml")
     if not path.is_file():
@@ -1498,8 +1596,8 @@ def step_6(work: Path, profile: str | None) -> int:
     layout.ensure_dirs(work)
     runtime.prepare_combined_evidence(work)
 
-    reportability = layout.synthesis(work, "reportability-review.yaml")
-    if not reportability.is_file() or _profile(work, profile, "reportability").is_self:
+    classification = layout.synthesis(work, "reportability-classification.yaml")
+    if not classification.is_file() or _profile(work, profile, "reportability").is_self:
         messages = [
             {"role": "system", "content": model_client.SYSTEM_PROMPT},
             {
@@ -1517,10 +1615,11 @@ def step_6(work: Path, profile: str | None) -> int:
             call_id="reportability",
             role="reportability",
             messages=messages,
-            output=reportability,
-            validator=lambda path: _reportability_validator(work, path),
+            output=classification,
+            validator=lambda path: _reportability_classification_validator(work, path),
             profile=profile,
         )
+    _derive_reportability_review(work, classification)
     quarantine = _quarantine_fact_ids(work)
     runtime.apply_reportability_review(work, quarantine)
 
