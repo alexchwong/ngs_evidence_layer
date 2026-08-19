@@ -472,7 +472,14 @@ def _base_context(work: Path, domain: str) -> str:
         _read(evidence),
     ]
     if domain == "diagnosis":
-        sections.extend(["## Allowed final schema_disease routing values", _read(layout.input(work, "allowed-schema-diseases.json"))])
+        sections.extend(
+            [
+                "## Allowed provisional CMC values",
+                _read(layout.input(work, "case-major-categories.json")),
+                "## Allowed final schema_disease routing values",
+                _read(layout.input(work, "allowed-schema-diseases.json")),
+            ]
+        )
     return "\n\n".join(section.rstrip() for section in sections) + "\n"
 
 

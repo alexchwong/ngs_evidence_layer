@@ -26,7 +26,8 @@ facts:
     reason: "..."
 ```
 
-- `provisional_cmcs` is the current set of broad diagnostic retrieval categories still seriously entertained. Add a CMC when a credible second disease family or alternative requires additional diagnostic evidence.
+- `provisional_cmcs` is the current set of broad diagnostic retrieval categories still seriously entertained. Every entry must be an exact value from the supplied **Allowed provisional CMC values** list. Add a CMC only when a credible second disease family or alternative requires additional diagnostic evidence.
+- A narrower diagnosis within an existing disease family does not add another CMC. For example, `schema_disease: APL` is routed under the broad `AML` CMC: narrowing AML to APL leaves `provisional_cmcs` as `[AML]`; never append `APL` to that list.
 - `diagnoses` is the current accepted WHO5 diagnostic state. It may be empty before the final diagnostic terrace. At the final diagnostic terrace it must contain one or more diagnoses.
 - `schema_disease` is an exact canonical disease-vocabulary routing value supplied in the diagnostic context. It must represent WHO5-compatible routing; never use the ICC-only `MDS/AML` value as the accepted final diagnosis.
 - `narrow_diagnosis` is natural patient-level WHO5 wording and may be more specific than `schema_disease`.

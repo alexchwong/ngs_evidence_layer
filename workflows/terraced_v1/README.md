@@ -196,9 +196,12 @@ The case is captured and structured into `case-input.json` with:
 - one or more provisional case-major categories (`provisional_cmcs`);
 - the supplied provisional disease wording;
 - detected genes; and
+- a mandatory one-line, source-faithful detected-variant summary (`detected_variants_summary`); and
 - preserved patient-level facts.
 
 The provisional CMC is a **diagnostic retrieval scaffold only**. It is not the final diagnosis.
+
+The detected-variant summary records only what the supplied patient-specific NGS result detected, without interpretation. An explicitly negative result is recorded as `No pathogenic variants were detected on NGS.`; when no NGS result was supplied, it is recorded as `No NGS result was supplied.` rather than inferring a negative result. Step 6 deterministically prepends this exact sentence to `report-final.md`, outside reportability filtering, report synthesis and citation alignment, so it cannot be omitted or paraphrased.
 
 ## 2. Broad diagnostic retrieval
 

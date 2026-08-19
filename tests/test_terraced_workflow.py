@@ -193,6 +193,71 @@ class TerracedWorkflowTests(unittest.TestCase):
                     path, "diagnosis", final=True, aligned=False
                 )
 
+    def test_diagnosis_prompt_separates_broad_cmcs_from_apl_schema_disease(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            step.layout.ensure_dirs(work)
+            fixtures = {
+                "case.md": "PML::RARA-positive acute myeloid leukaemia.\n",
+                "case-input.json": json.dumps({"provisional_cmcs": ["AML"]}),
+                "ngs-panel-scope.md": "Assay scope.\n",
+                "case-major-categories.json": json.dumps(["AML", "MDS"]),
+                "allowed-schema-diseases.json": json.dumps(["AML", "APL"]),
+            }
+            for name, content in fixtures.items():
+                step.layout.input(work, name, existing=False).write_text(content, encoding="utf-8")
+            step.layout.evidence(work, "evidence-diagnosis.md", existing=False).write_text(
+                "Diagnostic evidence.\n", encoding="utf-8"
+            )
+
+            prompt = (
+                (step.PROMPTS / "terrace_answer.md").read_text(encoding="utf-8")
+                + "\n\n"
+                + step._base_context(work, "diagnosis")
+            )
+            cmc_heading = prompt.index("## Allowed provisional CMC values")
+            schema_heading = prompt.index("## Allowed final schema_disease routing values")
+            self.assertLess(cmc_heading, schema_heading)
+            self.assertIn('["AML", "MDS"]', prompt[cmc_heading:schema_heading])
+            self.assertIn('["AML", "APL"]', prompt[schema_heading:])
+            self.assertIn("`schema_disease: APL` is routed under the broad `AML` CMC", prompt)
+            self.assertIn("leaves `provisional_cmcs` as `[AML]`", prompt)
+
+            invalid = work / "apl-as-cmc.yaml"
+            invalid.write_text(
+                yaml.safe_dump(
+                    {
+                        "provisional_cmcs": ["AML", "APL"],
+                        "diagnoses": [
+                            {"schema_disease": "APL", "narrow_diagnosis": "APL with PML::RARA"}
+                        ],
+                        "facts": [{"fact": "APL is diagnosed.", "reason": "PML::RARA is present."}],
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError) as raised:
+                runtime.validate_category_answer(invalid, "diagnosis", final=True, aligned=False)
+            feedback = str(raised.exception)
+            self.assertIn("'APL' is a valid schema_disease but is not an allowed broad CMC", feedback)
+            self.assertIn("Allowed provisional CMC values:", feedback)
+            self.assertIn("'AML'", feedback)
+            self.assertIn("remove 'APL' from provisional_cmcs", feedback)
+            self.assertIn("use schema_disease: APL", feedback)
+            self.assertIn("retain provisional_cmcs: [AML]", feedback)
+
+            generic = yaml.safe_load(invalid.read_text(encoding="utf-8"))
+            generic["provisional_cmcs"] = ["NOT-A-CMC"]
+            invalid.write_text(yaml.safe_dump(generic, sort_keys=False), encoding="utf-8")
+            with self.assertRaises(ValueError) as raised:
+                runtime.validate_category_answer(invalid, "diagnosis", final=True, aligned=False)
+            feedback = str(raised.exception)
+            self.assertIn("'NOT-A-CMC' is not an allowed broad CMC", feedback)
+            self.assertIn("Allowed provisional CMC values:", feedback)
+            self.assertIn("replace it with one exact value", feedback)
+            self.assertNotIn("APL routes under", feedback)
+
     def test_case_validation_reports_all_independent_defects(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
@@ -202,6 +267,7 @@ class TerracedWorkflowTests(unittest.TestCase):
                         "provisional_cmcs": ["NOT-A-CMC", "NOT-A-CMC"],
                         "provisional_disease": "",
                         "genes": ["tp53", "tp53"],
+                        "detected_variants_summary": "two lines\nwithout a full stop",
                         "case_facts": [{"fact_id": ""}, {}],
                     }
                 ),
@@ -216,8 +282,85 @@ class TerracedWorkflowTests(unittest.TestCase):
             self.assertIn("not an allowed CMC", message)
             self.assertIn("provisional_disease", message)
             self.assertIn("non-empty string", message)
+            self.assertIn("detected_variants_summary", message)
+            self.assertIn("exactly one physical line", message)
             self.assertIn("case_facts[0].fact_id", message)
             self.assertIn("case_facts[1].fact_id", message)
+
+    def test_case_validation_requires_one_line_detected_variant_summary(self):
+        valid_case = {
+            "provisional_cmcs": ["AML"],
+            "provisional_disease": "AML",
+            "genes": ["NPM1"],
+            "detected_variants_summary": "NGS detected NPM1 p.(Trp288CysfsTer12) at 41% VAF.",
+            "case_facts": [{"fact_id": "F1"}],
+        }
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            path = work / "case-input.json"
+            path.write_text(json.dumps(valid_case), encoding="utf-8")
+            self.assertEqual(runtime.validate_case_input(work), "case-input.json validated")
+
+            for invalid in (None, "", "NGS detected NPM1\nand FLT3.", "NGS detected NPM1"):
+                case = dict(valid_case)
+                if invalid is None:
+                    case.pop("detected_variants_summary")
+                else:
+                    case["detected_variants_summary"] = invalid
+                path.write_text(json.dumps(case), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "detected_variants_summary"):
+                    runtime.validate_case_input(work)
+
+            for canonical in (
+                "No pathogenic variants were detected on NGS.",
+                "No NGS result was supplied.",
+            ):
+                case = dict(valid_case, genes=[], detected_variants_summary=canonical)
+                path.write_text(json.dumps(case), encoding="utf-8")
+                self.assertEqual(runtime.validate_case_input(work), "case-input.json validated")
+
+    def test_final_render_prepends_exact_detected_variant_summary_without_duplication(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            step.layout.ensure_dirs(work)
+            summary = "NGS detected NPM1 p.(Trp288CysfsTer12) at 41% VAF."
+            (work / "case-input.json").write_text(
+                json.dumps(
+                    {
+                        "provisional_cmcs": ["AML"],
+                        "provisional_disease": "AML",
+                        "genes": ["NPM1"],
+                        "detected_variants_summary": summary,
+                        "case_facts": [{"fact_id": "F1"}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            step.layout.synthesis(work, "report-cited.md", existing=False).write_text(
+                "**Diagnosis**\nFixture diagnosis. (no citation required)\n",
+                encoding="utf-8",
+            )
+            step.layout.evidence(work, "evidence.md", existing=False).write_text(
+                "# Evidence\n",
+                encoding="utf-8",
+            )
+            step.layout.evidence(work, "card-tags.json", existing=False).write_text(
+                "{}\n",
+                encoding="utf-8",
+            )
+            rendered_body = "**Diagnosis**  \nAML with mutated NPM1 [1].\n\n## References\n\n1. Fixture.\n"
+            with (
+                patch.object(runtime, "validate_cited_report"),
+                patch.object(runtime.report_citations, "render", return_value=rendered_body),
+            ):
+                first = runtime.render_final(work).read_text(encoding="utf-8")
+                second = runtime.render_final(work).read_text(encoding="utf-8")
+
+            expected = summary + "\n\n" + rendered_body
+            self.assertEqual(first, expected)
+            self.assertEqual(second, expected)
+            self.assertEqual(second.count(summary), 1)
+            self.assertNotIn(summary + " [", second)
 
     def test_model_retry_receives_all_errors_and_records_usage(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -179,7 +179,7 @@ def _raise_issues(context: str, issues: list[str]) -> None:
 
 def validate_case_input(work: Path) -> str:
     doc = _load_json(layout.input(Path(work), "case-input.json"))
-    expected = {"provisional_cmcs", "provisional_disease", "genes", "case_facts"}
+    expected = {"provisional_cmcs", "provisional_disease", "genes", "detected_variants_summary", "case_facts"}
     issues = []
     if not isinstance(doc, dict):
         _raise_issues(
@@ -187,7 +187,7 @@ def validate_case_input(work: Path) -> str:
             [
                 "Top level — Problem: expected one JSON object. "
                 f"Received {type(doc).__name__}. Required fix: return one object containing exactly "
-                "provisional_cmcs, provisional_disease, genes and case_facts."
+                "provisional_cmcs, provisional_disease, genes, detected_variants_summary and case_facts."
             ],
         )
     missing = sorted(expected - set(doc))
@@ -200,7 +200,8 @@ def validate_case_input(work: Path) -> str:
     if unexpected:
         issues.append(
             "Top level — Problem: unexpected field(s): " + ", ".join(unexpected) + ". "
-            "Required fix: remove these fields; only provisional_cmcs, provisional_disease, genes and case_facts are allowed."
+            "Required fix: remove these fields; only provisional_cmcs, provisional_disease, genes, "
+            "detected_variants_summary and case_facts are allowed."
         )
 
     if "genes" in doc:
@@ -264,6 +265,24 @@ def validate_case_input(work: Path) -> str:
             issues.append(
                 "provisional_disease — Problem: value is blank or not a string. "
                 "Required fix: preserve the supplied clinicopathological diagnostic wording as a non-empty string."
+            )
+
+    if "detected_variants_summary" in doc:
+        summary = doc["detected_variants_summary"]
+        if not isinstance(summary, str) or not summary.strip():
+            issues.append(
+                "detected_variants_summary — Problem: value is blank or not a string. "
+                "Required fix: supply the mandatory source-faithful NGS result sentence."
+            )
+        elif summary != summary.strip() or "\n" in summary or "\r" in summary:
+            issues.append(
+                "detected_variants_summary — Problem: expected exactly one physical line without surrounding whitespace. "
+                "Required fix: return one stripped source-faithful NGS result sentence."
+            )
+        elif not summary.endswith((".", "!", "?")):
+            issues.append(
+                "detected_variants_summary — Problem: sentence has no terminal punctuation. "
+                "Required fix: end the one-line NGS result sentence with punctuation."
             )
 
     if "case_facts" in doc:
@@ -414,9 +433,27 @@ def _validate_diagnosis_doc(doc, *, aligned: bool, final: bool) -> dict:
                 else:
                     seen.add(cmc)
                 if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
+                    allowed = list(vocab.CASE_MAJOR_CATEGORIES)
+                    if cmc == "APL":
+                        repair = (
+                            "Required fix: remove 'APL' from provisional_cmcs. APL is a narrow schema_disease "
+                            "that routes under the broad AML CMC; use schema_disease: APL and retain "
+                            "provisional_cmcs: [AML]."
+                        )
+                        problem = f"{cmc!r} is a valid schema_disease but is not an allowed broad CMC."
+                    elif cmc in vocab.CASE_DISEASE_SET:
+                        repair = (
+                            f"Required fix: remove {cmc!r} from provisional_cmcs or replace it with the exact "
+                            "broad disease-family CMC from the allowed list; keep the narrower value only in "
+                            "diagnoses[].schema_disease."
+                        )
+                        problem = f"{cmc!r} is a valid schema_disease but is not an allowed broad CMC."
+                    else:
+                        repair = "Required fix: replace it with one exact value from the allowed provisional CMC list."
+                        problem = f"{cmc!r} is not an allowed broad CMC."
                     issues.append(
-                        f"provisional_cmcs[{index}] — Problem: {cmc!r} is not an allowed CMC. "
-                        "Required fix: replace it with an exact allowed CMC value."
+                        f"provisional_cmcs[{index}] — Problem: {problem} "
+                        f"Allowed provisional CMC values: {allowed!r}. {repair}"
                     )
 
     if "diagnoses" in doc:
@@ -708,6 +745,9 @@ def render_final(work: Path) -> Path:
         layout.evidence(Path(work), "card-tags.json").read_text(encoding="utf-8"),
         require_citation_after_full_stop=True,
     )
+    validate_case_input(Path(work))
+    case_input = _load_json(layout.input(Path(work), "case-input.json"))
+    rendered = case_input["detected_variants_summary"] + "\n\n" + rendered.lstrip()
     output = layout.public(Path(work), "report-final.md")
     report_citations.atomic_write(output, rendered)
     return output
