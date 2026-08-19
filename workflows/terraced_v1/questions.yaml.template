@@ -25,14 +25,23 @@ domains:
           - Do not assume a disease-defining molecular alteration excludes dual pathology.
       - id: DX3
         question: >-
-          After applying the NGS, cytogenetic and other defining findings, does the diagnosis need
-          to change or narrow under WHO 5th edition criteria?
+          After applying the NGS, cytogenetic and other defining findings, what diagnosis is assigned
+          under WHO 5th edition criteria, and does it change or narrow the provisional diagnosis?
         guidance:
           - WHO5 is the authoritative final diagnostic classifier for this workflow.
+          - Derive the assigned diagnosis from WHO5 criteria, not from ICC criteria.
           - Apply exact blast, morphology, cytogenetic, alteration-class, VAF and exclusion requirements supplied by the evidence.
-          - ICC may inform a differential but must not replace the final WHO5 diagnosis.
           - If no myeloid neoplasm is established, consider CHIP or CCUS only when their clinicopathological criteria are met.
       - id: DX4
+        question: >-
+          What diagnosis would be assigned under ICC criteria, and is it materially different from
+          the assigned WHO 5th edition diagnosis?
+        guidance:
+          - Derive the ICC diagnosis separately from the applicable ICC criteria and use it only as a comparator.
+          - Retain an ICC comparison as a diagnostic fact only when it materially changes classification or patient-level interpretation.
+          - The assigned diagnosis, accepted diagnostic state and downstream routing must remain derived from WHO5, not ICC.
+          - An ICC-only category such as MDS/AML may be stated as the ICC comparator when supported, but must not be used as schema_disease or narrow_diagnosis.
+      - id: DX5
         question: >-
           Do precedence rules, exclusions, informative negative findings, TP53 allelic state,
           assay limitations, outstanding tests, or evidence for dual pathology alter the current interpretation?
@@ -40,12 +49,13 @@ domains:
           - Reconsider all earlier conclusions rather than appending caveats mechanically.
           - Report only limitations or negative findings that materially change the patient-level interpretation.
           - Do not infer phase, constitutional origin or clonal relationships from bulk VAF alone.
-      - id: DX5
+      - id: DX6
         question: >-
           What final WHO5 diagnosis or concurrent WHO5 diagnoses should control downstream retrieval,
           and what concise diagnostic facts should ultimately be reportable?
         guidance:
           - Return one or more accepted diagnoses only when supported.
+          - Derive every schema_disease and narrow_diagnosis from the assigned WHO5 diagnosis, never from the ICC comparator.
           - Each schema_disease must be a canonical disease-vocabulary value and must not be the ICC-only MDS/AML category.
           - narrow_diagnosis should state the patient-level WHO5 diagnosis in clinically natural wording.
 
@@ -183,7 +193,7 @@ execution_profiles:
   frontier:
     description: One model call per clinical category; intended for strong frontier models.
     groups:
-      diagnosis: [[DX1, DX2, DX3, DX4, DX5]]
+      diagnosis: [[DX1, DX2, DX3, DX4, DX5, DX6]]
       prognosis: [[PROG1, PROG2, PROG3, PROG4]]
       treatment: [[TX1, TX2, TX3, TX4]]
       mrd: [[MRD1, MRD2, MRD3, MRD4]]
@@ -191,7 +201,7 @@ execution_profiles:
   balanced:
     description: Two calls per category, preserving progressive reconsideration with lower per-call complexity.
     groups:
-      diagnosis: [[DX1, DX2], [DX3, DX4, DX5]]
+      diagnosis: [[DX1, DX2], [DX3, DX4, DX5, DX6]]
       prognosis: [[PROG1, PROG2], [PROG3, PROG4]]
       treatment: [[TX1, TX2], [TX3, TX4]]
       mrd: [[MRD1, MRD2], [MRD3, MRD4]]
@@ -199,7 +209,7 @@ execution_profiles:
   deliberate:
     description: One call per terrace; intended for weaker local models or diagnostic evaluation.
     groups:
-      diagnosis: [[DX1], [DX2], [DX3], [DX4], [DX5]]
+      diagnosis: [[DX1], [DX2], [DX3], [DX4], [DX5], [DX6]]
       prognosis: [[PROG1], [PROG2], [PROG3], [PROG4]]
       treatment: [[TX1], [TX2], [TX3], [TX4]]
       mrd: [[MRD1], [MRD2], [MRD3], [MRD4]]

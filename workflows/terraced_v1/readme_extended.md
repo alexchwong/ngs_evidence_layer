@@ -38,17 +38,17 @@ workflows/terraced_v1/questions.yaml.template
 
 A local `questions.yaml` overrides it when present.
 
-The current default contains **22 ordered questions across five clinical domains**:
+The current default contains **23 ordered questions across five clinical domains**:
 
 | Domain | Questions | Purpose |
 |---|---:|---|
-| Diagnosis | 5 | Establish the final WHO5 diagnosis or diagnoses that control downstream retrieval |
+| Diagnosis | 6 | Establish the assigned WHO5 diagnosis, compare it with ICC, and retain WHO5 for downstream retrieval |
 | Prognosis | 4 | Apply the correct disease-specific framework, then reconcile molecular modifiers |
 | Treatment | 4 | Identify exact patient-specific treatment implications and modifiers |
 | MRD | 4 | Separate marker suitability from actual follow-up MRD interpretation |
 | Germline | 5 | Assess predisposition using molecular and clinical context without overcalling tumour-only findings |
 
-## Diagnosis — DX1 to DX5
+## Diagnosis — DX1 to DX6
 
 ### DX1 — Leading diagnosis
 
@@ -64,17 +64,23 @@ The current default contains **22 ordered questions across five clinical domains
 
 ### DX3 — WHO5 molecular/classification refinement
 
-**Question:** After applying NGS, cytogenetic and other defining findings, does the diagnosis need to change or narrow under WHO 5th edition criteria?
+**Question:** After applying NGS, cytogenetic and other defining findings, what diagnosis is assigned under WHO 5th edition criteria, and does it change or narrow the provisional diagnosis?
 
-**Purpose:** Apply formal disease-defining criteria only after the initial clinicopathological hypothesis and differential have been considered. WHO5 is the authoritative final diagnostic classifier for this workflow; ICC may inform the differential but does not replace the final WHO5 diagnosis.
+**Purpose:** Apply formal disease-defining criteria only after the initial clinicopathological hypothesis and differential have been considered. WHO5 is the authoritative classifier that sets the assigned diagnostic label and accepted routing state.
 
-### DX4 — Exceptions, exclusions and limitations
+### DX4 — ICC comparison
+
+**Question:** What diagnosis would be assigned under ICC criteria, and is it materially different from the assigned WHO 5th edition diagnosis?
+
+**Purpose:** Derive the ICC classification separately and compare it explicitly with WHO5. A materially different ICC classification may be retained as a diagnostic fact, but it does not set or replace the assigned diagnostic label or downstream routing state.
+
+### DX5 — Exceptions, exclusions and limitations
 
 **Question:** Do precedence rules, exclusions, informative negative findings, TP53 allelic state, assay limitations, outstanding tests or evidence for dual pathology alter the interpretation?
 
 **Purpose:** Provide a deliberate exception-checking pass. The model must reconsider earlier conclusions rather than mechanically append caveats. Only limitations or negatives that materially alter the patient-level interpretation should survive as clinical facts.
 
-### DX5 — Final diagnostic routing state
+### DX6 — Final diagnostic routing state
 
 **Question:** What final WHO5 diagnosis or concurrent WHO5 diagnoses should control downstream retrieval, and what concise diagnostic facts should ultimately be reportable?
 
@@ -87,7 +93,9 @@ whole-case leading diagnosis
         ↓
 credible alternatives / concurrent disease
         ↓
-WHO5 defining criteria
+assigned WHO5 diagnosis
+        ↓
+separately derived ICC comparison
         ↓
 precedence / exclusions / limitations
         ↓
@@ -266,7 +274,7 @@ reportable suspicion + confirmation recommendation
 
 # 2. Why the questions are ordered this way
 
-The question design is intentionally asymmetric. Diagnosis receives five questions because it establishes the routing state for every later domain. Prognosis, treatment and MRD each receive four questions because they operate after diagnosis has been accepted. Germline receives five because constitutional origin can affect diagnosis, prognosis, treatment and donor selection and therefore needs both molecular and clinical qualification.
+The question design is intentionally asymmetric. Diagnosis receives six questions because it establishes the routing state for every later domain and separately compares the assigned WHO5 diagnosis with ICC. Prognosis, treatment and MRD each receive four questions because they operate after diagnosis has been accepted. Germline receives five because constitutional origin can affect diagnosis, prognosis, treatment and donor selection and therefore needs both molecular and clinical qualification.
 
 The main design principles are below.
 
@@ -292,7 +300,7 @@ gene detected → search all gene associations → construct diagnosis around th
 
 ## 2.2 Differential diagnosis before formal classification
 
-DX2 deliberately asks about competing and concurrent pathology before DX3 applies the formal WHO5 disease-defining rules.
+DX2 deliberately asks about competing and concurrent pathology before DX3 applies the formal WHO5 disease-defining rules. DX4 then derives the ICC diagnosis separately and asks whether it is materially different, without allowing ICC to replace the assigned WHO5 label.
 
 This reduces the risk that a strong molecular classifier prematurely suppresses consideration of a second genuine disease process.
 
@@ -358,7 +366,7 @@ flowchart TD
     A[Patient case] --> B[Step 1A: Capture case]
     B --> C[Step 1B: Structure case<br/>provisional CMCs + genes + preserved facts]
     C --> D[Step 2: Broad diagnostic retrieval]
-    D --> E[Step 3: Diagnosis questions<br/>DX1 → DX2 → DX3 → DX4 → DX5]
+    D --> E[Step 3: Diagnosis questions<br/>DX1 → DX2 → DX3 → DX4 → DX5 → DX6]
 
     E --> F{New credible disease family?}
     F -- Yes --> G[Expand diagnostic evidence]
@@ -473,7 +481,7 @@ The initial evidence set is deliberately broader than downstream prognosis/treat
 
 **Role:** Establish the final WHO5 diagnostic state.
 
-The model works through DX1–DX5 in the grouping defined by the active terrace profile.
+The model works through DX1–DX6 in the grouping defined by the active terrace profile.
 
 Later questions may:
 
@@ -485,7 +493,7 @@ Later questions may:
 
 If a new disease family emerges, the CLI expands diagnostic retrieval before the next question group.
 
-The final accepted state may contain one or more WHO5 diagnoses. `schema_disease` is the controlled downstream retrieval key; `narrow_diagnosis` is the patient-level WHO5 wording.
+The final accepted state may contain one or more WHO5 diagnoses. The assigned label and both diagnosis fields are derived from WHO5; ICC is comparison-only. `schema_disease` is the controlled downstream retrieval key; `narrow_diagnosis` is the patient-level WHO5 wording.
 
 ## Step 4 — Diagnosis review and evidence alignment
 
@@ -672,14 +680,14 @@ Current default grouping:
 
 ```text
 frontier
-  diagnosis:  DX1-DX5 in one call
+  diagnosis:  DX1-DX6 in one call
   prognosis:  PROG1-PROG4 in one call
   treatment:  TX1-TX4 in one call
   MRD:        MRD1-MRD4 in one call
   germline:   GL1-GL5 in one call
 
 balanced
-  diagnosis:  DX1-DX2 | DX3-DX5
+  diagnosis:  DX1-DX2 | DX3-DX6
   prognosis:  PROG1-PROG2 | PROG3-PROG4
   treatment:  TX1-TX2 | TX3-TX4
   MRD:        MRD1-MRD2 | MRD3-MRD4

@@ -218,7 +218,7 @@ The opening diagnosis questions deliberately ask:
 1. what is the most likely diagnosis; and
 2. what plausible differentials remain, including whether direct evidence supports concurrent second pathology.
 
-Later questions progressively integrate molecular disease-defining findings, precedence/exclusion rules, competing entities, germline-sensitive interpretations, and the final diagnosis.
+Later questions derive the assigned diagnosis under WHO5, separately derive the ICC diagnosis and assess whether it is materially different, then integrate precedence/exclusion rules, competing entities, germline-sensitive interpretations, and the final diagnosis.
 
 Terraces are **progressive reconsideration**. Later questions may add, remove, qualify, or replace earlier conclusions.
 
@@ -232,9 +232,9 @@ diagnoses:
     narrow_diagnosis: AML with mutated NPM1
 ```
 
-`schema_disease` is the controlled downstream retrieval key. `narrow_diagnosis` is patient-level WHO5 wording.
+`schema_disease` is the controlled downstream retrieval key. `narrow_diagnosis` is patient-level WHO5 wording. WHO5 sets the assigned diagnostic label and both accepted diagnosis fields; ICC is comparison-only and may be retained as a diagnostic fact when materially different.
 
-ICC may inform reasoning, but ICC-only `MDS/AML` is deterministically rejected as the final routing diagnosis.
+The ICC diagnosis is derived separately when requested, but it must not replace the assigned WHO5 label or routing state. ICC-only `MDS/AML` is deterministically rejected as the final routing diagnosis.
 
 ## 4. Concurrent pathology
 
@@ -474,13 +474,13 @@ Example grouping:
 execution_profiles:
   frontier:
     groups:
-      diagnosis: [[DX1, DX2, DX3, DX4, DX5]]
+      diagnosis: [[DX1, DX2, DX3, DX4, DX5, DX6]]
   balanced:
     groups:
-      diagnosis: [[DX1, DX2], [DX3, DX4, DX5]]
+      diagnosis: [[DX1, DX2], [DX3, DX4, DX5, DX6]]
   deliberate:
     groups:
-      diagnosis: [[DX1], [DX2], [DX3], [DX4], [DX5]]
+      diagnosis: [[DX1], [DX2], [DX3], [DX4], [DX5], [DX6]]
 ```
 
 ## Conversation mechanics

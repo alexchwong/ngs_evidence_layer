@@ -78,6 +78,26 @@ class TerracedWorkflowTests(unittest.TestCase):
                 flattened = [qid for group in profile["groups"][domain] for qid in group]
                 self.assertEqual(flattened, expected)
 
+    def test_diagnosis_questions_assign_who5_before_comparing_icc(self):
+        config = runtime.load_questions()
+        questions = config["domains"]["diagnosis"]["questions"]
+        self.assertEqual([row["id"] for row in questions], ["DX1", "DX2", "DX3", "DX4", "DX5", "DX6"])
+        self.assertIn("what diagnosis is assigned", questions[2]["question"].lower())
+        self.assertIn("under who 5th edition criteria", questions[2]["question"].lower())
+        self.assertIn("what diagnosis would be assigned under icc criteria", questions[3]["question"].lower())
+        self.assertIn("materially different", questions[3]["question"].lower())
+        final_guidance = " ".join(questions[5]["guidance"]).lower()
+        self.assertIn("assigned who5 diagnosis", final_guidance)
+        self.assertIn("never from the icc comparator", final_guidance)
+
+    def test_answer_prompt_declares_who5_sets_assigned_label(self):
+        prompt = (REPO_ROOT / "workflows" / "terraced_v1" / "prompts" / "terrace_answer.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("The assigned diagnostic label is the WHO5 diagnosis.", prompt)
+        self.assertIn("use it only as a comparator", prompt)
+        self.assertIn("must not set or replace the assigned diagnostic label", prompt)
+
     def test_all_shipped_provider_profiles_resolve_all_roles(self):
         registry = model_registry.load_registry()
         self.assertLessEqual(
