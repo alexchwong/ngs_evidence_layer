@@ -1,13 +1,13 @@
 {
-  "corpus_sha256": "81868249037d84388a859cab4ec57f902f9dfaedd845a5cdf85a81e4ded790a4",
+  "corpus_sha256": "53a43d1f45980f1acdd94f9b32abbfb964e99953cad493a79137d48db04c3ee3",
   "counts": {
-    "cards": 827,
-    "census_entries": 1961,
+    "cards": 952,
+    "census_entries": 2097,
     "completed_papers": 29,
     "rejected_papers": 15
   },
-  "extraction_ratio": 0.42,
-  "generated_at": "2026-08-17T11:53:20.377234+00:00",
+  "extraction_ratio": 0.45,
+  "generated_at": "2026-08-19T12:07:39.777332+00:00",
   "rejected": {
     "andrade-2018-tp53-gnomad": [
       "census schema: <root>: Additional properties are not allowed ('geneless_statements' was unexpected)",
