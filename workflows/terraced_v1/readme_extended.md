@@ -389,13 +389,16 @@ flowchart TD
     O -. each domain .-> P
 
     P --> Q[Accepted fact + reason + citation state]
-    Q --> R[Step 6: Reportability quarantine]
-    R --> S[Retained-facts synthesis]
-    S --> T[Exceptional-negative safety rescue]
-    T --> U[Sentence-to-fact alignment]
-    U --> V[Deterministic citation render]
-    V --> W[report-final.md]
-    W --> X[Step 7: Package / deliver]
+    Q --> R[Step 6A: Target-activation extraction]
+    R --> S[Diagnosis-card activation draw]
+    S --> T[Deterministic activated targets]
+    T --> U[Four-field fact classification]
+    U --> V[Deterministic reportability gates]
+    V --> W[Lossless retained-facts synthesis]
+    W --> X[Bidirectional sentence-to-fact alignment]
+    X --> Y[Deterministic citation render]
+    Y --> Z[report-final.md]
+    Z --> AA[Step 7: Package / deliver]
 ```
 
 The central separation is:
@@ -429,7 +432,7 @@ The canonical workflow is:
 3   terraced diagnosis
 4   diagnosis review + evidence alignment
 5   downstream terraced categories
-6   negative quarantine + synthesis + safety rescue + citation alignment + render
+6   target activation + deterministic reportability + lossless synthesis + citation alignment + render
 7   package/deliver
 ```
 
@@ -550,53 +553,74 @@ The accepted `category-*.yaml` files are the complete clinical source of truth f
 
 ## Step 6 — Report synthesis and deterministic rendering
 
-**Role:** Convert accepted clinical facts into concise report prose without reopening the clinical reasoning.
+**Role:** Select reportable molecular content deterministically, then compress it into prose without reopening clinical reasoning.
 
-Step 6 contains several deliberately separated operations.
+Step 6 deliberately separates context extraction, fact description, policy, prose generation and provenance. No model directly decides whether a fact is reported.
 
-### 6A. Reportability quarantine
+### 6A. Target-activation context
 
-A constrained pass identifies routine negative, absent, non-applicable and no-finding statements that should not clutter the clinical report.
+A constrained model pass reads the clinical stem, structured case and accepted diagnosis state. It extracts only:
 
-It must classify every accepted fact exactly once as `positive_conclusion`, `routine_negative`, or `exceptional_negative`; it cannot rewrite the accepted clinical state. A deterministic validator requires exact manifest coverage and rejects missing, duplicate or unknown fact IDs and unknown classes. The exhaustive model decisions are retained in `synthesis/reportability-classification.yaml`.
+- molecular targets explicitly mentioned in the stem;
+- targets previously detected;
+- targets explicitly requested or excluded; and
+- diagnoses explicitly raised in the stem.
 
-The CLI then derives `synthesis/reportability-review.yaml`, placing only `routine_negative` fact IDs into the existing `quarantine_fact_ids` contract in accepted-manifest order. This preserves the downstream split and safety-rescue behaviour while making silent model omission structurally invalid.
+The accepted diagnosis state is added deterministically. The pass does not infer phenotype-to-gene relationships and does not see reportability outcomes. Its output is `synthesis/activation-context.yaml`.
 
-The workflow writes:
+### 6B. Diagnosis-card activation
+
+The CLI performs one batched, diagnosis-focused draw using the diagnoses raised by the stem or accepted diagnosis state. In the current implementation, exact-disease `diagnosis` cards with evidence tier `guideline criterion` are eligible activation evidence. The draw is persisted as `evidence/evidence-reportability-activation.json`.
+
+Code derives diagnosis targets alteration-aware rather than blindly unioning card gene tags. Targets explicitly named in an accepted narrow diagnosis are eligible; disease-wide targets are eligible only when the molecular criterion cards share a common target component. Fusion/rearrangement cards activate the fusion target rather than each component gene independently. This prevents broad diagnoses such as AML, or an NPM1::RARA criterion card, from spuriously activating unrelated gene-level negatives. The resulting targets are unioned with direct case targets and written to `synthesis/activated-targets.yaml` with basis and provenance. The final activated-target list is therefore code-derived rather than model-authored.
+
+### 6C. Four-field fact classification and deterministic reportability
+
+A separate constrained model pass classifies every accepted fact exactly once using only four observations:
 
 ```text
-synthesis/reportability-classification.yaml
-synthesis/reportability-review.yaml
-synthesis/report-facts.yaml
-synthesis/report-facts-quarantined.yaml
+molecular
+targets
+polarity: detected | not_detected | not_a_result
+negative_consequence
 ```
 
-The original `categories/category-*.yaml` files are not changed.
+The model cannot emit `report`, `omit`, `routine_negative` or an equivalent disposition. A deterministic validator requires exact manifest coverage, stable fact order, valid target syntax and a closed polarity vocabulary. The observations are persisted in `synthesis/reportability-classification.yaml`.
 
-### 6B. Retained-facts synthesis
+Code then applies stable reportability rules and records every decision in `synthesis/reportability-decisions.yaml`. Important rules include:
 
-The summariser receives retained facts only. It does not receive:
+- non-molecular fact → quarantine;
+- absent molecular target + activated target → retain;
+- absent molecular target + no activation → quarantine;
+- mixed activated/unactivated absent targets in one inseparable fact → retain conservatively;
+- negative consequence → retain only when that domain's reporting-question policy explicitly permits it;
+- direct positive result already represented by the deterministic detected-variant summary → quarantine as duplicate;
+- direct positive result not represented by that summary → retain; and
+- other molecular interpretation → retain.
 
-- the original evidence corpus;
-- reasons;
-- citation tags; or
-- quarantined facts.
+`synthesis/reportability-review.yaml` remains the compact compatibility contract containing `quarantine_fact_ids`. `synthesis/report-facts-quarantined.yaml` preserves each removed fact together with its four observations, target-activation evidence, deterministic rule ID and generated rationale.
 
-This sharply limits its ability to invent new clinical reasoning during prose generation.
+### 6D. Lossless retained-facts synthesis
 
-### 6C. Exceptional-negative safety rescue
+The summariser receives `synthesis/report-facts.yaml` only. Its task is lossless semantic compression:
 
-A second, high-threshold audit asks whether omission of a quarantined fact would make the patient report materially misleading.
+- merge genuinely overlapping facts;
+- remove literal repetition;
+- shorten wording; and
+- improve flow.
 
-It can select only an existing quarantined fact ID and placement. The CLI inserts the original fact deterministically; the rescue model cannot author replacement prose.
+It may not discard a distinct retained fact, introduce a new clinical conclusion, alter a qualification or choose which retained facts are important. There is no model-driven negative-safety rescue.
 
-### 6D. Final sentence-to-fact alignment
+### 6E. Bidirectional sentence-to-fact alignment
 
-Each final report sentence is mapped back to one or more eligible accepted fact IDs.
+Each final report sentence is mapped back to one or more retained accepted fact IDs. The alignment model cannot rewrite the prose or search for new evidence. Deterministic validation checks both directions:
 
-The alignment model does not rewrite report prose and does not search for new evidence.
+- every report sentence must map to eligible retained fact(s); and
+- every retained fact must be covered by at least one report sentence.
 
-The intended provenance chain is:
+If a sentence is unsupported or a retained fact was omitted, synthesis is retried with exact deterministic feedback. Multiple retained facts may map to one compressed sentence.
+
+The provenance chain is:
 
 ```text
 CARD
@@ -610,25 +634,9 @@ REPORT SENTENCE
 CITATION
 ```
 
-### 6E. Deterministic citation render
+### 6F. Deterministic citation render
 
-Code, rather than the LLM, then:
-
-- validates runtime card tags;
-- deduplicates publications;
-- assigns Vancouver numbers;
-- sorts/collapses citation ranges; and
-- writes `report-final.md`.
-
-## Step 7 — Package and deliver
-
-**Role:** Produce the user-facing and troubleshooting packages appropriate to the selected mode.
-
-For `ngs-report`, the key outputs are the final report plus debug package. When model bundles exist, a separate model-step package is also produced.
-
-Validation modes additionally package the generated report for external marking.
-
----
+Code then validates runtime card tags, inherits citations from mapped accepted facts, deduplicates publications, assigns Vancouver numbers and renders the final report. The source-faithful detected-variant summary from `case-input.json` is prepended deterministically.
 
 # 5. Customisation
 
@@ -719,8 +727,8 @@ structure
 answer
 semantic_review
 evidence_alignment
+target_activation
 reportability
-negative_safety_review
 summarisation
 final_citation_alignment
 ```
@@ -926,78 +934,54 @@ evidence/evidence-mrd.md
 evidence/evidence-germline.md
 ```
 
-## 8.7 `synthesis/reportability-classification.yaml`
+## 8.7 `synthesis/activation-context.yaml`
 
-The model-authored exhaustive classification of every accepted fact as `positive_conclusion`, `routine_negative`, or `exceptional_negative`.
+The model-extracted direct activation signals from the clinical stem plus explicitly raised stem diagnoses. It records why each direct target entered consideration but does not decide reportability.
 
-Use this to inspect the reportability decision itself and to distinguish semantic misclassification from an invalid incomplete response. Missing facts cannot pass structural validation.
+## 8.8 `evidence/evidence-reportability-activation.json`
 
-## 8.8 `synthesis/reportability-review.yaml`
+The diagnosis-focused activation card draw. Use this to audit which curated diagnosis cards contributed molecular targets to activation.
 
-The code-derived compatibility contract containing `quarantine_fact_ids` for facts classified `routine_negative`, ordered by the accepted fact manifest.
+## 8.9 `synthesis/activated-targets.yaml`
 
-## 8.9 `synthesis/report-facts.yaml`
+The deterministic union of direct case activation and alteration-aware diagnosis-card-derived targets, including activation bases and provenance. This is the authoritative activated-target list used by the reportability gates.
 
-The retained accepted facts handed to report synthesis after the reportability filter.
+## 8.10 `synthesis/reportability-classification.yaml`
 
-Use this to determine whether an accepted clinical fact was eligible for ordinary report generation.
+The model-authored exhaustive four-field observations for every accepted fact: `molecular`, `targets`, `polarity`, and `negative_consequence`. The model does not supply the final disposition.
 
-## 8.10 `synthesis/report-facts-quarantined.yaml`
+## 8.11 `synthesis/reportability-decisions.yaml`
 
-Accepted facts deliberately held out of ordinary synthesis because they were classified as routine negative/non-reportable material.
+The code-derived decision for every accepted fact, including `retain`/`quarantine`, a stable rule ID, generated rationale and per-target activation status. This is the primary audit file for why a fact survived or was removed.
 
-This is the key file when asking:
+## 8.12 `synthesis/reportability-review.yaml`
 
-> Why did the report not mention this accepted clinical fact?
+The compact compatibility contract containing the deterministically derived `quarantine_fact_ids` in accepted-manifest order.
 
-## 8.11 `synthesis/report-draft-pre-rescue.md`
+## 8.13 `synthesis/report-facts.yaml`
 
-The report written from retained facts before exceptional-negative rescue.
+The retained accepted fact text handed to lossless report synthesis.
 
-## 8.12 `synthesis/negative-safety-review.yaml`
+## 8.14 `synthesis/report-facts-quarantined.yaml`
 
-Records the high-threshold decision about whether any quarantined fact had to be restored to prevent a materially misleading report.
+Accepted facts removed from ordinary synthesis. Each row preserves its original fact/reason/citation plus the four-field classification, activation evidence and deterministic decision/rationale. This is the fastest single file for answering why a particular accepted fact was omitted.
 
-## 8.13 `synthesis/report-draft.md`
+## 8.15 `synthesis/report-draft.md`
 
-The final uncited report text after any exceptional-negative rescue.
+The uncited losslessly compressed report text. There is no pre-rescue draft and no negative-safety-review artifact.
 
-This is the prose that the final citation-alignment stage must preserve.
+## 8.16 `synthesis/report-citation-alignment.yaml`
 
-## 8.14 `synthesis/report-citation-alignment.yaml`
+The semantic mapping from final report sentence IDs back to retained fact IDs. Deterministic validation requires every sentence to be supported and every retained fact to be covered.
 
-The semantic mapping from final report sentence IDs back to accepted fact IDs.
-
-This is the key audit layer for the question:
-
-> Why does this report sentence carry these references?
-
-## 8.15 `synthesis/report-cited.md`
+## 8.17 `synthesis/report-cited.md`
 
 The immediate cited representation before final Vancouver rendering.
 
-Useful when isolating whether a citation problem occurred during sentence-to-fact alignment or during final deterministic rendering.
+## 8.18 `report-final.md`
 
-### Recommended power-user audit order
+The user-facing molecular NGS report after deterministic citation rendering and prepending of the source-faithful detected-variant summary.
 
-```text
-1. report-final.md
-       ↓
-2. synthesis/report-citation-alignment.yaml
-       ↓
-3. relevant categories/category-*.yaml
-       ↓
-4. relevant evidence/evidence-*.md
-       ↓
-5. synthesis/reportability-classification.yaml
-       ↓
-6. synthesis/reportability-review.yaml
-       ↓
-7. synthesis/report-facts.yaml
-   or report-facts-quarantined.yaml
-```
-
----
 
 # 9. Developer/debugging path
 
@@ -1144,7 +1128,7 @@ synthesis/reportability-review.yaml
     ↓
 synthesis/report-facts*.yaml
     ↓
-synthesis/report-draft*.md
+synthesis/report-draft.md
     ↓
 synthesis/report-citation-alignment.yaml
     ↓
@@ -1184,7 +1168,11 @@ POWER USER / CLINICAL AUDIT
 │
 ├── categories/category-*.yaml       ← accepted clinical conclusions
 ├── evidence/evidence-*.md           ← evidence available to each domain
+├── synthesis/activation-context.yaml
+├── evidence/evidence-reportability-activation.json
+├── synthesis/activated-targets.yaml
 ├── synthesis/reportability-classification.yaml
+├── synthesis/reportability-decisions.yaml
 ├── synthesis/reportability-review.yaml
 ├── synthesis/report-facts.yaml      ← retained for synthesis
 ├── synthesis/report-facts-quarantined.yaml

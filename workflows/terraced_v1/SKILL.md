@@ -197,7 +197,7 @@ For each category it performs narrow retrieval against every accepted diagnosis,
 
 Accepted artifacts are `categories/category-prognosis.yaml`, `categories/category-treatment.yaml`, `categories/category-mrd.yaml`, and `categories/category-germline.yaml`.
 
-## Step 6 — Negative quarantine, synthesis, safety rescue, citation alignment, render
+## Step 6 — Target activation, deterministic reportability, lossless synthesis, citation alignment, render
 
 Run until exit `0`:
 
@@ -205,21 +205,21 @@ Run until exit `0`:
 <python> workflows/terraced_v1/step.py 6 --work-dir <work-dir>
 ```
 
-First, a reportability model pass receives stable accepted fact IDs plus `fact` and `reason` and writes `synthesis/reportability-classification.yaml`, classifying every supplied fact exactly once as `positive_conclusion`, `routine_negative`, or `exceptional_negative`. The structural validator requires exact accepted-manifest coverage, rejects duplicate or unknown IDs and classes, and therefore prevents a fact from becoming reportable merely because the model omitted it. Apply the workflow-local negative-reportability policy: routine absence, non-applicability, unmet-premise, no-action, no-MRD, no-germline and similar default-negative statements are `routine_negative`; exceptional negatives that independently contradict/exclude a patient-specific diagnosis remain reportable as `exceptional_negative`.
+Step 6 first runs a dedicated `target_activation` model pass over the clinical stem, structured case and accepted diagnostic state. It extracts only explicit molecular targets named/requested in the stem and explicitly named stem diagnoses. The CLI then adds the accepted WHO5 diagnosis deterministically and performs one exact-disease retrieval of `guideline criterion` diagnosis cards. Diagnosis-derived targets are selected deterministically with alteration-aware matching: targets explicitly named in the accepted narrow diagnosis are eligible, and disease-wide targets are eligible only when the molecular criterion cards share a common target component (for example RARA across APL cards). This prevents a broad diagnosis such as AML from activating every subtype gene on its diagnosis cards. `synthesis/activated-targets.yaml` is the union of those diagnosis-derived targets with direct case targets and reported NGS genes. The model does not decide the final activated-target list.
 
-The CLI deterministically derives `synthesis/reportability-review.yaml` by placing only `routine_negative` fact IDs into `quarantine_fact_ids`, in accepted-manifest order. This preserves the downstream quarantine and exceptional-negative rescue contracts while retaining the exhaustive model decisions for inspection and resume validation.
+A separate `reportability` model pass receives every accepted fact and classifies only four observations: `molecular`, `targets`, `polarity` (`detected`, `not_detected`, `not_a_result`) and `negative_consequence`. It must classify every fact exactly once in accepted-manifest order and cannot issue a report/omit verdict.
 
-The CLI performs the split deterministically without changing any `categories/category-*.yaml`. It writes `synthesis/report-facts.yaml` with retained fact text only and `synthesis/report-facts-quarantined.yaml` with the quarantined source facts and provenance.
+The CLI applies deterministic reportability gates and writes `synthesis/reportability-decisions.yaml` plus the compatibility artifact `synthesis/reportability-review.yaml`. Non-molecular facts, unactivated molecular negatives, redundant bare positive-result facts and disallowed negative-consequence commentary are quarantined according to stable rule IDs. Activated molecular negatives are retained. Mixed activated/unactivated negative-target facts are retained conservatively because Step 6 cannot safely rewrite only part of an accepted fact.
 
-The summarisation model receives retained facts only and writes `synthesis/report-draft-pre-rescue.md`. A second high-threshold negative-safety audit then compares `input/case-input.json`, that report, and the quarantined facts. It may return only quarantined `fact_id` values plus an insertion position. Do not restore a negative merely because it supported a retained positive conclusion or made the explanation more complete.
+The deterministic split leaves every `categories/category-*.yaml` unchanged. `synthesis/report-facts.yaml` contains retained fact text. `synthesis/report-facts-quarantined.yaml` preserves the removed fact, original reason/citation, four-field classification, target-activation evidence, deterministic rule ID and generated rationale.
 
-The CLI inserts selected facts verbatim into `synthesis/report-draft.md`. No model may rewrite a quarantined fact during rescue.
+There is no model-driven negative-safety rescue. Quarantined facts cannot be restored during synthesis.
 
-A separate final model pass semantically matches every final report sentence only to retained facts plus explicitly restored negatives. Deterministic code inherits runtime card tags or `(no citation required)` and renders Vancouver references. The citation model cannot change prose or search for new evidence.
+The summarisation model receives retained facts only and writes `synthesis/report-draft.md` as lossless semantic compression. It may merge overlapping facts and trim wording, but it may not discard a distinct retained fact or introduce a new clinical conclusion.
 
-If a sentence cannot be matched to an eligible fact, summarisation/rescue is redrafted rather than reopening clinical terraces.
+A separate final model pass maps each report sentence to retained accepted fact IDs. Deterministic validation checks both directions: every sentence must map to retained same-domain facts, and every retained fact must be represented by at least one sentence. Missing retained-fact coverage triggers a complete synthesis retry rather than silently dropping the fact. Deterministic code then inherits runtime card tags or `(no citation required)` and renders Vancouver references without changing report prose.
 
-The CLI then validates runtime tags and writes `report-final.md`.
+The CLI validates runtime tags and writes `report-final.md`.
 
 ## Step 7 — Existing delivery behaviour
 

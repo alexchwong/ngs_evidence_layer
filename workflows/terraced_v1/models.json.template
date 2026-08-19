@@ -6,8 +6,8 @@
     "answer",
     "semantic_review",
     "evidence_alignment",
+    "target_activation",
     "reportability",
-    "negative_safety_review",
     "summarisation",
     "final_citation_alignment"
   ],
@@ -38,12 +38,12 @@
           "temperature": 0.0,
           "max_tokens": 16384
         },
-        "reportability": {
+        "target_activation": {
           "model": "self",
           "temperature": 0.0,
           "max_tokens": 8192
         },
-        "negative_safety_review": {
+        "reportability": {
           "model": "self",
           "temperature": 0.0,
           "max_tokens": 8192
@@ -90,12 +90,12 @@
           "temperature": 0.0,
           "max_tokens": 32768
         },
-        "reportability": {
+        "target_activation": {
           "model": "qwen3-coder-next",
           "temperature": 0.0,
           "max_tokens": 32768
         },
-        "negative_safety_review": {
+        "reportability": {
           "model": "qwen3-coder-next",
           "temperature": 0.0,
           "max_tokens": 32768
@@ -142,12 +142,12 @@
           "temperature": 0.0,
           "max_tokens": 32768
         },
-        "reportability": {
+        "target_activation": {
           "model": "qwen3-coder-next",
           "temperature": 0.0,
           "max_tokens": 32768
         },
-        "negative_safety_review": {
+        "reportability": {
           "model": "qwen3-coder-next",
           "temperature": 0.0,
           "max_tokens": 32768
@@ -194,12 +194,12 @@
           "temperature": 0.0,
           "max_tokens": 32768
         },
-        "reportability": {
+        "target_activation": {
           "model": "qwen/qwen3-coder-next",
           "temperature": 0.0,
           "max_tokens": 32768
         },
-        "negative_safety_review": {
+        "reportability": {
           "model": "qwen/qwen3-coder-next",
           "temperature": 0.0,
           "max_tokens": 32768

@@ -6,6 +6,8 @@ default_execution_profile: frontier
 # conclusions. The question count is deliberately unconstrained.
 domains:
   diagnosis:
+    reportability:
+      allow_negative_consequence: false
     questions:
       - id: DX1
         question: >-
@@ -60,6 +62,8 @@ domains:
           - narrow_diagnosis should state the patient-level WHO5 diagnosis in clinically natural wording.
 
   prognosis:
+    reportability:
+      allow_negative_consequence: false
     questions:
       - id: PROG1
         question: >-
@@ -93,6 +97,8 @@ domains:
           - Remove non-informative statements about unavailable scores or routine negative results.
 
   treatment:
+    reportability:
+      allow_negative_consequence: true
     questions:
       - id: TX1
         question: >-
@@ -123,6 +129,8 @@ domains:
           - Omit treatment content that is not patient-specific or materially actionable.
 
   mrd:
+    reportability:
+      allow_negative_consequence: false
     questions:
       - id: MRD1
         question: >-
@@ -158,6 +166,8 @@ domains:
           - If no validated or clinically useful molecular MRD implication exists, return no MRD facts rather than generic negative prose.
 
   germline:
+    reportability:
+      allow_negative_consequence: false
     questions:
       - id: GL1
         question: >-

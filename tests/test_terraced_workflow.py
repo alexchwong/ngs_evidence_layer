@@ -55,14 +55,25 @@ class TerracedWorkflowTests(unittest.TestCase):
             )
         return draft
 
-    def _reportability_classifications(self, work: Path, **classes: str) -> list[dict[str, str]]:
-        return [
-            {
-                "fact_id": row["fact_id"],
-                "class": classes.get(row["fact_id"], "positive_conclusion"),
+    def _reportability_classifications(self, work: Path, **overrides) -> list[dict]:
+        rows = []
+        for fact in runtime.accepted_fact_manifest(work):
+            row = {
+                "fact_id": fact["fact_id"],
+                "molecular": True,
+                "targets": ["NPM1"],
+                "polarity": "not_a_result",
+                "negative_consequence": False,
             }
-            for row in runtime.accepted_fact_manifest(work)
-        ]
+            row.update(overrides.get(fact["fact_id"], {}))
+            rows.append(row)
+        return rows
+
+    def _write_empty_activated_targets(self, work: Path) -> Path:
+        step.layout.ensure_dirs(work)
+        path = step.layout.synthesis(work, "activated-targets.yaml")
+        path.write_text("schema_version: 1\ndiagnoses: []\nactivated_targets: []\n", encoding="utf-8")
+        return path
 
     def test_default_structural_attempts_is_ten(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -503,7 +514,7 @@ class TerracedWorkflowTests(unittest.TestCase):
             output = work / "report-citation-alignment.yaml"
             rows = [
                 {"sentence_id": "diagnosis-1", "fact_ids": ["diagnosis-1"]},
-                {"sentence_id": "diagnosis-2", "fact_ids": ["diagnosis-2"]},
+                {"sentence_id": "diagnosis-2", "fact_ids": ["diagnosis-2", "diagnosis-3"]},
                 {"sentence_id": "prognosis-1", "fact_ids": ["prognosis-1"]},
                 {"sentence_id": "treatment-1", "fact_ids": ["treatment-1"]},
                 {"sentence_id": "mrd-1", "fact_ids": ["mrd-1"]},
@@ -551,16 +562,28 @@ class TerracedWorkflowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
             self._write_citation_alignment_fixture(work)
-            (work / "case-input.json").write_text("{}\n", encoding="utf-8")
+            (work / "case.md").write_text("Fixture case.\n", encoding="utf-8")
+            (work / "case-input.json").write_text('{"genes": []}\n', encoding="utf-8")
+            (work / "allowed-schema-diseases.json").write_text(
+                json.dumps({"allowed_schema_diseases": ["AML"]}) + "\n", encoding="utf-8"
+            )
             captured_summary_messages = []
 
             def model_call(_work, *, call_id, messages, output, **_kwargs):
-                if call_id == "reportability":
+                if call_id == "target-activation":
+                    output.write_text("direct_targets: []\nstem_diagnoses: []\n", encoding="utf-8")
+                elif call_id == "reportability":
+                    rows = self._reportability_classifications(_work)
+                    for row in rows:
+                        if row["fact_id"] != "germline-1":
+                            row.update(
+                                molecular=False,
+                                targets=[],
+                                polarity="not_a_result",
+                                negative_consequence=False,
+                            )
                     output.write_text(
-                        yaml.safe_dump(
-                            {"classifications": self._reportability_classifications(_work)},
-                            sort_keys=False,
-                        ),
+                        yaml.safe_dump({"classifications": rows}, sort_keys=False),
                         encoding="utf-8",
                     )
                 elif call_id.startswith("summary-"):
@@ -574,14 +597,25 @@ class TerracedWorkflowTests(unittest.TestCase):
                         "    reason: The accepted fact does not support the drafted sentence strongly enough.\n",
                         encoding="utf-8",
                     )
+                elif call_id == "final-citations-2":
+                    output.write_text(
+                        "alignments:\n  - sentence_id: germline-1\n    fact_ids: [germline-1]\n",
+                        encoding="utf-8",
+                    )
                 else:
-                    output.write_text("alignments: []\n", encoding="utf-8")
+                    raise AssertionError(call_id)
                 return "validated"
+
+            def activation_retrieval(_work, _diagnoses):
+                path = step.layout.evidence(_work, "evidence-reportability-activation.json")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('{"retrieved": []}\n', encoding="utf-8")
+                return path
 
             with (
                 patch.object(step.runtime, "prepare_combined_evidence"),
                 patch.object(step.runtime, "render_final"),
-                patch.object(step, "_citation_alignment_input", return_value="manifest: true\n"),
+                patch.object(step.retrieval, "reportability_activation", side_effect=activation_retrieval),
                 patch.object(step, "_model_call", side_effect=model_call),
             ):
                 self.assertEqual(step.step_6(work, None), step.EXIT_OK)
@@ -633,7 +667,7 @@ class TerracedWorkflowTests(unittest.TestCase):
 
             message = str(raised.exception)
             self.assertIn("mrd-1", message)
-            self.assertIn("every fact", message)
+            self.assertIn("every supplied fact", message)
 
     def test_reportability_classification_rejects_unknown_and_duplicate_ids(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -641,12 +675,9 @@ class TerracedWorkflowTests(unittest.TestCase):
             self._write_citation_alignment_fixture(work)
             classification = work / "classification.yaml"
             rows = self._reportability_classifications(work)
-            rows.extend(
-                [
-                    dict(rows[0]),
-                    {"fact_id": "unknown-1", "class": "routine_negative"},
-                ]
-            )
+            unknown = dict(rows[0])
+            unknown["fact_id"] = "unknown-1"
+            rows.extend([dict(rows[0]), unknown])
             classification.write_text(
                 yaml.safe_dump({"classifications": rows}, sort_keys=False),
                 encoding="utf-8",
@@ -659,12 +690,14 @@ class TerracedWorkflowTests(unittest.TestCase):
             self.assertIn("duplicate fact_id", message)
             self.assertIn("unknown-1", message)
 
-    def test_reportability_classification_rejects_unknown_class_value(self):
+    def test_reportability_classification_rejects_unknown_polarity(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
             self._write_citation_alignment_fixture(work)
             classification = work / "classification.yaml"
-            rows = self._reportability_classifications(work, **{"mrd-1": "negative"})
+            rows = self._reportability_classifications(
+                work, **{"mrd-1": {"polarity": "negative"}}
+            )
             classification.write_text(
                 yaml.safe_dump({"classifications": rows}, sort_keys=False),
                 encoding="utf-8",
@@ -675,60 +708,327 @@ class TerracedWorkflowTests(unittest.TestCase):
 
             message = str(raised.exception)
             self.assertIn("negative", message)
-            for klass in step.REPORTABILITY_CLASSES:
-                self.assertIn(klass, message)
+            for polarity in step.REPORTABILITY_POLARITIES:
+                self.assertIn(polarity, message)
 
-    def test_reportability_review_is_derived_from_routine_negative_class_only(self):
+    def test_reportability_classification_requires_manifest_order(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             work = Path(tmp_dir)
             self._write_citation_alignment_fixture(work)
-            step.layout.ensure_dirs(work)
+            classification = work / "classification.yaml"
+            rows = list(reversed(self._reportability_classifications(work)))
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False), encoding="utf-8"
+            )
+            with self.assertRaises(ValueError) as raised:
+                step._reportability_classification_validator(work, classification)
+            self.assertIn("accepted-manifest order", str(raised.exception))
+
+    def test_reportability_review_applies_nonmolecular_and_unactivated_negative_rules(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            activated = self._write_empty_activated_targets(work)
             classification = step.layout.synthesis(work, "reportability-classification.yaml")
             rows = self._reportability_classifications(
                 work,
                 **{
-                    "diagnosis-2": "routine_negative",
-                    "mrd-1": "exceptional_negative",
+                    "diagnosis-2": {
+                        "molecular": False,
+                        "targets": [],
+                        "polarity": "not_a_result",
+                        "negative_consequence": False,
+                    },
+                    "prognosis-1": {
+                        "targets": ["TP53"],
+                        "polarity": "not_detected",
+                        "negative_consequence": True,
+                    },
                 },
             )
             classification.write_text(
-                yaml.safe_dump({"classifications": rows}, sort_keys=False),
-                encoding="utf-8",
+                yaml.safe_dump({"classifications": rows}, sort_keys=False), encoding="utf-8"
             )
 
-            review = step._derive_reportability_review(work, classification)
-            self.assertEqual(
-                yaml.safe_load(review.read_text(encoding="utf-8")),
-                {"quarantine_fact_ids": ["diagnosis-2"]},
-            )
-            retained, _ = runtime.apply_reportability_review(work, step._quarantine_fact_ids(work))
-            retained_doc = yaml.safe_load(retained.read_text(encoding="utf-8"))
-            self.assertEqual(retained_doc["mrd"][0]["fact"], "mrd fact.")
-
-    def test_reportability_classification_orders_derived_quarantine_by_manifest(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            work = Path(tmp_dir)
-            self._write_citation_alignment_fixture(work)
-            step.layout.ensure_dirs(work)
-            classification = step.layout.synthesis(work, "reportability-classification.yaml")
-            rows = self._reportability_classifications(
-                work,
-                **{
-                    "diagnosis-3": "routine_negative",
-                    "prognosis-1": "routine_negative",
-                    "germline-1": "routine_negative",
-                },
-            )
-            classification.write_text(
-                yaml.safe_dump({"classifications": list(reversed(rows))}, sort_keys=False),
-                encoding="utf-8",
-            )
-
-            review = step._derive_reportability_review(work, classification)
+            review = step._derive_reportability_review(work, classification, activated)
             self.assertEqual(
                 yaml.safe_load(review.read_text(encoding="utf-8"))["quarantine_fact_ids"],
-                ["diagnosis-3", "prognosis-1", "germline-1"],
+                ["diagnosis-2", "prognosis-1"],
             )
+            decisions = yaml.safe_load(
+                step.layout.synthesis(work, "reportability-decisions.yaml").read_text(encoding="utf-8")
+            )["decisions"]
+            by_id = {row["fact_id"]: row for row in decisions}
+            self.assertEqual(by_id["diagnosis-2"]["rule"], "R01_NON_MOLECULAR")
+            self.assertEqual(by_id["prognosis-1"]["rule"], "R02_UNACTIVATED_NEGATIVE")
+
+    def test_activated_negative_is_retained(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            step.layout.ensure_dirs(work)
+            activated = step.layout.synthesis(work, "activated-targets.yaml")
+            activated.write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": 1,
+                        "diagnoses": [],
+                        "activated_targets": [
+                            {
+                                "target": "TP53",
+                                "activated": True,
+                                "bases": [
+                                    {
+                                        "source": "clinical_context_model",
+                                        "basis": "explicitly_mentioned_in_stem",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    sort_keys=False,
+                ),
+                encoding="utf-8",
+            )
+            classification = step.layout.synthesis(work, "reportability-classification.yaml")
+            rows = self._reportability_classifications(
+                work,
+                **{
+                    "prognosis-1": {
+                        "targets": ["TP53"],
+                        "polarity": "not_detected",
+                        "negative_consequence": True,
+                    }
+                },
+            )
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False), encoding="utf-8"
+            )
+            review = step._derive_reportability_review(work, classification, activated)
+            self.assertNotIn(
+                "prognosis-1",
+                yaml.safe_load(review.read_text(encoding="utf-8"))["quarantine_fact_ids"],
+            )
+            decisions = yaml.safe_load(
+                step.layout.synthesis(work, "reportability-decisions.yaml").read_text(encoding="utf-8")
+            )["decisions"]
+            by_id = {row["fact_id"]: row for row in decisions}
+            self.assertEqual(by_id["prognosis-1"]["rule"], "R10_ACTIVATED_NEGATIVE")
+
+    def test_direct_positive_is_quarantined_only_when_result_summary_represents_target(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            step.layout.ensure_dirs(work)
+            (work / "case-input.json").write_text(
+                json.dumps({"genes": ["NPM1"], "detected_variants_summary": "NPM1 variant detected."}) + "\n",
+                encoding="utf-8",
+            )
+            activated = self._write_empty_activated_targets(work)
+            classification = step.layout.synthesis(work, "reportability-classification.yaml")
+            rows = self._reportability_classifications(
+                work,
+                **{
+                    "diagnosis-1": {"targets": ["NPM1"], "polarity": "detected"},
+                    "diagnosis-2": {"targets": ["PML::RARA"], "polarity": "detected"},
+                },
+            )
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False), encoding="utf-8"
+            )
+            review = step._derive_reportability_review(work, classification, activated)
+            quarantine = yaml.safe_load(review.read_text(encoding="utf-8"))["quarantine_fact_ids"]
+            self.assertIn("diagnosis-1", quarantine)
+            self.assertNotIn("diagnosis-2", quarantine)
+            decisions = yaml.safe_load(
+                step.layout.synthesis(work, "reportability-decisions.yaml").read_text(encoding="utf-8")
+            )["decisions"]
+            by_id = {row["fact_id"]: row for row in decisions}
+            self.assertEqual(by_id["diagnosis-1"]["rule"], "R04_REDUNDANT_BARE_POSITIVE_RESULT")
+            self.assertEqual(by_id["diagnosis-2"]["rule"], "R13_DIRECT_POSITIVE_NOT_IN_RESULT_SUMMARY")
+
+    def test_negative_consequence_policy_is_domain_deterministic(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            (work / "terraced-config.yaml").write_text(
+                (REPO_ROOT / "workflows" / "terraced_v1" / "questions.yaml.template").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            activated = self._write_empty_activated_targets(work)
+            classification = step.layout.synthesis(work, "reportability-classification.yaml")
+            rows = self._reportability_classifications(
+                work,
+                **{
+                    "treatment-1": {"negative_consequence": True},
+                    "mrd-1": {"negative_consequence": True},
+                },
+            )
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False), encoding="utf-8"
+            )
+            review = step._derive_reportability_review(work, classification, activated)
+            quarantine = yaml.safe_load(review.read_text(encoding="utf-8"))["quarantine_fact_ids"]
+            self.assertNotIn("treatment-1", quarantine)
+            self.assertIn("mrd-1", quarantine)
+
+    def test_quarantine_artifact_repeats_classification_activation_and_rule(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            activated = self._write_empty_activated_targets(work)
+            classification = step.layout.synthesis(work, "reportability-classification.yaml")
+            rows = self._reportability_classifications(
+                work,
+                **{
+                    "prognosis-1": {
+                        "targets": ["TP53"],
+                        "polarity": "not_detected",
+                        "negative_consequence": True,
+                    }
+                },
+            )
+            classification.write_text(
+                yaml.safe_dump({"classifications": rows}, sort_keys=False), encoding="utf-8"
+            )
+            step._derive_reportability_review(work, classification, activated)
+            _, quarantine_path = runtime.apply_reportability_review(
+                work, step._quarantine_fact_ids(work)
+            )
+            quarantined = yaml.safe_load(quarantine_path.read_text(encoding="utf-8"))
+            row = quarantined["prognosis"][0]
+            self.assertEqual(row["classification"]["targets"], ["TP53"])
+            self.assertFalse(row["activation"][0]["activated"])
+            self.assertEqual(row["decision"]["rule"], "R02_UNACTIVATED_NEGATIVE")
+            self.assertIn("independently activated", row["decision"]["rationale"])
+
+    def test_target_activation_derivation_unions_case_and_diagnosis_card_targets(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            step.layout.ensure_dirs(work)
+            (work / "case-input.json").write_text('{"genes": ["NPM1"]}\n', encoding="utf-8")
+            (work / "allowed-schema-diseases.json").write_text(
+                json.dumps({"allowed_schema_diseases": ["AML", "APL"]}) + "\n", encoding="utf-8"
+            )
+            activation = step.layout.synthesis(work, "activation-context.yaml")
+            activation.write_text(
+                "direct_targets:\n"
+                "  - target: TP53\n"
+                "    bases: [explicitly_mentioned_in_stem]\n"
+                "stem_diagnoses:\n"
+                "  - schema_disease: APL\n",
+                encoding="utf-8",
+            )
+            evidence = step.layout.evidence(work, "evidence-reportability-activation.json")
+            evidence.write_text(
+                json.dumps(
+                    {
+                        "retrieved": [
+                            {
+                                "card_id": "fixture-C0001",
+                                "matched_schema_diseases": ["APL"],
+                                "genes": ["PML", "RARA"],
+                                "interpretation": "APL is defined by PML::RARA in this fixture.",
+                            }
+                        ]
+                    }
+                ) + "\n",
+                encoding="utf-8",
+            )
+            output = step._derive_activated_targets(work, activation, evidence)
+            doc = yaml.safe_load(output.read_text(encoding="utf-8"))
+            targets = {row["target"] for row in doc["activated_targets"]}
+            self.assertLessEqual({"TP53", "NPM1", "PML::RARA"}, targets)
+            self.assertNotIn("PML", targets)
+            self.assertNotIn("RARA", targets)
+            diagnoses = {row["schema_disease"]: row["sources"] for row in doc["diagnoses"]}
+            self.assertIn("accepted_diagnostic_answer", diagnoses["AML"])
+            self.assertIn("explicitly_raised_in_stem", diagnoses["APL"])
+
+    def test_target_activation_diagnostic_context_excludes_accepted_report_facts(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            diagnosis_path = step.layout.category(work, "category-diagnosis.yaml")
+            diagnosis = yaml.safe_load(diagnosis_path.read_text(encoding="utf-8"))
+            diagnosis["diagnoses"] = [
+                {"schema_disease": "AML", "narrow_diagnosis": "AML with mutated NPM1"}
+            ]
+            diagnosis["facts"].append(
+                {
+                    "fact": "No TP53 mutation is detected, excluding AML with mutated TP53.",
+                    "reason": "TP53 is absent.",
+                    "citation": None,
+                }
+            )
+            diagnosis_path.write_text(
+                yaml.safe_dump(diagnosis, sort_keys=False), encoding="utf-8"
+            )
+
+            context = step._accepted_diagnosis_activation_context(work)
+
+            self.assertEqual(
+                yaml.safe_load(context),
+                {
+                    "diagnoses": [
+                        {
+                            "schema_disease": "AML",
+                            "narrow_diagnosis": "AML with mutated NPM1",
+                        }
+                    ]
+                },
+            )
+            self.assertNotIn("TP53", context)
+            self.assertNotIn("facts", context)
+
+    def test_diagnosis_card_activation_does_not_activate_every_broad_aml_criterion(self):
+        evidence = [
+            {
+                "card_id": "fixture-npm1",
+                "matched_schema_diseases": ["AML"],
+                "genes": ["NPM1"],
+                "interpretation": "AML with NPM1 mutation is a defining genetic subtype.",
+            },
+            {
+                "card_id": "fixture-tp53",
+                "matched_schema_diseases": ["AML"],
+                "genes": ["TP53"],
+                "interpretation": "AML with mutated TP53 is separately classified in this fixture.",
+            },
+        ]
+        self.assertEqual(step._diagnosis_card_activation_targets(evidence, "AML", ["AML"]), [])
+        selected = step._diagnosis_card_activation_targets(
+            evidence, "AML", ["AML with mutated NPM1"]
+        )
+        self.assertEqual([row[0] for row in selected], ["NPM1"])
+
+    def test_diagnosis_card_fusion_partner_does_not_activate_partner_gene_independently(self):
+        card = {
+            "genes": ["NPM1", "RARA"],
+            "interpretation": "A RARA rearrangement involving NPM1 is diagnostic in this fixture.",
+        }
+        self.assertEqual(step._diagnostic_targets_from_card(card), ["NPM1::RARA"])
+
+    def test_retained_fact_coverage_failure_is_sent_back_to_synthesis(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work = Path(tmp_dir)
+            self._write_citation_alignment_fixture(work)
+            alignment = work / "alignment.yaml"
+            rows = [
+                {"sentence_id": "diagnosis-1", "fact_ids": ["diagnosis-1"]},
+                {"sentence_id": "diagnosis-2", "fact_ids": ["diagnosis-2"]},
+                {"sentence_id": "prognosis-1", "fact_ids": ["prognosis-1"]},
+                {"sentence_id": "treatment-1", "fact_ids": ["treatment-1"]},
+                {"sentence_id": "mrd-1", "fact_ids": ["mrd-1"]},
+                {"sentence_id": "germline-1", "fact_ids": ["germline-1"]},
+            ]
+            alignment.write_text(
+                yaml.safe_dump({"alignments": rows}, sort_keys=False), encoding="utf-8"
+            )
+            feedback = step._unmatched_summary_feedback(work, alignment)
+            self.assertIn("diagnosis-3", feedback)
+            self.assertIn("omitted retained accepted fact", feedback)
 
     def test_empty_germline_category_produces_no_germline_heading(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -747,44 +1047,12 @@ class TerracedWorkflowTests(unittest.TestCase):
         self.assertIn("For germline specifically, return exactly `[]`", prompt)
         self.assertIn("Do not return a fact stating that no germline concern exists", prompt)
 
-    def test_negative_safety_restores_only_selected_quarantined_facts_deterministically(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            work = Path(tmp_dir)
-            self._write_citation_alignment_fixture(work)
-            step.layout.ensure_dirs(work)
-            reportability = step.layout.synthesis(work, "reportability-review.yaml")
-            reportability.write_text(
-                "quarantine_fact_ids:\n  - diagnosis-2\n  - mrd-1\n  - germline-1\n",
-                encoding="utf-8",
-            )
-            runtime.apply_reportability_review(
-                work, {"diagnosis-2", "mrd-1", "germline-1"}
-            )
-            pre = step.layout.synthesis(work, "report-draft-pre-rescue.md")
-            pre.write_text(
-                "**Diagnosis**\n\nFirst diagnosis.\n\n"
-                "**Prognosis**\n\nPrognosis statement.\n",
-                encoding="utf-8",
-            )
-            safety = step.layout.synthesis(work, "negative-safety-review.yaml")
-            safety.write_text(
-                "restore:\n"
-                "  - fact_id: diagnosis-2\n"
-                "    after_sentence_id: diagnosis-1\n"
-                "  - fact_id: germline-1\n"
-                "    after_sentence_id: null\n",
-                encoding="utf-8",
-            )
+    def test_negative_safety_role_is_removed(self):
+        registry = model_registry.load_registry()
+        self.assertNotIn("negative_safety_review", registry["roles"])
+        self.assertIn("target_activation", registry["roles"])
+        self.assertFalse((REPO_ROOT / "workflows" / "terraced_v1" / "prompts" / "negative_safety_review.md").exists())
 
-            output = step._apply_negative_safety_review(work, safety)
-            text = output.read_text(encoding="utf-8")
-            self.assertIn("First diagnosis. Second diagnosis part one.", text)
-            self.assertIn("**Germline**\n\n", text)
-            self.assertIn("germline fact.", text)
-            eligible = {row["fact_id"] for row in step._accepted_fact_manifest(work)}
-            self.assertIn("diagnosis-2", eligible)
-            self.assertIn("germline-1", eligible)
-            self.assertNotIn("mrd-1", eligible)
 
     def test_case_and_diagnosis_validation_handle_unhashable_cmcs_as_repairable_errors(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

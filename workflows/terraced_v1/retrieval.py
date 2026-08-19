@@ -187,6 +187,61 @@ def downstream(work_dir: Path, domain: str = "prognosis") -> Path:
     return output
 
 
+
+def reportability_activation(work_dir: Path, schema_diseases: list[str]) -> Path:
+    """Retrieve exact-disease guideline diagnosis cards for Step 6 target activation.
+
+    This intentionally does not use gene matching: the diagnosis itself is the retrieval key.
+    Only diagnosis cards tagged to the exact canonical disease and evidence_tier
+    ``guideline criterion`` are eligible.
+    """
+    work = Path(work_dir).resolve()
+    if not isinstance(schema_diseases, list):
+        raise ValueError("reportability activation diagnoses must be a list")
+    diagnoses = []
+    for index, disease in enumerate(schema_diseases):
+        if not isinstance(disease, str) or disease not in vocab.CASE_DISEASE_SET:
+            raise ValueError(
+                f"reportability activation diagnosis[{index}] is not a canonical schema disease: {disease!r}"
+            )
+        if disease not in diagnoses:
+            diagnoses.append(disease)
+
+    corpus_doc, digest, cards = _load_cards()
+    hits = []
+    for card in cards:
+        if card.get("category") != "diagnosis":
+            continue
+        if card.get("evidence_tier") != "guideline criterion":
+            continue
+        matched = [disease for disease in diagnoses if disease in (card.get("diseases") or [])]
+        if not matched:
+            continue
+        hit = dict(card)
+        hit["matched_schema_diseases"] = matched
+        hit["retrieval_match"] = "exact_diagnosis_activation"
+        hits.append(hit)
+    hits.sort(key=lambda c: c["card_id"])
+
+    tag_map = card_tags.build_card_tags(card["card_id"] for card in cards)
+    result = {
+        "step": 6,
+        "workflow_profile": WORKFLOW_ID,
+        "render_profile": "terraced",
+        "terraced_domain": "reportability_activation",
+        "activation_schema_diseases": diagnoses,
+        "retrieved": hits,
+        "runtime_card_tags": tag_map,
+        "corpus": {"path": str(corpus.DEFAULT_CORPUS), "index": str(corpus.DEFAULT_INDEX)},
+        "provenance": provenance.provenance(
+            corpus_doc, corpus.DEFAULT_CORPUS, corpus.DEFAULT_INDEX, digest,
+            [card["card_id"] for card in hits],
+        ),
+    }
+    output = layout.evidence(work, "evidence-reportability-activation.json")
+    output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return output
+
 def combined(work_dir: Path) -> Path:
     """Build the final all-category evidence bundle used only for citation rendering."""
     work = Path(work_dir).resolve()

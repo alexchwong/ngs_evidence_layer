@@ -6,10 +6,11 @@
 terraced answering
 → fact + reason
 → evidence alignment adds citation where directly supported
-→ negative-reportability quarantine
-→ retained-facts synthesis
-→ exceptional-negative safety rescue
-→ sentence-to-fact citation inheritance
+→ target-activation extraction + diagnosis-card draw
+→ four-field fact classification
+→ deterministic reportability quarantine
+→ lossless retained-facts synthesis
+→ bidirectional sentence/fact coverage + citation inheritance
 → deterministic Vancouver rendering
 ```
 
@@ -175,7 +176,7 @@ The canonical workflow is:
 3   terraced diagnosis
 4   diagnosis review + evidence alignment
 5   downstream terraced categories
-6   negative quarantine + retained-facts synthesis + safety rescue + final citation alignment + render
+6   target activation + deterministic reportability + lossless synthesis + final citation alignment + render
 7   package/deliver
 ```
 
@@ -312,28 +313,34 @@ or:
 
 `citation: null` is valid. The aligner must not rescue a claim with a vaguely related card.
 
-## 7. Negative-reportability quarantine and retained-facts synthesis
+## 7. Deterministic reportability and retained-facts synthesis
 
-Once all categories are accepted, a dedicated reportability pass receives stable fact IDs plus `fact` and `reason` only. It classifies every supplied fact exactly once as `positive_conclusion`, `routine_negative`, or `exceptional_negative` using the same patient-level principles as `diagnosis-first-v1` reporting policy. Exhaustive manifest coverage is validated deterministically, so a fact cannot be silently omitted from the decision. The model cannot rewrite facts.
+Once all categories are accepted, Step 6 separates **context activation**, **fact description**, and **reportability policy**.
 
-The CLI deterministically writes:
+First, the `target_activation` model extracts only explicit stem-level molecular targets and explicitly named stem diagnoses. The CLI adds accepted WHO5 diagnoses deterministically and performs one exact-disease draw of `guideline criterion` diagnosis cards. Diagnosis-derived activation is alteration-aware and deterministic: it uses targets explicitly named in the accepted narrow diagnosis, plus disease-wide targets only when molecular criterion cards share a common target component. This avoids treating every subtype gene on a broad disease card set (for example AML) as activated. `activated-targets.yaml` unions these mappings with direct case targets and reported NGS genes. Phenotype-to-gene inference is deliberately not performed in this step.
 
-- `reportability-classification.yaml`, preserving the model's inspectable decision for every fact;
-- `reportability-review.yaml`, derived from facts classified `routine_negative`;
-- `report-facts-quarantined.yaml`, preserving each quarantined fact's original `fact_id`, domain, fact, reason and citation; and
-- `report-facts.yaml`, containing only retained fact text for synthesis.
+Second, the `reportability` model classifies every accepted fact exactly once using only four descriptive fields: `molecular`, `targets`, `polarity`, and `negative_consequence`. It cannot issue a retain/quarantine verdict.
 
-The accepted `category-*.yaml` files remain unchanged and continue to be the complete clinical source of truth.
+The CLI then writes:
 
-The summariser receives **retained facts only**. It does not see reasons, corpus cards, quarantined facts, or citation tags.
+- `activation-context.yaml`, the model-extracted explicit case signals;
+- `evidence-reportability-activation.json`, the exact-disease guideline diagnosis-card draw;
+- `activated-targets.yaml`, the deterministic final activated-target list with provenance;
+- `reportability-classification.yaml`, the exhaustive four-field model observations;
+- `reportability-decisions.yaml`, the deterministic disposition, stable rule ID, rationale and per-target activation evidence for every fact;
+- `reportability-review.yaml`, the compatibility list of quarantined fact IDs;
+- `report-facts-quarantined.yaml`, preserving removed facts plus their classification/activation/decision audit trail; and
+- `report-facts.yaml`, containing retained fact text for synthesis.
 
-After synthesis, a second high-threshold audit compares `case-input.json`, the uncited report, and the quarantined fact text. It may restore only an existing quarantined `fact_id` and choose its placement after a sentence in the same domain or at domain end. The CLI inserts the original fact deterministically; the audit cannot author replacement prose. Routine negative premises are not restored merely because they helped derive a retained positive conclusion.
+The accepted `category-*.yaml` files remain unchanged and continue to be the complete clinical source of truth. There is no model-driven rescue of quarantined facts.
+
+The summariser receives **retained facts only** and performs lossless semantic compression. It may merge overlap or shorten wording, but it may not discard a distinct retained fact.
 
 ## 8. Final citation alignment
 
-The final report is initially uncited. Only retained facts plus explicitly restored quarantined facts are eligible for sentence-to-fact alignment.
+The final report is initially uncited. Only deterministically retained facts are eligible for sentence-to-fact alignment.
 
-A deterministic sentence manifest assigns stable IDs while preserving the exact report bytes. A separate model pass returns only an ordered YAML mapping from each sentence ID to accepted fact IDs; it never reproduces the report prose or citation tags:
+A deterministic sentence manifest assigns stable IDs while preserving the exact report bytes. A separate model pass returns only an ordered YAML mapping from each sentence ID to retained fact IDs; it never reproduces the report prose or citation tags. Deterministic validation also requires every retained fact to appear in at least one mapping, so synthesis cannot silently drop a retained fact:
 
 ```yaml
 alignments:
@@ -418,23 +425,23 @@ Used only after semantic-review failure. It returns a complete replacement categ
 
 Preserves each final `fact` and `reason` and adds only `citation`, using exact runtime card tags where a supplied card directly supports the stated reason. No direct match becomes `citation: null`.
 
+## `prompts/target_activation.md`
+
+**Role:** `target_activation`
+
+Extracts explicit stem-level molecular targets and explicitly named stem diagnoses without making reportability decisions or phenotype-to-gene inferences.
+
 ## `prompts/reportability_filter.md`
 
 **Role:** `reportability`
 
-Classifies accepted facts by stable ID and quarantines routine negative/non-reportable facts before synthesis without rewriting the clinical state.
+Classifies every accepted fact using only `molecular`, `targets`, `polarity`, and `negative_consequence`; deterministic code decides retain/quarantine.
 
 ## `prompts/final_summary.md`
 
 **Role:** `summarisation`
 
-Receives `report-facts.yaml` only and writes one uncited clinical report using retained facts only.
-
-## `prompts/negative_safety_review.md`
-
-**Role:** `negative_safety_review`
-
-Compares the structured case, current summary and quarantined negatives, then selects only exceptional negative fact IDs that must be restored and their insertion position.
+Receives `report-facts.yaml` only and performs lossless semantic compression of every retained fact.
 
 ## `prompts/final_citation_alignment.md`
 
@@ -513,8 +520,8 @@ structure
 answer
 semantic_review
 evidence_alignment
+target_activation
 reportability
-negative_safety_review
 summarisation
 final_citation_alignment
 ```
@@ -594,12 +601,13 @@ New terraced-v1 work directories keep only user-facing/root control files at the
 │   ├── repair-<domain>-<n>.yaml
 │   └── category-<domain>.yaml
 ├── synthesis/
+│   ├── activation-context.yaml
+│   ├── activated-targets.yaml
 │   ├── reportability-classification.yaml
+│   ├── reportability-decisions.yaml
 │   ├── reportability-review.yaml
 │   ├── report-facts.yaml
 │   ├── report-facts-quarantined.yaml
-│   ├── report-draft-pre-rescue.md
-│   ├── negative-safety-review.yaml
 │   ├── report-draft.md
 │   ├── report-citation-alignment.yaml
 │   └── report-cited.md
@@ -710,4 +718,4 @@ The main areas to measure before promotion are:
 - final sentence-to-fact matching fidelity; and
 - exact per-role/per-provider runtime.
 
-The workflow is intentionally structured so these can be tuned without changing the central `fact → reason → citation → negative quarantine → retained-facts synthesis → safety rescue` contract.
+The workflow is intentionally structured so these can be tuned without changing the central `fact → reason → citation → target activation → deterministic reportability → lossless synthesis` contract.

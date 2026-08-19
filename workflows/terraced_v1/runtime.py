@@ -112,6 +112,16 @@ def load_questions(work: Path | None = None) -> dict:
         raise ValueError("terraced question config requires domains and execution_profiles")
     question_ids = {}
     for domain, data in domains.items():
+        reportability = (data or {}).get("reportability")
+        if reportability is not None:
+            if not isinstance(reportability, dict) or set(reportability) != {"allow_negative_consequence"}:
+                raise ValueError(
+                    f"domain {domain!r} reportability must contain exactly allow_negative_consequence"
+                )
+            if not isinstance(reportability.get("allow_negative_consequence"), bool):
+                raise ValueError(
+                    f"domain {domain!r} reportability.allow_negative_consequence must be boolean"
+                )
         rows = (data or {}).get("questions")
         if not isinstance(rows, list) or not rows:
             raise ValueError(f"domain {domain!r} has no questions")
@@ -154,6 +164,20 @@ def questions_for_group(work: Path, domain: str, ids: list[str]) -> list[dict]:
     rows = config["domains"][domain]["questions"]
     by_id = {row["id"]: row for row in rows}
     return [by_id[qid] for qid in ids]
+
+
+def negative_consequence_allowed(work: Path, domain: str) -> bool:
+    """Return the deterministic domain policy for non-absence negative consequences.
+
+    Older terraced-config files predate this field; preserve the agreed current
+    policy in that case (treatment questions explicitly ask about resistance).
+    """
+    config = load_questions(work)
+    data = config["domains"].get(domain) or {}
+    policy = data.get("reportability")
+    if policy is None:
+        return domain == "treatment"
+    return bool(policy.get("allow_negative_consequence", False))
 
 
 def _load_json(path: Path):
@@ -678,17 +702,58 @@ def reportability_manifest(work: Path) -> str:
 
 
 def apply_reportability_review(work: Path, quarantine_fact_ids: set[str]) -> tuple[Path, Path]:
-    """Deterministically split accepted facts without modifying category source files."""
+    """Deterministically split accepted facts and preserve quarantine audit metadata."""
+    work = Path(work)
     retained = {domain: [] for domain in DOMAINS}
     quarantined = {domain: [] for domain in DOMAINS}
+
+    classification_path = layout.synthesis(work, "reportability-classification.yaml")
+    decision_path = layout.synthesis(work, "reportability-decisions.yaml")
+    activation_path = layout.synthesis(work, "activated-targets.yaml")
+    classifications = {}
+    decisions = {}
+    activated = {}
+    if classification_path.is_file():
+        doc = _load_yaml(classification_path) or {}
+        classifications = {row.get("fact_id"): row for row in doc.get("classifications", []) if isinstance(row, dict)}
+    if decision_path.is_file():
+        doc = _load_yaml(decision_path) or {}
+        decisions = {row.get("fact_id"): row for row in doc.get("decisions", []) if isinstance(row, dict)}
+    if activation_path.is_file():
+        doc = _load_yaml(activation_path) or {}
+        activated = {
+            row.get("target"): row
+            for row in doc.get("activated_targets", [])
+            if isinstance(row, dict) and isinstance(row.get("target"), str)
+        }
+
     for row in accepted_fact_manifest(work):
         if row["fact_id"] in quarantine_fact_ids:
-            quarantined[row["domain"]].append(dict(row))
+            audit_row = dict(row)
+            classification = classifications.get(row["fact_id"])
+            if classification is not None:
+                audit_row["classification"] = {
+                    key: value for key, value in classification.items() if key != "fact_id"
+                }
+            decision = decisions.get(row["fact_id"])
+            if decision is not None:
+                audit_row["activation"] = decision.get("target_activation", [])
+                audit_row["decision"] = {
+                    key: value for key, value in decision.items()
+                    if key not in {"fact_id", "target_activation"}
+                }
+            elif classification is not None:
+                targets = classification.get("targets") or []
+                audit_row["activation"] = [
+                    activated.get(target, {"target": target, "activated": False, "bases": []})
+                    for target in targets
+                ]
+            quarantined[row["domain"]].append(audit_row)
         else:
             retained[row["domain"]].append({"fact": row["fact"]})
 
-    retained_path = layout.synthesis(Path(work), "report-facts.yaml")
-    quarantine_path = layout.synthesis(Path(work), "report-facts-quarantined.yaml")
+    retained_path = layout.synthesis(work, "report-facts.yaml")
+    quarantine_path = layout.synthesis(work, "report-facts-quarantined.yaml")
     retained_path.write_text(
         yaml.safe_dump(retained, sort_keys=False, allow_unicode=True, width=100),
         encoding="utf-8",

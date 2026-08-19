@@ -947,11 +947,392 @@ def _reportability_validator(work: Path, path: Path) -> str:
     return "reportability review validated"
 
 
-REPORTABILITY_CLASSES = (
-    "positive_conclusion",
-    "routine_negative",
-    "exceptional_negative",
+ACTIVATION_BASES = (
+    "explicitly_mentioned_in_stem",
+    "previously_detected",
+    "explicitly_requested_or_excluded",
 )
+REPORTABILITY_POLARITIES = ("detected", "not_detected", "not_a_result")
+MOLECULAR_TARGET_RE = re.compile(r"^[A-Z0-9][A-Z0-9._:-]*$")
+FUSION_RE = re.compile(r"\b([A-Z0-9][A-Z0-9-]*)::([A-Z0-9][A-Z0-9-]*)\b")
+REARRANGEMENT_INVOLVING_RE = re.compile(
+    r"\b([A-Z][A-Z0-9-]*)\s+rearrangement\s+involving\s+([A-Z][A-Z0-9-]*)\b",
+    re.IGNORECASE,
+)
+
+
+def _normalise_target(value: str) -> str:
+    return value.strip().upper()
+
+
+def _allowed_schema_diseases(work: Path) -> set[str]:
+    path = layout.input(work, "allowed-schema-diseases.json")
+    document = json.loads(_read(path))
+    values = document.get("allowed_schema_diseases") if isinstance(document, dict) else None
+    if not isinstance(values, list):
+        raise StepFailure(f"invalid allowed schema disease artifact: {path}")
+    return {value for value in values if isinstance(value, str)}
+
+
+def _accepted_diagnosis_rows(work: Path) -> list[dict]:
+    path = layout.category(work, "category-diagnosis.yaml")
+    document = yaml.safe_load(_read(path)) or {}
+    rows = document.get("diagnoses") if isinstance(document, dict) else None
+    if not isinstance(rows, list):
+        raise StepFailure("accepted diagnosis state has no diagnoses list")
+    result = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        disease = row.get("schema_disease")
+        narrow = row.get("narrow_diagnosis")
+        if isinstance(disease, str) and disease:
+            result.append(
+                {
+                    "schema_disease": disease,
+                    "narrow_diagnosis": narrow if isinstance(narrow, str) else "",
+                }
+            )
+    if not result:
+        raise StepFailure("accepted diagnosis state contains no schema disease")
+    return result
+
+
+def _accepted_schema_diagnoses(work: Path) -> list[str]:
+    values = []
+    for row in _accepted_diagnosis_rows(work):
+        if row["schema_disease"] not in values:
+            values.append(row["schema_disease"])
+    return values
+
+
+def _accepted_diagnosis_activation_context(work: Path) -> str:
+    """Serialize diagnosis routing without exposing accepted report facts."""
+    return yaml.safe_dump(
+        {"diagnoses": _accepted_diagnosis_rows(work)},
+        sort_keys=False,
+        allow_unicode=True,
+    )
+
+
+def _target_activation_validator(work: Path, path: Path) -> str:
+    document = _load_yaml_object(path, "target activation context")
+    issues = []
+    expected_top = {"direct_targets", "stem_diagnoses"}
+    missing = sorted(expected_top - set(document))
+    unexpected = sorted(set(document) - expected_top)
+    if missing:
+        issues.append(
+            f"Top level — Problem: missing field(s): {', '.join(missing)}. Required fix: return direct_targets and stem_diagnoses."
+        )
+    if unexpected:
+        issues.append(
+            f"Top level — Problem: unexpected field(s): {', '.join(unexpected)}. "
+            "Required fix: remove them; only direct_targets and stem_diagnoses are allowed."
+        )
+
+    direct_targets = document.get("direct_targets")
+    if not isinstance(direct_targets, list):
+        issues.append(
+            f"direct_targets — Problem: expected a list, received {type(direct_targets).__name__}. Required fix: return a list; [] is valid."
+        )
+        direct_targets = []
+    seen_targets = set()
+    for index, row in enumerate(direct_targets):
+        location = f"direct_targets[{index}]"
+        if not isinstance(row, dict) or set(row) != {"target", "bases"}:
+            issues.append(
+                f"{location} — Problem: expected exactly target and bases. Required fix: return only those two fields."
+            )
+            continue
+        target = row.get("target")
+        bases = row.get("bases")
+        if not isinstance(target, str) or not target.strip():
+            issues.append(
+                f"{location}.target — Problem: expected a non-empty molecular target string. Required fix: use a canonical gene/fusion target."
+            )
+        else:
+            normalised = _normalise_target(target)
+            if target != normalised or not MOLECULAR_TARGET_RE.fullmatch(target):
+                issues.append(
+                    f"{location}.target — Problem: {target!r} is not canonical uppercase gene/fusion-level target syntax. "
+                    f"Required fix: use {normalised!r} or another canonical target without HGVS detail."
+                )
+            if target in seen_targets:
+                issues.append(
+                    f"{location}.target — Problem: duplicate target {target!r}. Required fix: merge its activation bases into one row."
+                )
+            else:
+                seen_targets.add(target)
+        if not isinstance(bases, list) or not bases:
+            issues.append(
+                f"{location}.bases — Problem: expected a non-empty list. Required fix: include one or more allowed activation bases."
+            )
+        else:
+            seen_bases = set()
+            for basis_index, basis in enumerate(bases):
+                if basis not in ACTIVATION_BASES:
+                    issues.append(
+                        f"{location}.bases[{basis_index}] — Problem: {basis!r} is not allowed. "
+                        f"Required fix: use one of {list(ACTIVATION_BASES)!r}."
+                    )
+                elif basis in seen_bases:
+                    issues.append(
+                        f"{location}.bases[{basis_index}] — Problem: duplicate basis {basis!r}. Required fix: list each basis once."
+                    )
+                else:
+                    seen_bases.add(basis)
+
+    diagnoses = document.get("stem_diagnoses")
+    if not isinstance(diagnoses, list):
+        issues.append(
+            f"stem_diagnoses — Problem: expected a list, received {type(diagnoses).__name__}. Required fix: return a list; [] is valid."
+        )
+        diagnoses = []
+    allowed = _allowed_schema_diseases(work)
+    seen_diagnoses = set()
+    for index, row in enumerate(diagnoses):
+        location = f"stem_diagnoses[{index}]"
+        if not isinstance(row, dict) or set(row) != {"schema_disease"}:
+            issues.append(
+                f"{location} — Problem: expected exactly schema_disease. Required fix: return only that field."
+            )
+            continue
+        disease = row.get("schema_disease")
+        if not isinstance(disease, str) or disease not in allowed:
+            issues.append(
+                f"{location}.schema_disease — Problem: {disease!r} is not an allowed canonical schema disease. "
+                "Required fix: use an exact value from the supplied allowed-schema-diseases artifact."
+            )
+        elif disease in seen_diagnoses:
+            issues.append(
+                f"{location}.schema_disease — Problem: duplicate diagnosis {disease!r}. Required fix: list each diagnosis once."
+            )
+        else:
+            seen_diagnoses.add(disease)
+
+    _raise_model_validation_issues("target activation context", issues)
+    return "target activation context validated"
+
+
+def _activation_diagnoses(work: Path, activation_path: Path) -> list[str]:
+    _target_activation_validator(work, activation_path)
+    document = yaml.safe_load(_read(activation_path))
+    stem = [row["schema_disease"] for row in document["stem_diagnoses"]]
+    return list(dict.fromkeys(_accepted_schema_diagnoses(work) + stem))
+
+
+def _diagnostic_targets_from_card(card: dict) -> list[str]:
+    """Extract alteration-aware activation targets from one atomic diagnosis card.
+
+    Fusion/rearrangement cards activate the fusion target rather than each component
+    gene independently. This prevents, for example, an NPM1::RARA criterion card
+    from activating an unrelated NPM1-mutation negative. Non-fusion cards retain
+    their curated gene tags as gene-level activation targets.
+    """
+    interpretation = str(card.get("interpretation") or "")
+    targets: list[str] = []
+    for left, right in FUSION_RE.findall(interpretation.upper()):
+        target = f"{left}::{right}"
+        if target not in targets:
+            targets.append(target)
+    for rearranged, partner in REARRANGEMENT_INVOLVING_RE.findall(interpretation):
+        target = f"{_normalise_target(partner)}::{_normalise_target(rearranged)}"
+        if target not in targets:
+            targets.append(target)
+    if targets:
+        return targets
+    for gene in card.get("genes") or []:
+        if isinstance(gene, str):
+            target = _normalise_target(gene)
+            if target and target not in targets:
+                targets.append(target)
+    return targets
+
+
+def _target_components(target: str) -> set[str]:
+    target = _normalise_target(target)
+    if "::" in target:
+        return {part for part in target.split("::") if part}
+    return {target}
+
+
+def _target_explicit_in_diagnosis_text(target: str, text: str) -> bool:
+    target = _normalise_target(target)
+    upper = text.upper()
+    if "::" in target:
+        return target in upper
+    return re.search(rf"(?<![A-Z0-9]){re.escape(target)}(?![A-Z0-9])", upper) is not None
+
+
+def _diagnosis_card_activation_targets(
+    evidence_rows: list[dict], diagnosis: str, narrow_diagnoses: list[str]
+) -> list[tuple[str, list[str], str]]:
+    """Derive diagnosis-implied targets without treating every disease-card gene as active.
+
+    Two deterministic routes are allowed:
+    1. the target is explicitly present in the accepted narrow diagnosis wording; or
+    2. molecular criterion cards for the disease share a common target component,
+       indicating a disease-wide molecular axis (for example RARA in APL).
+    """
+    card_rows = []
+    for card in evidence_rows:
+        if diagnosis not in (card.get("matched_schema_diseases") or []):
+            continue
+        targets = _diagnostic_targets_from_card(card)
+        if targets:
+            card_rows.append((str(card.get("card_id") or ""), targets))
+    if not card_rows:
+        return []
+
+    component_sets = []
+    for _card_id, targets in card_rows:
+        components = set()
+        for target in targets:
+            components.update(_target_components(target))
+        if components:
+            component_sets.append(components)
+    shared_components = set.intersection(*component_sets) if component_sets else set()
+
+    selected: dict[tuple[str, str], list[str]] = {}
+    for card_id, targets in card_rows:
+        for target in targets:
+            if any(_target_explicit_in_diagnosis_text(target, text) for text in narrow_diagnoses):
+                selected.setdefault((target, "narrow_diagnosis_explicit_target"), []).append(card_id)
+            if shared_components and (_target_components(target) & shared_components):
+                selected.setdefault((target, "disease_wide_shared_component"), []).append(card_id)
+
+    return [
+        (target, list(dict.fromkeys(card_ids)), mapping)
+        for (target, mapping), card_ids in selected.items()
+    ]
+
+
+def _derive_activated_targets(work: Path, activation_path: Path, evidence_path: Path) -> Path:
+    """Build the authoritative activated-target list from explicit context and diagnosis cards."""
+    _target_activation_validator(work, activation_path)
+    context = yaml.safe_load(_read(activation_path))
+    case_input = json.loads(_read(layout.input(work, "case-input.json")))
+    evidence = json.loads(_read(evidence_path))
+    diagnoses = _activation_diagnoses(work, activation_path)
+    accepted_rows = _accepted_diagnosis_rows(work)
+    accepted_diagnoses = {row["schema_disease"] for row in accepted_rows}
+    narrow_by_disease: dict[str, list[str]] = {}
+    for row in accepted_rows:
+        if row["narrow_diagnosis"]:
+            narrow_by_disease.setdefault(row["schema_disease"], []).append(row["narrow_diagnosis"])
+    stem_diagnoses = {row["schema_disease"] for row in context["stem_diagnoses"]}
+
+    bases_by_target: dict[str, list[dict]] = {}
+
+    def add_basis(target: str, basis: dict) -> None:
+        target = _normalise_target(target)
+        if not target or not MOLECULAR_TARGET_RE.fullmatch(target):
+            return
+        bucket = bases_by_target.setdefault(target, [])
+        if basis not in bucket:
+            bucket.append(basis)
+
+    for row in context["direct_targets"]:
+        for basis in row["bases"]:
+            add_basis(row["target"], {"source": "clinical_context_model", "basis": basis})
+
+    # Current reported NGS genes are explicit case molecular targets and must not depend
+    # on the activation model remembering to repeat them.
+    for gene in case_input.get("genes") or []:
+        if isinstance(gene, str):
+            add_basis(gene, {"source": "structured_case", "basis": "reported_ngs_gene"})
+
+    evidence_rows = [row for row in (evidence.get("retrieved") or []) if isinstance(row, dict)]
+    for disease in diagnoses:
+        narrow_diagnoses = narrow_by_disease.get(disease, [])
+        for target, card_ids, mapping in _diagnosis_card_activation_targets(
+            evidence_rows, disease, narrow_diagnoses
+        ):
+            add_basis(
+                target,
+                {
+                    "source": "diagnosis_card",
+                    "basis": "diagnosis_implied",
+                    "mapping": mapping,
+                    "schema_disease": disease,
+                    "card_ids": card_ids,
+                },
+            )
+
+    diagnosis_rows = []
+    for disease in diagnoses:
+        sources = []
+        if disease in accepted_diagnoses:
+            sources.append("accepted_diagnostic_answer")
+        if disease in stem_diagnoses:
+            sources.append("explicitly_raised_in_stem")
+        diagnosis_rows.append({"schema_disease": disease, "sources": sources})
+
+    activated_rows = [
+        {"target": target, "activated": True, "bases": bases_by_target[target]}
+        for target in sorted(bases_by_target)
+    ]
+    output = layout.synthesis(work, "activated-targets.yaml")
+    _atomic_write(
+        output,
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "diagnoses": diagnosis_rows,
+                "activated_targets": activated_rows,
+            },
+            sort_keys=False,
+            allow_unicode=True,
+            width=100,
+        ),
+    )
+    return output
+
+
+def _load_activated_targets(path: Path) -> dict[str, dict]:
+    document = yaml.safe_load(_read(path)) or {}
+    rows = document.get("activated_targets")
+    if not isinstance(rows, list):
+        raise ValueError("activated-targets.yaml has no activated_targets list")
+    result = {}
+    for row in rows:
+        if not isinstance(row, dict) or row.get("activated") is not True:
+            raise ValueError("activated-targets.yaml contains malformed target rows")
+        target = row.get("target")
+        bases = row.get("bases")
+        if not isinstance(target, str) or not isinstance(bases, list):
+            raise ValueError("activated-targets.yaml contains malformed target rows")
+        result[target] = row
+    return result
+
+
+def _target_activation_status(target: str, activated: dict[str, dict]) -> dict:
+    target = _normalise_target(target)
+    matched = []
+    if target in activated:
+        matched.append(target)
+    elif "::" in target:
+        components = [part for part in target.split("::") if part]
+        if components and all(component in activated for component in components):
+            matched.extend(components)
+    elif target.endswith("-ITD") or target.endswith("-TKD"):
+        gene = target.rsplit("-", 1)[0]
+        if gene in activated:
+            matched.append(gene)
+    bases = []
+    for matched_target in matched:
+        for basis in activated[matched_target]["bases"]:
+            decorated = dict(basis)
+            decorated["matched_target"] = matched_target
+            if decorated not in bases:
+                bases.append(decorated)
+    return {
+        "target": target,
+        "activated": bool(matched),
+        "matched_targets": matched,
+        "bases": bases,
+    }
 
 
 def _reportability_classification_validator(work: Path, path: Path) -> str:
@@ -979,58 +1360,204 @@ def _reportability_classification_validator(work: Path, path: Path) -> str:
     manifest = runtime.accepted_fact_manifest(work)
     known_order = [row["fact_id"] for row in manifest]
     known = set(known_order)
-    allowed = ", ".join(REPORTABILITY_CLASSES)
     seen = set()
+    actual_order = []
+    expected_fields = {"fact_id", "molecular", "targets", "polarity", "negative_consequence"}
     for index, row in enumerate(rows):
         location = f"classifications[{index}]"
-        if not isinstance(row, dict) or set(row) != {"fact_id", "class"}:
+        if not isinstance(row, dict) or set(row) != expected_fields:
             issues.append(
-                f"{location} — Problem: expected a mapping with exactly fact_id and class. "
-                "Required fix: return one mapping per fact with those two keys only."
+                f"{location} — Problem: expected exactly fact_id, molecular, targets, polarity and negative_consequence. "
+                "Required fix: return those five fields only."
             )
             continue
         fact_id = row["fact_id"]
-        klass = row["class"]
+        molecular = row["molecular"]
+        targets = row["targets"]
+        polarity = row["polarity"]
+        negative = row["negative_consequence"]
         if not isinstance(fact_id, str) or fact_id not in known:
             issues.append(
                 f"{location}.fact_id — Problem: {fact_id!r} is not a supplied accepted fact ID. "
                 "Required fix: use only fact_id values from the supplied accepted_facts manifest."
             )
-        elif fact_id in seen:
+        else:
+            actual_order.append(fact_id)
+            if fact_id in seen:
+                issues.append(
+                    f"{location}.fact_id — Problem: duplicate fact_id {fact_id!r}. Required fix: classify each supplied fact exactly once."
+                )
+            else:
+                seen.add(fact_id)
+        if not isinstance(molecular, bool):
             issues.append(
-                f"{location}.fact_id — Problem: duplicate fact_id {fact_id!r}. "
-                "Required fix: classify each supplied fact exactly once."
+                f"{location}.molecular — Problem: expected true or false, received {molecular!r}. Required fix: use a YAML boolean."
+            )
+        if not isinstance(targets, list):
+            issues.append(
+                f"{location}.targets — Problem: expected a list, received {type(targets).__name__}. Required fix: return [] or canonical target strings."
             )
         else:
-            seen.add(fact_id)
-        if klass not in REPORTABILITY_CLASSES:
+            target_seen = set()
+            for target_index, target in enumerate(targets):
+                target_location = f"{location}.targets[{target_index}]"
+                if not isinstance(target, str) or not target.strip():
+                    issues.append(
+                        f"{target_location} — Problem: expected a non-empty canonical molecular target string. Required fix: use gene/fusion-level target syntax."
+                    )
+                    continue
+                normalised = _normalise_target(target)
+                if target != normalised or not MOLECULAR_TARGET_RE.fullmatch(target):
+                    issues.append(
+                        f"{target_location} — Problem: {target!r} is not canonical uppercase gene/fusion-level target syntax. "
+                        f"Required fix: use {normalised!r} or another canonical target without HGVS detail."
+                    )
+                if target in target_seen:
+                    issues.append(
+                        f"{target_location} — Problem: duplicate target {target!r}. Required fix: list each target once."
+                    )
+                target_seen.add(target)
+        if polarity not in REPORTABILITY_POLARITIES:
             issues.append(
-                f"{location}.class — Problem: {klass!r} is not an allowed class. "
-                f"Required fix: use exactly one of: {allowed}."
+                f"{location}.polarity — Problem: {polarity!r} is not allowed. Required fix: use one of {list(REPORTABILITY_POLARITIES)!r}."
             )
+        if not isinstance(negative, bool):
+            issues.append(
+                f"{location}.negative_consequence — Problem: expected true or false, received {negative!r}. Required fix: use a YAML boolean."
+            )
+        if isinstance(molecular, bool) and isinstance(targets, list):
+            if molecular and not targets:
+                issues.append(
+                    f"{location} — Problem: molecular is true but targets is empty. Required fix: name every molecular target central to the fact."
+                )
+            if not molecular:
+                if targets:
+                    issues.append(
+                        f"{location} — Problem: molecular is false but targets is not empty. Required fix: set targets: []."
+                    )
+                if polarity != "not_a_result":
+                    issues.append(
+                        f"{location} — Problem: a non-molecular fact cannot have result polarity {polarity!r}. Required fix: use polarity: not_a_result."
+                    )
+                if negative is not False:
+                    issues.append(
+                        f"{location} — Problem: a non-molecular fact must have negative_consequence: false. Required fix: set it to false."
+                    )
 
     missing = [fact_id for fact_id in known_order if fact_id not in seen]
     if missing:
         issues.append(
-            f"classifications — Problem: {len(missing)} supplied fact(s) were not classified: "
-            f"{', '.join(missing)}. Required fix: return exactly one classification row for every "
-            "fact in the supplied accepted_facts manifest, including facts you consider clearly reportable."
+            f"classifications — Problem: {len(missing)} supplied fact(s) were not classified: {', '.join(missing)}. "
+            "Required fix: return exactly one classification row for every supplied fact."
+        )
+    if actual_order and actual_order != known_order:
+        issues.append(
+            f"classifications — Problem: fact rows are not in accepted-manifest order. Expected {known_order!r}; received {actual_order!r}. "
+            "Required fix: preserve the supplied fact order exactly."
         )
 
     _raise_model_validation_issues("reportability classification", issues)
     return "reportability classification validated"
 
 
-def _derive_reportability_review(work: Path, classification: Path) -> Path:
-    """Validate exhaustive model classifications and derive the existing quarantine contract."""
+def _target_represented_by_detected_summary(target: str, case_genes: set[str]) -> bool:
+    """Return whether a direct positive target is already surfaced by the NGS result summary."""
+    canonical = _normalise_target(target)
+    if canonical in case_genes:
+        return True
+    if "::" in canonical:
+        parts = [part for part in canonical.split("::") if part]
+        return bool(parts) and all(part in case_genes for part in parts)
+    for suffix in ("-ITD", "-TKD"):
+        if canonical.endswith(suffix) and canonical[: -len(suffix)] in case_genes:
+            return True
+    return False
+
+
+def _derive_reportability_review(work: Path, classification: Path, activated_targets_path: Path) -> Path:
+    """Apply deterministic reportability gates and persist auditable decisions."""
     _reportability_classification_validator(work, classification)
-    document = yaml.safe_load(_read(classification))
-    classes = {row["fact_id"]: row["class"] for row in document["classifications"]}
-    quarantine = [
-        row["fact_id"]
-        for row in runtime.accepted_fact_manifest(work)
-        if classes[row["fact_id"]] == "routine_negative"
-    ]
+    classifications_doc = yaml.safe_load(_read(classification))
+    classifications = {row["fact_id"]: row for row in classifications_doc["classifications"]}
+    activated = _load_activated_targets(activated_targets_path)
+    decisions = []
+    quarantine = []
+
+    for fact in runtime.accepted_fact_manifest(work):
+        fact_id = fact["fact_id"]
+        domain = fact["domain"]
+        row = classifications[fact_id]
+        target_activation = [
+            _target_activation_status(target, activated) for target in row["targets"]
+        ]
+
+        if not row["molecular"]:
+            disposition = "quarantine"
+            rule = "R01_NON_MOLECULAR"
+            rationale = "No specific molecular target anchors this fact to molecular NGS interpretation."
+        elif row["polarity"] == "detected":
+            case_doc = json.loads(_read(layout.input(work, "case-input.json")))
+            case_genes = {
+                _normalise_target(gene)
+                for gene in case_doc.get("genes", [])
+                if isinstance(gene, str) and gene.strip()
+            }
+            represented = bool(row["targets"]) and all(
+                _target_represented_by_detected_summary(target, case_genes)
+                for target in row["targets"]
+            )
+            if represented:
+                disposition = "quarantine"
+                rule = "R04_REDUNDANT_BARE_POSITIVE_RESULT"
+                rationale = "Every direct positive molecular target in this fact is already surfaced by the deterministic detected-variant summary."
+            else:
+                disposition = "retain"
+                rule = "R13_DIRECT_POSITIVE_NOT_IN_RESULT_SUMMARY"
+                rationale = "At least one direct positive molecular target is not represented by the deterministic detected-variant summary, so the fact is retained."
+        elif row["polarity"] == "not_detected":
+            activated_count = sum(1 for status in target_activation if status["activated"])
+            if activated_count == len(target_activation):
+                disposition = "retain"
+                rule = "R10_ACTIVATED_NEGATIVE"
+                rationale = "Every absent molecular target was independently activated by the case context or diagnosis-card mapping."
+            elif activated_count == 0:
+                disposition = "quarantine"
+                rule = "R02_UNACTIVATED_NEGATIVE"
+                rationale = "No absent molecular target was independently activated by the clinical stem, reported/prior molecular context, explicit request, or diagnosis-card mapping."
+            else:
+                disposition = "retain"
+                rule = "R05_MIXED_NEGATIVE_TARGETS_RETAIN_SENSITIVITY"
+                rationale = "The fact contains both activated and unactivated absent targets; it is retained conservatively because Step 6 cannot partially rewrite an accepted fact without risking loss of clinically required negative content."
+        elif row["negative_consequence"]:
+            if runtime.negative_consequence_allowed(work, domain):
+                disposition = "retain"
+                rule = "R12_NEGATIVE_CONSEQUENCE_ALLOWED"
+                rationale = f"The {domain} reporting-question policy explicitly permits clinically relevant negative consequences such as resistance."
+            else:
+                disposition = "quarantine"
+                rule = "R03_NEGATIVE_CONSEQUENCE_NOT_REQUESTED"
+                rationale = f"The {domain} reporting-question policy does not request negative-consequence commentary for a present/interpreted molecular finding."
+        else:
+            disposition = "retain"
+            rule = "R11_MOLECULAR_INTERPRETATION"
+            rationale = "The fact is a molecular interpretation that is neither an unactivated negative result nor a disallowed negative consequence."
+
+        decision = {
+            "fact_id": fact_id,
+            "disposition": disposition,
+            "rule": rule,
+            "rationale": rationale,
+            "target_activation": target_activation,
+        }
+        decisions.append(decision)
+        if disposition == "quarantine":
+            quarantine.append(fact_id)
+
+    decision_path = layout.synthesis(work, "reportability-decisions.yaml")
+    _atomic_write(
+        decision_path,
+        yaml.safe_dump({"decisions": decisions}, sort_keys=False, allow_unicode=True, width=100),
+    )
     review = layout.synthesis(work, "reportability-review.yaml")
     _atomic_write(
         review,
@@ -1054,217 +1581,14 @@ def _quarantine_fact_ids(work: Path) -> set[str]:
     return set(document["quarantine_fact_ids"])
 
 
-def _negative_safety_validator(work: Path, path: Path) -> str:
-    document = _load_yaml_object(path, "negative safety review")
-    issues = []
-    if set(document) != {"restore"}:
-        missing = sorted({"restore"} - set(document))
-        unexpected = sorted(set(document) - {"restore"})
-        if missing:
-            issues.append("Top level — Problem: missing restore. Required fix: return exactly restore.")
-        if unexpected:
-            issues.append(
-                f"Top level — Problem: unexpected field(s): {', '.join(unexpected)}. "
-                "Required fix: remove them; only restore is allowed."
-            )
-    rows = document.get("restore")
-    if not isinstance(rows, list):
-        issues.append(
-            f"restore — Problem: expected a list, received {type(rows).__name__}. "
-            "Required fix: return a list of restoration rows; an empty list is valid."
-        )
-        _raise_model_validation_issues("negative safety review", issues)
-
-    facts = {row["fact_id"]: row for row in runtime.accepted_fact_manifest(work)}
-    quarantined = _quarantine_fact_ids(work)
-    pre_draft = _read(layout.synthesis(work, "report-draft-pre-rescue.md"))
-    sentences = {row["sentence_id"]: row for row in _summary_sentence_manifest(pre_draft)}
-    seen = set()
-    for index, row in enumerate(rows):
-        location = f"restore[{index}]"
-        if not isinstance(row, dict):
-            issues.append(
-                f"{location} — Problem: expected an object, received {row!r}. "
-                "Required fix: return exactly fact_id and after_sentence_id."
-            )
-            continue
-        expected = {"fact_id", "after_sentence_id"}
-        missing = sorted(expected - set(row))
-        unexpected = sorted(set(row) - expected)
-        if missing:
-            issues.append(f"{location} — Problem: missing field(s): {', '.join(missing)}. Required fix: add them.")
-        if unexpected:
-            issues.append(
-                f"{location} — Problem: unexpected field(s): {', '.join(unexpected)}. "
-                "Required fix: remove them; only fact_id and after_sentence_id are allowed."
-            )
-        fact_id = row.get("fact_id")
-        after = row.get("after_sentence_id")
-        if not isinstance(fact_id, str) or not fact_id.strip():
-            issues.append(
-                f"{location}.fact_id — Problem: expected a non-empty quarantined fact_id string, received {fact_id!r}. "
-                "Required fix: use an exact supplied quarantined fact_id."
-            )
-            continue
-        if fact_id in seen:
-            issues.append(
-                f"{location}.fact_id — Problem: duplicate restoration {fact_id!r}. Required fix: restore each fact at most once."
-            )
-        else:
-            seen.add(fact_id)
-        if fact_id not in quarantined:
-            issues.append(
-                f"{location}.fact_id — Problem: {fact_id!r} is not a quarantined fact. "
-                "Required fix: select only fact_id values from the supplied quarantined facts."
-            )
-        if after is not None and (not isinstance(after, str) or not after.strip()):
-            issues.append(
-                f"{location}.after_sentence_id — Problem: expected null or a non-empty supplied sentence ID, received {after!r}. "
-                "Required fix: use null or an exact sentence_id from the current report manifest."
-            )
-        elif isinstance(after, str):
-            if after not in sentences:
-                issues.append(
-                    f"{location}.after_sentence_id — Problem: {after!r} is not a current report sentence ID. "
-                    "Required fix: use an exact supplied sentence_id or null."
-                )
-            elif fact_id in facts and sentences[after]["domain"] != facts[fact_id]["domain"]:
-                issues.append(
-                    f"{location}.after_sentence_id — Problem: {after!r} is in domain {sentences[after]['domain']!r}, "
-                    f"but {fact_id!r} is in domain {facts[fact_id]['domain']!r}. "
-                    "Required fix: place the fact after a sentence in the same domain or use null."
-                )
-    _raise_model_validation_issues("negative safety review", issues)
-    return "negative safety review validated"
-
-
-def _restored_fact_ids(work: Path) -> set[str]:
-    path = layout.synthesis(work, "negative-safety-review.yaml")
-    if not path.is_file():
-        return set()
-    _negative_safety_validator(work, path)
-    document = yaml.safe_load(_read(path))
-    return {row["fact_id"] for row in document["restore"]}
-
-
 def _accepted_fact_manifest(work: Path) -> list[dict]:
-    """Facts eligible for final sentence alignment: retained plus explicitly restored negatives."""
+    """Facts eligible for final synthesis/alignment: deterministically retained facts only."""
     facts = runtime.accepted_fact_manifest(work)
     review = layout.synthesis(work, "reportability-review.yaml")
     if not review.is_file():
         return facts
     quarantined = _quarantine_fact_ids(work)
-    restored = _restored_fact_ids(work)
-    return [
-        row for row in facts
-        if row["fact_id"] not in quarantined or row["fact_id"] in restored
-    ]
-
-
-def _safety_review_input(work: Path, draft: str) -> str:
-    quarantined = _quarantine_fact_ids(work)
-    facts = [
-        {"fact_id": row["fact_id"], "domain": row["domain"], "fact": row["fact"]}
-        for row in runtime.accepted_fact_manifest(work)
-        if row["fact_id"] in quarantined
-    ]
-    sentences = [
-        {key: row[key] for key in ("sentence_id", "domain", "sentence")}
-        for row in _summary_sentence_manifest(draft)
-    ]
-    return yaml.safe_dump(
-        {
-            "case": json.loads(_read(layout.input(work, "case-input.json"))),
-            "report_sentences": sentences,
-            "quarantined_facts": facts,
-        },
-        sort_keys=False,
-        allow_unicode=True,
-        width=100,
-    )
-
-
-def _fact_report_sentence(fact: str) -> str:
-    text = fact.strip()
-    if not text:
-        raise StepFailure("cannot restore an empty quarantined fact")
-    if "\n" in text or "[card:" in text or text.startswith("**"):
-        raise StepFailure(
-            "cannot deterministically restore a quarantined fact containing a newline, heading, or runtime card tag"
-        )
-    if not text.endswith("."):
-        text += "."
-    return text
-
-
-def _insert_missing_domain_section(draft: str, domain: str, sentences: list[str]) -> str:
-    title = next(title for title, value in SUMMARY_HEADINGS.items() if value == domain)
-    section = f"**{title}**\n\n" + " ".join(sentences)
-    heading_matches = list(SUMMARY_HEADING_RE.finditer(draft))
-    domain_order = list(DOMAINS)
-    current_rank = domain_order.index(domain)
-    insertion = len(draft)
-    for match in heading_matches:
-        existing_domain = SUMMARY_HEADINGS.get(match.group("title").strip())
-        if existing_domain is not None and domain_order.index(existing_domain) > current_rank:
-            insertion = match.start()
-            break
-    if insertion == len(draft):
-        prefix = draft.rstrip()
-        return (prefix + ("\n\n" if prefix else "") + section + "\n")
-    before = draft[:insertion].rstrip()
-    after = draft[insertion:].lstrip("\n")
-    return (before + ("\n\n" if before else "") + section + "\n\n" + after)
-
-
-def _apply_negative_safety_review(work: Path, review_path: Path) -> Path:
-    _negative_safety_validator(work, review_path)
-    document = yaml.safe_load(_read(review_path))
-    pre_path = layout.synthesis(work, "report-draft-pre-rescue.md")
-    draft = _read(pre_path)
-    if not document["restore"]:
-        output = layout.synthesis(work, "report-draft.md")
-        _atomic_write(output, draft)
-        return output
-
-    facts = {row["fact_id"]: row for row in runtime.accepted_fact_manifest(work)}
-    manifest = _summary_sentence_manifest(draft)
-    by_sentence = {row["sentence_id"]: row for row in manifest}
-    last_by_domain = {}
-    for row in manifest:
-        last_by_domain[row["domain"]] = row["sentence_id"]
-
-    insertions: dict[int, list[str]] = {}
-    missing_domains: dict[str, list[str]] = {}
-    for row in document["restore"]:
-        fact = facts[row["fact_id"]]
-        sentence = _fact_report_sentence(fact["fact"])
-        after = row["after_sentence_id"]
-        if after is None:
-            after = last_by_domain.get(fact["domain"])
-        if after is None:
-            missing_domains.setdefault(fact["domain"], []).append(sentence)
-        else:
-            insertions.setdefault(by_sentence[after]["end"], []).append(sentence)
-
-    for position in sorted(insertions, reverse=True):
-        payload = " " + " ".join(insertions[position])
-        draft = draft[:position] + payload + draft[position:]
-    for domain in DOMAINS:
-        if domain in missing_domains:
-            draft = _insert_missing_domain_section(draft, domain, missing_domains[domain])
-
-    output = layout.synthesis(work, "report-draft.md")
-    _atomic_write(output, draft)
-    try:
-        _summary_validator(output)
-    except ValueError as exc:
-        output.unlink(missing_ok=True)
-        raise StepFailure(
-            "deterministic exceptional-negative insertion produced an invalid report layout; "
-            f"this is not repairable by changing citation alignment: {exc}"
-        ) from exc
-    return output
+    return [row for row in facts if row["fact_id"] not in quarantined]
 
 
 def _citation_alignment_input(work: Path, draft: str) -> str:
@@ -1461,6 +1785,19 @@ def _unmatched_summary_feedback(work: Path, path: Path) -> str | None:
         document = yaml.safe_load(text)
     except yaml.YAMLError:
         return None
+    if isinstance(document, dict) and "alignments" in document and "unmatched_sentences" not in document:
+        _sentences, facts, alignment = _load_sentence_fact_alignment(work, path)
+        covered = {fact_id for fact_ids in alignment.values() for fact_id in fact_ids}
+        missing = [fact_id for fact_id in facts if fact_id not in covered]
+        if not missing:
+            return None
+        feedback = [
+            "The previous synthesis omitted retained accepted fact(s). Rewrite the complete report so each retained fact is represented; merging is allowed but semantic omission is not:"
+        ]
+        for fact_id in missing:
+            fact = facts[fact_id]
+            feedback.append(f"- {fact_id} ({fact['domain']}): {fact['fact']}")
+        return "\n".join(feedback)
     if not isinstance(document, dict) or "unmatched_sentences" not in document:
         return None
     issues = []
@@ -1596,7 +1933,51 @@ def step_6(work: Path, profile: str | None) -> int:
     layout.ensure_dirs(work)
     runtime.prepare_combined_evidence(work)
 
+    activation = layout.synthesis(work, "activation-context.yaml")
+    if activation.is_file():
+        try:
+            _target_activation_validator(work, activation)
+        except ValueError:
+            activation.unlink(missing_ok=True)
+    if not activation.is_file() or _profile(work, profile, "target_activation").is_self:
+        messages = [
+            {"role": "system", "content": model_client.SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    _read(PROMPTS / "target_activation.md")
+                    + "\n\n## Clinical stem\n\n"
+                    + _read(layout.input(work, "case.md"))
+                    + "\n\n## Structured case\n\n```json\n"
+                    + _read(layout.input(work, "case-input.json"))
+                    + "```\n\n## Accepted diagnostic routing state\n\n```yaml\n"
+                    + _accepted_diagnosis_activation_context(work)
+                    + "```\n\n## Allowed canonical schema diseases\n\n```json\n"
+                    + _read(layout.input(work, "allowed-schema-diseases.json"))
+                    + "```\n"
+                ),
+            },
+        ]
+        _model_call(
+            work,
+            call_id="target-activation",
+            role="target_activation",
+            messages=messages,
+            output=activation,
+            validator=lambda path: _target_activation_validator(work, path),
+            profile=profile,
+        )
+
+    activation_diagnoses = _activation_diagnoses(work, activation)
+    activation_evidence = retrieval.reportability_activation(work, activation_diagnoses)
+    activated_targets = _derive_activated_targets(work, activation, activation_evidence)
+
     classification = layout.synthesis(work, "reportability-classification.yaml")
+    if classification.is_file():
+        try:
+            _reportability_classification_validator(work, classification)
+        except ValueError:
+            classification.unlink(missing_ok=True)
     if not classification.is_file() or _profile(work, profile, "reportability").is_self:
         messages = [
             {"role": "system", "content": model_client.SYSTEM_PROMPT},
@@ -1619,21 +2000,22 @@ def step_6(work: Path, profile: str | None) -> int:
             validator=lambda path: _reportability_classification_validator(work, path),
             profile=profile,
         )
-    _derive_reportability_review(work, classification)
+
+    _derive_reportability_review(work, classification, activated_targets)
     quarantine = _quarantine_fact_ids(work)
     runtime.apply_reportability_review(work, quarantine)
 
     max_summary_cycles = 2
     summary_feedback = None
     for cycle in range(1, max_summary_cycles + 1):
-        pre_draft = layout.synthesis(work, "report-draft-pre-rescue.md")
-        if not pre_draft.is_file() or _profile(work, profile, "summarisation").is_self:
+        draft = layout.synthesis(work, "report-draft.md")
+        if not draft.is_file() or _profile(work, profile, "summarisation").is_self:
             suffix = ""
             if summary_feedback:
                 suffix = (
                     "\n\n## Required correction from the previous citation-alignment pass\n\n"
-                    "Rewrite the complete report so every sentence is directly represented by retained accepted facts. "
-                    "Correct each reported sentence without adding outside assertions:\n\n"
+                    "Rewrite the complete report as lossless compression of the retained fact set. "
+                    "Do not omit any retained fact and do not add outside assertions:\n\n"
                     + summary_feedback
                 )
             messages = [
@@ -1653,40 +2035,11 @@ def step_6(work: Path, profile: str | None) -> int:
                 call_id=f"summary-{cycle}",
                 role="summarisation",
                 messages=messages,
-                output=pre_draft,
+                output=draft,
                 validator=_summary_validator,
                 profile=profile,
             )
 
-        safety = layout.synthesis(work, "negative-safety-review.yaml")
-        if not safety.is_file() or (quarantine and _profile(work, profile, "negative_safety_review").is_self):
-            if quarantine:
-                messages = [
-                    {"role": "system", "content": model_client.SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": (
-                            _read(PROMPTS / "negative_safety_review.md")
-                            + "\n\n## Case, report and quarantined-fact manifest\n\n```yaml\n"
-                            + _safety_review_input(work, _read(pre_draft))
-                            + "```\n"
-                        ),
-                    },
-                ]
-                _model_call(
-                    work,
-                    call_id=f"negative-safety-{cycle}",
-                    role="negative_safety_review",
-                    messages=messages,
-                    output=safety,
-                    validator=lambda path: _negative_safety_validator(work, path),
-                    profile=profile,
-                )
-            else:
-                _atomic_write(safety, "restore: []\n")
-
-        _apply_negative_safety_review(work, safety)
-        draft = layout.synthesis(work, "report-draft.md")
         alignment = layout.synthesis(work, "report-citation-alignment.yaml")
         if not alignment.is_file() or _profile(work, profile, "final_citation_alignment").is_self:
             messages = [
@@ -1695,7 +2048,7 @@ def step_6(work: Path, profile: str | None) -> int:
                     "role": "user",
                     "content": (
                         _read(PROMPTS / "final_citation_alignment.md")
-                        + "\n\n## Sentence and accepted-fact manifest\n\n```yaml\n"
+                        + "\n\n## Sentence and retained-fact manifest\n\n```yaml\n"
                         + _citation_alignment_input(work, _read(draft))
                         + "```\n"
                     ),
@@ -1714,13 +2067,11 @@ def step_6(work: Path, profile: str | None) -> int:
         if summary_feedback is not None:
             alignment.unlink(missing_ok=True)
             draft.rename(layout.synthesis(work, f"report-draft-unmatched-{cycle}.md"))
-            pre_draft.rename(layout.synthesis(work, f"report-draft-pre-rescue-unmatched-{cycle}.md"))
-            safety.rename(layout.synthesis(work, f"negative-safety-review-unmatched-{cycle}.yaml"))
             layout.synthesis(work, "report-cited.md").unlink(missing_ok=True)
             continue
         runtime.render_final(work)
         return EXIT_OK
-    raise StepFailure("summary remained semantically unmatched to retained/restored accepted facts after two synthesis cycles")
+    raise StepFailure("summary remained semantically unmatched to the complete retained accepted fact set after two synthesis cycles")
 
 
 def package_bundles(work: Path, output: Path | None = None) -> Path | None:
