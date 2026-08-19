@@ -232,6 +232,11 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn("For a **Phase 1 retry/redo**, do **not** repeat", prompt)
         self.assertIn("do not ask for another `CONFIRM`", prompt)
         self.assertIn("Its `category_scope` is the already-confirmed scope", prompt)
+        self.assertIn("The incoming critique is a minimum repair list, not the boundary of the audit", prompt)
+        self.assertIn("The prior census is the working candidate, not merely a reference", prompt)
+        self.assertIn("Preserve the existing `claim_id`, wording, genes, category, and locator for unaffected entries", prompt)
+        self.assertIn("Do not regenerate the census wholesale", prompt)
+        self.assertIn("does not authorize rewriting otherwise valid prior-census entries", prompt)
         self.assertIn("independent audit must reassess the whole census", prompt)
 
     def test_phase1_and_phase2_share_identical_census_semantic_gate(self):
