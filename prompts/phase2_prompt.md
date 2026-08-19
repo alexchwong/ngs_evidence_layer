@@ -129,11 +129,11 @@ A card interpretation is a self-contained clinical conclusion derived from its s
 
 State the strongest clinically useful conclusion directly entailed by the evidence, using only the minimum source-supported context needed for the conclusion to be understood correctly when presented alone.
 
-Include the minimum context required to understand what population or disease the conclusion applies to, what molecular finding or biological group is relevant, what intervention and comparator are being compared when applicable, what outcome or clinical role is asserted, and what subgroup, analysis, threshold, treatment setting, or other qualifier materially limits the conclusion.
+Include the minimum context required to understand what population or disease the conclusion applies to, what molecular finding or biological group is relevant, what intervention and comparator are being compared when applicable, what outcome or clinical role is asserted, and what subgroup, analysis, threshold, treatment setting, or other qualifier materially limits the conclusion. Every gene listed in the card's `genes` field must be explicitly named in the interpretation. Every disease listed in the card's `diseases` field must be explicitly identified in the interpretation by its canonical name or an accepted source-disease alias. Generic substitutes such as "the driver gene", "this disease", or "these mutations" do not satisfy this surfacing requirement. The card category does not need to be named.
 
 Do not add contextual detail merely to make the interpretation more complete. Include methodological detail only when it changes the clinical meaning or strength of the claim.
 
-A trial name, cohort name, treatment-arm label, model number, table identifier, analysis label, subgroup nickname, or similar paper-local term must not carry information required to understand the interpretation. Such terminology may remain for provenance or precision only when the conclusion remains intelligible without prior knowledge of it.
+A trial name, cohort name, treatment-arm label, model number, table identifier, analysis label, subgroup nickname, or similar paper-local term must not carry information required to understand the interpretation. A paper-local study-population label such as `Arm A`, `Cohort 2`, `Group B`, or an author-named arm fails this standard when the interpretation does not state what clinically defines that population. Replace it with a short semantic description such as `patients who received drug A`, `patients with relapsed AML`, or `patients with TP53-mutated AML`; if the local label adds no clinical value, omit it and use the semantic description alone. Recognized clinical classifications may be retained when their meaning is the clinical assertion itself.
 
 Numerical results, effect estimates, confidence intervals, P values, and other statistics may quantify or qualify a conclusion but must not substitute for stating the conclusion.
 
@@ -310,6 +310,10 @@ UMBRELLA = {
     for term in TERMS
     if term.get("parents")
 }
+DISEASE_TEXT_FORMS = {
+    term["name"]: [term["name"], *term.get("aliases", [])]
+    for term in TERMS
+}
 
 
 def bind_disease_vocabulary(schema):
@@ -375,6 +379,45 @@ def normalise(text, markdown=False):
             lines.append(line.replace("|", " "))
         text = "\n".join(lines)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _contains_explicit_term(text, term):
+    """Case-insensitive whole-term match with flexible internal whitespace."""
+    pattern = re.escape(str(term).casefold()).replace(r"\ ", r"\s+")
+    return re.search(rf"(?<![a-z0-9]){pattern}(?![a-z0-9])", str(text).casefold()) is not None
+
+
+def interpretation_surfacing_errors(package, card_ids=None):
+    """Require schema-5.1 cards in scope to surface tagged genes and diseases."""
+    if package.get("schema_version") != "5.1":
+        return []
+    selected = None if card_ids is None else set(card_ids)
+    errors = []
+    for card in package.get("cards", []):
+        card_id = card.get("card_id", "<unknown card>")
+        if selected is not None and card_id not in selected:
+            continue
+        interpretation = card.get("interpretation", "")
+        missing_genes = [
+            gene for gene in card.get("genes", [])
+            if not _contains_explicit_term(interpretation, gene)
+        ]
+        missing_diseases = []
+        for disease in card.get("diseases", []):
+            forms = DISEASE_TEXT_FORMS.get(disease, [disease])
+            if not any(_contains_explicit_term(interpretation, form) for form in forms):
+                missing_diseases.append(disease)
+        if missing_genes:
+            errors.append(
+                f"{card_id}: interpretation must explicitly name every tagged gene; "
+                f"missing: {', '.join(missing_genes)}"
+            )
+        if missing_diseases:
+            errors.append(
+                f"{card_id}: interpretation must explicitly identify every tagged disease "
+                f"by canonical name or accepted source alias; missing: {', '.join(missing_diseases)}"
+            )
+    return errors
 
 
 def schema_errors(document, label="package"):
@@ -571,6 +614,7 @@ def validate_phase_files(
     expected_publication = census
     expected_label = "census"
     review_baseline = None
+    ledger = None
     if base_final_path is not None and base_provisional_path is not None:
         package_errors.append("Phase 2R must use either --base-final or --base-provisional, not both")
     elif base_final_path is not None:
@@ -641,6 +685,15 @@ def validate_phase_files(
             )
             if not ledger.get("card_decisions"):
                 warnings.append("Phase 2R decision ledger contains no card changes")
+
+    if provisional.get("schema_version") == "5.1":
+        if review_baseline is None:
+            surfacing_scope = None
+        elif ledger is not None:
+            surfacing_scope = card_deltas.changed_card_ids(ledger)
+        else:
+            surfacing_scope = []
+        package_errors.extend(interpretation_surfacing_errors(provisional, surfacing_scope))
 
     if provisional.get("publication_type") != expected_publication.get("publication_type"):
         package_errors.append(
@@ -4202,9 +4255,11 @@ Map every material assertion in the interpretation to explicit supporting source
 # Card content rules
 
 - One card represents one independently useful, directly supported clinical assertion.
-- `genes` contains only genes participating in that assertion.
-- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
+- `genes` contains only genes participating in that assertion. Every gene listed in `genes` must be explicitly named in the interpretation.
+- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope. Every disease listed in `diseases` must be explicitly identified in the interpretation by its canonical name or an accepted source-disease alias.
+- The interpretation must not depend on an unexplained paper-local cohort, arm, group, stratum, protocol, or author-defined label. Replace such a label with the short clinical meaning that defines the population, exposure, treatment, genotype, disease state, or eligibility criterion; generalize to that meaning alone when the local label adds no clinical value.
 - Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
+- **Parallel-gene consolidation exception:** when separate census claims differ only by gene identity and otherwise make the same clinical assertion with the same disease scope, category, population, treatment/comparator, clinical role or outcome, direction, thresholds, qualifiers, exceptions, and evidence basis, represent them with one card. Union the participating genes and write one interpretation that explicitly names every gene. Do not consolidate when any clinically material element differs. This card-level consolidation does not alter Phase 1 census atomicity.
 
 ### Source disease alias policy
 
@@ -4585,14 +4640,15 @@ Perform this audit **claim-by-claim, not by aggregate card count**. If a coverin
 
 For every card in the candidate provisional ask:
 1. does its paired evidence support every material assertion?;
-2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`?; and
-3. is it independently useful rather than redundant?
+2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`, including explicit surfacing of every tagged gene and disease?;
+3. does any paper-local cohort/arm/group label carry meaning that should instead be stated as a short semantic description or generalized clinical population?; and
+4. is it independently useful rather than redundant?
 
 For every `claim` fragment, inspect the sentence immediately before and after it in the source passage. If either materially changes scope, certainty, direction, eligibility, exception, analysis, or clinical meaning, the candidate fails this audit.
 
 For every `composite_text` bundle verify that every `claim` fragment contributes to the same source assertion, no intervening text changes the relevant scope/conclusion, and `support_map` identifies each material contribution. Once evidence is sufficient, do not shorten it merely for concision.
 
-Also audit the package as a whole for unsupported scope expansion, missed required qualifiers, inappropriate category assignment, inappropriate geneless claims, and material redundancy.
+Also audit the package as a whole for unsupported scope expansion, missed required qualifiers, inappropriate category assignment, inappropriate geneless claims, and material redundancy. Compare candidate cards for parallel-gene consolidation: if two or more cards differ only by gene identity while disease scope, category, population, treatment/comparator, role/outcome, direction, thresholds, qualifiers, exceptions, and evidence basis are otherwise the same, the package fails until they are merged into one card that names all participating genes.
 
 If **any** semantic defect is found, feed the complete internal critique back to Step 3, revise the candidate package, and then restart Step 4 on the complete revised package. Do not proceed to Step 5 with a known semantic defect.
 
@@ -4645,6 +4701,7 @@ Phase 2R does not reopen the accepted census merely because a current prompt wou
 
 When `FINALIZE` is received:
 - include only explicitly approved `add`, `modify`, or `delete` operations in the Phase 2R decision ledger;
+- every added or modified card must satisfy the current interpretation and card-content rules, including explicit tagged gene/disease surfacing and semantic decoding/generalization of paper-local population labels; unchanged baseline cards remain grandfathered and must not be opportunistically rewritten;
 - record each approved operation's concise `user_instruction`;
 - for every `add` or `modify`, place the complete revised card and complete paired evidence directly in that decision entry;
 - represent a split as delete + add operation(s), and a merge as delete operation(s) plus one add/modify;

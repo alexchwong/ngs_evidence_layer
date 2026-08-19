@@ -138,11 +138,11 @@ A card interpretation is a self-contained clinical conclusion derived from its s
 
 State the strongest clinically useful conclusion directly entailed by the evidence, using only the minimum source-supported context needed for the conclusion to be understood correctly when presented alone.
 
-Include the minimum context required to understand what population or disease the conclusion applies to, what molecular finding or biological group is relevant, what intervention and comparator are being compared when applicable, what outcome or clinical role is asserted, and what subgroup, analysis, threshold, treatment setting, or other qualifier materially limits the conclusion.
+Include the minimum context required to understand what population or disease the conclusion applies to, what molecular finding or biological group is relevant, what intervention and comparator are being compared when applicable, what outcome or clinical role is asserted, and what subgroup, analysis, threshold, treatment setting, or other qualifier materially limits the conclusion. Every gene listed in the card's `genes` field must be explicitly named in the interpretation. Every disease listed in the card's `diseases` field must be explicitly identified in the interpretation by its canonical name or an accepted source-disease alias. Generic substitutes such as "the driver gene", "this disease", or "these mutations" do not satisfy this surfacing requirement. The card category does not need to be named.
 
 Do not add contextual detail merely to make the interpretation more complete. Include methodological detail only when it changes the clinical meaning or strength of the claim.
 
-A trial name, cohort name, treatment-arm label, model number, table identifier, analysis label, subgroup nickname, or similar paper-local term must not carry information required to understand the interpretation. Such terminology may remain for provenance or precision only when the conclusion remains intelligible without prior knowledge of it.
+A trial name, cohort name, treatment-arm label, model number, table identifier, analysis label, subgroup nickname, or similar paper-local term must not carry information required to understand the interpretation. A paper-local study-population label such as `Arm A`, `Cohort 2`, `Group B`, or an author-named arm fails this standard when the interpretation does not state what clinically defines that population. Replace it with a short semantic description such as `patients who received drug A`, `patients with relapsed AML`, or `patients with TP53-mutated AML`; if the local label adds no clinical value, omit it and use the semantic description alone. Recognized clinical classifications may be retained when their meaning is the clinical assertion itself.
 
 Numerical results, effect estimates, confidence intervals, P values, and other statistics may quantify or qualify a conclusion but must not substitute for stating the conclusion.
 
@@ -179,9 +179,11 @@ Use evidence that is sufficient rather than merely short. If any material elemen
 # Card content rules
 
 - One card represents one independently useful, directly supported clinical assertion.
-- `genes` contains only genes participating in that assertion.
-- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
+- `genes` contains only genes participating in that assertion. Every gene listed in `genes` must be explicitly named in the interpretation.
+- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope. Every disease listed in `diseases` must be explicitly identified in the interpretation by its canonical name or an accepted source-disease alias.
+- The interpretation must not depend on an unexplained paper-local cohort, arm, group, stratum, protocol, or author-defined label. Replace such a label with the short clinical meaning that defines the population, exposure, treatment, genotype, disease state, or eligibility criterion; generalize to that meaning alone when the local label adds no clinical value.
 - Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
+- **Parallel-gene consolidation exception:** when separate census claims differ only by gene identity and otherwise make the same clinical assertion with the same disease scope, category, population, treatment/comparator, clinical role or outcome, direction, thresholds, qualifiers, exceptions, and evidence basis, represent them with one card. Union the participating genes and write one interpretation that explicitly names every gene. Do not consolidate when any clinically material element differs. This card-level consolidation does not alter Phase 1 census atomicity.
 
 ### Evidence review mechanics
 
@@ -240,6 +242,9 @@ Even in delta mode, emit one `card_results` entry for every card present in the 
 Read every evidence fragment for each card that is substantively in Phase 3 scope before deciding.
 
 - **Disease grounding:** each specific disease asserted by a substantively reviewed card must be named/unambiguously identified in the paired evidence or be the canonical target of an exact reviewed source alias under the policy below. A valid `scope_heading` may supply context only when it genuinely governs the claim. Derived taxonomic ancestors do not broaden clinical scope. Fail unsupported narrower, sibling, or otherwise distinct disease scope.
+- **Interpretation surfacing:** fail a substantively reviewed card if any gene listed in `genes` is not explicitly named in the interpretation, or if any disease listed in `diseases` is not explicitly identified there by its canonical name or an accepted source-disease alias. Metadata-only gene/disease context is not sufficient.
+- **Study-label semantic closure:** fail a substantively reviewed card when an author-defined cohort, arm, group, stratum, protocol, or similar paper-local label carries clinically necessary meaning that is not explained in the interpretation. The interpretation should use a short semantic description of what defines the population/exposure, or generalize to that description alone when the local label adds no clinical value.
+- **Parallel-gene redundancy:** in full review, treat separate cards as `material_redundancy` when they differ only by gene identity and otherwise make the same clinical assertion with identical disease scope, category, population, treatment/comparator, role/outcome, direction, thresholds, qualifiers, exceptions, and evidence basis; the appropriate repair is consolidation into one card naming all participating genes. In delta review, apply this only to substantively reviewed added/modified cards and do not reopen unchanged carried-forward cards.
 
 ### Source disease alias policy
 

@@ -163,14 +163,15 @@ Perform this audit **claim-by-claim, not by aggregate card count**. If a coverin
 
 For every card in the candidate provisional ask:
 1. does its paired evidence support every material assertion?;
-2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`?; and
-3. is it independently useful rather than redundant?
+2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`, including explicit surfacing of every tagged gene and disease?;
+3. does any paper-local cohort/arm/group label carry meaning that should instead be stated as a short semantic description or generalized clinical population?; and
+4. is it independently useful rather than redundant?
 
 For every `claim` fragment, inspect the sentence immediately before and after it in the source passage. If either materially changes scope, certainty, direction, eligibility, exception, analysis, or clinical meaning, the candidate fails this audit.
 
 For every `composite_text` bundle verify that every `claim` fragment contributes to the same source assertion, no intervening text changes the relevant scope/conclusion, and `support_map` identifies each material contribution. Once evidence is sufficient, do not shorten it merely for concision.
 
-Also audit the package as a whole for unsupported scope expansion, missed required qualifiers, inappropriate category assignment, inappropriate geneless claims, and material redundancy.
+Also audit the package as a whole for unsupported scope expansion, missed required qualifiers, inappropriate category assignment, inappropriate geneless claims, and material redundancy. Compare candidate cards for parallel-gene consolidation: if two or more cards differ only by gene identity while disease scope, category, population, treatment/comparator, role/outcome, direction, thresholds, qualifiers, exceptions, and evidence basis are otherwise the same, the package fails until they are merged into one card that names all participating genes.
 
 If **any** semantic defect is found, feed the complete internal critique back to Step 3, revise the candidate package, and then restart Step 4 on the complete revised package. Do not proceed to Step 5 with a known semantic defect.
 
@@ -223,6 +224,7 @@ Phase 2R does not reopen the accepted census merely because a current prompt wou
 
 When `FINALIZE` is received:
 - include only explicitly approved `add`, `modify`, or `delete` operations in the Phase 2R decision ledger;
+- every added or modified card must satisfy the current interpretation and card-content rules, including explicit tagged gene/disease surfacing and semantic decoding/generalization of paper-local population labels; unchanged baseline cards remain grandfathered and must not be opportunistically rewritten;
 - record each approved operation's concise `user_instruction`;
 - for every `add` or `modify`, place the complete revised card and complete paired evidence directly in that decision entry;
 - represent a split as delete + add operation(s), and a merge as delete operation(s) plus one add/modify;

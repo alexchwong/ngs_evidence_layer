@@ -140,11 +140,19 @@ class FolderStateWorkflowTests(unittest.TestCase):
         review = read(review_path)
         final = read(final_path)
         provisional["schema_version"] = "5.1"
+        for card in provisional["cards"]:
+            missing = [disease for disease in card.get("diseases", []) if disease.lower() not in card["interpretation"].lower()]
+            if missing:
+                card["interpretation"] += " Applies to " + " and ".join(missing) + "."
         review["schema_version"] = "5.1"
         review["review_scope"] = "full"
         for result in review["card_results"]:
             result["review_basis"] = "phase3"
         final["schema_version"] = "5.1"
+        for card in final["cards"]:
+            missing = [disease for disease in card.get("diseases", []) if disease.lower() not in card["interpretation"].lower()]
+            if missing:
+                card["interpretation"] += " Applies to " + " and ".join(missing) + "."
         for result in final["audit"]["results"]:
             result["review_basis"] = "phase3"
         provisional_path.write_text(json.dumps(provisional), encoding="utf-8")

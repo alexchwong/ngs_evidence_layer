@@ -35,6 +35,10 @@ UMBRELLA = {
     for term in TERMS
     if term.get("parents")
 }
+DISEASE_TEXT_FORMS = {
+    term["name"]: [term["name"], *term.get("aliases", [])]
+    for term in TERMS
+}
 
 
 def bind_disease_vocabulary(schema):
@@ -100,6 +104,45 @@ def normalise(text, markdown=False):
             lines.append(line.replace("|", " "))
         text = "\n".join(lines)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _contains_explicit_term(text, term):
+    """Case-insensitive whole-term match with flexible internal whitespace."""
+    pattern = re.escape(str(term).casefold()).replace(r"\ ", r"\s+")
+    return re.search(rf"(?<![a-z0-9]){pattern}(?![a-z0-9])", str(text).casefold()) is not None
+
+
+def interpretation_surfacing_errors(package, card_ids=None):
+    """Require schema-5.1 cards in scope to surface tagged genes and diseases."""
+    if package.get("schema_version") != "5.1":
+        return []
+    selected = None if card_ids is None else set(card_ids)
+    errors = []
+    for card in package.get("cards", []):
+        card_id = card.get("card_id", "<unknown card>")
+        if selected is not None and card_id not in selected:
+            continue
+        interpretation = card.get("interpretation", "")
+        missing_genes = [
+            gene for gene in card.get("genes", [])
+            if not _contains_explicit_term(interpretation, gene)
+        ]
+        missing_diseases = []
+        for disease in card.get("diseases", []):
+            forms = DISEASE_TEXT_FORMS.get(disease, [disease])
+            if not any(_contains_explicit_term(interpretation, form) for form in forms):
+                missing_diseases.append(disease)
+        if missing_genes:
+            errors.append(
+                f"{card_id}: interpretation must explicitly name every tagged gene; "
+                f"missing: {', '.join(missing_genes)}"
+            )
+        if missing_diseases:
+            errors.append(
+                f"{card_id}: interpretation must explicitly identify every tagged disease "
+                f"by canonical name or accepted source alias; missing: {', '.join(missing_diseases)}"
+            )
+    return errors
 
 
 def schema_errors(document, label="package"):
@@ -296,6 +339,7 @@ def validate_phase_files(
     expected_publication = census
     expected_label = "census"
     review_baseline = None
+    ledger = None
     if base_final_path is not None and base_provisional_path is not None:
         package_errors.append("Phase 2R must use either --base-final or --base-provisional, not both")
     elif base_final_path is not None:
@@ -366,6 +410,15 @@ def validate_phase_files(
             )
             if not ledger.get("card_decisions"):
                 warnings.append("Phase 2R decision ledger contains no card changes")
+
+    if provisional.get("schema_version") == "5.1":
+        if review_baseline is None:
+            surfacing_scope = None
+        elif ledger is not None:
+            surfacing_scope = card_deltas.changed_card_ids(ledger)
+        else:
+            surfacing_scope = []
+        package_errors.extend(interpretation_surfacing_errors(provisional, surfacing_scope))
 
     if provisional.get("publication_type") != expected_publication.get("publication_type"):
         package_errors.append(
