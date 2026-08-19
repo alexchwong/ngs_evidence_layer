@@ -142,6 +142,9 @@ domains:
         guidance:
           - Distinguish prospective marker identification at diagnosis from interpretation of MRD status after treatment.
           - Lack of follow-up kinetics, quantitative levels or assay sensitivity prevents a current MRD-status conclusion, but does not make a validated diagnostic marker or baseline-assessment recommendation non-reportable.
+          - When a prospective marker is supported, retain an explicit standalone positive fact naming the validated or preferred marker and the supported baseline or monitoring approach; do not leave marker suitability merely implied.
+          - Keep a positive marker or baseline recommendation separate from routine statements about an unavailable current MRD result so the reportable conclusion can stand on its own.
+          - Prefer stating the appropriate positive marker over listing detected alterations that are unsuitable for MRD, unless the caution itself independently changes patient management.
           - If no validated or clinically useful molecular MRD implication exists, return no MRD facts rather than generic negative prose.
 
   germline:

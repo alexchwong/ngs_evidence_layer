@@ -124,7 +124,7 @@ Run a named `nel-validate` case:
 .env/bin/python workflows/terraced_v1/step.py setup \
   --mode nel-validate \
   --project \
-  --case-id 1C
+  --case-id 1B
 
 .env/bin/python workflows/terraced_v1/step.py --all
 ```

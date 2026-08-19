@@ -25,17 +25,21 @@ The absence of an abnormality is normally the default state and should remain si
 - a prognostic score cannot be calculated because non-molecular variables are unavailable;
 - no relevant prognostic evidence, actionable alteration, kinase alteration, treatment-specific effect, transplant implication, validated MRD marker, follow-up result, germline concern, or other rule-specific finding exists;
 - none of the detected variants has a clinically useful contribution for the category;
-- standard practice is unchanged because no actionable alteration was detected.
+- standard practice is unchanged because no actionable alteration was detected;
+- no current MRD status can be assigned solely because the specimen is diagnostic and no dedicated post-treatment MRD result was supplied;
+- a detected alteration is unsuitable for MRD when an appropriate positive marker can instead be reported and the caution does not independently change patient management.
 
 Apply this by meaning, not wording. Rephrasing `No X` as `X is not present`, `X does not apply`, `X does not alter Y`, or similar does not make it reportable.
 
 Do not quarantine a positive patient-specific conclusion merely because routine negative findings were used internally to derive it. Report the resulting positive diagnosis, classification, prognostic category, or treatment conclusion rather than its routine negative premises.
 
+For a diagnostic specimen, retain a positive fact that explicitly identifies a validated or preferred prospective MRD marker and any supported recommendation to establish its baseline with the intended sensitive assay. This is positive patient-specific monitoring guidance, not a missing follow-up result. If positive guidance and a routine negative are improperly combined in one fact, classify the fact by whether its primary patient-level conclusion is the prospective marker or baseline recommendation; the semantic reviewer should normally have required those ideas to be separated before this stage.
+
 ## Exceptional negative: retain
 
 Do not quarantine an absent finding when the absence itself is an exceptional patient-level result that should independently appear in the clinical report, especially when it materially contradicts or excludes a supplied patient-specific diagnosis or hypothesis.
 
-Also retain a clinically useful negative or cautionary interpretation of a specific detected finding when it changes how that detected finding should be understood or used.
+Also retain a clinically useful negative or cautionary interpretation of a specific detected finding only when that caution independently changes how the finding should be understood or used in patient management. Do not retain an unsuitable-MRD-marker list merely for completeness when the report can state the appropriate positive marker.
 
 ## Strict operation boundary
 
