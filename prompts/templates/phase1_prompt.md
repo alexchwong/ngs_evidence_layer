@@ -35,9 +35,13 @@ category, inspect and retain claims from every category in the confirmed scope.
 Treat each census entry as one independently adjudicable Phase 2 review boundary: the
 smallest source-supported assertion that Phase 2 could retain or omit as a unit. For
 every claim, record its participating genes, category, locator, and a concise
-source-faithful summary of that assertion only, sufficient to distinguish its Phase 2
-review boundary from other entries. Use `genes: []` only for geneless `diagnosis` or
-`treatment` claims. Do not merge distinct claims merely because they share a gene,
+source-faithful summary of that assertion only. The summary must preserve every
+qualifier needed to understand the exact assertion and its applicability, including
+disease, population, molecular context, treatment/comparator, threshold, analysis or
+subgroup, exception, and uncertainty where material. Concision must not remove a
+meaning-critical qualifier. The summary must remain sufficient to distinguish its
+Phase 2 review boundary from other entries. Use `genes: []` only for geneless
+`diagnosis` or `treatment` claims. Do not merge distinct claims merely because they share a gene,
 category, paragraph, or table. Record missing supplementary values. Do not refuse because a supplement is unavailable.
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
@@ -86,7 +90,7 @@ For Phase 1, use these only to identify and delimit potentially relevant source 
 ```
 ## Step 2 — independent semantic audit
 
-After Step 1 has produced a complete candidate census, stop drafting and perform a separate independent semantic audit of the **entire candidate census** against the paper using the gate below. Do not audit and repair simultaneously: first identify every material semantic defect as one internal critique.
+After Step 1 has produced a complete candidate census, stop drafting and perform a separate independent semantic audit of the **entire candidate census** against the paper using the gate below. Do not begin by rereading the candidate census entry-by-entry. First reconstruct the expected in-scope source assertions directly from the paper, then compare that independently reconstructed set with the candidate census. Do not audit and repair simultaneously: first identify every material semantic defect as one internal critique.
 
 {{CENSUS_SEMANTIC_GATE}}
 

@@ -239,6 +239,22 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn(gate, BUILD_PROMPTS.render(1))
         self.assertIn(gate, BUILD_PROMPTS.render(2))
 
+    def test_census_semantic_gate_is_source_first_and_card_agnostic(self):
+        gate = (ROOT / "prompts" / "assets" / "census_semantic_gate.md").read_text(encoding="utf-8")
+        self.assertIn("source-first census audit", gate)
+        self.assertIn("temporarily ignoring the candidate census", gate)
+        self.assertIn("Independently reconstruct the expected set", gate)
+        self.assertIn("collect **all** material defects before repairing anything", gate)
+        self.assertIn("census quality only", gate)
+        self.assertIn("not a finished evidence-card interpretation", gate)
+        self.assertIn("Do not apply evidence-card eligibility", gate)
+
+    def test_phase1_drafting_preserves_meaning_critical_qualifiers(self):
+        phase1 = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertIn("The summary must preserve every qualifier needed to understand the exact assertion", phase1)
+        self.assertIn("Concision must not remove a meaning-critical qualifier", phase1)
+        self.assertIn("First reconstruct the expected in-scope source assertions directly from the paper", phase1)
+
     def test_phase3_output_contract_matches_phase4_review_schema_names(self):
         prompt = BUILD_PROMPTS.render(3)
         schema = json.loads((ROOT / "schema" / "review_schema.json").read_text(encoding="utf-8"))
