@@ -30,9 +30,8 @@ def _validation_case_text(mode: str, case_id: str) -> str:
     if inserted:
         sys.path.insert(0, repo_text)
     try:
-        from validation.cases import retrieve_case
-        case_file = "case_functional.md" if mode == "nel-validate-function" else "case_summary.md"
-        return retrieve_case(case_id, case_file)
+        from validation.cases import case_file_for_mode, retrieve_case
+        return retrieve_case(case_id, case_file_for_mode(mode))
     finally:
         if inserted and sys.path and sys.path[0] == repo_text:
             sys.path.pop(0)
@@ -56,7 +55,7 @@ def _write_case_if_absent(work_dir: Path, text: str) -> Path:
 
 def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> None:
     """Create only diagnosis-first-specific setup assets. Shared setup is external."""
-    if mode in {"nel-validate", "nel-validate-function"}:
+    if mode in {"nel-validate", "nel-validate-function", "nel-validate-brief"}:
         if not case_id:
             raise ValueError(f"{mode} requires a validation case ID")
         _write_case_if_absent(work_dir, _validation_case_text(mode, case_id))

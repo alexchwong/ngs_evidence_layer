@@ -26,7 +26,7 @@ SHARED_PROMPT_DIR = REPO_ROOT / "prompts" / "workflow"
 # Appended to every model step's instruction section.
 COMMON_PROMPTS: tuple[Path, ...] = (PROMPT_DIR / "patient_result_semantics.md",)
 
-ALL_MODES = ("ngs-report", "nel-demo", "nel-validate", "nel-validate-function")
+ALL_MODES = ("ngs-report", "nel-demo", "nel-validate", "nel-validate-function", "nel-validate-brief")
 CAPTURE_MODES = ("ngs-report", "nel-demo")
 
 # 6b1..6b5 map onto the canonical category order without restating it here.

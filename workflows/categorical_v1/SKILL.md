@@ -1,6 +1,6 @@
 ---
 name: ngs-evidence-layer-categorical-v1
-description: Categorical diagnosis-first workflow for ngs-report, nel-demo, nel-validate, and nel-validate-function.
+description: Categorical diagnosis-first workflow for ngs-report, nel-demo, nel-validate, nel-validate-function, and nel-validate-brief.
 ---
 # NGS evidence layer — categorical-v1
 
@@ -12,6 +12,7 @@ Supported modes only:
 - `nel-demo example <N>`
 - `nel-validate <case-id>`
 - `nel-validate-function <case-id>`
+- `nel-validate-brief <case-id>`
 
 This workflow clones the diagnosis-first-v1 evidence/retrieval pipeline but changes diagnosis handoff and final report synthesis. Environment setup is owned by Step 0; after Step 0 defines `<python>`, use it for every deterministic command in this workflow.
 
@@ -78,6 +79,9 @@ Run exactly one setup command:
 
 # nel-validate-function <case-id>
 <python> scripts/setup_workflow.py --workflow categorical-v1 --mode nel-validate-function --case-id <case-id> <setup-work-arg>
+
+# nel-validate-brief <case-id>
+<python> scripts/setup_workflow.py --workflow categorical-v1 --mode nel-validate-brief --case-id <case-id> <setup-work-arg>
 ```
 
 Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`.
@@ -94,7 +98,7 @@ Setup also creates:
 
 ### Step 1A
 
-For `nel-validate` and `nel-validate-function`, Step 0 already wrote `<work-dir>/case.md`; do not run a second retrieval command and do not read marking inputs.
+For `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, Step 0 already wrote `<work-dir>/case.md`; do not run a second retrieval command and do not read marking inputs.
 
 For other modes, use a fresh model session and read only `prompts/workflow/capture_case.md` plus the designated case source (`<demo-case>` for demo). Write only `<work-dir>/case.md`.
 
@@ -348,3 +352,14 @@ Return the external-marking ZIP and debug ZIP. Do not model-read marking criteri
 ```
 
 Return the external-marking ZIP and debug ZIP.
+
+- `nel-validate-brief`: do not run a marking model and do not model-read brief-suite marking inputs. Run:
+
+```bash
+<python> validation/package_marking.py <validation-case> \
+  --case-file validation/validation_brief.md \
+  --report <work-dir>/report-final.md \
+  --output <work-dir>/nel-validation-brief-<validation-case>.zip
+```
+
+Return the brief-suite external-marking ZIP and debug ZIP.

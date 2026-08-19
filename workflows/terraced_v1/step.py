@@ -664,7 +664,7 @@ def _case_capture_validator(path: Path) -> str:
 
 def step_1a(work: Path, profile: str | None) -> int:
     mode = _require_work(work).get("mode")
-    if mode in {"nel-validate", "nel-validate-function"}:
+    if mode in {"nel-validate", "nel-validate-function", "nel-validate-brief"}:
         return EXIT_NOT_REQUIRED
     source = layout.input(work, "case-source.md")
     messages = [
@@ -1768,7 +1768,7 @@ def run_step(step_id: str, work: Path, profile: str | None) -> int:
 def run_all(work: Path, profile: str | None) -> int:
     mode = _require_work(work).get("mode")
     for step_id in ("1a", "1b", "2", "3", "4", "5", "6", "7"):
-        if step_id == "1a" and mode in {"nel-validate", "nel-validate-function"}:
+        if step_id == "1a" and mode in {"nel-validate", "nel-validate-function", "nel-validate-brief"}:
             continue
         code = run_step(step_id, work, profile)
         if code not in {EXIT_OK, EXIT_NOT_REQUIRED}:

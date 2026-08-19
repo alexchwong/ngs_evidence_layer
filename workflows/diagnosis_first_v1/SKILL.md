@@ -1,6 +1,6 @@
 ---
 name: ngs-evidence-layer-diagnosis-first-v1
-description: Diagnosis-first workflow for ngs-report, nel-demo, nel-validate, and nel-validate-function.
+description: Diagnosis-first workflow for ngs-report, nel-demo, nel-validate, nel-validate-function, and nel-validate-brief.
 ---
 # NGS evidence layer — diagnosis-first-v1
 
@@ -12,6 +12,7 @@ Supported modes only:
 - `nel-demo example <N>`
 - `nel-validate <case-id>`
 - `nel-validate-function <case-id>`
+- `nel-validate-brief <case-id>`
 
 This workflow implements the diagnosis-first pipeline. Environment setup is owned by Step 0 below; after Step 0 defines `<python>`, use it for every deterministic command in this workflow.
 
@@ -76,13 +77,16 @@ Run exactly one diagnosis-first setup command for the selected mode:
 
 # nel-validate-function <case-id>
 <python> scripts/setup_workflow.py --workflow diagnosis-first-v1 --mode nel-validate-function --case-id <case-id> <setup-work-arg>
+
+# nel-validate-brief <case-id>
+<python> scripts/setup_workflow.py --workflow diagnosis-first-v1 --mode nel-validate-brief --case-id <case-id> <setup-work-arg>
 ```
 
 Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`.
 
 For `nel-demo`, also record output line 2 as `<demo-case>` and line 3 as `<demo-expected>`. Do not read either yet.
 
-For `nel-validate <case-id>` or `nel-validate-function <case-id>`, record `<validation-case>` as the supplied case ID. Setup deterministically writes `<work-dir>/case.md`; do not read validation marking files. For `nel-validate-function`, `validation/case_functional.md` and `validation/case_functional_manifest.md` remain forbidden model inputs.
+For `nel-validate <case-id>`, `nel-validate-function <case-id>`, or `nel-validate-brief <case-id>`, record `<validation-case>` as the supplied case ID. Setup deterministically writes `<work-dir>/case.md`; do not read validation marking files. For `nel-validate-function`, `validation/case_functional.md` and `validation/case_functional_manifest.md` remain forbidden model inputs.
 
 Setup also generates the branch-independent procedural assets used later:
 
@@ -98,7 +102,7 @@ For all supported modes record `<format-prompt>` as `workflows/diagnosis_first_v
 
 ### Step 1A
 
-For `nel-validate` and `nel-validate-function`, Step 0 has already written `<work-dir>/case.md` deterministically. Do not run a second case-retrieval command. Do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, or marking criteria.
+For `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, Step 0 has already written `<work-dir>/case.md` deterministically. Do not run a second case-retrieval command. Do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, `validation/validation_brief.md`, or marking criteria.
 
 For other modes, use a fresh model session and read only `prompts/workflow/capture_case.md` plus the designated case source (`<demo-case>` for demo). Write only `<work-dir>/case.md`.
 
@@ -326,3 +330,14 @@ Return the external-marking ZIP and the separate debug ZIP. Do not model-read ma
 ```
 
 Return the functional external-marking ZIP and the separate debug ZIP. The functional manifest is never read or packaged by the runtime workflow.
+
+- `nel-validate-brief`: do not run a marking model and do not model-read `validation/validation_brief.md`, marking criteria, or the marking prompt. Run exactly:
+
+```bash
+<python> validation/package_marking.py <validation-case> \
+  --case-file validation/validation_brief.md \
+  --report <work-dir>/report-final.md \
+  --output <work-dir>/nel-validation-brief-<validation-case>.zip
+```
+
+Return the brief-suite external-marking ZIP and the separate debug ZIP.

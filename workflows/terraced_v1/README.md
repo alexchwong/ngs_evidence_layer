@@ -30,6 +30,7 @@ ngs-report --terraced
 nel-demo example 1 --terraced
 nel-validate 1C --terraced
 nel-validate-function 3B --terraced
+nel-validate-brief 8 --terraced
 ```
 
 The root `SKILL.md` routes to this directory's `SKILL.md`. The default frontier settings are:
@@ -124,12 +125,13 @@ Run a named `nel-validate` case:
 .env/bin/python workflows/terraced_v1/step.py setup \
   --mode nel-validate \
   --project \
-  --case-id 1B
+  --case-id 1C
 
 .env/bin/python workflows/terraced_v1/step.py --all
 ```
 
 For functional validation, use `--mode nel-validate-function` with a functional validation case ID.
+For brief validation, use `--mode nel-validate-brief` with a case ID from `validation/validation_brief.md`.
 
 Equivalent model profiles are:
 
@@ -361,6 +363,7 @@ ngs-report
 nel-demo
 nel-validate
 nel-validate-function
+nel-validate-brief
 ```
 
 ---

@@ -31,7 +31,9 @@ workflows/legacy_v1/*
 workflows/legacy_v1/prompts/*
 workflows/diagnosis_first_v1/*
 workflows/categorical_v1/*
+workflows/terraced_v1/*
 workflows/categorical_v1/prompts/*
+workflows/terraced_v1/prompts/*
 workflows/diagnosis_first_v1/prompts/*
 workflows/diagnosis_first_v1/prompts/rule_views/*
 workflows/diagnosis_first_v1/prompts/formatting/*
@@ -43,6 +45,7 @@ validation/__init__.py
 validation/case_summary.md
 validation/case_functional.md
 validation/case_functional_manifest.md
+validation/validation_brief.md
 validation/cases.py
 validation/retrieve_cli.py
 validation/package_marking.py

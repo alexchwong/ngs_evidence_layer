@@ -4,6 +4,7 @@ This directory contains the standalone validation corpus used to test NGS Eviden
 
 - `case_summary.md` contains the existing general validation suite.
 - `case_functional.md` contains the parallel function-targeted suite used by `nel-validate-function`.
+- `validation_brief.md` contains the consolidated 10-case regression suite used by `nel-validate-brief`.
 - `case_functional_manifest.md` describes the purpose of every functional case and is evaluator/developer-only; it is never a runtime model input.
 - `cases.py` provides helpers to retrieve case inputs and marking criteria.
 - `validation/mark_validation_report.md` is the template used to generate the external categorical marking prompt.
@@ -25,6 +26,8 @@ Command-line usage:
 python validation/retrieve_cli.py list
 # List function-targeted case IDs
 python validation/retrieve_cli.py list --file validation/case_functional.md
+# List brief-suite case IDs
+python validation/retrieve_cli.py list --file validation/validation_brief.md
 # Retrieve clinical information for a case variant
 python validation/retrieve_cli.py case 1A
 # Retrieve a function-targeted case
@@ -49,3 +52,5 @@ python validation/retrieve_cli.py list --help
 but retrieves from `case_functional.md` and calls `package_marking.py --case-file
 validation/case_functional.md`. Its external bundle is named
 `nel-validation-function-<case-id>.zip`. The functional manifest is not read or packaged.
+
+`nel-validate-brief <case-id>` uses the same report-generation pipeline as `nel-validate`, retrieves from `validation_brief.md`, and packages with `package_marking.py --case-file validation/validation_brief.md`. Its external bundle is named `nel-validation-brief-<case-id>.zip`.

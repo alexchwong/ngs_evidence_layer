@@ -29,7 +29,8 @@ knowledge.
      `ngs-report` on a line by itself;
    - run the first demonstration case with `nel-demo example 1`; or
    - run the first validation case on the current workflow with `nel-validate 1A`; or
-   - run the first function-targeted validation case with `nel-validate-function 1A`.
+   - run the first function-targeted validation case with `nel-validate-function 1A`; or
+   - run the consolidated regression suite with `nel-validate-brief 1`.
 4. View the evidence card library in the [card browser](output/reports/card-browser.html).
 
 ## Contents
@@ -53,6 +54,7 @@ Use one of the modes defined in `SKILL.md`.
 | `nel-demo example <N>` | You want to run one of the bundled demonstration cases. | Case, generated report, and expected result |
 | `nel-validate <case-id>` | You want to run a bundled validation case on the current workflow. | External-marking ZIP + debug ZIP |
 | `nel-validate-function <case-id>` | You want to test a specific reporting function using the functional validation suite. | Functional external-marking ZIP + debug ZIP |
+| `nel-validate-brief <case-id>` | You want the consolidated 10-case clinical regression suite. | Brief-suite external-marking ZIP + debug ZIP |
 
 ### Generate a report
 
@@ -181,6 +183,11 @@ Run `nel-validate-function <case-id>` to execute the parallel function-targeted 
 `validation/case_functional_manifest.md` documents the reporting function isolated by each
 functional case. It is evaluator/developer-only and is never supplied to the report-generation
 model or included in the external marking ZIP.
+
+Run `nel-validate-brief <case-id>` to execute the consolidated regression suite in
+`validation/validation_brief.md`. The consolidated brief suite contains 10 cases with IDs
+`1` through `10`; it is intended for high-yield end-to-end regression rather than exhaustive
+gene/disease content coverage.
 
 ## Current corpus
 

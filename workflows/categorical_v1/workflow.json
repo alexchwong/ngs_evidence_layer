@@ -14,7 +14,8 @@
     "ngs-report",
     "nel-demo",
     "nel-validate",
-    "nel-validate-function"
+    "nel-validate-function",
+    "nel-validate-brief"
   ],
   "artifacts": [
     "workflow.json",

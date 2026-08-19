@@ -174,6 +174,7 @@ def test_every_declared_prompt_file_exists():
 def test_step_1a_is_gated_out_of_validation_modes():
     assert "1a" not in model_steps.steps_for_mode("nel-validate")
     assert "1a" not in model_steps.steps_for_mode("nel-validate-function")
+    assert "1a" not in model_steps.steps_for_mode("nel-validate-brief")
     assert "1a" in model_steps.steps_for_mode("ngs-report")
 
 

@@ -12,6 +12,7 @@ Supported modes:
 - `nel-demo example <N>`
 - `nel-validate <case-id>`
 - `nel-validate-function <case-id>`
+- `nel-validate-brief <case-id>`
 
 This workflow uses the CLI as the authoritative orchestrator. The master clinical questions and their call-grouping profiles live together in `workflows/terraced_v1/questions.yaml`.
 
@@ -87,6 +88,10 @@ Use the frontier/session-model defaults unless the user explicitly requested a d
 
 # nel-validate-function <case-id>
 <python> workflows/terraced_v1/step.py setup --mode nel-validate-function --case-id <case-id> \
+  --model-profile self --terrace-profile frontier <setup-work-arg>
+
+# nel-validate-brief <case-id>
+<python> workflows/terraced_v1/step.py setup --mode nel-validate-brief --case-id <case-id> \
   --model-profile self --terrace-profile frontier <setup-work-arg>
 ```
 
@@ -243,6 +248,15 @@ Mode-specific delivery remains the same as the other `ngs-report` workflows:
   --case-file validation/case_functional.md \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-function-<validation-case>.zip
+```
+
+- `nel-validate-brief`: do not run a marking model. Run:
+
+```bash
+<python> validation/package_marking.py <validation-case> \
+  --case-file validation/validation_brief.md \
+  --report <work-dir>/report-final.md \
+  --output <work-dir>/nel-validation-brief-<validation-case>.zip
 ```
 
 Return the external-marking ZIP and debug ZIP for validation modes.

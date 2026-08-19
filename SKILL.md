@@ -33,11 +33,11 @@ After selection, the next repository file you read must be the registered workfl
 
 ## Mode compatibility
 
-The default `categorical-v1` workflow supports `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`.
+The default `categorical-v1` workflow supports `ngs-report`, `nel-demo`, `nel-validate`, `nel-validate-function`, and `nel-validate-brief`.
 
-`diagnosis-first-v1` supports the same four modes and remains available through `--diagnosis-first` or `--diagnosis-first-v1`.
+`diagnosis-first-v1` supports the same five modes and remains available through `--diagnosis-first` or `--diagnosis-first-v1`.
 
-`terraced-v1` supports the same four modes and remains available through `--terraced` or `--terraced-v1`.
+`terraced-v1` supports the same five modes and remains available through `--terraced` or `--terraced-v1`.
 
 `evidence-block`, `evidence-block manual`, and `evidence-to-report` are legacy-only. If one of these is requested without an explicit legacy selector, stop and state that the mode requires `--legacy` or `--legacy-v1`; do not silently route it to legacy.
 
@@ -51,6 +51,7 @@ ngs-report --terraced
 ngs-report --terraced-v1
 ngs-report --legacy
 nel-validate-function 3B
+nel-validate-brief 8
 nel-validate-function 3B --diagnosis-first
 nel-validate-function 3B --legacy
 ```
