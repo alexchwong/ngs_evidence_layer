@@ -31,37 +31,146 @@ Phase 3 never creates `paper.final.json` and never repairs cards.
 
 Audit against the same semantic definition of correctness used to author cards.
 
-### Clinical reporting gate
+### Clinical assertion policy
 
-# Clinical reporting gate
+# Clinical assertion policy
 
-A clinically useful fact is one that could materially contribute to a concise myeloid NGS report by informing:
+## Clinical reporting eligibility
+
+A clinically relevant source assertion is one that could materially contribute to a concise myeloid NGS report by informing:
 
 - diagnosis or classification;
 - patient-level prognosis;
-- treatment or management;
+- treatment selection, eligibility, sensitivity, resistance, or management;
 - MRD interpretation; or
-- assessment of possible germline predisposition.
+- assessment of possible germline predisposition or germline evaluation.
 
-The fact must apply to the stated disease, molecular finding and clinical context.
+The assertion must apply to the stated disease, molecular finding, and clinical context. A clinical endpoint is **not** by itself a clinical interpretation: survival, response, relapse, or another important endpoint qualifies only when the source establishes a clinically meaningful implication of the molecular finding.
 
-Background information is not clinically useful by itself, including prevalence, epidemiology, study methodology, molecular mechanism alone, or descriptive associations without a clinical implication.
+Background information is not clinically useful by itself, including prevalence, epidemiology, study methodology, molecular mechanism alone, descriptive co-occurrence, or a descriptive association without a patient-level clinical implication. A negative or null result is useful only when the source supports a clinically meaningful negative conclusion whose absence would materially change interpretation or management; statistical non-significance alone does not establish no effect.
 
-A negative or null finding is useful only when its absence or lack of effect is clinically informative.
-
-When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
+When several measurements, effect estimates, or component observations support the same clinical conclusion, treat the clinical conclusion as the assertion rather than treating each supporting statistic as a separate assertion. A number warrants its own assertion only when the value itself is clinically operative for applying a source-supported rule to an individual patient.
 
 Geneless diagnosis and treatment eligibility is governed by the separately injected `GENELESS_CLAIM_POLICY`.
 
-### Source-bounded reasoning
+## Category semantics
 
-# Source-bounded reasoning
+Assign category according to the clinical role actually established by the source assertion, not according to the paper section, keywords, gene, or intended downstream use.
+
+- `diagnosis`: the source states a molecular, morphologic, clinical, quantitative, or other criterion that defines, supports, excludes, differentiates, or changes a diagnosis or classification.
+- `prognosis`: the source explicitly establishes an outcome, risk, survival, progression, relapse, or patient-level effect within a named prognostic framework. A recognised prognostic framework may itself be clinically relevant, but model coefficients, score weights, point assignments, model-construction variables, calibration/discrimination statistics, and score-category survival tables do not qualify by themselves.
+- `treatment`: the source explicitly supports treatment selection, eligibility, standard treatment, sensitivity, resistance, response, or another treatment-specific clinical effect.
+- `biomarker`: the source explicitly assigns a testing, detection, monitoring, or discrimination role that remains independently useful rather than merely relabelling the same diagnostic assertion. State that independent biomarker function.
+- `germline`: the source explicitly concerns inherited, constitutional, or predisposition status, or germline evaluation. Preserve the source's degree of certainty; an indication or recommendation for germline evaluation does not establish constitutional status.
+
+Do not change category merely to satisfy a schema constraint or make an otherwise ineligible assertion ingestible. When one passage supports multiple independently useful clinical roles, treat those roles as separate assertions rather than combining their categories into one ingestion unit. The same evidence may legitimately support distinct roles when each role has independent clinical meaning.
+
+## Atomicity and qualifiers
+
+One census assertion or evidence card represents **one independently retainable/rejectable clinical proposition**. If one material clinical proposition could be retained or rejected independently of another, they are separate assertions.
+
+A qualifier is information necessary to define, narrow, condition, or state an exception to that **same proposition**. Qualifiers may include disease, population, molecular context, treatment/comparator, threshold, subgroup or analysis context when it materially limits applicability, exception, uncertainty, and other meaning-critical applicability conditions.
+
+Disease, population, molecular context, treatment, comparator, threshold, analysis, exception, uncertainty, and other qualifiers required to preserve meaning or applicability belong with the assertion and must not be split from it.
+
+A related statement is **not** a qualifier merely because it provides context. If additional text introduces a second conclusion about another subject, framework, treatment setting, outcome, recommendation, limitation, or applicability question that can stand independently, it is a separate assertion.
+
+Apply the **deletion / independent-retention test**: remove the suspected qualifier. If the remaining text is still a complete clinical proposition and the removed text could itself be retained or rejected without changing the truth or applicability of that proposition, the removed text is a separate assertion and must not ride along as a qualifier.
+
+Do not split away a true qualifier required to preserve the exact meaning or applicability of its proposition. Do not merge assertions merely because they share a gene, disease, category, paragraph, sentence, table, study population, clinical framework, or underlying evidence.
+
+Statistics or component observations that quantify or support one clinical conclusion are not separate ingestion units. Hazard ratios, odds ratios, confidence intervals, P values, cohort sizes, median survival values, response percentages, model coefficients, score weights, and similar study-result packaging remain supporting evidence unless the number itself is clinically operative.
+
+A single atomic assertion may require more than one source sentence or fragment for complete support. Conversely, one source sentence or census entry may contain multiple atomic assertions and must then be split. Prefer the smallest unit that preserves one complete, independently useful clinical meaning.
+
+### Clinical card policy
+
+# Clinical card policy
+
+## Target of card authoring
+
+The target of ingestion is the **patient-level clinical meaning of a source-supported finding**, not a summary of how the publication demonstrated that finding.
+
+For each card, move through this reasoning target:
+
+`source result -> patient-level clinical implication -> minimum applicability qualifiers -> final interpretation`
+
+A final interpretation should tell the clinician what the molecular finding means for diagnosis/classification, prognosis, treatment/management, MRD, or germline evaluation. If the wording mainly describes what the study measured, how the analysis was performed, how a score was built, or what numerical result was observed, it has not yet been converted into a clinically useful interpretation.
+
+## One proposition per card
+
+One card represents one independently useful, directly supported clinical proposition. The interpretation may contain multiple grammatical clauses only when every additional clause is necessary to define, narrow, condition, qualify, or state an exception to that **same clinical proposition**.
+
+Do not append another independently retainable proposition merely because it comes from the same sentence, paragraph, table, guideline, evidence bundle, disease, gene set, or clinical framework. Apply the deletion / independent-retention test in `CLINICAL_ASSERTION_POLICY` whenever contextual text might be mistaken for a qualifier.
+
+If an interpretation contains two independently retainable propositions, split them when both independently warrant cards. If the secondary proposition has no independent clinical utility, remove it from the card and disposition it separately rather than allowing it to hitchhike as context.
+
+## Clinical abstraction and wording
+
+State the strongest clinically useful conclusion directly entailed by the evidence, using only the minimum source-supported context needed for the conclusion to be understood correctly when presented alone.
+
+Include the minimum context required to understand the disease/population, molecular finding or biological group, treatment/comparator when applicable, outcome or clinical role, and every subgroup, threshold, treatment setting, exception, uncertainty, or other qualifier that materially limits the same proposition. Do not add contextual detail merely to make the interpretation more complete.
+
+Every gene listed in the card's `genes` field must be explicitly named in the interpretation. Every disease listed in `diseases` must be explicitly identified in the interpretation by its canonical name or an accepted source-disease alias. Generic substitutes such as `the driver gene`, `this disease`, or `these mutations` do not satisfy this requirement. The card category does not need to be named.
+
+The interpretation is not merely a quotation, paraphrase, extracted result, or restatement of a statistic. Source-supported synthesis is permitted only when the conclusion is directly entailed without an unstated clinical or methodological premise.
+
+## Study-result packaging versus clinically operative information
+
+Preserve the narrowest clinically meaningful endpoint and direction supported by the source, while normally removing study-result packaging such as:
+
+- hazard ratios, odds ratios, confidence intervals, P values, and regression terminology;
+- median survival values, fixed-time survival percentages, response percentages, relapse percentages, and cohort sample sizes;
+- study phase/design labels, prospective/retrospective labels, discovery/validation-cohort terminology, and analysis-method names;
+- model coefficients, score weights, point assignments, calibration/discrimination statistics, and other prognostic-model internals.
+
+For example, a source result expressed as a hazard ratio for overall survival should ordinarily become the source-supported statement that the molecular finding is associated with better or worse overall survival in the stated disease/population, not a card whose substance is the hazard ratio.
+
+A number should remain in the interpretation when the clinician must know that value or threshold to apply the source-supported rule to an individual patient. Examples include diagnostic/classification thresholds, treatment-eligibility thresholds, or source-defined molecular thresholds that materially change interpretation. Do not remove clinically operative numbers merely because they are quantitative.
+
+Do not broaden a narrow endpoint while abstracting it. `Inferior overall survival` should not become generic `adverse prognosis` unless the source directly supports that broader conclusion.
+
+## Paper-local labels and methodological context
+
+A trial name, cohort name, treatment-arm label, model number, table identifier, analysis label, subgroup nickname, or similar paper-local term must not carry information required to understand the interpretation.
+
+Replace such labels with the shortest clinically meaningful description of what defines the population or exposure, for example `patients who received drug A`, `patients with relapsed AML`, or `patients with TP53-mutated AML`. If the local label adds no clinical value, omit it. Recognised clinical classifications/frameworks may be retained when the framework itself is necessary to understand the clinical assertion.
+
+If study design materially limits applicability, state the **clinical limitation** rather than merely naming the methodology. Methodological detail belongs in the evidence unless it changes the patient-level meaning of the proposition.
+
+## Findings that usually do not warrant report-facing cards
+
+Do not create a card merely because the paper reports:
+
+- statistical non-significance or a null association;
+- mutation prevalence or frequency;
+- that a mutation was common or the most common finding;
+- co-occurrence between molecular findings;
+- pathway/mechanistic effects;
+- prognostic-score internals or model-construction details;
+- study design or analysis mechanics.
+
+Retain such material only when the source directly supports an independent patient-level diagnostic, prognostic, treatment, MRD, or germline implication. Do not convert absence of evidence into evidence of no effect.
+
+If the source supports an isolated observation but no independently useful, correctly scoped standalone conclusion can be stated without assumed study knowledge or unsupported inference, do not create or retain a card for that observation.
+
+## Card fields and consolidation
+
+- `genes` contains only genes participating in the card's exact proposition.
+- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope.
+- The card's locator, interpretation, disease scope, genes, category, and evidence bundle must all describe the same proposition.
+- Do not merge distinct propositions merely because they share a gene, disease, category, paragraph, table, framework, or census claim.
+- **Parallel-gene consolidation exception:** when separate census claims differ only by gene identity and otherwise make the same clinical proposition with the same disease scope, category, population, treatment/comparator, clinical role/outcome, direction, thresholds, qualifiers, exceptions, and evidence basis, represent them with one card. Union the participating genes and explicitly name every gene in the interpretation. Do not consolidate when any clinically material element differs. This exception does not alter Phase 1 census atomicity.
+
+### Source fidelity policy
+
+# Source fidelity policy
 
 Derive ingestion content only from the supplied publication. Do not add facts from model knowledge, prior familiarity with the study, outside sources, or assumptions about usual clinical practice.
 
-Use the whole publication to understand the meaning, boundaries, and governing qualifiers of a source assertion. In Phase 1, use that context only to identify and delimit source assertions; do not synthesize multiple observations into a new higher-level clinical conclusion.
+Use the whole publication to understand the meaning, boundaries, and governing qualifiers of a source assertion. In Phase 1, use that context only to identify and delimit source assertions; do not synthesize multiple observations into a new higher-level clinical conclusion. For cards and final card amendments, source-supported synthesis is permitted only when the conclusion is directly entailed by the quoted evidence without an unstated external clinical or methodological premise.
 
-For cards and final card amendments, source-supported synthesis is permitted only when the conclusion is directly entailed by the quoted evidence without an unstated external clinical or methodological premise.
+Every material element of a card interpretation must be directly supported by source-verbatim evidence from the publication. The interpretation wording need not appear verbatim, but every material part must be directly entailed by the supplied evidence.
 
 Do not strengthen the source beyond what it establishes. In particular, do not:
 
@@ -72,41 +181,19 @@ Do not strengthen the source beyond what it establishes. In particular, do not:
 - convert a recommendation for testing or evaluation into an established finding; or
 - convert uncertainty, possibility, or conditional language into certainty.
 
-Study names, cohort labels, arm names, analysis labels, table identifiers, and other paper-local terminology may identify source material but do not themselves supply clinical meaning.
+Preserve all qualifiers required to determine where the assertion applies or to prevent clinical misapplication, including material disease, population, molecular context, treatment/comparator, outcome, threshold, analysis/subgroup when it materially limits applicability, exception, direction of effect, and degree of certainty. Do not broaden a claim by omitting a qualifier.
 
-Whole-paper context may clarify what quoted evidence means, but unquoted publication content must not supply substantive support missing from a required evidence bundle. If support is missing, expand the evidence, narrow or split the assertion, or omit it.
+Study names, cohort labels, arm names, analysis labels, table identifiers, and other paper-local labels do not themselves justify generalization. Use them to find and understand source material. In card-authoring or card-repair phases, express only the source-supported clinical meaning permitted by the active clinical-card policy; Phase 1 should remain source-faithful rather than polishing census summaries into card interpretations.
 
-### Category semantics
+A locator is navigation metadata, not substantive evidence. A heading, bibliographic reference, nearby unquoted passage, or model inference does not independently support an assertion. Text elsewhere in the publication may clarify a quoted bundle but cannot substitute for substantive evidence omitted from that bundle.
 
-# Category semantics
+When evidence from multiple non-contiguous source fragments is required, the fragments must jointly support one coherent proposition and have compatible scope. Do not combine fragments from separate findings, populations, analyses, classifier branches, or independently useful conclusions to manufacture a relationship or broader conclusion.
 
-Assign category according to the clinical role actually established by the source assertion, not according to the paper section, keywords, gene, or intended downstream use.
+Context fragments such as headings, legends, and footnotes provide support only when they genuinely govern the substantive source material. Keep every non-contiguous source fragment independently verbatim. For tabular evidence, preserve every row label, column label, spanning/multi-level header, legend, and marked footnote necessary to reconstruct the claimed relationship unambiguously.
 
-- `diagnosis`: the source states a molecular, morphologic, clinical, quantitative, or other criterion that defines, supports, excludes, differentiates, or changes a diagnosis or classification.
-- `prognosis`: the source explicitly establishes an outcome, risk, survival, progression, relapse, or named prognostic-model effect.
-- `treatment`: the source explicitly supports treatment selection, eligibility, standard treatment, sensitivity, resistance, response, or another treatment-specific clinical effect.
-- `biomarker`: the source explicitly assigns a testing, detection, monitoring, or discrimination role that remains independently useful rather than merely relabelling the same diagnostic assertion. State that independent biomarker function.
-- `germline`: the source explicitly concerns inherited, constitutional, or predisposition status, or germline evaluation. Preserve the source's degree of certainty; an indication or recommendation for germline evaluation does not establish constitutional status.
+For germline content, distinguish established inherited/constitutional status, possible or suspected constitutional origin, and an indication or recommendation for germline evaluation. Evidence supporting one state does not automatically support another.
 
-Do not change category merely to satisfy a schema constraint or make an otherwise ineligible assertion ingestible.
-
-When one passage supports multiple independently useful clinical roles, treat those roles as separate assertions rather than combining their categories into one ingestion unit. The same evidence may legitimately support distinct roles when each role has independent clinical meaning.
-
-### Atomicity principles
-
-# Atomicity principles
-
-If one material clinical assertion could be retained or rejected independently of another, they are separate assertions.
-
-Disease, population, molecular context, treatment, comparator, threshold, analysis, exception, uncertainty, and other qualifiers required to preserve meaning or applicability belong with the assertion and must not be split from it.
-
-Do not merge assertions merely because they share a gene, disease, category, paragraph, sentence, table, study population, or underlying evidence.
-
-Statistics or component observations that only quantify or support the same clinical conclusion do not require separate ingestion units unless they are independently clinically useful.
-
-A single atomic assertion may require more than one source sentence or fragment for complete support. Conversely, one source sentence or census entry may contain multiple atomic assertions and must then be split.
-
-Prefer the smallest unit that preserves one complete, independently useful clinical meaning.
+Use evidence that is sufficient rather than merely short. If any material element is unsupported, expand the evidence, narrow the assertion, split it, or omit it.
 
 ### Geneless claim policy
 
@@ -130,61 +217,6 @@ Do not retain as geneless treatment assertions claims whose usefulness depends p
 
 Do not reclassify an otherwise ineligible geneless assertion as `treatment` merely to permit `genes: []`.
 
-### Interpretation principles
-
-# Interpretation principles
-
-A card interpretation is a self-contained clinical conclusion derived from its source evidence. It is not merely a quotation, paraphrase, extracted result, or restatement of a statistic.
-
-State the strongest clinically useful conclusion directly entailed by the evidence, using only the minimum source-supported context needed for the conclusion to be understood correctly when presented alone.
-
-Include the minimum context required to understand what population or disease the conclusion applies to, what molecular finding or biological group is relevant, what intervention and comparator are being compared when applicable, what outcome or clinical role is asserted, and what subgroup, analysis, threshold, treatment setting, or other qualifier materially limits the conclusion. Every gene listed in the card's `genes` field must be explicitly named in the interpretation. Every disease listed in the card's `diseases` field must be explicitly identified in the interpretation by its canonical name or an accepted source-disease alias. Generic substitutes such as "the driver gene", "this disease", or "these mutations" do not satisfy this surfacing requirement. The card category does not need to be named.
-
-Do not add contextual detail merely to make the interpretation more complete. Include methodological detail only when it changes the clinical meaning or strength of the claim.
-
-A trial name, cohort name, treatment-arm label, model number, table identifier, analysis label, subgroup nickname, or similar paper-local term must not carry information required to understand the interpretation. A paper-local study-population label such as `Arm A`, `Cohort 2`, `Group B`, or an author-named arm fails this standard when the interpretation does not state what clinically defines that population. Replace it with a short semantic description such as `patients who received drug A`, `patients with relapsed AML`, or `patients with TP53-mutated AML`; if the local label adds no clinical value, omit it and use the semantic description alone. Recognized clinical classifications may be retained when their meaning is the clinical assertion itself.
-
-Numerical results, effect estimates, confidence intervals, P values, and other statistics may quantify or qualify a conclusion but must not substitute for stating the conclusion.
-
-A quantitative finding may itself constitute a valid clinical conclusion when it is independently clinically useful, correctly scoped, and sufficiently supported. It does not require a treatment recommendation or practice directive merely to be card-worthy. A reported effect estimate is not automatically eligible solely because population, comparator, and outcome are stated.
-
-Do not make the interpretation broader, stronger, more certain, or more directive than the evidence supports. Source-supported synthesis is permitted only when the conclusion is directly entailed without an unstated clinical or methodological premise.
-
-If the source supports an isolated observation but no independently useful, correctly scoped standalone conclusion can be stated without assumed study knowledge or unsupported inference, do not create or retain a card for that observation.
-
-### Source support principles
-
-# Source support principles
-
-Every material element of an ingestion assertion must be directly supported by source-verbatim evidence from the publication.
-
-The wording of an interpretation need not appear verbatim in the source. A clinical interpretation may synthesize the meaning of source facts, but every material part must be directly entailed by the supplied evidence without outside knowledge or an unstated premise.
-
-Preserve all qualifiers required to determine where the assertion applies or to prevent clinical misapplication, including material disease, population, molecular context, treatment and comparator, outcome, threshold, analysis or subgroup, exception, direction of effect, and degree of certainty. Do not broaden a claim by omitting a qualifier.
-
-A locator is navigation metadata, not substantive evidence. A heading, bibliographic reference, nearby unquoted passage, or model inference does not independently support an assertion. Text elsewhere in the publication may clarify a quoted bundle but cannot substitute for substantive evidence omitted from that bundle.
-
-When evidence from multiple non-contiguous source fragments is required, the fragments must jointly support one coherent assertion and have compatible scope. Do not combine fragments from separate findings, populations, analyses, classifier branches, or independently useful conclusions to manufacture a relationship or broader conclusion.
-
-Context fragments such as headings, legends, and footnotes provide support only when they genuinely govern the substantive source material. Keep every non-contiguous source fragment independently verbatim.
-
-For tabular evidence, preserve every row label, column label, spanning or multi-level header, legend, and marked footnote necessary to reconstruct the claimed relationship unambiguously.
-
-For germline content, distinguish established inherited or constitutional status, possible or suspected constitutional origin, and an indication or recommendation for germline evaluation. Evidence supporting one state does not automatically support another.
-
-Use evidence that is sufficient rather than merely short. If any material element is unsupported, expand the evidence, narrow the assertion, split it, or omit it.
-
-### Card content rules
-
-# Card content rules
-
-- One card represents one independently useful, directly supported clinical assertion.
-- `genes` contains only genes participating in that assertion. Every gene listed in `genes` must be explicitly named in the interpretation.
-- `diseases` records exact source-supported clinical applicability; derived ancestors are indexing terms only and do not broaden scope. Every disease listed in `diseases` must be explicitly identified in the interpretation by its canonical name or an accepted source-disease alias.
-- The interpretation must not depend on an unexplained paper-local cohort, arm, group, stratum, protocol, or author-defined label. Replace such a label with the short clinical meaning that defines the population, exposure, treatment, genotype, disease state, or eligibility criterion; generalize to that meaning alone when the local label adds no clinical value.
-- Do not merge distinct assertions merely because they share a gene, disease, category, paragraph, table, or census claim.
-- **Parallel-gene consolidation exception:** when separate census claims differ only by gene identity and otherwise make the same clinical assertion with the same disease scope, category, population, treatment/comparator, clinical role or outcome, direction, thresholds, qualifiers, exceptions, and evidence basis, represent them with one card. Union the participating genes and write one interpretation that explicitly names every gene. Do not consolidate when any clinically material element differs. This card-level consolidation does not alter Phase 1 census atomicity.
-
 ### Evidence review mechanics
 
 # Evidence review mechanics
@@ -201,7 +233,7 @@ Treat locators as navigation metadata, not evidence.
 
 ## Reviewer independence calibration
 
-Audit whether the existing interpretation satisfies the shared standard. **Do not author a finished replacement card.** Do not fail a card merely because another wording would also be defensible. Pass a defensible interpretation that is correctly scoped, independently intelligible, clinically useful, and directly entailed by its evidence. Fail only when the existing card violates the shared standards.
+Audit whether the existing interpretation satisfies the shared standard. **Do not author a finished replacement card.** `CLINICAL_CARD_POLICY` is a pass/fail standard here, not an invitation to rewrite acceptable cards. Do not fail a card merely because another wording would also be defensible; concise alternatives alone are not failures. Pass a defensible interpretation that is correctly scoped, independently intelligible, clinically useful, and directly entailed by its evidence. Fail only substantive violations of the shared standards.
 
 Identical fragment text alone is not failure when it supports distinct independently useful roles.
 
@@ -218,6 +250,7 @@ For every in-scope census `claim_id`, independently determine whether the provis
 - is legitimately `not_carded` because exactly one of these reasons applies: `insufficient_source_support`, `ambiguous_source_structure`, `no_independent_clinical_meaning`, or `outside_confirmed_scope`.
 
 Do not accept generic omission rationales such as `redundant`, `low importance`, `not necessary`, `already discussed`, or `not clinically material`. Shared genes, category, table, paragraph, framework, evidence, or general topic do not establish `covered`. A narrative summary of selected changes to a table does not cover unchanged or separately stated operative table rules.
+When evaluating `no_independent_clinical_meaning`, apply `CLINICAL_CARD_POLICY`: supporting study statistics, prognostic-score/model internals, methodology, descriptive prevalence/co-occurrence, mechanism without clinical consequence, and uninformative null results may legitimately remain uncarded when no independent patient-level clinical proposition survives abstraction. Do not use this reason to discard a source-supported clinical implication merely because its original wording needs rewriting.
 
 Audit **every in-scope census claim**, including claims that have no apparent corresponding card. Pay particular attention to separate rows, branches, categories, criteria, exceptions, and footnotes from clinically operative tables, classifications, algorithms, and recommendation sets.
 
@@ -244,6 +277,8 @@ Read every evidence fragment for each card that is substantively in Phase 3 scop
 - **Disease grounding:** each specific disease asserted by a substantively reviewed card must be named/unambiguously identified in the paired evidence or be the canonical target of an exact reviewed source alias under the policy below. A valid `scope_heading` may supply context only when it genuinely governs the claim. Derived taxonomic ancestors do not broaden clinical scope. Fail unsupported narrower, sibling, or otherwise distinct disease scope.
 - **Interpretation surfacing:** fail a substantively reviewed card if any gene listed in `genes` is not explicitly named in the interpretation, or if any disease listed in `diseases` is not explicitly identified there by its canonical name or an accepted source-disease alias. Metadata-only gene/disease context is not sufficient.
 - **Study-label semantic closure:** fail a substantively reviewed card when an author-defined cohort, arm, group, stratum, protocol, or similar paper-local label carries clinically necessary meaning that is not explained in the interpretation. The interpretation should use a short semantic description of what defines the population/exposure, or generalize to that description alone when the local label adds no clinical value.
+- **Single-proposition atomicity:** fail a substantively reviewed card when its interpretation contains more than one independently retainable/rejectable clinical proposition. Related contextual material is not a qualifier merely because it appears in the same source passage, guideline, evidence bundle, disease, gene set, or framework. Apply the deletion / independent-retention test in `CLINICAL_ASSERTION_POLICY`. If both propositions independently warrant cards, recommend `split_card`; if the secondary proposition should simply be removed from this card, recommend `rewrite_interpretation`. Do not fail merely because one proposition requires multiple clauses to express genuine applicability conditions, exceptions, or uncertainty.
+- **Clinical-utility abstraction:** fail a substantively reviewed card when its interpretation primarily reports study statistics, cohort outcome numbers, prognostic score mechanics, study design/analysis language, descriptive prevalence/co-occurrence, mechanism, or an uninformative null result instead of stating the directly supported patient-level clinical meaning. Retain clinically operative thresholds/values. Do not fail merely because an alternative concise abstraction would also be defensible.
 - **Parallel-gene redundancy:** in full review, treat separate cards as `material_redundancy` when they differ only by gene identity and otherwise make the same clinical assertion with identical disease scope, category, population, treatment/comparator, role/outcome, direction, thresholds, qualifiers, exceptions, and evidence basis; the appropriate repair is consolidation into one card naming all participating genes. In delta review, apply this only to substantively reviewed added/modified cards and do not reopen unchanged carried-forward cards.
 
 ### Source disease alias policy
@@ -612,6 +647,8 @@ When a substantively reviewed card fails, classify its primary defect as one of:
 - `scope_or_qualifier`;
 - `evidence_relationship`;
 - `other`.
+
+When compound-interpretation atomicity or clinical-utility abstraction is the primary defect and no more specific existing failure type applies, use `failure_type: "other"`. Use a more specific existing failure type when the same card also has a more fundamental source-support, scope, redundancy, or evidence-relationship defect.
 
 For every failure provide a precise `reason`, a `defensibility` statement, and exactly one source-bounded `suggested_action` using:
 - `narrow_disease_scope`

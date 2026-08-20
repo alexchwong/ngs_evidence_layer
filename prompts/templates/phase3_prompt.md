@@ -31,37 +31,21 @@ Phase 3 never creates `paper.final.json` and never repairs cards.
 
 Audit against the same semantic definition of correctness used to author cards.
 
-### Clinical reporting gate
+### Clinical assertion policy
 
-{{CLINICAL_REPORTING_GATE}}
+{{CLINICAL_ASSERTION_POLICY}}
 
-### Source-bounded reasoning
+### Clinical card policy
 
-{{SOURCE_BOUNDED_REASONING}}
+{{CLINICAL_CARD_POLICY}}
 
-### Category semantics
+### Source fidelity policy
 
-{{CATEGORY_SEMANTICS}}
-
-### Atomicity principles
-
-{{ATOMICITY_PRINCIPLES}}
+{{SOURCE_FIDELITY_POLICY}}
 
 ### Geneless claim policy
 
 {{GENELESS_CLAIM_POLICY}}
-
-### Interpretation principles
-
-{{INTERPRETATION_PRINCIPLES}}
-
-### Source support principles
-
-{{SOURCE_SUPPORT_PRINCIPLES}}
-
-### Card content rules
-
-{{CARD_CONTENT_RULES}}
 
 ### Evidence review mechanics
 
@@ -69,7 +53,7 @@ Audit against the same semantic definition of correctness used to author cards.
 
 ## Reviewer independence calibration
 
-Audit whether the existing interpretation satisfies the shared standard. **Do not author a finished replacement card.** Do not fail a card merely because another wording would also be defensible. Pass a defensible interpretation that is correctly scoped, independently intelligible, clinically useful, and directly entailed by its evidence. Fail only when the existing card violates the shared standards.
+Audit whether the existing interpretation satisfies the shared standard. **Do not author a finished replacement card.** `CLINICAL_CARD_POLICY` is a pass/fail standard here, not an invitation to rewrite acceptable cards. Do not fail a card merely because another wording would also be defensible; concise alternatives alone are not failures. Pass a defensible interpretation that is correctly scoped, independently intelligible, clinically useful, and directly entailed by its evidence. Fail only substantive violations of the shared standards.
 
 Identical fragment text alone is not failure when it supports distinct independently useful roles.
 
@@ -86,6 +70,7 @@ For every in-scope census `claim_id`, independently determine whether the provis
 - is legitimately `not_carded` because exactly one of these reasons applies: `insufficient_source_support`, `ambiguous_source_structure`, `no_independent_clinical_meaning`, or `outside_confirmed_scope`.
 
 Do not accept generic omission rationales such as `redundant`, `low importance`, `not necessary`, `already discussed`, or `not clinically material`. Shared genes, category, table, paragraph, framework, evidence, or general topic do not establish `covered`. A narrative summary of selected changes to a table does not cover unchanged or separately stated operative table rules.
+When evaluating `no_independent_clinical_meaning`, apply `CLINICAL_CARD_POLICY`: supporting study statistics, prognostic-score/model internals, methodology, descriptive prevalence/co-occurrence, mechanism without clinical consequence, and uninformative null results may legitimately remain uncarded when no independent patient-level clinical proposition survives abstraction. Do not use this reason to discard a source-supported clinical implication merely because its original wording needs rewriting.
 
 Audit **every in-scope census claim**, including claims that have no apparent corresponding card. Pay particular attention to separate rows, branches, categories, criteria, exceptions, and footnotes from clinically operative tables, classifications, algorithms, and recommendation sets.
 
@@ -112,6 +97,8 @@ Read every evidence fragment for each card that is substantively in Phase 3 scop
 - **Disease grounding:** each specific disease asserted by a substantively reviewed card must be named/unambiguously identified in the paired evidence or be the canonical target of an exact reviewed source alias under the policy below. A valid `scope_heading` may supply context only when it genuinely governs the claim. Derived taxonomic ancestors do not broaden clinical scope. Fail unsupported narrower, sibling, or otherwise distinct disease scope.
 - **Interpretation surfacing:** fail a substantively reviewed card if any gene listed in `genes` is not explicitly named in the interpretation, or if any disease listed in `diseases` is not explicitly identified there by its canonical name or an accepted source-disease alias. Metadata-only gene/disease context is not sufficient.
 - **Study-label semantic closure:** fail a substantively reviewed card when an author-defined cohort, arm, group, stratum, protocol, or similar paper-local label carries clinically necessary meaning that is not explained in the interpretation. The interpretation should use a short semantic description of what defines the population/exposure, or generalize to that description alone when the local label adds no clinical value.
+- **Single-proposition atomicity:** fail a substantively reviewed card when its interpretation contains more than one independently retainable/rejectable clinical proposition. Related contextual material is not a qualifier merely because it appears in the same source passage, guideline, evidence bundle, disease, gene set, or framework. Apply the deletion / independent-retention test in `CLINICAL_ASSERTION_POLICY`. If both propositions independently warrant cards, recommend `split_card`; if the secondary proposition should simply be removed from this card, recommend `rewrite_interpretation`. Do not fail merely because one proposition requires multiple clauses to express genuine applicability conditions, exceptions, or uncertainty.
+- **Clinical-utility abstraction:** fail a substantively reviewed card when its interpretation primarily reports study statistics, cohort outcome numbers, prognostic score mechanics, study design/analysis language, descriptive prevalence/co-occurrence, mechanism, or an uninformative null result instead of stating the directly supported patient-level clinical meaning. Retain clinically operative thresholds/values. Do not fail merely because an alternative concise abstraction would also be defensible.
 - **Parallel-gene redundancy:** in full review, treat separate cards as `material_redundancy` when they differ only by gene identity and otherwise make the same clinical assertion with identical disease scope, category, population, treatment/comparator, role/outcome, direction, thresholds, qualifiers, exceptions, and evidence basis; the appropriate repair is consolidation into one card naming all participating genes. In delta review, apply this only to substantively reviewed added/modified cards and do not reopen unchanged carried-forward cards.
 
 ### Source disease alias policy
@@ -133,6 +120,8 @@ When a substantively reviewed card fails, classify its primary defect as one of:
 - `scope_or_qualifier`;
 - `evidence_relationship`;
 - `other`.
+
+When compound-interpretation atomicity or clinical-utility abstraction is the primary defect and no more specific existing failure type applies, use `failure_type: "other"`. Use a more specific existing failure type when the same card also has a more fundamental source-support, scope, redundancy, or evidence-relationship defect.
 
 For every failure provide a precise `reason`, a `defensibility` statement, and exactly one source-bounded `suggested_action` using:
 - `narrow_disease_scope`

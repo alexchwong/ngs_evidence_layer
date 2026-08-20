@@ -321,7 +321,7 @@ handoff files when a phase routes work backward.
 | Phase | Chat/session | Give the model | Prompt | Save output as |
 |---|---|---|---|---|
 | 1 — census | Fresh ChatGPT or Claude chat | `paper.md`, `metadata.json` | `prompts/phase1_prompt.md` | `paper.census-v001.json` |
-| 2 — carding | Fresh chat | `paper.md`, `metadata.json`, active census | `prompts/phase2_prompt.md` | `paper.provisional-v001.json` |
+| 2 — carding + human semantic review | Fresh interactive chat | `paper.md`, `metadata.json`, active census | `prompts/phase2_prompt.md` | grouped review in chat, then after `APPROVE` `paper.provisional-v001.json` |
 | 3 — independent review | Fresh chat using a **different model from Phase 2** | `paper.md`, active provisional; matching Phase 2R decision ledger when applicable | `prompts/phase3_prompt.md` | matching `paper.review-vNNN.json` |
 | 4 — human adjudication | Fresh chat | `paper.md`, `metadata.json`, active census/provisional/review; matching Phase 2R ledger when applicable | `prompts/phase4_prompt.md` | `paper.phase4-decisions[-revRRR]-vNNN.json` plus `paper.final.json`, or a Phase 2R handoff ledger |
 
@@ -371,9 +371,16 @@ stopping at the first defect. Redo Phase 1 as above. If Phase 3 rejects the
 provisional structurally, rerun Phase 2 with the prior provisional and critique; the
 next package uses the next Phase 2 attempt, for example `paper.provisional-v002.json`.
 The package `round` advances with Phase 2 attempts. After carding, Phase 2 performs a
-separate semantic output audit, then a model formatting-only pass, and finally deterministic
-package validation. Failure at any output gate returns to card/evidence generation and the
-later gates are repeated; nothing is edited after deterministic validation succeeds.
+separate semantic output audit and then enters a **mandatory human semantic-group review**
+before any provisional file is written. The model groups the interpretations of every
+candidate card by generic clinical meaning, prints every card ID plus its complete
+interpretation exactly once, and accepts free-text group-wise/card-wise amendments. After
+any amendment it regenerates the candidate, reruns the whole semantic audit, and prints all
+cards again. Only the exact reply `APPROVE` releases the candidate to the formatting-only
+and deterministic output gates. Any later semantic change invalidates that approval.
+
+This human gate is part of normal Phase 2 only; Phase 2R keeps its separate explicit delta
+review/finalization contract. Nothing is edited after deterministic validation succeeds.
 
 Accepted-card review uses the **Phase 2R** branch of the Phase 2 prompt. Prepare it with:
 

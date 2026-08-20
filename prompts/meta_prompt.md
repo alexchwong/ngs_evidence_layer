@@ -19,7 +19,7 @@ Every prompt edit must preserve these invariants:
 - one typed evidence bundle per card and one card per bundle, with every fragment source-verbatim;
 - cards are gene-indexed and independently useful;
 - diseases use the closed vocabulary with required umbrella tags;
-- Phase 2 creates one provisional package and is not repeated after audit;
+- normal Phase 2 emits no provisional until its semantic audit and mandatory all-card human review pass; amendments loop before file emission, and explicit `APPROVE` releases exactly one provisional package to final formatting/validation;
 - Phase 3 reviews every card exactly once, records pass or fail, and never creates a final package;
 - publication type is assigned by Phase 1, copied by Phase 2, independently reviewed by Phase 3, and finally adjudicated in Phase 4;
 - Phase 3 never repairs extraction content;

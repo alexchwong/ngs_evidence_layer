@@ -33,41 +33,29 @@ Require matching `paper_id`, round, extraction identity, card IDs, and card coun
 
 ## Shared semantic principles
 
-### Clinical reporting gate
+### Clinical assertion policy
 
-{{CLINICAL_REPORTING_GATE}}
+{{CLINICAL_ASSERTION_POLICY}}
 
-### Source-bounded reasoning
+### Clinical card policy
 
-{{SOURCE_BOUNDED_REASONING}}
+{{CLINICAL_CARD_POLICY}}
 
-### Category semantics
+### Source fidelity policy
 
-{{CATEGORY_SEMANTICS}}
-
-### Atomicity principles
-
-{{ATOMICITY_PRINCIPLES}}
+{{SOURCE_FIDELITY_POLICY}}
 
 ### Geneless claim policy
 
 {{GENELESS_CLAIM_POLICY}}
 
-### Interpretation principles
-
-{{INTERPRETATION_PRINCIPLES}}
-
-### Source support principles
-
-{{SOURCE_SUPPORT_PRINCIPLES}}
-
-### Card construction rules
-
-{{CARD_CONTENT_RULES}}
-
 ### Evidence bundle construction rules
 
 {{EVIDENCE_BUNDLE_RULES}}
+
+### Phase 4 use of current card standards
+
+Apply the current clinical-card and source-fidelity standards when evaluating or constructing an **authorised repair of a Phase 3-failed card**. Do not use newer wording standards as permission to modernise, normalize, or otherwise rewrite unrelated cards that Phase 3 passed. Passed-card changes remain Phase 2R work.
 
 ## Step 2 — human adjudication and interactivity
 

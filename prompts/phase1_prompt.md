@@ -11,7 +11,10 @@ and/or `redo.json`. Use retry artefacts only to determine the next filename and 
 the criticised census; do not overwrite any input. Legacy `paper.census.json` is treated
 as census attempt v001.
 
-Determine whether this is a **fresh Phase 1** or a **Phase 1 retry/redo** before doing anything else.
+Determine whether this is a **fresh Phase 1**, a **Phase 1 retry/redo**, or an explicit
+**Phase 1 redo from scratch** before doing anything else. Treat the run as redo from
+scratch only when the user's invocation explicitly requests `redo from scratch` or
+equivalent unambiguous wording.
 
 For a fresh Phase 1, normalize the user's invocation to a positive category allow-list using only: `diagnosis`, `prognosis`, `treatment`, `biomarker`, and `germline`. A request such as `Phase 1, diagnosis only` means `category_scope: ["diagnosis"]`; multiple explicitly requested categories form the corresponding allow-list. Plain `Phase 1`, or any invocation without an explicit category restriction, means all five categories. Review the paper to identify its primary purpose and you may recommend a Phase 1 category scope suited to that purpose, but the recommendation is advisory. It must not narrow or otherwise change the normalized scope unless the user explicitly instructs that scope. Never treat the paper's subject matter, publication type, apparent lack of evidence in a category, or your own recommendation as an implicit user instruction to restrict scope.
 
@@ -19,7 +22,24 @@ On the first turn of a **fresh Phase 1 only**, do not extract or write a file. I
 
 For a **Phase 1 retry/redo**, do **not** repeat the paper summary, scope recommendation, scope-normalization dialogue, or `CONFIRM` step. Read the prior census first. Its `category_scope` is the already-confirmed scope; if that field is absent, the already-confirmed scope is all five categories. If the user explicitly changes scope in the retry/redo instruction, use that explicit scope change directly; do not ask for another `CONFIRM`. When a matching census critique is present, read the complete critique and repair the criticised census. Then audit the complete revised census, not only the named defects. The incoming critique is a minimum repair list, not the boundary of the audit. The prior census is the working candidate, not merely a reference: preserve every existing entry unchanged unless the incoming critique or the independent whole-paper semantic audit identifies a specific reason to add, modify, split, merge, or delete it. Preserve the existing `claim_id`, wording, genes, category, and locator for unaffected entries. Do not regenerate the census wholesale. A prepared accepted-paper census redo may provide the prior accepted census plus `redo.json`; use the prior census to inherit scope and `redo.json` to determine the required next filename.
 
-After fresh confirmation, or immediately on retry/redo, the only allowed output is exactly one versioned census file. For a fresh ingestion use `paper.census-v001.json`. On retry, increment the highest prior census or census-critique attempt. If `redo.json` supplies `next_outputs.census`, use that exact filename unless a later retry artefact in the current conversation requires the next attempt. Never overwrite an earlier attempt. Do not create a provisional package, review, final package, or any other file.
+For an explicit **Phase 1 redo from scratch**, do **not use the old census at all**:
+do not read it to inherit scope, seed entries, preserve claim IDs or wording, identify
+defects, compare coverage, or guide extraction. Do not use a prior census critique.
+Reconstruct the census independently from `paper.md` and `metadata.json` as though no
+old census existed. Normalize category scope directly from the redo-from-scratch
+invocation using the fresh-Phase-1 rules above; an invocation without an explicit
+category restriction means all five categories. The explicit redo-from-scratch request
+authorizes immediate reconstruction, so do not repeat the summary, recommendation,
+scope dialogue, or `CONFIRM` step. When `redo.json` is present, use it only to determine
+the required next output filename and never as permission to consult old census content.
+
+After fresh confirmation, or immediately on retry/redo or redo from scratch, the only
+allowed output is exactly one versioned census file. For a fresh ingestion use
+`paper.census-v001.json`. On ordinary retry/redo, increment the highest prior census or
+census-critique attempt. On redo from scratch, use `redo.json.next_outputs.census` when
+present; otherwise determine the next non-colliding attempt from filenames only, without
+reading old census or critique content. Never overwrite an earlier attempt. Do not create
+a provisional package, review, final package, or any other file.
 ## Step 1 — core census work
 
 You are the census model for exactly one publication. Use only `paper.md`,
@@ -31,6 +51,8 @@ walk is a complete reassessment of census completeness and correctness; it does 
 authorize rewriting otherwise valid prior-census entries. Census only claims whose
 semantic category is inside the confirmed scope; reading remains whole-paper so that
 in-scope claims are not missed merely because they appear in unexpected sections.
+On redo from scratch, instead build every entry independently from the paper; no old
+census entry or claim identifier is a baseline, constraint, or source of information.
 Disregard any advisory scope suggestion during extraction and census according only to
 the confirmed effective scope. Even when the paper's primary purpose emphasizes one
 category, inspect and retain claims from every category in the confirmed scope.
@@ -44,7 +66,7 @@ subgroup, exception, and uncertainty where material. Concision must not remove a
 meaning-critical qualifier. The summary must remain sufficient to distinguish its
 Phase 2 review boundary from other entries. Use `genes: []` only for geneless
 `diagnosis` or `treatment` claims. Do not merge distinct claims merely because they share a gene,
-category, paragraph, or table. Record missing supplementary values. Do not refuse because a supplement is unavailable.
+category, paragraph, or table. Related contextual statements are separate census assertions when they can be retained or rejected independently; do not attach them as qualifiers to another assertion merely because they occur in the same source sentence, paragraph, table, or framework. Record missing supplementary values. Do not refuse because a supplement is unavailable.
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
 that judgement. Phase 1 assigns this provisional value but does not independently
@@ -107,37 +129,67 @@ categories.
 
 ## Shared semantic principles
 
-### Clinical relevance scope
+### Clinical assertion policy
 
-# Clinical reporting gate
+# Clinical assertion policy
 
-A clinically useful fact is one that could materially contribute to a concise myeloid NGS report by informing:
+## Clinical reporting eligibility
+
+A clinically relevant source assertion is one that could materially contribute to a concise myeloid NGS report by informing:
 
 - diagnosis or classification;
 - patient-level prognosis;
-- treatment or management;
+- treatment selection, eligibility, sensitivity, resistance, or management;
 - MRD interpretation; or
-- assessment of possible germline predisposition.
+- assessment of possible germline predisposition or germline evaluation.
 
-The fact must apply to the stated disease, molecular finding and clinical context.
+The assertion must apply to the stated disease, molecular finding, and clinical context. A clinical endpoint is **not** by itself a clinical interpretation: survival, response, relapse, or another important endpoint qualifies only when the source establishes a clinically meaningful implication of the molecular finding.
 
-Background information is not clinically useful by itself, including prevalence, epidemiology, study methodology, molecular mechanism alone, or descriptive associations without a clinical implication.
+Background information is not clinically useful by itself, including prevalence, epidemiology, study methodology, molecular mechanism alone, descriptive co-occurrence, or a descriptive association without a patient-level clinical implication. A negative or null result is useful only when the source supports a clinically meaningful negative conclusion whose absence would materially change interpretation or management; statistical non-significance alone does not establish no effect.
 
-A negative or null finding is useful only when its absence or lack of effect is clinically informative.
-
-When several findings support the same clinical conclusion, prefer the clinical conclusion rather than its component statistics.
+When several measurements, effect estimates, or component observations support the same clinical conclusion, treat the clinical conclusion as the assertion rather than treating each supporting statistic as a separate assertion. A number warrants its own assertion only when the value itself is clinically operative for applying a source-supported rule to an individual patient.
 
 Geneless diagnosis and treatment eligibility is governed by the separately injected `GENELESS_CLAIM_POLICY`.
 
-### Source-bounded reasoning
+## Category semantics
 
-# Source-bounded reasoning
+Assign category according to the clinical role actually established by the source assertion, not according to the paper section, keywords, gene, or intended downstream use.
+
+- `diagnosis`: the source states a molecular, morphologic, clinical, quantitative, or other criterion that defines, supports, excludes, differentiates, or changes a diagnosis or classification.
+- `prognosis`: the source explicitly establishes an outcome, risk, survival, progression, relapse, or patient-level effect within a named prognostic framework. A recognised prognostic framework may itself be clinically relevant, but model coefficients, score weights, point assignments, model-construction variables, calibration/discrimination statistics, and score-category survival tables do not qualify by themselves.
+- `treatment`: the source explicitly supports treatment selection, eligibility, standard treatment, sensitivity, resistance, response, or another treatment-specific clinical effect.
+- `biomarker`: the source explicitly assigns a testing, detection, monitoring, or discrimination role that remains independently useful rather than merely relabelling the same diagnostic assertion. State that independent biomarker function.
+- `germline`: the source explicitly concerns inherited, constitutional, or predisposition status, or germline evaluation. Preserve the source's degree of certainty; an indication or recommendation for germline evaluation does not establish constitutional status.
+
+Do not change category merely to satisfy a schema constraint or make an otherwise ineligible assertion ingestible. When one passage supports multiple independently useful clinical roles, treat those roles as separate assertions rather than combining their categories into one ingestion unit. The same evidence may legitimately support distinct roles when each role has independent clinical meaning.
+
+## Atomicity and qualifiers
+
+One census assertion or evidence card represents **one independently retainable/rejectable clinical proposition**. If one material clinical proposition could be retained or rejected independently of another, they are separate assertions.
+
+A qualifier is information necessary to define, narrow, condition, or state an exception to that **same proposition**. Qualifiers may include disease, population, molecular context, treatment/comparator, threshold, subgroup or analysis context when it materially limits applicability, exception, uncertainty, and other meaning-critical applicability conditions.
+
+Disease, population, molecular context, treatment, comparator, threshold, analysis, exception, uncertainty, and other qualifiers required to preserve meaning or applicability belong with the assertion and must not be split from it.
+
+A related statement is **not** a qualifier merely because it provides context. If additional text introduces a second conclusion about another subject, framework, treatment setting, outcome, recommendation, limitation, or applicability question that can stand independently, it is a separate assertion.
+
+Apply the **deletion / independent-retention test**: remove the suspected qualifier. If the remaining text is still a complete clinical proposition and the removed text could itself be retained or rejected without changing the truth or applicability of that proposition, the removed text is a separate assertion and must not ride along as a qualifier.
+
+Do not split away a true qualifier required to preserve the exact meaning or applicability of its proposition. Do not merge assertions merely because they share a gene, disease, category, paragraph, sentence, table, study population, clinical framework, or underlying evidence.
+
+Statistics or component observations that quantify or support one clinical conclusion are not separate ingestion units. Hazard ratios, odds ratios, confidence intervals, P values, cohort sizes, median survival values, response percentages, model coefficients, score weights, and similar study-result packaging remain supporting evidence unless the number itself is clinically operative.
+
+A single atomic assertion may require more than one source sentence or fragment for complete support. Conversely, one source sentence or census entry may contain multiple atomic assertions and must then be split. Prefer the smallest unit that preserves one complete, independently useful clinical meaning.
+
+### Source fidelity policy
+
+# Source fidelity policy
 
 Derive ingestion content only from the supplied publication. Do not add facts from model knowledge, prior familiarity with the study, outside sources, or assumptions about usual clinical practice.
 
-Use the whole publication to understand the meaning, boundaries, and governing qualifiers of a source assertion. In Phase 1, use that context only to identify and delimit source assertions; do not synthesize multiple observations into a new higher-level clinical conclusion.
+Use the whole publication to understand the meaning, boundaries, and governing qualifiers of a source assertion. In Phase 1, use that context only to identify and delimit source assertions; do not synthesize multiple observations into a new higher-level clinical conclusion. For cards and final card amendments, source-supported synthesis is permitted only when the conclusion is directly entailed by the quoted evidence without an unstated external clinical or methodological premise.
 
-For cards and final card amendments, source-supported synthesis is permitted only when the conclusion is directly entailed by the quoted evidence without an unstated external clinical or methodological premise.
+Every material element of a card interpretation must be directly supported by source-verbatim evidence from the publication. The interpretation wording need not appear verbatim, but every material part must be directly entailed by the supplied evidence.
 
 Do not strengthen the source beyond what it establishes. In particular, do not:
 
@@ -148,41 +200,19 @@ Do not strengthen the source beyond what it establishes. In particular, do not:
 - convert a recommendation for testing or evaluation into an established finding; or
 - convert uncertainty, possibility, or conditional language into certainty.
 
-Study names, cohort labels, arm names, analysis labels, table identifiers, and other paper-local terminology may identify source material but do not themselves supply clinical meaning.
+Preserve all qualifiers required to determine where the assertion applies or to prevent clinical misapplication, including material disease, population, molecular context, treatment/comparator, outcome, threshold, analysis/subgroup when it materially limits applicability, exception, direction of effect, and degree of certainty. Do not broaden a claim by omitting a qualifier.
 
-Whole-paper context may clarify what quoted evidence means, but unquoted publication content must not supply substantive support missing from a required evidence bundle. If support is missing, expand the evidence, narrow or split the assertion, or omit it.
+Study names, cohort labels, arm names, analysis labels, table identifiers, and other paper-local labels do not themselves justify generalization. Use them to find and understand source material. In card-authoring or card-repair phases, express only the source-supported clinical meaning permitted by the active clinical-card policy; Phase 1 should remain source-faithful rather than polishing census summaries into card interpretations.
 
-### Category semantics
+A locator is navigation metadata, not substantive evidence. A heading, bibliographic reference, nearby unquoted passage, or model inference does not independently support an assertion. Text elsewhere in the publication may clarify a quoted bundle but cannot substitute for substantive evidence omitted from that bundle.
 
-# Category semantics
+When evidence from multiple non-contiguous source fragments is required, the fragments must jointly support one coherent proposition and have compatible scope. Do not combine fragments from separate findings, populations, analyses, classifier branches, or independently useful conclusions to manufacture a relationship or broader conclusion.
 
-Assign category according to the clinical role actually established by the source assertion, not according to the paper section, keywords, gene, or intended downstream use.
+Context fragments such as headings, legends, and footnotes provide support only when they genuinely govern the substantive source material. Keep every non-contiguous source fragment independently verbatim. For tabular evidence, preserve every row label, column label, spanning/multi-level header, legend, and marked footnote necessary to reconstruct the claimed relationship unambiguously.
 
-- `diagnosis`: the source states a molecular, morphologic, clinical, quantitative, or other criterion that defines, supports, excludes, differentiates, or changes a diagnosis or classification.
-- `prognosis`: the source explicitly establishes an outcome, risk, survival, progression, relapse, or named prognostic-model effect.
-- `treatment`: the source explicitly supports treatment selection, eligibility, standard treatment, sensitivity, resistance, response, or another treatment-specific clinical effect.
-- `biomarker`: the source explicitly assigns a testing, detection, monitoring, or discrimination role that remains independently useful rather than merely relabelling the same diagnostic assertion. State that independent biomarker function.
-- `germline`: the source explicitly concerns inherited, constitutional, or predisposition status, or germline evaluation. Preserve the source's degree of certainty; an indication or recommendation for germline evaluation does not establish constitutional status.
+For germline content, distinguish established inherited/constitutional status, possible or suspected constitutional origin, and an indication or recommendation for germline evaluation. Evidence supporting one state does not automatically support another.
 
-Do not change category merely to satisfy a schema constraint or make an otherwise ineligible assertion ingestible.
-
-When one passage supports multiple independently useful clinical roles, treat those roles as separate assertions rather than combining their categories into one ingestion unit. The same evidence may legitimately support distinct roles when each role has independent clinical meaning.
-
-### Atomicity principles
-
-# Atomicity principles
-
-If one material clinical assertion could be retained or rejected independently of another, they are separate assertions.
-
-Disease, population, molecular context, treatment, comparator, threshold, analysis, exception, uncertainty, and other qualifiers required to preserve meaning or applicability belong with the assertion and must not be split from it.
-
-Do not merge assertions merely because they share a gene, disease, category, paragraph, sentence, table, study population, or underlying evidence.
-
-Statistics or component observations that only quantify or support the same clinical conclusion do not require separate ingestion units unless they are independently clinically useful.
-
-A single atomic assertion may require more than one source sentence or fragment for complete support. Conversely, one source sentence or census entry may contain multiple atomic assertions and must then be split.
-
-Prefer the smallest unit that preserves one complete, independently useful clinical meaning.
+Use evidence that is sufficient rather than merely short. If any material element is unsupported, expand the evidence, narrow the assertion, split it, or omit it.
 
 ### Geneless claim policy
 
@@ -206,7 +236,13 @@ Do not retain as geneless treatment assertions claims whose usefulness depends p
 
 Do not reclassify an otherwise ineligible geneless assertion as `treatment` merely to permit `genes: []`.
 
-For Phase 1, use these only to identify and delimit potentially relevant source assertions. Phase 1 determines review boundaries, not card eligibility. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims that satisfy both this clinical relevance scope and the confirmed `category_scope`. Geneless claims are in scope only as permitted by `GENELESS_CLAIM_POLICY`; geneless treatment claims that fail that policy are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
+### Phase 1 use of the clinical-utility standard
+
+Phase 1 is **sensitivity-first and source-faithful**. Use the clinical assertion policy only to identify and delimit potentially relevant source assertions and to avoid fragmenting one clinical finding into separate census entries for its supporting statistics or study mechanics. Do not polish census summaries into final card interpretations and do not reject a potentially useful source assertion merely because Phase 2 will later need to abstract or rewrite it. Phase 1 determines review boundaries, not card eligibility. Final card eligibility belongs to Phase 2.
+
+Related contextual statements are separate census assertions when they can be retained or rejected independently; do not attach them as qualifiers to another assertion merely because they occur in the same source sentence, paragraph, table, guideline, or framework. Preserve true meaning-critical qualifiers with the proposition they govern.
+
+Record all distinct paper-supported claims that satisfy both the clinical assertion policy and the confirmed `category_scope`. Geneless claims are in scope only as permitted by `GENELESS_CLAIM_POLICY`; geneless treatment claims that fail that policy are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
 
 ## Output schema
 
@@ -400,7 +436,7 @@ A census passes only when all of the following are true:
 1. **Completeness:** every clinically relevant, paper-supported assertion in the confirmed scope is represented; intentionally out-of-scope categories are not omissions.
 2. **Atomicity:** each entry is one Phase 2 retain/reject review boundary. If Phase 2 could reasonably retain one part while rejecting another, the entry is not atomic and must be split.
 3. **Qualifier preservation:** disease, population, molecular context, treatment, comparator, threshold, analysis, exception, uncertainty, and other qualifiers required to preserve meaning or applicability remain attached to the assertion they govern and are not split away.
-4. **Category correctness:** each entry's category follows `CATEGORY_SEMANTICS` and lies within the confirmed scope.
+4. **Category correctness:** each entry's category follows the category semantics in `CLINICAL_ASSERTION_POLICY` and lies within the confirmed scope.
 5. **Gene correctness:** `genes` contains only genes participating in that exact assertion; `genes: []` is used only as permitted by `GENELESS_CLAIM_POLICY`.
 6. **Source fidelity:** each summary states only the source-supported assertion and does not broaden, strengthen, combine, or clinically interpret beyond the paper.
 7. **Locator adequacy:** each locator identifies the source material supporting that census assertion closely enough for Phase 2 to find and review it.

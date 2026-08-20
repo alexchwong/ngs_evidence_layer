@@ -11,10 +11,11 @@ Normal Phase 2 required read-only inputs are `paper.md`, `metadata.json`, one ac
 
 Use every input read-only; never overwrite an earlier phase attempt.
 
-Allowed output branches:
+Allowed response/output branches:
 1. materially deficient census: exactly `paper.census-critique-vNNN.md`;
-2. normal extraction/re-extraction: exactly one `paper.provisional[-revRRR]-vNNN.json` as directed by the active redo/attempt namespace;
-3. Phase 2R finalization: exactly two files with the same revision/attempt namespace: `paper.phase2r-decisions[-revRRR]-vNNN.json` and `paper.provisional[-revRRR]-vNNN.json`.
+2. normal Phase 2 human-review state: **chat review text only and no file**, containing the mandatory semantic grouping of all current candidate-card interpretations described in Step 5;
+3. normal extraction/re-extraction after explicit human `APPROVE`: exactly one `paper.provisional[-revRRR]-vNNN.json` as directed by the active redo/attempt namespace;
+4. Phase 2R finalization: exactly two files with the same revision/attempt namespace: `paper.phase2r-decisions[-revRRR]-vNNN.json` and `paper.provisional[-revRRR]-vNNN.json`.
 
 All newly authored provisional packages use `schema_version: "5.1"`. For a fresh ingestion, provisional v001 has `round: 1`. A normal Phase 2 retry increments the provisional attempt and round. For a prepared redo, use `redo.json.next_outputs.provisional`; in accepted-card Phase 2R also use `redo.json.next_outputs.phase2r_decisions` for the matching decision ledger. For accepted-card review, preserve `redo.json.revision`; v001 uses `round = paper.final.json.round + 1`. For a Phase 4 → Phase 2R loop, remain in the active provisional's revision namespace, use the next provisional attempt, and set `round = active provisional.round + 1`.
 
@@ -22,33 +23,21 @@ You are the extraction model for exactly one publication. Use only the supplied 
 
 ## Shared semantic principles
 
-### Clinical reporting gate
+### Clinical assertion policy
 
-{{CLINICAL_REPORTING_GATE}}
+{{CLINICAL_ASSERTION_POLICY}}
 
-### Source-bounded reasoning
+### Clinical card policy
 
-{{SOURCE_BOUNDED_REASONING}}
+{{CLINICAL_CARD_POLICY}}
 
-### Category semantics
+### Source fidelity policy
 
-{{CATEGORY_SEMANTICS}}
-
-### Atomicity principles
-
-{{ATOMICITY_PRINCIPLES}}
+{{SOURCE_FIDELITY_POLICY}}
 
 ### Geneless claim policy
 
 {{GENELESS_CLAIM_POLICY}}
-
-### Interpretation principles
-
-{{INTERPRETATION_PRINCIPLES}}
-
-### Source support principles
-
-{{SOURCE_SUPPORT_PRINCIPLES}}
 
 ## Canonical deterministic validation assets
 
@@ -60,7 +49,7 @@ The deterministic bundle contains the exact Phase 1 census validator used at the
 
 ## Normal Phase 2 — required workflow
 
-Normal Phase 2 must follow Steps 1–6 in order. Phase 2R does **not** use Steps 1–6; its separate workflow appears later.
+Normal Phase 2 must follow Steps 1–7 in order. Phase 2R does **not** use Steps 1–7; its separate workflow appears later.
 
 ### Step 1 — deterministic census input gate
 
@@ -100,7 +89,7 @@ Do not use generic omission rationales such as `redundant`, `low importance`, `n
 
 - `insufficient_source_support` — source review shows that the census identified a potentially relevant assertion, but the source does not directly support a card meeting the Phase 2 evidence standard.
 - `ambiguous_source_structure` — relevant source material is present, but extraction damage or table/figure structure prevents the relationship from being reconstructed reliably.
-- `no_independent_clinical_meaning` — the claim is only a component observation/statistic supporting another clinical conclusion and has no independently useful clinical meaning.
+- `no_independent_clinical_meaning` — after applying `CLINICAL_CARD_POLICY`, no independent patient-level clinical proposition remains. This includes study statistics that only quantify another conclusion, prognostic-score/model internals, study methodology, purely descriptive prevalence/co-occurrence, mechanism without a clinical consequence, and uninformative null results that cannot be converted into a directly supported clinical implication.
 - `outside_confirmed_scope` — the claim is outside the active census `category_scope`; this should ordinarily already have been excluded before carding.
 
 Emit a card only when the evidence directly supports a clinically useful interpretation. Never manufacture category coverage merely to match the census, but never omit a clinically useful census assertion merely because related material is already represented.
@@ -110,8 +99,13 @@ Work evidence-first rather than gene-first:
 2. assemble the minimal sufficient evidence bundle;
 3. **freeze the complete candidate evidence bundle before drafting the interpretation**;
 4. identify only the role, population, disease, effect, and qualifiers explicitly supported by that bundle;
-5. create at most one card for each independently useful, directly supported role;
-6. include only genes participating in that exact assertion.
+5. apply `CLINICAL_CARD_POLICY` to convert study-result packaging into the narrowest directly supported patient-level clinical implication;
+6. create at most one card for each independently useful, directly supported proposition;
+7. include only genes participating in that exact assertion.
+
+Before accepting any drafted card, perform a **single-proposition test** on its interpretation. Identify every independently meaningful clinical proposition expressed by the interpretation; there must be exactly one. Additional clauses are allowed only when they qualify that same proposition under `CLINICAL_ASSERTION_POLICY`. If two independently retainable propositions are present, split them when both independently warrant cards, or retain the report-useful proposition and remove / separately disposition the secondary proposition when it does not independently warrant a card. Never preserve two propositions in one card merely because the same evidence, paragraph, guideline, framework, or census claim supports both.
+
+Before retaining quantitative or methodological wording, apply the abstraction test from `CLINICAL_CARD_POLICY`: remove study name, cohort size, analysis method, statistical values, and paper-local group labels. If the remaining statement does not yet express a useful patient-level implication, rewrite it to the narrowest directly supported implication or use `not_carded` when no such implication exists. Preserve clinically operative thresholds and values.
 
 Do not union assertions, diseases, populations, or qualifiers across separate locators. A card's locator, interpretation, diseases, genes, category, and evidence bundle must describe the same source assertion.
 
@@ -126,10 +120,6 @@ For a classification or risk table, each independently applicable patient-level 
 ### Evidence bundle construction rules
 
 {{EVIDENCE_BUNDLE_RULES}}
-
-### Card construction rules
-
-{{CARD_CONTENT_RULES}}
 
 ### Source disease alias policy
 
@@ -162,10 +152,16 @@ First audit the complete in-scope census against the candidate package and the i
 Perform this audit **claim-by-claim, not by aggregate card count**. If a covering card preserves only part of the census claim, or omits a material qualifier/exception, the candidate fails: create or revise the necessary card rather than accepting partial coverage. In particular, surrounding narrative describing selected changes to a table does not cover distinct operative rules present only in the table.
 
 For every card in the candidate provisional ask:
-1. does its paired evidence support every material assertion?;
-2. is the interpretation a self-contained clinical conclusion under `INTERPRETATION_PRINCIPLES`, including explicit surfacing of every tagged gene and disease?;
-3. does any paper-local cohort/arm/group label carry meaning that should instead be stated as a short semantic description or generalized clinical population?; and
-4. is it independently useful rather than redundant?
+1. does its paired evidence support every material element under `SOURCE_FIDELITY_POLICY`?;
+2. does the interpretation contain exactly **one independently retainable/rejectable clinical proposition**, with every additional clause functioning only as a true qualifier of that same proposition under the deletion / independent-retention test in `CLINICAL_ASSERTION_POLICY`?;
+3. does the interpretation state patient-level clinical meaning under `CLINICAL_CARD_POLICY`, rather than mainly reporting study statistics, cohort outcome numbers, prognostic-score internals, study design/analysis mechanics, descriptive prevalence/co-occurrence, mechanism, or an uninformative null result?;
+4. are every tagged gene and disease explicitly surfaced, and are paper-local cohort/arm/group labels replaced by the shortest clinically meaningful description when needed?;
+5. are quantitative values retained only when clinically operative or otherwise necessary to state the exact directly supported proposition?; and
+6. is the card independently useful rather than redundant?
+
+A card fails this audit if related contextual material introduces a second independently retainable proposition. Do not rescue compound interpretations by relabelling the second proposition as a qualifier. Split when both propositions independently warrant cards; otherwise remove the secondary proposition and disposition it separately under the normal census rules.
+
+A card also fails when its interpretation primarily preserves how the paper demonstrated a result rather than what the finding means clinically. Do not fail merely because a different concise wording would also be defensible; fail substantive clinical-utility defects.
 
 For every `claim` fragment, inspect the sentence immediately before and after it in the source passage. If either materially changes scope, certainty, direction, eligibility, exception, analysis, or clinical meaning, the candidate fails this audit.
 
@@ -175,9 +171,37 @@ Also audit the package as a whole for unsupported scope expansion, missed requir
 
 If **any** semantic defect is found, feed the complete internal critique back to Step 3, revise the candidate package, and then restart Step 4 on the complete revised package. Do not proceed to Step 5 with a known semantic defect.
 
-## Step 5 — model formatting gate
+## Step 5 — mandatory human semantic-group review gate
 
-Only after Step 4 passes, perform a separate **formatting/structure-only** audit. Do not reconsider clinical semantics here. Verify privately that:
+After Step 4 passes, **do not write or return the provisional file yet**. Present the current candidate cards to the user for review in chat. This gate exists so interpretation-quality problems can be corrected group-wise before Phase 3/4.
+
+Semantically group the interpretations of **every candidate card** by their generic clinical meaning or interpretation pattern. Group by what the cards are saying clinically, not merely by `category`, gene, disease, source section, or card order. Useful group concepts include patterns such as `molecular finding associated with inferior overall survival`, `molecular feature changes treatment sensitivity`, `diagnostic/classification rule`, or `germline evaluation indicated`. Create a singleton group when a card has no meaningful semantic peer.
+
+The review display must satisfy all of the following:
+- every candidate `card_id` appears **exactly once** across the groups;
+- print the **complete interpretation** for every card, not a summary or excerpt;
+- give each temporary review group a simple stable label such as `G01`, `G02`, ... and a short semantic description;
+- do not omit cards judged acceptable, unique, repetitive, low-priority, or difficult to group;
+- do not print evidence bundles unless the user asks for them; and
+- if there are zero candidate cards, state that explicitly and still request approval.
+
+After the complete grouped display, ask the user either to provide free-text **group-wise and/or card-wise amendments** or to reply exactly `APPROVE`. The group labels are review conveniences only and are not persisted in the provisional package.
+
+Human feedback may request transformations such as removing study-result packaging across a group, tightening an overly broad clinical meaning, splitting compound propositions, or reconsidering whether a pattern has independent clinical utility. Treat such feedback as an amendment instruction, **not as source evidence and not as permission to erase source-specific qualifiers**. Apply a group-wise instruction only to cards for which it is source-supported and semantically compatible. If an instruction would require unsupported generalisation, loss of a meaning-critical qualifier, or an unjustified census omission, explain the conflict in the next review response and preserve the defensible source-bounded state rather than inventing support.
+
+After any requested amendment:
+1. return to Step 3 and apply the requested changes across the affected cards/dispositions;
+2. rerun the complete Step 4 semantic audit on the whole candidate package, not only the changed group;
+3. regenerate semantic groups from the revised candidate; and
+4. show **all current cards again**, each exactly once with its complete interpretation.
+
+Repeat this loop until the user sends `APPROVE` on its own line for the most recently displayed complete candidate set. Approval is invalidated by any later change to the card set or any card interpretation. Do not treat silence, partial feedback, `FINALIZE`, or a general expression of satisfaction as `APPROVE`.
+
+Only after explicit `APPROVE` may normal Phase 2 proceed to Step 6.
+
+## Step 6 — model formatting gate
+
+Only after Steps 4 and 5 pass, perform a separate **formatting/structure-only** audit. Do not reconsider clinical semantics here. Verify privately that:
 1. the output is exactly one provisional file (or the already-selected census-critique branch);
 2. the filename preserves the required `vNNN` / `revRRR-vNNN` namespace;
 3. the provisional uses the required schema version/round and `audit` is `null`;
@@ -186,11 +210,11 @@ Only after Step 4 passes, perform a separate **formatting/structure-only** audit
 6. `genes_covered`, `diseases_covered`, and `disease_ancestors` are structurally consistent with the package; and
 7. required top-level/card/evidence fields are present with the correct JSON types.
 
-If this formatting gate fails, create one internal formatting critique and return to Step 3. After repairing the candidate, repeat Steps 4 and 5; do not skip the semantic output audit.
+If this formatting gate fails, create one internal formatting critique and repair formatting/structure. If the repair changes the card set or any interpretation, the prior human approval is invalid: return to Step 3, rerun Step 4, and repeat Step 5 for fresh `APPROVE`. If the repair is structure-only and leaves the approved card set/interpretations unchanged, rerun Step 6 and preserve the existing approval.
 
-## Step 6 — deterministic output gate
+## Step 7 — deterministic output gate
 
-After Steps 4 and 5 pass, write the candidate provisional and run:
+After Steps 4, 5, and 6 pass, write the candidate provisional and run:
 
 ```bash
 python validation_bundle/scripts/phase_validation/phase2.py \
@@ -200,9 +224,9 @@ python validation_bundle/scripts/phase_validation/phase2.py \
   --provisional <active-provisional-file>
 ```
 
-A non-zero exit is an output formatting/structure failure. Feed the validator's complete errors back to Step 3, repair the candidate, then repeat Steps 4, 5, and 6.
+A non-zero exit is an output formatting/structure failure. Repair within the complete validator feedback. If repair changes the card set or any interpretation, invalidate the prior `APPROVE`, return to Step 3, and repeat Steps 4–7 including a fresh human Step 5 review. If the repair is strictly structural and preserves the approved card set/interpretations, repeat Steps 6 and 7 without requesting redundant approval.
 
-The **final action** before returning a normal Phase 2 provisional must be a successful deterministic validation of that exact file. Do not edit it after the successful run.
+The **final action** before returning a normal Phase 2 provisional must be a successful deterministic validation of that exact file after explicit human `APPROVE`. Do not edit it after the successful run.
 
 ## Phase 2R — mandatory interactive delta review
 
@@ -224,7 +248,7 @@ Phase 2R does not reopen the accepted census merely because a current prompt wou
 
 When `FINALIZE` is received:
 - include only explicitly approved `add`, `modify`, or `delete` operations in the Phase 2R decision ledger;
-- every added or modified card must satisfy the current interpretation and card-content rules, including explicit tagged gene/disease surfacing and semantic decoding/generalization of paper-local population labels; unchanged baseline cards remain grandfathered and must not be opportunistically rewritten;
+- every added or modified card must satisfy `CLINICAL_ASSERTION_POLICY`, `CLINICAL_CARD_POLICY`, and `SOURCE_FIDELITY_POLICY`, including single-proposition atomicity, explicit tagged gene/disease surfacing, clinical abstraction of study-result packaging, and semantic decoding/generalization of paper-local population labels; unchanged baseline cards remain grandfathered and must not be opportunistically rewritten;
 - record each approved operation's concise `user_instruction`;
 - for every `add` or `modify`, place the complete revised card and complete paired evidence directly in that decision entry;
 - represent a split as delete + add operation(s), and a merge as delete operation(s) plus one add/modify;

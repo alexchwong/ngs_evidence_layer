@@ -136,8 +136,9 @@ Do not edit generated phase prompts directly. Edit the corresponding template or
 canonical source, regenerate the prompt, inspect the diff, and commit the generated
 prompt with its source change.
 
-Any edit to `prompts/assets/interpretation_principles.md` is behaviour-affecting. In
-addition to the unit tests, rerun the maintained accepted-paper semantic regression set
+Any edit to `prompts/assets/clinical_assertion_policy.md`,
+`prompts/assets/clinical_card_policy.md`, or `prompts/assets/source_fidelity_policy.md` is
+behaviour-affecting. In addition to the unit tests, rerun the maintained accepted-paper semantic regression set
 before promotion and compare card yield/changes by publication type and category. Build
 that regression set deliberately against live-corpus publication-type/category coverage
 and record any unrepresented strata. After promotion, manually review the Phase 2
