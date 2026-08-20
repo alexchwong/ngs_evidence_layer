@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/ngs_evidence_layer/phase2_state_schema.json",
+  "title": "Phase 2 resumable semantic/card checkpoint",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "checkpoint_stage",
+    "paper_id",
+    "source_census",
+    "census_semantic_review",
+    "review_state"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.1"
+    },
+    "checkpoint_stage": {
+      "enum": [
+        "census_semantic_gate",
+        "authoring"
+      ]
+    },
+    "paper_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_census": {
+      "type": "object",
+      "required": [
+        "filename",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "filename": {
+          "type": "string",
+          "pattern": "^paper\\.census(?:-v[0-9]{3})?\\.json$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "census_semantic_review": {
+      "type": "object",
+      "required": [
+        "claim_reviews",
+        "unmapped_defects"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim_reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semantic_claim_review"
+          }
+        },
+        "unmapped_defects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "candidate_package": {
+      "type": "object"
+    },
+    "census_dispositions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/disposition"
+      }
+    },
+    "allocated_card_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "next_card_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pending_human_requests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pending_human_request"
+      }
+    },
+    "review_state": {
+      "type": "object",
+      "required": [
+        "census_semantic_baseline_complete",
+        "approval_valid",
+        "awaiting",
+        "critique_filename"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "census_semantic_baseline_complete": {
+          "const": true
+        },
+        "approval_valid": {
+          "const": false
+        },
+        "awaiting": {
+          "const": "phase1_repair"
+        },
+        "critique_filename": {
+          "type": "string",
+          "pattern": "^paper\\.census-critique-v[0-9]{3}\\.md$"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "checkpoint_stage": {
+            "const": "authoring"
+          }
+        },
+        "required": [
+          "checkpoint_stage"
+        ]
+      },
+      "then": {
+        "required": [
+          "candidate_package",
+          "census_dispositions",
+          "allocated_card_ids",
+          "next_card_number",
+          "pending_human_requests"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "disposition": {
+      "type": "object",
+      "required": [
+        "claim_id",
+        "status",
+        "card_ids",
+        "reason",
+        "human_decision_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "carded",
+            "covered",
+            "not_carded",
+            "human_ruled"
+          ]
+        },
+        "card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "insufficient_source_support",
+                "ambiguous_source_structure",
+                "no_independent_clinical_meaning",
+                "outside_confirmed_scope"
+              ]
+            }
+          ]
+        },
+        "human_decision_id": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^H[0-9]{3,}$"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "carded",
+                  "covered"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "card_ids": {
+                "minItems": 1
+              },
+              "reason": {
+                "type": "null"
+              },
+              "human_decision_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "not_carded"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "card_ids": {
+                "maxItems": 0
+              },
+              "reason": {
+                "enum": [
+                  "insufficient_source_support",
+                  "ambiguous_source_structure",
+                  "no_independent_clinical_meaning",
+                  "outside_confirmed_scope"
+                ]
+              },
+              "human_decision_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "human_ruled"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "null"
+              },
+              "human_decision_id": {
+                "type": "string",
+                "pattern": "^H[0-9]{3,}$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pending_human_request": {
+      "type": "object",
+      "required": [
+        "request_id",
+        "requested_action",
+        "human_instruction",
+        "human_reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^P[0-9]{3,}$"
+        },
+        "requested_action": {
+          "enum": [
+            "add",
+            "modify",
+            "delete",
+            "split",
+            "merge",
+            "category_change",
+            "other"
+          ]
+        },
+        "human_instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      }
+    },
+    "semantic_claim_review": {
+      "type": "object",
+      "required": [
+        "claim_id",
+        "status",
+        "defect_summary"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "defect",
+            "out_of_scope"
+          ]
+        },
+        "defect_summary": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "defect"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "defect_summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "passed",
+                  "out_of_scope"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "defect_summary": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

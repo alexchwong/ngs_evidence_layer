@@ -24,10 +24,12 @@ PHASE_BUNDLE_PATHS = {
     2: [
         "scripts/phase_validation/phase1.py",
         "scripts/phase_validation/phase2.py",
+        "scripts/phase_validation/phase2_state.py",
         "scripts/phase_validation/card_deltas.py",
         "schema/ingestion_package_schema.json",
         "schema/disease_vocabulary.json",
         "schema/card_decision_schema.json",
+        "schema/phase2_state_schema.json",
     ],
     4: [
         "scripts/phase_validation/phase4.py",

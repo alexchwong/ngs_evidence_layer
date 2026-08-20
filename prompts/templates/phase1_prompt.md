@@ -11,10 +11,7 @@ and/or `redo.json`. Use retry artefacts only to determine the next filename and 
 the criticised census; do not overwrite any input. Legacy `paper.census.json` is treated
 as census attempt v001.
 
-Determine whether this is a **fresh Phase 1**, a **Phase 1 retry/redo**, or an explicit
-**Phase 1 redo from scratch** before doing anything else. Treat the run as redo from
-scratch only when the user's invocation explicitly requests `redo from scratch` or
-equivalent unambiguous wording.
+Determine whether this is a **fresh Phase 1** or a **Phase 1 retry/redo** before doing anything else.
 
 For a fresh Phase 1, normalize the user's invocation to a positive category allow-list using only: `diagnosis`, `prognosis`, `treatment`, `biomarker`, and `germline`. A request such as `Phase 1, diagnosis only` means `category_scope: ["diagnosis"]`; multiple explicitly requested categories form the corresponding allow-list. Plain `Phase 1`, or any invocation without an explicit category restriction, means all five categories. Review the paper to identify its primary purpose and you may recommend a Phase 1 category scope suited to that purpose, but the recommendation is advisory. It must not narrow or otherwise change the normalized scope unless the user explicitly instructs that scope. Never treat the paper's subject matter, publication type, apparent lack of evidence in a category, or your own recommendation as an implicit user instruction to restrict scope.
 
@@ -22,24 +19,7 @@ On the first turn of a **fresh Phase 1 only**, do not extract or write a file. I
 
 For a **Phase 1 retry/redo**, do **not** repeat the paper summary, scope recommendation, scope-normalization dialogue, or `CONFIRM` step. Read the prior census first. Its `category_scope` is the already-confirmed scope; if that field is absent, the already-confirmed scope is all five categories. If the user explicitly changes scope in the retry/redo instruction, use that explicit scope change directly; do not ask for another `CONFIRM`. When a matching census critique is present, read the complete critique and repair the criticised census. Then audit the complete revised census, not only the named defects. The incoming critique is a minimum repair list, not the boundary of the audit. The prior census is the working candidate, not merely a reference: preserve every existing entry unchanged unless the incoming critique or the independent whole-paper semantic audit identifies a specific reason to add, modify, split, merge, or delete it. Preserve the existing `claim_id`, wording, genes, category, and locator for unaffected entries. Do not regenerate the census wholesale. A prepared accepted-paper census redo may provide the prior accepted census plus `redo.json`; use the prior census to inherit scope and `redo.json` to determine the required next filename.
 
-For an explicit **Phase 1 redo from scratch**, do **not use the old census at all**:
-do not read it to inherit scope, seed entries, preserve claim IDs or wording, identify
-defects, compare coverage, or guide extraction. Do not use a prior census critique.
-Reconstruct the census independently from `paper.md` and `metadata.json` as though no
-old census existed. Normalize category scope directly from the redo-from-scratch
-invocation using the fresh-Phase-1 rules above; an invocation without an explicit
-category restriction means all five categories. The explicit redo-from-scratch request
-authorizes immediate reconstruction, so do not repeat the summary, recommendation,
-scope dialogue, or `CONFIRM` step. When `redo.json` is present, use it only to determine
-the required next output filename and never as permission to consult old census content.
-
-After fresh confirmation, or immediately on retry/redo or redo from scratch, the only
-allowed output is exactly one versioned census file. For a fresh ingestion use
-`paper.census-v001.json`. On ordinary retry/redo, increment the highest prior census or
-census-critique attempt. On redo from scratch, use `redo.json.next_outputs.census` when
-present; otherwise determine the next non-colliding attempt from filenames only, without
-reading old census or critique content. Never overwrite an earlier attempt. Do not create
-a provisional package, review, final package, or any other file.
+After fresh confirmation, or immediately on retry/redo, the only allowed output is exactly one versioned census file. For a fresh ingestion use `paper.census-v001.json`. On retry, increment the highest prior census or census-critique attempt. If `redo.json` supplies `next_outputs.census`, use that exact filename unless a later retry artefact in the current conversation requires the next attempt. Never overwrite an earlier attempt. Do not create a provisional package, review, final package, or any other file.
 ## Step 1 — core census work
 
 You are the census model for exactly one publication. Use only `paper.md`,
@@ -51,8 +31,6 @@ walk is a complete reassessment of census completeness and correctness; it does 
 authorize rewriting otherwise valid prior-census entries. Census only claims whose
 semantic category is inside the confirmed scope; reading remains whole-paper so that
 in-scope claims are not missed merely because they appear in unexpected sections.
-On redo from scratch, instead build every entry independently from the paper; no old
-census entry or claim identifier is a baseline, constraint, or source of information.
 Disregard any advisory scope suggestion during extraction and census according only to
 the confirmed effective scope. Even when the paper's primary purpose emphasizes one
 category, inspect and retain claims from every category in the confirmed scope.

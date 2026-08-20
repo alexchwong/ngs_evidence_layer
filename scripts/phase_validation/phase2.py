@@ -156,11 +156,75 @@ def schema_errors(document, label="package"):
     ]
 
 
+def human_decision_errors(package, census):
+    """Validate Phase 2 human-decision provenance against the current package/census."""
+    decisions = package.get("human_decisions")
+    if decisions is None:
+        return []
+    errors = []
+    known_claim_ids = {
+        entry.get("claim_id") for entry in census.get("entries", [])
+        if isinstance(entry, dict)
+    }
+    seen_decision_ids = set()
+    seen_after_card_ids = set()
+    for index, decision in enumerate(decisions, start=1):
+        decision_id = decision.get("decision_id")
+        label = decision_id or f"human_decisions[{index - 1}]"
+        if decision_id in seen_decision_ids:
+            errors.append(f"{label}: duplicate human decision_id")
+        seen_decision_ids.add(decision_id)
+
+        unknown_claims = sorted(set(decision.get("claim_ids", [])) - known_claim_ids)
+        if unknown_claims:
+            errors.append(
+                f"{label}: human decision references unknown census claim_ids: "
+                + ", ".join(unknown_claims)
+            )
+
+        after_ids = decision.get("after_card_ids", [])
+        overlapping = sorted(set(after_ids) & seen_after_card_ids)
+        if overlapping:
+            errors.append(
+                f"{label}: an approved card may be governed by only one effective human decision: "
+                + ", ".join(overlapping)
+            )
+        seen_after_card_ids.update(after_ids)
+
+        action = decision.get("action")
+        before_ids = decision.get("before_card_ids", [])
+        if action in {"retain", "modify"} and set(before_ids) != set(after_ids):
+            errors.append(
+                f"{label}: {action} must preserve the same card IDs before and after; "
+                "use split/merge/add/delete when card identity changes"
+            )
+    return errors
+
+
+def normal_human_decision_state_errors(package):
+    """Require effective normal-Phase-2 human rulings to describe the emitted card state."""
+    errors = []
+    current_card_ids = {
+        card.get("card_id") for card in package.get("cards", [])
+        if isinstance(card, dict)
+    }
+    for decision in package.get("human_decisions", []):
+        unknown_after = sorted(set(decision.get("after_card_ids", [])) - current_card_ids)
+        if unknown_after:
+            errors.append(
+                f"{decision.get('decision_id', '<human decision>')}: human decision after_card_ids "
+                "must exist in the approved normal Phase 2 package: " + ", ".join(unknown_after)
+            )
+    return errors
+
+
 def validate_package(package, metadata, census, source_text=None, require_final=False):
     errors = schema_errors(package, "package")
     warnings = []
     if errors:
         return errors, warnings, None
+
+    errors.extend(human_decision_errors(package, census))
 
     if package["paper_id"] != metadata["paper_id"]:
         errors.append("package paper_id does not match metadata")
@@ -375,11 +439,24 @@ def validate_phase_files(
             expected_publication = review_baseline
             expected_label = "Phase 4 current state"
 
+    if review_baseline is None and provisional.get("schema_version") == "5.1":
+        if "human_decisions" not in provisional:
+            package_errors.append(
+                "normal Phase 2 schema 5.1 provisional must contain human_decisions (use [] when the human approved without amendments)"
+            )
+        else:
+            package_errors.extend(normal_human_decision_state_errors(provisional))
+
     if review_baseline is not None:
         if provisional.get("schema_version") != "5.1":
             package_errors.append("Phase 2R provisional packages must use schema_version 5.1")
         if review_baseline.get("paper_id") != provisional.get("paper_id"):
             package_errors.append(f"{expected_label} paper_id does not match provisional package")
+        if ("human_decisions" in provisional) != ("human_decisions" in review_baseline) or provisional.get("human_decisions") != review_baseline.get("human_decisions"):
+            package_errors.append(
+                "Phase 2R must preserve the baseline human_decisions provenance exactly; "
+                "Phase 2R user deltas belong only in the separate Phase 2R decision ledger"
+            )
         baseline_round = review_baseline.get("round")
         if isinstance(baseline_round, int) and provisional.get("round") != baseline_round + 1:
             package_errors.append(

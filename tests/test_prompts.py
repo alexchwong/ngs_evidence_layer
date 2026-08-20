@@ -144,15 +144,19 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn("remove study name, cohort size, analysis method, statistical values", prompt)
         self.assertIn("Preserve clinically operative thresholds and values", prompt)
 
-    def test_phase2_has_mandatory_all_card_human_semantic_group_gate(self):
+    def test_phase2_has_mandatory_all_card_human_semantic_syntactic_gate(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())
-        self.assertIn("mandatory human semantic-group review gate", prompt)
+        self.assertIn("mandatory human semantic/syntactic review gate", prompt)
+        self.assertIn("normalized assertion template", prompt)
+        self.assertIn("<GENE> mutation is adverse in acute myeloid leukemia", prompt)
         self.assertIn("every candidate `card_id` appears **exactly once** across the groups", prompt)
-        self.assertIn("print the **complete interpretation** for every card", prompt)
+        self.assertIn("current `category`", prompt)
+        self.assertIn("complete interpretation", prompt)
         self.assertIn("group-wise and/or card-wise amendments", prompt)
+        self.assertIn("change a card's category", prompt)
         self.assertIn("show **all current cards again**", prompt)
         self.assertIn("reply exactly `APPROVE`", prompt)
-        self.assertIn("Approval is invalidated by any later change to the card set or any card interpretation", prompt)
+        self.assertIn("Approval is invalidated by any later change to the card set, category, or interpretation", prompt)
 
     def test_phase3_uses_card_policy_as_pass_fail_not_style_rewrite(self):
         prompt = " ".join(BUILD_PROMPTS.render(3).split())
@@ -306,19 +310,6 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn("does not authorize rewriting otherwise valid prior-census entries", prompt)
         self.assertIn("independent audit must reassess the whole census", prompt)
 
-    def test_phase1_explicit_redo_from_scratch_ignores_old_census(self):
-        prompt = " ".join(BUILD_PROMPTS.render(1).split())
-        self.assertIn("explicit **Phase 1 redo from scratch**", prompt)
-        self.assertIn("do **not use the old census at all**", prompt)
-        self.assertIn("do not read it to inherit scope, seed entries, preserve claim IDs or wording", prompt)
-        self.assertIn("Do not use a prior census critique", prompt)
-        self.assertIn("Reconstruct the census independently from `paper.md` and `metadata.json`", prompt)
-        self.assertIn("an invocation without an explicit category restriction means all five categories", prompt)
-        self.assertIn("use it only to determine the required next output filename", prompt)
-        self.assertIn("determine the next non-colliding attempt from filenames only", prompt)
-        self.assertIn("without reading old census or critique content", prompt)
-        self.assertIn("no old census entry or claim identifier is a baseline, constraint, or source of information", prompt)
-
     def test_phase1_and_phase2_share_identical_census_semantic_gate(self):
         gate = (ROOT / "prompts" / "assets" / "census_semantic_gate.md").read_text(encoding="utf-8").rstrip()
         self.assertIn(gate, BUILD_PROMPTS.render(1))
@@ -376,7 +367,7 @@ class PromptIntegrationTests(unittest.TestCase):
             "### Step 2 — census semantic input gate",
             "### Step 3 — Phase 2 card/evidence work",
             "## Step 4 — independent semantic output audit",
-            "## Step 5 — mandatory human semantic-group review gate",
+            "## Step 5 — mandatory human semantic/syntactic review gate",
             "## Step 6 — model formatting gate",
             "## Step 7 — deterministic output gate",
         )]

@@ -116,8 +116,24 @@ Phase-specific online validators live under `scripts/phase_validation/`: the pro
 manifest injects the relevant Phase 1, 2, or 4 validator, while Phase 3 has no
 executable prompt validator and is checked by Phase 4 on entry. Phase 2R and Phase 4
 share `scripts/phase_validation/card_deltas.py` plus `schema/card_decision_schema.json`
-to enforce user-authorized card/evidence deltas. New workflow packages use schema 5.1;
-legacy schema-5.0 packages remain valid without decision ledgers.
+to enforce user-authorized card/evidence deltas. New workflow packages use schema 5.1. Normal Phase 2 schema-5.1 provisionals also carry
+top-level `human_decisions`: the effective, approved human semantic/syntactic-gate rulings with affected
+card/claim IDs and human-supplied reasons. Human deletions define which cards are absent; surviving
+human-added/edited/category-changed cards are still independently reviewable in Phase 3. Phase 3 receives
+no census and does not audit census/card-set completeness. Normal Phase 2 now checkpoints **both**
+completed semantic-census audits that return a Phase 1 critique and already-audited card candidates
+that encounter a later census defect. Both use `paper.phase2-state-vNNN.json`;
+`checkpoint_stage: "census_semantic_gate"` stores per-claim semantic pass/defect/out-of-scope state
+without cards, while `checkpoint_stage: "authoring"` additionally stores candidate cards/evidence,
+dispositions, human decisions, and card-ID allocation state. `schema/phase2_state_schema.json` owns
+this transient contract and `scripts/phase_validation/phase2_state.py` validates checkpoint lineage,
+deterministically diffs the source/repaired census, and returns the exact claim IDs requiring semantic
+recheck. The complete repaired census still passes the Phase 1 deterministic validator every time;
+unchanged previously-passed claims are not semantically re-reviewed. A still-defective repair reuses
+the last valid checkpoint baseline rather than replacing it with partial state. Authoring checkpoints
+preserve unaffected card state, while final package consistency and fresh human approval remain required. Phase 2R preserves `human_decisions` as historical provenance and continues to use
+its separate decision ledger. Phase 4 must preserve them unchanged into the final package. Legacy
+schema-5.0 and older schema-5.1 packages remain readable without this field.
 `scripts/final_validation.py` remains the local compatibility CLI for Phases 1–4 and
 dispatches to the canonical phase validators. File assets are injected in full; bundle
 members are embedded verbatim in full. Read `prompts/meta_prompt.md` before changing

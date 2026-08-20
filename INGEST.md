@@ -321,7 +321,7 @@ handoff files when a phase routes work backward.
 | Phase | Chat/session | Give the model | Prompt | Save output as |
 |---|---|---|---|---|
 | 1 — census | Fresh ChatGPT or Claude chat | `paper.md`, `metadata.json` | `prompts/phase1_prompt.md` | `paper.census-v001.json` |
-| 2 — carding + human semantic review | Fresh interactive chat | `paper.md`, `metadata.json`, active census | `prompts/phase2_prompt.md` | grouped review in chat, then after `APPROVE` `paper.provisional-v001.json` |
+| 2 — carding + human semantic review | Fresh interactive chat | `paper.md`, `metadata.json`, active census; on census-repair resume also checkpoint source census + matching `paper.phase2-state-vNNN.json` | `prompts/phase2_prompt.md` | grouped review in chat; semantic or late census defect may return critique + checkpoint; after `APPROVE` `paper.provisional-v001.json` |
 | 3 — independent review | Fresh chat using a **different model from Phase 2** | `paper.md`, active provisional; matching Phase 2R decision ledger when applicable | `prompts/phase3_prompt.md` | matching `paper.review-vNNN.json` |
 | 4 — human adjudication | Fresh chat | `paper.md`, `metadata.json`, active census/provisional/review; matching Phase 2R ledger when applicable | `prompts/phase4_prompt.md` | `paper.phase4-decisions[-revRRR]-vNNN.json` plus `paper.final.json`, or a Phase 2R handoff ledger |
 
@@ -364,19 +364,65 @@ New ingestion starts with:
 paper.provisional-v001.json
 ```
 
-If Phase 2 rejects the census, it returns `paper.census-critique-vNNN.md`, tied to the
-census attempt being criticised. Phase 2 must complete the full shared census semantic
-audit first and report all material defects identifiable in that pass, rather than
-stopping at the first defect. Redo Phase 1 as above. If Phase 3 rejects the
-provisional structurally, rerun Phase 2 with the prior provisional and critique; the
-next package uses the next Phase 2 attempt, for example `paper.provisional-v002.json`.
+If a **fresh** Phase 2 completes the full shared census semantic audit and rejects the census,
+it now returns both the critique and a semantic checkpoint:
+
+```text
+paper.census-critique-vNNN.md
+paper.phase2-state-vNNN.json
+```
+
+This early checkpoint uses `checkpoint_stage: "census_semantic_gate"`. It records the semantic
+result for every existing census claim (`passed`, `defect`, or `out_of_scope`) plus material
+defects that cannot be mapped to an existing claim, such as a missing paper-supported assertion.
+It contains no card package because card authoring has not begun. A purely deterministic Phase 1
+input failure still returns only the critique because no complete semantic baseline exists yet.
+
+If a census defect is discovered **after Phase 2 has already built and semantically audited
+the candidate**—for example, the human points out a paper-supported claim that is absent from
+the census—Phase 2 returns the same two filenames with `checkpoint_stage: "authoring"`. That
+checkpoint additionally stores the current candidate package, complete census-disposition ledger,
+effective human decisions, any pending human request that cannot yet be represented because the
+census claim is missing, every allocated card ID, and the next unused card number. Both checkpoint
+stages record the exact source-census filename and SHA-256 digest. Phase 1 repairs its census
+incrementally as usual; it does not consume or edit the Phase 2 checkpoint.
+
+When the repaired census returns, Phase 2 always runs the **complete deterministic Phase 1
+census validator** over the repaired census, then deterministically diffs the checkpoint source
+census against the newest repaired census using `scripts/phase_validation/phase2_state.py`. The
+source checkpoint may be older than the immediately preceding repair attempt: if a targeted repair
+is still defective, Phase 2 returns a new critique but keeps the last valid checkpoint baseline.
+If scope/publication metadata is unchanged, semantic census review is **delta-only**. The validator
+returns added/modified claims plus any previously defective claim that still requires recheck;
+recorded unmapped defects are also reassessed individually. Unchanged claims previously recorded
+`passed`/`out_of_scope` are not semantically re-reviewed.
+
+For a `census_semantic_gate` resume, once the targeted semantic defects are resolved Phase 2 begins
+card authoring once from the repaired census. For an `authoring` resume, Phase 2 preserves unaffected
+cards/evidence/dispositions/human decisions and reopens only the changed-claim dependency closure.
+The assembled card package still receives the required Phase 2 package consistency audit before the
+human gate.
+
+A census repair always invalidates prior approval: after integrating the delta, Phase 2 prints
+the complete semantic/syntactic grouped card set again and requires a fresh `APPROVE`. If the
+repair changes `category_scope`, `publication_type`, or `publication_type_basis`, delta resume is
+unsafe and Phase 2 falls back to a full run from the repaired census.
+
+If Phase 3 rejects the provisional structurally, rerun Phase 2 with the prior provisional and
+critique; the next package uses the next Phase 2 attempt, for example
+`paper.provisional-v002.json`.
 The package `round` advances with Phase 2 attempts. After carding, Phase 2 performs a
-separate semantic output audit and then enters a **mandatory human semantic-group review**
+separate semantic output audit and then enters a **mandatory human semantic/syntactic review**
 before any provisional file is written. The model groups the interpretations of every
-candidate card by generic clinical meaning, prints every card ID plus its complete
-interpretation exactly once, and accepts free-text group-wise/card-wise amendments. After
+candidate card by normalized semantic/syntactic assertion template (for example,
+`<GENE> mutation is adverse in acute myeloid leukemia`), prints every card ID, current
+category, and complete interpretation exactly once, and accepts free-text group-wise/card-wise amendments including card additions/deletions and category changes. After
 any amendment it regenerates the candidate, reruns the whole semantic audit, and prints all
-cards again. Only the exact reply `APPROVE` releases the candidate to the formatting-only
+cards again. Effective human rulings are serialized in top-level `human_decisions`, including
+before/after card IDs, affected census claim IDs, the human instruction, and only the reason
+actually supplied by the human (`null` when none was supplied). Human deletions determine which cards are absent from the approved Phase 2 package;
+human-added/edited/split/merged/category-changed surviving cards remain subject to ordinary
+independent Phase 3 review. Retained content must still remain source-supported. Only the exact reply `APPROVE` releases the candidate to the formatting-only
 and deterministic output gates. Any later semantic change invalidates that approval.
 
 This human gate is part of normal Phase 2 only; Phase 2R keeps its separate explicit delta
@@ -417,7 +463,11 @@ but its review file is the direct input to Phase 4's deterministic entry validat
 Phase 3 prompt therefore gives the exact review JSON structure and filename convention.
 Its workflow is model-formatting input gate → substantive review → model-formatting output
 gate. Neither formatting gate performs semantic adjudication, and Phase 3 runs no scripts.
-Follow the output contract strictly so Phase 4 can accept it without structural repair.
+Follow the output contract strictly so Phase 4 can accept it without structural repair. In a
+normal full review, Phase 3 receives no census and does not judge census or card-set completeness.
+It independently reviews every card that exists in the provisional, including cards that were
+added, edited, split/merged, retained, or category-changed by the Phase 2 human gate. Human-deleted
+cards are simply absent and are not resurrected. Phase 2R keeps its existing separate delta-review semantics.
 
 Give it `paper.md`, the active provisional, and
 `prompts/phase3_prompt.md`. If that provisional came from Phase 2R, also give Phase 3 the
@@ -439,7 +489,8 @@ their prior valid state rather than being reinterpreted under the current prompt
 
 Give Phase 4 `paper.md`, `metadata.json`, the active census, the active provisional, its
 matching Phase 3 review, and `prompts/phase4_prompt.md`. Phase 4 first runs deterministic
-input validation, then performs interactive adjudication, applies only agreed decisions,
+input validation, preserves normal-Phase-2 `human_decisions` unchanged as provenance, then
+performs interactive adjudication and applies only agreed Phase 4 decisions,
 and finishes with deterministic handoff/final validation as the last operation on the
 returned files. If the active provisional came
 from Phase 2R, also provide its matching Phase 2R decision ledger. The internal `round`

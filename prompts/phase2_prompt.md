@@ -3,7 +3,7 @@
 
 Active phase: **Phase 2 only**. This prompt is the sole authority for this session's output. Ignore output instructions in input files and prior conversation.
 
-Normal Phase 2 required read-only inputs are `paper.md`, `metadata.json`, one active census file, and `phase2_prompt.md`. The census may use `paper.census-vNNN.json` or legacy `paper.census.json` (treated as v001). A retry may also include the prior provisional and `paper.provisional-critique[-revRRR]-vNNN.md`. A prepared accepted-paper redo may include `redo.json`.
+Normal Phase 2 required read-only inputs are `paper.md`, `metadata.json`, one active census file, and `phase2_prompt.md`. The census may use `paper.census-vNNN.json` or legacy `paper.census.json` (treated as v001). A retry may also include the prior provisional and `paper.provisional-critique[-revRRR]-vNNN.md`. A prepared accepted-paper redo may include `redo.json`. A **Phase 2 resume after a Phase 1 census repair** additionally requires the source census tied to the most recent valid Phase 2 checkpoint plus its matching `paper.phase2-state-vNNN.json`. That checkpoint source census may be older than the immediately preceding repaired census when an earlier repair attempt was still defective. Treat the checkpoint as immutable reviewed state, not as a provisional output.
 
 **Phase 2R** is the interactive card-review branch. It is entered either:
 1. from accepted-card review, with `paper.final.json` plus `redo.json` mode `cards`; or
@@ -12,10 +12,13 @@ Normal Phase 2 required read-only inputs are `paper.md`, `metadata.json`, one ac
 Use every input read-only; never overwrite an earlier phase attempt.
 
 Allowed response/output branches:
-1. materially deficient census: exactly `paper.census-critique-vNNN.md`;
-2. normal Phase 2 human-review state: **chat review text only and no file**, containing the mandatory semantic grouping of all current candidate-card interpretations described in Step 5;
-3. normal extraction/re-extraction after explicit human `APPROVE`: exactly one `paper.provisional[-revRRR]-vNNN.json` as directed by the active redo/attempt namespace;
-4. Phase 2R finalization: exactly two files with the same revision/attempt namespace: `paper.phase2r-decisions[-revRRR]-vNNN.json` and `paper.provisional[-revRRR]-vNNN.json`.
+1. deterministic census defect before a complete semantic census audit exists: exactly `paper.census-critique-vNNN.md`;
+2. fresh Phase 2 semantic census audit completes and finds defects before card authoring: exactly two files, the matching `paper.census-critique-vNNN.md` plus a `checkpoint_stage: "census_semantic_gate"` `paper.phase2-state-vNNN.json`;
+3. census defect discovered **after Step 4 has passed and Phase 2 authoring state exists**, including a missing paper-supported claim identified by the human in Step 5: exactly two files, the matching `paper.census-critique-vNNN.md` plus a `checkpoint_stage: "authoring"` `paper.phase2-state-vNNN.json`;
+4. a validated resume finds that its targeted semantic recheck is still defective: exactly the new matching `paper.census-critique-vNNN.md`; keep using the supplied checkpoint/source-census baseline rather than replacing it with partially repaired state;
+5. normal Phase 2 human-review state: **chat review text only and no file**, containing the mandatory semantic grouping of all current candidate-card interpretations described in Step 5;
+6. normal extraction/re-extraction after explicit human `APPROVE`: exactly one `paper.provisional[-revRRR]-vNNN.json` as directed by the active redo/attempt namespace;
+7. Phase 2R finalization: exactly two files with the same revision/attempt namespace: `paper.phase2r-decisions[-revRRR]-vNNN.json` and `paper.provisional[-revRRR]-vNNN.json`.
 
 All newly authored provisional packages use `schema_version: "5.1"`. For a fresh ingestion, provisional v001 has `round: 1`. A normal Phase 2 retry increments the provisional attempt and round. For a prepared redo, use `redo.json.next_outputs.provisional`; in accepted-card Phase 2R also use `redo.json.next_outputs.phase2r_decisions` for the matching decision ledger. For accepted-card review, preserve `redo.json.revision`; v001 uses `round = paper.final.json.round + 1`. For a Phase 4 → Phase 2R loop, remain in the active provisional's revision namespace, use the next provisional attempt, and set `round = active provisional.round + 1`.
 
@@ -211,7 +214,7 @@ Do not reclassify an otherwise ineligible geneless assertion as `treatment` mere
 
 ## Canonical deterministic validation assets
 
-The deterministic bundle contains the exact Phase 1 census validator used at the Phase 1 output boundary, plus the canonical Phase 2 package validator, card-delta helper, schemas, and disease vocabulary. Recreate it once before any deterministic gate in this phase.
+The deterministic bundle contains the exact Phase 1 census validator used at the Phase 1 output boundary, the canonical Phase 2 package validator, the Phase 2 checkpoint/resume validator, card-delta helper, schemas, and disease vocabulary. Recreate it once before any deterministic gate in this phase.
 
 The bundle below contains the canonical deterministic validation assets required by this phase.
 Recreate every displayed file verbatim under `validation_bundle/` at its displayed
@@ -475,11 +478,75 @@ def schema_errors(document, label="package"):
     ]
 
 
+def human_decision_errors(package, census):
+    """Validate Phase 2 human-decision provenance against the current package/census."""
+    decisions = package.get("human_decisions")
+    if decisions is None:
+        return []
+    errors = []
+    known_claim_ids = {
+        entry.get("claim_id") for entry in census.get("entries", [])
+        if isinstance(entry, dict)
+    }
+    seen_decision_ids = set()
+    seen_after_card_ids = set()
+    for index, decision in enumerate(decisions, start=1):
+        decision_id = decision.get("decision_id")
+        label = decision_id or f"human_decisions[{index - 1}]"
+        if decision_id in seen_decision_ids:
+            errors.append(f"{label}: duplicate human decision_id")
+        seen_decision_ids.add(decision_id)
+
+        unknown_claims = sorted(set(decision.get("claim_ids", [])) - known_claim_ids)
+        if unknown_claims:
+            errors.append(
+                f"{label}: human decision references unknown census claim_ids: "
+                + ", ".join(unknown_claims)
+            )
+
+        after_ids = decision.get("after_card_ids", [])
+        overlapping = sorted(set(after_ids) & seen_after_card_ids)
+        if overlapping:
+            errors.append(
+                f"{label}: an approved card may be governed by only one effective human decision: "
+                + ", ".join(overlapping)
+            )
+        seen_after_card_ids.update(after_ids)
+
+        action = decision.get("action")
+        before_ids = decision.get("before_card_ids", [])
+        if action in {"retain", "modify"} and set(before_ids) != set(after_ids):
+            errors.append(
+                f"{label}: {action} must preserve the same card IDs before and after; "
+                "use split/merge/add/delete when card identity changes"
+            )
+    return errors
+
+
+def normal_human_decision_state_errors(package):
+    """Require effective normal-Phase-2 human rulings to describe the emitted card state."""
+    errors = []
+    current_card_ids = {
+        card.get("card_id") for card in package.get("cards", [])
+        if isinstance(card, dict)
+    }
+    for decision in package.get("human_decisions", []):
+        unknown_after = sorted(set(decision.get("after_card_ids", [])) - current_card_ids)
+        if unknown_after:
+            errors.append(
+                f"{decision.get('decision_id', '<human decision>')}: human decision after_card_ids "
+                "must exist in the approved normal Phase 2 package: " + ", ".join(unknown_after)
+            )
+    return errors
+
+
 def validate_package(package, metadata, census, source_text=None, require_final=False):
     errors = schema_errors(package, "package")
     warnings = []
     if errors:
         return errors, warnings, None
+
+    errors.extend(human_decision_errors(package, census))
 
     if package["paper_id"] != metadata["paper_id"]:
         errors.append("package paper_id does not match metadata")
@@ -694,11 +761,24 @@ def validate_phase_files(
             expected_publication = review_baseline
             expected_label = "Phase 4 current state"
 
+    if review_baseline is None and provisional.get("schema_version") == "5.1":
+        if "human_decisions" not in provisional:
+            package_errors.append(
+                "normal Phase 2 schema 5.1 provisional must contain human_decisions (use [] when the human approved without amendments)"
+            )
+        else:
+            package_errors.extend(normal_human_decision_state_errors(provisional))
+
     if review_baseline is not None:
         if provisional.get("schema_version") != "5.1":
             package_errors.append("Phase 2R provisional packages must use schema_version 5.1")
         if review_baseline.get("paper_id") != provisional.get("paper_id"):
             package_errors.append(f"{expected_label} paper_id does not match provisional package")
+        if ("human_decisions" in provisional) != ("human_decisions" in review_baseline) or provisional.get("human_decisions") != review_baseline.get("human_decisions"):
+            package_errors.append(
+                "Phase 2R must preserve the baseline human_decisions provenance exactly; "
+                "Phase 2R user deltas belong only in the separate Phase 2R decision ledger"
+            )
         baseline_round = review_baseline.get("round")
         if isinstance(baseline_round, int) and provisional.get("round") != baseline_round + 1:
             package_errors.append(
@@ -795,6 +875,366 @@ if __name__ == "__main__":
     main()
 ```
 <!-- END VERBATIM scripts/phase_validation/phase2.py -->
+
+<!-- BEGIN VERBATIM scripts/phase_validation/phase2_state.py -->
+```python
+#!/usr/bin/env python3
+"""Validate Phase 2 semantic/authoring checkpoints and diff repaired census input."""
+import argparse
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+from jsonschema import Draft202012Validator, FormatChecker
+
+try:
+    from . import phase2
+except ImportError:  # direct execution from bundled validator
+    import phase2
+
+BUNDLE_ROOT = Path(__file__).resolve().parents[2]
+SCHEMA_PATH = BUNDLE_ROOT / "schema" / "phase2_state_schema.json"
+CARD_SUFFIX_RE = re.compile(r"-C(?P<number>[0-9]{4,})$")
+CENSUS_VERSION_RE = re.compile(r"^paper\.census-v(?P<attempt>[0-9]{3})\.json$")
+
+
+def read_json(path, label="JSON"):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ValueError(f"cannot read {label} {path}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid {label} in {path}: {exc}") from exc
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def schema_errors(state):
+    schema = read_json(SCHEMA_PATH, "Phase 2 state schema")
+    errors = sorted(
+        Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(state),
+        key=lambda error: list(error.absolute_path),
+    )
+    return [
+        "state schema: "
+        + ("/".join(str(p) for p in error.absolute_path) or "<root>")
+        + f": {error.message}"
+        for error in errors
+    ]
+
+
+def census_attempt(path):
+    name = Path(path).name
+    if name == "paper.census.json":
+        return 1
+    match = CENSUS_VERSION_RE.fullmatch(name)
+    return int(match.group("attempt")) if match else None
+
+
+def expected_checkpoint_name(prior_census_path):
+    attempt = census_attempt(prior_census_path)
+    if attempt is None:
+        return None
+    return f"paper.phase2-state-v{attempt:03d}.json"
+
+
+def census_entry_map(census):
+    return {
+        entry.get("claim_id"): entry
+        for entry in census.get("entries", [])
+        if isinstance(entry, dict) and isinstance(entry.get("claim_id"), str)
+    }
+
+
+def census_delta(prior_census, current_census):
+    prior = census_entry_map(prior_census)
+    current = census_entry_map(current_census)
+    prior_ids = set(prior)
+    current_ids = set(current)
+    added = sorted(current_ids - prior_ids)
+    removed = sorted(prior_ids - current_ids)
+    modified = sorted(
+        claim_id for claim_id in prior_ids & current_ids
+        if prior[claim_id] != current[claim_id]
+    )
+    unchanged = sorted((prior_ids & current_ids) - set(modified))
+    return {
+        "added_claim_ids": added,
+        "modified_claim_ids": modified,
+        "removed_claim_ids": removed,
+        "unchanged_claim_ids": unchanged,
+    }
+
+
+def semantic_review_map(state):
+    return {
+        item.get("claim_id"): item
+        for item in state.get("census_semantic_review", {}).get("claim_reviews", [])
+        if isinstance(item, dict) and isinstance(item.get("claim_id"), str)
+    }
+
+
+def semantic_recheck_claim_ids(state, prior_census, current_census):
+    delta = census_delta(prior_census, current_census)
+    current_ids = set(census_entry_map(current_census))
+    reviews = semantic_review_map(state)
+    prior_defective = {
+        claim_id for claim_id, review in reviews.items()
+        if review.get("status") == "defect"
+    }
+    return sorted(
+        (set(delta["added_claim_ids"]) | set(delta["modified_claim_ids"]) | prior_defective)
+        & current_ids
+    )
+
+
+def state_errors(state, metadata, prior_census, current_census, source_text, state_path, prior_census_path):
+    errors = schema_errors(state)
+    if errors:
+        return errors
+
+    paper_id = metadata.get("paper_id")
+    if state.get("paper_id") != paper_id:
+        errors.append("state paper_id does not match metadata")
+    if prior_census.get("paper_id") != paper_id:
+        errors.append("prior census paper_id does not match metadata")
+    if current_census is not None and current_census.get("paper_id") != paper_id:
+        errors.append("current census paper_id does not match metadata")
+
+    expected_state = expected_checkpoint_name(prior_census_path)
+    if expected_state is not None and Path(state_path).name != expected_state:
+        errors.append(
+            f"checkpoint filename must match its source census attempt: expected {expected_state}"
+        )
+
+    source_census = state["source_census"]
+    if source_census.get("filename") != Path(prior_census_path).name:
+        errors.append("state source_census.filename does not match --prior-census")
+    if source_census.get("sha256") != sha256_file(prior_census_path):
+        errors.append("state source_census.sha256 does not match --prior-census bytes")
+
+    # The semantic checkpoint must prove that the complete source census was inspected.
+    prior_claim_ids = set(census_entry_map(prior_census))
+    reviews = state["census_semantic_review"]["claim_reviews"]
+    review_ids = [item.get("claim_id") for item in reviews]
+    if len(review_ids) != len(set(review_ids)):
+        errors.append("census_semantic_review.claim_reviews contains duplicate claim_id values")
+    if set(review_ids) != prior_claim_ids:
+        missing = sorted(prior_claim_ids - set(review_ids))
+        extra = sorted(set(review_ids) - prior_claim_ids)
+        detail = []
+        if missing:
+            detail.append("missing " + ", ".join(missing))
+        if extra:
+            detail.append("unknown " + ", ".join(extra))
+        errors.append(
+            "census_semantic_review.claim_reviews must cover the source census exactly: "
+            + "; ".join(detail)
+        )
+
+    # Scope/publication changes can alter the meaning or eligibility of every prior semantic result.
+    if current_census is not None:
+        for field in ("category_scope", "publication_type", "publication_type_basis"):
+            if prior_census.get(field) != current_census.get(field):
+                errors.append(
+                    f"current census changed top-level {field}; delta-only Phase 2 resume is unsafe and a full Phase 2 semantic census audit is required"
+                )
+
+    stage = state["checkpoint_stage"]
+    if stage == "census_semantic_gate":
+        unexpected = sorted(
+            key for key in (
+                "candidate_package",
+                "census_dispositions",
+                "allocated_card_ids",
+                "next_card_number",
+                "pending_human_requests",
+            ) if key in state
+        )
+        if unexpected:
+            errors.append(
+                "census_semantic_gate checkpoint must not contain card-authoring fields: "
+                + ", ".join(unexpected)
+            )
+    else:
+        # Authoring checkpoints are only safe after the source census semantic gate passed.
+        defective = sorted(
+            item.get("claim_id") for item in reviews if item.get("status") == "defect"
+        )
+        if defective:
+            errors.append(
+                "authoring checkpoint cannot contain semantically defective source-census claims: "
+                + ", ".join(defective)
+            )
+        if state["census_semantic_review"].get("unmapped_defects"):
+            errors.append("authoring checkpoint cannot contain unresolved unmapped census defects")
+
+        candidate = state["candidate_package"]
+        if candidate.get("schema_version") != "5.1":
+            errors.append("candidate_package must use schema_version 5.1")
+        if "human_decisions" not in candidate:
+            errors.append("candidate_package must contain human_decisions (use [] when none are effective yet)")
+        package_errors, _, _ = phase2.validate_package(
+            candidate, metadata, prior_census, source_text=source_text, require_final=False
+        )
+        errors.extend(f"candidate_package: {error}" for error in package_errors)
+
+        dispositions = state["census_dispositions"]
+        disposition_ids = [item.get("claim_id") for item in dispositions]
+        if len(disposition_ids) != len(set(disposition_ids)):
+            errors.append("census_dispositions contains duplicate claim_id values")
+        if set(disposition_ids) != prior_claim_ids:
+            missing = sorted(prior_claim_ids - set(disposition_ids))
+            extra = sorted(set(disposition_ids) - prior_claim_ids)
+            detail = []
+            if missing:
+                detail.append("missing " + ", ".join(missing))
+            if extra:
+                detail.append("unknown " + ", ".join(extra))
+            errors.append("census_dispositions must cover the source census exactly: " + "; ".join(detail))
+
+        current_card_ids = {
+            card.get("card_id") for card in candidate.get("cards", []) if isinstance(card, dict)
+        }
+        decisions = {
+            item.get("decision_id"): item
+            for item in candidate.get("human_decisions", [])
+            if isinstance(item, dict)
+        }
+        for disposition in dispositions:
+            claim_id = disposition.get("claim_id", "<unknown claim>")
+            status = disposition.get("status")
+            card_ids = set(disposition.get("card_ids", []))
+            if status in {"carded", "covered"}:
+                unknown_cards = sorted(card_ids - current_card_ids)
+                if unknown_cards:
+                    errors.append(
+                        f"{claim_id}: {status} disposition references cards absent from candidate_package: "
+                        + ", ".join(unknown_cards)
+                    )
+            elif status == "human_ruled":
+                decision_id = disposition.get("human_decision_id")
+                decision = decisions.get(decision_id)
+                if decision is None:
+                    errors.append(f"{claim_id}: human_ruled disposition references unknown decision {decision_id!r}")
+                else:
+                    if claim_id not in decision.get("claim_ids", []):
+                        errors.append(
+                            f"{claim_id}: human_ruled disposition decision {decision_id} does not reference this claim"
+                        )
+                    allowed_after = set(decision.get("after_card_ids", []))
+                    if not card_ids <= allowed_after:
+                        errors.append(
+                            f"{claim_id}: human_ruled card_ids must be a subset of {decision_id}.after_card_ids"
+                        )
+
+        pending_ids = [item.get("request_id") for item in state.get("pending_human_requests", [])]
+        if len(pending_ids) != len(set(pending_ids)):
+            errors.append("pending_human_requests contains duplicate request_id values")
+
+        allocated = set(state["allocated_card_ids"])
+        required_allocated = set(current_card_ids)
+        for decision in candidate.get("human_decisions", []):
+            if isinstance(decision, dict):
+                required_allocated.update(decision.get("before_card_ids", []))
+                required_allocated.update(decision.get("after_card_ids", []))
+        missing_allocated = sorted(required_allocated - allocated)
+        if missing_allocated:
+            errors.append(
+                "allocated_card_ids must include all current and historically referenced Phase 2 card IDs: "
+                + ", ".join(missing_allocated)
+            )
+
+        prefix = metadata.get("publication_key", "") + "-C"
+        numbered = []
+        for card_id in allocated:
+            if card_id.startswith(prefix):
+                match = CARD_SUFFIX_RE.search(card_id)
+                if match:
+                    numbered.append(int(match.group("number")))
+        if numbered and state["next_card_number"] <= max(numbered):
+            errors.append(
+                f"next_card_number must be greater than every allocated card suffix; found {state['next_card_number']} with max C{max(numbered):04d}"
+            )
+
+    critique_name = state["review_state"]["critique_filename"]
+    attempt = census_attempt(prior_census_path)
+    if attempt is not None:
+        expected_critique = f"paper.census-critique-v{attempt:03d}.md"
+        if critique_name != expected_critique:
+            errors.append(
+                f"review_state.critique_filename must match source census attempt: expected {expected_critique}"
+            )
+
+    if current_census is not None:
+        delta = census_delta(prior_census, current_census)
+        semantic_recheck = semantic_recheck_claim_ids(state, prior_census, current_census)
+        unmapped = state["census_semantic_review"].get("unmapped_defects", [])
+        if not any(delta[key] for key in ("added_claim_ids", "modified_claim_ids", "removed_claim_ids")) and not semantic_recheck and not unmapped:
+            errors.append("repaired census has no entry-level or recorded semantic delta from the checkpoint source census")
+    return errors
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--metadata", type=Path, required=True)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--prior-census", type=Path, required=True)
+    parser.add_argument("--current-census", type=Path)
+    parser.add_argument("--state", type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        metadata = read_json(args.metadata, "metadata")
+        prior_census = read_json(args.prior_census, "prior census")
+        current_census = read_json(args.current_census, "current census") if args.current_census else None
+        state = read_json(args.state, "Phase 2 checkpoint")
+        source_text = args.source.read_text(encoding="utf-8")
+        errors = state_errors(
+            state,
+            metadata,
+            prior_census,
+            current_census,
+            source_text,
+            args.state,
+            args.prior_census,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        sys.exit(f"PHASE 2 STATE VALIDATION FAILED:\n{exc}")
+    if errors:
+        sys.exit("PHASE 2 STATE VALIDATION FAILED:\n" + "\n".join(errors))
+    report = {
+        "valid": True,
+        "phase": 2,
+        "checkpoint": True,
+        "checkpoint_stage": state["checkpoint_stage"],
+    }
+    if current_census is not None:
+        report["resume_delta"] = census_delta(prior_census, current_census)
+        report["semantic_recheck_claim_ids"] = semantic_recheck_claim_ids(
+            state, prior_census, current_census
+        )
+        report["unmapped_defects_to_recheck"] = state["census_semantic_review"].get(
+            "unmapped_defects", []
+        )
+    print(json.dumps(report, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
+```
+<!-- END VERBATIM scripts/phase_validation/phase2_state.py -->
 
 <!-- BEGIN VERBATIM scripts/phase_validation/card_deltas.py -->
 ```python
@@ -1055,6 +1495,13 @@ def apply_publication_type_decision(package, ledger):
       "type": "array",
       "items": {
         "$ref": "#/$defs/evidence"
+      }
+    },
+    "human_decisions": {
+      "type": "array",
+      "description": "Effective human rulings made at the normal Phase 2 semantic-group review gate. This is provenance/authority for the approved candidate state, not source evidence or a conversational history; superseded rulings are consolidated away.",
+      "items": {
+        "$ref": "#/$defs/human_decision"
       }
     },
     "audit": {
@@ -1569,6 +2016,190 @@ def apply_publication_type_decision(package, ledger):
           }
         }
       }
+    },
+    "human_decision": {
+      "type": "object",
+      "required": [
+        "decision_id",
+        "action",
+        "before_card_ids",
+        "after_card_ids",
+        "claim_ids",
+        "human_instruction",
+        "human_reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "pattern": "^H[0-9]{3,}$"
+        },
+        "action": {
+          "enum": [
+            "retain",
+            "modify",
+            "delete",
+            "add",
+            "split",
+            "merge"
+          ]
+        },
+        "before_card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "after_card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "human_instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "delete"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "maxItems": 0
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "retain",
+                  "modify"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "split"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "minItems": 2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "merge"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 2
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
@@ -4198,13 +4829,437 @@ def apply_publication_type_decision(package, ledger):
 ```
 <!-- END VERBATIM schema/card_decision_schema.json -->
 
+<!-- BEGIN VERBATIM schema/phase2_state_schema.json -->
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/ngs_evidence_layer/phase2_state_schema.json",
+  "title": "Phase 2 resumable semantic/card checkpoint",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "checkpoint_stage",
+    "paper_id",
+    "source_census",
+    "census_semantic_review",
+    "review_state"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.1"
+    },
+    "checkpoint_stage": {
+      "enum": [
+        "census_semantic_gate",
+        "authoring"
+      ]
+    },
+    "paper_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_census": {
+      "type": "object",
+      "required": [
+        "filename",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "filename": {
+          "type": "string",
+          "pattern": "^paper\\.census(?:-v[0-9]{3})?\\.json$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "census_semantic_review": {
+      "type": "object",
+      "required": [
+        "claim_reviews",
+        "unmapped_defects"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim_reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semantic_claim_review"
+          }
+        },
+        "unmapped_defects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "candidate_package": {
+      "type": "object"
+    },
+    "census_dispositions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/disposition"
+      }
+    },
+    "allocated_card_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "next_card_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pending_human_requests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pending_human_request"
+      }
+    },
+    "review_state": {
+      "type": "object",
+      "required": [
+        "census_semantic_baseline_complete",
+        "approval_valid",
+        "awaiting",
+        "critique_filename"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "census_semantic_baseline_complete": {
+          "const": true
+        },
+        "approval_valid": {
+          "const": false
+        },
+        "awaiting": {
+          "const": "phase1_repair"
+        },
+        "critique_filename": {
+          "type": "string",
+          "pattern": "^paper\\.census-critique-v[0-9]{3}\\.md$"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "checkpoint_stage": {
+            "const": "authoring"
+          }
+        },
+        "required": [
+          "checkpoint_stage"
+        ]
+      },
+      "then": {
+        "required": [
+          "candidate_package",
+          "census_dispositions",
+          "allocated_card_ids",
+          "next_card_number",
+          "pending_human_requests"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "disposition": {
+      "type": "object",
+      "required": [
+        "claim_id",
+        "status",
+        "card_ids",
+        "reason",
+        "human_decision_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "carded",
+            "covered",
+            "not_carded",
+            "human_ruled"
+          ]
+        },
+        "card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "insufficient_source_support",
+                "ambiguous_source_structure",
+                "no_independent_clinical_meaning",
+                "outside_confirmed_scope"
+              ]
+            }
+          ]
+        },
+        "human_decision_id": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^H[0-9]{3,}$"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "carded",
+                  "covered"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "card_ids": {
+                "minItems": 1
+              },
+              "reason": {
+                "type": "null"
+              },
+              "human_decision_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "not_carded"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "card_ids": {
+                "maxItems": 0
+              },
+              "reason": {
+                "enum": [
+                  "insufficient_source_support",
+                  "ambiguous_source_structure",
+                  "no_independent_clinical_meaning",
+                  "outside_confirmed_scope"
+                ]
+              },
+              "human_decision_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "human_ruled"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "null"
+              },
+              "human_decision_id": {
+                "type": "string",
+                "pattern": "^H[0-9]{3,}$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pending_human_request": {
+      "type": "object",
+      "required": [
+        "request_id",
+        "requested_action",
+        "human_instruction",
+        "human_reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^P[0-9]{3,}$"
+        },
+        "requested_action": {
+          "enum": [
+            "add",
+            "modify",
+            "delete",
+            "split",
+            "merge",
+            "category_change",
+            "other"
+          ]
+        },
+        "human_instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      }
+    },
+    "semantic_claim_review": {
+      "type": "object",
+      "required": [
+        "claim_id",
+        "status",
+        "defect_summary"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "defect",
+            "out_of_scope"
+          ]
+        },
+        "defect_summary": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "defect"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "defect_summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "passed",
+                  "out_of_scope"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "defect_summary": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+<!-- END VERBATIM schema/phase2_state_schema.json -->
+
+### Phase 2 checkpoint schema
+
+A checkpoint is transient reviewed state used only to avoid repeating Phase 2 work after Phase 1 census repair. It is not part of the accepted package schema. The canonical checkpoint structure is the embedded `schema/phase2_state_schema.json` in the Phase 2 validation bundle; do not invent additional fields.
+
+There are exactly two checkpoint stages:
+- `checkpoint_stage: "census_semantic_gate"` — written after a **complete fresh Step 2 census semantic audit** finds defects, before any card authoring. It records the semantic result for every existing census claim plus any material defect that cannot be mapped to an existing claim. It contains no candidate card package.
+- `checkpoint_stage: "authoring"` — written after Step 4 has passed and a later census defect interrupts an already-built candidate. It additionally preserves candidate cards/evidence, census dispositions, allocated card IDs, and pending human requests.
+
+Both stages must contain `census_semantic_review.claim_reviews` covering every claim in the checkpoint source census exactly, with `status` `passed`, `defect`, or `out_of_scope`; use `defect_summary` only for `defect`. Put material census defects that cannot be attached to an existing `claim_id` (for example a missing source-supported assertion) in `census_semantic_review.unmapped_defects`.
+
 ## Normal Phase 2 — required workflow
 
 Normal Phase 2 must follow Steps 1–7 in order. Phase 2R does **not** use Steps 1–7; its separate workflow appears later.
 
-### Step 1 — deterministic census input gate
+### Step 1 — deterministic census input gate and resume-delta gate
 
-Before any semantic census review or carding, run the **exact same deterministic Phase 1 validator used on Phase 1 output**:
+Before any semantic census review or carding, run the **exact same deterministic Phase 1 validator used on Phase 1 output** against the complete active census:
 
 ```bash
 python validation_bundle/scripts/phase_validation/phase1.py \
@@ -4212,11 +5267,24 @@ python validation_bundle/scripts/phase_validation/phase1.py \
   --census <active-census-file>
 ```
 
-This gate checks formatting and structure only. If it fails, do not perform semantic review or carding. Return the matching `paper.census-critique-vNNN.md` containing the complete deterministic errors so Phase 1 can repair the census.
+This full-census deterministic gate is mandatory on every fresh Phase 2 run and every resume after Phase 1 repair. It checks formatting and structure only. If it fails, do not perform semantic review or carding. Return the matching `paper.census-critique-vNNN.md` containing the complete deterministic errors so Phase 1 can repair the census.
+
+If a prior `paper.phase2-state-vNNN.json` and its exact source census are supplied, this is a **resume**. The checkpoint source census need not be the immediately preceding census attempt; after a failed repair, keep the last valid checkpoint as the baseline and compare the newest repaired census directly against it. After the complete active census passes the Phase 1 validator, validate the checkpoint and deterministically diff the checkpoint source census against the repaired active census:
+
+```bash
+python validation_bundle/scripts/phase_validation/phase2_state.py \
+  --metadata metadata.json \
+  --source paper.md \
+  --prior-census <checkpoint-source-census> \
+  --current-census <active-repaired-census> \
+  --state <matching-phase2-state-file>
+```
+
+Use the validator's `resume_delta`, `semantic_recheck_claim_ids`, and `unmapped_defects_to_recheck` as the authoritative resume scope. Do not infer the delta from prose, critique wording, timestamps, ordering, or what Phase 1 says it changed. If `category_scope`, `publication_type`, or `publication_type_basis` changed, delta-only resume is unsafe; discard the checkpoint as a resume baseline and run normal full Phase 2 from the repaired census.
 
 ### Step 2 — census semantic input gate
 
-Only after Step 1 passes, audit the complete census against the paper using the exact same semantic gate Phase 1 was required to pass before output:
+For a **fresh/non-resume Phase 2**, audit the complete census against the paper using the exact same semantic gate Phase 1 was required to pass before output:
 
 # Census semantic gate
 
@@ -4249,17 +5317,50 @@ This gate assesses **census quality only**. A census entry is a source-faithful 
 
 Treat optional `category_scope` as the intentional positive allow-list for Phase 1; if absent, all five categories were in scope. Do not critique or card claims whose category is outside a declared `category_scope`.
 
-If the census fails this gate, complete the **entire census audit before returning the critique**. Report every material defect identifiable in that pass, with enough source-specific detail for Phase 1 to repair it without guessing. Do not stop after the first missing claim, merged assertion, category error, qualifier problem, gene problem, locator problem, or publication-type defect. Return the matching `paper.census-critique-vNNN.md` and stop; do not silently repair or split the census during normal carding.
+If a fresh/non-resume census fails this gate, complete the **entire census audit before returning the critique**. Report every material defect identifiable in that pass, with enough source-specific detail for Phase 1 to repair it without guessing. Do not stop after the first missing claim, merged assertion, category error, qualifier problem, gene problem, locator problem, or publication-type defect. Then persist the completed audit as a `checkpoint_stage: "census_semantic_gate"` checkpoint tied to this census attempt:
+
+1. create one `census_semantic_review.claim_reviews` item for **every existing census claim**; mark each `passed`, `defect`, or `out_of_scope`;
+2. for every `defect`, record a concise `defect_summary` sufficient to identify what must be rechecked after repair;
+3. put every material defect not mappable to an existing claim (especially a missing source-supported assertion) in `unmapped_defects`;
+4. omit all card-authoring fields because no safe card state exists yet;
+5. set `review_state.census_semantic_baseline_complete: true`, `approval_valid: false`, `awaiting: "phase1_repair"`, and the matching critique filename; and
+6. validate the checkpoint with `phase2_state.py` against this source census before returning it.
+
+Return exactly the critique plus this semantic checkpoint. Do not silently repair or split the census during normal carding.
+
+For a **validated resume**, do **not** repeat the complete census semantic audit. Semantically inspect only the validator-directed scope:
+
+- every ID in `semantic_recheck_claim_ids` — this includes newly added claims, modified claims, and any previously defective claim that still exists even if Phase 1 left it byte-for-byte unchanged;
+- each item in `unmapped_defects_to_recheck` — reassess that specific prior defect against `paper.md` and the repaired census, without reopening unrelated claims;
+- `removed_claim_ids` — no semantic claim review is needed because the claim no longer exists, but an `authoring` checkpoint must reopen its dependent dispositions/cards in Step 3; and
+- every other unchanged claim previously recorded `passed` or `out_of_scope` — **do not semantically re-review it**.
+
+If this targeted semantic recheck still finds a defect, return a new critique for the active repaired census and stop. **Do not replace the supplied checkpoint with partially repaired state.** On the next Phase 1 repair, reuse the same checkpoint/source-census baseline and deterministically diff the newest census against it again.
+
+If a `census_semantic_gate` resume passes all targeted semantic rechecks, Step 2 is complete for the repaired census and Phase 2 proceeds to Step 3 card authoring from that repaired census; no prior cards exist to preserve. If an `authoring` resume passes, continue from the preserved candidate as described below.
 
 ### Step 3 — Phase 2 card/evidence work
 
-Walk every in-scope census claim as a **mandatory review-and-disposition obligation**. A census claim does not require a unique card, but no in-scope claim may disappear silently. Before drafting cards, build and maintain an internal census disposition ledger covering every in-scope `claim_id`. This is working state for semantic completeness under the existing 5.1 package contract; do **not** add it as a new provisional-package field.
+For a **fresh/non-resume Phase 2**, walk every in-scope census claim as a **mandatory review-and-disposition obligation**. A census claim does not require a unique card, but no in-scope claim may disappear silently. Before drafting cards, build and maintain an internal census disposition ledger covering every in-scope `claim_id`. This ledger is working/checkpoint state for semantic completeness; it is persisted only in `paper.phase2-state-vNNN.json` when a resume checkpoint is required and is **not** a field of the final provisional package.
+
+For a validated **`census_semantic_gate` resume**, there is no prior card state: after the targeted Step 2 recheck passes, perform Step 3 once on the complete repaired census exactly as for fresh card authoring. The speedup is that unchanged census claims are not semantically audited against the paper a second time before carding.
+
+For a validated **`authoring` resume**, initialize Step 3 from `candidate_package`, `census_dispositions`, `allocated_card_ids`, `next_card_number`, and effective `human_decisions` in the checkpoint. Preserve unaffected cards, evidence bundles, dispositions, human decisions, and already allocated card IDs exactly; **do not redraft the package from scratch**. Reopen only the deterministic delta and its affected-card dependency closure:
+
+1. start with every `added_claim_id`, `modified_claim_id`, and `removed_claim_id`;
+2. for modified/removed claims, collect every card ID referenced by their checkpoint dispositions;
+3. collect every other checkpoint disposition that references any of those cards, because a shared/merged card may depend on multiple claims;
+4. process new claims and reevaluate only this dependency closure, adding further dependencies only when a necessary merge/split/rewrite actually touches another existing card; and
+5. leave all other cards/evidence/dispositions byte-for-structure unchanged.
+
+An added claim may legitimately be `covered` by an existing unaffected card, or may require merging a new gene/parallel assertion into an existing card; in that case reopen that specific card and its linked dispositions, not the whole package. A prior human decision whose `claim_ids` or governed cards enter the affected closure must be surfaced for renewed confirmation in Step 5 rather than silently rewritten. Unaffected prior human decisions remain effective provenance. Update the resumed candidate's `census_entries` to the active repaired census count after integrating the delta. Never reuse a card ID in `allocated_card_ids`; allocate any new card from `next_card_number` and advance it monotonically.
 
 Assign exactly one internal disposition to every in-scope census claim:
 
 - `carded` — one or more candidate cards represent the claim; record those candidate `card_id` values internally.
 - `covered` — another candidate card already represents the **complete clinical meaning** of the claim, including every material disease, molecular, population, threshold, exception, uncertainty, and other qualifier; record the covering `card_id` value(s) internally. Shared genes, category, table, paragraph, framework, evidence, or general topic are not sufficient for `covered`.
 - `not_carded` — no defensible clinically useful card can be produced from the source evidence. Use exactly one of these internal reasons: `insufficient_source_support`, `ambiguous_source_structure`, `no_independent_clinical_meaning`, or `outside_confirmed_scope`.
+- `human_ruled` — available only after Step 5 human feedback. The human explicitly ruled the final representation of this claim. Record the matching `human_decisions.decision_id` internally. This disposition is authoritative for retention/deletion/merge/split/clinical-utility choice, but it is not source evidence and cannot authorize a retained interpretation that falsifies or exceeds `paper.md`.
 
 Do not use generic omission rationales such as `redundant`, `low importance`, `not necessary`, `already discussed`, or `not clinically material`. If a claim is genuinely redundant, use `covered` and identify the exact card that fully preserves it.
 
@@ -4678,15 +5779,27 @@ Use `diseases` only for exact clinical applicability. Mechanically populate `dis
 
 After Step 3 produces a complete candidate provisional, stop authoring and perform a separate independent semantic audit of the **complete candidate package**. Do not audit and repair simultaneously: first identify all material defects as one internal critique.
 
-First audit the complete in-scope census against the candidate package and the internal disposition ledger. For every in-scope census claim verify that:
+For a **fresh/non-resume Phase 2**, first audit the complete in-scope census against the candidate package and the internal disposition ledger. For every in-scope census claim verify that:
 
 1. exactly one internal disposition exists;
 2. `carded` card IDs genuinely represent the complete clinically useful assertion;
 3. `covered` identifies one or more candidate cards that semantically preserve the complete assertion, including every material qualifier;
-4. `not_carded` uses one permitted reason and that reason is actually justified by the source and shared semantic standards; and
-5. no clinically useful table row, classification branch, exception, threshold, treatment rule, prognostic group, biomarker role, or germline rule disappeared merely because related material was carded elsewhere.
+4. `not_carded` uses one permitted reason and that reason is actually justified by the source and shared semantic standards;
+5. `human_ruled`, when present after Step 5 feedback, maps to an effective persisted human decision and is not re-litigated as a model clinical-utility/coverage judgment; and
+6. no clinically useful table row, classification branch, exception, threshold, treatment rule, prognostic group, biomarker role, or germline rule disappeared unless it is defensibly disposed above or explicitly governed by a human ruling.
 
-Perform this audit **claim-by-claim, not by aggregate card count**. If a covering card preserves only part of the census claim, or omits a material qualifier/exception, the candidate fails: create or revise the necessary card rather than accepting partial coverage. In particular, surrounding narrative describing selected changes to a table does not cover distinct operative rules present only in the table.
+Perform this fresh audit **claim-by-claim, not by aggregate card count**. If a covering card preserves only part of the census claim, or omits a material qualifier/exception, the candidate fails: create or revise the necessary card rather than accepting partial coverage. In particular, surrounding narrative describing selected changes to a table does not cover distinct operative rules present only in the table.
+
+For a validated **`census_semantic_gate` resume**, Step 3 has just authored dispositions/cards for the complete repaired census, so perform the same complete candidate-package/disposition audit as a fresh Phase 2 at this point. Do not, however, repeat the source-vs-census semantic audit already resolved in Step 2.
+
+For a validated **`authoring` resume**, do not repeat that whole-census semantic coverage audit. Instead:
+
+1. deterministically verify that the revised disposition ledger covers every claim in the active repaired census exactly once;
+2. semantically re-audit the dispositions of added/modified claims and every disposition/card in the affected dependency closure from Step 3;
+3. preserve unchanged, unaffected checkpoint dispositions without re-litigating their earlier `carded` / `covered` / `not_carded` judgement; and
+4. verify structurally that removed claims no longer remain in the active disposition ledger or in effective `human_decisions.claim_ids`.
+
+This resume rule deliberately makes census semantic review **delta-only**. It does not weaken the complete deterministic census validation in Step 1.
 
 For every card in the candidate provisional ask:
 1. does its paired evidence support every material element under `SOURCE_FIDELITY_POLICY`?;
@@ -4708,44 +5821,122 @@ Also audit the package as a whole for unsupported scope expansion, missed requir
 
 If **any** semantic defect is found, feed the complete internal critique back to Step 3, revise the candidate package, and then restart Step 4 on the complete revised package. Do not proceed to Step 5 with a known semantic defect.
 
-## Step 5 — mandatory human semantic-group review gate
+## Step 5 — mandatory human semantic/syntactic review gate
 
-After Step 4 passes, **do not write or return the provisional file yet**. Present the current candidate cards to the user for review in chat. This gate exists so interpretation-quality problems can be corrected group-wise before Phase 3/4.
+After Step 4 passes, **do not write or return the provisional file yet**. Present the current candidate cards to the user for review in chat. This gate exists so repeated interpretation patterns, category assignments, and card-selection problems can be corrected before Phase 3.
 
-Semantically group the interpretations of **every candidate card** by their generic clinical meaning or interpretation pattern. Group by what the cards are saying clinically, not merely by `category`, gene, disease, source section, or card order. Useful group concepts include patterns such as `molecular finding associated with inferior overall survival`, `molecular feature changes treatment sensitivity`, `diagnostic/classification rule`, or `germline evaluation indicated`. Create a singleton group when a card has no meaningful semantic peer.
+### Semantic/syntactic grouping rule
+
+Group the interpretations of **every candidate card** by a normalized assertion template: cards belong together when they make the same clinical proposition in materially the same syntax and differ only in replaceable instantiations such as gene identity. The review group should expose the generic sentence pattern the cards share, not merely a broad topic.
+
+For example, these cards belong in one group:
+- `ASXL1 mutation is adverse in acute myeloid leukemia.`
+- `RUNX1 mutation is adverse in acute myeloid leukemia.`
+- `SRSF2 mutation is adverse in acute myeloid leukemia.`
+
+Their review template is:
+
+`<GENE> mutation is adverse in acute myeloid leukemia.`
+
+When deriving a group template:
+- normalize gene identity to `<GENE>` or `<GENES>` when gene identity is the only material difference;
+- normalize another entity only when it is a genuinely interchangeable instantiation of the same proposition and doing so does not hide clinically material differences;
+- **preserve** disease, clinical role, direction, endpoint, treatment/comparator, threshold, molecular state, population restriction, exception, uncertainty, and any other qualifier that changes meaning;
+- do not collapse `inferior overall survival` into generic `adverse prognosis`, or otherwise broaden the proposition merely to create a larger group;
+- do not use `category` as the grouping key. Cards with the same normalized interpretation pattern should remain visibly comparable even if their current categories differ; and
+- create a singleton template when no other card shares the same material assertion pattern.
 
 The review display must satisfy all of the following:
 - every candidate `card_id` appears **exactly once** across the groups;
-- print the **complete interpretation** for every card, not a summary or excerpt;
-- give each temporary review group a simple stable label such as `G01`, `G02`, ... and a short semantic description;
+- every group has a stable temporary label such as `G01`, `G02`, ... and prints its normalized assertion template explicitly;
+- for every card print `card_id`, **current `category`**, and the **complete interpretation**;
 - do not omit cards judged acceptable, unique, repetitive, low-priority, or difficult to group;
 - do not print evidence bundles unless the user asks for them; and
 - if there are zero candidate cards, state that explicitly and still request approval.
 
-After the complete grouped display, ask the user either to provide free-text **group-wise and/or card-wise amendments** or to reply exactly `APPROVE`. The group labels are review conveniences only and are not persisted in the provisional package.
+Use a compact shape such as:
 
-Human feedback may request transformations such as removing study-result packaging across a group, tightening an overly broad clinical meaning, splitting compound propositions, or reconsidering whether a pattern has independent clinical utility. Treat such feedback as an amendment instruction, **not as source evidence and not as permission to erase source-specific qualifiers**. Apply a group-wise instruction only to cards for which it is source-supported and semantically compatible. If an instruction would require unsupported generalisation, loss of a meaning-critical qualifier, or an unjustified census omission, explain the conflict in the next review response and preserve the defensible source-bounded state rather than inventing support.
+```text
+G03 — <GENE> mutation is adverse in acute myeloid leukemia
+
+C001 | category: prognosis
+ASXL1 mutation is adverse in acute myeloid leukemia.
+
+C008 | category: prognosis
+RUNX1 mutation is adverse in acute myeloid leukemia.
+```
+
+After the complete grouped display, ask the user either to provide free-text **group-wise and/or card-wise amendments** or to reply exactly `APPROVE`. Group labels and normalized templates are review conveniences only; they are not persisted as card fields. Effective human rulings are persisted in the provisional package as `human_decisions`.
+
+Human feedback may explicitly **add, edit, delete, retain, split, or merge cards, change a card's category, or apply a wording/category amendment across a whole review group**. Treat such feedback as an amendment instruction, **not as source evidence and not as permission to falsify the source**.
+
+The authority boundary is:
+- a human `delete` is authoritative for card existence in the approved Phase 2 provisional; do not restore the deleted card merely because the model would ordinarily retain it;
+- a human `add`, `modify`, `split`, `merge`, `retain`, or category change determines the candidate state that Phase 2 should emit after source/structure checks, but it does **not** make the resulting surviving card correct by fiat; every surviving card will undergo ordinary independent Phase 3 review;
+- retained/modified/added/resulting cards must still be directly supportable from `paper.md`, have valid evidence, and satisfy deterministic package structure. If a requested wording would require unsupported generalisation, fabricate evidence, or remove a qualifier necessary to keep the statement source-true, explain that source-fidelity conflict rather than inventing support; and
+- if the user requests an `add` for a source assertion that has no corresponding active census claim, do not silently bypass the census. First verify that the proposed assertion is actually supported by `paper.md` and truly absent from the active census. If so, treat it as a census defect and use the checkpoint/Phase 1 repair pathway below. A human `add` within a finalized normal Phase 2 provisional must therefore map to at least one active census `claim_id`.
+
+### Step 5A — authoring checkpoint before Phase 1 repair
+
+When a census defect is discovered **after Step 4 has already passed and Phase 2 authoring state exists**, preserve the work instead of discarding it. This is distinct from the earlier `census_semantic_gate` checkpoint created by a fresh Step 2 failure. Before stopping:
+
+1. create the matching `paper.census-critique-vNNN.md` for the active census attempt, describing the missing/defective source-supported claim precisely enough for Phase 1 to repair it;
+2. create `paper.phase2-state-vNNN.json` with the **same attempt number as the active source census** and set `checkpoint_stage: "authoring"`;
+3. serialize `census_semantic_review.claim_reviews` for every source-census claim, marking the completed semantic result (`passed` or `out_of_scope`) and use `unmapped_defects: []`;
+4. put the current structurally valid candidate package in `candidate_package`, including the effective human decisions already made;
+5. serialize the complete current census disposition ledger in `census_dispositions`;
+6. preserve any human request that cannot yet become an effective `human_decisions` entry because its source claim is absent from the census in `pending_human_requests`, faithfully recording the supplied instruction/reason and never inventing a reason; use `[]` when there is no such pending request;
+7. serialize every card ID ever allocated in the current Phase 2 history, including deleted IDs, in `allocated_card_ids`, plus the next unused numeric suffix in `next_card_number`;
+8. record the exact source census filename and lowercase SHA-256 digest of its bytes;
+9. set `review_state.census_semantic_baseline_complete: true`, `approval_valid: false`, `awaiting: "phase1_repair"`, and the matching critique filename; and
+10. validate the exact checkpoint before returning it:
+
+```bash
+python validation_bundle/scripts/phase_validation/phase2_state.py \
+  --metadata metadata.json \
+  --source paper.md \
+  --prior-census <active-source-census> \
+  --state <matching-phase2-state-file>
+```
+
+Return **exactly the critique and checkpoint files** and stop. Do not emit a provisional and do not continue human review until Phase 1 returns a repaired census. If the defect occurs during the initial Step 2 semantic gate, use the earlier `census_semantic_gate` checkpoint pathway instead; if the deterministic Step 1 gate failed before any complete semantic audit, return only the critique because no semantic baseline exists yet.
+
+After Phase 1 returns the repaired census, resume via Steps 1–4 using the checkpoint. Preserve authoring state but never preserve approval state: the repaired census invalidates any earlier `APPROVE`. Apply any `pending_human_requests` only after the repaired census now contains the required source claim; when the requested card/state is successfully realized, convert that request into the effective human-decision ledger with the original human instruction/reason. After integrating the delta, regenerate the **complete** semantic/syntactic grouped display and require a fresh `APPROVE`, even when only one new claim/card was added.
+
+Maintain an **effective human-decision ledger** throughout the Step 5 loop. It records the final rulings that govern the most recently displayed candidate state, not a conversational history: if later feedback supersedes an earlier ruling, consolidate/replace the earlier entry rather than preserving contradictory historical instructions. At final `APPROVE`, serialize this ledger at top level as `human_decisions`; use `[]` when the human approved without requesting any amendments.
+
+Each `human_decisions` item must contain exactly:
+- `decision_id`: stable `H001`, `H002`, ... within this provisional;
+- `action`: one of `retain`, `modify`, `delete`, `add`, `split`, or `merge`;
+- `before_card_ids`: card IDs governed before the ruling (empty only for `add`);
+- `after_card_ids`: card IDs present after the ruling (empty for `delete`);
+- `claim_ids`: every active census claim whose final representation is governed by the ruling;
+- `human_instruction`: a faithful record of what the human instructed; and
+- `human_reason`: the reason actually supplied by the human, or `null` if the human supplied no reason. **Never invent a human reason.**
+
+A category-only change is `action: "modify"` with the same card ID in `before_card_ids` and `after_card_ids`. For group-wise feedback, one decision may govern multiple card IDs/claim IDs when it is genuinely one ruling. `retain` and `modify` preserve the same card IDs before/after; represent card-identity changes explicitly as `split`, `merge`, `add`, or `delete`. Deleted candidate IDs remain in `before_card_ids` even though those cards are absent from the approved provisional. Use the internal census disposition ledger to populate `claim_ids` so the Phase 2 provenance record remains traceable to the census it adjudicated.
 
 After any requested amendment:
-1. return to Step 3 and apply the requested changes across the affected cards/dispositions;
-2. rerun the complete Step 4 semantic audit on the whole candidate package, not only the changed group;
-3. regenerate semantic groups from the revised candidate; and
-4. show **all current cards again**, each exactly once with its complete interpretation.
+1. return to Step 3 and apply the requested changes across the affected cards/dispositions, using `human_ruled` for affected claim outcomes when the ruling overrides ordinary model card-selection/utility judgment;
+2. rerun the complete Step 4 audit on the revised candidate. Do not silently reverse an explicit human card-existence/category/representation decision merely because the model would have chosen differently; continue to enforce source fidelity, evidence adequacy, and package validity for every surviving card. Phase 3 is the independent reviewer of all surviving cards, including human-added or human-edited cards;
+3. regenerate the normalized semantic/syntactic groups from the revised candidate; and
+4. show **all current cards again**, each exactly once with its `card_id`, current `category`, and complete interpretation.
 
-Repeat this loop until the user sends `APPROVE` on its own line for the most recently displayed complete candidate set. Approval is invalidated by any later change to the card set or any card interpretation. Do not treat silence, partial feedback, `FINALIZE`, or a general expression of satisfaction as `APPROVE`.
+Repeat this loop until the user sends `APPROVE` on its own line for the most recently displayed complete candidate set. Approval is invalidated by any later change to the card set, category, or interpretation. Do not treat silence, partial feedback, `FINALIZE`, or a general expression of satisfaction as `APPROVE`.
 
 Only after explicit `APPROVE` may normal Phase 2 proceed to Step 6.
 
 ## Step 6 — model formatting gate
 
 Only after Steps 4 and 5 pass, perform a separate **formatting/structure-only** audit. Do not reconsider clinical semantics here. Verify privately that:
-1. the output is exactly one provisional file (or the already-selected census-critique branch);
+1. the output is exactly one provisional file; census-critique/checkpoint branches stop before this gate;
 2. the filename preserves the required `vNNN` / `revRRR-vNNN` namespace;
-3. the provisional uses the required schema version/round and `audit` is `null`;
-4. every card has exactly one paired evidence bundle and paired IDs match;
-5. card IDs use the publication-key namespace;
-6. `genes_covered`, `diseases_covered`, and `disease_ancestors` are structurally consistent with the package; and
-7. required top-level/card/evidence fields are present with the correct JSON types.
+3. the provisional uses the required schema version/round, `audit` is `null`, and top-level `human_decisions` is present (`[]` if there were no human amendments);
+4. every human decision is the final effective ruling for the approved candidate, references only active census `claim_ids`, and every `after_card_ids` value exists in the approved card set;
+5. every card has exactly one paired evidence bundle and paired IDs match;
+6. card IDs use the publication-key namespace;
+7. `genes_covered`, `diseases_covered`, and `disease_ancestors` are structurally consistent with the package; and
+8. required top-level/card/evidence fields are present with the correct JSON types.
 
 If this formatting gate fails, create one internal formatting critique and repair formatting/structure. If the repair changes the card set or any interpretation, the prior human approval is invalid: return to Step 3, rerun Step 4, and repeat Step 5 for fresh `APPROVE`. If the repair is structure-only and leaves the approved card set/interpretations unchanged, rerun Step 6 and preserve the existing approval.
 
@@ -4795,7 +5986,7 @@ When `FINALIZE` is received:
 
 The ledger must use `stage: "phase2r"`, `purpose: "revise"`, the actual baseline filename/round, the provisional output filename, and `user_finalized: true`. For a Phase 4 handoff, also record the exact `phase4_decisions_filename` used to reconstruct the current Phase 4 state.
 
-Phase 2R outputs a complete provisional package because downstream phases consume packages, but that package is constrained to **baseline + approved ledger deltas only**. Omit `paper_nickname`, set `audit` to `null`, and set `publication_type_verified_by_phase3` to `false`. Copy publication type/basis from the effective baseline.
+Phase 2R outputs a complete provisional package because downstream phases consume packages, but that package is constrained to **baseline + approved ledger deltas only**. Omit `paper_nickname`, set `audit` to `null`, and set `publication_type_verified_by_phase3` to `false`. Copy publication type/basis from the effective baseline. Preserve any top-level normal-Phase-2 `human_decisions` provenance **exactly unchanged**; Phase 2R user decisions belong only in the separate Phase 2R decision ledger and must not rewrite historical Phase 2 human rulings.
 
 Before deterministic validation, construct the candidate ledger/provisional so that every difference is represented by one approved ledger operation and every unapproved baseline card/evidence object is unchanged. Do not introduce any unapproved semantic or formatting normalization.
 

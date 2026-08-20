@@ -19,8 +19,9 @@ Every prompt edit must preserve these invariants:
 - one typed evidence bundle per card and one card per bundle, with every fragment source-verbatim;
 - cards are gene-indexed and independently useful;
 - diseases use the closed vocabulary with required umbrella tags;
-- normal Phase 2 emits no provisional until its semantic audit and mandatory all-card human review pass; amendments loop before file emission, and explicit `APPROVE` releases exactly one provisional package to final formatting/validation;
-- Phase 3 reviews every card exactly once, records pass or fail, and never creates a final package;
+- normal Phase 2 emits no provisional until its semantic audit and mandatory all-card human review pass; amendments loop before file emission, explicit human rulings are serialized in `human_decisions`, and `APPROVE` releases exactly one provisional package to final formatting/validation;
+- normal Phase 2 `human_decisions` are provenance: human deletions determine which cards are absent, while every surviving card (including human-added/edited/category-changed cards) remains independently reviewable in Phase 3;
+- Phase 3 receives no census, performs no census/card-set completeness audit, reviews every applicable surviving card exactly once, records pass or fail, and never creates a final package;
 - publication type is assigned by Phase 1, copied by Phase 2, independently reviewed by Phase 3, and finally adjudicated in Phase 4;
 - Phase 3 never repairs extraction content;
 - Phase 4 presents every card for human adjudication and is the only model phase that creates `paper.final.json`.

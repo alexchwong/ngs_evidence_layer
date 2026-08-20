@@ -30,6 +30,7 @@ def test_validation_bundles_match_workflow_boundaries():
     phase4 = build_prompts.render(4)
     validator1 = (ROOT / "scripts" / "phase_validation" / "phase1.py").read_text(encoding="utf-8").rstrip()
     validator2 = (ROOT / "scripts" / "phase_validation" / "phase2.py").read_text(encoding="utf-8").rstrip()
+    validator2_state = (ROOT / "scripts" / "phase_validation" / "phase2_state.py").read_text(encoding="utf-8").rstrip()
     validator4 = (ROOT / "scripts" / "phase_validation" / "phase4.py").read_text(encoding="utf-8").rstrip()
 
     assert validator1 in phase1
@@ -40,6 +41,7 @@ def test_validation_bundles_match_workflow_boundaries():
     # then uses its own validator on output.
     assert validator1 in phase2
     assert validator2 in phase2
+    assert validator2_state in phase2
     assert validator4 not in phase2
 
     assert "<!-- BEGIN VERBATIM scripts/phase_validation/" not in phase3

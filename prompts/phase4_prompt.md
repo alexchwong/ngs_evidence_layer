@@ -239,6 +239,12 @@ Map every material assertion in the interpretation to explicit supporting source
 
 Apply the current clinical-card and source-fidelity standards when evaluating or constructing an **authorised repair of a Phase 3-failed card**. Do not use newer wording standards as permission to modernise, normalize, or otherwise rewrite unrelated cards that Phase 3 passed. Passed-card changes remain Phase 2R work.
 
+### Normal-Phase-2 human-decision provenance
+
+The active provisional may contain top-level `human_decisions` from the normal Phase 2 semantic/syntactic human gate. These decisions are provenance describing how the approved Phase 2 candidate set was changed. They are **not automatic Phase 3 passes**: every card that survived into a normal Phase 2 provisional, including a human-added, human-edited, merged/split, retained, or category-changed card, was eligible for ordinary Phase 3 review. A human-deleted card is absent from the provisional by design and must not be resurrected merely because its deletion appears in the provenance ledger.
+
+If Phase 3 failed a surviving card that was previously touched by a Phase 2 human decision, adjudicate that failure normally in Phase 4 just like any other Phase 3 failure. Do not treat the old Phase 2 instruction as a new Phase 4 authorization. Preserve `human_decisions` **byte-for-structure unchanged** from the active provisional into `paper.final.json`; Phase 4's own user decisions continue to live only in the separate Phase 4 decision ledger.
+
 ## Step 2 — human adjudication and interactivity
 
 ### Paper nickname
@@ -310,7 +316,7 @@ The ledger is the machine-readable authorization boundary. Any provisional→fin
 
 ## Final package construction
 
-Start from the complete active provisional package and preserve its `schema_version` (new workflow packages are 5.1). Apply only the direct Phase 4 decisions in the finalized ledger. A passed card with no Phase 4 decision must remain unchanged. A carried-forward card from Phase 2R must also remain unchanged unless it failed the current Phase 3 review and the user explicitly adjudicated it.
+Start from the complete active provisional package and preserve its `schema_version` (new workflow packages are 5.1), including top-level `human_decisions` exactly unchanged. Apply only the direct Phase 4 decisions in the finalized ledger. A passed card with no Phase 4 decision must remain unchanged. A carried-forward card from Phase 2R must also remain unchanged unless it failed the current Phase 3 review and the user explicitly adjudicated it.
 
 Apply source disease aliases when retaining/amending disease scope:
 
@@ -686,7 +692,8 @@ Construct the requested output only from the current validated inputs and the us
 - every direct Phase 4 card decision concerns a Phase 3-failed card, except replacement `add` operations that resolve such a failure;
 - no Phase 3-passed card is directly changed in Phase 4; requested changes to passed cards/new unrelated cards appear only as Phase 2R requests;
 - every direct add/modify decision contains the complete revised card/evidence alongside the explicit user decision/instruction;
-- no final card/evidence difference exists without an authorized ledger decision; and
+- no final card/evidence difference exists without an authorized ledger decision;
+- top-level `human_decisions` exactly equals the approved provisional's value; and
 - every final audit result uses the correct `review_basis`.
 
 The deterministic bundle includes package/review/decision schemas, disease vocabulary, card-delta validation, and the Phase 4 validator.
@@ -977,11 +984,58 @@ def validate_review(review, provisional, phase2r_ledger=None, phase4_ledger=None
     return errors
 
 
+def human_decision_errors(package, census):
+    """Validate Phase 2 human-decision provenance against the current package/census."""
+    decisions = package.get("human_decisions")
+    if decisions is None:
+        return []
+    errors = []
+    known_claim_ids = {
+        entry.get("claim_id") for entry in census.get("entries", [])
+        if isinstance(entry, dict)
+    }
+    seen_decision_ids = set()
+    seen_after_card_ids = set()
+    for index, decision in enumerate(decisions, start=1):
+        decision_id = decision.get("decision_id")
+        label = decision_id or f"human_decisions[{index - 1}]"
+        if decision_id in seen_decision_ids:
+            errors.append(f"{label}: duplicate human decision_id")
+        seen_decision_ids.add(decision_id)
+
+        unknown_claims = sorted(set(decision.get("claim_ids", [])) - known_claim_ids)
+        if unknown_claims:
+            errors.append(
+                f"{label}: human decision references unknown census claim_ids: "
+                + ", ".join(unknown_claims)
+            )
+
+        after_ids = decision.get("after_card_ids", [])
+        overlapping = sorted(set(after_ids) & seen_after_card_ids)
+        if overlapping:
+            errors.append(
+                f"{label}: an approved card may be governed by only one effective human decision: "
+                + ", ".join(overlapping)
+            )
+        seen_after_card_ids.update(after_ids)
+
+        action = decision.get("action")
+        before_ids = decision.get("before_card_ids", [])
+        if action in {"retain", "modify"} and set(before_ids) != set(after_ids):
+            errors.append(
+                f"{label}: {action} must preserve the same card IDs before and after; "
+                "use split/merge/add/delete when card identity changes"
+            )
+    return errors
+
+
 def validate_package(package, metadata, census, source_text=None, require_final=False):
     errors = schema_errors(package, PACKAGE_SCHEMA, "package")
     warnings = []
     if errors:
         return errors, warnings, None
+
+    errors.extend(human_decision_errors(package, census))
 
     if package["paper_id"] != metadata["paper_id"]:
         errors.append("package paper_id does not match metadata")
@@ -1159,6 +1213,10 @@ def validate_final_against_provisional(final, provisional):
         errors.append("final and approved provisional paper_id values differ")
     if final.get("extraction_model") != provisional.get("extraction_model"):
         errors.append("final and approved provisional extraction_model values differ")
+    if ("human_decisions" in final) != ("human_decisions" in provisional) or final.get("human_decisions") != provisional.get("human_decisions"):
+        errors.append(
+            "final must preserve Phase 2 human_decisions provenance exactly from the approved provisional"
+        )
     return errors
 
 
@@ -1668,6 +1726,13 @@ def apply_publication_type_decision(package, ledger):
       "type": "array",
       "items": {
         "$ref": "#/$defs/evidence"
+      }
+    },
+    "human_decisions": {
+      "type": "array",
+      "description": "Effective human rulings made at the normal Phase 2 semantic-group review gate. This is provenance/authority for the approved candidate state, not source evidence or a conversational history; superseded rulings are consolidated away.",
+      "items": {
+        "$ref": "#/$defs/human_decision"
       }
     },
     "audit": {
@@ -2182,6 +2247,190 @@ def apply_publication_type_decision(package, ledger):
           }
         }
       }
+    },
+    "human_decision": {
+      "type": "object",
+      "required": [
+        "decision_id",
+        "action",
+        "before_card_ids",
+        "after_card_ids",
+        "claim_ids",
+        "human_instruction",
+        "human_reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "pattern": "^H[0-9]{3,}$"
+        },
+        "action": {
+          "enum": [
+            "retain",
+            "modify",
+            "delete",
+            "add",
+            "split",
+            "merge"
+          ]
+        },
+        "before_card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "after_card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "human_instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "delete"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "maxItems": 0
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "retain",
+                  "modify"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "split"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "minItems": 2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "merge"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 2
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }
