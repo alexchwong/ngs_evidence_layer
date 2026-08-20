@@ -5821,35 +5821,40 @@ Also audit the package as a whole for unsupported scope expansion, missed requir
 
 If **any** semantic defect is found, feed the complete internal critique back to Step 3, revise the candidate package, and then restart Step 4 on the complete revised package. Do not proceed to Step 5 with a known semantic defect.
 
-## Step 5 — mandatory human semantic/syntactic review gate
+## Step 5 — mandatory human semantic review gate
 
-After Step 4 passes, **do not write or return the provisional file yet**. Present the current candidate cards to the user for review in chat. This gate exists so repeated interpretation patterns, category assignments, and card-selection problems can be corrected before Phase 3.
+After Step 4 passes, **do not write or return the provisional file yet**. Present the current candidate cards to the user for review in chat. This gate exists so repeated interpretation patterns, category assignments, evidence-strength context, and card-selection problems can be corrected before Phase 3.
 
-### Semantic/syntactic grouping rule
+### Category-first semantic grouping rule
 
-Group the interpretations of **every candidate card** by a normalized assertion template: cards belong together when they make the same clinical proposition in materially the same syntax and differ only in replaceable instantiations such as gene identity. The review group should expose the generic sentence pattern the cards share, not merely a broad topic.
+Organize **every candidate card** using this review hierarchy:
 
-For example, these cards belong in one group:
-- `ASXL1 mutation is adverse in acute myeloid leukemia.`
-- `RUNX1 mutation is adverse in acute myeloid leukemia.`
-- `SRSF2 mutation is adverse in acute myeloid leukemia.`
+1. **category** — `diagnosis`, `prognosis`, `treatment`, `biomarker`, then `germline`;
+2. **semantic group** — cards within that category that communicate the same report-relevant clinical meaning; and
+3. **cards** — each annotated with its existing `evidence_tier` as the quality/evidence-strength context.
 
-Their review template is:
+Semantic grouping is conceptual, not syntactic. Group cards together when their interpretations communicate the same clinically meaningful proposition even when sentence structure, wording, grammatical construction, gene identity, or variant identity differs. **Do not derive normalized sentence templates, placeholder forms such as `<GENE>`, or separate groups merely because wording differs.** Prefer useful multi-card semantic groups when the underlying clinical meaning is genuinely the same.
 
-`<GENE> mutation is adverse in acute myeloid leukemia.`
+For example, these prognosis cards may belong in one semantic group such as `Adverse prognostic significance in acute myeloid leukemia` even though their wording differs:
+- `ASXL1 mutation is associated with adverse prognosis in acute myeloid leukemia.`
+- `RUNX1-mutated acute myeloid leukemia has adverse prognostic significance.`
+- `SRSF2 mutation confers an adverse prognostic association in acute myeloid leukemia.`
 
-When deriving a group template:
-- normalize gene identity to `<GENE>` or `<GENES>` when gene identity is the only material difference;
-- normalize another entity only when it is a genuinely interchangeable instantiation of the same proposition and doing so does not hide clinically material differences;
-- **preserve** disease, clinical role, direction, endpoint, treatment/comparator, threshold, molecular state, population restriction, exception, uncertainty, and any other qualifier that changes meaning;
-- do not collapse `inferior overall survival` into generic `adverse prognosis`, or otherwise broaden the proposition merely to create a larger group;
-- do not use `category` as the grouping key. Cards with the same normalized interpretation pattern should remain visibly comparable even if their current categories differ; and
-- create a singleton template when no other card shares the same material assertion pattern.
+When deriving semantic groups:
+- group by **clinical meaning**, not lexical overlap or sentence shape;
+- preserve disease, clinical role, direction, endpoint, treatment/comparator, threshold, molecular state, population restriction, exception, uncertainty, and any other qualifier that materially changes meaning;
+- do not collapse `inferior overall survival` into generic `adverse prognosis`, or otherwise broaden a narrower supported proposition merely to create a larger group;
+- do not merge materially different treatment effects, endpoints, directions, disease contexts, diagnostic entities, or germline/somatic meanings;
+- use a singleton semantic group only when the card is genuinely semantically distinct, **not** merely because its wording is unique; and
+- do not use `evidence_tier` to split otherwise equivalent semantic groups. Evidence tier is review metadata, not the primary grouping axis.
 
 The review display must satisfy all of the following:
-- every candidate `card_id` appears **exactly once** across the groups;
-- every group has a stable temporary label such as `G01`, `G02`, ... and prints its normalized assertion template explicitly;
-- for every card print `card_id`, **current `category`**, and the **complete interpretation**;
+- every candidate `card_id` appears **exactly once**;
+- category is the outer grouping axis, and every semantic group sits inside exactly one current category;
+- every semantic group has a stable temporary label such as `PR01`, `PR02`, `TX01`, ... and a concise clinical-meaning label, not a sentence template;
+- for every card print `card_id`, **current `category`**, **current `evidence_tier`**, and the **complete interpretation**;
+- within a semantic group, prefer stronger evidence tiers first for readability, but do not create separate semantic groups solely because evidence tiers differ;
+- do not infer or invent a new evidence-quality score: display the card's existing `evidence_tier` value;
 - do not omit cards judged acceptable, unique, repetitive, low-priority, or difficult to group;
 - do not print evidence bundles unless the user asks for them; and
 - if there are zero candidate cards, state that explicitly and still request approval.
@@ -5857,16 +5862,18 @@ The review display must satisfy all of the following:
 Use a compact shape such as:
 
 ```text
-G03 — <GENE> mutation is adverse in acute myeloid leukemia
+PROGNOSIS
 
-C001 | category: prognosis
-ASXL1 mutation is adverse in acute myeloid leukemia.
+PR01 — Adverse prognostic significance in acute myeloid leukemia
 
-C008 | category: prognosis
-RUNX1 mutation is adverse in acute myeloid leukemia.
+C001 | category: prognosis | evidence tier: multivariable-adjusted
+ASXL1 mutation is associated with adverse prognosis in acute myeloid leukemia.
+
+C008 | category: prognosis | evidence tier: univariable or descriptive
+RUNX1-mutated acute myeloid leukemia has adverse prognostic significance.
 ```
 
-After the complete grouped display, ask the user either to provide free-text **group-wise and/or card-wise amendments** or to reply exactly `APPROVE`. Group labels and normalized templates are review conveniences only; they are not persisted as card fields. Effective human rulings are persisted in the provisional package as `human_decisions`.
+After the complete grouped display, ask the user either to provide free-text **group-wise and/or card-wise amendments** or to reply exactly `APPROVE`. Category and semantic-group labels are review conveniences only; they are not persisted as new card fields. Effective human rulings are persisted in the provisional package as `human_decisions`.
 
 Human feedback may explicitly **add, edit, delete, retain, split, or merge cards, change a card's category, or apply a wording/category amendment across a whole review group**. Treat such feedback as an amendment instruction, **not as source evidence and not as permission to falsify the source**.
 
@@ -5901,7 +5908,7 @@ python validation_bundle/scripts/phase_validation/phase2_state.py \
 
 Return **exactly the critique and checkpoint files** and stop. Do not emit a provisional and do not continue human review until Phase 1 returns a repaired census. If the defect occurs during the initial Step 2 semantic gate, use the earlier `census_semantic_gate` checkpoint pathway instead; if the deterministic Step 1 gate failed before any complete semantic audit, return only the critique because no semantic baseline exists yet.
 
-After Phase 1 returns the repaired census, resume via Steps 1–4 using the checkpoint. Preserve authoring state but never preserve approval state: the repaired census invalidates any earlier `APPROVE`. Apply any `pending_human_requests` only after the repaired census now contains the required source claim; when the requested card/state is successfully realized, convert that request into the effective human-decision ledger with the original human instruction/reason. After integrating the delta, regenerate the **complete** semantic/syntactic grouped display and require a fresh `APPROVE`, even when only one new claim/card was added.
+After Phase 1 returns the repaired census, resume via Steps 1–4 using the checkpoint. Preserve authoring state but never preserve approval state: the repaired census invalidates any earlier `APPROVE`. Apply any `pending_human_requests` only after the repaired census now contains the required source claim; when the requested card/state is successfully realized, convert that request into the effective human-decision ledger with the original human instruction/reason. After integrating the delta, regenerate the **complete** category-first semantic grouped display and require a fresh `APPROVE`, even when only one new claim/card was added.
 
 Maintain an **effective human-decision ledger** throughout the Step 5 loop. It records the final rulings that govern the most recently displayed candidate state, not a conversational history: if later feedback supersedes an earlier ruling, consolidate/replace the earlier entry rather than preserving contradictory historical instructions. At final `APPROVE`, serialize this ledger at top level as `human_decisions`; use `[]` when the human approved without requesting any amendments.
 
@@ -5919,8 +5926,8 @@ A category-only change is `action: "modify"` with the same card ID in `before_ca
 After any requested amendment:
 1. return to Step 3 and apply the requested changes across the affected cards/dispositions, using `human_ruled` for affected claim outcomes when the ruling overrides ordinary model card-selection/utility judgment;
 2. rerun the complete Step 4 audit on the revised candidate. Do not silently reverse an explicit human card-existence/category/representation decision merely because the model would have chosen differently; continue to enforce source fidelity, evidence adequacy, and package validity for every surviving card. Phase 3 is the independent reviewer of all surviving cards, including human-added or human-edited cards;
-3. regenerate the normalized semantic/syntactic groups from the revised candidate; and
-4. show **all current cards again**, each exactly once with its `card_id`, current `category`, and complete interpretation.
+3. regenerate the category-first semantic groups from the revised candidate; and
+4. show **all current cards again**, each exactly once with its `card_id`, current `category`, current `evidence_tier`, and complete interpretation.
 
 Repeat this loop until the user sends `APPROVE` on its own line for the most recently displayed complete candidate set. Approval is invalidated by any later change to the card set, category, or interpretation. Do not treat silence, partial feedback, `FINALIZE`, or a general expression of satisfaction as `APPROVE`.
 

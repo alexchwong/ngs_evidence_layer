@@ -404,7 +404,7 @@ The assembled card package still receives the required Phase 2 package consisten
 human gate.
 
 A census repair always invalidates prior approval: after integrating the delta, Phase 2 prints
-the complete semantic/syntactic grouped card set again and requires a fresh `APPROVE`. If the
+the complete category-first semantic grouped card set again and requires a fresh `APPROVE`. If the
 repair changes `category_scope`, `publication_type`, or `publication_type_basis`, delta resume is
 unsafe and Phase 2 falls back to a full run from the repaired census.
 
@@ -412,11 +412,11 @@ If Phase 3 rejects the provisional structurally, rerun Phase 2 with the prior pr
 critique; the next package uses the next Phase 2 attempt, for example
 `paper.provisional-v002.json`.
 The package `round` advances with Phase 2 attempts. After carding, Phase 2 performs a
-separate semantic output audit and then enters a **mandatory human semantic/syntactic review**
+separate semantic output audit and then enters a **mandatory human semantic review**
 before any provisional file is written. The model groups the interpretations of every
-candidate card by normalized semantic/syntactic assertion template (for example,
-`<GENE> mutation is adverse in acute myeloid leukemia`), prints every card ID, current
-category, and complete interpretation exactly once, and accepts free-text group-wise/card-wise amendments including card additions/deletions and category changes. After
+candidate card first by category and then by shared clinical meaning (for example,
+`adverse prognostic significance in acute myeloid leukemia`), prints every card ID, current
+category, evidence tier, and complete interpretation exactly once, and accepts free-text group-wise/card-wise amendments including card additions/deletions and category changes. Sentence syntax is not a grouping key; evidence tier is displayed as per-card quality context rather than splitting otherwise equivalent semantic groups. After
 any amendment it regenerates the candidate, reruns the whole semantic audit, and prints all
 cards again. Effective human rulings are serialized in top-level `human_decisions`, including
 before/after card IDs, affected census claim IDs, the human instruction, and only the reason

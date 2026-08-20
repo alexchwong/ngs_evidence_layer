@@ -144,12 +144,18 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn("remove study name, cohort size, analysis method, statistical values", prompt)
         self.assertIn("Preserve clinically operative thresholds and values", prompt)
 
-    def test_phase2_has_mandatory_all_card_human_semantic_syntactic_gate(self):
+    def test_phase2_has_mandatory_all_card_human_semantic_gate(self):
         prompt = " ".join(BUILD_PROMPTS.render(2).split())
-        self.assertIn("mandatory human semantic/syntactic review gate", prompt)
-        self.assertIn("normalized assertion template", prompt)
-        self.assertIn("<GENE> mutation is adverse in acute myeloid leukemia", prompt)
-        self.assertIn("every candidate `card_id` appears **exactly once** across the groups", prompt)
+        self.assertIn("mandatory human semantic review gate", prompt)
+        self.assertIn("Category-first semantic grouping rule", prompt)
+        self.assertIn("Semantic grouping is conceptual, not syntactic", prompt)
+        self.assertIn("category is the outer grouping axis", prompt)
+        self.assertIn("current `evidence_tier`", prompt)
+        self.assertIn("do not infer or invent a new evidence-quality score", prompt)
+        self.assertIn("Adverse prognostic significance in acute myeloid leukemia", prompt)
+        self.assertNotIn("normalized assertion template", prompt)
+        self.assertNotIn("`<GENE> mutation is adverse in acute myeloid leukemia.`", prompt)
+        self.assertIn("every candidate `card_id` appears **exactly once**", prompt)
         self.assertIn("current `category`", prompt)
         self.assertIn("complete interpretation", prompt)
         self.assertIn("group-wise and/or card-wise amendments", prompt)
@@ -367,7 +373,7 @@ class PromptIntegrationTests(unittest.TestCase):
             "### Step 2 — census semantic input gate",
             "### Step 3 — Phase 2 card/evidence work",
             "## Step 4 — independent semantic output audit",
-            "## Step 5 — mandatory human semantic/syntactic review gate",
+            "## Step 5 — mandatory human semantic review gate",
             "## Step 6 — model formatting gate",
             "## Step 7 — deterministic output gate",
         )]

@@ -59,7 +59,7 @@ Apply the current clinical-card and source-fidelity standards when evaluating or
 
 ### Normal-Phase-2 human-decision provenance
 
-The active provisional may contain top-level `human_decisions` from the normal Phase 2 semantic/syntactic human gate. These decisions are provenance describing how the approved Phase 2 candidate set was changed. They are **not automatic Phase 3 passes**: every card that survived into a normal Phase 2 provisional, including a human-added, human-edited, merged/split, retained, or category-changed card, was eligible for ordinary Phase 3 review. A human-deleted card is absent from the provisional by design and must not be resurrected merely because its deletion appears in the provenance ledger.
+The active provisional may contain top-level `human_decisions` from the normal Phase 2 semantic human gate. These decisions are provenance describing how the approved Phase 2 candidate set was changed. They are **not automatic Phase 3 passes**: every card that survived into a normal Phase 2 provisional, including a human-added, human-edited, merged/split, retained, or category-changed card, was eligible for ordinary Phase 3 review. A human-deleted card is absent from the provisional by design and must not be resurrected merely because its deletion appears in the provenance ledger.
 
 If Phase 3 failed a surviving card that was previously touched by a Phase 2 human decision, adjudicate that failure normally in Phase 4 just like any other Phase 3 failure. Do not treat the old Phase 2 instruction as a new Phase 4 authorization. Preserve `human_decisions` **byte-for-structure unchanged** from the active provisional into `paper.final.json`; Phase 4's own user decisions continue to live only in the separate Phase 4 decision ledger.
 

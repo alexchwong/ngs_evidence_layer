@@ -117,7 +117,7 @@ manifest injects the relevant Phase 1, 2, or 4 validator, while Phase 3 has no
 executable prompt validator and is checked by Phase 4 on entry. Phase 2R and Phase 4
 share `scripts/phase_validation/card_deltas.py` plus `schema/card_decision_schema.json`
 to enforce user-authorized card/evidence deltas. New workflow packages use schema 5.1. Normal Phase 2 schema-5.1 provisionals also carry
-top-level `human_decisions`: the effective, approved human semantic/syntactic-gate rulings with affected
+top-level `human_decisions`: the effective, approved human semantic-gate rulings with affected
 card/claim IDs and human-supplied reasons. Human deletions define which cards are absent; surviving
 human-added/edited/category-changed cards are still independently reviewable in Phase 3. Phase 3 receives
 no census and does not audit census/card-set completeness. Normal Phase 2 now checkpoints **both**
