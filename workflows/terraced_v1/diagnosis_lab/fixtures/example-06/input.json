@@ -1,0 +1,4333 @@
+{
+  "schema_version": 1,
+  "example": 6,
+  "slug": "06-sf3b1-diagnostic-adjudication",
+  "source_case_path": "examples/cases/06-sf3b1-diagnostic-adjudication.md",
+  "source_expected_path": "examples/expected/06-sf3b1-diagnostic-adjudication.md",
+  "case_notes": "# Case 6\n\nProvisional diagnosis: myeloid neoplasm, unspecified.\n\n72F with persistent macrocytic anaemia. Bone marrow is reported as showing\ninsufficient dysplastic change for a diagnosis of MDS. Blasts are not increased.\nIron stain shows 7% ring sideroblasts.\n\nNGS (myeloid panel):\n- SF3B1 pathogenic variant, VAF 30%\n",
+  "structured_case": {
+    "provisional_cmcs": [
+      "myeloid neoplasm, unspecified"
+    ],
+    "provisional_disease": "myeloid neoplasm, unspecified",
+    "genes": [
+      "SF3B1"
+    ],
+    "detected_variants_summary": "NGS detected an SF3B1 pathogenic variant (VAF 30%).",
+    "case_facts": [
+      {
+        "fact_id": "F1",
+        "kind": "demographics",
+        "value": "72-year-old woman."
+      },
+      {
+        "fact_id": "F2",
+        "kind": "clinical",
+        "value": "Persistent macrocytic anaemia."
+      },
+      {
+        "fact_id": "F3",
+        "kind": "morphology",
+        "value": "Bone marrow has insufficient dysplastic change for a diagnosis of MDS; blasts are not increased."
+      },
+      {
+        "fact_id": "F4",
+        "kind": "morphology",
+        "value": "Iron stain shows 7% ring sideroblasts."
+      },
+      {
+        "fact_id": "F5",
+        "kind": "ngs",
+        "value": "SF3B1 pathogenic variant, VAF 30%."
+      }
+    ]
+  },
+  "ngs_panel_scope": "# NGS panel scope\n\nThis file defines the gene-level scope of the laboratory NGS panel used by this workflow.\nIt intentionally does not encode transcript, exon, or amplicon numbers.\n\n## Genes assessed\n\n- `ABL1`\n- `ANKRD26`\n- `ASXL1`\n- `BCOR`\n- `BCORL1`\n- `BRAF`\n- `CALR`\n- `CBL`\n- `CEBPA`\n- `CSF3R`\n- `DDX41`\n- `DNMT3A`\n- `ETNK1`\n- `ETV6`\n- `EZH2`\n- `FLT3`\n- `GATA1`\n- `GATA2`\n- `HRAS`\n- `IDH1`\n- `IDH2`\n- `IKZF1`\n- `JAK2`\n- `KIT`\n- `KRAS`\n- `MPL`\n- `MYD88`\n- `NF1`\n- `NPM1`\n- `NRAS`\n- `PHF6`\n- `PPM1D`\n- `PRPF8`\n- `PTPN11`\n- `RAD21`\n- `RB1`\n- `RUNX1`\n- `SETBP1`\n- `SF3B1`\n- `SH2B3`\n- `SMC1A`\n- `SMC3`\n- `SRSF2`\n- `STAG2`\n- `STAT3`\n- `STAT5B`\n- `TET2`\n- `TP53`\n- `U2AF1`\n- `UBA1`\n- `WT1`\n- `ZRSR2`\n\n## Negative-result semantics\n\nWhen the patient NGS result is explicitly complete, a listed panel gene that is absent from the detected-variant list is interpreted as **no SNV, short insertion/deletion, or short-range complex variant detected in that gene within the validated assay scope**.\n\nUse this negative result when applying diagnostic, prognostic, biomarker, treatment, germline, and other reporting rules. Do not treat the gene as unresolved merely because it is not individually listed in the patient result.\n\nThis inference is limited to the assay scope. It does not establish whole-gene biological wild type and does not exclude copy-number changes, rearrangements, structural variants, or other variant classes unless the patient result or another supplied test explicitly assesses them.\n\nIf the patient NGS result is described as partial, selected, limited, abbreviated, pending, or otherwise incomplete, do not infer a negative result for an unlisted panel gene.\n",
+  "allowed_provisional_cmcs": [
+    "CHIP",
+    "CCUS",
+    "MDS",
+    "MDS/AML",
+    "AML",
+    "MDS/MPN",
+    "MPN",
+    "mastocytosis",
+    "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+    "myeloid neoplasm, unspecified",
+    "precursor B-cell neoplasm",
+    "precursor T-cell neoplasm",
+    "mature B-cell neoplasm",
+    "mature T-cell/NK-cell neoplasm",
+    "Hodgkin lymphoma",
+    "plasma cell neoplasm/paraprotein disorder",
+    "lymphoid neoplasm",
+    "acute leukaemia of ambiguous lineage",
+    "histiocytic/dendritic neoplasm",
+    "germline predisposition syndrome",
+    "haematological malignancy, other",
+    "no_haematological_malignancy"
+  ],
+  "allowed_schema_diseases": [
+    "CHIP",
+    "CCUS",
+    "MDS",
+    "MDS/AML",
+    "AML",
+    "APL",
+    "AML with minimal differentiation",
+    "AML without maturation",
+    "AML with maturation",
+    "AMML",
+    "AMML with eosinophilia",
+    "AMoL",
+    "acute erythroid leukaemia",
+    "AMKL",
+    "pure erythroid leukaemia",
+    "myeloid sarcoma",
+    "acute basophilic leukaemia",
+    "MDS/MPN",
+    "MDS/MPN-U",
+    "CMML",
+    "aCML",
+    "MDS/MPN-SF3B1-T",
+    "JMML",
+    "MPN",
+    "MPN-U",
+    "PV",
+    "ET",
+    "PMF",
+    "post-PV/post-ET MF",
+    "MPN blast phase",
+    "CML",
+    "CNL",
+    "CEL",
+    "mastocytosis",
+    "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+    "BPDCN",
+    "germline predisposition syndrome",
+    "myeloid neoplasm, unspecified",
+    "lymphoid neoplasm",
+    "acute leukaemia of ambiguous lineage",
+    "histiocytic/dendritic neoplasm",
+    "haematological malignancy, other",
+    "acute lymphoblastic leukaemia/lymphoma",
+    "B-cell lymphoid neoplasm",
+    "precursor B-cell neoplasm",
+    "B-ALL",
+    "mature B-cell neoplasm",
+    "small lymphocytic proliferation",
+    "MBL",
+    "CLL/SLL",
+    "splenic B-cell lymphoma/leukaemia",
+    "HCL",
+    "SMZL",
+    "SDRPL",
+    "SBLPN",
+    "LPL",
+    "IgM LPL/WM",
+    "non-IgM LPL",
+    "marginal zone lymphoma",
+    "extranodal MZL of MALT",
+    "primary cutaneous MZL",
+    "NMZL",
+    "paediatric MZL",
+    "in situ follicular B-cell neoplasm",
+    "follicular lymphoma",
+    "paediatric-type follicular lymphoma",
+    "duodenal-type follicular lymphoma",
+    "primary cutaneous follicle centre lymphoma",
+    "mantle cell neoplasm",
+    "in situ mantle cell neoplasm",
+    "mantle cell lymphoma",
+    "leukaemic non-nodal mantle cell lymphoma",
+    "large B-cell lymphoma",
+    "DLBCL, NOS",
+    "THRLBCL",
+    "DLBCL/HGBL-MYC/BCL2",
+    "ALK-positive large B-cell lymphoma",
+    "large B-cell lymphoma with IRF4 rearrangement",
+    "HGBL-11q",
+    "lymphomatoid granulomatosis",
+    "EBV-positive DLBCL",
+    "DLBCL associated with chronic inflammation",
+    "fibrin-associated large B-cell lymphoma",
+    "fluid overload-associated large B-cell lymphoma",
+    "plasmablastic lymphoma",
+    "primary large B-cell lymphoma of immune-privileged sites",
+    "primary cutaneous DLBCL, leg type",
+    "intravascular large B-cell lymphoma",
+    "primary mediastinal large B-cell lymphoma",
+    "mediastinal grey zone lymphoma",
+    "HGBL, NOS",
+    "Burkitt lymphoma",
+    "KSHV/HHV8-associated B-cell lymphoid neoplasm",
+    "primary effusion lymphoma",
+    "KSHV/HHV8-positive DLBCL",
+    "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
+    "Hodgkin lymphoma",
+    "classic Hodgkin lymphoma",
+    "nodular lymphocyte predominant Hodgkin lymphoma",
+    "plasma cell neoplasm/paraprotein disorder",
+    "monoclonal gammopathy",
+    "MGUS",
+    "cold agglutinin disease",
+    "IgM MGUS",
+    "non-IgM MGUS",
+    "MGRS",
+    "monoclonal immunoglobulin deposition disease",
+    "AL amyloidosis",
+    "heavy chain disease",
+    "mu heavy chain disease",
+    "gamma heavy chain disease",
+    "alpha heavy chain disease",
+    "plasma cell neoplasm",
+    "plasmacytoma",
+    "plasma cell myeloma",
+    "plasma cell neoplasm with paraneoplastic syndrome",
+    "POEMS syndrome",
+    "TEMPI syndrome",
+    "AESOP syndrome",
+    "T-cell/NK-cell lymphoid neoplasm",
+    "precursor T-cell neoplasm",
+    "T-ALL",
+    "T-ALL, NOS",
+    "ETP-ALL",
+    "mature T-cell/NK-cell neoplasm",
+    "mature T-cell/NK-cell leukaemia",
+    "T-PLL",
+    "T-LGLL",
+    "NK-LGLL",
+    "ATLL",
+    "Sezary syndrome",
+    "aggressive NK-cell leukaemia",
+    "primary cutaneous T-cell lymphoma",
+    "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
+    "primary cutaneous acral CD8-positive lymphoproliferative disorder",
+    "mycosis fungoides",
+    "lymphomatoid papulosis",
+    "primary cutaneous anaplastic large cell lymphoma",
+    "subcutaneous panniculitis-like T-cell lymphoma",
+    "primary cutaneous gamma/delta T-cell lymphoma",
+    "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma",
+    "primary cutaneous peripheral T-cell lymphoma, NOS",
+    "intestinal T-cell/NK-cell lymphoid neoplasm",
+    "indolent T-cell lymphoma of the gastrointestinal tract",
+    "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+    "enteropathy-associated T-cell lymphoma",
+    "monomorphic epitheliotropic intestinal T-cell lymphoma",
+    "intestinal T-cell lymphoma, NOS",
+    "hepatosplenic T-cell lymphoma",
+    "anaplastic large cell lymphoma",
+    "ALK-positive anaplastic large cell lymphoma",
+    "ALK-negative anaplastic large cell lymphoma",
+    "breast implant-associated anaplastic large cell lymphoma",
+    "nodal TFH cell lymphoma",
+    "nodal TFH cell lymphoma, angioimmunoblastic-type",
+    "nodal TFH cell lymphoma, follicular-type",
+    "nodal TFH cell lymphoma, NOS",
+    "peripheral T-cell lymphoma, NOS",
+    "EBV-positive T/NK-cell lymphoma",
+    "EBV-positive nodal T/NK-cell lymphoma",
+    "extranodal NK/T-cell lymphoma",
+    "systemic EBV-positive T-cell lymphoma of childhood",
+    "no_haematological_malignancy"
+  ],
+  "diagnosis_evidence_cards": [
+    {
+      "card_id": "arber-2022-blood-140-1200-C0001",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In CML, major-route additional clonal cytogenetic abnormalities present at diagnosis or acquired during treatment are a hallmark of accelerated phase.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0002",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CML accelerated phase is defined by 10%-19% blasts in peripheral blood or bone marrow.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0003",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CML blast phase is defined by at least 20% blasts in peripheral blood or bone marrow.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0004",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "PV",
+        "ET",
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "JAK2 V617F/exon 12, CALR, and MPL driver mutations support the diagnosis of PV, ET, or PMF and help distinguish driver-positive from triple-negative disease.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0009",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In JAK2 exon 12-mutated PV with isolated erythrocytosis and erythroid-predominant marrow, panmyelosis may not be an applicable diagnostic criterion.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0010",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "JAK2, CALR, or MPL mutation is a major diagnostic criterion for essential thrombocythemia.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0011",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "JAK2 V617F or JAK2 exon 12 mutation is a major diagnostic criterion for polycythemia vera.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0012",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In PV with sustained absolute erythrocytosis at the stated high hemoglobin/hematocrit thresholds, bone marrow biopsy may not be required when JAK2 V617F or JAK2 exon 12 mutation is present.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0013",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "JAK2, CALR, or MPL mutation is a major molecular diagnostic criterion for prefibrotic or overt primary myelofibrosis.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0014",
+      "category": "diagnosis",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SF3B1",
+        "SRSF2",
+        "TET2"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Mutations in ASXL1, EZH2, IDH1, IDH2, SF3B1, SRSF2, or TET2 can support the clonal nature of suspected PMF.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0015",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In PMF with monocytosis, a higher VAF of an MPN-associated driver mutation supports PMF with monocytosis rather than CMML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0016",
+      "category": "diagnosis",
+      "genes": [
+        "CSF3R"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Activating CSF3R driver mutations are the diagnostic genetic signature of CNL.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0017",
+      "category": "diagnosis",
+      "genes": [
+        "CSF3R"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Absence of a CSF3R mutation does not exclude CNL.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0018",
+      "category": "diagnosis",
+      "genes": [
+        "CSF3R"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CSF3R T618I or another activating CSF3R mutation satisfies the molecular diagnostic criterion for CNL.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0019",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1",
+        "PDGFRA",
+        "PDGFRB",
+        "FGFR1",
+        "JAK2",
+        "FLT3"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CNL requires exclusion of BCR::ABL1-positive CML and myeloid/lymphoid neoplasms with eosinophilia and tyrosine-kinase fusions.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0020",
+      "category": "diagnosis",
+      "genes": [
+        "CSF3R"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For CNL with CSF3R T618I or another activating CSF3R mutation, the leukocytosis threshold is at least 13 × 10^9/L; without an activating CSF3R mutation, the threshold is at least 25 × 10^9/L.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0021",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CNL with 10%-19% blasts in blood or bone marrow is classified as accelerated phase.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0022",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CNL with at least 20% blasts in blood or bone marrow is classified as blast phase.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0023",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1",
+        "PDGFRA",
+        "PDGFRB",
+        "FGFR1",
+        "JAK2",
+        "FLT3"
+      ],
+      "diseases": [
+        "CEL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CEL, NOS requires absence of BCR::ABL1, other ABL1, PDGFRA, PDGFRB, FGFR1, JAK2, or FLT3 tyrosine-kinase fusions.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0024",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "JAK2, CALR, or MPL mutation satisfies the molecular clonality criterion for MPN-U.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0025",
+      "category": "diagnosis",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SF3B1",
+        "SRSF2",
+        "TET2"
+      ],
+      "diseases": [
+        "MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Mutations such as ASXL1, EZH2, IDH1, IDH2, SF3B1, SRSF2, or TET2 support the clonal nature of MPN-U.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0026",
+      "category": "diagnosis",
+      "genes": [
+        "PDGFRA"
+      ],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "PDGFRA rearrangement defines an ICC genetic subtype of myeloid/lymphoid neoplasm with eosinophilia and a tyrosine-kinase fusion.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0027",
+      "category": "diagnosis",
+      "genes": [
+        "PDGFRB"
+      ],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "PDGFRB rearrangement defines an ICC genetic subtype of myeloid/lymphoid neoplasm with eosinophilia and a tyrosine-kinase fusion.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0028",
+      "category": "diagnosis",
+      "genes": [
+        "FGFR1"
+      ],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "FGFR1 rearrangement defines an ICC genetic subtype of myeloid/lymphoid neoplasm with eosinophilia and a tyrosine-kinase fusion.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0029",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2"
+      ],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "JAK2 rearrangement defines an ICC genetic subtype of myeloid/lymphoid neoplasm with eosinophilia and a tyrosine-kinase fusion.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0030",
+      "category": "diagnosis",
+      "genes": [
+        "FLT3"
+      ],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "FLT3 rearrangement defines an ICC genetic subtype of myeloid/lymphoid neoplasm with eosinophilia and a tyrosine-kinase fusion.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0031",
+      "category": "diagnosis",
+      "genes": [
+        "ETV6",
+        "ABL1"
+      ],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "ETV6::ABL1 defines an ICC genetic subtype of myeloid/lymphoid neoplasm with eosinophilia and a tyrosine-kinase fusion.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0039",
+      "category": "diagnosis",
+      "genes": [
+        "KIT"
+      ],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "KIT D816V or another activating KIT mutation in marrow, blood, or another extracutaneous organ is a minor diagnostic criterion for systemic mastocytosis.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0042",
+      "category": "diagnosis",
+      "genes": [
+        "PDGFRA",
+        "PDGFRB",
+        "FGFR1",
+        "JAK2",
+        "FLT3",
+        "ABL1"
+      ],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Identification of a tyrosine-kinase fusion associated with M/LN-eo excludes a diagnosis of systemic mastocytosis.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0045",
+      "category": "diagnosis",
+      "genes": [
+        "KIT"
+      ],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In systemic mastocytosis, high KIT D816V VAF, particularly with monocytosis, eosinophilia, splenomegaly, elevated LDH, or additional myeloid mutations, raises suspicion for an associated myeloid neoplasm.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0046",
+      "category": "diagnosis",
+      "genes": [
+        "SRSF2",
+        "TET2",
+        "ASXL1",
+        "SETBP1",
+        "NRAS",
+        "KRAS",
+        "RUNX1",
+        "CBL",
+        "EZH2"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In CMML, common myeloid mutations including SRSF2, TET2, ASXL1, SETBP1, NRAS, KRAS, RUNX1, CBL, and EZH2 can provide molecular evidence of clonality.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0049",
+      "category": "diagnosis",
+      "genes": [
+        "NPM1"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Development of an NPM1 mutation in established CMML should be noted but does not by itself define de novo AML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0050",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "When clonality is established, CMML can be diagnosed with an absolute monocyte count of at least 0.5 × 10^9/L provided monocytes remain at least 10% of WBC.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0051",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "The myeloproliferative subtype of CMML is defined by WBC greater than 13 × 10^9/L.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0052",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In aCML, absence of JAK2, CALR, and MPL driver mutations supports the diagnosis, whereas an MPN history or these driver mutations tends to exclude aCML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0053",
+      "category": "diagnosis",
+      "genes": [
+        "SETBP1",
+        "ASXL1"
+      ],
+      "diseases": [
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "SETBP1 mutation, often with ASXL1 co-mutation, supports a diagnosis of aCML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0054",
+      "category": "diagnosis",
+      "genes": [
+        "CSF3R"
+      ],
+      "diseases": [
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CSF3R mutation is uncommon in aCML and, if detected, should prompt morphologic review to exclude CNL.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0055",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1"
+      ],
+      "diseases": [
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "aCML requires absence of BCR::ABL1.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0056",
+      "category": "diagnosis",
+      "genes": [
+        "PDGFRA",
+        "PDGFRB",
+        "FGFR1",
+        "JAK2",
+        "FLT3",
+        "ABL1"
+      ],
+      "diseases": [
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "aCML requires absence of genetic abnormalities defining myeloid/lymphoid neoplasms with eosinophilia and tyrosine-kinase fusions.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0057",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS/MPN with SF3B1 mutation and thrombocytosis requires an SF3B1 mutation with VAF greater than 10%.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0058",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "When the qualifying SF3B1 mutation is present in MDS/MPN with SF3B1 mutation and thrombocytosis, ring sideroblasts are not required for diagnosis.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0059",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In MDS/MPN with SF3B1 mutation and thrombocytosis, JAK2 V617F, CALR, or MPL W515 co-mutation is not required but supports the diagnosis.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0060",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS-SF3B1 that later develops thrombocytosis is classified as thrombocytotic progression of MDS-SF3B1 rather than as MDS/MPN.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0061",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS/MPN with SF3B1 mutation and thrombocytosis requires absence of BCR::ABL1.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0062",
+      "category": "diagnosis",
+      "genes": [
+        "PDGFRA",
+        "PDGFRB",
+        "FGFR1",
+        "JAK2",
+        "FLT3",
+        "ABL1"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS/MPN with SF3B1 mutation and thrombocytosis requires absence of genetic abnormalities defining myeloid/lymphoid neoplasms with eosinophilia and tyrosine-kinase fusions.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0063",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "MDS/MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For MDS/MPN, NOS, an MPN history or JAK2, CALR, or MPL mutation—particularly at high VAF—tends to exclude the diagnosis.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0070",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Neither dysplasia nor ring sideroblasts are required for the diagnosis of MDS-SF3B1 when the defining genetic criteria are met.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0071",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS-SF3B1 requires an SF3B1 mutation with VAF at least 10%.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0072",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS-SF3B1 requires absence of multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0073",
+      "category": "diagnosis",
+      "genes": [
+        "RUNX1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS-SF3B1 requires absence of a RUNX1 mutation.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0074",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS with del(5q) requires del(5q) to be isolated or accompanied by only one other cytogenetic abnormality, except -7/del(7q).",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0075",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS with del(5q) excludes multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0076",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Adult MDS/AML is defined as a cytopenic myeloid neoplasm with 10%-19% blasts in blood or bone marrow.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0077",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS with mutated TP53 is defined in the 0%-9% blood or marrow blast range.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0078",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS with mutated TP53 requires multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0079",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "When TP53-locus LOH information is unavailable, a TP53 mutation with VAF above 10% plus complex karyotype is accepted for MDS with mutated TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0080",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Two distinct TP53 mutations, each with VAF above 10%, establish multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0081",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A TP53 mutation with a cytogenetic deletion involving the TP53 locus at 17p13.1 establishes multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0082",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A single TP53 mutation with VAF above 50% establishes multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0083",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A TP53 mutation with copy-neutral loss of heterozygosity at the 17p TP53 locus establishes multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0087",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Monoallelic TP53-mutated MDS is not included in the ICC MDS with mutated TP53 entity, which requires multi-hit TP53.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0088",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS/AML with mutated TP53 is defined by 10%-19% blood or marrow blasts and any somatic TP53 mutation with VAF above 10%.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0089",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with mutated TP53 is defined by at least 20% blood or marrow blasts, or pure erythroid leukemia criteria, plus any somatic TP53 mutation with VAF above 10%.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0090",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Acquisition of TP53 mutation during MDS progression can reclassify disease as MDS, MDS/AML, or AML with mutated TP53 according to blast count.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0091",
+      "category": "diagnosis",
+      "genes": [
+        "PTPN11",
+        "KRAS",
+        "NRAS",
+        "RRAS"
+      ],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A somatic mutation in PTPN11, KRAS, NRAS, or RRAS is a qualifying genetic route for JMML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0092",
+      "category": "diagnosis",
+      "genes": [
+        "NF1"
+      ],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Germline NF1 mutation with acquired loss of heterozygosity, or a clinical diagnosis of neurofibromatosis type 1, is a qualifying genetic route for JMML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0093",
+      "category": "diagnosis",
+      "genes": [
+        "CBL"
+      ],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Germline CBL mutation with acquired loss of heterozygosity is a qualifying genetic route for JMML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0096",
+      "category": "diagnosis",
+      "genes": [
+        "PTPN11",
+        "NRAS",
+        "KRAS"
+      ],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "PTPN11-, NRAS-, and KRAS-mutated JMML are characterized by heterozygous somatic gain-of-function mutations in children without germline disease.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0116",
+      "category": "diagnosis",
+      "genes": [
+        "RUNX1",
+        "ETV6"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In germline RUNX1- or ETV6-associated platelet disorders, megakaryocytic dysplasia can occur without MDS and therefore should not by itself establish MDS.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0117",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In a germline-predisposition setting, emergence of multi-hit TP53 mutation with VAF above 10% is considered MDS-defining.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0118",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In a germline-predisposition setting, emergence of SF3B1 mutation with VAF above 10% is considered MDS-defining.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0119",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In Shwachman-Diamond syndrome, a small stable monoallelic TP53-mutant clone in isolation is not considered development of MDS.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0120",
+      "category": "diagnosis",
+      "genes": [
+        "PML",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "APL with PML::RARA can be diagnosed in the ICC with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0121",
+      "category": "diagnosis",
+      "genes": [
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "APL with another RARA rearrangement can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0122",
+      "category": "diagnosis",
+      "genes": [
+        "IRF2BP2",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving IRF2BP2 is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0123",
+      "category": "diagnosis",
+      "genes": [
+        "NPM1",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving NPM1 is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0124",
+      "category": "diagnosis",
+      "genes": [
+        "ZBTB16",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving ZBTB16 is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0125",
+      "category": "diagnosis",
+      "genes": [
+        "STAT5B",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving STAT5B is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0126",
+      "category": "diagnosis",
+      "genes": [
+        "STAT3",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving STAT3 is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0127",
+      "category": "diagnosis",
+      "genes": [
+        "TBL1XR1",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving TBL1XR1 is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0128",
+      "category": "diagnosis",
+      "genes": [
+        "FIP1L1",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving FIP1L1 is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0129",
+      "category": "diagnosis",
+      "genes": [
+        "BCOR",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A RARA rearrangement involving BCOR is included among APL with other RARA rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0130",
+      "category": "diagnosis",
+      "genes": [
+        "RUNX1",
+        "RUNX1T1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with RUNX1::RUNX1T1 can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0131",
+      "category": "diagnosis",
+      "genes": [
+        "CBFB",
+        "MYH11"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with CBFB::MYH11 can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0132",
+      "category": "diagnosis",
+      "genes": [
+        "MLLT3",
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with MLLT3::KMT2A can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0133",
+      "category": "diagnosis",
+      "genes": [
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with another KMT2A rearrangement can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0134",
+      "category": "diagnosis",
+      "genes": [
+        "AFF1",
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A AFF1/KMT2A rearrangement is included among AML with other KMT2A rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0135",
+      "category": "diagnosis",
+      "genes": [
+        "AFDN",
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A AFDN/KMT2A rearrangement is included among AML with other KMT2A rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0136",
+      "category": "diagnosis",
+      "genes": [
+        "MLLT10",
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A MLLT10/KMT2A rearrangement is included among AML with other KMT2A rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0137",
+      "category": "diagnosis",
+      "genes": [
+        "TET1",
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A TET1/KMT2A rearrangement is included among AML with other KMT2A rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0138",
+      "category": "diagnosis",
+      "genes": [
+        "ELL",
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A ELL/KMT2A rearrangement is included among AML with other KMT2A rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0139",
+      "category": "diagnosis",
+      "genes": [
+        "MLLT1",
+        "KMT2A"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "A MLLT1/KMT2A rearrangement is included among AML with other KMT2A rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0140",
+      "category": "diagnosis",
+      "genes": [
+        "DEK",
+        "NUP214"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with DEK::NUP214 can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0141",
+      "category": "diagnosis",
+      "genes": [
+        "GATA2",
+        "MECOM"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with inv(3)/t(3;3) involving GATA2 and MECOM can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0142",
+      "category": "diagnosis",
+      "genes": [
+        "MECOM"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with another MECOM rearrangement can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0143",
+      "category": "diagnosis",
+      "genes": [
+        "MECOM"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "t(2;3) involving MECOM is included among AML with other MECOM rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0144",
+      "category": "diagnosis",
+      "genes": [
+        "MYC",
+        "MECOM"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "t(3;8) involving MYC and MECOM is included among AML with other MECOM rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0145",
+      "category": "diagnosis",
+      "genes": [
+        "ETV6",
+        "MECOM"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "ETV6::MECOM is included among AML with other MECOM rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0146",
+      "category": "diagnosis",
+      "genes": [
+        "MECOM",
+        "RUNX1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MECOM::RUNX1 is included among AML with other MECOM rearrangements, diagnosable with at least 10% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0147",
+      "category": "diagnosis",
+      "genes": [
+        "NPM1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with mutated NPM1 can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0148",
+      "category": "diagnosis",
+      "genes": [
+        "CEBPA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with an in-frame bZIP CEBPA mutation can be diagnosed with at least 10% blood or marrow blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0149",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with BCR::ABL1 retains a blast requirement of at least 20%.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0150",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "The MDS/AML category is not used for BCR::ABL1-positive AML because of overlap with progression of BCR::ABL1-positive CML.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0151",
+      "category": "diagnosis",
+      "genes": [
+        "ASXL1"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "ASXL1 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0152",
+      "category": "diagnosis",
+      "genes": [
+        "BCOR"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "BCOR mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0153",
+      "category": "diagnosis",
+      "genes": [
+        "EZH2"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "EZH2 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0154",
+      "category": "diagnosis",
+      "genes": [
+        "RUNX1"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "RUNX1 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0155",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "SF3B1 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0156",
+      "category": "diagnosis",
+      "genes": [
+        "SRSF2"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "SRSF2 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0157",
+      "category": "diagnosis",
+      "genes": [
+        "STAG2"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "STAG2 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0158",
+      "category": "diagnosis",
+      "genes": [
+        "U2AF1"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "U2AF1 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0159",
+      "category": "diagnosis",
+      "genes": [
+        "ZRSR2"
+      ],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "ZRSR2 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0164",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In AML classification, single-gene mutation or gene-fusion categories take precedence over myelodysplasia-related gene-mutation and myelodysplasia-related cytogenetic categories.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0165",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Pure erythroid leukemia is typically TP53-mutated and is classified within AML with TP53 mutation in the ICC.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0166",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "The remaining AML categories retain a blast requirement of at least 20%.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0167",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS cases with 10%-19% blasts are classified as MDS/AML after higher-priority AML-defining genetic categories are considered.",
+      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "bernard-2022-nejm-evidence-1-na-C0001",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In MDS, TP53 multihit status is defined by multiple TP53 mutations or by a TP53 mutation with loss of heterozygosity, including chromosomal deletion or copy-neutral LOH.",
+      "paper_nickname": "IPSS-M Prognostic score for MDS",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0001",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "AML classification is hierarchical: AML with a recurrent genetic abnormality takes precedence; among remaining categories, TP53-mutated disease supersedes myelodysplasia-related gene-mutated disease, which supersedes myelodysplasia-related cytogenetic disease.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0002",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For categories other than AML-defining recurrent genetic abnormalities, 10%-19% marrow or blood blasts are designated MDS/AML and at least 20% blasts are designated AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0003",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Cases with a prior MPN are excluded from AML classification at 10%-19% blasts and are classified as accelerated-phase MPN; at at least 20% blasts they are classified as blast-phase MPN.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0004",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS/MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "For patients with an established MDS/MPN, the MDS/MPN diagnosis is retained until there are at least 20% blasts/blast equivalents; detection of an AML-defining recurrent genetic abnormality at 10%-19% blasts does not itself change that diagnostic label.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0005",
+      "category": "diagnosis",
+      "genes": [
+        "PML",
+        "RARA"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "t(15;17)(q24.1;q21.2)/PML::RARA defines APL/AML with at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0006",
+      "category": "diagnosis",
+      "genes": [
+        "RUNX1",
+        "RUNX1T1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "t(8;21)(q22;q22.1)/RUNX1::RUNX1T1 defines AML with at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0007",
+      "category": "diagnosis",
+      "genes": [
+        "CBFB",
+        "MYH11"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "inv(16)(p13.1q22) or t(16;16)(p13.1;q22)/CBFB::MYH11 defines AML with at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0008",
+      "category": "diagnosis",
+      "genes": [
+        "KMT2A",
+        "MLLT3"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "t(9;11)(p21.3;q23.3)/MLLT3::KMT2A defines AML with at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0009",
+      "category": "diagnosis",
+      "genes": [
+        "DEK",
+        "NUP214"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "t(6;9)(p22.3;q34.1)/DEK::NUP214 defines AML with at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0010",
+      "category": "diagnosis",
+      "genes": [
+        "GATA2",
+        "MECOM"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "inv(3)(q21.3q26.2) or t(3;3)(q21.3;q26.2)/GATA2,MECOM(EVI1) defines AML with at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0011",
+      "category": "diagnosis",
+      "genes": [
+        "NPM1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Mutated NPM1 is an AML-defining recurrent genetic abnormality when marrow or blood blasts are at least 10%.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0012",
+      "category": "diagnosis",
+      "genes": [
+        "CEBPA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "An in-frame mutation in the CEBPA bZIP domain, monoallelic or biallelic, defines the CEBPA-mutated AML subtype when marrow or blood blasts are at least 10%.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0013",
+      "category": "diagnosis",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "diseases": [
+        "AML",
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with t(9;22)(q34.1;q11.2)/BCR::ABL1 requires at least 20% marrow or blood blasts; cases with BCR::ABL1 rearrangement and 10%-19% blasts are classified as CML in accelerated phase.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0014",
+      "category": "diagnosis",
+      "genes": [
+        "BCOR",
+        "FIP1L1",
+        "IRF2BP2",
+        "NPM1",
+        "RARA",
+        "STAT3",
+        "STAT5B",
+        "TBL1XR1",
+        "ZBTB16"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In acute promyelocytic leukemia (APL), recurrent RARA rearrangements involving IRF2BP2, NPM1, ZBTB16, STAT5B, STAT3, TBL1XR1, FIP1L1, or BCOR should be reported as the specific RARA-rearranged entity; as AML-defining recurrent abnormalities, they apply at at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0015",
+      "category": "diagnosis",
+      "genes": [
+        "AFDN",
+        "AFF1",
+        "ELL",
+        "KMT2A",
+        "MLLT1",
+        "MLLT10",
+        "TET1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In acute myeloid leukemia (AML), recurrent KMT2A rearrangements with AFF1, AFDN, MLLT10, TET1, ELL, or MLLT1 should be reported as the specific KMT2A-rearranged entity; as AML-defining recurrent abnormalities, they apply at at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0016",
+      "category": "diagnosis",
+      "genes": [
+        "ETV6",
+        "MECOM",
+        "MYC",
+        "RUNX1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In acute myeloid leukemia (AML), recurrent MECOM rearrangements involving MYC, ETV6, RUNX1, or the listed t(2;3) MECOM rearrangement should be reported as the specific MECOM-rearranged entity; as AML-defining recurrent abnormalities, they apply at at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0017",
+      "category": "diagnosis",
+      "genes": [
+        "CBFA2T3",
+        "CREBBP",
+        "ERG",
+        "ETV6",
+        "FUS",
+        "GLIS2",
+        "KAT6A",
+        "KMD5A",
+        "MLF1",
+        "MLLT10",
+        "MNX1",
+        "MRTFA",
+        "NPM1",
+        "NSD1",
+        "NUP98",
+        "PICALM",
+        "PRDM16",
+        "RBM15",
+        "RPN1",
+        "RUNX1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In acute myeloid leukemia (AML), the rare recurring rearrangements involving PRDM16::RPN1, RBM15::MRTFA, NPM1::MLF1, NUP98::NSD1, ETV6::MNX1, KAT6A::CREBBP, PICALM::MLLT10, NUP98::KMD5A or other NUP98 partners, FUS::ERG, RUNX1::CBFA2T3, and CBFA2T3::GLIS2 are AML-defining recurrent genetic abnormalities and apply at at least 10% marrow or blood blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0018",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In the absence of an overriding AML-defining recurrent genetic abnormality, a pathogenic somatic TP53 mutation with VAF at least 10%, with or without loss of the wild-type TP53 allele, defines the TP53-mutated category; cases are MDS/AML at 10%-19% blasts and AML at at least 20% blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0019",
+      "category": "diagnosis",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "EZH2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "TP53",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "diseases": [
+        "AML",
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In acute myeloid leukemia (AML) lacking an overriding recurrent AML abnormality and TP53 mutation, mutations in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2 define the myelodysplasia-related gene-mutated category irrespective of prior MDS; these cases are designated MDS/AML at 10%-19% blasts and AML at at least 20% blasts.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0020",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "At least three unrelated chromosome abnormalities, excluding class-defining recurring abnormalities and hyperdiploid karyotypes with three or more trisomies/polysomies without structural abnormalities, is a complex karyotype sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0021",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "del(5q), t(5q), or add(5q) is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0022",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Monosomy 7 or del(7q) is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0023",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Trisomy 8 is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0024",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "del(12p), t(12p), or add(12p) is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0025",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "i(17q) is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0026",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Monosomy 17, add(17p), or del(17p) is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0027",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "del(20q) is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0028",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "idic(X)(q13) is sufficient for the myelodysplasia-related cytogenetic AML category when higher-priority categories are absent. In this branch, 10%-19% blasts is MDS/AML and at least 20% blasts is AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0029",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Remaining cases without a higher-priority AML-defining category are classified as AML, not otherwise specified, when blasts are at least 20%, irrespective of the presence or absence of multilineage dysplasia.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0030",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "When a germline predisposing disorder is identified, it is appended as a diagnostic qualifier to the specific genetically defined AML disease category rather than replacing that primary category.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0031",
+      "category": "diagnosis",
+      "genes": [
+        "CEBPA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "In germline CEBPA-mutation carriers, distinct acquired CEBPA mutations can re-emerge as independent primary AMLs rather than representing relapse, so recurrence may require distinction between a new primary AML and relapse.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0032",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Prior cytotoxic chemotherapy, radiotherapy, or immune intervention for a nonmyeloid neoplasm is recorded as a therapy-related diagnostic qualifier rather than defining a separate AML disease entity.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0033",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Progression from MDS is appended as a diagnostic qualifier when the antecedent MDS was confirmed by standard diagnostics more than 3 months before AML diagnosis.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0034",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS/MPN"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Progression from MDS/MPN is appended as a diagnostic qualifier, with the MDS/MPN type specified, when the antecedent MDS/MPN was confirmed by standard diagnostics more than 3 months before AML diagnosis.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0035",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Multiparameter flow-cytometric immunophenotyping is required to diagnose AML accurately by identifying cell-surface and intracellular markers.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0036",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In acute myeloid leukemia (AML), when bone-marrow aspirate is unobtainable and circulating blasts are absent, myeloid phenotype may be confirmed on a core biopsy by immunohistochemistry.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0037",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Conventional cytogenetic analysis is mandatory in the evaluation of AML.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0038",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In acute myeloid leukemia (AML), if conventional cytogenetics yields no analyzable metaphases, FISH is an alternative for detecting specified recurrent fusions and myelodysplasia-related chromosome abnormalities.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0044",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Myeloblasts, monoblasts, and megakaryoblasts are included in the marrow or blood blast count used for AML classification.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0045",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In AML with monocytic or myelomonocytic differentiation, monoblasts and promonocytes are counted as blast equivalents, whereas abnormal monocytes are not.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0046",
+      "category": "diagnosis",
+      "genes": [
+        "PML",
+        "RARA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In AML with PML::RARA or a variant RARA rearrangement, promyelocytes are counted as blast equivalents for classification.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0047",
+      "category": "diagnosis",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Cases with a history of CML and at least 20% blasts are classified as CML in myeloid blast phase rather than AML with BCR::ABL1.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0048",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS/AML",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Remaining cases without a higher-priority AML-defining category are designated MDS/AML otherwise not specified when marrow or blood blasts are 10%-19%.",
+      "paper_nickname": "ELN AML Recommendations 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "d-hner-2024-blood-144-2169-C0009",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Do not apply the 2024 ELN Less-Intensive classification to AML patients who have received prior HMA treatment.",
+      "paper_nickname": "ELN 2024 Less-Intensive AML Risk Classification",
+      "publication_year": 2024,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "elena-2016-blood-128-1408-C0001",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "In CMML, the FAB classification distinguishes myelodysplastic from myeloproliferative disease using a leukocyte-count threshold of 13 × 10^9/L (≤13 × 10^9/L vs >13 × 10^9/L, respectively).",
+      "paper_nickname": "CMML-specific CPSS-Mol score",
+      "publication_year": 2016,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "elena-2016-blood-128-1408-C0002",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "NRAS",
+        "SETBP1"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In CMML, JAK2, NRAS, and SETBP1 mutations were significantly associated with the myeloproliferative subtype (CMML-MP).",
+      "paper_nickname": "CMML-specific CPSS-Mol score",
+      "publication_year": 2016,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "elena-2016-blood-128-1408-C0003",
+      "category": "diagnosis",
+      "genes": [
+        "TET2",
+        "SF3B1"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In CMML, TET2 and SF3B1 mutations were significantly associated with the myelodysplastic subtype (CMML-MD; P=.007 and P=.03, respectively).",
+      "paper_nickname": "CMML-specific CPSS-Mol score",
+      "publication_year": 2016,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0003",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CCUS",
+        "MDS",
+        "MDS/MPN"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For CCUS, MDS and MDS/MPN, cytopenia thresholds are haemoglobin <13 g/dL in males or <12 g/dL in females, ANC <1.8 ×10^9/L, and platelets <150 ×10^9/L.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0004",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1"
+      ],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CML is defined by the BCR::ABL1 fusion resulting from t(9;22)(q34;q11).",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0006",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CML blast phase is defined by ≥20% myeloid blasts in blood or marrow, extramedullary blast proliferation, or increased lymphoblasts in blood or marrow; accelerated phase is omitted from WHO5.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0007",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Major PV diagnostic criteria include elevated haemoglobin and/or haematocrit, marrow panmyelosis with pleomorphic mature megakaryocytes, and JAK2 p.V617F or a JAK2 exon 12 mutation.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0009",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CNL is a BCR::ABL1-negative MPN characterized by sustained neutrophilia with WBC ≥25 ×10^9/L and ≥80% segmented neutrophils/bands, neutrophilic marrow hypercellularity and hepatosplenomegaly.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0010",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CEL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CEL is characterized by sustained clonal proliferation of morphologically abnormal eosinophils/eosinophil precursors causing persistent blood and marrow hypereosinophilia.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0011",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CEL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For CEL, the interval required to define sustained hypereosinophilia is 4 weeks rather than 6 months.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0012",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CEL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CEL requires both evidence of clonality and abnormal bone-marrow morphology, such as megakaryocytic or erythroid dysplasia.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0013",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CEL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For CEL, increased blasts (≥2% in blood or 5–19% in marrow) are no longer an alternative to demonstrating clonality.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0014",
+      "category": "diagnosis",
+      "genes": [
+        "KMT2A"
+      ],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Updated JMML criteria require exclusion of KMT2A rearrangements.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0015",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "JMML diagnosis emphasizes molecular studies demonstrating RAS-pathway activation together with clinical and laboratory criteria.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0019",
+      "category": "diagnosis",
+      "genes": [
+        "KIT"
+      ],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In systemic mastocytosis, KIT p.D816V with VAF ≥10% in bone-marrow cells or peripheral-blood leukocytes qualifies as a B-finding.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0020",
+      "category": "diagnosis",
+      "genes": [
+        "KIT"
+      ],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Any KIT mutation causing ligand-independent activation is accepted as a minor diagnostic criterion for systemic mastocytosis.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0021",
+      "category": "diagnosis",
+      "genes": [
+        "KIT"
+      ],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Well-differentiated systemic mastocytosis may occur in any systemic-mastocytosis subtype; most cases lack KIT codon 816 mutation and typically show CD25/CD2 negativity with CD30 positivity.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0022",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS is defined by cytopenias and morphologic dysplasia, with a recommended dysplasia threshold of 10% for all lineages.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0023",
+      "category": "diagnosis",
+      "genes": [
+        "TP53",
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Within genetically defined MDS, MDS with biallelic TP53 inactivation supersedes MDS-5q and MDS-SF3B1 in the WHO5 hierarchy.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0024",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In MDS-5q, an SF3B1 mutation or a TP53 mutation that is not multi-hit does not by itself override the MDS-5q diagnosis.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0025",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For SF3B1-wild-type MDS with ≥15% ring sideroblasts, “MDS with low blasts and ring sideroblasts” remains an acceptable alternative designation.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0033",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS",
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "WHO5 retains a 20% blast cutoff to delineate MDS from AML while removing blast cutoffs for most AML types with defining genetic abnormalities.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0036",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "CMML requires persistent absolute peripheral-blood monocytosis ≥0.5 ×10^9/L and relative monocytosis ≥10%.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0037",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "When absolute monocytosis is ≥0.5 but <1.0 ×10^9/L, CMML diagnosis requires a clonal cytogenetic or molecular abnormality and dysplasia in at least one lineage.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0038",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "CMML",
+        "MPN"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In a patient with monocytosis, a documented MPN history excludes CMML; marrow MPN features and/or a high burden of JAK2, CALR or MPL mutations supports MPN with monocytosis rather than CMML.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0039",
+      "category": "diagnosis",
+      "genes": [
+        "PDGFRA",
+        "FIP1L1",
+        "PDGFRB",
+        "ETV6",
+        "FGFR1",
+        "JAK2",
+        "FLT3",
+        "ABL1",
+        "FGFR2",
+        "LYN",
+        "NTRK3",
+        "RANBP2",
+        "ALK",
+        "BCR",
+        "RET",
+        "FGFR1OP"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In a suspected CMML case with eosinophilia, myeloid/lymphoid neoplasms with tyrosine-kinase gene fusions should be excluded by assessing for PDGFRA rearrangement (most commonly FIP1L1::PDGFRA), PDGFRB rearrangement (most commonly ETV6::PDGFRB), FGFR1 rearrangement, JAK2 rearrangement, FLT3 rearrangement, ETV6::ABL1, and other defined tyrosine-kinase fusions including ETV6::FGFR2, ETV6::LYN, ETV6::NTRK3, RANBP2::ALK, BCR::RET, and FGFR1OP::RET. WHO5 treats PDGFRA, PDGFRB, FGFR1, JAK2 and FLT3 as rearrangement-defined categories rather than restricting them to a single fusion partner.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0040",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS/MPN"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "MDS/MPN with ring sideroblasts and thrombocytosis is redefined on the basis of SF3B1 mutation and renamed MDS/MPN with SF3B1 mutation and thrombocytosis.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0041",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS/MPN"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For SF3B1-wild-type MDS/MPN with ≥15% ring sideroblasts, “MDS/MPN with ring sideroblasts and thrombocytosis” remains an acceptable term.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0042",
+      "category": "diagnosis",
+      "genes": [
+        "PML",
+        "RARA",
+        "RUNX1",
+        "RUNX1T1",
+        "CBFB",
+        "MYH11"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "WHO5 recognizes AML with PML::RARA, RUNX1::RUNX1T1 and CBFB::MYH11 as AML types with defining genetic abnormalities.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0043",
+      "category": "diagnosis",
+      "genes": [
+        "BCR",
+        "ABL1",
+        "CEBPA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with BCR::ABL1 and AML with CEBPA mutation are the defining-genetic-abnormality AML types that still require at least 20% blasts; for BCR::ABL1 this avoids overlap with CML.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0044",
+      "category": "diagnosis",
+      "genes": [
+        "KMT2A",
+        "MECOM",
+        "NUP98"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with KMT2A, MECOM or NUP98 rearrangement may be diagnosed with a blast count below 20%.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0048",
+      "category": "diagnosis",
+      "genes": [
+        "NPM1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with NPM1 mutation can be diagnosed irrespective of blast count, with clinicopathologic correlation.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0050",
+      "category": "diagnosis",
+      "genes": [
+        "CEBPA"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML with CEBPA mutation includes biallelic CEBPA mutations and single CEBPA mutations in the basic leucine zipper region.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0052",
+      "category": "diagnosis",
+      "genes": [
+        "RUNX1"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Somatic RUNX1 mutation is not sufficient to define a standalone WHO5 AML type because it lacks specificity across defining molecular contexts.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0053",
+      "category": "diagnosis",
+      "genes": [
+        "SRSF2",
+        "SF3B1",
+        "U2AF1",
+        "ZRSR2",
+        "ASXL1",
+        "EZH2",
+        "BCOR",
+        "STAG2"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "AML, myelodysplasia-related has a mutation-based definition that includes SRSF2, SF3B1, U2AF1, ZRSR2, ASXL1, EZH2, BCOR or STAG2.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0054",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Morphologic myelodysplasia alone is no longer sufficient to diagnose AML, myelodysplasia-related.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0055",
+      "category": "diagnosis",
+      "genes": [
+        "CBFA2T3",
+        "GLIS2"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "In acute megakaryoblastic leukaemia, the RAM immunophenotype correlates with CBFA2T3::GLIS2, a subtype of AML with other defined genetic alterations.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0072",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CEL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Before a diagnosis of CEL is rendered, myeloid/lymphoid neoplasms with tyrosine-kinase gene fusions must be excluded.",
+      "paper_nickname": "WHO 5th Edition 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0001",
+      "category": "diagnosis",
+      "genes": [
+        "TET2",
+        "ASXL1",
+        "SRSF2",
+        "SF3B1",
+        "DNMT3A",
+        "RUNX1",
+        "JAK2",
+        "TP53",
+        "U2AF1",
+        "EZH2",
+        "IDH2",
+        "ZRSR2",
+        "NRAS",
+        "IDH1",
+        "STAG2",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "KRAS",
+        "GATA2",
+        "PTPN11",
+        "CALR",
+        "ETV6",
+        "PHF6",
+        "KIT",
+        "NPM1",
+        "MLL",
+        "GNAS",
+        "ATRX",
+        "CDKN2A",
+        "KDM6A",
+        "MPL",
+        "WT1",
+        "ABL1",
+        "RAD21",
+        "FLT3",
+        "CEBPA",
+        "GATA1"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In patients investigated for unexplained cytopenia, a negative result across the studied 40-gene panel did not exclude the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML): the negative predictive value was 0.76, increasing to 0.84 when mutation status was combined with standard karyotyping.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0002",
+      "category": "diagnosis",
+      "genes": [
+        "TET2",
+        "ASXL1",
+        "SRSF2",
+        "SF3B1",
+        "DNMT3A",
+        "RUNX1",
+        "JAK2",
+        "TP53",
+        "U2AF1",
+        "EZH2",
+        "IDH2",
+        "ZRSR2",
+        "NRAS",
+        "IDH1",
+        "STAG2",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "KRAS",
+        "GATA2",
+        "PTPN11",
+        "CALR",
+        "ETV6",
+        "PHF6",
+        "KIT",
+        "NPM1",
+        "MLL",
+        "GNAS",
+        "ATRX",
+        "CDKN2A",
+        "KDM6A",
+        "MPL",
+        "WT1",
+        "ABL1",
+        "RAD21",
+        "FLT3",
+        "CEBPA",
+        "GATA1"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In patients investigated for unexplained cytopenia, finding two or more somatic mutations in the studied 40-gene panel was strongly predictive of the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML), with positive predictive value 0.88 (95% CI 0.84-0.92). These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0003",
+      "category": "diagnosis",
+      "genes": [
+        "TET2",
+        "ASXL1",
+        "SRSF2",
+        "SF3B1",
+        "DNMT3A",
+        "RUNX1",
+        "JAK2",
+        "TP53",
+        "U2AF1",
+        "EZH2",
+        "IDH2",
+        "ZRSR2",
+        "NRAS",
+        "IDH1",
+        "STAG2",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "KRAS",
+        "GATA2",
+        "PTPN11",
+        "CALR",
+        "ETV6",
+        "PHF6",
+        "KIT",
+        "NPM1",
+        "MLL",
+        "GNAS",
+        "ATRX",
+        "CDKN2A",
+        "KDM6A",
+        "MPL",
+        "WT1",
+        "ABL1",
+        "RAD21",
+        "FLT3",
+        "CEBPA",
+        "GATA1"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "For mutations measured in isolated peripheral-blood granulocytes, a VAF around 0.10 was associated with the best classification of the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML); the paper cautions that the applicable allele-burden threshold may vary when a different blood-cell source is used. These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0004",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1",
+        "SRSF2",
+        "U2AF1",
+        "JAK2",
+        "RUNX1"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In unexplained cytopenia, mutations in SF3B1, SRSF2, U2AF1, JAK2, or RUNX1 had the highest predictive values for the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML), with positive predictive values of 0.88-0.97 irrespective of co-occurring mutations. These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0005",
+      "category": "diagnosis",
+      "genes": [
+        "TET2",
+        "DNMT3A",
+        "ASXL1"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In unexplained cytopenia, isolated TET2, DNMT3A, or ASXL1 mutations were substantially less predictive of the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML) than the same mutations occurring with additional genetic lesions (positive predictive value 0.29-0.57 vs 0.81-0.89). These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0009",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "For patients diagnosed with MDS on the basis of mild dysplasia (<25% dysplastic cells), absence of detectable clonality by standard cytogenetics and targeted sequencing, together with a stable course, raised concern that the MDS diagnosis might be inappropriate despite meeting then-current WHO criteria.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0010",
+      "category": "diagnosis",
+      "genes": [
+        "SRSF2",
+        "U2AF1",
+        "JAK2"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "Primary myelofibrosis with JAK2 co-mutation was the stated specificity exception for SRSF2 or U2AF1: after excluding this pattern, SRSF2 and U2AF1 mutations showed 100% specificity for myeloid neoplasm with myelodysplasia.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0011",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1",
+        "SRSF2",
+        "U2AF1",
+        "ZRSR2",
+        "TET2",
+        "ASXL1",
+        "DNMT3A",
+        "RUNX1",
+        "EZH2",
+        "CBL",
+        "BCOR",
+        "CUX1",
+        "TP53",
+        "IDH1",
+        "IDH2",
+        "JAK2"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In cases with inconclusive dysplasia, highly specific mutation patterns may provide presumptive evidence of MDS even without definitive morphology. The reported patterns included splicing-factor mutations and co-mutation patterns involving TET2, ASXL1, or DNMT3A with RUNX1, EZH2, CBL, BCOR, CUX1, TP53, or IDH1/IDH2; SRSF2/U2AF1 with JAK2 in primary myelofibrosis was a stated specificity exception.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0012",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "In MDS with del(5q), the chromosomal deletion itself can represent the founding and disease-defining genetic lesion.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0013",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "As restated from then-current WHO criteria, MDS diagnosis required unexplained cytopenia plus morphologic evidence of dysplasia and/or an MDS-specific cytogenetic abnormality.",
+      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "publication_year": 2017,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "mpn-genomics-interferon-response-C0001",
+      "category": "diagnosis",
+      "genes": [
+        "JAK2",
+        "CALR",
+        "MPL"
+      ],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "In MPN, absence of mutations in all three phenotypic driver genes JAK2, CALR, and MPL defines the molecular designation “triple-negative.”",
+      "paper_nickname": "DALIAH 2022 MPN genomics",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    },
+    {
+      "card_id": "passamonti-2017-mysec-pm-secondary-C0010",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "As restated in this paper, bone marrow fibrosis above grade 1 is one of the two main IWG-MRT diagnostic criteria for post-PV/post-ET myelofibrosis.",
+      "paper_nickname": "MYSEC-PM 2017 secondary myelofibrosis",
+      "publication_year": 2017,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "myeloid neoplasm, unspecified"
+      ]
+    }
+  ],
+  "corpus_digest": "53a43d1f45980f1acdd94f9b32abbfb964e99953cad493a79137d48db04c3ee3"
+}

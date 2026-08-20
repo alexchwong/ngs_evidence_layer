@@ -1,0 +1,90 @@
+schema_version: 1
+execution_profiles:
+  frontier:
+    groups: [[DX1, DX2, DX3, DX4, DX5], [DX6], [DX7]]
+  balanced:
+    groups: [[DX1, DX2, DX3], [DX4, DX5], [DX6], [DX7]]
+  deliberate:
+    groups: [[DX1], [DX2], [DX3], [DX4], [DX5], [DX6], [DX7]]
+questions:
+  - id: DX1
+    question: >-
+      What disease process or processes best explain the case as a whole, before applying a formal
+      classification system?
+    guidance:
+      - Treat this as a provisional whole-case interpretation, not a locked conclusion.
+      - Integrate clinical, morphological, cytogenetic and molecular findings rather than reasoning outward from one gene or VAF.
+      - Do not diagnose a myeloid neoplasm from mutation number, mutation identity or VAF alone.
+      - An explicitly negative NGS result is a valid case state; do not invent a molecular abnormality when no variants were reported.
+  - id: DX2
+    question: >-
+      Can all material findings reasonably be explained by that process, or is there direct evidence
+      for an alternative diagnosis or a concurrent second pathology?
+    guidance:
+      - Actively challenge the current state and distinguish a competing classification from true concurrent pathology.
+      - If a credible second disease family is seriously entertained, add its canonical CMC to provisional_cmcs so later groups can retrieve its diagnostic evidence.
+      - Do not assume a disease-defining molecular alteration excludes dual pathology.
+      - If there is no material diagnostic consequence, leave the state unchanged rather than adding a negative fact.
+  - id: DX3
+    question: >-
+      Do the findings support an overt neoplasm, CHIP or CCUS or another precursor clonal state,
+      an established or suspected germline predisposition or syndrome, or a combination of these;
+      and what is established versus merely possible?
+    guidance:
+      - Reconsider whether all molecular findings belong to the same overt neoplastic process.
+      - CHIP, CCUS, germline predisposition and overt neoplasia are not mutually exclusive.
+      - Do not infer somatic or constitutional origin from tumour-only sequencing, bulk VAF, absent family history, age, morphology, normal cytogenetics or co-mutation pattern alone.
+      - A negative NGS result does not establish absence of pathology.
+      - If this does not materially change or qualify the diagnostic interpretation, leave the state unchanged.
+  - id: DX4
+    question: >-
+      Given the interpretation so far, what WHO 5th edition diagnosis or concurrent diagnoses are
+      actually established, or is no WHO5-defined haematological pathology identified; and which
+      findings are necessary to establish, qualify or distinguish that conclusion?
+    guidance:
+      - WHO5 is authoritative for the assigned diagnosis.
+      - Derive the assigned diagnosis from WHO5 criteria, not ICC criteria.
+      - Apply exact supplied blast, morphology, cytogenetic, alteration-class, VAF and exclusion requirements.
+      - Replace or delete superseded provisional labels.
+      - Retain a co-occurring finding only if it establishes, distinguishes, excludes, qualifies or materially limits the WHO5 diagnosis.
+      - If no WHO5-defined pathology is established, use schema_disease no_haematological_malignancy with narrow_diagnosis No pathology identified rather than forcing a disease label.
+      - Do not use no_haematological_malignancy when CHIP, CCUS, germline predisposition syndrome or another supported diagnostic state is itself the accepted diagnosis.
+      - A negative NGS result may be a supporting fact when explicitly supplied, but is never sufficient by itself to establish no pathology.
+  - id: DX5
+    question: >-
+      Would ICC assign a materially different diagnostic label; if so, what is the ICC diagnosis and
+      what accounts for the difference from WHO5?
+    guidance:
+      - Derive ICC separately and use it only for diagnostic labelling as a comparator.
+      - If ICC is not materially different, set icc_diagnoses to [] and do not add redundant ICC prose.
+      - If materially different, record the comparator explicitly in icc_diagnoses and retain only the minimum fact explaining the difference.
+      - Keep WHO5 and ICC terminology, blast thresholds and rules explicitly separated.
+      - ICC must never replace the WHO5 diagnosis or downstream routing.
+  - id: DX6
+    question: >-
+      Are any current diagnostic conclusions or supporting facts contradicted by the supplied case,
+      dependent on uncertain results, internally inconsistent or based on unsupported assumptions;
+      and what corrections or qualifications are required?
+    guidance:
+      - Review the complete current state adversarially: delete unsupported or superseded support, modify changed interpretations, and merge overlap before adding anything.
+      - Preserve an explicit WHO5 state. You may correct or qualify it but may not erase it.
+      - If DX5 established a materially different ICC diagnosis, preserve an explicit ICC comparator; do not silently erase it.
+      - Preserve genuine material diagnostic uncertainty rather than resolving it by assumption.
+      - Check for unsupported origin/clonality claims, numerical inconsistency, contradictory facts, and unlabelled WHO5/ICC blending.
+      - Remove facts whose only conclusion is that a finding does not alter the diagnosis.
+      - This is an adversarial reasoning review, not a presentation pass.
+  - id: DX7
+    question: >-
+      What is or are the WHO5 diagnoses, or is no pathology identified? What is the ICC diagnosis if
+      materially different? What facts support this diagnosis? What, if any, material diagnostic
+      uncertainties remain?
+    guidance:
+      - This is a card-free synthesis pass, not a diagnostic reasoning pass.
+      - Use only the original case notes and the reviewed DX6 state supplied for this call.
+      - Preserve provisional_cmcs, diagnoses and icc_diagnoses exactly from DX6.
+      - Do not introduce a new diagnosis, criterion, exclusion, evidence claim, numerical comparison, molecular interpretation or uncertainty.
+      - Each final supporting fact must cite one or more DX6 source fact IDs supplied in the prompt.
+      - Each final uncertainty must cite one or more DX6 source fact or uncertainty IDs supplied in the prompt.
+      - Prefer selection and merging over free paraphrase. Preserve technical and numerical wording when it matters to meaning.
+      - Never silently drop a material DX6 uncertainty.
+      - A negative NGS result and no pathology are independent conclusions; do not infer the latter from the former.
