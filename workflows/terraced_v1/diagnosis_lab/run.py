@@ -23,25 +23,81 @@ from scripts import vocab
 from scripts.core import corpus
 from scripts.core import retrieval as core_retrieval
 from workflows.terraced_v1.diagnosis_lab.api_client import complete, config_for
+from workflows.terraced_v1.diagnosis_lab import connector
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 QUESTIONS_PATH = HERE / "questions.yaml"
 TERRACE_PROMPT = HERE / "prompts" / "terrace.md"
-DX7_PROMPT = HERE / "prompts" / "dx7.md"
+REPORT_SYNTHESIS_PROMPT = HERE / "prompts" / "report_synthesis.md"
+REPORT_REASONS_PROMPT = HERE / "prompts" / "report_reasons.md"
+REPORT_ALIGNMENT_PROMPT = HERE / "prompts" / "report_alignment.md"
 FIXTURES = HERE / "fixtures"
 SYSTEM = (
     "You are executing an experimental bounded diagnosis-terrace step for a clinical NGS workflow. "
     "Use only the supplied case, state, and evidence. Do not use outside literature. "
     "Return exactly the requested YAML artifact and do not expose chain-of-thought."
 )
+REPORT_SYSTEM = (
+    "You are executing a bounded post-diagnosis reporting step for a clinical NGS workflow. "
+    "Use only the inputs supplied for the current pass. Return exactly the requested artifact "
+    "without commentary or chain-of-thought."
+)
 
 
 def _load_questions() -> dict:
     doc = yaml.safe_load(QUESTIONS_PATH.read_text(encoding="utf-8"))
-    if not isinstance(doc, dict) or doc.get("schema_version") != 1:
+    if not isinstance(doc, dict) or doc.get("schema_version") != 2:
         raise ValueError("invalid diagnosis_lab questions.yaml")
+    questions = doc.get("questions")
+    profiles = doc.get("execution_profiles")
+    if not isinstance(questions, list) or not questions or not isinstance(profiles, dict) or not profiles:
+        raise ValueError("questions.yaml requires non-empty questions and execution_profiles")
+    ids = []
+    final_rows = []
+    terrace_ids = []
+    for index, row in enumerate(questions, 1):
+        if not isinstance(row, dict):
+            raise ValueError(f"questions[{index}] must be an object")
+        qid = row.get("id")
+        kind = row.get("kind")
+        if not isinstance(qid, str) or not qid.strip() or qid in ids:
+            raise ValueError(f"questions[{index}].id must be a unique non-empty string")
+        if kind not in {"terrace", "final"}:
+            raise ValueError(f"question {qid!r} kind must be terrace or final")
+        if not isinstance(row.get("question"), str) or not row["question"].strip():
+            raise ValueError(f"question {qid!r} requires non-empty question text")
+        if not isinstance(row.get("guidance"), list) or any(not isinstance(x, str) or not x.strip() for x in row["guidance"]):
+            raise ValueError(f"question {qid!r} guidance must be a list of non-empty strings")
+        ids.append(qid)
+        if kind == "final":
+            final_rows.append(row)
+        else:
+            terrace_ids.append(qid)
+    if len(final_rows) != 1:
+        raise ValueError("questions.yaml must declare exactly one kind: final question")
+    if questions[-1] is not final_rows[0]:
+        raise ValueError("the kind: final question must be last in canonical question order")
+    final = final_rows[0]
+    if not isinstance(final.get("context"), dict) or not isinstance(final.get("output"), dict) or not isinstance(final.get("invariants"), dict):
+        raise ValueError("the final question requires context, output and invariants configuration")
+    for profile_id, profile in profiles.items():
+        groups = profile.get("terrace_groups") if isinstance(profile, dict) else None
+        if not isinstance(groups, list) or not groups or any(not isinstance(group, list) or not group for group in groups):
+            raise ValueError(f"execution profile {profile_id!r} requires non-empty terrace_groups")
+        flattened = [qid for group in groups for qid in group]
+        if flattened != terrace_ids:
+            raise ValueError(
+                f"execution profile {profile_id!r} must cover every terrace question once in canonical order; "
+                f"expected {terrace_ids!r}, found {flattened!r}"
+            )
     return doc
+
+
+def _question_plan(config: dict, profile: str) -> list[list[str]]:
+    terrace_groups = config["execution_profiles"][profile]["terrace_groups"]
+    final_id = next(row["id"] for row in config["questions"] if row["kind"] == "final")
+    return [*terrace_groups, [final_id]]
 
 
 def _fixture(number: int) -> dict:
@@ -135,106 +191,232 @@ def _parse_yaml(text: str) -> dict:
     try:
         doc = yaml.safe_load(text)
     except yaml.YAMLError as exc:
-        raise ValueError(f"model returned invalid YAML: {exc}") from exc
+        mark = getattr(exc, "problem_mark", None)
+        where = f" at line {mark.line + 1}, column {mark.column + 1}" if mark is not None else ""
+        problem = getattr(exc, "problem", None) or str(exc)
+        raise ValueError(
+            f"YAML — Problem: parser error{where}: {problem}. Required fix: return one complete syntactically "
+            "valid YAML mapping only, with no Markdown fence or commentary."
+        ) from exc
     if not isinstance(doc, dict):
-        raise ValueError("model output must be one YAML mapping")
+        raise ValueError(
+            f"Top level — Problem: expected one YAML mapping, received {type(doc).__name__}. "
+            "Required fix: return the complete requested YAML object only."
+        )
     return doc
 
 
 def _validate_state(doc: dict, group_ids: list[str]) -> None:
-    required = {"provisional_cmcs", "diagnoses", "icc_diagnoses", "facts", "uncertainties"}
+    required = {"provisional_cmcs", "diagnoses", "facts", "uncertainties"}
+    issues = []
     if set(doc) != required:
-        raise ValueError(f"state keys must be exactly {sorted(required)}; got {sorted(doc)}")
-    if not isinstance(doc["provisional_cmcs"], list) or not doc["provisional_cmcs"]:
-        raise ValueError("provisional_cmcs must be a non-empty list")
-    for cmc in doc["provisional_cmcs"]:
-        if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
-            raise ValueError(f"invalid provisional CMC: {cmc!r}")
-    if not isinstance(doc["diagnoses"], list):
-        raise ValueError("diagnoses must be a list")
-    if any(qid in {"DX4", "DX5", "DX6"} for qid in group_ids) and not doc["diagnoses"]:
-        raise ValueError("DX4 onward requires an explicit WHO5 outcome")
-    for row in doc["diagnoses"]:
-        if not isinstance(row, dict) or set(row) != {"schema_disease", "narrow_diagnosis"}:
-            raise ValueError("each diagnosis must contain exactly schema_disease and narrow_diagnosis")
-        if row["schema_disease"] not in vocab.CASE_DISEASE_SET:
-            raise ValueError(f"invalid schema_disease {row['schema_disease']!r}")
-        if row["schema_disease"] == "MDS/AML":
-            raise ValueError("ICC-only MDS/AML cannot be used as the WHO5 schema_disease")
-        if not isinstance(row["narrow_diagnosis"], str) or not row["narrow_diagnosis"].strip():
-            raise ValueError("narrow_diagnosis must be non-empty")
-    if not isinstance(doc["icc_diagnoses"], list) or not all(isinstance(x, str) and x.strip() for x in doc["icc_diagnoses"]):
-        raise ValueError("icc_diagnoses must be a list of non-empty strings")
+        issues.append(
+            f"Top level — Problem: expected fields {sorted(required)}, received {sorted(doc)}. "
+            "Required fix: return exactly provisional_cmcs, diagnoses, facts and uncertainties."
+        )
+    cmcs = doc.get("provisional_cmcs")
+    if not isinstance(cmcs, list) or not cmcs:
+        issues.append(
+            f"provisional_cmcs — Problem: expected a non-empty list, received {cmcs!r}. "
+            "Required fix: return one or more exact allowed provisional CMC strings."
+        )
+    else:
+        for index, cmc in enumerate(cmcs):
+            if cmc not in vocab.CASE_MAJOR_CATEGORY_SET:
+                issues.append(
+                    f"provisional_cmcs[{index}] — Problem: {cmc!r} is not an allowed CMC. "
+                    "Required fix: replace it with an exact allowed provisional CMC supplied in the prompt."
+                )
+    diagnoses = doc.get("diagnoses")
+    if not isinstance(diagnoses, list) or not diagnoses:
+        issues.append(
+            f"diagnoses — Problem: expected a non-empty list, received {diagnoses!r}. "
+            "Required fix: return at least one paired WHO5/ICC diagnosis row."
+        )
+        diagnoses = []
+    allowed_statuses = {"established", "indeterminate", "not_established", "not_applicable"}
+    for index, row in enumerate(diagnoses):
+        location = f"diagnoses[{index}]"
+        required_row = {"schema_disease", "WHO5", "ICC", "materially_different"}
+        if not isinstance(row, dict) or set(row) != required_row:
+            received = sorted(row) if isinstance(row, dict) else type(row).__name__
+            issues.append(
+                f"{location} — Problem: expected fields {sorted(required_row)}, received {received!r}. "
+                "Required fix: return exactly schema_disease, WHO5, ICC and materially_different."
+            )
+            continue
+        if row["schema_disease"] not in vocab.CASE_DISEASE_SET or row["schema_disease"] == "MDS/AML":
+            issues.append(
+                f"{location}.schema_disease — Problem: {row['schema_disease']!r} is not an allowed WHO5 routing value. "
+                "Required fix: use one exact allowed WHO5 schema_disease supplied in the prompt; ICC-only MDS/AML cannot control routing."
+            )
+        if not isinstance(row["materially_different"], bool):
+            issues.append(
+                f"{location}.materially_different — Problem: expected a boolean, received {row['materially_different']!r}. "
+                "Required fix: use true or false."
+            )
+        for classifier in ("WHO5", "ICC"):
+            outcome = row[classifier]
+            if not isinstance(outcome, dict) or set(outcome) != {"status", "diagnosis"}:
+                received = sorted(outcome) if isinstance(outcome, dict) else type(outcome).__name__
+                issues.append(
+                    f"{location}.{classifier} — Problem: expected exactly status and diagnosis, received {received!r}. "
+                    "Required fix: return both configured fields only."
+                )
+                continue
+            if outcome["status"] not in allowed_statuses:
+                issues.append(
+                    f"{location}.{classifier}.status — Problem: {outcome['status']!r} is invalid. "
+                    f"Required fix: use one of {sorted(allowed_statuses)!r}."
+                )
+            diagnosis = outcome["diagnosis"]
+            if diagnosis is not None and (not isinstance(diagnosis, str) or not diagnosis.strip()):
+                issues.append(
+                    f"{location}.{classifier}.diagnosis — Problem: expected null or a non-empty string, received {diagnosis!r}. "
+                    "Required fix: supply the candidate/assigned diagnosis or null when none applies."
+                )
+            if outcome["status"] == "established" and diagnosis is None:
+                issues.append(
+                    f"{location}.{classifier}.diagnosis — Problem: status is established but diagnosis is null. "
+                    "Required fix: supply the established diagnostic wording."
+                )
     for field, text_key in (("facts", "fact"), ("uncertainties", "uncertainty")):
-        if not isinstance(doc[field], list):
-            raise ValueError(f"{field} must be a list")
-        for row in doc[field]:
+        rows = doc.get(field)
+        if not isinstance(rows, list):
+            issues.append(
+                f"{field} — Problem: expected a list, received {rows!r}. Required fix: return a YAML list; [] is valid."
+            )
+            continue
+        for index, row in enumerate(rows):
+            location = f"{field}[{index}]"
             if not isinstance(row, dict) or set(row) != {text_key, "reason"}:
-                raise ValueError(f"each {field} row must contain exactly {text_key} and reason")
-            if not all(isinstance(row[k], str) and row[k].strip() for k in row):
-                raise ValueError(f"{field} entries must contain non-empty strings")
+                received = sorted(row) if isinstance(row, dict) else type(row).__name__
+                issues.append(
+                    f"{location} — Problem: expected exactly {text_key} and reason, received {received!r}. "
+                    "Required fix: return both non-empty string fields only."
+                )
+                continue
+            for key in (text_key, "reason"):
+                if not isinstance(row[key], str) or not row[key].strip():
+                    issues.append(
+                        f"{location}.{key} — Problem: blank or not a string. Required fix: supply a non-empty string."
+                    )
+    if issues:
+        rendered = "\n".join(f"{index}. {issue}" for index, issue in enumerate(issues, 1))
+        raise ValueError(f"diagnosis terrace state failed validation with {len(issues)} issue(s):\n{rendered}")
 
 
-def _validate_transition(previous: dict | None, current: dict, group_ids: list[str]) -> None:
+def _validate_transition(previous: dict | None, current: dict) -> None:
     if previous is None:
         return
-    if group_ids == ["DX6"]:
-        if not current["diagnoses"]:
-            raise ValueError("DX6 may not erase the WHO5 diagnosis state")
-        if previous["icc_diagnoses"] and not current["icc_diagnoses"]:
-            raise ValueError("DX6 may not silently erase a material ICC comparator")
-    if group_ids == ["DX7"]:
-        raise AssertionError("DX7 uses its own validator")
 
 
-def _dx6_with_ids(dx6: dict) -> dict:
+def _reviewed_with_ids(reviewed: dict) -> dict:
     return {
-        "provisional_cmcs": dx6["provisional_cmcs"],
-        "diagnoses": dx6["diagnoses"],
-        "icc_diagnoses": dx6["icc_diagnoses"],
-        "facts": [dict(row, fact_id=f"DX6-F{i}") for i, row in enumerate(dx6["facts"], 1)],
-        "uncertainties": [dict(row, uncertainty_id=f"DX6-U{i}") for i, row in enumerate(dx6["uncertainties"], 1)],
+        "provisional_cmcs": reviewed["provisional_cmcs"],
+        "diagnoses": reviewed["diagnoses"],
+        "facts": [dict(row, fact_id=f"PRE-FINAL-F{i}") for i, row in enumerate(reviewed["facts"], 1)],
+        "uncertainties": [dict(row, uncertainty_id=f"PRE-FINAL-U{i}") for i, row in enumerate(reviewed["uncertainties"], 1)],
     }
 
 
-def _validate_dx7(doc: dict, dx6: dict) -> None:
-    required = {"provisional_cmcs", "diagnoses", "icc_diagnoses", "supporting_facts", "uncertainties"}
+def _validate_final(doc: dict, reviewed: dict, config: dict) -> None:
+    required = set(config["output"]["keys"])
     if set(doc) != required:
-        raise ValueError(f"DX7 keys must be exactly {sorted(required)}; got {sorted(doc)}")
-    for key in ("provisional_cmcs", "diagnoses", "icc_diagnoses"):
-        if doc[key] != dx6[key]:
-            raise ValueError(f"DX7 must preserve {key} exactly from DX6")
-    fact_ids = {row["fact_id"] for row in dx6["facts"]}
-    uncertainty_ids = {row["uncertainty_id"] for row in dx6["uncertainties"]}
+        raise ValueError(
+            f"Final output — Problem: keys must be exactly {sorted(required)}; received {sorted(doc)}. "
+            "Required fix: return the complete final YAML object with only the configured keys."
+        )
+    issues = []
+    for key in config["invariants"].get("preserve_fields") or []:
+        if doc[key] != reviewed[key]:
+            issues.append(
+                f"Final output.{key} — Problem: the protected pre-final value was changed. "
+                f"Required fix: copy {key} exactly from the supplied pre-final state."
+            )
+    fact_ids = {row["fact_id"] for row in reviewed["facts"]}
+    uncertainty_ids = {row["uncertainty_id"] for row in reviewed["uncertainties"]}
     all_ids = fact_ids | uncertainty_ids
     if not isinstance(doc["supporting_facts"], list):
-        raise ValueError("DX7 supporting_facts must be a list")
-    for row in doc["supporting_facts"]:
+        issues.append("Final output.supporting_facts — Problem: expected a list. Required fix: return a YAML list.")
+        supporting_facts = []
+    else:
+        supporting_facts = doc["supporting_facts"]
+    for index, row in enumerate(supporting_facts):
         if not isinstance(row, dict) or set(row) != {"fact", "reason", "source_fact_ids"}:
-            raise ValueError("each DX7 supporting fact requires fact, reason, source_fact_ids")
+            issues.append(
+                f"Final output.supporting_facts[{index}] — Problem: expected exactly fact, reason and source_fact_ids. "
+                "Required fix: return all three fields only."
+            )
+            continue
         ids = row["source_fact_ids"]
         if not isinstance(ids, list) or not ids or any(x not in fact_ids for x in ids):
-            raise ValueError(f"DX7 supporting fact has invalid source_fact_ids: {ids!r}")
+            issues.append(
+                f"Final output.supporting_facts[{index}].source_fact_ids — Problem: invalid IDs {ids!r}. "
+                "Required fix: use one or more supplied PRE-FINAL-F IDs."
+            )
     if not isinstance(doc["uncertainties"], list):
-        raise ValueError("DX7 uncertainties must be a list")
+        issues.append("Final output.uncertainties — Problem: expected a list. Required fix: return a YAML list.")
+        uncertainties = []
+    else:
+        uncertainties = doc["uncertainties"]
     seen_uncertainty_sources = set()
-    for row in doc["uncertainties"]:
+    for index, row in enumerate(uncertainties):
         if not isinstance(row, dict) or set(row) != {"uncertainty", "reason", "source_ids"}:
-            raise ValueError("each DX7 uncertainty requires uncertainty, reason, source_ids")
+            issues.append(
+                f"Final output.uncertainties[{index}] — Problem: expected exactly uncertainty, reason and source_ids. "
+                "Required fix: return all three fields only."
+            )
+            continue
         ids = row["source_ids"]
         if not isinstance(ids, list) or not ids or any(x not in all_ids for x in ids):
-            raise ValueError(f"DX7 uncertainty has invalid source_ids: {ids!r}")
+            issues.append(
+                f"Final output.uncertainties[{index}].source_ids — Problem: invalid IDs {ids!r}. "
+                "Required fix: use one or more supplied PRE-FINAL-F/PRE-FINAL-U IDs."
+            )
+            continue
         seen_uncertainty_sources.update(x for x in ids if x in uncertainty_ids)
-    # Deletion-resistant uncertainty invariant: each explicit DX6 uncertainty must survive mapping.
+    # Deletion-resistant uncertainty invariant: each explicit pre-final uncertainty must survive mapping.
     missing = sorted(uncertainty_ids - seen_uncertainty_sources)
-    if missing:
-        raise ValueError(f"DX7 silently dropped material DX6 uncertainty source(s): {', '.join(missing)}")
-    # Conservative lexical guard for technical numbers: a DX7 fact cannot introduce a new numeric token.
-    dx6_numbers = set(re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?%?", json.dumps(dx6, ensure_ascii=False)))
-    dx7_numbers = set(re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?%?", json.dumps(doc, ensure_ascii=False)))
-    extra = sorted(dx7_numbers - dx6_numbers)
-    if extra:
-        raise ValueError(f"DX7 introduced numeric token(s) absent from DX6: {', '.join(extra)}")
+    if config["invariants"].get("require_all_prior_uncertainties") and missing:
+        issues.append(
+            f"Final output.uncertainties — Problem: dropped pre-final uncertainty source(s): {', '.join(missing)}. "
+            "Required fix: represent every supplied PRE-FINAL-U source in at least one final uncertainty."
+        )
+    # Conservative lexical guard for technical numbers: final synthesis cannot introduce a new numeric token.
+    reviewed_numbers = set(re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?%?", json.dumps(reviewed, ensure_ascii=False)))
+    final_numbers = set(re.findall(r"(?<![A-Za-z])\d+(?:\.\d+)?%?", json.dumps(doc, ensure_ascii=False)))
+    extra = sorted(final_numbers - reviewed_numbers)
+    if config["invariants"].get("prohibit_new_numeric_tokens") and extra:
+        issues.append(
+            f"Final output — Problem: introduced numeric token(s) absent from the pre-final state: {', '.join(extra)}. "
+            "Required fix: remove the new numbers or restore the supplied source-faithful wording."
+        )
+    if issues:
+        rendered = "\n".join(f"{index}. {issue}" for index, issue in enumerate(issues, 1))
+        raise ValueError(f"final synthesis failed validation with {len(issues)} issue(s):\n{rendered}")
+
+
+def _final_prompt(question: dict) -> str:
+    guidance = "\n".join(f"- {line}" for line in question["guidance"])
+    keys = question["output"]["keys"]
+    schema = {
+        "provisional_cmcs": [],
+        "diagnoses": [],
+        "supporting_facts": [{"fact": "...", "reason": "...", "source_fact_ids": ["PRE-FINAL-F1"]}],
+        "uncertainties": [{"uncertainty": "...", "reason": "...", "source_ids": ["PRE-FINAL-U1"]}],
+    }
+    schema = {key: schema[key] for key in keys}
+    return (
+        f"# {question['id']} card-free diagnostic synthesis\n\n"
+        f"{question['question']}\n\n"
+        "This is a representation pass over an already reviewed diagnostic state, not new diagnostic reasoning.\n\n"
+        "## Requirements\n"
+        f"{guidance}\n\n"
+        "Return YAML only with exactly this configured shape:\n\n```yaml\n"
+        + yaml.safe_dump(schema, sort_keys=False, allow_unicode=True).rstrip()
+        + "\n```\n"
+    )
 
 
 def _group_label(group_ids: list[str]) -> str:
@@ -272,17 +454,17 @@ def _write_call_inputs(
     cards: list[dict],
     previous_state: dict | None,
     transcript: list[dict[str, str]],
-    is_dx7: bool,
+    is_final: bool,
 ) -> None:
     """Persist a human-auditable view plus the exact API payload for one model call."""
     metadata = {
         "call_index": index,
         "question_ids": group_ids,
         "question_group": _group_label(group_ids),
-        "is_dx7_synthesis": is_dx7,
+        "is_final_synthesis": is_final,
         "case_notes_supplied": True,
-        "evidence_cards_supplied": not is_dx7,
-        "prior_terrace_transcript_supplied": bool(transcript) and not is_dx7,
+        "evidence_cards_supplied": not is_final,
+        "prior_terrace_transcript_supplied": bool(transcript) and not is_final,
         "previous_state_supplied": previous_state is not None,
         "exact_api_input": "INPUT_messages.json",
         "accepted_output": "OUTPUT_state.yaml",
@@ -294,8 +476,8 @@ def _write_call_inputs(
         "",
         f"- Questions: {', '.join(group_ids)}",
         f"- Case notes supplied: yes",
-        f"- Diagnosis/germline evidence cards supplied: {'no' if is_dx7 else 'yes'}",
-        f"- Prior terrace transcript supplied: {'yes' if (transcript and not is_dx7) else 'no'}",
+        f"- Diagnosis/germline evidence cards supplied: {'no' if is_final else 'yes'}",
+        f"- Prior terrace transcript supplied: {'yes' if (transcript and not is_final) else 'no'}",
         f"- Previous validated state supplied: {'yes' if previous_state is not None else 'no'}",
         "- Exact payload sent to the API: `INPUT_messages.json`",
         "- Raw model response: `OUTPUT_raw.txt`",
@@ -303,11 +485,11 @@ def _write_call_inputs(
         "- Validation result: `OUTPUT_validation.json`",
         "",
     ]
-    if is_dx7:
+    if is_final:
         overview.extend(
             [
-                "DX7 is deliberately card-free. It receives the original case notes and the protected DX6 state,",
-                "but it receives neither diagnosis cards nor the earlier DX1-DX5 transcript.",
+                "The configured final question is deliberately card-free. It receives the original case notes and",
+                "the protected pre-final state, but neither diagnosis cards nor the earlier terrace transcript.",
                 "",
             ]
         )
@@ -321,15 +503,15 @@ def _write_call_inputs(
 
     if previous_state is None:
         (call_dir / "INPUT_previous_state.yaml").write_text("# none: this is the first model call\n", encoding="utf-8")
-    elif is_dx7:
-        _write_yaml(call_dir / "INPUT_previous_state.yaml", _dx6_with_ids(previous_state))
+    elif is_final:
+        _write_yaml(call_dir / "INPUT_previous_state.yaml", _reviewed_with_ids(previous_state))
     else:
         _write_yaml(call_dir / "INPUT_previous_state.yaml", previous_state)
 
     (call_dir / "INPUT_prior_transcript.json").write_text(
-        json.dumps([] if is_dx7 else transcript, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        json.dumps([] if is_final else transcript, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    if not is_dx7:
+    if not is_final:
         (call_dir / "INPUT_evidence_cards.json").write_text(
             json.dumps(cards, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
@@ -342,12 +524,216 @@ def _write_validation(call_dir: Path, *, passed: bool, validator: str, error: st
     (call_dir / "OUTPUT_validation.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
+def _validated_model_call(
+    call_dir: Path,
+    provider,
+    *,
+    messages: list[dict[str, str]],
+    parse,
+    validate,
+    validator_name: str,
+    attempts: int,
+):
+    """Call, parse and validate with bounded model-visible deterministic repair feedback."""
+    previous = None
+    last_error = ""
+    for attempt in range(1, attempts + 1):
+        call_messages = list(messages)
+        if previous is not None:
+            call_messages.extend(
+                [
+                    {"role": "assistant", "content": previous},
+                    {
+                        "role": "user",
+                        "content": (
+                            "The previous output failed deterministic structural validation. Fix only the reported "
+                            "defect(s) and return the complete artifact again.\n\nValidator feedback:\n" + last_error
+                        ),
+                    },
+                ]
+            )
+        attempt_dir = call_dir / f"attempt_{attempt:02d}"
+        attempt_dir.mkdir(parents=True, exist_ok=False)
+        messages_json = json.dumps(call_messages, indent=2, ensure_ascii=False) + "\n"
+        (attempt_dir / "INPUT_messages.json").write_text(messages_json, encoding="utf-8")
+        (attempt_dir / "INPUT_messages_readable.md").write_text(_messages_markdown(call_messages), encoding="utf-8")
+        (call_dir / "INPUT_messages.json").write_text(messages_json, encoding="utf-8")
+        (call_dir / "INPUT_messages_readable.md").write_text(_messages_markdown(call_messages), encoding="utf-8")
+        try:
+            raw = complete(provider, call_messages)
+        except Exception as exc:
+            (attempt_dir / "OUTPUT_api_error.txt").write_text(str(exc) + "\n", encoding="utf-8")
+            (call_dir / "OUTPUT_api_error.txt").write_text(str(exc) + "\n", encoding="utf-8")
+            raise
+        (attempt_dir / "OUTPUT_raw.txt").write_text(raw, encoding="utf-8")
+        (call_dir / "OUTPUT_raw.txt").write_text(raw, encoding="utf-8")
+        try:
+            result = parse(raw)
+            validate(result)
+        except (ValueError, KeyError, TypeError) as exc:
+            last_error = str(exc)
+            previous = raw
+            _write_validation(attempt_dir, passed=False, validator=validator_name, error=last_error)
+            _write_validation(call_dir, passed=False, validator=validator_name, error=last_error)
+            continue
+        _write_validation(attempt_dir, passed=True, validator=validator_name)
+        _write_validation(call_dir, passed=True, validator=validator_name)
+        return result
+    raise ValueError(
+        f"model output failed deterministic validation after {attempts} attempt(s). Final validator feedback: {last_error}"
+    )
+
+
+def _connector_call(
+    run_dir: Path,
+    provider,
+    *,
+    index: int,
+    label: str,
+    messages: list[dict[str, str]],
+    output_name: str,
+    parse,
+    validate,
+    attempts: int,
+):
+    """Execute one auditable post-final connector call."""
+    call_dir = run_dir / f"connector_{index:02d}_{label}"
+    call_dir.mkdir(parents=True, exist_ok=False)
+    (call_dir / "INPUT_messages.json").write_text(
+        json.dumps(messages, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    (call_dir / "INPUT_messages_readable.md").write_text(_messages_markdown(messages), encoding="utf-8")
+    result = _validated_model_call(
+        call_dir,
+        provider,
+        messages=messages,
+        parse=parse,
+        validate=validate,
+        validator_name="diagnosis_report_connector",
+        attempts=attempts,
+    )
+    if isinstance(result, str):
+        rendered = result.rstrip() + "\n"
+    else:
+        rendered = yaml.safe_dump(result, sort_keys=False, allow_unicode=True, width=100)
+    (call_dir / output_name).write_text(rendered, encoding="utf-8")
+    return result
+
+
+def _run_report_connector(run_dir: Path, provider, fixture: dict, final_doc: dict, cards: list[dict], *, attempts: int) -> None:
+    """Convert the accepted final state into grounded and evidence-aligned diagnosis prose."""
+    sources = connector.diagnostic_sources(final_doc)
+    source_context = {
+        "case_notes": fixture["case_notes"],
+        "structured_case": fixture["structured_case"],
+        "reviewed_diagnostic_state": sources,
+    }
+    (run_dir / "REPORT_INPUT_SOURCES.yaml").write_text(
+        yaml.safe_dump(source_context, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
+    )
+    synthesis_messages = [
+        {"role": "system", "content": REPORT_SYSTEM},
+        {
+            "role": "user",
+            "content": REPORT_SYNTHESIS_PROMPT.read_text(encoding="utf-8")
+            + "\n\n# Initial case and reviewed diagnostic state\n```yaml\n"
+            + yaml.safe_dump(source_context, sort_keys=False, allow_unicode=True, width=100).rstrip()
+            + "\n```\n",
+        },
+    ]
+    prose = _connector_call(
+        run_dir,
+        provider,
+        index=1,
+        label="synthesis",
+        messages=synthesis_messages,
+        output_name="OUTPUT_report.md",
+        parse=lambda raw: raw.strip(),
+        validate=connector.prose_to_facts,
+        attempts=attempts,
+    )
+    prose = prose.rstrip() + "\n"
+    (run_dir / "FINAL_REPORT_DRAFT.md").write_text(prose, encoding="utf-8")
+    immutable = connector.prose_to_facts(prose)
+    (run_dir / "REPORT_IMMUTABLE_FACTS.yaml").write_text(
+        yaml.safe_dump(immutable, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
+    )
+
+    case_ids, diagnostic_ids = connector.source_id_sets(fixture["structured_case"], sources)
+    grounding_input = {
+        "immutable_report_facts": immutable["facts"],
+        "initial_case": {
+            "case_notes": fixture["case_notes"],
+            "structured_case": fixture["structured_case"],
+        },
+        "reviewed_diagnostic_sources": sources,
+    }
+    grounding_messages = [
+        {"role": "system", "content": REPORT_SYSTEM},
+        {
+            "role": "user",
+            "content": REPORT_REASONS_PROMPT.read_text(encoding="utf-8")
+            + "\n\n# Grounding input\n```yaml\n"
+            + yaml.safe_dump(grounding_input, sort_keys=False, allow_unicode=True, width=100).rstrip()
+            + "\n```\n",
+        },
+    ]
+    grounded = _connector_call(
+        run_dir,
+        provider,
+        index=2,
+        label="reasons",
+        messages=grounding_messages,
+        output_name="OUTPUT_facts.yaml",
+        parse=_parse_yaml,
+        validate=lambda doc: connector.validate_grounded(
+            doc,
+            immutable,
+            case_source_ids=case_ids,
+            diagnostic_source_ids=diagnostic_ids,
+        ),
+        attempts=attempts,
+    )
+    (run_dir / "FINAL_FACTS.yaml").write_text(
+        yaml.safe_dump(grounded, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
+    )
+
+    tagged_cards, permitted_tags = connector.runtime_cards(cards)
+    alignment_input = {"grounded_report": grounded, "permitted_evidence_cards": tagged_cards}
+    alignment_messages = [
+        {"role": "system", "content": REPORT_SYSTEM},
+        {
+            "role": "user",
+            "content": REPORT_ALIGNMENT_PROMPT.read_text(encoding="utf-8")
+            + "\n\n# Alignment input\n```yaml\n"
+            + yaml.safe_dump(alignment_input, sort_keys=False, allow_unicode=True, width=100).rstrip()
+            + "\n```\n",
+        },
+    ]
+    aligned = _connector_call(
+        run_dir,
+        provider,
+        index=3,
+        label="alignment",
+        messages=alignment_messages,
+        output_name="OUTPUT_aligned.yaml",
+        parse=_parse_yaml,
+        validate=lambda doc: connector.validate_aligned(doc, grounded, permitted_card_tags=permitted_tags),
+        attempts=attempts,
+    )
+    (run_dir / "FINAL_ALIGNED.yaml").write_text(
+        yaml.safe_dump(aligned, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
+    )
+    (run_dir / "FINAL_REPORT.md").write_text(connector.render_report(aligned), encoding="utf-8")
+
+
 def _run_one(args, example: int) -> Path:
     qcfg = _load_questions()
     profile = qcfg["execution_profiles"].get(args.profile)
     if not profile:
         raise ValueError(f"unknown profile {args.profile!r}")
-    groups = profile["groups"]
+    groups = _question_plan(qcfg, args.profile)
+    by_id = {row["id"]: row for row in qcfg["questions"]}
     fixture = _fixture(example)
     provider = None if args.dry_run else config_for(
         args.provider,
@@ -374,21 +760,26 @@ def _run_one(args, example: int) -> Path:
     completed_calls: list[dict] = []
 
     for index, group_ids in enumerate(groups, 1):
-        is_dx7 = group_ids == ["DX7"]
+        rows = [by_id[qid] for qid in group_ids]
+        kinds = {row["kind"] for row in rows}
+        if len(kinds) != 1:
+            raise ValueError(f"question group {group_ids!r} mixes terrace and final kinds")
+        is_final = "final" in kinds
+        final_config = rows[0] if is_final else None
         questions_text = _questions_message(qcfg, group_ids)
-        if is_dx7:
+        if is_final:
             if previous_state is None:
-                raise ValueError("DX7 requires a DX6 state")
-            dx6 = _dx6_with_ids(previous_state)
+                raise ValueError("the configured final question requires a validated pre-final terrace state")
+            reviewed = _reviewed_with_ids(previous_state)
             messages = [
                 {"role": "system", "content": SYSTEM},
                 {
                     "role": "user",
-                    "content": DX7_PROMPT.read_text(encoding="utf-8")
+                    "content": _final_prompt(final_config)
                     + "\n\n# Original case notes\n"
                     + fixture["case_notes"].rstrip()
-                    + "\n\n# Protected DX6 state with source IDs\n```yaml\n"
-                    + yaml.safe_dump(dx6, sort_keys=False, allow_unicode=True, width=100).rstrip()
+                    + "\n\n# Protected pre-final state with source IDs\n```yaml\n"
+                    + yaml.safe_dump(reviewed, sort_keys=False, allow_unicode=True, width=100).rstrip()
                     + "\n```\n\n"
                     + questions_text,
                 },
@@ -415,7 +806,7 @@ def _run_one(args, example: int) -> Path:
             cards=cards,
             previous_state=previous_state,
             transcript=transcript,
-            is_dx7=is_dx7,
+            is_final=is_final,
         )
 
         if args.dry_run:
@@ -427,34 +818,31 @@ def _run_one(args, example: int) -> Path:
             break
 
         try:
-            raw = complete(provider, messages)
-        except Exception as exc:
-            (call_dir / "OUTPUT_api_error.txt").write_text(str(exc) + "\n", encoding="utf-8")
-            completed_calls.append({"call_index": index, "question_ids": group_ids, "status": "api_error"})
-            raise
-
-        (call_dir / "OUTPUT_raw.txt").write_text(raw, encoding="utf-8")
-        try:
-            doc = _parse_yaml(raw)
-            if is_dx7:
-                _validate_dx7(doc, _dx6_with_ids(previous_state))
-                validator = "dx7_fidelity_validator"
+            if is_final:
+                validator = "final_fidelity_validator"
+                validate = lambda doc: _validate_final(doc, _reviewed_with_ids(previous_state), final_config)
             else:
-                _validate_state(doc, group_ids)
-                _validate_transition(previous_state, doc, group_ids)
                 validator = "diagnosis_state_and_transition_validator"
+                validate = lambda doc: (_validate_state(doc, group_ids), _validate_transition(previous_state, doc))
+            doc = _validated_model_call(
+                call_dir,
+                provider,
+                messages=messages,
+                parse=_parse_yaml,
+                validate=validate,
+                validator_name=validator,
+                attempts=args.structural_attempts,
+            )
         except Exception as exc:
-            _write_validation(call_dir, passed=False, validator="diagnosis_lab", error=str(exc))
             completed_calls.append({"call_index": index, "question_ids": group_ids, "status": "validation_failed"})
             raise
 
         rendered = yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=100)
         (call_dir / "OUTPUT_state.yaml").write_text(rendered, encoding="utf-8")
-        _write_validation(call_dir, passed=True, validator=validator)
         completed_calls.append({"call_index": index, "question_ids": group_ids, "status": "accepted"})
         final_doc = doc
 
-        if not is_dx7:
+        if not is_final:
             transcript.extend([{"role": "user", "content": questions_text}, {"role": "assistant", "content": rendered}])
             previous_state = doc
             requested_cmcs = list(doc["provisional_cmcs"])
@@ -466,6 +854,7 @@ def _run_one(args, example: int) -> Path:
         (run_dir / "FINAL_OUTPUT.yaml").write_text(
             yaml.safe_dump(final_doc, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
         )
+        _run_report_connector(run_dir, provider, fixture, final_doc, cards, attempts=args.structural_attempts)
     metadata = {
         "example": example,
         "profile": args.profile,
@@ -492,9 +881,12 @@ def main() -> int:
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=16384)
     parser.add_argument("--timeout", type=float, default=900.0)
+    parser.add_argument("--structural-attempts", type=int, default=10)
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--dry-run", action="store_true", help="write the exact first API payload without calling a model")
     args = parser.parse_args()
+    if args.structural_attempts < 1:
+        parser.error("--structural-attempts must be at least 1")
 
     try:
         examples = range(1, 7) if args.all_examples else [args.example]

@@ -6,17 +6,24 @@ It is intentionally **not registered as a workflow**, does not replace `terraced
 
 ## What it tests
 
-The lab uses seven diagnosis challenges applied to one evolving state:
+The lab applies the terrace questions declared in `questions.yaml` to one evolving state, followed by one mandatory terminal synthesis question and the report connector:
 
-1. whole-case provisional disease process;
-2. alternative/concurrent pathology challenge;
-3. overt neoplasm vs CHIP/CCUS vs germline predisposition/syndrome;
-4. authoritative WHO5 diagnosis, including supported `No pathology identified`;
-5. ICC diagnostic label only when materially different;
-6. adversarial contradiction/uncertainty review;
-7. card-free synthesis of WHO5/ICC state, supporting facts and material uncertainty.
+1. independently derive paired WHO5 and ICC outcomes for each disease process;
+2. challenge for a competing diagnosis or true concurrent pathology;
+3. distinguish overt disease, precursor clonal states and germline predisposition;
+4. adversarially review criteria, exclusions, assumptions, contradictions and uncertainty;
+5. the configured `kind: final` question performs card-free synthesis of the paired diagnostic state, supporting facts and material uncertainty;
+6. post-final diagnostic report synthesis, immutable sentence-to-fact conversion, source grounding, and evidence alignment.
 
-DX7 receives **only the original case notes and DX6 state**. It receives no diagnosis cards and no prior terrace transcript. WHO5 and material ICC state are protected, each synthesized fact maps to DX6 source fact IDs, explicit DX6 uncertainties are deletion-resistant, and DX7 cannot introduce a new numeric token.
+`DX-final` receives **only the original case notes and protected pre-final state**. It receives no diagnosis cards and no prior terrace transcript. The paired WHO5/ICC state is protected, each synthesized fact maps to `PRE-FINAL-F*` source IDs, explicit `PRE-FINAL-U*` uncertainties are deletion-resistant, and final synthesis cannot introduce a new numeric token.
+
+## Question-driven execution
+
+`questions.yaml` is authoritative for question count and order. Each question declares `kind: terrace` or `kind: final`; exactly one final question is required and it must be last. Execution profiles define only `terrace_groups`. The runtime automatically appends the final question as a dedicated one-question pass, so profiles do not repeat `[DX-final]` and Python does not encode a fixed number of diagnosis questions.
+
+The final question also declares its context, output keys, and deterministic invariants. Its model prompt is generated from that configuration and guidance; there is no separate numbered final-prompt file.
+
+Each diagnosis row represents one disease process and contains separate WHO5 and ICC outcomes with explicit `established`, `indeterminate`, `not_established`, or `not_applicable` status. Different classifier labels for the same process remain in one row; separate rows represent possible or established concurrent pathologies. `schema_disease` remains the WHO5-controlled downstream routing key.
 
 Negative NGS is explicitly supported but is independent of a no-pathology conclusion.
 
@@ -84,9 +91,29 @@ python workflows/terraced_v1/diagnosis_lab/run.py \
 
 ## Profiles
 
-- `frontier`: `[DX1-DX5] [DX6] [DX7]`
-- `balanced`: `[DX1-DX3] [DX4-DX5] [DX6] [DX7]`
-- `deliberate`: one model call per question.
+- `frontier` terrace groups: `[DX1-DX3] [DX4]`
+- `balanced` terrace groups: `[DX1] [DX2-DX3] [DX4]`
+- `deliberate`: one model call per terrace question.
+
+Every profile then runs the configured `DX-final` question automatically as its own pass.
+
+## Deterministic validation repair
+
+Every model output boundary—the terrace groups, final synthesis, report synthesis, reason grounding, and evidence alignment—uses the same bounded deterministic repair loop. A failed parser or validator returns location-specific `Problem` and `Required fix` feedback to the model together with its complete failed output. The model must fix only the reported defects and return the complete artifact again.
+
+The default bound is 10 attempts, matching terraced-v1. Override it with `--structural-attempts N`. Provider/network errors are not deterministic output defects and are not retried as syntax repairs.
+
+Each model-call directory retains every attempt:
+
+```text
+attempt_01/
+├── INPUT_messages.json
+├── INPUT_messages_readable.md
+├── OUTPUT_raw.txt
+└── OUTPUT_validation.json
+```
+
+Call-level `INPUT_messages*`, `OUTPUT_raw.txt`, and `OUTPUT_validation.json` mirror the latest attempt. Accepted artifacts such as `OUTPUT_state.yaml` are written only after deterministic validation passes.
 
 ## Inspect prompts without spending tokens
 
@@ -104,19 +131,19 @@ Each real model pass gets its own directory. A balanced run therefore looks like
 example-01-balanced-<timestamp>/
 ├── RUN_INPUT_fixture.json
 ├── RUN_metadata.json
-├── call_01_DX1-DX3/
-├── call_02_DX4-DX5/
-├── call_03_DX6/
-├── call_04_DX7/
+├── call_01_DX1/
+├── call_02_DX2-DX3/
+├── call_03_DX4/
+├── call_04_DX-final/
 └── FINAL_OUTPUT.yaml
 ```
 
 The intent is that you can inspect the workflow one model call at a time. Every `call_*` directory is self-contained and uses explicit `INPUT_*` and `OUTPUT_*` filenames.
 
-Typical pre-DX7 call:
+Typical pre-finalization call:
 
 ```text
-call_02_DX4-DX5/
+call_03_DX4/
 ├── CALL_metadata.json
 ├── INPUT_overview.md
 ├── INPUT_questions.md
@@ -137,15 +164,15 @@ call_02_DX4-DX5/
 
 `OUTPUT_raw.txt` is the model response before parsing or validation. `OUTPUT_state.yaml` is the accepted structured state after validation. `OUTPUT_validation.json` records whether the pass satisfied the relevant deterministic guards. If the API itself fails, the call directory instead records `OUTPUT_api_error.txt`; if validation fails, the raw response and failed `OUTPUT_validation.json` remain for debugging.
 
-DX7 is deliberately different:
+The configured final pass is deliberately different:
 
 ```text
-call_04_DX7/
+call_04_DX-final/
 ├── CALL_metadata.json
 ├── INPUT_overview.md
 ├── INPUT_questions.md
 ├── INPUT_case_notes.md
-├── INPUT_previous_state.yaml   # protected DX6 state with source IDs
+├── INPUT_previous_state.yaml   # protected pre-final state with source IDs
 ├── INPUT_prior_transcript.json # always []
 ├── INPUT_messages.json
 ├── INPUT_messages_readable.md
@@ -154,22 +181,44 @@ call_04_DX7/
 └── OUTPUT_validation.json
 ```
 
-There is intentionally **no `INPUT_evidence_cards.json` in DX7**, because diagnosis cards are not supplied to that call. The earlier terrace transcript is also withheld.
+There is intentionally **no `INPUT_evidence_cards.json` in the final pass**, because diagnosis cards are not supplied to that call. The earlier terrace transcript is also withheld.
 
-At run root, `RUN_INPUT_fixture.json` records the source fixture, `RUN_metadata.json` records provider/model/profile and call status, and `FINAL_OUTPUT.yaml` duplicates the last accepted state for convenience.
+At run root, `RUN_INPUT_fixture.json` records the source fixture, `RUN_metadata.json` records provider/model/profile and call status, and `FINAL_OUTPUT.yaml` duplicates the accepted final state.
+
+After final synthesis, the report connector receives the initial case stem/structured case and accepted final state. It does not force an assigned diagnosis when the state contains only a candidate. Machine status tokens such as `indeterminate` are not printed; the prose instead states what is supported, why firmer classification is limited, and which broad designation remains current.
+
+The connector writes:
+
+```text
+REPORT_INPUT_SOURCES.yaml     # initial case plus deterministic IDs on final sources
+FINAL_REPORT_DRAFT.md         # uncited diagnosis prose, one sentence per line
+REPORT_IMMUTABLE_FACTS.yaml   # deterministic byte-for-byte sentence-to-fact conversion
+FINAL_FACTS.yaml              # immutable facts plus reasons and source mappings
+FINAL_ALIGNED.yaml            # same facts with permitted runtime card tags or null
+FINAL_REPORT.md               # deterministically rendered cited prose
+connector_01_synthesis/       # exact synthesis call and validation
+connector_02_reasons/         # exact reason/source-mapping call and validation
+connector_03_alignment/       # exact card-alignment call and validation
+```
+
+Only the first connector call writes prose. Code assigns ordered `diagnosis-summary-N` fact IDs and later validators prohibit changes to sentence text. The reason pass has no cards and must map every fact to supplied case or diagnostic-state IDs. The alignment pass may add only a permitted citation disposition. Final report rendering is deterministic and has no further generative rewrite.
 
 With `--dry-run`, only `call_01_*` is created because later exact inputs depend on earlier model outputs. `OUTPUT_not_run.txt` explains this; later prompts are not fabricated.
 
 ## Safety boundaries deliberately tested here
 
-- DX4 onward must retain an explicit WHO5 state.
-- WHO5 may be a defined diagnosis, concurrent diagnoses, or supported no pathology.
-- ICC is diagnostic-labelling only.
-- DX6 cannot erase WHO5 or silently erase a previously material ICC comparator.
-- DX7 must copy WHO5/ICC/CMC state exactly from DX6.
-- DX7 has no diagnosis cards or prior transcript.
-- Every DX7 fact maps to one or more DX6 facts.
-- Every explicit DX6 uncertainty must be represented in DX7.
-- DX7 cannot introduce a numeric token absent from DX6.
+- Every diagnosis row must contain explicit paired WHO5 and ICC outcomes.
+- WHO5 may be a defined diagnosis, concurrent diagnoses, or supported no pathology and alone controls routing.
+- ICC is diagnostic-labelling only and cannot be detached from its disease process.
+- The configured final pass must copy protected diagnosis/CMC fields exactly from the pre-final state.
+- The final pass has no diagnosis cards or prior transcript.
+- Every final fact maps to one or more pre-final facts.
+- Every explicit pre-final uncertainty must be represented in the final state.
+- Final synthesis cannot introduce a numeric token absent from the pre-final state.
+- Report synthesis cannot expose internal machine-status vocabulary or emit citations.
+- Every report sentence is copied deterministically into one immutable fact.
+- Reason grounding is closed to supplied case and reviewed-diagnostic source IDs.
+- Evidence alignment cannot change a fact or reason and can add only permitted runtime card tags.
+- Final cited prose is rendered by code rather than rewritten by a model.
 
-These are experimental guards, not proof of clinical correctness. A wrong DX6 conclusion can still be faithfully preserved by DX7; the lab is intended to make that failure visible rather than hide it.
+These are experimental guards, not proof of clinical correctness. A wrong pre-final conclusion can still be faithfully preserved by final synthesis; the lab is intended to make that failure visible rather than hide it.
