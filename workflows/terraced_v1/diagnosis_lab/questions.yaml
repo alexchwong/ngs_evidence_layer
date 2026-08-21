@@ -37,6 +37,7 @@ questions:
       - Reconsider whether all molecular findings belong to the same overt neoplastic process.
       - CHIP, CCUS, germline predisposition and overt neoplasia are not mutually exclusive.
       - Do not infer somatic or constitutional origin from tumour-only sequencing, bulk VAF, absent family history, age, morphology, normal cytogenetics or co-mutation pattern alone.
+      - Do not raise germline predisposition as a diagnostic consideration or uncertainty unless there is positive clinical evidence of germline predisposition (e.g., young age at onset, family history of related malignancies, known germline syndrome). Germline cards in the evidence corpus are informational and do not by themselves warrant germline consideration.
       - A negative NGS result does not establish absence of pathology.
       - If this does not materially change or qualify the diagnostic interpretation, leave the state unchanged.
   - id: DX4
@@ -44,6 +45,16 @@ questions:
     question: >-
       What could make the current diagnoses wrong or uncertain?
     guidance:
+      - Adversarial review does not mean automatic downgrade. A diagnosis that meets all required criteria should remain established unless a genuine blocking uncertainty is identified.
+      - Before challenging the current diagnosis, first confirm which required criteria and exclusions are satisfied by the supplied data.
+      - Distinguish genuine blocking uncertainties (a required criterion or exclusion cannot be confirmed from the supplied data) from caveats (concerns about criteria not required for this diagnosis, alternative diagnoses not supported by the data, or additional testing that is not required for the current diagnosis).
+      - To downgrade from established to indeterminate, identify the specific required criterion that is unresolved and explain why the supplied data cannot confirm it.
+      - Do not record uncertainties that do not block the diagnosis. If an uncertainty is a caveat rather than a blocking concern, do not include it in the uncertainties list.
+      - Do not record uncertainties about additional testing that was not performed unless that testing is required to confirm a required criterion.
+      - Accept reported clinical findings as sufficient. If the case notes report a finding (e.g., "dysplasia in two lineages"), do not query whether it meets a specific threshold or percentage.
+      - Do not generate uncertainties about data that is not present in the clinical stem. Only raise uncertainties when the case data contains information that contradicts or fails to support a required criterion.
+      - Follow the diagnostic hierarchy and precedence rules from the evidence cards. If a diagnosis is established based on criteria that supersede another diagnosis, do not evaluate the superseded diagnosis as concurrent pathology or generate uncertainties about its criteria.
+      - Continue to consider genuine concurrent pathologies when they are not mutually exclusive with the current diagnosis per the classification hierarchy.
       - Review every WHO5 and ICC outcome adversarially and separately.
       - Check exact supplied blast, morphology, cytogenetic, alteration-class, VAF, required-criterion, exclusion and precedence rules.
       - Check for missing results, unsupported assumptions about origin or clonality, numerical inconsistency, contradiction and classifier blending.
