@@ -274,6 +274,7 @@ The review display must satisfy all of the following:
 - category is the outer grouping axis, and every semantic group sits inside exactly one current category;
 - every semantic group has a stable temporary label such as `PR01`, `PR02`, `TX01`, ... and a concise clinical-meaning label, not a sentence template;
 - for every card print `card_id`, **current `category`**, **current `evidence_tier`**, and the **complete interpretation**;
+- when the source explicitly frames the card's proposition as preliminary, emerging, exploratory, speculative, proposed, possible, uncertain, or author opinion, add a conspicuous `REVIEW FLAG: tentative/emerging evidence` annotation to that card in the review display. This flag is a human-review aid only: it does not change card eligibility, `evidence_tier`, category, or the persisted card schema, and it must not be inferred from evidence tier or study design alone;
 - within a semantic group, prefer stronger evidence tiers first for readability, but do not create separate semantic groups solely because evidence tiers differ;
 - do not infer or invent a new evidence-quality score: display the card's existing `evidence_tier` value;
 - do not omit cards judged acceptable, unique, repetitive, low-priority, or difficult to group;

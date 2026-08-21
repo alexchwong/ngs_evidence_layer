@@ -28,6 +28,8 @@ Every gene listed in the card's `genes` field must be explicitly named in the in
 
 The interpretation is not merely a quotation, paraphrase, extracted result, or restatement of a statistic. Source-supported synthesis is permitted only when the conclusion is directly entailed without an unstated clinical or methodological premise.
 
+Preserve source-expressed epistemic stance in report-facing wording when it materially affects meaning. If the source explicitly presents a proposition as preliminary, emerging, exploratory, speculative, proposed, possible, uncertain, or as author opinion, keep that status visible in the interpretation rather than recasting it as established fact. Such propositions remain eligible for carding when they otherwise satisfy the card policy; do not reject or downgrade them merely because they are tentative, and do not add hedging solely because an evidence tier is weak.
+
 ## Study-result packaging versus clinically operative information
 
 Preserve the narrowest clinically meaningful endpoint and direction supported by the source, while normally removing study-result packaging such as:
@@ -47,7 +49,7 @@ Do not broaden a narrow endpoint while abstracting it. `Inferior overall surviva
 
 A trial name, cohort name, treatment-arm label, model number, table identifier, analysis label, subgroup nickname, or similar paper-local term must not carry information required to understand the interpretation.
 
-Replace such labels with the shortest clinically meaningful description of what defines the population or exposure, for example `patients who received drug A`, `patients with relapsed AML`, or `patients with TP53-mutated AML`. If the local label adds no clinical value, omit it. Recognised clinical classifications/frameworks may be retained when the framework itself is necessary to understand the clinical assertion.
+Replace such labels with the shortest clinically meaningful description of what defines the population or exposure, for example `patients who received drug A`, `patients with relapsed AML`, or `patients with TP53-mutated AML`. If the local label adds no clinical value, omit it. When a formal classification, guideline, consensus recommendation, or named clinical framework supplies the classificatory or normative force of an assertion, name that authority in the interpretation (for example, `According to ICC classification ...` or `ELN 2022 recommends ...`) rather than presenting the assertion as an unattributed universal statement. Do not add authority attribution to ordinary study findings merely because they appear in a guideline or classification publication; apply this rule to the individual assertion.
 
 If study design materially limits applicability, state the **clinical limitation** rather than merely naming the methodology. Methodological detail belongs in the evidence unless it changes the patient-level meaning of the proposition.
 
