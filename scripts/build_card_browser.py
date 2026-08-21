@@ -113,8 +113,9 @@ def _full_details(entry: dict, accept_dir: Path) -> tuple[dict, dict[str, dict]]
         )
 
     for card_id, corpus_card in corpus_cards.items():
-        comparable = {k: v for k, v in corpus_card.items() if k != "disease_ancestors"}
-        if accepted_cards[card_id] != comparable:
+        comparable_corpus = {k: v for k, v in corpus_card.items() if k != "disease_ancestors"}
+        comparable_accepted = {k: v for k, v in accepted_cards[card_id].items() if k != "disease_ancestors"}
+        if comparable_accepted != comparable_corpus:
             raise ValueError(
                 f"accepted card {card_id} differs from the incorporated corpus. "
                 "Re-run incorporation before building --full."
@@ -124,6 +125,21 @@ def _full_details(entry: dict, accept_dir: Path) -> tuple[dict, dict[str, dict]]
     # evidence item in every card payload. The selected card carries its exact
     # card/evidence objects; these paper details carry the remaining fields.
     acceptance = {key: value for key, value in envelope.items() if key != "final"}
+
+    # Compute the latest acceptance version from redos/supplements/revisions
+    # if not already set in the envelope.
+    if not acceptance.get("latest_version"):
+        modifications = []
+        for field in ("supplements", "revisions", "redos"):
+            entries = envelope.get(field) or []
+            for entry in entries:
+                accepted_time = entry.get("accepted_at")
+                version = entry.get("accepted_in_version")
+                if accepted_time and version:
+                    modifications.append((accepted_time, version))
+        if modifications:
+            modifications.sort()
+            acceptance["latest_version"] = modifications[-1][1]
     package_fields = {
         key: value for key, value in package.items() if key not in {"cards", "evidence"}
     }
