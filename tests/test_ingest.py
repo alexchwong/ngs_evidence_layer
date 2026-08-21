@@ -391,6 +391,36 @@ class FolderStateWorkflowTests(unittest.TestCase):
         )
         self.assertIn("CONFIRMED", output)
 
+    def test_confirm_rechecks_current_phase2_interpretation_policy(self):
+        scripts = ROOT / "scripts"
+        if str(scripts) not in sys.path:
+            sys.path.insert(0, str(scripts))
+        confirm = load("confirm")
+        working = self.prepare_complete_work()
+        provisional, _, _, _ = self.upgrade_complete_work_to_schema_51(working)
+        provisional["cards"][0]["interpretation"] = (
+            "This alteration has a clinically relevant interpretation."
+        )
+        provisional_path = working / "paper.provisional-001.json"
+        provisional_path.write_text(json.dumps(provisional), encoding="utf-8")
+
+        errors, _ = confirm._validate_active_provisional(
+            provisional=provisional,
+            metadata=read(working / "metadata.json"),
+            census=read(working / "paper.census.json"),
+            working=working,
+            provisional_path=provisional_path,
+        )
+
+        self.assertTrue(
+            any("interpretation must explicitly name every tagged gene" in error for error in errors),
+            errors,
+        )
+        self.assertTrue(
+            any("interpretation must explicitly identify every tagged disease" in error for error in errors),
+            errors,
+        )
+
     def test_confirm_rejects_schema51_unapproved_phase4_card_change(self):
         working = self.prepare_complete_work()
         self.upgrade_complete_work_to_schema_51(working)
