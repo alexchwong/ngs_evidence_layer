@@ -11,6 +11,7 @@ import argparse
 import contextlib
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -177,10 +178,41 @@ def _profile(work: Path, selector: str | None, role: str):
 
 
 def _bundle_paths(work: Path, call_id: str) -> tuple[Path, Path, Path]:
+    """Return a stable chronologically numbered model-operation directory."""
     safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in call_id)
-    root = layout.model_steps(work, existing=False) / safe
+    bundle_root = layout.model_steps(work, existing=False)
+    bundle_root.mkdir(parents=True, exist_ok=True)
+    matching = sorted(bundle_root.glob(f"[0-9][0-9][0-9]-{safe}"))
+    legacy = bundle_root / safe
+    if matching:
+        root = matching[0]
+    elif legacy.is_dir():
+        # Resume compatibility for runs created before numbered model steps.
+        root = legacy
+    else:
+        sequence = max(
+            (
+                int(match.group(1))
+                for path in bundle_root.iterdir()
+                if path.is_dir() and (match := re.match(r"^(\d+)-", path.name))
+            ),
+            default=0,
+        ) + 1
+        root = bundle_root / f"{sequence:03d}-{safe}"
     root.mkdir(parents=True, exist_ok=True)
-    return root, root / "prompt.md", root / "messages.json"
+    return root, root / "INPUT_prompt.md", root / "INPUT_messages.json"
+
+
+def _messages_markdown(messages: list[dict[str, str]]) -> str:
+    lines = []
+    for index, message in enumerate(messages, 1):
+        lines.extend([
+            f"# Message {index} — {message['role'].upper()}",
+            "",
+            message["content"].rstrip(),
+            "",
+        ])
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def _render_bundle(call_id: str, messages: list[dict[str, str]], output: Path, validator_error: str | None = None) -> str:
@@ -196,67 +228,301 @@ def _render_bundle(call_id: str, messages: list[dict[str, str]], output: Path, v
     return "\n".join(lines)
 
 
-def _model_call(work: Path, *, call_id: str, role: str, messages: list[dict[str, str]], output: Path, validator, profile: str | None) -> str:
+def _artifact_format(output: Path) -> str:
+    suffix = output.suffix.lower()
+    if suffix == ".json":
+        return "JSON"
+    if suffix in {".yaml", ".yml"}:
+        return "YAML"
+    return "TEXT"
+
+
+def _normalized_name(output: Path) -> str:
+    return "OUTPUT_normalized" + (output.suffix or ".txt")
+
+
+def _accepted_name(output: Path) -> str:
+    return "OUTPUT_accepted" + (output.suffix or ".txt")
+
+
+def _normalize_candidate(text: str, output: Path, normalizer=None) -> tuple[str, list[str]]:
+    normalized, repairs = runtime.normalize_model_text(text, format_name=_artifact_format(output))
+    if normalizer is not None:
+        normalized, extra = normalizer(normalized)
+        repairs.extend(extra)
+    return normalized, repairs
+
+
+def _validator_name(validator) -> str:
+    return getattr(validator, "__name__", validator.__class__.__name__)
+
+
+def _write_json(path: Path, document: dict) -> None:
+    _atomic_write(path, json.dumps(document, indent=2, ensure_ascii=False) + "\n")
+
+
+def _write_call_metadata(root: Path, work: Path, *, call_id: str, role: str, binding, output: Path, attempts: int) -> None:
+    try:
+        target = str(output.relative_to(work))
+    except ValueError:
+        target = str(output)
+    sequence_match = re.match(r"^(\d+)-", root.name)
+    _write_json(root / "CALL_metadata.json", {
+        "schema_version": 1,
+        "sequence": int(sequence_match.group(1)) if sequence_match else None,
+        "operation": call_id,
+        "role": role,
+        "profile": binding.profile,
+        "provider": binding.kind,
+        "model": binding.model,
+        "target_output": target,
+        "max_attempts": attempts,
+    })
+
+
+def _write_attempt_inputs(
+    root: Path,
+    attempt: int,
+    call_id: str,
+    messages: list[dict[str, str]],
+    output: Path,
+    validator_error: str | None,
+) -> Path:
+    attempt_dir = root / f"attempt_{attempt:02d}"
+    attempt_dir.mkdir(parents=True, exist_ok=False)
+    messages_json = json.dumps(messages, indent=2, ensure_ascii=False) + "\n"
+    readable = _messages_markdown(messages)
+    prompt = _render_bundle(call_id, messages, output, validator_error)
+    _atomic_write(attempt_dir / "INPUT_messages.json", messages_json)
+    _atomic_write(attempt_dir / "INPUT_messages_readable.md", readable)
+    _atomic_write(attempt_dir / "INPUT_prompt.md", prompt)
+    # Call-root files mirror the current/latest attempt for convenience.
+    _atomic_write(root / "INPUT_messages.json", messages_json)
+    _atomic_write(root / "INPUT_messages_readable.md", readable)
+    _atomic_write(root / "INPUT_prompt.md", prompt)
+    return attempt_dir
+
+
+def _record_candidate(root: Path, attempt_dir: Path, *, raw: str, normalized: str, repairs: list[str], output: Path) -> None:
+    repair_doc = {"changed": raw != normalized, "repairs": repairs}
+    for parent in (attempt_dir, root):
+        _atomic_write(parent / "OUTPUT_raw.txt", raw)
+        _atomic_write(parent / _normalized_name(output), normalized)
+        _write_json(parent / "OUTPUT_repairs.json", repair_doc)
+
+
+def _record_validation(root: Path, attempt_dir: Path, validator, *, passed: bool, error: str | None = None) -> None:
+    payload = {"passed": passed, "validator": _validator_name(validator), "error": error}
+    for parent in (attempt_dir, root):
+        _write_json(parent / "OUTPUT_validation.json", payload)
+
+
+def _record_accepted(root: Path, attempt_dir: Path, output: Path, text: str, message: str) -> None:
+    for parent in (attempt_dir, root):
+        _atomic_write(parent / _accepted_name(output), text)
+    _atomic_write(root / "validated.txt", message + "\n")
+
+
+def _retry_messages(messages: list[dict[str, str]], previous: str, error: str) -> list[dict[str, str]]:
+    return [
+        *messages,
+        {"role": "assistant", "content": previous},
+        {
+            "role": "user",
+            "content": (
+                "The previous output failed deterministic validation. Fix only the reported defect(s) and return "
+                "the complete artifact again. Validator: " + error
+            ),
+        },
+    ]
+
+
+def _attempt_number(path: Path) -> int:
+    match = re.match(r"^attempt_(\d+)$", path.name)
+    return int(match.group(1)) if match else 0
+
+
+def _passed_root_matches_output(root: Path, output: Path, validator) -> str | None:
+    validation_path = root / "OUTPUT_validation.json"
+    accepted_path = root / _accepted_name(output)
+    if not (validation_path.is_file() and accepted_path.is_file() and output.is_file()):
+        return None
+    try:
+        validation = json.loads(validation_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if validation.get("passed") is not True:
+        return None
+    if accepted_path.read_text(encoding="utf-8") != output.read_text(encoding="utf-8"):
+        return None
+    return validator(output)
+
+
+def _model_call(
+    work: Path,
+    *,
+    call_id: str,
+    role: str,
+    messages: list[dict[str, str]],
+    output: Path,
+    validator,
+    profile: str | None,
+    normalizer=None,
+) -> str:
+    """Execute one auditable model operation with deterministic pre-validation repair."""
     binding = _profile(work, profile, role)
-    root, prompt_path, messages_path = _bundle_paths(work, call_id)
+    root, prompt_path, _messages_path = _bundle_paths(work, call_id)
     attempts = int(load_settings().get("structural_attempts", 10))
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_call_metadata(root, work, call_id=call_id, role=role, binding=binding, output=output, attempts=attempts)
+
+    try:
+        already_valid = _passed_root_matches_output(root, output, validator)
+    except (ValueError, OSError, KeyError):
+        already_valid = None
+    if already_valid is not None:
+        return already_valid
 
     if binding.is_self:
-        validator_error = None
-        if output.is_file():
-            try:
-                message = validator(output)
-                _atomic_write(root / "validated.txt", message + "\n")
-                return message
-            except (ValueError, OSError, KeyError) as exc:
-                validator_error = str(exc)
-                _atomic_write(root / "attempt-self.validation.txt", validator_error + "\n")
-                _status(f"  {call_id}: validation failed; correction handoff required")
-        _atomic_write(messages_path, json.dumps(messages, indent=2, ensure_ascii=False) + "\n")
-        _atomic_write(prompt_path, _render_bundle(call_id, messages, output, validator_error))
-        raise Handoff(call_id, prompt_path, output)
+        attempt_dirs = sorted(
+            (path for path in root.glob("attempt_[0-9][0-9]") if path.is_dir()),
+            key=_attempt_number,
+        )
+        pending = next((path for path in reversed(attempt_dirs) if not (path / "OUTPUT_validation.json").is_file()), None)
+
+        if pending is None:
+            attempt = (_attempt_number(attempt_dirs[-1]) if attempt_dirs else 0) + 1
+            if attempt > attempts:
+                last_error = "unknown validation failure"
+                if attempt_dirs:
+                    try:
+                        last_error = json.loads((attempt_dirs[-1] / "OUTPUT_validation.json").read_text(encoding="utf-8")).get("error") or last_error
+                    except (OSError, json.JSONDecodeError):
+                        pass
+                raise StepFailure(f"model operation {call_id} failed structural validation after {attempts} attempts: {last_error}")
+
+            validator_error = None
+            call_messages = list(messages)
+            if attempt_dirs:
+                last = attempt_dirs[-1]
+                try:
+                    validation = json.loads((last / "OUTPUT_validation.json").read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    validation = {}
+                if validation.get("passed") is False:
+                    validator_error = validation.get("error") or "previous attempt failed deterministic validation"
+                    previous_path = last / _normalized_name(output)
+                    previous = previous_path.read_text(encoding="utf-8") if previous_path.is_file() else (last / "OUTPUT_raw.txt").read_text(encoding="utf-8")
+                    call_messages = _retry_messages(messages, previous, validator_error)
+            pending = _write_attempt_inputs(root, attempt, call_id, call_messages, output, validator_error)
+
+        # A pre-existing target on the first migration/resume is the pending raw response.
+        if not output.is_file():
+            raise Handoff(call_id, prompt_path, output)
+
+        raw = output.read_text(encoding="utf-8")
+        normalized, repairs = _normalize_candidate(raw, output, normalizer)
+        _record_candidate(root, pending, raw=raw, normalized=normalized, repairs=repairs, output=output)
+        _atomic_write(output, normalized)
+        try:
+            message = validator(output)
+        except (ValueError, OSError, KeyError) as exc:
+            error = str(exc)
+            post = output.read_text(encoding="utf-8") if output.is_file() else normalized
+            if post != normalized:
+                repairs = [*repairs, "validator applied an additional deterministic repair before reporting remaining errors"]
+                normalized = post
+                _record_candidate(root, pending, raw=raw, normalized=normalized, repairs=repairs, output=output)
+            _record_validation(root, pending, validator, passed=False, error=error)
+            _status(f"  {call_id}: validation failed; correction handoff required")
+            # The failed raw/normalized response is safely preserved in the attempt directory.
+            output.unlink(missing_ok=True)
+            if _attempt_number(pending) >= attempts:
+                raise StepFailure(f"model operation {call_id} failed structural validation after {attempts} attempts: {error}")
+            retry_messages = _retry_messages(messages, normalized, error)
+            next_attempt = _attempt_number(pending) + 1
+            _write_attempt_inputs(root, next_attempt, call_id, retry_messages, output, error)
+            raise Handoff(call_id, prompt_path, output)
+
+        accepted = output.read_text(encoding="utf-8")
+        if accepted != normalized:
+            repairs = [*repairs, "validator applied an additional deterministic repair"]
+            normalized = accepted
+            _record_candidate(root, pending, raw=raw, normalized=normalized, repairs=repairs, output=output)
+        _record_validation(root, pending, validator, passed=True)
+        _record_accepted(root, pending, output, accepted, message)
+        return message
 
     last_error = ""
     previous = None
-    for attempt in range(1, attempts + 1):
+    existing_attempts = sorted(
+        (path for path in root.glob("attempt_[0-9][0-9]") if path.is_dir()),
+        key=_attempt_number,
+    )
+    start_attempt = (_attempt_number(existing_attempts[-1]) if existing_attempts else 0) + 1
+    if existing_attempts:
+        last = existing_attempts[-1]
+        validation_path = last / "OUTPUT_validation.json"
+        if validation_path.is_file():
+            try:
+                validation = json.loads(validation_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                validation = {}
+            if validation.get("passed") is False:
+                last_error = validation.get("error") or "previous attempt failed deterministic validation"
+                previous_path = last / _normalized_name(output)
+                if previous_path.is_file():
+                    previous = previous_path.read_text(encoding="utf-8")
+    previous_existing = output.read_text(encoding="utf-8") if output.is_file() else None
+    for attempt in range(start_attempt, attempts + 1):
         _status(f"  {call_id}: answering" if attempt == 1 else f"  {call_id}: retry {attempt - 1}/{attempts - 1}")
-        call_messages = list(messages)
-        if previous is not None:
-            call_messages.extend([
-                {"role": "assistant", "content": previous},
-                {"role": "user", "content": "The previous output failed deterministic validation. Fix only the reported defect(s) and return the complete artifact again. Validator: " + last_error},
-            ])
-        _atomic_write(messages_path, json.dumps(call_messages, indent=2, ensure_ascii=False) + "\n")
-        _atomic_write(prompt_path, _render_bundle(call_id, call_messages, output, last_error or None))
+        call_messages = list(messages) if previous is None else _retry_messages(messages, previous, last_error)
+        attempt_dir = _write_attempt_inputs(root, attempt, call_id, call_messages, output, last_error or None)
         try:
             completion = model_client.complete_messages(binding, call_messages)
         except model_client.TruncatedCompletion as exc:
-            previous = exc.content
+            raw = exc.content
+            normalized, repairs = _normalize_candidate(raw, output, normalizer)
+            _record_candidate(root, attempt_dir, raw=raw, normalized=normalized, repairs=repairs, output=output)
             last_error = str(exc)
-            _atomic_write(root / f"attempt-{attempt}.validation.txt", last_error + "\n")
+            _record_validation(root, attempt_dir, validator, passed=False, error=last_error)
+            previous = normalized
             continue
         except RuntimeError as exc:
+            for parent in (attempt_dir, root):
+                _atomic_write(parent / "OUTPUT_api_error.txt", str(exc) + "\n")
             raise StepFailure(str(exc)) from exc
+
         raw = completion.content if isinstance(completion, model_client.Completion) else completion
-        text = model_client.strip_code_fence(raw)
-        _atomic_write(root / f"attempt-{attempt}.output", text)
-        prior = output.read_text(encoding="utf-8") if output.is_file() else None
-        _atomic_write(output, text)
+        normalized, repairs = _normalize_candidate(raw, output, normalizer)
+        _record_candidate(root, attempt_dir, raw=raw, normalized=normalized, repairs=repairs, output=output)
+        _atomic_write(output, normalized)
         try:
             message = validator(output)
         except (ValueError, OSError, KeyError) as exc:
             last_error = str(exc)
-            previous = text
-            _atomic_write(root / f"attempt-{attempt}.validation.txt", last_error + "\n")
-            if prior is None:
+            post = output.read_text(encoding="utf-8") if output.is_file() else normalized
+            if post != normalized:
+                repairs = [*repairs, "validator applied an additional deterministic repair before reporting remaining errors"]
+                normalized = post
+                _record_candidate(root, attempt_dir, raw=raw, normalized=normalized, repairs=repairs, output=output)
+            _record_validation(root, attempt_dir, validator, passed=False, error=last_error)
+            previous = normalized
+            if previous_existing is None:
                 output.unlink(missing_ok=True)
             else:
-                _atomic_write(output, prior)
+                _atomic_write(output, previous_existing)
             continue
-        _atomic_write(root / "validated.txt", message + "\n")
+
+        accepted = output.read_text(encoding="utf-8")
+        if accepted != normalized:
+            repairs = [*repairs, "validator applied an additional deterministic repair"]
+            normalized = accepted
+            _record_candidate(root, attempt_dir, raw=raw, normalized=normalized, repairs=repairs, output=output)
+        _record_validation(root, attempt_dir, validator, passed=True)
+        _record_accepted(root, attempt_dir, output, accepted, message)
         return message
     raise StepFailure(f"model operation {call_id} failed structural validation after {attempts} attempts: {last_error}")
-
 
 def _safe_slug(text: str) -> str:
     out = "".join(ch.lower() if ch.isalnum() else "-" for ch in text).strip("-")
@@ -491,14 +757,14 @@ def _final_diagnosis_prompt(question: dict) -> str:
     )
 
 
-def _write_call_inputs(call_dir: Path, *, context: str, questions: str, previous: dict | None, cards: list[dict] | None = None) -> None:
-    call_dir.mkdir(parents=True, exist_ok=True)
-    _atomic_write(call_dir / "INPUT_context.md", context.rstrip() + "\n")
-    _atomic_write(call_dir / "INPUT_questions.md", questions)
-    if previous is not None:
-        _atomic_write(call_dir / "INPUT_previous_state.yaml", yaml.safe_dump(previous, sort_keys=False, allow_unicode=True, width=110))
-    if cards is not None:
-        _atomic_write(call_dir / "INPUT_cards.json", json.dumps(cards, indent=2, ensure_ascii=False) + "\n")
+def _terrace_state_path(work: Path, domain: str, index: int, group_ids: list[str]) -> Path:
+    """Accepted terrace state path, with resume support for pre-audit-layout runs."""
+    label = group_ids[0] if len(group_ids) == 1 else f"{group_ids[0]}-{group_ids[-1]}"
+    preferred = work / domain / "terraces" / f"{index:02d}-{label}.yaml"
+    legacy = work / domain / f"call_{index:02d}_{label}" / "OUTPUT_state.yaml"
+    if legacy.is_file() and not preferred.exists():
+        return legacy
+    return preferred
 
 
 def _render_evidence_bundle(work: Path, domain: str, cards: list[dict], *, cmcs: list[str], diagnoses: list[str], digest: str, manifest: dict) -> tuple[Path, Path, list[dict]]:
@@ -544,8 +810,7 @@ def module_diagnosis_terraces(work: Path, stage: dict, profile: str | None) -> N
     for index, group_ids in enumerate(groups, 1):
         is_final = group_ids == ["DX-final"]
         questions_text = _questions_message("diagnosis", group_ids)
-        call_dir = work / "diagnosis" / f"call_{index:02d}_{group_ids[0]}{('-'+group_ids[-1]) if len(group_ids)>1 else ''}"
-        output = call_dir / "OUTPUT_state.yaml"
+        output = _terrace_state_path(work, "diagnosis", index, group_ids)
         if is_final:
             if previous is None:
                 raise StepFailure("diagnosis final synthesis requires a validated pre-final state")
@@ -556,7 +821,6 @@ def module_diagnosis_terraces(work: Path, stage: dict, profile: str | None) -> N
             )
             prompt = _final_diagnosis_prompt(by_id["DX-final"])
             messages = [{"role": "system", "content": model_client.SYSTEM_PROMPT}, {"role": "user", "content": prompt + "\n\n" + context + "\n" + questions_text}]
-            _write_call_inputs(call_dir, context=context, questions=questions_text, previous=previous, cards=[])
             _model_call(
                 work, call_id=f"diagnosis-{index:02d}-final", role="answer", messages=messages, output=output,
                 validator=lambda p, r=reviewed, c=by_id["DX-final"]: runtime.validate_diagnosis_state(p, final=True, final_config=c, reviewed=r), profile=profile,
@@ -588,7 +852,6 @@ def module_diagnosis_terraces(work: Path, stage: dict, profile: str | None) -> N
             *transcript,
             {"role": "user", "content": questions_text},
         ]
-        _write_call_inputs(call_dir, context=base_context, questions=questions_text, previous=previous, cards=cards)
         _status(f"  diagnosis terrace {index}/{len(groups)-1}: draw {len(cards)} cards for CMC {' | '.join(active_cmcs)}")
         _model_call(work, call_id=f"diagnosis-{index:02d}-{'-'.join(group_ids)}", role="answer", messages=messages, output=output, validator=lambda p: runtime.validate_diagnosis_state(p), profile=profile)
         state = runtime.parse_yaml_mapping(output)
@@ -613,7 +876,11 @@ def module_diagnosis_terraces(work: Path, stage: dict, profile: str | None) -> N
 
 
 def _diagnosis_report_synthesis_validator(path: Path) -> str:
-    diagnosis_connector.prose_to_facts(_read(path))
+    raw = _read(path)
+    normalized, _repairs = diagnosis_connector.normalize_prose(raw)
+    if normalized != raw:
+        _atomic_write(path, normalized)
+    diagnosis_connector.prose_to_facts(normalized)
     return "diagnosis report synthesis validated"
 
 
@@ -628,7 +895,10 @@ def module_diagnosis_report(work: Path, stage: dict, profile: str | None) -> Non
 
     prose = report_dir / "01-synthesis.md"
     messages = [{"role": "system", "content": model_client.SYSTEM_PROMPT}, {"role": "user", "content": _read(PROMPTS / "diagnosis_report_synthesis.md") + "\n\n# Synthesis input\n```yaml\n" + yaml.safe_dump(source_input, sort_keys=False, allow_unicode=True, width=110) + "```\n"}]
-    _model_call(work, call_id="diagnosis-report-synthesis", role="summarisation", messages=messages, output=prose, validator=_diagnosis_report_synthesis_validator, profile=profile)
+    _model_call(
+        work, call_id="diagnosis-report-synthesis", role="summarisation", messages=messages, output=prose,
+        validator=_diagnosis_report_synthesis_validator, profile=profile, normalizer=diagnosis_connector.normalize_prose,
+    )
     immutable = diagnosis_connector.prose_to_facts(_read(prose))
     case_ids, diagnostic_ids = diagnosis_connector.source_id_sets(case, sources)
 
@@ -772,15 +1042,13 @@ def module_downstream_terraces(work: Path, stage: dict, profile: str | None) -> 
     )
     for index, group_ids in enumerate(groups, 1):
         questions = _questions_message(domain, group_ids)
-        call_dir = work / domain / f"call_{index:02d}_{group_ids[0]}{('-'+group_ids[-1]) if len(group_ids)>1 else ''}"
-        output = call_dir / "OUTPUT_state.yaml"
+        output = _terrace_state_path(work, domain, index, group_ids)
         messages = [
             {"role": "system", "content": model_client.SYSTEM_PROMPT},
             {"role": "user", "content": _read(PROMPTS / "downstream_terrace.md") + "\n\n" + base},
             *transcript,
             {"role": "user", "content": questions},
         ]
-        _write_call_inputs(call_dir, context=base, questions=questions, previous=previous, cards=renderable)
         _model_call(work, call_id=f"{domain}-{index:02d}-{'-'.join(group_ids)}", role="answer", messages=messages, output=output, validator=runtime.validate_domain_state, profile=profile)
         state = runtime.parse_yaml_mapping(output)
         rendered = yaml.safe_dump(state, sort_keys=False, allow_unicode=True, width=110)

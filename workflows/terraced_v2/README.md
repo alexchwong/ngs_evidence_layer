@@ -109,8 +109,7 @@ This writes local settings to `workflows/terraced_v2/settings.json`. A one-run `
 ```bash
 .env/bin/python workflows/terraced_v2/step.py setup \
   --mode ngs-report \
-  --case-file case.md \
-  --project
+  --case-file case.md
 ```
 
 The first output line is the work directory. Then run:
@@ -126,8 +125,7 @@ Example using LM Studio without changing persistent defaults:
   --mode ngs-report \
   --case-file case.md \
   --model-profile lmstudio \
-  --terrace-profile balanced \
-  --project
+  --terrace-profile balanced
 
 .env/bin/python workflows/terraced_v2/step.py run --work-dir <work-dir>
 ```
@@ -139,8 +137,7 @@ Bundled demo:
 ```bash
 .env/bin/python workflows/terraced_v2/step.py setup \
   --mode nel-demo \
-  --example 1 \
-  --project
+  --example 1
 
 .env/bin/python workflows/terraced_v2/step.py run --work-dir <work-dir>
 ```
@@ -150,8 +147,7 @@ Named validation case:
 ```bash
 .env/bin/python workflows/terraced_v2/step.py setup \
   --mode nel-validate \
-  --case-id 1C \
-  --project
+  --case-id 1C
 
 .env/bin/python workflows/terraced_v2/step.py run --work-dir <work-dir>
 ```
@@ -734,33 +730,46 @@ immutable case.json
 + current terrace question group
 ```
 
-Each call directory also records model-call inputs such as:
+Accepted terrace states live under the clinical domain only:
 
 ```text
-INPUT_context.md
-INPUT_questions.md
-INPUT_previous_state.yaml
-INPUT_cards.json
-OUTPUT_state.yaml
+<domain>/terraces/01-<question-range>.yaml
+<domain>/terraces/02-<question-range>.yaml
+...
 ```
 
-The exact packaged provider operation is stored under:
+The complete model audit trail is authoritative under chronologically numbered operations:
 
 ```text
-state/model-steps/<operation-id>/
+state/model-steps/001-<operation-id>/
+├── CALL_metadata.json
+├── INPUT_prompt.md
+├── INPUT_messages.json
+├── INPUT_messages_readable.md
+├── OUTPUT_raw.txt
+├── OUTPUT_normalized.<ext>
+├── OUTPUT_repairs.json
+├── OUTPUT_validation.json
+├── OUTPUT_accepted.<ext>
+└── attempt_01/
+    ├── INPUT_prompt.md
+    ├── INPUT_messages.json
+    ├── INPUT_messages_readable.md
+    ├── OUTPUT_raw.txt
+    ├── OUTPUT_normalized.<ext>
+    ├── OUTPUT_repairs.json
+    └── OUTPUT_validation.json
 ```
 
-including `prompt.md`, `messages.json`, attempt outputs/validation messages and the final deterministic validation record.
-
-This makes runs resumable and provides an audit trail independent of provider-side chat history.
+Retries create `attempt_02/`, `attempt_03/`, and so on. Attempt directories are immutable history; the files at the operation root mirror the latest attempt, while `OUTPUT_accepted.<ext>` exists only after deterministic validation passes. This avoids a duplicate prompt/input trail inside clinical domain folders.
 
 ---
 
 # Validation and repair
 
-Every model artifact is deterministically validated before the workflow proceeds.
+Every model artifact is deterministically normalized and validated before the workflow proceeds. Safe presentation/syntax defects are repaired in Python first: enclosing Markdown fences and BOMs, JSON trailing commas, and diagnosis-synthesis line-edge whitespace/Markdown hard-break spaces. The untouched model response remains in `OUTPUT_raw.txt`; repaired content and an explicit repair ledger are written separately. Clinical meaning is never inferred during normalization.
 
-For direct providers, validation failure causes the next attempt to receive the previous output plus the complete deterministic validator message and an instruction to repair only the reported defects.
+For direct providers, only defects that remain after deterministic repair cause the next attempt to receive the previous normalized output plus the complete deterministic validator message and an instruction to repair only the reported defects.
 
 The status output is:
 
@@ -809,10 +818,10 @@ Those messages remain in `workflow.log` for audit/debugging.
 
 # Work-directory layout
 
-New project work directories use readable timestamped names rather than random hashes, for example:
+By default, work directories are created under `workflows/terraced_v2/runs/` with readable timestamped names rather than random hashes, for example:
 
 ```text
-temp/terraced-v2-ngs-report-case-20260821T121530Z/
+workflows/terraced_v2/runs/terraced-v2-ngs-report-case-20260821T121530Z/
 ```
 
 The exact label depends on mode/case identifier.
@@ -847,18 +856,21 @@ Typical layout:
 ├── state/
 │   ├── terraced-v2-run.json
 │   └── model-steps/
-│       └── <operation-id>/
+│       ├── 001-structure-case/
+│       ├── 002-diagnosis-01-.../
+│       └── ...
 ├── synthesis/
 │   └── report-cited.md
 ├── diagnosis/
-│   ├── call_01_.../
-│   ├── ...
+│   ├── terraces/
+│   │   ├── 01-DX1-DX3.yaml
+│   │   └── ...
 │   ├── FINAL_OUTPUT.yaml
 │   ├── FINAL_FACTS.yaml
 │   ├── FINAL_ALIGNED.yaml
 │   └── FINAL_REPORT.md
 ├── germline/
-│   ├── call_01_.../
+│   ├── terraces/
 │   ├── FINAL_STATE.yaml
 │   ├── FINAL_ALIGNED.yaml
 │   └── FINAL_REPORT.md
@@ -925,7 +937,7 @@ workflow.log
 state/terraced-v2-run.json
 state/model-steps/
 evidence/card-identity-manifest.json
-<domain>/call_XX_*/
+<domain>/terraces/
 terraced-v2-debug.zip
 ```
 

@@ -36,6 +36,38 @@ def _raise_issues(context: str, issues: list[str]) -> None:
         raise ValueError(f"{context} failed validation with {len(issues)} issue(s):\n{rendered}")
 
 
+
+
+def normalize_prose(prose: str) -> tuple[str, list[str]]:
+    """Repair presentation-only defects in line-oriented diagnosis prose.
+
+    The synthesis contract is one heading followed by one sentence per line, so
+    surrounding line whitespace and blank separator lines carry no clinical
+    meaning.  Preserve all non-edge characters exactly.
+    """
+    repairs: list[str] = []
+    normalized_newlines = prose.replace("\r\n", "\n").replace("\r", "\n")
+    if normalized_newlines != prose:
+        repairs.append("normalized line endings")
+    kept: list[str] = []
+    removed_blank = 0
+    for raw_line in normalized_newlines.splitlines():
+        stripped = raw_line.strip()
+        if not stripped:
+            if raw_line or kept:
+                removed_blank += 1
+            continue
+        label = "heading" if not kept else f"sentence {len(kept)}"
+        if raw_line != stripped:
+            repairs.append(f"trimmed surrounding whitespace from {label}")
+        kept.append(stripped)
+    if removed_blank:
+        repairs.append(f"removed {removed_blank} blank separator line(s)")
+    normalized = "\n".join(kept)
+    if normalized:
+        normalized += "\n"
+    return normalized, repairs
+
 def diagnostic_sources(final_doc: dict) -> dict:
     """Assign deterministic IDs to the reviewed diagnostic state."""
     diagnoses = []
@@ -84,39 +116,24 @@ def source_id_sets(structured_case: dict, sources: dict) -> tuple[set[str], set[
 
 
 def prose_to_facts(prose: str) -> dict:
-    """Validate line-oriented diagnosis prose and copy each sentence into a fact."""
-    lines = prose.splitlines()
-    while lines and not lines[-1].strip():
-        lines.pop()
+    """Validate normalized line-oriented diagnosis prose and copy sentences into facts."""
+    normalized, _repairs = normalize_prose(prose)
+    lines = normalized.splitlines()
     issues = []
-    if not lines or lines[0].strip() != HEADING:
+    if not lines or lines[0] != HEADING:
         received = lines[0] if lines else None
         issues.append(
             f"Heading — Problem: expected exact first line {HEADING!r}; received {received!r}. "
             f"Required fix: begin the complete report with exactly {HEADING} on its own line."
-        )
-    elif lines[0] != HEADING:
-        issues.append(
-            f"Heading — Problem: contains surrounding whitespace ({lines[0]!r}). Required fix: return exactly "
-            f"{HEADING} with no leading/trailing spaces or Markdown hard-break spaces."
         )
     body = lines[1:]
     if not body:
         issues.append("Report body — Problem: contains no diagnosis sentences. Required fix: include at least one full-stop-terminated prose sentence.")
     facts = []
     for index, line in enumerate(body, 1):
-        if not line.strip():
-            issues.append(f"Sentence {index} — Problem: line is blank. Required fix: remove the blank line.")
-            continue
-        stripped_line = line.strip()
-        if line != line.strip():
-            issues.append(
-                f"Sentence {index} — Problem: contains surrounding whitespace ({line!r}). Required fix: remove all "
-                "leading/trailing spaces, including Markdown two-space hard breaks."
-            )
-        if stripped_line.startswith(('-', '*', '#', '>')):
+        if line.startswith(('-', '*', '#', '>')):
             issues.append(f"Sentence {index} — Problem: uses Markdown structure. Required fix: return plain prose without bullets, headings or blockquotes.")
-        if not stripped_line.endswith("."):
+        if not line.endswith("."):
             issues.append(f"Sentence {index} — Problem: does not end with a full stop. Required fix: end the sentence with '.'.")
         if "[card:" in line:
             issues.append(f"Sentence {index} — Problem: contains a runtime card tag. Required fix: remove every card tag from synthesis prose.")
@@ -134,20 +151,39 @@ def prose_to_facts(prose: str) -> dict:
 
 def _validate_immutable_rows(document: dict, immutable: dict, *, aligned: bool) -> tuple[list[dict], list[str]]:
     expected_top = {"facts"}
-    issues = []
-    if not isinstance(document, dict) or set(document) != expected_top:
-        received = sorted(document) if isinstance(document, dict) else type(document).__name__
-        raise ValueError(
-            f"Grounded report — Problem: expected one YAML object containing exactly facts; received {received!r}. "
-            "Required fix: return the complete object with only the facts field."
+    issues: list[str] = []
+    if not isinstance(document, dict):
+        issues.append(
+            f"Grounded report — Problem: expected one YAML object, received {type(document).__name__}. "
+            "Required fix: return the complete object containing only the facts field."
         )
-    rows = document["facts"]
-    expected_rows = immutable["facts"]
-    if not isinstance(rows, list) or len(rows) != len(expected_rows):
-        raise ValueError(
-            f"Grounded report.facts — Problem: expected {len(expected_rows)} rows, received "
-            f"{len(rows) if isinstance(rows, list) else type(rows).__name__}. Required fix: return every immutable fact exactly once in supplied order."
+        return [], issues
+
+    missing_top = sorted(expected_top - set(document))
+    unexpected_top = sorted(set(document) - expected_top)
+    if missing_top:
+        issues.append(
+            f"Grounded report — Problem: missing field(s): {', '.join(missing_top)}. Required fix: add the facts field."
         )
+    if unexpected_top:
+        issues.append(
+            f"Grounded report — Problem: unexpected field(s): {', '.join(unexpected_top)}. Required fix: remove them; only facts is allowed."
+        )
+
+    rows = document.get("facts")
+    expected_rows = immutable.get("facts") or []
+    if not isinstance(rows, list):
+        issues.append(
+            f"Grounded report.facts — Problem: expected {len(expected_rows)} rows, received {rows!r}. "
+            "Required fix: return every immutable fact exactly once in supplied order."
+        )
+        return [], issues
+    if len(rows) != len(expected_rows):
+        issues.append(
+            f"Grounded report.facts — Problem: expected {len(expected_rows)} rows, received {len(rows)}. "
+            "Required fix: return every immutable fact exactly once in supplied order."
+        )
+
     required = {
         "fact_id",
         "fact",
@@ -158,25 +194,43 @@ def _validate_immutable_rows(document: dict, immutable: dict, *, aligned: bool) 
     if aligned:
         required.add("citation")
     for index, (row, expected) in enumerate(zip(rows, expected_rows), 1):
-        if not isinstance(row, dict) or set(row) != required:
-            received = sorted(row) if isinstance(row, dict) else type(row).__name__
+        if not isinstance(row, dict):
             issues.append(
-                f"Fact {index} — Problem: expected fields {sorted(required)}, received {received!r}. "
-                "Required fix: return exactly the configured fields."
+                f"Fact {index} — Problem: expected an object, received {row!r}. Required fix: return exactly the configured fields."
             )
             continue
+        missing = sorted(required - set(row))
+        unexpected = sorted(set(row) - required)
+        if missing:
+            issues.append(
+                f"Fact {index} — Problem: missing field(s): {', '.join(missing)}. Required fix: add the missing configured field(s)."
+            )
+        if unexpected:
+            issues.append(
+                f"Fact {index} — Problem: unexpected field(s): {', '.join(unexpected)}. Required fix: remove them; configured fields are {sorted(required)!r}."
+            )
         for key in ("fact_id", "fact"):
-            if row[key] != expected[key]:
+            if row.get(key) != expected.get(key):
                 issues.append(
                     f"Fact {index}.{key} — Problem: changed immutable supplied value. Required fix: copy {key} character-for-character."
                 )
-        if not isinstance(row["reason"], str) or not row["reason"].strip():
-            issues.append(f"Fact {index}.reason — Problem: blank or not a string. Required fix: supply a non-empty source-grounded reason.")
+        reason = row.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            issues.append(
+                f"Fact {index}.reason — Problem: blank or not a string. Required fix: supply a non-empty source-grounded reason."
+            )
         for key in ("source_case_fact_ids", "source_diagnostic_ids"):
-            if not isinstance(row[key], list) or any(not isinstance(x, str) for x in row[key]):
-                issues.append(f"Fact {index}.{key} — Problem: expected a list of source-ID strings. Required fix: return a YAML list of supplied IDs.")
-        if not row["source_case_fact_ids"] and not row["source_diagnostic_ids"]:
-            issues.append(f"Fact {index} — Problem: has no source ID. Required fix: map it to at least one supplied case or diagnostic source ID.")
+            value = row.get(key)
+            if not isinstance(value, list) or any(not isinstance(x, str) for x in value):
+                issues.append(
+                    f"Fact {index}.{key} — Problem: expected a list of source-ID strings, received {value!r}. Required fix: return a YAML list of supplied IDs."
+                )
+        case_ids = row.get("source_case_fact_ids")
+        diagnostic_ids = row.get("source_diagnostic_ids")
+        if isinstance(case_ids, list) and isinstance(diagnostic_ids, list) and not case_ids and not diagnostic_ids:
+            issues.append(
+                f"Fact {index} — Problem: has no source ID. Required fix: map it to at least one supplied case or diagnostic source ID."
+            )
     return rows, issues
 
 
@@ -220,7 +274,10 @@ def configure_runtime_card_tags(tag_map: dict) -> None:
     global _RUNTIME_TAG_BY_ID
     mapping = card_identity.tag_by_id(tag_map)
     if not mapping:
-        raise ValueError("runtime card-tag map is empty")
+        raise ValueError(
+            "Runtime card tags — Problem: initialized card-tag map is empty. "
+            "Required fix: rebuild the whole-corpus card identity manifest before report alignment."
+        )
     _RUNTIME_TAG_BY_ID = mapping
 
 
@@ -239,7 +296,10 @@ def runtime_cards(cards: list[dict]) -> tuple[list[dict], set[str]]:
     for card in cards:
         card_id = card.get("card_id")
         if card_id not in mapping:
-            raise ValueError(f"card {card_id!r} is absent from the initialized corpus tag map")
+            raise ValueError(
+                f"Runtime card tags — Problem: card {card_id!r} is absent from the initialized corpus tag map. "
+                "Required fix: rebuild/reuse a manifest initialized from the same complete corpus used for retrieval."
+            )
         tag = mapping[card_id]
         permitted.add(tag)
         rendered.append(dict(card, runtime_card_tag=f"[card:{tag}]"))

@@ -53,24 +53,24 @@ For ChatGPT/session execution use `self` and normally `frontier` grouping. For a
 ```bash
 # ngs-report
 <python> workflows/terraced_v2/step.py setup --mode ngs-report \
-  --case-file case.md --model-profile self --terrace-profile frontier --project
+  --case-file case.md --model-profile self --terrace-profile frontier
 
 # demo
 <python> workflows/terraced_v2/step.py setup --mode nel-demo --example <N> \
-  --model-profile self --terrace-profile frontier --project
+  --model-profile self --terrace-profile frontier
 
 # validation
 <python> workflows/terraced_v2/step.py setup --mode nel-validate --case-id <ID> \
-  --model-profile self --terrace-profile frontier --project
+  --model-profile self --terrace-profile frontier
 
 <python> workflows/terraced_v2/step.py setup --mode nel-validate-function --case-id <ID> \
-  --model-profile self --terrace-profile frontier --project
+  --model-profile self --terrace-profile frontier
 
 <python> workflows/terraced_v2/step.py setup --mode nel-validate-brief --case-id <ID> \
-  --model-profile self --terrace-profile frontier --project
+  --model-profile self --terrace-profile frontier
 ```
 
-Record the first output line as `<work-dir>`. New project runs use readable timestamped directory names rather than random hashes.
+Record the first output line as `<work-dir>`. By default, runs are created under `workflows/terraced_v2/runs/` using readable timestamped directory names rather than random hashes. Use `--work-dir` only when an explicit location is required.
 
 ## Execute
 
@@ -90,19 +90,27 @@ For a `self` handoff (exit `10`):
 
 The runner is resumable: completed model artifacts are deterministically revalidated and reused.
 
+## Model-call audit trail
+
+Model operations are recorded in actual execution order under `state/model-steps/001-<operation>/`, `002-<operation>/`, and so on. Each operation contains exact JSON messages plus a readable rendering. Every model attempt is preserved under `attempt_01/`, `attempt_02/`, etc., with `OUTPUT_raw.txt`, deterministic `OUTPUT_normalized.<ext>`, `OUTPUT_repairs.json`, and `OUTPUT_validation.json`. Raw responses are never overwritten by deterministic cleanup. Operation-root files mirror the latest attempt and `OUTPUT_accepted.<ext>` records the validated artifact.
+
+Before validation, Python automatically repairs only semantics-preserving syntax/presentation defects. This includes enclosing Markdown fences/BOMs, JSON trailing commas, and surrounding whitespace or Markdown hard-break spaces in diagnosis synthesis lines. A model retry is requested only for defects that remain after those repairs.
+
+Accepted terrace states are stored separately under `<domain>/terraces/NN-<question-range>.yaml`; domain folders do not duplicate the model prompt/input audit trail.
+
 ## Direct providers
 
 The provider is a model profile, not a workflow branch:
 
 ```bash
 <python> workflows/terraced_v2/step.py setup --mode ngs-report --case-file case.md \
-  --model-profile lmstudio --terrace-profile balanced --project
+  --model-profile lmstudio --terrace-profile balanced
 
 <python> workflows/terraced_v2/step.py setup --mode ngs-report --case-file case.md \
-  --model-profile ollama --terrace-profile deliberate --project
+  --model-profile ollama --terrace-profile deliberate
 
 <python> workflows/terraced_v2/step.py setup --mode ngs-report --case-file case.md \
-  --model-profile openrouter --terrace-profile balanced --project
+  --model-profile openrouter --terrace-profile balanced
 ```
 
 Provider endpoints/model IDs are configured in `models.json` (falling back to `models.json.template`) and can be overridden with the corresponding environment variables. OpenRouter requires `OPENROUTER_API_KEY`.
