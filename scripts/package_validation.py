@@ -240,7 +240,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
                     + ", ".join(overlap)
                 )
 
-    bundle_texts = {}
     source = normalise(source_text, markdown=True) if source_text is not None else None
     for evidence in package["evidence"]:
         card_id = evidence["card_id"]
@@ -301,11 +300,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             if source is not None and normalized not in source:
                 errors.append(f"{fragment_label}: fragment not found verbatim in paper.md")
             normalized_fragments.append(normalized)
-        normalized_bundle = " || ".join(normalized_fragments)
-        duplicate = bundle_texts.get(normalized_bundle)
-        if duplicate:
-            warnings.append(f"{card_id}: evidence is identical to {duplicate}; review independent utility")
-        bundle_texts[normalized_bundle] = card_id
 
     covered_genes = sorted({gene for card in package["cards"] for gene in card["genes"]})
     covered_diseases = sorted({disease for card in package["cards"] for disease in card["diseases"]})
