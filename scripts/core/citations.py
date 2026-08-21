@@ -31,13 +31,13 @@ REFERENCES_HEADING = "## References"
 REFS_HEADING = "## Refs"
 REFERENCE_START = re.compile(r"^(\d+)\.\s+(.+)$")
 CARD_ID = r"[A-Za-z0-9][A-Za-z0-9._-]*"
-CARD_TAG = r"[0-9a-f]{6}"
+CARD_TAG = r"[0-9a-f]{6}(?:[0-9a-f]{6})?"
 REFS_MAPPING = re.compile(
     rf"^({CARD_TAG}(?:,{CARD_TAG})*): primary ref "
     r"([1-9]\d*(?:,[1-9]\d*)*)"
     r"(?:; secondary ref ([1-9]\d*(?:,[1-9]\d*)*))?$"
 )
-SOURCE_MARKER = re.compile(r"\[card:([0-9a-f]{6})\]")
+SOURCE_MARKER = re.compile(rf"\[card:({CARD_TAG})\]")
 CARD_MARKER_LIKE = re.compile(r"\[card:[^\[\]\n]*\]")
 REPORT_MARKER = re.compile(r"\[([0-9]+(?:\s*,\s*[0-9]+)*)\]")
 ADJACENT_REPORT_MARKERS = re.compile(r"(?:\[(?:[0-9]+(?:\s*,\s*[0-9]+)*)\]){2,}")
@@ -199,7 +199,11 @@ def parse_card_tags(card_tags_text):
         raise ValueError("card-tags must contain exactly schema_version, algorithm, and tags")
     if payload["schema_version"] != "1.0":
         raise ValueError("card-tags schema_version must be '1.0'")
-    if payload["algorithm"] != card_tags.ALGORITHM:
+    supported_algorithms = {
+        card_tags.ALGORITHM,
+        "sha256-12hex-collision-resolved-global-corpus",
+    }
+    if payload["algorithm"] not in supported_algorithms:
         raise ValueError("card-tags algorithm is unsupported")
     rows = payload["tags"]
     if not isinstance(rows, list):
@@ -211,7 +215,7 @@ def parse_card_tags(card_tags_text):
             raise ValueError(f"card-tags tags[{index}] has invalid fields")
         tag = row["card_tag"]
         card_id = row["card_id"]
-        if not isinstance(tag, str) or re.fullmatch(r"[0-9a-f]{6}", tag) is None:
+        if not isinstance(tag, str) or re.fullmatch(CARD_TAG, tag) is None:
             raise ValueError(f"card-tags tags[{index}].card_tag is invalid")
         if not isinstance(card_id, str) or re.fullmatch(CARD_ID, card_id) is None:
             raise ValueError(f"card-tags tags[{index}].card_id is invalid")
@@ -317,7 +321,7 @@ def validate(
         bad = document_text[malformed.start():malformed.end()]
         raise ValueError(
             f"{source} line {line_number} contains malformed card marker {bad!r}. "
-            "Replace it with the exact six-character lowercase runtime marker copied from the "
+            "Replace it with the exact lowercase runtime marker copied from the "
             "corresponding assertion in report-draft.md, e.g. '[card:a1b2c3]'. "
             f"Offending line: {line!r}"
         )

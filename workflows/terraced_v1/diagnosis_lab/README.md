@@ -1,8 +1,55 @@
 # Diagnosis terrace lab
 
-Standalone experimental harness for the terraced-v1 **diagnosis terrace only**.
+Diagnosis-only terraced-v1 development area with two entry points:
 
-It is intentionally **not registered as a workflow**, does not replace `terraced-v1`, and does not write to normal terraced-v1 work directories. It is designed for rapid prompt/model experimentation with LM Studio, OpenRouter, or another OpenAI-compatible endpoint.
+- `run.py` remains the standalone experimental fixture harness and is intentionally not a registered workflow.
+- `workflow.py` is the complete diagnosis-only vertical slice, adding the terraced-v1 case-structure head, per-terrace deterministic retrieval, final citation rendering, logging, and packaging around the same diagnosis terrace logic.
+
+Neither entry point replaces the full `terraced-v1` workflow. The lab remains suitable for rapid prompt/model experimentation with LM Studio, OpenRouter, or another OpenAI-compatible endpoint.
+
+
+## Complete diagnosis-only workflow
+
+`workflow.py` wraps the existing experimental diagnosis terrace with the terraced-v1 head and a diagnosis-only tail. The original `run.py` remains the fixture-based laboratory harness.
+
+The complete wrapper:
+
+- accepts an authoritative `case.md` directly and bypasses case capture/rewrite;
+- supports `nel-demo`, `nel-validate`, `nel-validate-function`, and `nel-validate-brief`;
+- structures the case with terraced-v1 Step 1b and fixes the reported gene list at that point;
+- initializes a deterministic 12-hex identity plus content SHA-256 for **every corpus card before blacklist/retrieval filtering**;
+- performs a fresh deterministic diagnosis/germline draw at the start of every non-final diagnosis terrace using fixed genes + the last accepted CMCs + terrace category;
+- does **not** repeat the same terrace after a CMC change: the changed CMC controls the next terrace draw;
+- keeps gene-matched germline cards available during diagnosis;
+- writes timestamp-named run directories, elapsed-time `workflow.log`, diagnosis-only `report-final.md`, and a debug ZIP;
+- for validation modes, writes the standard external marking ZIP and **does not perform marking**.
+
+Arbitrary case:
+
+```bash
+python workflows/terraced_v1/diagnosis_lab/workflow.py \
+  --mode ngs-report \
+  --case-file case.md \
+  --profile balanced
+```
+
+Demo case:
+
+```bash
+python workflows/terraced_v1/diagnosis_lab/workflow.py \
+  --mode nel-demo --example 1 --profile balanced
+```
+
+Validation case (package only; no marking call):
+
+```bash
+python workflows/terraced_v1/diagnosis_lab/workflow.py \
+  --mode nel-validate --case-id 1C --profile balanced
+```
+
+The canonical user output is `report-final.md`. `evidence/card-identity-manifest.json` freezes the run-global corpus identity, `evidence/diagnosis-card-draws.json` audits each terrace's CMC-controlled draw, and validation runs additionally contain `nel-validation-<case>.zip` for external marking.
+
+The case-structure head uses a direct terraced-v1 model profile. With `--provider lmstudio` or `--provider openrouter`, the matching terraced profile is selected automatically; a generic `--provider openai-compatible` run must also supply `--model-profile`.
 
 ## What it tests
 

@@ -8,11 +8,19 @@ from __future__ import annotations
 
 import re
 
+from workflows.terraced_v1 import card_identity
+
 
 HEADING = "**Diagnosis**"
 FACT_ID_PREFIX = "diagnosis-summary-"
-CARD_TAG_RE = re.compile(r"\[card:([0-9a-f]{6})\]")
-CARD_TAGS_RE = re.compile(r"(?:\[card:[0-9a-f]{6}\])+")
+# New complete diagnosis runs emit 12-hex tags.  Six-hex syntax remains
+# accepted here so the isolated historical lab harness and its fixtures/tests do
+# not become incompatible solely because the production wrapper gained a wider
+# run-global identity namespace.
+_CARD_TAG = r"[0-9a-f]{6}(?:[0-9a-f]{6})?"
+CARD_TAG_RE = re.compile(rf"\[card:({_CARD_TAG})\]")
+CARD_TAGS_RE = re.compile(rf"(?:\[card:{_CARD_TAG}\])+")
+_RUNTIME_TAG_BY_ID: dict[str, str] | None = None
 FORBIDDEN_MACHINE_TERMS = {
     "indeterminate",
     "not_established",
@@ -202,12 +210,37 @@ def validate_grounded(
     _raise_issues("report grounding", issues)
 
 
+def configure_runtime_card_tags(tag_map: dict) -> None:
+    """Install the run-global 12-hex corpus identity map used by alignment.
+
+    The diagnosis workflow initializes this once from *every* corpus card before
+    blacklist filtering or terrace retrieval.  A card therefore keeps the same
+    runtime tag regardless of CMC evolution or which terrace first retrieves it.
+    """
+    global _RUNTIME_TAG_BY_ID
+    mapping = card_identity.tag_by_id(tag_map)
+    if not mapping:
+        raise ValueError("runtime card-tag map is empty")
+    _RUNTIME_TAG_BY_ID = mapping
+
+
 def runtime_cards(cards: list[dict]) -> tuple[list[dict], set[str]]:
-    """Assign stable six-hex runtime tags to the cards visible to alignment."""
+    """Attach run-global 12-hex runtime tags to cards visible to alignment."""
+    if _RUNTIME_TAG_BY_ID is None:
+        # Backward-compatible standalone diagnosis-lab use: still deterministic,
+        # but only the full workflow can guarantee initialization over the whole
+        # corpus.
+        fallback = card_identity.build_manifest(cards)
+        mapping = card_identity.tag_by_id(fallback)
+    else:
+        mapping = _RUNTIME_TAG_BY_ID
     rendered = []
     permitted = set()
-    for index, card in enumerate(cards, 1):
-        tag = f"{index:06x}"
+    for card in cards:
+        card_id = card.get("card_id")
+        if card_id not in mapping:
+            raise ValueError(f"card {card_id!r} is absent from the initialized corpus tag map")
+        tag = mapping[card_id]
         permitted.add(tag)
         rendered.append(dict(card, runtime_card_tag=f"[card:{tag}]"))
     return rendered, permitted
@@ -229,7 +262,7 @@ def validate_aligned(document: dict, grounded: dict, *, permitted_card_tags: set
             continue
         if not isinstance(citation, str) or CARD_TAGS_RE.fullmatch(citation) is None:
             issues.append(
-                f"Fact {index}.citation — Problem: invalid syntax {citation!r}. Required fix: use null or adjacent exact tags such as [card:000001][card:000002]."
+                f"Fact {index}.citation — Problem: invalid syntax {citation!r}. Required fix: use null or adjacent exact tags such as [card:0123456789ab][card:abcdef012345]."
             )
             continue
         tags = CARD_TAG_RE.findall(citation)
