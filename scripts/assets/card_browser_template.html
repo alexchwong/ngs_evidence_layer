@@ -47,11 +47,39 @@
 
   /* ---------- shell ---------- */
   .shell{display:grid;grid-template-columns:288px minmax(0,1fr);gap:0;align-items:start}
+  body.full-mode.detail-open .shell{grid-template-columns:270px minmax(0,1fr) minmax(340px,420px)}
   .rail{
     border-right:1px solid var(--rule);padding:20px 20px 60px;
     position:sticky;top:0;max-height:100vh;overflow-y:auto;background:var(--panel);
   }
   .main{padding:20px 28px 90px;min-width:0}
+
+  /* ---------- full detail pane ---------- */
+  .detail{display:none}
+  body.full-mode.detail-open .detail{
+    display:block;border-left:1px solid var(--rule);background:#fff;padding:18px 20px 60px;
+    position:sticky;top:0;max-height:100vh;overflow-y:auto;min-width:0;
+  }
+  .detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .detail-id{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+  .detail-close{border:1px solid var(--rule);background:#fff;border-radius:2px;cursor:pointer;padding:3px 8px;font-family:var(--mono);font-size:12px}
+  .detail-close:hover{border-color:var(--eosin);color:var(--eosin)}
+  .detail-section{border-top:1px solid var(--rule);padding-top:14px;margin-top:16px}
+  .detail-section:first-of-type{border-top:0;padding-top:0;margin-top:0}
+  .detail-section h2{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .detail-interpretation{font-family:var(--display);font-size:20px;line-height:1.45;margin:0}
+  .meta-grid{display:grid;grid-template-columns:minmax(100px,130px) minmax(0,1fr);gap:6px 12px;margin:0;font-size:13px}
+  .meta-grid dt{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0}
+  .meta-grid dd{margin:0;overflow-wrap:anywhere}
+  .evidence-fragment{margin:12px 0 0;padding:10px 12px;background:var(--panel);border-left:3px solid var(--azure)}
+  .fragment-label{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:6px}
+  .evidence-fragment blockquote{margin:0;font-size:13.5px;line-height:1.55}
+  .support-list{margin:0;padding-left:18px;font-size:13px}
+  .support-list code{font-family:var(--mono);font-size:11px}
+  .detail-citation{font-size:13px;line-height:1.55;margin:0}
+  details.raw{margin-top:16px;border-top:1px solid var(--rule);padding-top:12px}
+  details.raw summary{cursor:pointer;font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  pre.raw-json{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);font-size:10px;line-height:1.45;background:var(--panel);padding:10px;margin:10px 0 0;border:1px solid var(--rule)}
 
   /* ---------- filters ---------- */
   .facet{margin-bottom:26px}
@@ -114,6 +142,9 @@
     padding:15px 0 15px 13px;border-bottom:1px solid var(--rule);
     border-left:3px solid var(--spine,var(--rule));
   }
+  body.full-mode li.card{cursor:pointer}
+  body.full-mode li.card:hover{background:#f7f4fa}
+  body.full-mode li.card.selected{background:#fff;border-left-width:5px;padding-left:11px}
   li.card .cid{
     font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);
     letter-spacing:-.01em;overflow-wrap:anywhere;padding-top:2px;
@@ -126,8 +157,16 @@
 
   .railtoggle{display:none}
 
+  @media (max-width:1150px){
+    body.full-mode.detail-open .shell{grid-template-columns:288px minmax(0,1fr)}
+    body.full-mode.detail-open .detail{
+      position:fixed;z-index:20;right:0;top:0;width:min(440px,92vw);height:100vh;max-height:none;
+      box-shadow:-12px 0 34px rgba(25,24,37,.16);
+    }
+  }
+
   @media (max-width:900px){
-    .shell{grid-template-columns:1fr}
+    .shell, body.full-mode.detail-open .shell{grid-template-columns:1fr}
     .rail{
       position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule);
       padding-bottom:24px;
@@ -163,6 +202,7 @@
     </div>
     <ol class="cards" id="cards"></ol>
   </main>
+  <aside class="detail" id="detail" aria-label="Card details"></aside>
 </div>
 
 <script>
@@ -175,9 +215,11 @@ const CATEGORY_COLOURS = {
 };
 
 const paperName = {};
-DATA.papers.forEach(p => { paperName[p.key] = p.nickname; });
+const paperByKey = {};
+DATA.papers.forEach(p => { paperName[p.key] = p.nickname; paperByKey[p.key] = p; });
+if (DATA.full) document.body.classList.add("full-mode");
 
-const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"" };
+const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"", selected:null };
 const facetSearch = { paper:"", disease:"", gene:"", category:"" };
 
 const FACETS = [
@@ -339,6 +381,183 @@ function highlight(text, needle){
   return fragment;
 }
 
+function textOrDash(value){
+  if (value === null || value === undefined || value === "") return "—";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function addMeta(grid, label, value){
+  const dt = document.createElement("dt");
+  dt.textContent = label;
+  const dd = document.createElement("dd");
+  dd.textContent = textOrDash(value);
+  grid.append(dt, dd);
+}
+
+function detailSection(title){
+  const section = document.createElement("section");
+  section.className = "detail-section";
+  const head = document.createElement("h2");
+  head.textContent = title;
+  section.appendChild(head);
+  return section;
+}
+
+function closeDetail(){
+  state.selected = null;
+  document.body.classList.remove("detail-open");
+  document.getElementById("detail").innerHTML = "";
+  document.querySelectorAll("li.card.selected").forEach(el => el.classList.remove("selected"));
+}
+
+function buildDetail(card){
+  if (!DATA.full || !card || !card.details) return;
+  state.selected = card.id;
+  document.body.classList.add("detail-open");
+  const pane = document.getElementById("detail");
+  pane.innerHTML = "";
+
+  const paper = paperByKey[card.paper];
+  const exact = card.details.card || {};
+  const evidence = card.details.evidence || {};
+  const paperDetails = (paper && paper.details) || {};
+
+  const head = document.createElement("div");
+  head.className = "detail-head";
+  const id = document.createElement("div");
+  id.className = "detail-id";
+  id.textContent = card.id;
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "detail-close";
+  close.textContent = "Close";
+  close.setAttribute("aria-label", "Close card details");
+  close.addEventListener("click", closeDetail);
+  head.append(id, close);
+  pane.appendChild(head);
+
+  const interpretation = detailSection("Interpretation");
+  const text = document.createElement("p");
+  text.className = "detail-interpretation";
+  text.textContent = exact.interpretation || card.text;
+  interpretation.appendChild(text);
+  pane.appendChild(interpretation);
+
+  const cardMeta = detailSection("Card");
+  const grid = document.createElement("dl");
+  grid.className = "meta-grid";
+  addMeta(grid, "Category", exact.category);
+  addMeta(grid, "Evidence tier", exact.evidence_tier);
+  addMeta(grid, "Genes", exact.genes);
+  addMeta(grid, "Diseases", exact.diseases);
+  addMeta(grid, "Disease ancestors", exact.disease_ancestors);
+  addMeta(grid, "Locator", exact.locator);
+  if (exact.secondary_citation){
+    addMeta(grid, "Secondary citation", exact.secondary_citation.display || exact.secondary_citation);
+  }
+  cardMeta.appendChild(grid);
+  pane.appendChild(cardMeta);
+
+  const ev = detailSection("Evidence");
+  const evMeta = document.createElement("dl");
+  evMeta.className = "meta-grid";
+  addMeta(evMeta, "Evidence type", evidence.evidence_type);
+  ev.appendChild(evMeta);
+  for (const fragment of (evidence.fragments || [])){
+    const box = document.createElement("div");
+    box.className = "evidence-fragment";
+    const label = document.createElement("div");
+    label.className = "fragment-label";
+    label.textContent = [fragment.fragment_id, fragment.role, fragment.locator].filter(Boolean).join(" · ");
+    const quote = document.createElement("blockquote");
+    quote.textContent = fragment.quote || "";
+    box.append(label, quote);
+    ev.appendChild(box);
+  }
+  pane.appendChild(ev);
+
+  if (evidence.support_map){
+    const support = detailSection("Support map");
+    const list = document.createElement("ul");
+    list.className = "support-list";
+    for (const [role, fragments] of Object.entries(evidence.support_map)){
+      const item = document.createElement("li");
+      item.textContent = role + " → " + textOrDash(fragments);
+      list.appendChild(item);
+    }
+    support.appendChild(list);
+    pane.appendChild(support);
+  }
+
+  if (evidence.table_relations && evidence.table_relations.length){
+    const relations = detailSection("Table relations");
+    const list = document.createElement("ul");
+    list.className = "support-list";
+    evidence.table_relations.forEach((relation, index) => {
+      const item = document.createElement("li");
+      const bits = [
+        "value " + textOrDash(relation.value_fragment_id),
+        "headers " + textOrDash(relation.header_fragment_ids),
+        "qualifiers " + textOrDash(relation.qualifier_fragment_ids)
+      ];
+      item.textContent = (index + 1) + ". " + bits.join(" · ");
+      list.appendChild(item);
+    });
+    relations.appendChild(list);
+    pane.appendChild(relations);
+  }
+
+  const pub = detailSection("Publication");
+  const citation = document.createElement("p");
+  citation.className = "detail-citation";
+  citation.textContent = paper.display || paper.nickname || paper.key;
+  pub.appendChild(citation);
+  const doc = paperDetails.document || {};
+  const pubGrid = document.createElement("dl");
+  pubGrid.className = "meta-grid";
+  addMeta(pubGrid, "Publication key", doc.publication_key || paper.key);
+  addMeta(pubGrid, "Nickname", doc.paper_nickname || paper.nickname);
+  addMeta(pubGrid, "Publication type", doc.publication_type || paper.type);
+  addMeta(pubGrid, "Extraction date", doc.extraction_date);
+  addMeta(pubGrid, "Extraction model", doc.extraction_model);
+  addMeta(pubGrid, "Genes covered", doc.genes_covered);
+  addMeta(pubGrid, "Diseases covered", doc.diseases_covered);
+  addMeta(pubGrid, "Census entries", doc.census_entries);
+  pub.appendChild(pubGrid);
+  pane.appendChild(pub);
+
+  const source = paperDetails.source || {};
+  const provenance = detailSection("Source & acceptance");
+  const sourceGrid = document.createElement("dl");
+  sourceGrid.className = "meta-grid";
+  addMeta(sourceGrid, "Input ID", source.input_id);
+  addMeta(sourceGrid, "Source filename", source.source_filename);
+  addMeta(sourceGrid, "Acceptance path", source.acceptance_path);
+  const accepted = paperDetails.accepted_package || {};
+  addMeta(sourceGrid, "Accepted at", accepted.accepted_at);
+  addMeta(sourceGrid, "Accepted in version", accepted.accepted_in_version);
+  addMeta(sourceGrid, "Latest version", accepted.latest_version || accepted.accepted_in_version);
+  provenance.appendChild(sourceGrid);
+  pane.appendChild(provenance);
+
+  const raw = document.createElement("details");
+  raw.className = "raw";
+  const summary = document.createElement("summary");
+  summary.textContent = "Raw record / provenance";
+  const pre = document.createElement("pre");
+  pre.className = "raw-json";
+  pre.textContent = JSON.stringify({card: exact, evidence, paper: paperDetails}, null, 2);
+  raw.append(summary, pre);
+  pane.appendChild(raw);
+
+  pane.scrollTop = 0;
+  document.querySelectorAll("li.card").forEach(el => {
+    el.classList.toggle("selected", el.dataset.cardId === card.id);
+  });
+}
+
 function buildCards(){
   const list = document.getElementById("cards");
   const rows = visibleCards();
@@ -359,8 +578,21 @@ function buildCards(){
   const chunk = document.createDocumentFragment();
   for (const card of rows){
     const item = document.createElement("li");
-    item.className = "card";
+    item.className = "card" + (state.selected === card.id ? " selected" : "");
+    item.dataset.cardId = card.id;
     item.style.setProperty("--spine", CATEGORY_COLOURS[card.category] || "var(--rule)");
+    if (DATA.full){
+      item.tabIndex = 0;
+      item.setAttribute("role", "button");
+      item.setAttribute("aria-label", "Open full details for " + card.id);
+      item.addEventListener("click", () => buildDetail(card));
+      item.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " "){
+          event.preventDefault();
+          buildDetail(card);
+        }
+      });
+    }
 
     const cid = document.createElement("span");
     cid.className = "cid";
@@ -374,6 +606,7 @@ function buildCards(){
     chunk.appendChild(item);
   }
   list.appendChild(chunk);
+  if (DATA.full && state.selected && !rows.some(card => card.id === state.selected)) closeDetail();
 }
 
 function render(options){
@@ -392,7 +625,7 @@ function render(options){
 
 document.getElementById("provenance").textContent =
   "corpus " + DATA.corpusVersion + " \u00b7 " + DATA.cards.length + " cards \u00b7 " +
-  DATA.papers.length + " papers";
+  DATA.papers.length + " papers" + (DATA.full ? " · full evidence view" : "");
 
 document.getElementById("textsearch").addEventListener("input", event => {
   state.query = event.target.value.trim().toLowerCase();
