@@ -1,0 +1,337 @@
+schema_version: 1
+default_execution_profile: frontier
+domains:
+  diagnosis:
+    questions:
+    - id: DX1
+      kind: terrace
+      question: What diagnosis does WHO5 assign, and what diagnosis does ICC assign?
+      guidance:
+      - For each disease process, derive WHO5 and ICC independently and record both outcomes in the same diagnosis
+        row.
+      - Integrate clinical, morphological, cytogenetic and molecular findings rather than reasoning outward from
+        one gene or VAF.
+      - Use established, indeterminate, not_established or not_applicable to distinguish a candidate label from
+        an accepted diagnosis.
+      - Do not transfer a criterion, threshold, exclusion or precedence rule from one classification system to the
+        other.
+      - WHO5 alone controls schema_disease and downstream routing; ICC is a paired comparator.
+      - Do not diagnose a myeloid neoplasm from mutation number, mutation identity or VAF alone.
+      - An explicitly negative NGS result is a valid case state; do not invent a molecular abnormality when no variants
+        were reported.
+    - id: DX2
+      kind: terrace
+      question: Is there evidence for a different diagnosis or a concurrent second pathology?
+      guidance:
+      - Actively challenge the current state and distinguish a competing classification from true concurrent pathology.
+      - Different WHO5 and ICC labels for the same disease process belong in one paired diagnosis row, not separate
+        pathology rows.
+      - If a credible second disease family is seriously entertained, add its canonical CMC to provisional_cmcs
+        so later groups can retrieve its diagnostic evidence.
+      - Do not assume a disease-defining molecular alteration excludes dual pathology.
+      - If there is no material diagnostic consequence, leave the state unchanged rather than adding a negative
+        fact.
+    - id: DX3
+      kind: terrace
+      question: Is this overt disease, a precursor clonal state, germline predisposition, or a combination?
+      guidance:
+      - Reconsider whether all molecular findings belong to the same overt neoplastic process.
+      - CHIP, CCUS, germline predisposition and overt neoplasia are not mutually exclusive.
+      - Do not infer somatic or constitutional origin from tumour-only sequencing, bulk VAF, absent family history,
+        age, morphology, normal cytogenetics or co-mutation pattern alone.
+      - Do not raise germline predisposition as a diagnostic consideration or uncertainty unless there is positive
+        clinical evidence of germline predisposition (e.g., young age at onset, family history of related malignancies,
+        known germline syndrome). Germline cards in the evidence corpus are informational and do not by themselves
+        warrant germline consideration.
+      - A negative NGS result does not establish absence of pathology.
+      - If this does not materially change or qualify the diagnostic interpretation, leave the state unchanged.
+    - id: DX4
+      kind: terrace
+      question: What could make the current diagnoses wrong or uncertain?
+      guidance:
+      - Adversarial review does not mean automatic downgrade. A diagnosis that meets all required criteria should
+        remain established unless a genuine blocking uncertainty is identified.
+      - Before challenging the current diagnosis, first confirm which required criteria and exclusions are satisfied
+        by the supplied data.
+      - Distinguish genuine blocking uncertainties (a required criterion or exclusion cannot be confirmed from the
+        supplied data) from caveats (concerns about criteria not required for this diagnosis, alternative diagnoses
+        not supported by the data, or additional testing that is not required for the current diagnosis).
+      - To downgrade from established to indeterminate, identify the specific required criterion that is unresolved
+        and explain why the supplied data cannot confirm it.
+      - Do not record uncertainties that do not block the diagnosis. If an uncertainty is a caveat rather than a
+        blocking concern, do not include it in the uncertainties list.
+      - Do not record uncertainties about additional testing that was not performed unless that testing is required
+        to confirm a required criterion.
+      - Accept reported clinical findings as sufficient. If the case notes report a finding (e.g., "dysplasia in
+        two lineages"), do not query whether it meets a specific threshold or percentage.
+      - Do not generate uncertainties about data that is not present in the clinical stem. Only raise uncertainties
+        when the case data contains information that contradicts or fails to support a required criterion.
+      - Follow the diagnostic hierarchy and precedence rules from the evidence cards. If a diagnosis is established
+        based on criteria that supersede another diagnosis, do not evaluate the superseded diagnosis as concurrent
+        pathology or generate uncertainties about its criteria.
+      - Continue to consider genuine concurrent pathologies when they are not mutually exclusive with the current
+        diagnosis per the classification hierarchy.
+      - Review every WHO5 and ICC outcome adversarially and separately.
+      - Check exact supplied blast, morphology, cytogenetic, alteration-class, VAF, required-criterion, exclusion
+        and precedence rules.
+      - Check for missing results, unsupported assumptions about origin or clonality, numerical inconsistency, contradiction
+        and classifier blending.
+      - Preserve genuine uncertainty rather than resolving it by assumption; use indeterminate when a required criterion
+        or exclusion is unresolved.
+      - Delete unsupported or superseded support, modify changed interpretations and merge overlap before adding
+        anything.
+      - If the whole case supports no WHO5-defined pathology, use schema_disease no_haematological_malignancy with
+        WHO5 status established and diagnosis No pathology identified rather than forcing a disease label.
+      - Do not use no_haematological_malignancy when CHIP, CCUS, germline predisposition syndrome or another supported
+        diagnostic state is itself the accepted diagnosis.
+      - A negative NGS result may be a supporting fact when explicitly supplied, but is never sufficient by itself
+        to establish no pathology.
+      - Remove facts whose only conclusion is that a finding does not alter the diagnosis.
+      - This is an adversarial reasoning review, not a presentation pass.
+    - id: DX-final
+      kind: final
+      question: What is the final diagnostic state?
+      guidance:
+      - This is a card-free synthesis pass, not a diagnostic reasoning pass.
+      - Use only the original case notes and the protected pre-final state supplied for this call.
+      - Preserve provisional_cmcs and the paired WHO5/ICC diagnoses exactly from the pre-final state.
+      - Do not introduce a new diagnosis, criterion, exclusion, evidence claim, numerical comparison, molecular
+        interpretation or uncertainty.
+      - Each final supporting fact must cite one or more pre-final source fact IDs supplied in the prompt.
+      - Each final uncertainty must cite one or more pre-final source fact or uncertainty IDs supplied in the prompt.
+      - Prefer selection and merging over free paraphrase. Preserve technical and numerical wording when it matters
+        to meaning.
+      - Never silently drop a material pre-final uncertainty.
+      - A negative NGS result and no pathology are independent conclusions; do not infer the latter from the former.
+      context:
+        include_case_notes: true
+        include_previous_state: true
+        include_evidence_cards: false
+        include_prior_transcript: false
+      output:
+        keys:
+        - provisional_cmcs
+        - diagnoses
+        - supporting_facts
+        - uncertainties
+      invariants:
+        preserve_fields:
+        - provisional_cmcs
+        - diagnoses
+        require_all_prior_uncertainties: true
+        prohibit_new_numeric_tokens: true
+  germline:
+    questions:
+    - id: GL1
+      question: Do any detected variants raise a credible possibility of germline predisposition when gene, exact
+        variant class, VAF and known prevalence are considered together?
+      guidance:
+      - Do not use VAF alone and do not diagnose germline status from tumour-only sequencing.
+    - id: GL2
+      question: Do family history, age, phenotype, morphology or other clinical features strengthen or weaken suspicion
+        of a relevant germline syndrome?
+      guidance:
+      - Consider both supporting and materially excluding features.
+    - id: GL3
+      question: Does the molecular architecture support or weaken germline predisposition, and what phase, constitutional-allele
+        or clonal relationships can actually be established from the available data?
+      guidance:
+      - Do not infer cis/trans phase, constitutional allele identity or clonal co-occurrence from bulk VAF alone.
+    - id: GL4
+      question: Would uncertainty about germline versus somatic origin materially change diagnosis, prognostic-framework
+        application, treatment interpretation, donor selection or another patient-level conclusion?
+      guidance:
+      - Keep affected conclusions provisional when constitutional status changes their validity.
+    - id: GL5
+      question: What germline-predisposition facts, if any, should be reported and what constitutional confirmation
+        wording is justified?
+      guidance:
+      - Use wording such as possible or suspected germline when appropriate.
+      - If no germline concern is supported, return an empty fact list rather than a negative paragraph.
+  prognosis:
+    questions:
+    - id: PROG1
+      question: Given the accepted WHO5 diagnosis or diagnoses, which validated disease-specific prognostic framework
+        applies and what patient-level risk category can actually be assigned?
+      guidance:
+      - Prefer validated disease-specific frameworks.
+      - For AML, use ELN 2022 as the primary framework; consider ELN 2024 Less-Intensive when clinically applicable
+        and materially different.
+      - Do not report inability to calculate a score merely because non-molecular inputs are missing.
+    - id: PROG2
+      question: Within the applicable framework, what favourable or adverse prognostic contribution do the detected
+        molecular findings make, including any relevant TP53 allelic-state interpretation?
+      guidance:
+      - Assess all detected variants but group those with the same effect.
+      - Do not call a variant neutral simply because it is absent from the framework.
+    - id: PROG3
+      question: Is there material disease-specific prognostic evidence outside the formal framework, or a materially
+        different effect in a still-relevant differential or concurrent diagnosis?
+      guidance:
+      - Report only clinically meaningful disease-specific effects supported by the available evidence.
+      - Absence of a prognostic card may justify a scoped statement that no established role is identified in the
+        available evidence; do not claim exhaustive absence from the literature.
+      - Use panel-negative findings internally unless an exceptional patient-level conclusion independently warrants
+        report prose.
+    - id: PROG4
+      question: After reconciling the framework, molecular modifiers, concurrent diagnoses and relevant uncertainty,
+        what prognostic facts are worth reporting for this patient?
+      guidance:
+      - Prefer patient-level conclusions over exhaustive variant-by-variant commentary.
+      - Remove non-informative statements about unavailable scores or routine negative results.
+  treatment:
+    questions:
+    - id: TX1
+      question: Which detected molecular or cytogenetic alteration supports a specific treatment implication for
+        the accepted diagnosis, and in what treatment setting is that implication established, optional or investigational?
+      guidance:
+      - Respect disease, treatment-line, approval, trial and jurisdictional qualifiers present in the evidence.
+    - id: TX2
+      question: Does any treatment implication depend on the exact variant or alteration class, and do cytogenetic
+        or FISH findings materially change the molecular treatment interpretation?
+      guidance:
+      - Do not generalise from another alteration in the same gene.
+      - Integrate actionable fusions, rearrangements or deletions when supplied.
+    - id: TX3
+      question: Do any detected alterations materially modify response, resistance, relapse after therapy, treatment-specific
+        survival, or transplant-related management in this patient's setting?
+      guidance:
+      - Do not convert treatment-specific effects into general prognosis.
+      - Do not infer a transplant indication from mutation status alone.
+    - id: TX4
+      question: Considering all accepted concurrent diagnoses and possible conflicts between their management, what
+        treatment-related molecular facts should actually be reported?
+      guidance:
+      - Reconcile implications across concurrent pathologies rather than listing independent textbook recommendations.
+      - Omit treatment content that is not patient-specific or materially actionable.
+  biomarker:
+    questions:
+    - id: BIO1
+      question: Which detected alterations are validated molecular MRD markers for the accepted diagnosis or diagnoses,
+        and what disease-specific baseline assessment and subsequent monitoring approach is supported?
+      guidance:
+      - On a diagnostic specimen, identify reportable prospective MRD markers and any need to establish a baseline
+        with the intended sensitive assay; this does not require a current MRD result.
+      - Do not transfer AML-specific MRD approaches to other diseases without supporting evidence.
+      - Match recommendations to the exact alteration class rather than extrapolating from another alteration in
+        the same gene.
+    - id: BIO2
+      question: If several alterations could be followed, which marker should be preferred and which are only complementary?
+      guidance:
+      - Prefer the most disease-specific and validated marker.
+      - Do not let a less-specific clonal marker supersede a more informative disease marker.
+    - id: BIO3
+      question: If this is a follow-up specimen, what can the detected or non-detected molecular findings mean at
+        this treatment timepoint given assay sensitivity, quantitative level and serial kinetics?
+      guidance:
+      - If this is a diagnostic specimen, do not assign current MRD status; retain any supported marker-suitability
+        and baseline-assessment conclusions from earlier questions.
+      - Do not infer relapse or treatment failure from an isolated low-level result without appropriate corroboration.
+      - Do not equate routine-panel negativity with biological absence or molecular remission.
+    - id: BIO4
+      question: After integrating marker suitability and the specimen context, what MRD facts or recommendations
+        are worth reporting?
+      guidance:
+      - Distinguish prospective marker identification at diagnosis from interpretation of MRD status after treatment.
+      - Lack of follow-up kinetics, quantitative levels or assay sensitivity prevents a current MRD-status conclusion,
+        but does not make a validated diagnostic marker or baseline-assessment recommendation non-reportable.
+      - When a prospective marker is supported, retain an explicit standalone positive fact naming the validated
+        or preferred marker and the supported baseline or monitoring approach; do not leave marker suitability merely
+        implied.
+      - Keep a positive marker or baseline recommendation separate from routine statements about an unavailable
+        current MRD result so the reportable conclusion can stand on its own.
+      - Prefer stating the appropriate positive marker over listing detected alterations that are unsuitable for
+        MRD, unless the caution itself independently changes patient management.
+      - If no validated or clinically useful molecular MRD implication exists, return no MRD facts rather than generic
+        negative prose.
+execution_profiles:
+  frontier:
+    description: One model call per clinical category; intended for strong frontier models.
+    groups:
+      diagnosis:
+      - - DX1
+        - DX2
+        - DX3
+      - - DX4
+      - - DX-final
+      germline:
+      - - GL1
+        - GL2
+        - GL3
+        - GL4
+        - GL5
+      prognosis:
+      - - PROG1
+        - PROG2
+        - PROG3
+        - PROG4
+      treatment:
+      - - TX1
+        - TX2
+        - TX3
+        - TX4
+      biomarker:
+      - - BIO1
+        - BIO2
+        - BIO3
+        - BIO4
+  balanced:
+    description: Two calls per category, preserving progressive reconsideration with lower per-call complexity.
+    groups:
+      diagnosis:
+      - - DX1
+      - - DX2
+        - DX3
+      - - DX4
+      - - DX-final
+      germline:
+      - - GL1
+        - GL2
+      - - GL3
+        - GL4
+        - GL5
+      prognosis:
+      - - PROG1
+        - PROG2
+      - - PROG3
+        - PROG4
+      treatment:
+      - - TX1
+        - TX2
+      - - TX3
+        - TX4
+      biomarker:
+      - - BIO1
+        - BIO2
+      - - BIO3
+        - BIO4
+  deliberate:
+    description: One call per terrace; intended for weaker local models or diagnostic evaluation.
+    groups:
+      diagnosis:
+      - - DX1
+      - - DX2
+      - - DX3
+      - - DX4
+      - - DX-final
+      germline:
+      - - GL1
+      - - GL2
+      - - GL3
+      - - GL4
+      - - GL5
+      prognosis:
+      - - PROG1
+      - - PROG2
+      - - PROG3
+      - - PROG4
+      treatment:
+      - - TX1
+      - - TX2
+      - - TX3
+      - - TX4
+      biomarker:
+      - - BIO1
+      - - BIO2
+      - - BIO3
+      - - BIO4

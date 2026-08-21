@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "default_profile": "self",
+  "roles": [
+    "structure",
+    "answer",
+    "evidence_alignment",
+    "summarisation"
+  ],
+  "profiles": {
+    "self": {
+      "description": "The current frontier/session model executes each packaged model operation.",
+      "provider": {
+        "type": "self"
+      },
+      "roles": {
+        "structure": {
+          "model": "self",
+          "temperature": 0.0,
+          "max_tokens": 16384
+        },
+        "answer": {
+          "model": "self",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        },
+        "evidence_alignment": {
+          "model": "self",
+          "temperature": 0.0,
+          "max_tokens": 16384
+        },
+        "summarisation": {
+          "model": "self",
+          "temperature": 0.0,
+          "max_tokens": 16384
+        }
+      }
+    },
+    "lmstudio": {
+      "description": "LM Studio OpenAI-compatible server; model IDs are configurable placeholders.",
+      "provider": {
+        "type": "openai-compatible",
+        "base_url": "http://localhost:1234/v1",
+        "base_url_env": "NEL_LMSTUDIO_BASE_URL",
+        "api_key_env": "NEL_LMSTUDIO_API_KEY",
+        "timeout_s": 900
+      },
+      "roles": {
+        "structure": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        },
+        "answer": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 65536
+        },
+        "evidence_alignment": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        },
+        "summarisation": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        }
+      }
+    },
+    "ollama": {
+      "description": "Ollama OpenAI-compatible server; change model IDs to names installed on the target server.",
+      "provider": {
+        "type": "openai-compatible",
+        "base_url": "http://localhost:11434/v1",
+        "base_url_env": "NEL_OLLAMA_BASE_URL",
+        "api_key_env": "NEL_OLLAMA_API_KEY",
+        "timeout_s": 900
+      },
+      "roles": {
+        "structure": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        },
+        "answer": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 65536
+        },
+        "evidence_alignment": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        },
+        "summarisation": {
+          "model": "qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        }
+      }
+    },
+    "openrouter": {
+      "description": "OpenRouter OpenAI-compatible endpoint; override role model IDs as needed.",
+      "provider": {
+        "type": "openai-compatible",
+        "base_url": "https://openrouter.ai/api/v1",
+        "base_url_env": "NEL_OPENROUTER_BASE_URL",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "timeout_s": 900
+      },
+      "roles": {
+        "structure": {
+          "model": "qwen/qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        },
+        "answer": {
+          "model": "qwen/qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 65536
+        },
+        "evidence_alignment": {
+          "model": "qwen/qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        },
+        "summarisation": {
+          "model": "qwen/qwen3-coder-next",
+          "temperature": 0.0,
+          "max_tokens": 32768
+        }
+      }
+    }
+  }
+}

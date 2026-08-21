@@ -22,6 +22,10 @@
     "terraced-v1": {
       "path": "workflows/terraced_v1",
       "enabled": true
+    },
+    "terraced-v2": {
+      "path": "workflows/terraced_v2",
+      "enabled": true
     }
   }
 }

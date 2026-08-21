@@ -1,6 +1,7 @@
 {
   "by_accepted_in_version": {
     "0.2.4": [
+      "arber-2022-blood-140-1200",
       "barbui-2015-blood-cancer-journal-5-e369",
       "bernard-2022-nejm-evidence-1-na",
       "cloos-2026-blood-147-1147",
@@ -14,6 +15,34 @@
   },
   "by_category": {
     "biomarker": [
+      "arber-2022-blood-140-1200-C0178",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0180",
+      "arber-2022-blood-140-1200-C0181",
+      "arber-2022-blood-140-1200-C0182",
+      "arber-2022-blood-140-1200-C0184",
+      "arber-2022-blood-140-1200-C0185",
+      "arber-2022-blood-140-1200-C0186",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
+      "arber-2022-blood-140-1200-C0191",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0197",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206",
+      "arber-2022-blood-140-1200-C0207",
       "bernard-2022-nejm-evidence-1-na-C0011",
       "bernard-2022-nejm-evidence-1-na-C0012",
       "bernard-2022-nejm-evidence-1-na-C0013",
@@ -144,6 +173,145 @@
       "khoury-2022-leukemia-36-1703-C0187"
     ],
     "diagnosis": [
+      "arber-2022-blood-140-1200-C0001",
+      "arber-2022-blood-140-1200-C0002",
+      "arber-2022-blood-140-1200-C0003",
+      "arber-2022-blood-140-1200-C0004",
+      "arber-2022-blood-140-1200-C0005",
+      "arber-2022-blood-140-1200-C0006",
+      "arber-2022-blood-140-1200-C0007",
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0009",
+      "arber-2022-blood-140-1200-C0010",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0014",
+      "arber-2022-blood-140-1200-C0015",
+      "arber-2022-blood-140-1200-C0016",
+      "arber-2022-blood-140-1200-C0017",
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0021",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0023",
+      "arber-2022-blood-140-1200-C0024",
+      "arber-2022-blood-140-1200-C0025",
+      "arber-2022-blood-140-1200-C0026",
+      "arber-2022-blood-140-1200-C0027",
+      "arber-2022-blood-140-1200-C0028",
+      "arber-2022-blood-140-1200-C0029",
+      "arber-2022-blood-140-1200-C0030",
+      "arber-2022-blood-140-1200-C0031",
+      "arber-2022-blood-140-1200-C0032",
+      "arber-2022-blood-140-1200-C0033",
+      "arber-2022-blood-140-1200-C0034",
+      "arber-2022-blood-140-1200-C0035",
+      "arber-2022-blood-140-1200-C0036",
+      "arber-2022-blood-140-1200-C0037",
+      "arber-2022-blood-140-1200-C0038",
+      "arber-2022-blood-140-1200-C0039",
+      "arber-2022-blood-140-1200-C0040",
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0042",
+      "arber-2022-blood-140-1200-C0043",
+      "arber-2022-blood-140-1200-C0044",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0048",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0051",
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0054",
+      "arber-2022-blood-140-1200-C0055",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0057",
+      "arber-2022-blood-140-1200-C0058",
+      "arber-2022-blood-140-1200-C0059",
+      "arber-2022-blood-140-1200-C0060",
+      "arber-2022-blood-140-1200-C0061",
+      "arber-2022-blood-140-1200-C0062",
+      "arber-2022-blood-140-1200-C0063",
+      "arber-2022-blood-140-1200-C0064",
+      "arber-2022-blood-140-1200-C0065",
+      "arber-2022-blood-140-1200-C0066",
+      "arber-2022-blood-140-1200-C0067",
+      "arber-2022-blood-140-1200-C0068",
+      "arber-2022-blood-140-1200-C0069",
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0071",
+      "arber-2022-blood-140-1200-C0072",
+      "arber-2022-blood-140-1200-C0073",
+      "arber-2022-blood-140-1200-C0074",
+      "arber-2022-blood-140-1200-C0075",
+      "arber-2022-blood-140-1200-C0076",
+      "arber-2022-blood-140-1200-C0077",
+      "arber-2022-blood-140-1200-C0078",
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0084",
+      "arber-2022-blood-140-1200-C0085",
+      "arber-2022-blood-140-1200-C0086",
+      "arber-2022-blood-140-1200-C0087",
+      "arber-2022-blood-140-1200-C0088",
+      "arber-2022-blood-140-1200-C0089",
+      "arber-2022-blood-140-1200-C0090",
+      "arber-2022-blood-140-1200-C0091",
+      "arber-2022-blood-140-1200-C0092",
+      "arber-2022-blood-140-1200-C0093",
+      "arber-2022-blood-140-1200-C0094",
+      "arber-2022-blood-140-1200-C0095",
+      "arber-2022-blood-140-1200-C0096",
+      "arber-2022-blood-140-1200-C0097",
+      "arber-2022-blood-140-1200-C0098",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0101",
+      "arber-2022-blood-140-1200-C0102",
+      "arber-2022-blood-140-1200-C0103",
+      "arber-2022-blood-140-1200-C0104",
+      "arber-2022-blood-140-1200-C0105",
+      "arber-2022-blood-140-1200-C0106",
+      "arber-2022-blood-140-1200-C0107",
+      "arber-2022-blood-140-1200-C0108",
+      "arber-2022-blood-140-1200-C0109",
+      "arber-2022-blood-140-1200-C0110",
+      "arber-2022-blood-140-1200-C0111",
+      "arber-2022-blood-140-1200-C0112",
+      "arber-2022-blood-140-1200-C0113",
+      "arber-2022-blood-140-1200-C0114",
+      "arber-2022-blood-140-1200-C0115",
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0118",
+      "arber-2022-blood-140-1200-C0119",
+      "arber-2022-blood-140-1200-C0120",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0123",
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0128",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0140",
+      "arber-2022-blood-140-1200-C0141",
+      "arber-2022-blood-140-1200-C0142",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0003",
@@ -232,6 +400,26 @@
       "khoury-2022-leukemia-36-1703-C0212"
     ],
     "germline": [
+      "arber-2022-blood-140-1200-C0208",
+      "arber-2022-blood-140-1200-C0209",
+      "arber-2022-blood-140-1200-C0210",
+      "arber-2022-blood-140-1200-C0211",
+      "arber-2022-blood-140-1200-C0212",
+      "arber-2022-blood-140-1200-C0213",
+      "arber-2022-blood-140-1200-C0214",
+      "arber-2022-blood-140-1200-C0215",
+      "arber-2022-blood-140-1200-C0216",
+      "arber-2022-blood-140-1200-C0217",
+      "arber-2022-blood-140-1200-C0218",
+      "arber-2022-blood-140-1200-C0219",
+      "arber-2022-blood-140-1200-C0220",
+      "arber-2022-blood-140-1200-C0221",
+      "arber-2022-blood-140-1200-C0222",
+      "arber-2022-blood-140-1200-C0223",
+      "arber-2022-blood-140-1200-C0224",
+      "arber-2022-blood-140-1200-C0225",
+      "arber-2022-blood-140-1200-C0226",
+      "arber-2022-blood-140-1200-C0227",
       "bernard-2022-nejm-evidence-1-na-C0014",
       "d-hner-2022-blood-140-1345-C0042",
       "d-hner-2022-blood-140-1345-C0044",
@@ -262,6 +450,24 @@
       "khoury-2022-leukemia-36-1703-C0185"
     ],
     "prognosis": [
+      "arber-2022-blood-140-1200-C0145",
+      "arber-2022-blood-140-1200-C0147",
+      "arber-2022-blood-140-1200-C0148",
+      "arber-2022-blood-140-1200-C0149",
+      "arber-2022-blood-140-1200-C0150",
+      "arber-2022-blood-140-1200-C0151",
+      "arber-2022-blood-140-1200-C0152",
+      "arber-2022-blood-140-1200-C0153",
+      "arber-2022-blood-140-1200-C0154",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0165",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
       "barbui-2015-blood-cancer-journal-5-e369-C0003",
@@ -339,6 +545,12 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
     ],
     "treatment": [
+      "arber-2022-blood-140-1200-C0166",
+      "arber-2022-blood-140-1200-C0167",
+      "arber-2022-blood-140-1200-C0168",
+      "arber-2022-blood-140-1200-C0170",
+      "arber-2022-blood-140-1200-C0172",
+      "arber-2022-blood-140-1200-C0173",
       "bernard-2022-nejm-evidence-1-na-C0015",
       "bernard-2022-nejm-evidence-1-na-C0016",
       "bernard-2022-nejm-evidence-1-na-C0017",
@@ -393,6 +605,40 @@
       "khoury-2022-leukemia-36-1703-C0187"
     ],
     "AML": [
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0072",
+      "arber-2022-blood-140-1200-C0073",
+      "arber-2022-blood-140-1200-C0089",
+      "arber-2022-blood-140-1200-C0090",
+      "arber-2022-blood-140-1200-C0091",
+      "arber-2022-blood-140-1200-C0092",
+      "arber-2022-blood-140-1200-C0093",
+      "arber-2022-blood-140-1200-C0094",
+      "arber-2022-blood-140-1200-C0095",
+      "arber-2022-blood-140-1200-C0096",
+      "arber-2022-blood-140-1200-C0097",
+      "arber-2022-blood-140-1200-C0098",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0101",
+      "arber-2022-blood-140-1200-C0102",
+      "arber-2022-blood-140-1200-C0103",
+      "arber-2022-blood-140-1200-C0104",
+      "arber-2022-blood-140-1200-C0105",
+      "arber-2022-blood-140-1200-C0106",
+      "arber-2022-blood-140-1200-C0107",
+      "arber-2022-blood-140-1200-C0108",
+      "arber-2022-blood-140-1200-C0109",
+      "arber-2022-blood-140-1200-C0110",
+      "arber-2022-blood-140-1200-C0111",
+      "arber-2022-blood-140-1200-C0112",
+      "arber-2022-blood-140-1200-C0113",
+      "arber-2022-blood-140-1200-C0147",
+      "arber-2022-blood-140-1200-C0151",
+      "arber-2022-blood-140-1200-C0152",
+      "arber-2022-blood-140-1200-C0153",
+      "arber-2022-blood-140-1200-C0154",
+      "arber-2022-blood-140-1200-C0172",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0002",
       "cloos-2026-blood-147-1147-C0003",
@@ -638,6 +884,8 @@
       "khoury-2022-leukemia-36-1703-C0119"
     ],
     "APL": [
+      "arber-2022-blood-140-1200-C0089",
+      "arber-2022-blood-140-1200-C0090",
       "cloos-2026-blood-147-1147-C0040",
       "cloos-2026-blood-147-1147-C0041",
       "cloos-2026-blood-147-1147-C0042",
@@ -656,22 +904,140 @@
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0113"
     ],
+    "B-ALL": [
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0118",
+      "arber-2022-blood-140-1200-C0119",
+      "arber-2022-blood-140-1200-C0120",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0123",
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0128",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0165",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
+      "arber-2022-blood-140-1200-C0191",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0197",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206"
+    ],
+    "B-cell lymphoid neoplasm": [
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0118",
+      "arber-2022-blood-140-1200-C0119",
+      "arber-2022-blood-140-1200-C0120",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0123",
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0128",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0165",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
+      "arber-2022-blood-140-1200-C0191",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0197",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206"
+    ],
     "BPDCN": [
       "khoury-2022-leukemia-36-1703-C0179"
     ],
     "CCUS": [
+      "arber-2022-blood-140-1200-C0057",
+      "arber-2022-blood-140-1200-C0059",
+      "arber-2022-blood-140-1200-C0064",
+      "arber-2022-blood-140-1200-C0077",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0125"
     ],
     "CEL": [
+      "arber-2022-blood-140-1200-C0018",
       "khoury-2022-leukemia-36-1703-C0019"
     ],
     "CHIP": [
+      "arber-2022-blood-140-1200-C0058",
+      "arber-2022-blood-140-1200-C0077",
       "khoury-2022-leukemia-36-1703-C0001",
       "khoury-2022-leukemia-36-1703-C0092"
     ],
     "CML": [
+      "arber-2022-blood-140-1200-C0001",
+      "arber-2022-blood-140-1200-C0002",
+      "arber-2022-blood-140-1200-C0003",
       "d-hner-2022-blood-140-1345-C0107",
       "d-hner-2022-blood-140-1345-C0108",
       "khoury-2022-leukemia-36-1703-C0004",
@@ -679,6 +1045,10 @@
       "khoury-2022-leukemia-36-1703-C0006"
     ],
     "CMML": [
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0042",
+      "arber-2022-blood-140-1200-C0043",
+      "arber-2022-blood-140-1200-C0044",
       "d-hner-2022-blood-140-1345-C0012",
       "elena-2016-blood-128-1408-C0001",
       "elena-2016-blood-128-1408-C0003",
@@ -688,9 +1058,16 @@
       "khoury-2022-leukemia-36-1703-C0068"
     ],
     "CNL": [
+      "arber-2022-blood-140-1200-C0015",
+      "arber-2022-blood-140-1200-C0016",
+      "arber-2022-blood-140-1200-C0017",
+      "arber-2022-blood-140-1200-C0048",
       "khoury-2022-leukemia-36-1703-C0018"
     ],
     "ET": [
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0009",
+      "arber-2022-blood-140-1200-C0180",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
       "barbui-2015-blood-cancer-journal-5-e369-C0003",
@@ -702,7 +1079,15 @@
       "barbui-2015-blood-cancer-journal-5-e369-C0010",
       "khoury-2022-leukemia-36-1703-C0011"
     ],
+    "ETP-ALL": [
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
+      "arber-2022-blood-140-1200-C0207"
+    ],
     "JMML": [
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
       "khoury-2022-leukemia-36-1703-C0024",
       "khoury-2022-leukemia-36-1703-C0027",
       "khoury-2022-leukemia-36-1703-C0028",
@@ -712,6 +1097,58 @@
       "khoury-2022-leukemia-36-1703-C0194"
     ],
     "MDS": [
+      "arber-2022-blood-140-1200-C0040",
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0042",
+      "arber-2022-blood-140-1200-C0043",
+      "arber-2022-blood-140-1200-C0044",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0048",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0051",
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0054",
+      "arber-2022-blood-140-1200-C0055",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0057",
+      "arber-2022-blood-140-1200-C0060",
+      "arber-2022-blood-140-1200-C0061",
+      "arber-2022-blood-140-1200-C0062",
+      "arber-2022-blood-140-1200-C0063",
+      "arber-2022-blood-140-1200-C0064",
+      "arber-2022-blood-140-1200-C0065",
+      "arber-2022-blood-140-1200-C0066",
+      "arber-2022-blood-140-1200-C0067",
+      "arber-2022-blood-140-1200-C0068",
+      "arber-2022-blood-140-1200-C0069",
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0071",
+      "arber-2022-blood-140-1200-C0072",
+      "arber-2022-blood-140-1200-C0074",
+      "arber-2022-blood-140-1200-C0075",
+      "arber-2022-blood-140-1200-C0076",
+      "arber-2022-blood-140-1200-C0077",
+      "arber-2022-blood-140-1200-C0078",
+      "arber-2022-blood-140-1200-C0084",
+      "arber-2022-blood-140-1200-C0085",
+      "arber-2022-blood-140-1200-C0086",
+      "arber-2022-blood-140-1200-C0087",
+      "arber-2022-blood-140-1200-C0088",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0101",
+      "arber-2022-blood-140-1200-C0104",
+      "arber-2022-blood-140-1200-C0110",
+      "arber-2022-blood-140-1200-C0111",
+      "arber-2022-blood-140-1200-C0112",
+      "arber-2022-blood-140-1200-C0113",
+      "arber-2022-blood-140-1200-C0147",
+      "arber-2022-blood-140-1200-C0148",
+      "arber-2022-blood-140-1200-C0149",
+      "arber-2022-blood-140-1200-C0150",
+      "arber-2022-blood-140-1200-C0172",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -775,12 +1212,38 @@
       "khoury-2022-leukemia-36-1703-C0202"
     ],
     "MDS/AML": [
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0072",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0101",
+      "arber-2022-blood-140-1200-C0104",
+      "arber-2022-blood-140-1200-C0110",
+      "arber-2022-blood-140-1200-C0111",
+      "arber-2022-blood-140-1200-C0112",
+      "arber-2022-blood-140-1200-C0113",
+      "arber-2022-blood-140-1200-C0147",
+      "arber-2022-blood-140-1200-C0172",
       "d-hner-2022-blood-140-1345-C0006",
       "d-hner-2022-blood-140-1345-C0007",
       "d-hner-2022-blood-140-1345-C0008",
       "d-hner-2022-blood-140-1345-C0094"
     ],
     "MDS/MPN": [
+      "arber-2022-blood-140-1200-C0040",
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0042",
+      "arber-2022-blood-140-1200-C0043",
+      "arber-2022-blood-140-1200-C0044",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0048",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0054",
+      "arber-2022-blood-140-1200-C0055",
+      "arber-2022-blood-140-1200-C0056",
       "d-hner-2022-blood-140-1345-C0012",
       "d-hner-2022-blood-140-1345-C0109",
       "d-hner-2022-blood-140-1345-C0114",
@@ -799,12 +1262,63 @@
       "khoury-2022-leukemia-36-1703-C0202"
     ],
     "MDS/MPN-SF3B1-T": [
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
       "khoury-2022-leukemia-36-1703-C0073"
     ],
     "MDS/MPN-U": [
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0054",
+      "arber-2022-blood-140-1200-C0055",
+      "arber-2022-blood-140-1200-C0056",
       "khoury-2022-leukemia-36-1703-C0202"
     ],
     "MPN": [
+      "arber-2022-blood-140-1200-C0001",
+      "arber-2022-blood-140-1200-C0002",
+      "arber-2022-blood-140-1200-C0003",
+      "arber-2022-blood-140-1200-C0004",
+      "arber-2022-blood-140-1200-C0005",
+      "arber-2022-blood-140-1200-C0006",
+      "arber-2022-blood-140-1200-C0007",
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0009",
+      "arber-2022-blood-140-1200-C0010",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0014",
+      "arber-2022-blood-140-1200-C0015",
+      "arber-2022-blood-140-1200-C0016",
+      "arber-2022-blood-140-1200-C0017",
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0021",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0040",
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0042",
+      "arber-2022-blood-140-1200-C0043",
+      "arber-2022-blood-140-1200-C0044",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0048",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0054",
+      "arber-2022-blood-140-1200-C0055",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0145",
+      "arber-2022-blood-140-1200-C0178",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0180",
+      "arber-2022-blood-140-1200-C0181",
+      "arber-2022-blood-140-1200-C0182",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
       "barbui-2015-blood-cancer-journal-5-e369-C0003",
@@ -867,9 +1381,18 @@
       "d-hner-2022-blood-140-1345-C0110"
     ],
     "MPN-U": [
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0021",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0182",
       "khoury-2022-leukemia-36-1703-C0023"
     ],
     "PMF": [
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0014",
+      "arber-2022-blood-140-1200-C0181",
       "guglielmelli-2017-mipss70-pmf-C0001",
       "guglielmelli-2017-mipss70-pmf-C0002",
       "guglielmelli-2017-mipss70-pmf-C0003",
@@ -887,10 +1410,37 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
     ],
     "PV": [
+      "arber-2022-blood-140-1200-C0004",
+      "arber-2022-blood-140-1200-C0005",
+      "arber-2022-blood-140-1200-C0006",
+      "arber-2022-blood-140-1200-C0145",
+      "arber-2022-blood-140-1200-C0178",
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0011"
     ],
+    "T-ALL": [
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0140",
+      "arber-2022-blood-140-1200-C0141",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
+      "arber-2022-blood-140-1200-C0207"
+    ],
+    "T-ALL, NOS": [
+      "arber-2022-blood-140-1200-C0140"
+    ],
+    "T-cell/NK-cell lymphoid neoplasm": [
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0140",
+      "arber-2022-blood-140-1200-C0141",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
+      "arber-2022-blood-140-1200-C0207"
+    ],
     "aCML": [
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0048",
       "khoury-2022-leukemia-36-1703-C0072"
     ],
     "acute basophilic leukaemia": [
@@ -901,10 +1451,73 @@
       "khoury-2022-leukemia-36-1703-C0120"
     ],
     "acute leukaemia of ambiguous lineage": [
+      "arber-2022-blood-140-1200-C0115",
       "d-hner-2022-blood-140-1345-C0106",
       "khoury-2022-leukemia-36-1703-C0170",
       "khoury-2022-leukemia-36-1703-C0175",
       "khoury-2022-leukemia-36-1703-C0178"
+    ],
+    "acute lymphoblastic leukaemia/lymphoma": [
+      "arber-2022-blood-140-1200-C0114",
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0118",
+      "arber-2022-blood-140-1200-C0119",
+      "arber-2022-blood-140-1200-C0120",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0123",
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0128",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0140",
+      "arber-2022-blood-140-1200-C0141",
+      "arber-2022-blood-140-1200-C0142",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0165",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
+      "arber-2022-blood-140-1200-C0191",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0197",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206",
+      "arber-2022-blood-140-1200-C0207"
     ],
     "germline predisposition syndrome": [
       "khoury-2022-leukemia-36-1703-C0135",
@@ -920,21 +1533,324 @@
       "khoury-2022-leukemia-36-1703-C0183",
       "khoury-2022-leukemia-36-1703-C0207"
     ],
+    "lymphoid neoplasm": [
+      "arber-2022-blood-140-1200-C0114",
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0118",
+      "arber-2022-blood-140-1200-C0119",
+      "arber-2022-blood-140-1200-C0120",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0123",
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0128",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0140",
+      "arber-2022-blood-140-1200-C0141",
+      "arber-2022-blood-140-1200-C0142",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0165",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
+      "arber-2022-blood-140-1200-C0191",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0197",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206",
+      "arber-2022-blood-140-1200-C0207"
+    ],
     "mastocytosis": [
+      "arber-2022-blood-140-1200-C0030",
+      "arber-2022-blood-140-1200-C0031",
+      "arber-2022-blood-140-1200-C0032",
+      "arber-2022-blood-140-1200-C0033",
+      "arber-2022-blood-140-1200-C0034",
+      "arber-2022-blood-140-1200-C0035",
+      "arber-2022-blood-140-1200-C0036",
+      "arber-2022-blood-140-1200-C0037",
+      "arber-2022-blood-140-1200-C0038",
+      "arber-2022-blood-140-1200-C0039",
+      "arber-2022-blood-140-1200-C0184",
+      "arber-2022-blood-140-1200-C0185",
+      "arber-2022-blood-140-1200-C0186",
       "khoury-2022-leukemia-36-1703-C0030",
       "khoury-2022-leukemia-36-1703-C0033",
       "khoury-2022-leukemia-36-1703-C0034"
     ],
     "myeloid/lymphoid neoplasm with eosinophilia and TK fusion": [
+      "arber-2022-blood-140-1200-C0023",
+      "arber-2022-blood-140-1200-C0024",
+      "arber-2022-blood-140-1200-C0025",
+      "arber-2022-blood-140-1200-C0026",
+      "arber-2022-blood-140-1200-C0027",
+      "arber-2022-blood-140-1200-C0028",
+      "arber-2022-blood-140-1200-C0029",
+      "arber-2022-blood-140-1200-C0166",
+      "arber-2022-blood-140-1200-C0167",
+      "arber-2022-blood-140-1200-C0168",
+      "arber-2022-blood-140-1200-C0170",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0149",
       "khoury-2022-leukemia-36-1703-C0163",
       "khoury-2022-leukemia-36-1703-C0165",
       "khoury-2022-leukemia-36-1703-C0169"
+    ],
+    "post-PV/post-ET MF": [
+      "arber-2022-blood-140-1200-C0007",
+      "arber-2022-blood-140-1200-C0010"
+    ],
+    "precursor B-cell neoplasm": [
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0118",
+      "arber-2022-blood-140-1200-C0119",
+      "arber-2022-blood-140-1200-C0120",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0123",
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0128",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0165",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
+      "arber-2022-blood-140-1200-C0191",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0197",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206"
+    ],
+    "precursor T-cell neoplasm": [
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0140",
+      "arber-2022-blood-140-1200-C0141",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
+      "arber-2022-blood-140-1200-C0207"
     ]
   },
   "by_evidence_tier": {
     "guideline criterion": [
+      "arber-2022-blood-140-1200-C0001",
+      "arber-2022-blood-140-1200-C0002",
+      "arber-2022-blood-140-1200-C0003",
+      "arber-2022-blood-140-1200-C0004",
+      "arber-2022-blood-140-1200-C0005",
+      "arber-2022-blood-140-1200-C0006",
+      "arber-2022-blood-140-1200-C0007",
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0009",
+      "arber-2022-blood-140-1200-C0010",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0014",
+      "arber-2022-blood-140-1200-C0015",
+      "arber-2022-blood-140-1200-C0016",
+      "arber-2022-blood-140-1200-C0017",
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0021",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0023",
+      "arber-2022-blood-140-1200-C0024",
+      "arber-2022-blood-140-1200-C0025",
+      "arber-2022-blood-140-1200-C0026",
+      "arber-2022-blood-140-1200-C0027",
+      "arber-2022-blood-140-1200-C0028",
+      "arber-2022-blood-140-1200-C0029",
+      "arber-2022-blood-140-1200-C0030",
+      "arber-2022-blood-140-1200-C0031",
+      "arber-2022-blood-140-1200-C0032",
+      "arber-2022-blood-140-1200-C0033",
+      "arber-2022-blood-140-1200-C0034",
+      "arber-2022-blood-140-1200-C0035",
+      "arber-2022-blood-140-1200-C0036",
+      "arber-2022-blood-140-1200-C0037",
+      "arber-2022-blood-140-1200-C0038",
+      "arber-2022-blood-140-1200-C0039",
+      "arber-2022-blood-140-1200-C0040",
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0042",
+      "arber-2022-blood-140-1200-C0043",
+      "arber-2022-blood-140-1200-C0044",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0048",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0051",
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0054",
+      "arber-2022-blood-140-1200-C0055",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0057",
+      "arber-2022-blood-140-1200-C0058",
+      "arber-2022-blood-140-1200-C0059",
+      "arber-2022-blood-140-1200-C0060",
+      "arber-2022-blood-140-1200-C0061",
+      "arber-2022-blood-140-1200-C0062",
+      "arber-2022-blood-140-1200-C0063",
+      "arber-2022-blood-140-1200-C0064",
+      "arber-2022-blood-140-1200-C0065",
+      "arber-2022-blood-140-1200-C0066",
+      "arber-2022-blood-140-1200-C0067",
+      "arber-2022-blood-140-1200-C0068",
+      "arber-2022-blood-140-1200-C0069",
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0071",
+      "arber-2022-blood-140-1200-C0072",
+      "arber-2022-blood-140-1200-C0073",
+      "arber-2022-blood-140-1200-C0074",
+      "arber-2022-blood-140-1200-C0075",
+      "arber-2022-blood-140-1200-C0076",
+      "arber-2022-blood-140-1200-C0077",
+      "arber-2022-blood-140-1200-C0078",
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0084",
+      "arber-2022-blood-140-1200-C0085",
+      "arber-2022-blood-140-1200-C0086",
+      "arber-2022-blood-140-1200-C0087",
+      "arber-2022-blood-140-1200-C0088",
+      "arber-2022-blood-140-1200-C0089",
+      "arber-2022-blood-140-1200-C0090",
+      "arber-2022-blood-140-1200-C0091",
+      "arber-2022-blood-140-1200-C0092",
+      "arber-2022-blood-140-1200-C0093",
+      "arber-2022-blood-140-1200-C0094",
+      "arber-2022-blood-140-1200-C0095",
+      "arber-2022-blood-140-1200-C0096",
+      "arber-2022-blood-140-1200-C0097",
+      "arber-2022-blood-140-1200-C0098",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0101",
+      "arber-2022-blood-140-1200-C0102",
+      "arber-2022-blood-140-1200-C0103",
+      "arber-2022-blood-140-1200-C0104",
+      "arber-2022-blood-140-1200-C0105",
+      "arber-2022-blood-140-1200-C0106",
+      "arber-2022-blood-140-1200-C0107",
+      "arber-2022-blood-140-1200-C0108",
+      "arber-2022-blood-140-1200-C0109",
+      "arber-2022-blood-140-1200-C0110",
+      "arber-2022-blood-140-1200-C0111",
+      "arber-2022-blood-140-1200-C0112",
+      "arber-2022-blood-140-1200-C0113",
+      "arber-2022-blood-140-1200-C0114",
+      "arber-2022-blood-140-1200-C0115",
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0118",
+      "arber-2022-blood-140-1200-C0119",
+      "arber-2022-blood-140-1200-C0120",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0123",
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0128",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0140",
+      "arber-2022-blood-140-1200-C0141",
+      "arber-2022-blood-140-1200-C0142",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0144",
+      "arber-2022-blood-140-1200-C0178",
+      "arber-2022-blood-140-1200-C0180",
+      "arber-2022-blood-140-1200-C0181",
+      "arber-2022-blood-140-1200-C0182",
+      "arber-2022-blood-140-1200-C0184",
+      "arber-2022-blood-140-1200-C0185",
+      "arber-2022-blood-140-1200-C0186",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0199",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0002",
       "cloos-2026-blood-147-1147-C0003",
@@ -1232,6 +2148,66 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
     ],
     "restated secondary": [
+      "arber-2022-blood-140-1200-C0145",
+      "arber-2022-blood-140-1200-C0147",
+      "arber-2022-blood-140-1200-C0148",
+      "arber-2022-blood-140-1200-C0149",
+      "arber-2022-blood-140-1200-C0150",
+      "arber-2022-blood-140-1200-C0151",
+      "arber-2022-blood-140-1200-C0152",
+      "arber-2022-blood-140-1200-C0153",
+      "arber-2022-blood-140-1200-C0154",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0165",
+      "arber-2022-blood-140-1200-C0166",
+      "arber-2022-blood-140-1200-C0167",
+      "arber-2022-blood-140-1200-C0168",
+      "arber-2022-blood-140-1200-C0170",
+      "arber-2022-blood-140-1200-C0172",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
+      "arber-2022-blood-140-1200-C0191",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195",
+      "arber-2022-blood-140-1200-C0197",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202",
+      "arber-2022-blood-140-1200-C0204",
+      "arber-2022-blood-140-1200-C0207",
+      "arber-2022-blood-140-1200-C0208",
+      "arber-2022-blood-140-1200-C0209",
+      "arber-2022-blood-140-1200-C0210",
+      "arber-2022-blood-140-1200-C0211",
+      "arber-2022-blood-140-1200-C0212",
+      "arber-2022-blood-140-1200-C0213",
+      "arber-2022-blood-140-1200-C0214",
+      "arber-2022-blood-140-1200-C0215",
+      "arber-2022-blood-140-1200-C0216",
+      "arber-2022-blood-140-1200-C0217",
+      "arber-2022-blood-140-1200-C0218",
+      "arber-2022-blood-140-1200-C0219",
+      "arber-2022-blood-140-1200-C0220",
+      "arber-2022-blood-140-1200-C0221",
+      "arber-2022-blood-140-1200-C0222",
+      "arber-2022-blood-140-1200-C0223",
+      "arber-2022-blood-140-1200-C0224",
+      "arber-2022-blood-140-1200-C0225",
+      "arber-2022-blood-140-1200-C0226",
+      "arber-2022-blood-140-1200-C0227",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
       "bernard-2022-nejm-evidence-1-na-C0019",
@@ -1307,6 +2283,39 @@
   },
   "by_gene": {
     "ABL1": [
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0015",
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0028",
+      "arber-2022-blood-140-1200-C0029",
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0061",
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0095",
+      "arber-2022-blood-140-1200-C0096",
+      "arber-2022-blood-140-1200-C0106",
+      "arber-2022-blood-140-1200-C0115",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0170",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0186",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0021",
@@ -1329,20 +2338,25 @@
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "AFDN": [
+      "arber-2022-blood-140-1200-C0092",
       "d-hner-2022-blood-140-1345-C0003",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "AFF1": [
+      "arber-2022-blood-140-1200-C0092",
       "d-hner-2022-blood-140-1345-C0003",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "ALK": [
+      "arber-2022-blood-140-1200-C0080",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0180",
       "khoury-2022-leukemia-36-1703-C0181",
       "khoury-2022-leukemia-36-1703-C0182"
     ],
     "ANKRD26": [
+      "arber-2022-blood-140-1200-C0084",
+      "arber-2022-blood-140-1200-C0217",
       "cloos-2026-blood-147-1147-C0074",
       "d-hner-2022-blood-140-1345-C0047",
       "d-hner-2022-blood-140-1345-C0099",
@@ -1352,6 +2366,12 @@
       "khoury-2022-leukemia-36-1703-C0183"
     ],
     "ASXL1": [
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1376,10 +2396,20 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
     ],
+    "ATXN7L3": [
+      "arber-2022-blood-140-1200-C0135"
+    ],
     "BCL11B": [
+      "arber-2022-blood-140-1200-C0139",
+      "arber-2022-blood-140-1200-C0143",
+      "arber-2022-blood-140-1200-C0207",
       "khoury-2022-leukemia-36-1703-C0170"
     ],
     "BCOR": [
+      "arber-2022-blood-140-1200-C0090",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1402,6 +2432,37 @@
       "d-hner-2022-blood-140-1345-C0099"
     ],
     "BCR": [
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0015",
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0026",
+      "arber-2022-blood-140-1200-C0029",
+      "arber-2022-blood-140-1200-C0041",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0052",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0061",
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0095",
+      "arber-2022-blood-140-1200-C0096",
+      "arber-2022-blood-140-1200-C0106",
+      "arber-2022-blood-140-1200-C0115",
+      "arber-2022-blood-140-1200-C0121",
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0129",
+      "arber-2022-blood-140-1200-C0130",
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0173",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0187",
+      "arber-2022-blood-140-1200-C0188",
+      "arber-2022-blood-140-1200-C0189",
+      "arber-2022-blood-140-1200-C0190",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0021",
@@ -1418,6 +2479,7 @@
       "khoury-2022-leukemia-36-1703-C0170"
     ],
     "BLM": [
+      "arber-2022-blood-140-1200-C0226",
       "d-hner-2022-blood-140-1345-C0056",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
@@ -1432,6 +2494,19 @@
       "d-hner-2022-blood-140-1345-C0060"
     ],
     "CALR": [
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0180",
+      "arber-2022-blood-140-1200-C0181",
+      "arber-2022-blood-140-1200-C0182",
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
       "guglielmelli-2017-mipss70-pmf-C0001",
       "guglielmelli-2017-mipss70-pmf-C0004",
@@ -1449,6 +2524,7 @@
       "khoury-2022-leukemia-36-1703-C0187"
     ],
     "CBFB": [
+      "arber-2022-blood-140-1200-C0091",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0028",
       "cloos-2026-blood-147-1147-C0029",
@@ -1482,6 +2558,10 @@
       "khoury-2022-leukemia-36-1703-C0125"
     ],
     "CBL": [
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0209",
+      "arber-2022-blood-140-1200-C0225",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1493,11 +2573,23 @@
       "khoury-2022-leukemia-36-1703-C0184",
       "khoury-2022-leukemia-36-1703-C0185"
     ],
+    "CCDC88C": [
+      "arber-2022-blood-140-1200-C0080"
+    ],
     "CD33": [
       "d-hner-2022-blood-140-1345-C0074",
       "d-hner-2022-blood-140-1345-C0122"
     ],
+    "CDX2": [
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204"
+    ],
     "CEBPA": [
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0098",
+      "arber-2022-blood-140-1200-C0151",
+      "arber-2022-blood-140-1200-C0213",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1516,6 +2608,10 @@
       "khoury-2022-leukemia-36-1703-C0094",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
+    "CEBPE": [
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0165"
+    ],
     "CHEK2": [
       "d-hner-2022-blood-140-1345-C0042",
       "d-hner-2022-blood-140-1345-C0057",
@@ -1526,13 +2622,20 @@
       "d-hner-2022-blood-140-1345-C0022",
       "d-hner-2022-blood-140-1345-C0114"
     ],
+    "CRLF2": [
+      "arber-2022-blood-140-1200-C0131",
+      "arber-2022-blood-140-1200-C0190"
+    ],
     "CSF3R": [
+      "arber-2022-blood-140-1200-C0015",
+      "arber-2022-blood-140-1200-C0048",
       "d-hner-2022-blood-140-1345-C0099"
     ],
     "CTC1": [
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "DDX41": [
+      "arber-2022-blood-140-1200-C0214",
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
       "bernard-2022-nejm-evidence-1-na-C0014",
@@ -1549,6 +2652,7 @@
       "khoury-2022-leukemia-36-1703-C0135"
     ],
     "DEK": [
+      "arber-2022-blood-140-1200-C0091",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0019",
       "d-hner-2022-blood-140-1345-C0036",
@@ -1562,6 +2666,7 @@
       "d-hner-2022-blood-140-1345-C0050"
     ],
     "DNMT3A": [
+      "arber-2022-blood-140-1200-C0227",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1571,6 +2676,13 @@
       "d-hner-2022-blood-140-1345-C0037",
       "d-hner-2022-blood-140-1345-C0099"
     ],
+    "DUX4": [
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0193",
+      "arber-2022-blood-140-1200-C0194",
+      "arber-2022-blood-140-1200-C0195"
+    ],
     "EFL1": [
       "d-hner-2022-blood-140-1345-C0050"
     ],
@@ -1578,8 +2690,18 @@
       "d-hner-2022-blood-140-1345-C0049"
     ],
     "ELL": [
+      "arber-2022-blood-140-1200-C0092",
       "d-hner-2022-blood-140-1345-C0003",
       "d-hner-2022-blood-140-1345-C0114"
+    ],
+    "EP300": [
+      "arber-2022-blood-140-1200-C0158"
+    ],
+    "EPOR": [
+      "arber-2022-blood-140-1200-C0131"
+    ],
+    "ERCC6L2": [
+      "arber-2022-blood-140-1200-C0227"
     ],
     "ERG": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -1592,6 +2714,17 @@
       "bernard-2022-nejm-evidence-1-na-C0022"
     ],
     "ETV6": [
+      "arber-2022-blood-140-1200-C0023",
+      "arber-2022-blood-140-1200-C0026",
+      "arber-2022-blood-140-1200-C0027",
+      "arber-2022-blood-140-1200-C0028",
+      "arber-2022-blood-140-1200-C0084",
+      "arber-2022-blood-140-1200-C0094",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0170",
+      "arber-2022-blood-140-1200-C0186",
+      "arber-2022-blood-140-1200-C0218",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1608,6 +2741,11 @@
       "khoury-2022-leukemia-36-1703-C0169"
     ],
     "EZH2": [
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1630,6 +2768,10 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
     ],
     "FGFR1": [
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0024",
+      "arber-2022-blood-140-1200-C0167",
+      "arber-2022-blood-140-1200-C0186",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0165",
       "khoury-2022-leukemia-36-1703-C0169"
@@ -1641,11 +2783,19 @@
       "khoury-2022-leukemia-36-1703-C0146"
     ],
     "FIP1L1": [
+      "arber-2022-blood-140-1200-C0023",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114",
       "khoury-2022-leukemia-36-1703-C0149"
     ],
     "FLT3": [
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0027",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0186",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1724,6 +2874,9 @@
       "khoury-2022-leukemia-36-1703-C0145"
     ],
     "GATA2": [
+      "arber-2022-blood-140-1200-C0093",
+      "arber-2022-blood-140-1200-C0212",
+      "arber-2022-blood-140-1200-C0219",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1752,7 +2905,14 @@
     "HAX1": [
       "d-hner-2022-blood-140-1345-C0049"
     ],
+    "HLF": [
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0160",
+      "arber-2022-blood-140-1200-C0196"
+    ],
     "IDH1": [
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0022",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1779,6 +2939,8 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
     ],
     "IDH2": [
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0022",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1802,11 +2964,56 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
     ],
+    "IGH": [
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0165",
+      "arber-2022-blood-140-1200-C0195"
+    ],
+    "IKZF1": [
+      "arber-2022-blood-140-1200-C0136",
+      "arber-2022-blood-140-1200-C0156",
+      "arber-2022-blood-140-1200-C0162",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0221",
+      "arber-2022-blood-140-1200-C0222"
+    ],
+    "IL3": [
+      "arber-2022-blood-140-1200-C0117"
+    ],
     "IRF2BP2": [
+      "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
     ],
+    "JAK": [
+      "arber-2022-blood-140-1200-C0122",
+      "arber-2022-blood-140-1200-C0131"
+    ],
     "JAK2": [
+      "arber-2022-blood-140-1200-C0004",
+      "arber-2022-blood-140-1200-C0005",
+      "arber-2022-blood-140-1200-C0006",
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0025",
+      "arber-2022-blood-140-1200-C0026",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0145",
+      "arber-2022-blood-140-1200-C0168",
+      "arber-2022-blood-140-1200-C0178",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0180",
+      "arber-2022-blood-140-1200-C0181",
+      "arber-2022-blood-140-1200-C0182",
+      "arber-2022-blood-140-1200-C0186",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "barbui-2015-blood-cancer-journal-5-e369-C0003",
       "barbui-2015-blood-cancer-journal-5-e369-C0004",
@@ -1828,6 +3035,12 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "KIT": [
+      "arber-2022-blood-140-1200-C0033",
+      "arber-2022-blood-140-1200-C0036",
+      "arber-2022-blood-140-1200-C0038",
+      "arber-2022-blood-140-1200-C0039",
+      "arber-2022-blood-140-1200-C0184",
+      "arber-2022-blood-140-1200-C0185",
       "d-hner-2022-blood-140-1345-C0013",
       "d-hner-2022-blood-140-1345-C0099",
       "khoury-2022-leukemia-36-1703-C0030",
@@ -1838,6 +3051,12 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "KMT2A": [
+      "arber-2022-blood-140-1200-C0091",
+      "arber-2022-blood-140-1200-C0092",
+      "arber-2022-blood-140-1200-C0115",
+      "arber-2022-blood-140-1200-C0116",
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0159",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1872,6 +3091,10 @@
       "khoury-2022-leukemia-36-1703-C0212"
     ],
     "KRAS": [
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0210",
+      "arber-2022-blood-140-1200-C0211",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1895,7 +3118,12 @@
     "MAP2K1": [
       "khoury-2022-leukemia-36-1703-C0183"
     ],
+    "MBD4": [
+      "arber-2022-blood-140-1200-C0227"
+    ],
     "MECOM": [
+      "arber-2022-blood-140-1200-C0093",
+      "arber-2022-blood-140-1200-C0094",
       "cloos-2026-blood-147-1147-C0002",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0004",
@@ -1906,6 +3134,12 @@
       "khoury-2022-leukemia-36-1703-C0085",
       "khoury-2022-leukemia-36-1703-C0088"
     ],
+    "MEF2D": [
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0157",
+      "arber-2022-blood-140-1200-C0196",
+      "arber-2022-blood-140-1200-C0197"
+    ],
     "MLF1": [
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0114"
@@ -1914,15 +3148,18 @@
       "d-hner-2022-blood-140-1345-C0061"
     ],
     "MLLT1": [
+      "arber-2022-blood-140-1200-C0092",
       "d-hner-2022-blood-140-1345-C0003",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "MLLT10": [
+      "arber-2022-blood-140-1200-C0092",
       "d-hner-2022-blood-140-1345-C0003",
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "MLLT3": [
+      "arber-2022-blood-140-1200-C0091",
       "cloos-2026-blood-147-1147-C0050",
       "cloos-2026-blood-147-1147-C0051",
       "cloos-2026-blood-147-1147-C0052",
@@ -1939,6 +3176,19 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "MPL": [
+      "arber-2022-blood-140-1200-C0008",
+      "arber-2022-blood-140-1200-C0011",
+      "arber-2022-blood-140-1200-C0012",
+      "arber-2022-blood-140-1200-C0020",
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0047",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0053",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0179",
+      "arber-2022-blood-140-1200-C0180",
+      "arber-2022-blood-140-1200-C0181",
+      "arber-2022-blood-140-1200-C0182",
       "d-hner-2022-blood-140-1345-C0058",
       "khoury-2022-leukemia-36-1703-C0059"
     ],
@@ -1954,10 +3204,15 @@
       "d-hner-2022-blood-140-1345-C0061"
     ],
     "MYC": [
+      "arber-2022-blood-140-1200-C0094",
+      "arber-2022-blood-140-1200-C0132",
+      "arber-2022-blood-140-1200-C0155",
+      "arber-2022-blood-140-1200-C0191",
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "MYH11": [
+      "arber-2022-blood-140-1200-C0091",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0028",
       "cloos-2026-blood-147-1147-C0029",
@@ -1994,6 +3249,10 @@
       "d-hner-2022-blood-140-1345-C0062"
     ],
     "NF1": [
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0208",
+      "arber-2022-blood-140-1200-C0223",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2012,6 +3271,10 @@
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "NPM1": [
+      "arber-2022-blood-140-1200-C0043",
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0090",
+      "arber-2022-blood-140-1200-C0097",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2085,6 +3348,10 @@
       "khoury-2022-leukemia-36-1703-C0125"
     ],
     "NRAS": [
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0210",
+      "arber-2022-blood-140-1200-C0211",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2113,6 +3380,7 @@
       "khoury-2022-leukemia-36-1703-C0146"
     ],
     "NUP214": [
+      "arber-2022-blood-140-1200-C0091",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0019",
       "d-hner-2022-blood-140-1345-C0036",
@@ -2125,18 +3393,49 @@
       "khoury-2022-leukemia-36-1703-C0085",
       "khoury-2022-leukemia-36-1703-C0088"
     ],
+    "NUTM1": [
+      "arber-2022-blood-140-1200-C0124",
+      "arber-2022-blood-140-1200-C0159",
+      "arber-2022-blood-140-1200-C0200",
+      "arber-2022-blood-140-1200-C0201",
+      "arber-2022-blood-140-1200-C0202"
+    ],
     "PARN": [
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "PARP1": [
       "khoury-2022-leukemia-36-1703-C0125"
     ],
+    "PAX5": [
+      "arber-2022-blood-140-1200-C0137",
+      "arber-2022-blood-140-1200-C0138",
+      "arber-2022-blood-140-1200-C0163",
+      "arber-2022-blood-140-1200-C0205",
+      "arber-2022-blood-140-1200-C0206",
+      "arber-2022-blood-140-1200-C0221",
+      "arber-2022-blood-140-1200-C0222"
+    ],
+    "PBX1": [
+      "arber-2022-blood-140-1200-C0117"
+    ],
+    "PCM1": [
+      "arber-2022-blood-140-1200-C0025",
+      "arber-2022-blood-140-1200-C0026"
+    ],
     "PDGFRA": [
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0023",
+      "arber-2022-blood-140-1200-C0166",
+      "arber-2022-blood-140-1200-C0186",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0149",
       "khoury-2022-leukemia-36-1703-C0163"
     ],
     "PDGFRB": [
+      "arber-2022-blood-140-1200-C0018",
+      "arber-2022-blood-140-1200-C0023",
+      "arber-2022-blood-140-1200-C0166",
+      "arber-2022-blood-140-1200-C0186",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0163"
     ],
@@ -2152,6 +3451,7 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "PML": [
+      "arber-2022-blood-140-1200-C0089",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0003",
       "cloos-2026-blood-147-1147-C0040",
@@ -2197,6 +3497,11 @@
       "bernard-2022-nejm-evidence-1-na-C0022"
     ],
     "PTPN11": [
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0210",
+      "arber-2022-blood-140-1200-C0211",
+      "arber-2022-blood-140-1200-C0224",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2214,6 +3519,9 @@
       "khoury-2022-leukemia-36-1703-C0146"
     ],
     "RARA": [
+      "arber-2022-blood-140-1200-C0080",
+      "arber-2022-blood-140-1200-C0089",
+      "arber-2022-blood-140-1200-C0090",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0003",
       "cloos-2026-blood-147-1147-C0040",
@@ -2249,6 +3557,12 @@
     "RET": [
       "khoury-2022-leukemia-36-1703-C0146"
     ],
+    "RIT1": [
+      "arber-2022-blood-140-1200-C0211"
+    ],
+    "ROS1": [
+      "arber-2022-blood-140-1200-C0080"
+    ],
     "RPA1": [
       "d-hner-2022-blood-140-1345-C0051"
     ],
@@ -2256,10 +3570,24 @@
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0114"
     ],
+    "RRAS": [
+      "arber-2022-blood-140-1200-C0079",
+      "arber-2022-blood-140-1200-C0080"
+    ],
     "RTEL1": [
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "RUNX1": [
+      "arber-2022-blood-140-1200-C0062",
+      "arber-2022-blood-140-1200-C0084",
+      "arber-2022-blood-140-1200-C0091",
+      "arber-2022-blood-140-1200-C0094",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0125",
+      "arber-2022-blood-140-1200-C0153",
+      "arber-2022-blood-140-1200-C0216",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2311,6 +3639,7 @@
       "khoury-2022-leukemia-36-1703-C0135"
     ],
     "RUNX1T1": [
+      "arber-2022-blood-140-1200-C0091",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0028",
       "cloos-2026-blood-147-1147-C0029",
@@ -2344,10 +3673,14 @@
       "khoury-2022-leukemia-36-1703-C0125"
     ],
     "SAMD9": [
+      "arber-2022-blood-140-1200-C0212",
+      "arber-2022-blood-140-1200-C0220",
       "d-hner-2022-blood-140-1345-C0055",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
     "SAMD9L": [
+      "arber-2022-blood-140-1200-C0212",
+      "arber-2022-blood-140-1200-C0220",
       "d-hner-2022-blood-140-1345-C0055",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
@@ -2355,6 +3688,8 @@
       "d-hner-2022-blood-140-1345-C0050"
     ],
     "SETBP1": [
+      "arber-2022-blood-140-1200-C0046",
+      "arber-2022-blood-140-1200-C0056",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2363,6 +3698,20 @@
       "elena-2016-blood-128-1408-C0005"
     ],
     "SF3B1": [
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0049",
+      "arber-2022-blood-140-1200-C0050",
+      "arber-2022-blood-140-1200-C0051",
+      "arber-2022-blood-140-1200-C0062",
+      "arber-2022-blood-140-1200-C0063",
+      "arber-2022-blood-140-1200-C0067",
+      "arber-2022-blood-140-1200-C0068",
+      "arber-2022-blood-140-1200-C0069",
+      "arber-2022-blood-140-1200-C0087",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2380,6 +3729,12 @@
       "d-hner-2022-blood-140-1345-C0050"
     ],
     "SRSF2": [
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0022",
+      "arber-2022-blood-140-1200-C0056",
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2401,6 +3756,9 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
     ],
     "STAG2": [
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2413,16 +3771,23 @@
       "khoury-2022-leukemia-36-1703-C0096"
     ],
     "STAT3": [
+      "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "STAT5B": [
+      "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "TBL1XR1": [
+      "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
+    ],
+    "TCF3": [
+      "arber-2022-blood-140-1200-C0117",
+      "arber-2022-blood-140-1200-C0158"
     ],
     "TERC": [
       "d-hner-2022-blood-140-1345-C0051"
@@ -2431,10 +3796,13 @@
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "TET1": [
+      "arber-2022-blood-140-1200-C0092",
       "d-hner-2022-blood-140-1345-C0003",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "TET2": [
+      "arber-2022-blood-140-1200-C0013",
+      "arber-2022-blood-140-1200-C0022",
       "cloos-2026-blood-147-1147-C0076",
       "d-hner-2022-blood-140-1345-C0037",
       "d-hner-2022-blood-140-1345-C0099"
@@ -2443,6 +3811,31 @@
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "TP53": [
+      "arber-2022-blood-140-1200-C0062",
+      "arber-2022-blood-140-1200-C0065",
+      "arber-2022-blood-140-1200-C0066",
+      "arber-2022-blood-140-1200-C0067",
+      "arber-2022-blood-140-1200-C0068",
+      "arber-2022-blood-140-1200-C0069",
+      "arber-2022-blood-140-1200-C0070",
+      "arber-2022-blood-140-1200-C0071",
+      "arber-2022-blood-140-1200-C0072",
+      "arber-2022-blood-140-1200-C0073",
+      "arber-2022-blood-140-1200-C0074",
+      "arber-2022-blood-140-1200-C0087",
+      "arber-2022-blood-140-1200-C0088",
+      "arber-2022-blood-140-1200-C0101",
+      "arber-2022-blood-140-1200-C0102",
+      "arber-2022-blood-140-1200-C0108",
+      "arber-2022-blood-140-1200-C0109",
+      "arber-2022-blood-140-1200-C0147",
+      "arber-2022-blood-140-1200-C0148",
+      "arber-2022-blood-140-1200-C0149",
+      "arber-2022-blood-140-1200-C0150",
+      "arber-2022-blood-140-1200-C0152",
+      "arber-2022-blood-140-1200-C0154",
+      "arber-2022-blood-140-1200-C0172",
+      "arber-2022-blood-140-1200-C0215",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2478,6 +3871,9 @@
       "khoury-2022-leukemia-36-1703-C0135"
     ],
     "U2AF1": [
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -2491,6 +3887,14 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
+    ],
+    "UBA1": [
+      "arber-2022-blood-140-1200-C0060"
+    ],
+    "UBTF": [
+      "arber-2022-blood-140-1200-C0135",
+      "arber-2022-blood-140-1200-C0203",
+      "arber-2022-blood-140-1200-C0204"
     ],
     "WAS": [
       "d-hner-2022-blood-140-1345-C0063"
@@ -2507,14 +3911,36 @@
       "d-hner-2022-blood-140-1345-C0036",
       "d-hner-2022-blood-140-1345-C0099"
     ],
+    "XPC": [
+      "arber-2022-blood-140-1200-C0227"
+    ],
     "ZBTB16": [
+      "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
     ],
+    "ZEB2": [
+      "arber-2022-blood-140-1200-C0126",
+      "arber-2022-blood-140-1200-C0165"
+    ],
+    "ZNF362": [
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199"
+    ],
     "ZNF384": [
+      "arber-2022-blood-140-1200-C0127",
+      "arber-2022-blood-140-1200-C0133",
+      "arber-2022-blood-140-1200-C0134",
+      "arber-2022-blood-140-1200-C0158",
+      "arber-2022-blood-140-1200-C0198",
+      "arber-2022-blood-140-1200-C0199",
       "khoury-2022-leukemia-36-1703-C0170"
     ],
     "ZRSR2": [
+      "arber-2022-blood-140-1200-C0099",
+      "arber-2022-blood-140-1200-C0100",
+      "arber-2022-blood-140-1200-C0153",
       "d-hner-2022-blood-140-1345-C0007",
       "d-hner-2022-blood-140-1345-C0025",
       "d-hner-2022-blood-140-1345-C0097",
@@ -2523,6 +3949,7 @@
   },
   "by_publication_type": {
     "consensus statement": [
+      "arber-2022-blood-140-1200",
       "d-hner-2022-blood-140-1345",
       "d-hner-2024-blood-144-2169",
       "khoury-2022-leukemia-36-1703"
@@ -2550,6 +3977,7 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769"
     ],
     "2022": [
+      "arber-2022-blood-140-1200",
       "bernard-2022-nejm-evidence-1-na",
       "d-hner-2022-blood-140-1345",
       "khoury-2022-leukemia-36-1703"
@@ -2562,6 +3990,3295 @@
     ]
   },
   "cards": {
+    "arber-2022-blood-140-1200-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0003": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0004": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0005": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0006": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0007": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0008": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0009": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0010": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0011": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0012": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0013": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SF3B1",
+        "SRSF2",
+        "TET2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0014": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0015": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CSF3R"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0016": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0017": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CNL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0018": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "CEL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "FGFR1",
+        "FLT3",
+        "JAK2",
+        "PDGFRA",
+        "PDGFRB"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0020": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0021": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0022": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SF3B1",
+        "SRSF2",
+        "TET2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0023": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ETV6",
+        "FIP1L1",
+        "PDGFRA",
+        "PDGFRB"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0024": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "FGFR1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0025": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "JAK2",
+        "PCM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0026": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "BCR",
+        "ETV6",
+        "JAK2",
+        "PCM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0027": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ETV6",
+        "FLT3"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0028": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "ETV6"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0029": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0030": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0031": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0032": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0033": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KIT"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0034": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0035": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0036": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KIT"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0037": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0038": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KIT"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0039": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KIT"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0040": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0041": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0042": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0043": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "NPM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0044": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0046": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "ASXL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL",
+        "SETBP1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0047": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0048": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "CNL",
+        "aCML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CSF3R"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0049": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL",
+        "SF3B1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0050": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "SF3B1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0051": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0052": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0053": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0054": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0055": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0056": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "MDS/MPN",
+        "MPN"
+      ],
+      "diseases": [
+        "MDS/MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL",
+        "SETBP1",
+        "SRSF2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0057": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0058": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0059": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0060": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "UBA1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0061": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0062": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "RUNX1",
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0063": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0064": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0065": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0066": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0067": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0068": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0069": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0070": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CEBPA",
+        "NPM1",
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0071": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0072": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0073": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0074": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0075": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0076": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0077": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0078": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0079": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CBL",
+        "KRAS",
+        "NF1",
+        "NRAS",
+        "PTPN11",
+        "RRAS"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0080": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "JMML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ALK",
+        "CBL",
+        "CCDC88C",
+        "FIP1L1",
+        "FLT3",
+        "KRAS",
+        "NF1",
+        "NRAS",
+        "PTPN11",
+        "RARA",
+        "ROS1",
+        "RRAS"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0084": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ANKRD26",
+        "ETV6",
+        "RUNX1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0085": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0086": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0087": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0088": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0089": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "AML"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "PML",
+        "RARA"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0090": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "AML"
+      ],
+      "diseases": [
+        "APL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "BCOR",
+        "FIP1L1",
+        "IRF2BP2",
+        "NPM1",
+        "RARA",
+        "STAT3",
+        "STAT5B",
+        "TBL1XR1",
+        "ZBTB16"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0091": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CBFB",
+        "DEK",
+        "KMT2A",
+        "MLLT3",
+        "MYH11",
+        "NUP214",
+        "RUNX1",
+        "RUNX1T1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0092": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "AFDN",
+        "AFF1",
+        "ELL",
+        "KMT2A",
+        "MLLT1",
+        "MLLT10",
+        "TET1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0093": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "GATA2",
+        "MECOM"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0094": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ETV6",
+        "MECOM",
+        "MYC",
+        "RUNX1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0095": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0096": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0097": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "NPM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0098": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0099": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "EZH2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0100": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "EZH2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0101": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0102": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0103": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0104": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS",
+        "AML"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0105": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0106": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0107": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0108": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0109": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0110": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS"
+      ],
+      "diseases": [
+        "AML",
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0111": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS"
+      ],
+      "diseases": [
+        "AML",
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0112": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS"
+      ],
+      "diseases": [
+        "AML",
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0113": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MDS"
+      ],
+      "diseases": [
+        "AML",
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0114": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm"
+      ],
+      "diseases": [
+        "acute lymphoblastic leukaemia/lymphoma"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0115": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "acute leukaemia of ambiguous lineage"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "KMT2A"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0116": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KMT2A"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0117": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ETV6",
+        "IGH",
+        "IL3",
+        "PBX1",
+        "RUNX1",
+        "TCF3"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0118": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0119": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0120": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0121": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0122": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "JAK"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0123": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0124": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "DUX4",
+        "HLF",
+        "MEF2D",
+        "NUTM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0125": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ETV6",
+        "RUNX1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0126": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CEBPE",
+        "IGH",
+        "ZEB2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0127": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KMT2A",
+        "ZNF384"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0128": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0129": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0130": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0131": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CRLF2",
+        "EPOR",
+        "JAK"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0132": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "MYC"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0133": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ZNF362",
+        "ZNF384"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0134": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ZNF384"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0135": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ATXN7L3",
+        "CDX2",
+        "FLT3",
+        "UBTF"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0136": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "IKZF1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0137": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "PAX5"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0138": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "PAX5"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0139": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm",
+        "T-ALL"
+      ],
+      "diseases": [
+        "ETP-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "BCL11B"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0140": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm",
+        "T-ALL"
+      ],
+      "diseases": [
+        "T-ALL, NOS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0141": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm"
+      ],
+      "diseases": [
+        "T-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0142": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm"
+      ],
+      "diseases": [
+        "acute lymphoblastic leukaemia/lymphoma"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0143": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm",
+        "T-ALL"
+      ],
+      "diseases": [
+        "ETP-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "BCL11B"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0144": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm",
+        "T-ALL"
+      ],
+      "diseases": [
+        "ETP-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0145": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0147": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS",
+        "MDS/AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0148": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0149": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0150": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0151": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0152": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0153": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "EZH2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0154": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0155": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MYC"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0156": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DUX4",
+        "IKZF1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0157": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MEF2D"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0158": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "EP300",
+        "TCF3",
+        "ZNF384"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0159": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "KMT2A",
+        "NUTM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0160": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "HLF"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0162": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "IKZF1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0163": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PAX5"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0165": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPE",
+        "IGH",
+        "ZEB2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0166": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PDGFRA",
+        "PDGFRB"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0167": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "FGFR1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0168": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0170": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "ETV6"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0172": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS",
+        "MDS/AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0173": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0178": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0179": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "MPN"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0180": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0181": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0182": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "MPN-U"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0184": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KIT"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0185": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "KIT"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0186": {
+      "category": "biomarker",
+      "disease_ancestors": [],
+      "diseases": [
+        "mastocytosis"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ABL1",
+        "ETV6",
+        "FGFR1",
+        "FLT3",
+        "JAK2",
+        "PDGFRA",
+        "PDGFRB"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0187": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0188": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0189": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0190": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "CRLF2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0191": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MYC"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0193": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DUX4"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0194": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DUX4"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0195": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DUX4",
+        "IGH"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0196": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "HLF",
+        "MEF2D"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0197": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MEF2D"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0198": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ZNF362",
+        "ZNF384"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0199": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ZNF362",
+        "ZNF384"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0200": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NUTM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0201": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NUTM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0202": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NUTM1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0203": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CDX2",
+        "UBTF"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0204": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CDX2",
+        "UBTF"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0205": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "IKZF1",
+        "PAX5"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0206": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "PAX5"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0207": {
+      "category": "biomarker",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm",
+        "T-ALL"
+      ],
+      "diseases": [
+        "ETP-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BCL11B"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0208": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NF1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0209": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CBL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0210": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "KRAS",
+        "NRAS",
+        "PTPN11"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0211": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "KRAS",
+        "NRAS",
+        "PTPN11",
+        "RIT1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0212": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2",
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0213": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0214": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0215": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0216": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0217": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ANKRD26"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0218": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ETV6"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0219": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0220": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0221": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "IKZF1",
+        "PAX5"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0222": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "IKZF1",
+        "PAX5"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0223": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NF1"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0224": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "PTPN11"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0225": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CBL"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0226": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BLM"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
+    "arber-2022-blood-140-1200-C0227": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DNMT3A",
+        "ERCC6L2",
+        "MBD4",
+        "XPC"
+      ],
+      "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
+      "publication_key": "arber-2022-blood-140-1200"
+    },
     "barbui-2015-blood-cancer-journal-5-e369-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -7982,16 +12699,370 @@
       "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769"
     }
   },
-  "corpus_sha256": "0c1b446301f299e2a708af811db07a1da35da0af34cda066fbde57dc67476bce",
+  "corpus_sha256": "b8efccd42c315f59ef50965ef29045ddf77aa89f59eae3f562c4855afb0a5fd3",
   "counts": {
-    "cards": 362,
-    "census_entries": 814,
-    "completed_papers": 9,
+    "cards": 573,
+    "census_entries": 1251,
+    "completed_papers": 10,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-21T06:10:26.179980+00:00",
+  "generated_at": "2026-08-21T12:36:30.256659+00:00",
   "index_version": "1.4",
   "papers": {
+    "arber-2022-blood-140-1200": {
+      "acceptance_version_history": [
+        "0.2.4"
+      ],
+      "accepted_in_version": "0.2.4",
+      "card_ids": [
+        "arber-2022-blood-140-1200-C0001",
+        "arber-2022-blood-140-1200-C0002",
+        "arber-2022-blood-140-1200-C0003",
+        "arber-2022-blood-140-1200-C0004",
+        "arber-2022-blood-140-1200-C0005",
+        "arber-2022-blood-140-1200-C0006",
+        "arber-2022-blood-140-1200-C0007",
+        "arber-2022-blood-140-1200-C0008",
+        "arber-2022-blood-140-1200-C0009",
+        "arber-2022-blood-140-1200-C0010",
+        "arber-2022-blood-140-1200-C0011",
+        "arber-2022-blood-140-1200-C0012",
+        "arber-2022-blood-140-1200-C0013",
+        "arber-2022-blood-140-1200-C0014",
+        "arber-2022-blood-140-1200-C0015",
+        "arber-2022-blood-140-1200-C0016",
+        "arber-2022-blood-140-1200-C0017",
+        "arber-2022-blood-140-1200-C0018",
+        "arber-2022-blood-140-1200-C0020",
+        "arber-2022-blood-140-1200-C0021",
+        "arber-2022-blood-140-1200-C0022",
+        "arber-2022-blood-140-1200-C0023",
+        "arber-2022-blood-140-1200-C0024",
+        "arber-2022-blood-140-1200-C0025",
+        "arber-2022-blood-140-1200-C0026",
+        "arber-2022-blood-140-1200-C0027",
+        "arber-2022-blood-140-1200-C0028",
+        "arber-2022-blood-140-1200-C0029",
+        "arber-2022-blood-140-1200-C0030",
+        "arber-2022-blood-140-1200-C0031",
+        "arber-2022-blood-140-1200-C0032",
+        "arber-2022-blood-140-1200-C0033",
+        "arber-2022-blood-140-1200-C0034",
+        "arber-2022-blood-140-1200-C0035",
+        "arber-2022-blood-140-1200-C0036",
+        "arber-2022-blood-140-1200-C0037",
+        "arber-2022-blood-140-1200-C0038",
+        "arber-2022-blood-140-1200-C0039",
+        "arber-2022-blood-140-1200-C0040",
+        "arber-2022-blood-140-1200-C0041",
+        "arber-2022-blood-140-1200-C0042",
+        "arber-2022-blood-140-1200-C0043",
+        "arber-2022-blood-140-1200-C0044",
+        "arber-2022-blood-140-1200-C0046",
+        "arber-2022-blood-140-1200-C0047",
+        "arber-2022-blood-140-1200-C0048",
+        "arber-2022-blood-140-1200-C0049",
+        "arber-2022-blood-140-1200-C0050",
+        "arber-2022-blood-140-1200-C0051",
+        "arber-2022-blood-140-1200-C0052",
+        "arber-2022-blood-140-1200-C0053",
+        "arber-2022-blood-140-1200-C0054",
+        "arber-2022-blood-140-1200-C0055",
+        "arber-2022-blood-140-1200-C0056",
+        "arber-2022-blood-140-1200-C0057",
+        "arber-2022-blood-140-1200-C0058",
+        "arber-2022-blood-140-1200-C0059",
+        "arber-2022-blood-140-1200-C0060",
+        "arber-2022-blood-140-1200-C0061",
+        "arber-2022-blood-140-1200-C0062",
+        "arber-2022-blood-140-1200-C0063",
+        "arber-2022-blood-140-1200-C0064",
+        "arber-2022-blood-140-1200-C0065",
+        "arber-2022-blood-140-1200-C0066",
+        "arber-2022-blood-140-1200-C0067",
+        "arber-2022-blood-140-1200-C0068",
+        "arber-2022-blood-140-1200-C0069",
+        "arber-2022-blood-140-1200-C0070",
+        "arber-2022-blood-140-1200-C0071",
+        "arber-2022-blood-140-1200-C0072",
+        "arber-2022-blood-140-1200-C0073",
+        "arber-2022-blood-140-1200-C0074",
+        "arber-2022-blood-140-1200-C0075",
+        "arber-2022-blood-140-1200-C0076",
+        "arber-2022-blood-140-1200-C0077",
+        "arber-2022-blood-140-1200-C0078",
+        "arber-2022-blood-140-1200-C0079",
+        "arber-2022-blood-140-1200-C0080",
+        "arber-2022-blood-140-1200-C0084",
+        "arber-2022-blood-140-1200-C0085",
+        "arber-2022-blood-140-1200-C0086",
+        "arber-2022-blood-140-1200-C0087",
+        "arber-2022-blood-140-1200-C0088",
+        "arber-2022-blood-140-1200-C0089",
+        "arber-2022-blood-140-1200-C0090",
+        "arber-2022-blood-140-1200-C0091",
+        "arber-2022-blood-140-1200-C0092",
+        "arber-2022-blood-140-1200-C0093",
+        "arber-2022-blood-140-1200-C0094",
+        "arber-2022-blood-140-1200-C0095",
+        "arber-2022-blood-140-1200-C0096",
+        "arber-2022-blood-140-1200-C0097",
+        "arber-2022-blood-140-1200-C0098",
+        "arber-2022-blood-140-1200-C0099",
+        "arber-2022-blood-140-1200-C0100",
+        "arber-2022-blood-140-1200-C0101",
+        "arber-2022-blood-140-1200-C0102",
+        "arber-2022-blood-140-1200-C0103",
+        "arber-2022-blood-140-1200-C0104",
+        "arber-2022-blood-140-1200-C0105",
+        "arber-2022-blood-140-1200-C0106",
+        "arber-2022-blood-140-1200-C0107",
+        "arber-2022-blood-140-1200-C0108",
+        "arber-2022-blood-140-1200-C0109",
+        "arber-2022-blood-140-1200-C0110",
+        "arber-2022-blood-140-1200-C0111",
+        "arber-2022-blood-140-1200-C0112",
+        "arber-2022-blood-140-1200-C0113",
+        "arber-2022-blood-140-1200-C0114",
+        "arber-2022-blood-140-1200-C0115",
+        "arber-2022-blood-140-1200-C0116",
+        "arber-2022-blood-140-1200-C0117",
+        "arber-2022-blood-140-1200-C0118",
+        "arber-2022-blood-140-1200-C0119",
+        "arber-2022-blood-140-1200-C0120",
+        "arber-2022-blood-140-1200-C0121",
+        "arber-2022-blood-140-1200-C0122",
+        "arber-2022-blood-140-1200-C0123",
+        "arber-2022-blood-140-1200-C0124",
+        "arber-2022-blood-140-1200-C0125",
+        "arber-2022-blood-140-1200-C0126",
+        "arber-2022-blood-140-1200-C0127",
+        "arber-2022-blood-140-1200-C0128",
+        "arber-2022-blood-140-1200-C0129",
+        "arber-2022-blood-140-1200-C0130",
+        "arber-2022-blood-140-1200-C0131",
+        "arber-2022-blood-140-1200-C0132",
+        "arber-2022-blood-140-1200-C0133",
+        "arber-2022-blood-140-1200-C0134",
+        "arber-2022-blood-140-1200-C0135",
+        "arber-2022-blood-140-1200-C0136",
+        "arber-2022-blood-140-1200-C0137",
+        "arber-2022-blood-140-1200-C0138",
+        "arber-2022-blood-140-1200-C0139",
+        "arber-2022-blood-140-1200-C0140",
+        "arber-2022-blood-140-1200-C0141",
+        "arber-2022-blood-140-1200-C0142",
+        "arber-2022-blood-140-1200-C0143",
+        "arber-2022-blood-140-1200-C0144",
+        "arber-2022-blood-140-1200-C0145",
+        "arber-2022-blood-140-1200-C0147",
+        "arber-2022-blood-140-1200-C0148",
+        "arber-2022-blood-140-1200-C0149",
+        "arber-2022-blood-140-1200-C0150",
+        "arber-2022-blood-140-1200-C0151",
+        "arber-2022-blood-140-1200-C0152",
+        "arber-2022-blood-140-1200-C0153",
+        "arber-2022-blood-140-1200-C0154",
+        "arber-2022-blood-140-1200-C0155",
+        "arber-2022-blood-140-1200-C0156",
+        "arber-2022-blood-140-1200-C0157",
+        "arber-2022-blood-140-1200-C0158",
+        "arber-2022-blood-140-1200-C0159",
+        "arber-2022-blood-140-1200-C0160",
+        "arber-2022-blood-140-1200-C0162",
+        "arber-2022-blood-140-1200-C0163",
+        "arber-2022-blood-140-1200-C0165",
+        "arber-2022-blood-140-1200-C0166",
+        "arber-2022-blood-140-1200-C0167",
+        "arber-2022-blood-140-1200-C0168",
+        "arber-2022-blood-140-1200-C0170",
+        "arber-2022-blood-140-1200-C0172",
+        "arber-2022-blood-140-1200-C0173",
+        "arber-2022-blood-140-1200-C0178",
+        "arber-2022-blood-140-1200-C0179",
+        "arber-2022-blood-140-1200-C0180",
+        "arber-2022-blood-140-1200-C0181",
+        "arber-2022-blood-140-1200-C0182",
+        "arber-2022-blood-140-1200-C0184",
+        "arber-2022-blood-140-1200-C0185",
+        "arber-2022-blood-140-1200-C0186",
+        "arber-2022-blood-140-1200-C0187",
+        "arber-2022-blood-140-1200-C0188",
+        "arber-2022-blood-140-1200-C0189",
+        "arber-2022-blood-140-1200-C0190",
+        "arber-2022-blood-140-1200-C0191",
+        "arber-2022-blood-140-1200-C0193",
+        "arber-2022-blood-140-1200-C0194",
+        "arber-2022-blood-140-1200-C0195",
+        "arber-2022-blood-140-1200-C0196",
+        "arber-2022-blood-140-1200-C0197",
+        "arber-2022-blood-140-1200-C0198",
+        "arber-2022-blood-140-1200-C0199",
+        "arber-2022-blood-140-1200-C0200",
+        "arber-2022-blood-140-1200-C0201",
+        "arber-2022-blood-140-1200-C0202",
+        "arber-2022-blood-140-1200-C0203",
+        "arber-2022-blood-140-1200-C0204",
+        "arber-2022-blood-140-1200-C0205",
+        "arber-2022-blood-140-1200-C0206",
+        "arber-2022-blood-140-1200-C0207",
+        "arber-2022-blood-140-1200-C0208",
+        "arber-2022-blood-140-1200-C0209",
+        "arber-2022-blood-140-1200-C0210",
+        "arber-2022-blood-140-1200-C0211",
+        "arber-2022-blood-140-1200-C0212",
+        "arber-2022-blood-140-1200-C0213",
+        "arber-2022-blood-140-1200-C0214",
+        "arber-2022-blood-140-1200-C0215",
+        "arber-2022-blood-140-1200-C0216",
+        "arber-2022-blood-140-1200-C0217",
+        "arber-2022-blood-140-1200-C0218",
+        "arber-2022-blood-140-1200-C0219",
+        "arber-2022-blood-140-1200-C0220",
+        "arber-2022-blood-140-1200-C0221",
+        "arber-2022-blood-140-1200-C0222",
+        "arber-2022-blood-140-1200-C0223",
+        "arber-2022-blood-140-1200-C0224",
+        "arber-2022-blood-140-1200-C0225",
+        "arber-2022-blood-140-1200-C0226",
+        "arber-2022-blood-140-1200-C0227"
+      ],
+      "cards": 211,
+      "census_entries": 437,
+      "citation_display": "Arber DA, Orazi A, Hasserjian RP, Borowitz MJ, Calvo KR, Kvasnicka H, et al. International Consensus Classification of Myeloid Neoplasms and Acute Leukemias: integrating morphologic, clinical, and genomic data. Blood. 2022;140(11):1200-1228.",
+      "diseases": [
+        "AML",
+        "APL",
+        "B-ALL",
+        "CCUS",
+        "CEL",
+        "CHIP",
+        "CML",
+        "CMML",
+        "CNL",
+        "ET",
+        "ETP-ALL",
+        "JMML",
+        "MDS",
+        "MDS/AML",
+        "MDS/MPN",
+        "MDS/MPN-SF3B1-T",
+        "MDS/MPN-U",
+        "MPN",
+        "MPN-U",
+        "PMF",
+        "PV",
+        "T-ALL",
+        "T-ALL, NOS",
+        "aCML",
+        "acute leukaemia of ambiguous lineage",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "mastocytosis",
+        "myeloid/lymphoid neoplasm with eosinophilia and TK fusion",
+        "post-PV/post-ET MF"
+      ],
+      "genes": [
+        "ABL1",
+        "AFDN",
+        "AFF1",
+        "ALK",
+        "ANKRD26",
+        "ASXL1",
+        "ATXN7L3",
+        "BCL11B",
+        "BCOR",
+        "BCR",
+        "BLM",
+        "CALR",
+        "CBFB",
+        "CBL",
+        "CCDC88C",
+        "CDX2",
+        "CEBPA",
+        "CEBPE",
+        "CRLF2",
+        "CSF3R",
+        "DDX41",
+        "DEK",
+        "DNMT3A",
+        "DUX4",
+        "ELL",
+        "EP300",
+        "EPOR",
+        "ERCC6L2",
+        "ETV6",
+        "EZH2",
+        "FGFR1",
+        "FIP1L1",
+        "FLT3",
+        "GATA2",
+        "HLF",
+        "IDH1",
+        "IDH2",
+        "IGH",
+        "IKZF1",
+        "IL3",
+        "IRF2BP2",
+        "JAK",
+        "JAK2",
+        "KIT",
+        "KMT2A",
+        "KRAS",
+        "MBD4",
+        "MECOM",
+        "MEF2D",
+        "MLLT1",
+        "MLLT10",
+        "MLLT3",
+        "MPL",
+        "MYC",
+        "MYH11",
+        "NF1",
+        "NPM1",
+        "NRAS",
+        "NUP214",
+        "NUTM1",
+        "PAX5",
+        "PBX1",
+        "PCM1",
+        "PDGFRA",
+        "PDGFRB",
+        "PML",
+        "PTPN11",
+        "RARA",
+        "RIT1",
+        "ROS1",
+        "RRAS",
+        "RUNX1",
+        "RUNX1T1",
+        "SAMD9",
+        "SAMD9L",
+        "SETBP1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "STAT3",
+        "STAT5B",
+        "TBL1XR1",
+        "TCF3",
+        "TET1",
+        "TET2",
+        "TP53",
+        "U2AF1",
+        "UBA1",
+        "UBTF",
+        "XPC",
+        "ZBTB16",
+        "ZEB2",
+        "ZNF362",
+        "ZNF384",
+        "ZRSR2"
+      ],
+      "latest_accepted_in_version": "0.2.4",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_key": "arber-2022-blood-140-1200",
+      "status": "completed"
+    },
     "barbui-2015-blood-cancer-journal-5-e369": {
       "acceptance_version_history": [
         "0.1.5",

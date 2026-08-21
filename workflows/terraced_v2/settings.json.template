@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "structural_attempts": 10,
+  "token_budget": 120000
+}

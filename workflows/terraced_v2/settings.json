@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "structural_attempts": 10,
+  "token_budget": 120000,
+  "model_profile": "openrouter",
+  "terrace_profile": "balanced"
+}

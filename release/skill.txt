@@ -32,8 +32,10 @@ workflows/legacy_v1/prompts/*
 workflows/diagnosis_first_v1/*
 workflows/categorical_v1/*
 workflows/terraced_v1/*
+workflows/terraced_v2/*
 workflows/categorical_v1/prompts/*
 workflows/terraced_v1/prompts/*
+workflows/terraced_v2/prompts/*
 workflows/diagnosis_first_v1/prompts/*
 workflows/diagnosis_first_v1/prompts/rule_views/*
 workflows/diagnosis_first_v1/prompts/formatting/*

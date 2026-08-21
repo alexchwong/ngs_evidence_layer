@@ -24,6 +24,7 @@ Read `workflows/registry.json` and resolve exactly one workflow before reading c
 - `--diagnosis-first-v1`: select `diagnosis-first-v1` explicitly.
 - `--terraced`: resolve the registry alias `terraced` (`terraced-v1`).
 - `--terraced-v1`: select `terraced-v1` explicitly.
+- `--terraced-v2`: select `terraced-v2` explicitly.
 - `--legacy`: resolve the registry alias `legacy` (`legacy-v1`).
 - `--legacy-v1`: select `legacy-v1` explicitly.
 - Any other explicit `--<workflow-id>`: select that exact enabled workflow only if it is registered.
@@ -39,6 +40,8 @@ The default `categorical-v1` workflow supports `ngs-report`, `nel-demo`, `nel-va
 
 `terraced-v1` supports the same five modes and remains available through `--terraced` or `--terraced-v1`.
 
+`terraced-v2` supports the same five modes and is selected explicitly with `--terraced-v2`. The `--terraced` alias remains bound to v1 for compatibility.
+
 `evidence-block`, `evidence-block manual`, and `evidence-to-report` are legacy-only. If one of these is requested without an explicit legacy selector, stop and state that the mode requires `--legacy` or `--legacy-v1`; do not silently route it to legacy.
 
 Examples:
@@ -49,6 +52,7 @@ ngs-report --diagnosis-first
 ngs-report --diagnosis-first-v1
 ngs-report --terraced
 ngs-report --terraced-v1
+ngs-report --terraced-v2
 ngs-report --legacy
 nel-validate-function 3B
 nel-validate-brief 8
