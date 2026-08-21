@@ -197,6 +197,37 @@ class BuildCardBrowserTests(unittest.TestCase):
         self.assertIn("AML with NPM1 mutation", html)
         self.assertIn("retained in full raw provenance", html)
 
+        # Selected full-mode layout is filters | complete details | interpretations.
+        self.assertIn("grid-template-columns:1fr 3fr 1fr", html)
+        self.assertIn(".detail{grid-column:2;grid-row:1}", html)
+        self.assertIn(".main{grid-column:3;grid-row:1", html)
+
+        # The middle detail column repeats interpretation first, then renders
+        # only the requested card classification, evidence, and acceptance fields.
+        self.assertIn('detailSection("Interpretation")', html)
+        self.assertIn('detailSection("Classification")', html)
+        self.assertIn('addMeta(classificationGrid, "Genes", exact.genes || card.genes)', html)
+        self.assertIn('addMeta(classificationGrid, "Category", exact.category || card.category)', html)
+        self.assertIn('addMeta(classificationGrid, "Disease", exact.diseases || card.diseases)', html)
+        self.assertIn('detailSection("Evidence")', html)
+        self.assertIn('"Evidence tier", exact.evidence_tier || card.tier', html)
+        self.assertIn('exact.secondary_citation && exact.secondary_citation.display', html)
+        self.assertIn('for (const fragment of (evidence.fragments || []))', html)
+        self.assertIn('fragment.fragment_id, fragment.role, fragment.locator', html)
+        self.assertIn('quote.textContent = fragment.quote || ""', html)
+        self.assertIn('detailSection("Acceptance")', html)
+        self.assertIn('"Accepted in version", acceptance.accepted_in_version', html)
+        self.assertIn('"Version history", acceptance.version_history', html)
+
+        # Arrays use textOrDash's comma-joined presentation, not genes[0]/genes[1]
+        # style recursive paths; unrelated raw accepted-package parameters stay hidden.
+        self.assertIn('if (Array.isArray(value)) return value.length ? value.join(", ") : "—"', html)
+        self.assertNotIn("function flattenParameters(value, prefix, rows)", html)
+        self.assertNotIn('parameterSection("Evidence parameters"', html)
+        self.assertNotIn('parameterSection("Publication parameters"', html)
+        self.assertNotIn('parameterSection("Source parameters"', html)
+        self.assertNotIn('parameterSection("Final package parameters"', html)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -47,7 +47,10 @@
 
   /* ---------- shell ---------- */
   .shell{display:grid;grid-template-columns:288px minmax(0,1fr);gap:0;align-items:start}
-  body.full-mode.detail-open .shell{grid-template-columns:270px minmax(0,1fr) minmax(340px,420px)}
+  body.full-mode.detail-open .shell{grid-template-columns:1fr 3fr 1fr}
+  body.full-mode.detail-open .rail{grid-column:1}
+  body.full-mode.detail-open .detail{grid-column:2;grid-row:1}
+  body.full-mode.detail-open .main{grid-column:3;grid-row:1;padding-left:20px;padding-right:20px}
   .rail{
     border-right:1px solid var(--rule);padding:20px 20px 60px;
     position:sticky;top:0;max-height:100vh;overflow-y:auto;background:var(--panel);
@@ -57,8 +60,9 @@
   /* ---------- full detail pane ---------- */
   .detail{display:none}
   body.full-mode.detail-open .detail{
-    display:block;border-left:1px solid var(--rule);background:#fff;padding:18px 20px 60px;
-    position:sticky;top:0;max-height:100vh;overflow-y:auto;min-width:0;
+    display:block;border-left:1px solid var(--rule);border-right:1px solid var(--rule);
+    background:#fff;padding:18px 24px 60px;position:sticky;top:0;max-height:100vh;
+    overflow-y:auto;min-width:0;
   }
   .detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
   .detail-id{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
@@ -145,6 +149,9 @@
   body.full-mode li.card{cursor:pointer}
   body.full-mode li.card:hover{background:#f7f4fa}
   body.full-mode li.card.selected{background:#fff;border-left-width:5px;padding-left:11px}
+  body.full-mode.detail-open li.card{display:block;padding-top:13px;padding-bottom:13px}
+  body.full-mode.detail-open li.card .cid{display:block;margin-bottom:5px}
+  body.full-mode.detail-open li.card p{font-size:14px;line-height:1.5}
   li.card .cid{
     font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);
     letter-spacing:-.01em;overflow-wrap:anywhere;padding-top:2px;
@@ -158,15 +165,18 @@
   .railtoggle{display:none}
 
   @media (max-width:1150px){
-    body.full-mode.detail-open .shell{grid-template-columns:288px minmax(0,1fr)}
-    body.full-mode.detail-open .detail{
-      position:fixed;z-index:20;right:0;top:0;width:min(440px,92vw);height:100vh;max-height:none;
-      box-shadow:-12px 0 34px rgba(25,24,37,.16);
-    }
+    body.full-mode.detail-open .rail{padding-left:14px;padding-right:14px}
+    body.full-mode.detail-open .detail{padding-left:18px;padding-right:18px}
+    body.full-mode.detail-open .main{padding-left:14px;padding-right:14px}
   }
 
   @media (max-width:900px){
     .shell, body.full-mode.detail-open .shell{grid-template-columns:1fr}
+    body.full-mode.detail-open .rail{grid-column:1;grid-row:1}
+    body.full-mode.detail-open .detail{
+      grid-column:1;grid-row:2;position:static;max-height:none;border-right:0;
+    }
+    body.full-mode.detail-open .main{grid-column:1;grid-row:3;padding:16px 20px 70px}
     .rail{
       position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule);
       padding-bottom:24px;
@@ -438,6 +448,9 @@ function buildDetail(card){
   head.append(id, close);
   pane.appendChild(head);
 
+  // Repeat the interpretation at the top, then show only the metadata useful
+  // for reviewing/classifying the selected card. Arrays are rendered as
+  // human-readable joined values rather than indexed parameter paths.
   const interpretation = detailSection("Interpretation");
   const text = document.createElement("p");
   text.className = "detail-interpretation";
@@ -445,112 +458,52 @@ function buildDetail(card){
   interpretation.appendChild(text);
   pane.appendChild(interpretation);
 
-  const cardMeta = detailSection("Card");
-  const grid = document.createElement("dl");
-  grid.className = "meta-grid";
-  addMeta(grid, "Category", exact.category);
-  addMeta(grid, "Evidence tier", exact.evidence_tier);
-  addMeta(grid, "Genes", exact.genes);
-  addMeta(grid, "Diseases", exact.diseases);
-  addMeta(grid, "Disease ancestors", exact.disease_ancestors);
-  addMeta(grid, "Locator", exact.locator);
-  if (exact.secondary_citation){
-    addMeta(grid, "Secondary citation", exact.secondary_citation.display || exact.secondary_citation);
-  }
-  cardMeta.appendChild(grid);
-  pane.appendChild(cardMeta);
+  const classification = detailSection("Classification");
+  const classificationGrid = document.createElement("dl");
+  classificationGrid.className = "meta-grid";
+  addMeta(classificationGrid, "Genes", exact.genes || card.genes);
+  addMeta(classificationGrid, "Category", exact.category || card.category);
+  addMeta(classificationGrid, "Disease", exact.diseases || card.diseases);
+  classification.appendChild(classificationGrid);
+  pane.appendChild(classification);
 
-  const ev = detailSection("Evidence");
-  const evMeta = document.createElement("dl");
-  evMeta.className = "meta-grid";
-  addMeta(evMeta, "Evidence type", evidence.evidence_type);
-  ev.appendChild(evMeta);
+  const evidenceMeta = detailSection("Evidence");
+  const evidenceGrid = document.createElement("dl");
+  evidenceGrid.className = "meta-grid";
+  addMeta(evidenceGrid, "Evidence tier", exact.evidence_tier || card.tier);
+  addMeta(
+    evidenceGrid,
+    "Secondary citation",
+    exact.secondary_citation && exact.secondary_citation.display
+  );
+  evidenceMeta.appendChild(evidenceGrid);
   for (const fragment of (evidence.fragments || [])){
     const box = document.createElement("div");
     box.className = "evidence-fragment";
     const label = document.createElement("div");
     label.className = "fragment-label";
-    label.textContent = [fragment.fragment_id, fragment.role, fragment.locator].filter(Boolean).join(" · ");
+    label.textContent = [fragment.fragment_id, fragment.role, fragment.locator]
+      .filter(Boolean)
+      .join(" · ");
     const quote = document.createElement("blockquote");
     quote.textContent = fragment.quote || "";
     box.append(label, quote);
-    ev.appendChild(box);
+    evidenceMeta.appendChild(box);
   }
-  pane.appendChild(ev);
+  pane.appendChild(evidenceMeta);
 
-  if (evidence.support_map){
-    const support = detailSection("Support map");
-    const list = document.createElement("ul");
-    list.className = "support-list";
-    for (const [role, fragments] of Object.entries(evidence.support_map)){
-      const item = document.createElement("li");
-      item.textContent = role + " → " + textOrDash(fragments);
-      list.appendChild(item);
-    }
-    support.appendChild(list);
-    pane.appendChild(support);
-  }
-
-  if (evidence.table_relations && evidence.table_relations.length){
-    const relations = detailSection("Table relations");
-    const list = document.createElement("ul");
-    list.className = "support-list";
-    evidence.table_relations.forEach((relation, index) => {
-      const item = document.createElement("li");
-      const bits = [
-        "value " + textOrDash(relation.value_fragment_id),
-        "headers " + textOrDash(relation.header_fragment_ids),
-        "qualifiers " + textOrDash(relation.qualifier_fragment_ids)
-      ];
-      item.textContent = (index + 1) + ". " + bits.join(" · ");
-      list.appendChild(item);
-    });
-    relations.appendChild(list);
-    pane.appendChild(relations);
-  }
-
-  const pub = detailSection("Publication");
-  const citation = document.createElement("p");
-  citation.className = "detail-citation";
-  citation.textContent = paper.display || paper.nickname || paper.key;
-  pub.appendChild(citation);
-  const doc = paperDetails.document || {};
-  const pubGrid = document.createElement("dl");
-  pubGrid.className = "meta-grid";
-  addMeta(pubGrid, "Publication key", doc.publication_key || paper.key);
-  addMeta(pubGrid, "Nickname", doc.paper_nickname || paper.nickname);
-  addMeta(pubGrid, "Publication type", doc.publication_type || paper.type);
-  addMeta(pubGrid, "Extraction date", doc.extraction_date);
-  addMeta(pubGrid, "Extraction model", doc.extraction_model);
-  addMeta(pubGrid, "Genes covered", doc.genes_covered);
-  addMeta(pubGrid, "Diseases covered", doc.diseases_covered);
-  addMeta(pubGrid, "Census entries", doc.census_entries);
-  pub.appendChild(pubGrid);
-  pane.appendChild(pub);
-
-  const source = paperDetails.source || {};
-  const provenance = detailSection("Source & acceptance");
-  const sourceGrid = document.createElement("dl");
-  sourceGrid.className = "meta-grid";
-  addMeta(sourceGrid, "Input ID", source.input_id);
-  addMeta(sourceGrid, "Source filename", source.source_filename);
-  addMeta(sourceGrid, "Acceptance path", source.acceptance_path);
-  const accepted = paperDetails.accepted_package || {};
-  addMeta(sourceGrid, "Accepted at", accepted.accepted_at);
-  addMeta(sourceGrid, "Accepted in version", accepted.accepted_in_version);
-  addMeta(sourceGrid, "Latest version", accepted.latest_version || accepted.accepted_in_version);
-  provenance.appendChild(sourceGrid);
-  pane.appendChild(provenance);
-
-  const raw = document.createElement("details");
-  raw.className = "raw";
-  const summary = document.createElement("summary");
-  summary.textContent = "Raw record / provenance";
-  const pre = document.createElement("pre");
-  pre.className = "raw-json";
-  pre.textContent = JSON.stringify({card: exact, evidence, paper: paperDetails}, null, 2);
-  raw.append(summary, pre);
-  pane.appendChild(raw);
+  const acceptance = paperDetails.accepted_package || {};
+  const acceptanceMeta = detailSection("Acceptance");
+  const acceptanceGrid = document.createElement("dl");
+  acceptanceGrid.className = "meta-grid";
+  addMeta(acceptanceGrid, "Acceptance path", acceptance.acceptance_path);
+  addMeta(acceptanceGrid, "Accepted at", acceptance.accepted_at);
+  addMeta(acceptanceGrid, "Accepted at source", acceptance.accepted_at_source);
+  addMeta(acceptanceGrid, "Accepted in version", acceptance.accepted_in_version);
+  addMeta(acceptanceGrid, "Latest version", acceptance.latest_version || acceptance.accepted_in_version);
+  addMeta(acceptanceGrid, "Version history", acceptance.version_history);
+  acceptanceMeta.appendChild(acceptanceGrid);
+  pane.appendChild(acceptanceMeta);
 
   pane.scrollTop = 0;
   document.querySelectorAll("li.card").forEach(el => {
