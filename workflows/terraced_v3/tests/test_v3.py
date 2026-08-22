@@ -513,3 +513,72 @@ def test_scheduler_interface_output_names_are_scheduler_local(tmp_path):
     plan = scheduler_engine.load_yaml(tmp_path / "scheduler.yaml")
     assert tuple(plan.doc["interface"]["outputs"]) == ("whatever_i_call_it",)
     assert scheduler_engine.output_contract(plan, "whatever_i_call_it").semantic_type == "ptbg.experimental"
+
+
+def test_default_summarization_supplies_deterministic_sentence_manifest_to_aligner(tmp_path):
+    from workflows.terraced_v3 import scheduler_engine, scheduler_primitives, scheduler_registry
+
+    facts = [
+        {
+            "fact_id": "diagnosis-DX1",
+            "domain": "diagnosis",
+            "fact": "Diagnosis fact.",
+            "reason": "Diagnosis reason.",
+            "citation": "[card:aaaaaaaaaaaa]",
+            "subject": {},
+            "decision": {},
+            "candidate_card_tags": [],
+        },
+        {
+            "fact_id": "treatment-V1-DX1",
+            "domain": "treatment",
+            "fact": "Treatment fact.",
+            "reason": "Treatment reason.",
+            "citation": "[card:bbbbbbbbbbbb]",
+            "subject": {},
+            "decision": {},
+            "candidate_card_tags": [],
+        },
+    ]
+    draft = "**Diagnosis**\nDiagnosis sentence.\n**Treatment Implications**\nTreatment sentence.\n"
+
+    def call_model(*, call_id, prompt, output, validator, **_):
+        if "-draft-" in call_id:
+            output.write_text(draft, encoding="utf-8")
+        else:
+            assert "# Supplied sentence manifest" in prompt
+            assert "sentence_id: diagnosis-1" in prompt
+            assert "domain: diagnosis" in prompt
+            assert "sentence: Diagnosis sentence." in prompt
+            assert "sentence_id: treatment-1" in prompt
+            assert "domain: treatment" in prompt
+            assert "sentence: Treatment sentence." in prompt
+            assert prompt.index("sentence_id: diagnosis-1") < prompt.index("sentence_id: treatment-1")
+            output.write_text(
+                "alignments:\n"
+                "  - sentence_id: diagnosis-1\n"
+                "    fact_ids: [diagnosis-DX1]\n"
+                "  - sentence_id: treatment-1\n"
+                "    fact_ids: [treatment-V1-DX1]\n",
+                encoding="utf-8",
+            )
+        validator(output.read_text(encoding="utf-8"))
+
+    ctx = scheduler_primitives.SchedulerContext(
+        work=tmp_path,
+        case={},
+        diagnoses=[],
+        final_cmcs=[],
+        pipeline_id="test",
+        call_model=call_model,
+        ensure_evidence=lambda _: None,
+        read_text=lambda path: path.read_text(encoding="utf-8"),
+        write_text=lambda path, text: path.write_text(text, encoding="utf-8"),
+        status=lambda _: None,
+        phase="summarization",
+        values={"cited_facts": facts},
+    )
+    plan = scheduler_registry.load("default-summarization", "summarization")
+    result = scheduler_engine.execute(plan, ctx)
+
+    assert [row["sentence_id"] for row in result["summary"]["sentences"]] == ["diagnosis-1", "treatment-1"]

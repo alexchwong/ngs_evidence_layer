@@ -25,6 +25,9 @@ steps:
         draft:
           input: draft
           render: text
+        sentence_manifest:
+          input: sentence_manifest
+          render: yaml
         facts:
           input: facts
           render: yaml

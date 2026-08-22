@@ -459,7 +459,8 @@ def _run_summarization_loop(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Pa
         draft=root/step["id"]/f"draft-{cycle}.md"; draft.parent.mkdir(parents=True,exist_ok=True)
         if draft.is_file(): runtime.validate_summary_text(ctx.read_text(draft))
         else: ctx.call_model(call_id=f"scheduler-summarization-{plan.scheduler_id}-draft-{cycle}",role="summarization",prompt=draft_prompt,output=draft,validator=runtime.validate_summary_text,format_name="text")
-        draft_text=ctx.read_text(draft); align_inputs=dict(inputs,draft=draft_text)
+        draft_text=ctx.read_text(draft); sentence_manifest=runtime.sentence_manifest(draft_text)
+        align_inputs=dict(inputs,draft=draft_text,sentence_manifest=sentence_manifest)
         align_prompt=_render_prompt_spec(base,step["prompts"]["align"],align_inputs,None)
         alignment=root/step["id"]/f"alignment-{cycle}.yaml"
         validator=_validator("sentence_alignment",ctx=ctx,inputs=align_inputs,item=None)
