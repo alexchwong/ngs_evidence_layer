@@ -20,6 +20,75 @@ WHO5_EXCLUDED_SCHEMA_DISEASES = {"MDS/AML"}
 VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
 CARD_TAG_RE = re.compile(r"\[card:([0-9a-f]{12})\]")
 CARD_TAGS_RE = re.compile(r"(?:\[card:[0-9a-f]{12}\])+")
+_BARE_CARD_TAG_RE = re.compile(r"(?:card:)?([0-9a-f]{12})")
+
+
+def _canonical_card_tag(value):
+    """Return canonical runtime card-tag syntax for an unambiguous scalar.
+
+    This is representation-only normalization.  Whether the resulting tag was
+    actually supplied to the task remains the responsibility of the existing
+    task validator.
+    """
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    match = CARD_TAG_RE.fullmatch(value)
+    if match:
+        return value
+    match = _BARE_CARD_TAG_RE.fullmatch(value)
+    if match:
+        return f"[card:{match.group(1)}]"
+    return None
+
+
+def normalize_model_card_tag_syntax(text: str, *, format_name: str = "yaml") -> tuple[str, list[str]]:
+    """Canonicalize model card-tag scalars without changing clinical content.
+
+    Accepted representations include bare 12-character runtime hashes and
+    ``card:<hash>``.  They are rewritten only in known card-tag fields.  The
+    subsequent validator still requires an exact match to a card supplied to
+    that task, so an invented/undrawn hash is never accepted by this fixer.
+    """
+    if format_name == "yaml":
+        doc = yaml.safe_load(text)
+    elif format_name == "json":
+        doc = json.loads(text)
+    else:
+        return text, []
+
+    repairs: list[str] = []
+
+    def walk(value, path=""):
+        if isinstance(value, dict):
+            for key, child in list(value.items()):
+                child_path = f"{path}.{key}" if path else str(key)
+                if key == "card_tag":
+                    canonical = _canonical_card_tag(child)
+                    if canonical is not None and canonical != child:
+                        value[key] = canonical
+                        repairs.append(f"normalised bare runtime card hash at {child_path}")
+                elif key == "candidate_card_tags" or str(key).endswith("_candidate_card_tags"):
+                    if isinstance(child, list):
+                        for i, item in enumerate(child):
+                            canonical = _canonical_card_tag(item)
+                            if canonical is not None and canonical != item:
+                                child[i] = canonical
+                                repairs.append(f"normalised bare runtime card hash at {child_path}[{i}]")
+                else:
+                    walk(child, child_path)
+        elif isinstance(value, list):
+            for i, child in enumerate(value):
+                walk(child, f"{path}[{i}]")
+
+    walk(doc)
+    if not repairs:
+        return text, []
+    if format_name == "yaml":
+        rendered = yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=110)
+    else:
+        rendered = json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
+    return rendered, repairs
 HEADINGS = {
     "**Diagnosis**": "diagnosis",
     "**Prognosis**": "prognosis",

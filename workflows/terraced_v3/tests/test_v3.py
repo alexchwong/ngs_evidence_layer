@@ -340,3 +340,47 @@ outputs:
         assert "prompt slots mismatch" in str(exc)
     else:
         raise AssertionError("expected scheduler compile failure")
+
+
+def test_card_tag_syntax_normalizer_accepts_bare_hash_lists_and_canonicalizes():
+    import yaml
+
+    text = '''decisions:
+  - candidate_card_tags: [abcdefabcdef]
+  - candidate_card_tags: ["abcdefabcdef"]
+  - target_candidate_card_tags: [abcdefabcdef, "1234567890ab"]
+  - resistance_candidate_card_tags: [card:abcdefabcdef]
+evidence_items:
+  - card_tag: 1234567890ab
+'''
+    repaired, repairs = runtime.normalize_model_card_tag_syntax(text, format_name="yaml")
+    doc = yaml.safe_load(repaired)
+    assert doc["decisions"][0]["candidate_card_tags"] == ["[card:abcdefabcdef]"]
+    assert doc["decisions"][1]["candidate_card_tags"] == ["[card:abcdefabcdef]"]
+    assert doc["decisions"][2]["target_candidate_card_tags"] == ["[card:abcdefabcdef]", "[card:1234567890ab]"]
+    assert doc["decisions"][3]["resistance_candidate_card_tags"] == ["[card:abcdefabcdef]"]
+    assert doc["evidence_items"][0]["card_tag"] == "[card:1234567890ab]"
+    assert len(repairs) == 6
+
+
+def test_bare_card_hash_is_only_accepted_when_exactly_supplied_after_normalization():
+    text = '''decisions:
+  - variant_id: V1
+    diagnosis_id: DX1
+    effect: adverse
+    scoring_system: ELN 2022
+    surface: true
+    fact: "Variant V1 is adverse in this disease context."
+    reason: "The supplied evidence supports this conclusion."
+    candidate_card_tags: [abcdefabcdef]
+'''
+    repaired, repairs = runtime.normalize_model_card_tag_syntax(text, format_name="yaml")
+    assert repairs
+    spec = {"required_pairs": [("V1", "DX1")]}
+    assert runtime.validate_domain_text(repaired, domain="prognosis", spec=spec, permitted_tags={"abcdefabcdef"})
+    try:
+        runtime.validate_domain_text(repaired, domain="prognosis", spec=spec, permitted_tags={"1234567890ab"})
+    except ValueError as exc:
+        assert "was not supplied to this task" in str(exc)
+    else:
+        raise AssertionError("expected undrawn bare hash to remain invalid after syntax normalization")

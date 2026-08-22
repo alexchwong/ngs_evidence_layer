@@ -245,9 +245,17 @@ def _prepare_candidate(*,raw:str,structured_format:str|None,binding,root:Path,ca
             binding=binding,root=root,call_id=call_id,raw=raw,
             format_name=structured_format,error=exc,
         )
+        if structured_format in {"yaml", "json"}:
+            candidate,tag_repairs=runtime.normalize_model_card_tag_syntax(candidate,format_name=structured_format)
+            return candidate,tag_repairs
         return candidate,[]
     _log_syntax_result(root,result)
-    return result.text,list(result.deterministic_repairs)
+    candidate=result.text
+    repairs=list(result.deterministic_repairs)
+    if structured_format in {"yaml", "json"}:
+        candidate,tag_repairs=runtime.normalize_model_card_tag_syntax(candidate,format_name=structured_format)
+        repairs.extend(tag_repairs)
+    return candidate,repairs
 
 
 def _model_call(work:Path,*,call_id:str,role:str,messages:list[dict[str,str]],output:Path,validator,profile:str|None,structured_format:str|None=None)->str:
