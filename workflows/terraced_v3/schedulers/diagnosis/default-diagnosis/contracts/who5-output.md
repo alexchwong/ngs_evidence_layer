@@ -13,23 +13,25 @@ Return YAML only with exactly these top-level keys:
 
 ```yaml
 diagnoses:
-  - diagnosis_id: DX1
-    schema_disease: AML
-    status: established
-    diagnosis: "AML with NPM1 mutation"
-    fact: "According to WHO5, the diagnosis is AML with NPM1 mutation."
-    reason: "Short auditable clinical justification."
-    candidate_card_tags: ["[card:0123456789ab]"]
+  - diagnosis_id: "<sequential WHO5 diagnosis ID>"
+    schema_disease: "<supplied canonical schema_disease value>"
+    status: "<established or indeterminate>"
+    diagnosis: "<WHO5 diagnostic label>"
+    fact: "<concise patient-level WHO5 diagnostic statement>"
+    reason: "<short auditable clinical justification>"
+    candidate_card_tags: []
 supporting_facts:
-  - diagnosis_ids: [DX1]
-    fact: "A patient-level finding supports this diagnosis."
-    reason: "Why the finding supports the diagnosis."
+  - diagnosis_ids: ["<WHO5 diagnosis ID>"]
+    fact: "<patient-level finding supporting the linked diagnosis>"
+    reason: "<why this finding supports the linked diagnosis>"
     candidate_card_tags: []
 contradicting_facts:
-  - diagnosis_ids: [DX1]
-    fact: "A patient-level finding argues against or limits this diagnosis."
-    reason: "Why the finding is contradictory or limiting."
+  - diagnosis_ids: ["<WHO5 diagnosis ID>"]
+    fact: "<patient-level finding contradicting or limiting the linked diagnosis>"
+    reason: "<why this finding contradicts or limits the linked diagnosis>"
     candidate_card_tags: []
 ```
 
-Use only supplied canonical `schema_disease` values. Return concurrent WHO5 pathologies separately. Allowed `status`: `established`, `indeterminate`. Do not write CMC values; core derives CMC from validated WHO5 `schema_disease` values.
+Angle-bracketed text describes required content only. It is not case information and must never be copied as a clinical conclusion.
+
+Use only supplied canonical `schema_disease` values. Return concurrent WHO5 pathologies separately. Allowed `status`: `established`, `indeterminate`. Assign `DX1`, `DX2`, ... sequentially. Do not write CMC values; core derives CMC from validated WHO5 `schema_disease` values.

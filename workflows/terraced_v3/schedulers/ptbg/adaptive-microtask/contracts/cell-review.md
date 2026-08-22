@@ -12,9 +12,11 @@ runtime_invariants: [cell_identity_preserved, replacement_must_validate]
 Return YAML only:
 
 ```yaml
-action: keep
-reason: "Brief adjudication."
-replacement: null
+action: "<keep or replace>"
+reason: "<brief adjudication>"
+replacement: "<null when keeping; complete corrected decision row when replacing>"
 ```
+
+Angle-bracketed text describes the required content only. It is not a preferred review outcome and must never be copied as the adjudication.
 
 Use `action: replace` only when correction is required, with `replacement` containing the complete corrected decision row for the selected cell. The replacement may not change the protected cell scope.

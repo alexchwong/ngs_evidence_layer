@@ -13,18 +13,20 @@ Return one variant decision for every required detected variant plus one case-le
 
 ```yaml
 variant_decisions:
-  - variant_id: V1
-    potentially_germline: false
-    surface: false
-    fact: null
-    reason: null
+  - variant_id: "<supplied variant ID>"
+    potentially_germline: "<true or false>"
+    surface: "<true or false>"
+    fact: "<concise reportable germline fact, or null>"
+    reason: "<short auditable justification, or null>"
     candidate_card_tags: []
 clinical_picture:
-  supportive: uncertain
-  surface: true
-  fact: "A concise clinical-picture statement when reportable."
-  reason: "Short auditable justification."
+  supportive: "<true, false, or uncertain>"
+  surface: "<true or false>"
+  fact: "<concise reportable clinical-picture statement, or null>"
+  reason: "<short auditable justification, or null>"
   candidate_card_tags: []
 ```
+
+Angle-bracketed text describes the required content only. It is not case information and must never be copied as a clinical conclusion.
 
 `clinical_picture.supportive` must be `true`, `false`, or `uncertain`.

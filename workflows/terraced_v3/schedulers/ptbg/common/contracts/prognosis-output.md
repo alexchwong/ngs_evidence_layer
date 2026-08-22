@@ -13,14 +13,16 @@ For every required detected variant × settled WHO5 diagnosis pair, return exact
 
 ```yaml
 decisions:
-  - variant_id: V1
-    diagnosis_id: DX1
-    effect: favorable
-    scoring_system: "ELN 2022"
-    surface: true
-    fact: "A concise reportable prognostic fact."
-    reason: "Short auditable justification."
+  - variant_id: "<supplied variant ID>"
+    diagnosis_id: "<supplied diagnosis ID>"
+    effect: "<favorable, adverse, or neither>"
+    scoring_system: "<applicable named scoring system, or null>"
+    surface: "<true or false>"
+    fact: "<concise reportable prognostic fact, or null>"
+    reason: "<short auditable justification>"
     candidate_card_tags: []
 ```
+
+Angle-bracketed text describes the required content only. It is not case information and must never be copied as a clinical conclusion.
 
 Allowed `effect`: `favorable`, `adverse`, `neither`. `scoring_system` is a non-empty named system when applicable, otherwise null.

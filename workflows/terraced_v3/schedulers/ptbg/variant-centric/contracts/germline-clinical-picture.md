@@ -11,9 +11,11 @@ runtime_invariants: []
 
 ```yaml
 clinical_picture:
-  supportive: uncertain
-  surface: true
-  fact: "A concise case-level germline clinical-picture statement."
-  reason: "Short auditable justification."
+  supportive: "<true, false, or uncertain>"
+  surface: "<true or false>"
+  fact: "<concise reportable case-level germline clinical-picture statement, or null>"
+  reason: "<short auditable justification, or null>"
   candidate_card_tags: []
 ```
+
+Angle-bracketed text describes the required content only. It is not case information and must never be copied as a clinical conclusion.

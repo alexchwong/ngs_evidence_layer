@@ -11,10 +11,11 @@ runtime_invariants: [replacement_must_validate_as_domain]
 
 ```yaml
 changes:
-  - domain: prognosis
-    reason: "Why the original domain state needs replacement."
-    replacement:
-      decisions: []
+  - domain: "<domain requiring replacement>"
+    reason: "<why the original domain state needs replacement>"
+    replacement: "<complete canonical replacement state for that domain>"
 ```
+
+Angle-bracketed text describes the required content only. It is not a preferred review outcome and must never be copied as the adjudication.
 
 Return `changes: []` when no domain requires replacement. A replacement is a complete canonical state for that domain.

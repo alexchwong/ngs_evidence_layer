@@ -13,18 +13,20 @@ For every required detected gene × settled WHO5 diagnosis pair, return exactly:
 
 ```yaml
 decisions:
-  - gene: FLT3
-    diagnosis_id: DX1
-    drug_target: true
-    target_surface: true
-    target_fact: "A concise alteration-qualified targetability fact."
-    target_reason: "Short auditable justification."
+  - gene: "<supplied gene>"
+    diagnosis_id: "<supplied diagnosis ID>"
+    drug_target: "<true or false>"
+    target_surface: "<true or false>"
+    target_fact: "<concise alteration-qualified targetability fact, or null>"
+    target_reason: "<short auditable justification, or null>"
     target_candidate_card_tags: []
-    drug_resistance: false
-    resistance_surface: false
-    resistance_fact: null
-    resistance_reason: null
+    drug_resistance: "<true or false>"
+    resistance_surface: "<true or false>"
+    resistance_fact: "<concise alteration-qualified resistance fact, or null>"
+    resistance_reason: "<short auditable justification, or null>"
     resistance_candidate_card_tags: []
 ```
+
+Angle-bracketed text describes the required content only. It is not case information and must never be copied as a clinical conclusion.
 
 Keep alteration-specific qualifiers; do not generalise beyond the detected alteration context.

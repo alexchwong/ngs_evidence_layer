@@ -15,8 +15,10 @@ runtime_invariants: [active_who5_diagnoses_only]
 Runtime list derived from the validated WHO5 diagnosis state. Only active/established diagnostic entities are exposed to downstream scheduler tasks.
 
 ```yaml
-- diagnosis_id: DX1
-  schema_disease: AML
-  status: established
-  diagnosis: AML with NPM1 mutation
+- diagnosis_id: "<validated WHO5 diagnosis ID>"
+  schema_disease: "<canonical schema disease>"
+  status: "<validated active status>"
+  diagnosis: "<validated WHO5 diagnostic label>"
 ```
+
+Angle-bracketed text describes the runtime structure only. It is not case information and must never be copied as a clinical conclusion.

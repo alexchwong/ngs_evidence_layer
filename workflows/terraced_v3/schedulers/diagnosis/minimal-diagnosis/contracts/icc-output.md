@@ -13,12 +13,14 @@ Return YAML only:
 
 ```yaml
 diagnoses:
-  - diagnosis_id: ICC1
-    status: established
-    diagnosis: "AML with mutated NPM1"
-    fact: "According to ICC, AML with mutated NPM1 is diagnosed."
-    reason: "Short auditable clinical justification."
-    candidate_card_tags: ["[card:0123456789ab]"]
+  - diagnosis_id: "<sequential ICC diagnosis ID>"
+    status: "<established or indeterminate>"
+    diagnosis: "<ICC diagnostic label>"
+    fact: "<concise patient-level ICC diagnostic statement>"
+    reason: "<short auditable clinical justification>"
+    candidate_card_tags: []
 ```
+
+Angle-bracketed text describes required content only. It is not case information and must never be copied as a clinical conclusion.
 
 Allowed `status`: `established`, `indeterminate`. Assign `ICC1`, `ICC2`, ... sequentially. `fact` is a concise reportable proposition ending with a full stop. Candidate card tags are hints only and must refer to cards supplied to this task.
