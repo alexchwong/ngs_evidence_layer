@@ -3,53 +3,96 @@ scheduler:
   phase: diagnosis
   version: 1
   order: 90
-  description: "Minimal developer example: blind ICC plus one WHO5 pass, with CMCs derived deterministically by core."
+  description: 'Minimal developer example: blind ICC plus one WHO5 pass, with CMCs derived deterministically by
+    core.'
 steps:
-  - id: icc
-    kind: model
-    inputs:
-      case: core.case
-      panel_scope: core.panel_scope
-      evidence: diagnosis.bootstrap_evidence
-    prompt:
-      template: prompts/icc.md
-      inject:
-        case: {input: case, render: json}
-        panel_scope: {input: panel_scope, render: text}
-        evidence: {input: evidence, render: text}
-    output:
-      format: yaml
-      validator: icc
-      contract: diagnosis_icc
-  - id: who5
-    kind: model
-    depends_on: [icc]
-    inputs:
-      case: core.case
-      panel_scope: core.panel_scope
-      allowed_who5_diseases: core.allowed_who5_diseases
-      evidence: diagnosis.bootstrap_evidence
-      prior_state: {literal: null}
-      phase_instruction: {literal: "Single minimal WHO5 pass. Return the best complete WHO5 state from the supplied case and evidence."}
-    prompt:
-      template: prompts/who5.md
-      inject:
-        case: {input: case, render: json}
-        allowed_who5_diseases: {input: allowed_who5_diseases, render: json}
-        panel_scope: {input: panel_scope, render: text}
-        evidence: {input: evidence, render: text}
-        prior_state: {input: prior_state, render: yaml}
-        phase_instruction: {input: phase_instruction, render: text}
-    output:
-      format: yaml
-      validator: who5
-      contract: diagnosis_who5
-  - id: publish
-    kind: operation
-    operation: publish_minimal_diagnosis
-    inputs:
-      who5: steps.who5
+- id: icc
+  kind: model
+  inputs:
+    case: core.case.structured
+    panel_scope: core.setup.panel-scope
+    evidence: core.diagnosis.bootstrap-evidence
+  prompt:
+    template: prompts/icc.md
+    inject:
+      case:
+        input: case
+        render: json
+      panel_scope:
+        input: panel_scope
+        render: text
+      evidence:
+        input: evidence
+        render: text
+      output_contract:
+        contract: local.icc-output
+  output:
+    format: yaml
+    validator: icc
+    contract: local.icc-output
+- id: who5
+  kind: model
+  depends_on:
+  - icc
+  inputs:
+    case: core.case.structured
+    panel_scope: core.setup.panel-scope
+    allowed_who5_diseases: core.setup.allowed-who5-diseases
+    evidence: core.diagnosis.bootstrap-evidence
+    prior_state:
+      literal: null
+    phase_instruction:
+      literal: Single minimal WHO5 pass. Return the best complete WHO5 state from the supplied case and evidence.
+  prompt:
+    template: prompts/who5.md
+    inject:
+      case:
+        input: case
+        render: json
+      allowed_who5_diseases:
+        input: allowed_who5_diseases
+        render: json
+      panel_scope:
+        input: panel_scope
+        render: text
+      evidence:
+        input: evidence
+        render: text
+      prior_state:
+        input: prior_state
+        render: yaml
+      phase_instruction:
+        input: phase_instruction
+        render: text
+      output_contract:
+        contract: local.who5-output
+  output:
+    format: yaml
+    validator: who5
+    contract: local.who5-output
+- id: publish
+  kind: operation
+  operation: publish_minimal_diagnosis
+  inputs:
+    who5: steps.who5
 outputs:
   icc: steps.icc
   who5: steps.publish.who5
   routing: steps.publish.routing
+interface:
+  inputs:
+    case:
+      contract: core.case.structured
+    panel_scope:
+      contract: core.setup.panel-scope
+    allowed_who5_diseases:
+      contract: core.setup.allowed-who5-diseases
+    card_identity:
+      contract: core.cards.identity
+  outputs:
+    icc:
+      contract: local.icc-output
+    who5:
+      contract: local.who5-output
+    routing:
+      contract: local.routing-output

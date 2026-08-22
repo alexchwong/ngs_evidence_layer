@@ -9,9 +9,9 @@ steps:
 - id: icc
   kind: model
   inputs:
-    case: core.case
-    panel_scope: core.panel_scope
-    evidence: diagnosis.bootstrap_evidence
+    case: core.case.structured
+    panel_scope: core.setup.panel-scope
+    evidence: core.diagnosis.bootstrap-evidence
   prompt:
     template: prompts/icc.md
     inject:
@@ -24,18 +24,20 @@ steps:
       evidence:
         input: evidence
         render: text
+      output_contract:
+        contract: local.icc-output
   output:
     format: yaml
     validator: icc
-    contract: diagnosis_icc
+    contract: local.icc-output
 - id: who5
   kind: diagnosis_loop
   depends_on:
   - icc
   inputs:
-    case: core.case
-    panel_scope: core.panel_scope
-    allowed_who5_diseases: core.allowed_who5_diseases
+    case: core.case.structured
+    panel_scope: core.setup.panel-scope
+    allowed_who5_diseases: core.setup.allowed-who5-diseases
   prompt:
     template: prompts/who5.md
     inject:
@@ -57,9 +59,11 @@ steps:
       phase_instruction:
         input: phase_instruction
         render: text
+      output_contract:
+        contract: local.who5-output
   loop:
     strategy: who5_stabilisation
-    max_passes: core.max_who5_passes
+    max_passes: core.diagnosis.max-who5-passes
     instructions:
       main: Initial WHO5 pass. Build the complete diagnosis state from the case and evidence without assuming the
         provisional diagnosis is correct.
@@ -72,8 +76,25 @@ steps:
   output:
     format: yaml
     validator: who5
-    contract: diagnosis_who5
+    contract: local.who5-output
 outputs:
   icc: steps.icc
   who5: steps.who5.who5
   routing: steps.who5.routing
+interface:
+  inputs:
+    case:
+      contract: core.case.structured
+    panel_scope:
+      contract: core.setup.panel-scope
+    allowed_who5_diseases:
+      contract: core.setup.allowed-who5-diseases
+    card_identity:
+      contract: core.cards.identity
+  outputs:
+    icc:
+      contract: local.icc-output
+    who5:
+      contract: local.who5-output
+    routing:
+      contract: local.routing-output

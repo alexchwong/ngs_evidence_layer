@@ -2,9 +2,21 @@
 
 Fill all four downstream clinical domains in one coherent pass. Keep every decision explicitly disease-scoped. Do not write final report prose beyond surfaced fact fields. Candidate card tags must come from the matching evidence domain.
 
-Return YAML only with exactly four top-level keys: prognosis, treatment, biomarker, germline. Each value must be the complete standard terraced-v3 domain artifact.
+# Global output envelope
+{{output_contract}}
 
-{{all_contracts}}
+# Domain contracts
+## Prognosis
+{{prognosis_contract}}
+
+## Treatment
+{{treatment_contract}}
+
+## Biomarker/MRD
+{{biomarker_contract}}
+
+## Germline
+{{germline_contract}}
 
 # Structured immutable case
 ```json

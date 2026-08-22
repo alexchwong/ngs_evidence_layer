@@ -67,6 +67,10 @@ examples/expected/04-genes-the-corpus-cannot-address.md
 examples/expected/05-germline-architecture.md
 examples/expected/06-sf3b1-diagnostic-adjudication.md
 workflows/terraced_v3/*
+workflows/terraced_v3/contracts/*
+workflows/terraced_v3/modules/*
+workflows/terraced_v3/adapters/*
+workflows/terraced_v3/schedulers/*/*/contracts/*
 workflows/terraced_v3/prompts/*
 workflows/terraced_v3/pipelines/*
 workflows/terraced_v3/schedulers/*

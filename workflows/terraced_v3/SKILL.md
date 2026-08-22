@@ -1,11 +1,13 @@
 ---
 name: terraced-v3
-description: Pipeline-composed, declarative terraced workflow with invariant diagnosis, PTBG and summarization interfaces.
+description: Contract-driven DAG workflow with declarative schedulers and setup-time interface validation.
 ---
 
 # Terraced v3
 
-`workflow.yaml` defines the core phase spine. `step.py` executes it. A **pipeline** is the normal user-facing configuration: it selects one diagnosis scheduler, one PTBG scheduler, one summarization scheduler, and provider/model/token-cap bindings for every model role.
+Terraced-v3 is configured by a **pipeline DAG**. A pipeline connects core modules, diagnosis/PTBG/summarization schedulers, and optional explicit adapters. Every module input/output is described by an inspectable Markdown contract asset. Setup validates every pipeline edge before any model call is made.
+
+`README.md` is the user quickstart. `DEVEL.md` is the developer architecture/index and explains where every contract, scheduler, pipeline, prompt, module and Python invariant lives.
 
 ## Supported modes
 
@@ -36,66 +38,96 @@ python workflows/terraced_v3/step.py pipeline-check --pipeline self
 python workflows/terraced_v3/step.py pipeline-plan --pipeline self
 ```
 
-Pipeline YAML is under `pipelines/`. It specifies provider, scheduler selection, and `model`/`temperature`/`max_tokens` for all mandatory roles: `structure`, `diagnosis`, `ptbg`, `evidence_alignment`, `summarization`, `summarization_review`, and `syntax_repair`.
+A successful setup snapshots both `pipeline-resolved.yaml` and `pipeline-compiled.md` in setup intermediates. The compiled document lists each module edge, upstream contract, expected downstream contract, and compatibility result.
 
-The resolved pipeline is snapshotted during setup so a resumed run cannot silently drift if repository configuration later changes.
+## Contracts are the data specification
 
-## Scheduler phases
+Every named core reference resolves mechanically:
 
-There are three independently selectable scheduler phases with fixed core-defined interfaces:
-
-1. **diagnosis** → `icc`, `who5`, `routing`;
-2. **ptbg** → canonical `prognosis`, `treatment`, `biomarker`, `germline` states;
-3. **summarization** → canonical ordered report sentences paired to accepted fact IDs/card tags.
-
-Schedulers are declarative YAML plus prompt assets, interpreted by one generic engine. Do not create scheduler-specific Python runners.
-
-List/check/inspect them with:
-
-```bash
-python workflows/terraced_v3/step.py schedulers
-python workflows/terraced_v3/step.py schedulers --phase ptbg
-python workflows/terraced_v3/step.py scheduler-check --phase diagnosis --scheduler default-diagnosis
-python workflows/terraced_v3/step.py scheduler-plan --phase summarization --scheduler default-summarization
+```text
+core.a.b.c
+→ workflows/terraced_v3/contracts/core/a/b/c.md
 ```
 
-Developer-only phase overrides can be supplied at setup:
+Scheduler-private `local.*` references resolve under that scheduler's `contracts/` directory. Contract files are Markdown with compact YAML frontmatter plus a readable/model-facing YAML/JSON/output example. Structured output skeletons should live in contract files, not be duplicated in Python or prompt templates.
+
+Inspect contracts with:
+
+```bash
+python workflows/terraced_v3/step.py contracts
+python workflows/terraced_v3/step.py contract core.case.structured
+```
+
+## Pipeline DAG
+
+Pipeline YAML under `pipelines/` declares:
+
+- provider configuration;
+- external/root inputs and their contracts;
+- an ordered DAG of `core.*`, `scheduler.<phase>.*`, and optional `adapter.*` modules;
+- explicit input edges such as `who5: diagnosis.who5`;
+- model/temperature/token-cap bindings for every model role.
+
+Scheduler inputs/outputs are **not globally fixed**. Each scheduler declares its own interface contracts. During setup, every connected edge is checked for upstream output existence, semantic-type compatibility, format compatibility, and required fields. Intentional representation mismatches must use an explicit adapter rather than YAML transformation expressions.
+
+Developer-only scheduler overrides remain available when the replacement scheduler is interface-compatible with the existing pipeline edges:
 
 ```bash
 python workflows/terraced_v3/step.py setup \
   --mode nel-validate-brief --case-id 1 --pipeline self \
-  --diagnosis-scheduler minimal-diagnosis \
-  --ptbg-scheduler evidence-first \
-  --summarization-scheduler minimal-summarization
+  --ptbg-scheduler evidence-first
 ```
 
-See `schedulers/README.md` for scheduler YAML, prompt templates, prompt-fragment injection, prior-output injection, operations and contracts. See `pipelines/README.md` for pipeline composition/model configuration.
+## Scheduler assets
+
+Schedulers are declarative YAML plus local prompt/contract assets under:
+
+```text
+schedulers/
+├── diagnosis/
+├── ptbg/
+└── summarization/
+```
+
+Do not create scheduler-specific Python runners. Scheduler YAML declares model-call topology, inputs, prompt/template injection, output contracts, and registered deterministic operations. Python implements the generic engine and runtime-dependent invariants.
+
+```bash
+python workflows/terraced_v3/step.py schedulers --phase ptbg
+python workflows/terraced_v3/step.py scheduler-check --phase ptbg --scheduler evidence-first
+python workflows/terraced_v3/step.py scheduler-plan --phase ptbg --scheduler evidence-first
+```
+
+See `schedulers/README.md` for authoring details and `DEVEL.md` for namespace/asset lookup rules.
 
 ## Core invariants
 
-Core, not schedulers, owns:
+Python/core continues to own algorithms and live-state guarantees, including:
 
-- case structure and stable IDs;
-- deterministic WHO5 → CMC derivation;
-- diagnosis retrieval semantics, including cumulative old+new CMC evidence during stabilisation;
-- canonical phase validators;
-- YAML/JSON syntax repair;
-- evidence/card trust and semantic fact/reason↔card alignment;
-- sentence provenance validation and deterministic citation inheritance;
-- invariant detected-variant sentence;
-- filesystem/logging/resume behaviour and packaging.
+- deterministic WHO5 → CMC derivation and diagnosis CMC-history logic;
+- exact case-specific variant/gene × diagnosis scope where required by a named runtime invariant;
+- verification that model card tags were actually supplied to the task;
+- disease-scoped evidence permission;
+- generic YAML/JSON syntax repair and retry handling;
+- evidence/fact provenance, citation trust and deterministic citation inheritance;
+- invariant detected-NGS-variant sentence;
+- logging, resume/checkpointing, run-directory layout and packaging.
 
-ICC never influences WHO5 routing or CMC.
+A contract asset documents named runtime invariants; it does not reimplement them in YAML.
 
-`default-diagnosis` is the recommended diagnosis scheduler and preserves blind ICC, repeated WHO5/CMC reconsideration, adversarial confirmation and oscillation protection. `minimal-diagnosis` is only a working interface example.
+## Default clinical flow
+
+The shipped default pipelines currently connect:
+
+```text
+case → structure → corpus → default-diagnosis → domain PTBG
+     → core evidence alignment → default-summarization → core finalise
+```
+
+`default-diagnosis` preserves blind ICC, iterative WHO5/CMC reconsideration, cumulative old+new CMC diagnosis evidence, adversarial confirmation and oscillation protection. ICC never determines CMC.
 
 The five PTBG schedulers are `domain`, `evidence-first`, `variant-centric`, `global-ledger`, and `adaptive-microtask`.
 
-`default-summarization` performs draft → sentence/fact semantic alignment with a bounded coverage rewrite. `minimal-summarization` is a one-call interface example.
-
-## Citation/provenance output
-
-PTBG produces clinical decisions plus surfaced `fact` and `reason`; independent core alignment verifies supporting cards and freezes citations in the fact ledger. Summarization may only map sentences to those facts. Core then deterministically writes `sentence-card-interpretations.yaml`, pairing every final report sentence to the interpretations of the card tags inherited from its matched facts.
+`default-summarization` performs draft → sentence/fact semantic alignment with bounded coverage repair. Core later creates `sentence-card-interpretations.yaml` deterministically from the accepted sentence/fact/card-tag mapping.
 
 ## Self-provider handoff
 
@@ -105,10 +137,8 @@ Do not read validation marking criteria during a validation run. Marking is pack
 
 ## Structured-output repair
 
-`scripts/core/syntax_repair/` repairs YAML/JSON syntax before task validation. It performs conservative representation-only cleanup, then at most two syntax-only model repairs with strict content preservation. Syntax repair receives no clinical context and must not change facts. Bare 12-character hashes in known card-tag fields are safely canonicalized only when they exactly match a supplied card.
+`scripts/core/syntax_repair/` repairs YAML/JSON syntax before task validation. It performs conservative representation-only cleanup, then at most two syntax-only model repairs with strict content preservation. Syntax repair receives no clinical context and must not change facts. Bare exact 12-character hashes in known card-tag fields may be canonicalized to `[card:<hash>]`; the normal validator still requires that card to have been supplied to the task.
 
 ## Run-directory contract
 
-The root contains immutable `case.md`, numbered `model_steps/`, numbered `intermediates/`, and genuine outputs (`report-final.md`, debug/validation packages, `workflow.json`, `workflow.log`). Do not recreate old root-level diagnosis/domain/evidence/synthesis/state directories.
-
-Important intermediates include the resolved pipeline, diagnosis routing state, PTBG `FINAL_STATE.yaml` files, cited fact ledger, canonical summary state and `sentence-card-interpretations.yaml`.
+The run root contains immutable `case.md`, numbered `model_steps/`, numbered `intermediates/`, and genuine outputs such as `report-final.md`, debug/validation packages, `workflow.json`, and `workflow.log`.

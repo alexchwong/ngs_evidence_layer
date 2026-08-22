@@ -1,0 +1,14 @@
+module:
+  id: core.evidence-alignment
+  handler: evidence_alignment
+  description: Align surfaced fact reasons to supporting cards and freeze the cited fact ledger.
+inputs:
+  card_identity: {contract: core.cards.identity}
+  diagnosis_who5: {contract: core.requirements.diagnosis-who5}
+  diagnosis_icc: {contract: core.requirements.diagnosis-icc}
+  prognosis: {contract: core.requirements.ptbg-prognosis}
+  treatment: {contract: core.requirements.ptbg-treatment}
+  biomarker: {contract: core.requirements.ptbg-biomarker}
+  germline: {contract: core.requirements.ptbg-germline}
+outputs:
+  cited_facts: {contract: core.facts.cited}

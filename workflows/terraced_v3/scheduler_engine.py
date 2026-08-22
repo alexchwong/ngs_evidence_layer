@@ -7,15 +7,11 @@ from typing import Any
 import re
 import yaml
 
-from workflows.terraced_v3 import layout, runtime
+from workflows.terraced_v3 import layout, runtime, contract_registry
 from workflows.terraced_v3 import scheduler_primitives as prim
 
 _SLOT_RE = re.compile(r"\{\{([A-Za-z0-9_.-]+)\}\}")
-PHASE_OUTPUTS = {
-    "diagnosis": {"icc", "who5", "routing"},
-    "ptbg": set(prim.DOMAINS),
-    "summarization": {"summary"},
-}
+PHASES = {"diagnosis", "ptbg", "summarization"}
 MODEL_VALIDATORS = {
     "domain", "normalized_evidence", "variant_cross_domain", "germline_clinical_picture",
     "global_ledger", "global_patch", "adaptive_cell_review",
@@ -44,8 +40,8 @@ def load_yaml(path: Path, expected_phase: str | None = None) -> SchedulerPlan:
         raise ValueError("scheduler.id must be non-empty")
     if version != 1:
         raise ValueError(f"unsupported scheduler schema version {version!r}")
-    if phase not in PHASE_OUTPUTS:
-        raise ValueError(f"scheduler.phase must be one of {sorted(PHASE_OUTPUTS)}")
+    if phase not in PHASES:
+        raise ValueError(f"scheduler.phase must be one of {sorted(PHASES)}")
     if expected_phase and phase != expected_phase:
         raise ValueError(f"scheduler {sid!r} declares phase {phase!r}, expected {expected_phase!r}")
     steps = doc.get("steps")
@@ -90,18 +86,82 @@ def load_yaml(path: Path, expected_phase: str | None = None) -> SchedulerPlan:
             if output.get("validator") not in MODEL_VALIDATORS:
                 raise ValueError(f"step {step['id']!r} uses unknown validator {output.get('validator')!r}")
         ids.append(step["id"])
+    _validate_prompt_assets(path.parent,doc)
+    interface=doc.get("interface")
+    if not isinstance(interface,dict):
+        raise ValueError("scheduler.yaml requires interface mapping with inputs and outputs")
+    for side in ("inputs","outputs"):
+        rows=interface.get(side)
+        if not isinstance(rows,dict):
+            raise ValueError(f"scheduler.interface.{side} must be a mapping")
+        for name,rule in rows.items():
+            if not isinstance(rule,dict) or not isinstance(rule.get("contract"),str):
+                raise ValueError(f"scheduler.interface.{side}.{name} must declare contract")
+            contract_registry.load(rule["contract"],base=path.parent)
     outputs=doc.get("outputs")
-    expected=PHASE_OUTPUTS[phase]
-    if not isinstance(outputs,dict) or set(outputs)!=expected:
-        raise ValueError(f"{phase} scheduler.outputs must map exactly {sorted(expected)}")
+    if not isinstance(outputs,dict) or not outputs:
+        raise ValueError("scheduler.outputs must be a non-empty mapping")
+    if set(outputs) != set(interface["outputs"]):
+        raise ValueError("scheduler.outputs keys must exactly match scheduler.interface.outputs keys")
     for key,ref in outputs.items():
         if not isinstance(ref,str) or not ref.startswith("steps."):
             raise ValueError(f"scheduler output {key!r} must reference steps.<id>...")
         target=ref[len("steps."):].split(".")[0]
         if target not in ids:
             raise ValueError(f"scheduler output {key!r} references unknown step {target!r}")
-    _validate_prompt_assets(path.parent,doc)
+    _validate_step_contracts(path.parent,doc)
+    _validate_core_source_assets(doc)
     return SchedulerPlan(sid,phase,str(meta.get("description") or ""),path,doc)
+
+
+def _validate_core_source_assets(doc: dict) -> None:
+    """Require every scheduler-facing core.* source to have an inspectable contract asset."""
+    for step in doc.get("steps") or []:
+        for name, rule in (step.get("inputs") or {}).items():
+            source = rule if isinstance(rule, str) else rule.get("source") if isinstance(rule, dict) else None
+            if isinstance(source, str) and source.startswith("core."):
+                try:
+                    contract_registry.load(source)
+                except ValueError as exc:
+                    raise ValueError(f"step {step['id']!r} input {name!r} uses undocumented core source {source!r}: {exc}") from exc
+        loop = step.get("loop") or {}
+        max_passes = loop.get("max_passes")
+        if isinstance(max_passes, str) and max_passes.startswith("core."):
+            contract_registry.load(max_passes)
+
+
+def _validate_step_contracts(base: Path, doc: dict) -> None:
+    for step in doc.get("steps") or []:
+        output=step.get("output") or {}
+        ref=output.get("contract")
+        if ref:
+            contract_registry.load(ref,base=base)
+        selected=output.get("contract_select")
+        if selected is not None:
+            if not isinstance(selected,dict) or not selected:
+                raise ValueError(f"step {step['id']!r} output.contract_select must be a non-empty mapping")
+            for cref in selected.values(): contract_registry.load(cref,base=base)
+
+
+def output_contract(plan: SchedulerPlan, output_name: str) -> contract_registry.Contract:
+    rule=(plan.doc.get("interface") or {}).get("outputs",{}).get(output_name)
+    if not isinstance(rule,dict) or not isinstance(rule.get("contract"),str):
+        raise ValueError(f"scheduler {plan.scheduler_id!r} has no contract for output {output_name!r}")
+    return contract_registry.load(rule["contract"],base=plan.path.parent)
+
+
+def output_name_for_semantic_type(plan: SchedulerPlan, semantic_type: str) -> str:
+    matches=[]
+    for name in (plan.doc.get("interface") or {}).get("outputs",{}):
+        if output_contract(plan,name).semantic_type == semantic_type:
+            matches.append(name)
+    if len(matches) != 1:
+        raise ValueError(f"scheduler {plan.scheduler_id!r} must expose exactly one output with semantic_type {semantic_type!r}; found {matches}")
+    return matches[0]
+
+
+def output_by_semantic_type(plan: SchedulerPlan, outputs: dict[str,Any], semantic_type: str) -> Any:
+    return outputs[output_name_for_semantic_type(plan,semantic_type)]
 
 
 def _check_prompt(base: Path, owner: str, pspec: dict) -> None:
@@ -122,6 +182,12 @@ def _check_prompt(base: Path, owner: str, pspec: dict) -> None:
         if "prompt" in rule:
             p=(base/rule["prompt"]).resolve()
             if not p.is_file(): raise ValueError(f"missing injected prompt {name!r}: {p}")
+        if "contract" in rule:
+            contract_registry.load(rule["contract"],base=base)
+        if "contract_select" in rule:
+            mapping=rule["contract_select"]
+            if not isinstance(mapping,dict): raise ValueError(f"contract_select for {name!r} must be mapping")
+            for ref in mapping.values(): contract_registry.load(ref,base=base)
         if "prompt_select" in rule:
             mapping=rule["prompt_select"]
             if not isinstance(mapping,dict): raise ValueError(f"prompt_select for {name!r} must be mapping")
@@ -147,7 +213,7 @@ def describe(plan: SchedulerPlan) -> list[str]:
     for step in plan.doc["steps"]:
         suffix=f" foreach={step['foreach']}" if step.get("foreach") else ""
         if step["kind"] in {"model","diagnosis_loop","summarization_loop"}:
-            lines.append(f"{step['id']}: {step['kind']}{suffix} -> {step.get('output',{}).get('contract','untyped')}")
+            lines.append(f"{step['id']}: {step['kind']}{suffix} -> {step.get('output',{}).get('contract') or step.get('output',{}).get('contract_select') or 'untyped'}")
         else:
             lines.append(f"{step['id']}: {step['operation']}{suffix}")
     return lines
@@ -168,17 +234,44 @@ def _get_path(value:Any,parts:list[str])->Any:
 
 
 def _core_source(token:str,ctx:prim.SchedulerContext,item:Any)->Any:
-    if token == "case": return ctx.case
-    if token == "diagnoses": return ctx.diagnoses
-    if token == "final_cmcs": return ctx.final_cmcs
-    if token == "specs": return ctx.specs
-    if token == "specs[$item]": return ctx.specs[item]
+    # Public scheduler-facing core names mirror contract references so a developer
+    # can resolve core.a.b directly to contracts/core/a/b.md.  Legacy aliases are
+    # retained only for resume/backward compatibility with older run snapshots.
+    aliases = {
+        "case": "case.structured",
+        "panel_scope": "setup.panel-scope",
+        "allowed_who5_diseases": "setup.allowed-who5-diseases",
+        "max_who5_passes": "diagnosis.max-who5-passes",
+        "diagnoses": "diagnosis.who5.active",
+        "final_cmcs": "diagnosis.routing.final-cmcs",
+        "specs": "ptbg.task-scopes",
+        "specs[$item]": "ptbg.task-scope",
+        "diagnosis_context": "diagnosis.context",
+        "treatment_owner[$item]": "ptbg.treatment-owner-current",
+        "cited_facts": "facts.cited",
+    }
+    token = aliases.get(token, token)
+    if token == "case.structured": return ctx.case
+    if token == "setup.panel-scope": return ctx.values["panel_scope"]
+    if token == "setup.allowed-who5-diseases": return ctx.values["allowed_who5_diseases"]
+    if token == "diagnosis.bootstrap-evidence": return ctx.values["bootstrap_evidence"]
+    if token == "diagnosis.max-who5-passes": return ctx.values["max_who5_passes"]
+    if token == "diagnosis.who5.active": return ctx.diagnoses
+    if token == "diagnosis.routing.final-cmcs": return ctx.final_cmcs
+    if token == "diagnosis.context": return {"diagnoses":ctx.diagnoses,"final_cmcs":ctx.final_cmcs}
+    if token == "ptbg.task-scopes": return ctx.specs
+    if token == "ptbg.task-scope": return ctx.specs[item]
+    if token == "ptbg.treatment-owner-current": return prim.treatment_owner_map(ctx.case)[item["gene"]] == item["variant_id"]
+    if token == "facts.cited": return ctx.values["cited_facts"]
+    if token == "evidence.domain-current": return ctx.ensure_evidence(item)
+    if token == "evidence.cell-domain": return ctx.ensure_evidence(item["domain"])
+    if token == "evidence.all-domains": return {d:ctx.ensure_evidence(d) for d in prim.DOMAINS}
+    if token == "evidence.germline": return ctx.ensure_evidence("germline")
+    # Older generic convenience sources remain internal/backward-compatible.
     if token == "variants": return ctx.case.get("variants") or []
     if token == "domains": return list(prim.DOMAINS)
     if token == "diagnosis_ids": return [d["diagnosis_id"] for d in ctx.diagnoses]
-    if token == "diagnosis_context": return {"diagnoses":ctx.diagnoses,"final_cmcs":ctx.final_cmcs}
     if token == "treatment_owner_map": return prim.treatment_owner_map(ctx.case)
-    if token == "treatment_owner[$item]": return prim.treatment_owner_map(ctx.case)[item["gene"]] == item["variant_id"]
     if token in ctx.values: return ctx.values[token]
     if "." in token:
         head,*tail=token.split(".")
@@ -190,6 +283,11 @@ def _resolve_source(source:str,*,ctx:prim.SchedulerContext,results:dict,item:Any
     if source == "$item": return item
     if source.startswith("$item."): return _get_path(item,source[len("$item."):].split("."))
     if source.startswith("core."): return _core_source(source[len("core."):],ctx,item)
+    if source == "core.evidence.domain-current": return ctx.ensure_evidence(item)
+    if source == "core.evidence.cell-domain": return ctx.ensure_evidence(item["domain"])
+    if source == "core.evidence.all-domains": return {d:ctx.ensure_evidence(d) for d in prim.DOMAINS}
+    if source == "core.evidence.germline": return ctx.ensure_evidence("germline")
+    # Legacy aliases retained for frozen scheduler snapshots.
     if source == "diagnosis.bootstrap_evidence": return ctx.values["bootstrap_evidence"]
     if source == "evidence[$item]": return ctx.ensure_evidence(item)
     if source == "evidence[$item.domain]": return ctx.ensure_evidence(item["domain"])
@@ -235,6 +333,11 @@ def _render_prompt_spec(base:Path,pspec:dict,inputs:dict,item:Any)->str:
     template=(base/pspec["template"]).read_text(encoding="utf-8"); values={}
     for slot,rule in (pspec.get("inject") or {}).items():
         if "prompt" in rule: values[slot]=(base/rule["prompt"]).read_text(encoding="utf-8").rstrip()
+        elif "contract" in rule: values[slot]=contract_registry.load(rule["contract"],base=base).model_text
+        elif "contract_select" in rule:
+            key=item if isinstance(item,str) else rule.get("key"); ref=rule["contract_select"].get(key)
+            if ref is None: raise ValueError(f"no contract_select value for {slot!r} key {key!r}")
+            values[slot]=contract_registry.load(ref,base=base).model_text
         elif "prompt_select" in rule:
             key=item if isinstance(item,str) else rule.get("key"); rel=rule["prompt_select"].get(key)
             if rel is None: raise ValueError(f"no prompt_select value for {slot!r} key {key!r}")

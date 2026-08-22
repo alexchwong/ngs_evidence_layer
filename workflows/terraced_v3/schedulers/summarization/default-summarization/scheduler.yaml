@@ -5,24 +5,41 @@ scheduler:
   order: 10
   description: Current v3 two-step report synthesis with semantic sentence-to-fact alignment and one coverage retry.
 steps:
-  - id: synthesize
-    kind: summarization_loop
-    inputs:
-      facts: core.cited_facts
-    prompts:
-      draft:
-        template: prompts/draft.md
-        inject:
-          facts: {input: facts, render: yaml}
-          correction: {input: correction, render: text}
-      align:
-        template: prompts/align.md
-        inject:
-          draft: {input: draft, render: text}
-          facts: {input: facts, render: yaml}
-    loop:
-      max_cycles: 2
-    output:
-      contract: canonical_summary
+- id: synthesize
+  kind: summarization_loop
+  inputs:
+    facts: core.facts.cited
+  prompts:
+    draft:
+      template: prompts/draft.md
+      inject:
+        facts:
+          input: facts
+          render: yaml
+        correction:
+          input: correction
+          render: text
+    align:
+      template: prompts/align.md
+      inject:
+        draft:
+          input: draft
+          render: text
+        facts:
+          input: facts
+          render: yaml
+        output_contract:
+          contract: local.alignment-output
+  loop:
+    max_cycles: 2
+  output:
+    contract: local.summary-output
 outputs:
   summary: steps.synthesize.summary
+interface:
+  inputs:
+    cited_facts:
+      contract: core.facts.cited
+  outputs:
+    summary:
+      contract: local.summary-output

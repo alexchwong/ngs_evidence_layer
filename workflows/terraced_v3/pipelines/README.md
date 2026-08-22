@@ -1,48 +1,78 @@
 # Terraced-v3 pipelines
 
-A pipeline is the normal user-facing configuration unit. It selects one scheduler for each reasoning phase and binds every model role to a provider/model/token cap. Pipelines contain **composition and model configuration only**; information flow within a phase belongs in that phase's scheduler YAML.
+A pipeline is the normal user-facing configuration. It is an ordered DAG connecting root inputs, core modules and schedulers, plus provider/model-role bindings.
 
-## Shipped pipelines
+Shipped defaults:
 
-- `self.yaml` — current session model; default diagnosis + domain PTBG + default summarization.
-- `lmstudio.yaml` — LM Studio OpenAI-compatible endpoint.
-- `openrouter.yaml` — OpenRouter OpenAI-compatible endpoint.
+- `self.yaml`
+- `lmstudio.yaml`
+- `openrouter.yaml`
 
-## Pipeline schema
+## Module graph
 
 ```yaml
 pipeline:
   id: self
-  version: 1
-  description: ...
-provider:
-  type: self                       # or openai-compatible
-schedulers:
-  diagnosis: default-diagnosis
-  ptbg: domain
-  summarization: default-summarization
-models:
-  structure: {model: self, temperature: 0.0, max_tokens: 16384}
-  diagnosis: {model: self, temperature: 0.0, max_tokens: 32768}
-  ptbg: {model: self, temperature: 0.0, max_tokens: 32768}
-  evidence_alignment: {model: self, temperature: 0.0, max_tokens: 16384}
-  summarization: {model: self, temperature: 0.0, max_tokens: 16384}
-  summarization_review: {model: self, temperature: 0.0, max_tokens: 16384}
-  syntax_repair: {model: self, temperature: 0.0, max_tokens: 8192}
+  version: 2
+
+inputs:
+  case: {contract: core.input.case-md}
+  panel_scope: {contract: core.setup.panel-scope}
+
+modules:
+  - id: structure
+    uses: core.structure-case
+    inputs:
+      case: inputs.case
+      panel_scope: inputs.panel_scope
+      allowed_bootstrap_cmcs: inputs.allowed_bootstrap_cmcs
+
+  - id: diagnosis
+    uses: scheduler.diagnosis.default-diagnosis
+    inputs:
+      case: structure.case
+      panel_scope: inputs.panel_scope
+      allowed_who5_diseases: inputs.allowed_who5_diseases
+      card_identity: corpus.card_identity
 ```
 
-OpenAI-compatible providers may additionally specify `base_url`, `base_url_env`, `api_key_env`, and `timeout_s`.
+Except for `inputs.*`, every module input must reference an output of an earlier module. The listed order is therefore a topological order of the DAG.
 
-Every role is mandatory so a pipeline fully records the intended model environment. Multiple roles may point to the same model.
+## Setup-time validation
 
-## Development commands
+`pipeline-check` loads every module/scheduler contract and verifies:
+
+- all source modules and named outputs exist;
+- source modules occur upstream;
+- semantic types are compatible;
+- formats are compatible;
+- every field required downstream is declared by the upstream contract;
+- scheduler YAML/prompt assets compile;
+- all provider/model roles have valid model and token-cap settings.
+
+An intentional mismatch requires an explicit deterministic adapter. Pipeline YAML does not support arbitrary transformation expressions.
 
 ```bash
-python workflows/terraced_v3/step.py pipelines
 python workflows/terraced_v3/step.py pipeline-check --pipeline self
 python workflows/terraced_v3/step.py pipeline-plan --pipeline self
 ```
 
-`pipeline-check` validates provider/model settings and every scheduler selected by the pipeline. `pipeline-plan` also prints the three scheduler execution plans.
+On setup, the validated configuration is frozen into `pipeline-resolved.yaml`, and `pipeline-compiled.md` records each edge plus both exact contract files.
 
-During `setup`, the resolved pipeline (including CLI scheduler overrides) is copied to `intermediates/*_setup/pipeline-resolved.yaml` so an existing run is insulated from later repository configuration edits.
+## Provider/model roles
+
+Each pipeline defines these independent roles:
+
+```text
+structure
+diagnosis
+ptbg
+evidence_alignment
+summarization
+summarization_review
+syntax_repair
+```
+
+Each role has its own model, temperature and `max_tokens`.
+
+See `../DEVEL.md` for contract assets, scheduler interfaces and adapter development.

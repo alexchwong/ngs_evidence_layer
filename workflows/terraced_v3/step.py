@@ -27,7 +27,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v3 import card_identity, layout, model_client, pipeline_registry, rendering, runtime
+from workflows.terraced_v3 import card_identity, contract_registry, layout, model_client, module_registry, pipeline_registry, rendering, runtime
 from workflows.terraced_v3 import scheduler_engine, scheduler_registry, scheduler_primitives
 
 WORKFLOW_ID = "terraced-v3"
@@ -143,8 +143,19 @@ def _pipeline_id(work:Path, selector:str|None=None)->str:
         pass
     return configured_pipeline()
 
+def _resolved_pipeline_path(work:Path)->Path:
+    return layout.setup(work,"pipeline-resolved.yaml")
+
+def _plan_for_work(work:Path,selector:str|None=None):
+    if selector:
+        return pipeline_registry.load(selector)
+    resolved=_resolved_pipeline_path(work)
+    if resolved.is_file():
+        return pipeline_registry.load_yaml(resolved)
+    return pipeline_registry.load(_pipeline_id(work,None))
+
 def _profile(work:Path,selector:str|None,role:str):
-    return pipeline_registry.binding(pipeline_registry.load(_pipeline_id(work,selector)),role)
+    return pipeline_registry.binding(_plan_for_work(work,selector),role)
 
 
 def _bundle_paths(work:Path,call_id:str)->tuple[Path,Path,Path]:
@@ -344,32 +355,23 @@ def _timestamped_work_dir(root:Path,label:str)->Path:
     return candidate
 
 
-def _selected_pipeline_and_schedulers(args:argparse.Namespace)->tuple[str,dict[str,str]]:
+def _selected_pipeline_plan(args:argparse.Namespace):
     pipeline_id=(getattr(args,"pipeline",None) or getattr(args,"model_profile",None) or configured_pipeline())
     try:
         plan=pipeline_registry.load(pipeline_id)
+        overrides={
+            "diagnosis":getattr(args,"diagnosis_scheduler",None),
+            "ptbg":getattr(args,"ptbg_scheduler",None) or getattr(args,"scheduler",None),
+            "summarization":getattr(args,"summarization_scheduler",None),
+        }
+        if any(overrides.values()):
+            plan=pipeline_registry.with_scheduler_overrides(plan,overrides)
+        return plan
     except ValueError as exc:
         raise StepFailure(str(exc)) from exc
-    schedulers=dict(plan.schedulers)
-    overrides={
-        "diagnosis":getattr(args,"diagnosis_scheduler",None),
-        "ptbg":getattr(args,"ptbg_scheduler",None) or getattr(args,"scheduler",None),
-        "summarization":getattr(args,"summarization_scheduler",None),
-    }
-    for phase,name in overrides.items():
-        if name:
-            schedulers[phase]=name
-    for phase,name in schedulers.items():
-        if name not in scheduler_registry.names(phase):
-            raise StepFailure(f"pipeline {pipeline_id!r} selects unknown {phase} scheduler {name!r}; choose one of: {', '.join(scheduler_registry.names(phase))}")
-        scheduler_registry.check(name,phase)
-    for role in pipeline_registry.ROLES:
-        pipeline_registry.binding(plan,role)
-    return pipeline_id,schedulers
-
 
 def run_setup(args:argparse.Namespace)->int:
-    pipeline_id,schedulers=_selected_pipeline_and_schedulers(args)
+    plan=_selected_pipeline_plan(args); pipeline_id=plan.pipeline_id; schedulers=plan.schedulers
     label=args.mode
     if args.mode=="ngs-report" and args.case_file: label += "-"+args.case_file.stem
     elif args.mode=="nel-demo" and args.example is not None: label += f"-{args.example}"
@@ -392,9 +394,8 @@ def run_setup(args:argparse.Namespace)->int:
         "schema_version":2,"workflow_id":WORKFLOW_ID,"mode":args.mode,"validation_case":args.case_id,
         "pipeline":pipeline_id,"schedulers":schedulers,"created_at":datetime.now(timezone.utc).isoformat(),
     })
-    resolved_pipeline=dict(pipeline_registry.load(pipeline_id).doc)
-    resolved_pipeline["schedulers"]=dict(schedulers)
-    _atomic_write(layout.setup(work,"pipeline-resolved.yaml",existing=False),yaml.safe_dump(resolved_pipeline,sort_keys=False,allow_unicode=True,width=110))
+    _atomic_write(layout.setup(work,"pipeline-resolved.yaml",existing=False),yaml.safe_dump(plan.doc,sort_keys=False,allow_unicode=True,width=110))
+    _atomic_write(layout.setup(work,"pipeline-compiled.md",existing=False),pipeline_registry.compiled_markdown(plan))
     with _cli_logging(work):
         print(work); print(f"PIPELINE={pipeline_id}")
         print(f"DIAGNOSIS_SCHEDULER={schedulers['diagnosis']}")
@@ -430,7 +431,10 @@ def module_structure_case(work:Path,stage:dict,profile:str|None)->None:
     del stage
     output=_case_json(work)
     if output.is_file(): runtime.validate_case_text(_read(output)); return
-    messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":_read(PROMPTS/"structure_case.md")+"\n\n# Authoritative case.md\n"+_read(layout.input(work,"case.md"))+"\n\n# Allowed bootstrap CMCs\n"+_read(layout.input(work,"case-major-categories.json"))+"\n\n# NGS assay scope\n"+_read(layout.input(work,"ngs-panel-scope.md"))}]
+    template=_read(PROMPTS/"structure_case.md")
+    contract=contract_registry.load("core.case.structured").model_text
+    prompt=template.replace("{{output_contract}}",contract)+"\n\n# Authoritative case.md\n"+_read(layout.input(work,"case.md"))+"\n\n# Allowed bootstrap CMCs\n"+_read(layout.input(work,"case-major-categories.json"))+"\n\n# NGS assay scope\n"+_read(layout.input(work,"ngs-panel-scope.md"))
+    messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
     _model_call(work,call_id="structure-case",role="structure",messages=messages,output=output,validator=runtime.validate_case_text,profile=profile,structured_format="json")
 
 
@@ -496,9 +500,9 @@ def _permitted_tags(cards:list[dict],manifest:dict)->set[str]:
 
 
 def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
-    del stage
-    run_state=_load_run_state(work); scheduler_name=(run_state.get("schedulers") or {}).get("diagnosis")
-    if not scheduler_name: raise StepFailure("run state is missing diagnosis scheduler selection")
+    uses=str(stage.get("uses") or "")
+    scheduler_name=uses.split(".",2)[2] if uses.startswith("scheduler.diagnosis.") else (_load_run_state(work).get("schedulers") or {}).get("diagnosis")
+    if not scheduler_name: raise StepFailure("pipeline module is missing diagnosis scheduler selection")
     try: plan=scheduler_registry.load(scheduler_name,"diagnosis")
     except ValueError as exc: raise StepFailure(str(exc)) from exc
     final_path=_who5_final(work); icc_path=_icc_final(work); routing_path=_who5_routing(work)
@@ -535,7 +539,9 @@ def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
     )
     _status(f"  diagnosis scheduler: {scheduler_name} — {plan.description}")
     outputs=scheduler_engine.execute(plan,ctx)
-    icc=outputs["icc"]; who5=outputs["who5"]; routing=outputs["routing"]
+    icc=scheduler_engine.output_by_semantic_type(plan,outputs,"diagnosis.icc.state")
+    who5=scheduler_engine.output_by_semantic_type(plan,outputs,"diagnosis.who5.state")
+    routing=scheduler_engine.output_by_semantic_type(plan,outputs,"diagnosis.routing.state")
     runtime.validate_icc_text(yaml.safe_dump(icc,sort_keys=False,allow_unicode=True,width=110),bootstrap_view.permitted_tags)
     runtime.validate_who5_text(yaml.safe_dump(who5,sort_keys=False,allow_unicode=True,width=110),last_diag_view.permitted_tags)
     derived=runtime.derive_cmcs(who5)
@@ -572,9 +578,8 @@ def _retrieve_downstream(work:Path,category:str)->tuple[list[dict],str,dict]:
 
 
 def module_ptbg_scheduler(work:Path,stage:dict,profile:str|None)->None:
-    del stage
-    run_state=_load_run_state(work)
-    scheduler_name=(run_state.get("schedulers") or {}).get("ptbg")
+    uses=str(stage.get("uses") or "")
+    scheduler_name=uses.split(".",2)[2] if uses.startswith("scheduler.ptbg.") else (_load_run_state(work).get("schedulers") or {}).get("ptbg")
     if not scheduler_name:
         raise StepFailure("run state is missing PTBG scheduler selection")
     try:
@@ -606,12 +611,13 @@ def module_ptbg_scheduler(work:Path,stage:dict,profile:str|None)->None:
         call_model=call_model,ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,phase="ptbg"
     )
     _status(f"  PTBG scheduler: {scheduler_name} — {scheduler_plan.description}")
-    scheduler_engine.execute(scheduler_plan,ctx)
+    outputs=scheduler_engine.execute(scheduler_plan,ctx)
+    semantic={"prognosis":"ptbg.prognosis.state","treatment":"ptbg.treatment.state","biomarker":"ptbg.biomarker.state","germline":"ptbg.germline.state"}
     for domain in scheduler_primitives.DOMAINS:
-        output=_domain_final(work,domain)
-        if not output.is_file(): raise StepFailure(f"PTBG scheduler {scheduler_name!r} did not produce {output}")
-        view=ensure_evidence(domain)
-        runtime.validate_domain_text(_read(output),domain=domain,spec=ctx.specs[domain],permitted_tags=view.permitted_tags)
+        state=scheduler_engine.output_by_semantic_type(scheduler_plan,outputs,semantic[domain])
+        output=_domain_final(work,domain); text=yaml.safe_dump(state,sort_keys=False,allow_unicode=True,width=110)
+        view=ensure_evidence(domain); runtime.validate_domain_text(text,domain=domain,spec=ctx.specs[domain],permitted_tags=view.permitted_tags)
+        _atomic_write(output,text)
 
 
 def _load_bundle_cards(work:Path,name:str)->list[dict]:
@@ -642,7 +648,9 @@ def _align_fact_group(work:Path,name:str,facts:list[dict],manifest:dict,profile:
     permitted=_permitted_by_fact(work,name,facts,manifest); cards=[c for c in _load_bundle_cards(work,name) if c.get("card_id") in _visible_ids(work,name)]
     output=layout.synthesis(work,f"alignment-{name}.yaml",existing=False)
     input_facts=[{k:f[k] for k in ("fact_id","domain","subject","decision","fact","reason","candidate_card_tags")} for f in facts]
-    prompt=_read(PROMPTS/"evidence_alignment.md")+"\n\n# Surfaced facts\n```yaml\n"+yaml.safe_dump({"facts":input_facts},sort_keys=False,allow_unicode=True,width=110)+"```\n\n# Evidence cards\n"+_render_cards(cards,manifest)
+    template=_read(PROMPTS/"evidence_alignment.md")
+    contract=contract_registry.load("core.evidence.alignment-output").model_text
+    prompt=template.replace("{{output_contract}}",contract)+"\n\n# Surfaced facts\n```yaml\n"+yaml.safe_dump({"facts":input_facts},sort_keys=False,allow_unicode=True,width=110)+"```\n\n# Evidence cards\n"+_render_cards(cards,manifest)
     messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
     _model_call(work,call_id=f"align-{name}",role="evidence_alignment",messages=messages,output=output,validator=lambda t:runtime.validate_evidence_alignment_text(t,facts,permitted),profile=profile,structured_format="yaml")
     return runtime.apply_alignment(facts,runtime.parse_yaml_mapping(_read(output),"evidence alignment"))
@@ -673,8 +681,8 @@ def _summary_interpretation_map(work:Path)->dict[str,str]:
 
 
 def module_summarization_scheduler(work:Path,stage:dict,profile:str|None)->None:
-    del stage
-    run_state=_load_run_state(work); scheduler_name=(run_state.get("schedulers") or {}).get("summarization")
+    uses=str(stage.get("uses") or "")
+    scheduler_name=uses.split(".",2)[2] if uses.startswith("scheduler.summarization.") else (_load_run_state(work).get("schedulers") or {}).get("summarization")
     if not scheduler_name: raise StepFailure("run state is missing summarization scheduler selection")
     try: plan=scheduler_registry.load(scheduler_name,"summarization")
     except ValueError as exc: raise StepFailure(str(exc)) from exc
@@ -693,11 +701,9 @@ def module_summarization_scheduler(work:Path,stage:dict,profile:str|None)->None:
         phase="summarization",values={"cited_facts":facts}
     )
     _status(f"  summarization scheduler: {scheduler_name} — {plan.description}")
-    outputs=scheduler_engine.execute(plan,ctx); summary=outputs["summary"]
+    outputs=scheduler_engine.execute(plan,ctx); summary=scheduler_engine.output_by_semantic_type(plan,outputs,"report.summary.sentences")
     runtime.validate_canonical_summary_doc(summary,facts)
     summary_path=layout.synthesis(work,"summary-final.yaml",existing=False); _atomic_write(summary_path,yaml.safe_dump(summary,sort_keys=False,allow_unicode=True,width=110))
-    paired=runtime.sentence_card_interpretations(summary,_summary_interpretation_map(work))
-    _atomic_write(layout.synthesis(work,"sentence-card-interpretations.yaml",existing=False),yaml.safe_dump(paired,sort_keys=False,allow_unicode=True,width=110))
     _atomic_write(layout.synthesis(work,"report-cited.md",existing=False),runtime.render_canonical_summary(summary))
 
 
@@ -725,6 +731,9 @@ def _package_debug(work:Path)->Path:
 
 def module_finalise_report(work:Path,stage:dict,profile:str|None)->None:
     del stage,profile
+    summary=runtime.parse_yaml_mapping(_read(layout.synthesis(work,"summary-final.yaml")),"canonical summary")
+    paired=runtime.sentence_card_interpretations(summary,_summary_interpretation_map(work))
+    _atomic_write(layout.synthesis(work,"sentence-card-interpretations.yaml",existing=False),yaml.safe_dump(paired,sort_keys=False,allow_unicode=True,width=110))
     cited=_read(layout.synthesis(work,"report-cited.md"))
     evidence,tags=_combined_evidence(work,["diagnosis","icc","prognosis","treatment","biomarker","germline"])
     rendered=citations.render(cited,_read(evidence),_read(tags),require_citation_after_full_stop=False)
@@ -741,23 +750,31 @@ def module_finalise_report(work:Path,stage:dict,profile:str|None)->None:
 
 MODULES={"structure_case":module_structure_case,"initialise_corpus":module_initialise_corpus,"diagnosis_scheduler":module_diagnosis_scheduler,"ptbg_scheduler":module_ptbg_scheduler,"evidence_alignment":module_evidence_alignment,"summarization_scheduler":module_summarization_scheduler,"finalise_report":module_finalise_report}
 
+def _handler_for_uses(uses:str):
+    if uses.startswith("core."):
+        spec=module_registry.load_core(uses); handler=spec.handler
+    elif uses.startswith("scheduler."):
+        _prefix,phase,_name=uses.split(".",2); handler=f"{phase}_scheduler"
+    elif uses.startswith("adapter."):
+        spec=module_registry.load_adapter(uses); handler=spec.handler
+    else:
+        raise StepFailure(f"unsupported pipeline module reference {uses!r}")
+    module=MODULES.get(handler)
+    if module is None:
+        raise StepFailure(f"pipeline module {uses!r} requires unregistered Python handler {handler!r}")
+    return module
 
 def run_pipeline(work:Path,*,profile:str|None=None,only_stage:str|None=None)->int:
-    _require_work(work); stages=runtime.load_pipeline()["pipeline"]
-    if only_stage and only_stage not in {s["id"] for s in stages}: raise StepFailure(f"unknown stage {only_stage!r}")
-    for i,stage in enumerate(stages,1):
-        if only_stage and stage["id"]!=only_stage: continue
-        module=MODULES.get(stage["module"])
-        if module is None: raise StepFailure(f"workflow.yaml names unsupported module {stage['module']!r}")
-        _status(f"Stage {i} of {len(stages)} — {stage.get('description') or stage['id']}"); module(work,stage,profile); _status(f"Stage {i} of {len(stages)} — complete")
+    _require_work(work); plan=_plan_for_work(work,profile); stages=list(plan.modules)
+    if only_stage and only_stage not in {s.module_id for s in stages}: raise StepFailure(f"unknown stage {only_stage!r}")
+    for i,node in enumerate(stages,1):
+        if only_stage and node.module_id!=only_stage: continue
+        module=_handler_for_uses(node.uses); stage={"id":node.module_id,"uses":node.uses,"inputs":node.inputs}
+        _status(f"Stage {i} of {len(stages)} — {node.module_id}: {node.uses}"); module(work,stage,profile); _status(f"Stage {i} of {len(stages)} — complete")
     return EXIT_OK
 
-
 def _check_pipeline(name:str):
-    plan=pipeline_registry.load(name)
-    for role in pipeline_registry.ROLES: pipeline_registry.binding(plan,role)
-    for phase,scheduler_name in plan.schedulers.items(): scheduler_registry.check(scheduler_name,phase)
-    return plan
+    return pipeline_registry.validate(pipeline_registry.load(name))
 
 
 def run_pipeline_setting(pipeline_id:str|None)->int:
@@ -779,6 +796,8 @@ def build_parser()->argparse.ArgumentParser:
     setup.add_argument("--summarization-scheduler",choices=scheduler_registry.names("summarization"),help="developer override of the pipeline summarization scheduler")
     setup.add_argument("--model-profile",help=argparse.SUPPRESS); setup.add_argument("--scheduler",help=argparse.SUPPRESS)
     sub.add_parser("pipelines")
+    sub.add_parser("contracts")
+    contract=sub.add_parser("contract"); contract.add_argument("ref")
     pcheck=sub.add_parser("pipeline-check"); pcheck.add_argument("--pipeline",required=True,choices=pipeline_registry.names())
     pplan=sub.add_parser("pipeline-plan"); pplan.add_argument("--pipeline",required=True,choices=pipeline_registry.names())
     pset=sub.add_parser("pipeline"); pset.add_argument("pipeline_id",nargs="?",choices=pipeline_registry.names())
@@ -797,6 +816,15 @@ def main(argv:list[str]|None=None)->int:
             if args.mode=="nel-demo" and args.example is None: raise StepFailure("nel-demo requires --example N")
             if args.mode in VALIDATION_MODES and not args.case_id: raise StepFailure(f"{args.mode} requires --case-id ID")
             return run_setup(args)
+        if args.command=="contracts":
+            for ref in contract_registry.core_refs(): print(ref)
+            return EXIT_OK
+        if args.command=="contract":
+            contract=contract_registry.load(args.ref)
+            for line in contract_registry.describe(contract): print(line)
+            print()
+            print(contract.model_text)
+            return EXIT_OK
         if args.command=="pipeline": return run_pipeline_setting(args.pipeline_id)
         if args.command=="pipelines":
             for name,description in pipeline_registry.descriptions().items(): print(f"{name}: {description}")

@@ -1,0 +1,8 @@
+module:
+  id: core.initialise-corpus
+  handler: initialise_corpus
+  description: Initialise deterministic whole-corpus card identities.
+inputs:
+  case: {contract: core.case.structured}
+outputs:
+  card_identity: {contract: core.cards.identity}

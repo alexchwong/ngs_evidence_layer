@@ -7,7 +7,7 @@
     "runtime": "runtime"
   },
   "skill": "workflows/terraced_v3/SKILL.md",
-  "pipeline": "workflows/terraced_v3/workflow.yaml",
+  "pipeline": "workflows/terraced_v3/pipelines/self.yaml",
   "supported_modes": [
     "ngs-report",
     "nel-demo",
@@ -17,5 +17,5 @@
   ],
   "status": "experimental",
   "cloned_from": "terraced-v2",
-  "architecture": "typed-hard-fact-ledger"
+  "architecture": "contract-driven-dag"
 }

@@ -15,7 +15,6 @@ from workflows.terraced_v3 import layout
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
-WORKFLOW_PATH = HERE / "workflow.yaml"
 WHO5_EXCLUDED_SCHEMA_DISEASES = {"MDS/AML"}
 VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
 CARD_TAG_RE = re.compile(r"\[card:([0-9a-f]{12})\]")
@@ -99,26 +98,6 @@ HEADINGS = {
 DOMAIN_HEADINGS = {value: key for key, value in HEADINGS.items()}
 
 
-def load_pipeline() -> dict:
-    try:
-        doc = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
-        raise ValueError(f"invalid terraced-v3 workflow.yaml: {exc}") from exc
-    if not isinstance(doc, dict) or doc.get("schema_version") != 1 or doc.get("workflow_id") != "terraced-v3":
-        raise ValueError("workflow.yaml must declare schema_version: 1 and workflow_id: terraced-v3")
-    stages = doc.get("pipeline")
-    if not isinstance(stages, list) or not stages:
-        raise ValueError("workflow.yaml pipeline must be a non-empty list")
-    ids = []
-    for i, row in enumerate(stages):
-        if not isinstance(row, dict) or not isinstance(row.get("id"), str) or not isinstance(row.get("module"), str):
-            raise ValueError(f"workflow.yaml pipeline[{i}] requires string id and module")
-        if row["id"] in ids:
-            raise ValueError(f"duplicate pipeline stage id {row['id']!r}")
-        ids.append(row["id"])
-    return doc
-
-
 def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> None:
     work = Path(work_dir)
     layout.ensure_dirs(work)
@@ -159,8 +138,6 @@ def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> No
         ) + "\n",
         encoding="utf-8",
     )
-    shutil.copyfile(WORKFLOW_PATH, layout.setup(work, "workflow.yaml", existing=False))
-
     if mode in VALIDATION_MODES:
         if not case_id:
             raise ValueError(f"{mode} requires a validation case ID")
@@ -691,9 +668,7 @@ def validate_sentence_alignment_text(text: str, sentences: list[dict], facts: li
         row=rows[i]; loc=f"alignments[{i}]"; _exact_keys(issues,row,{"sentence_id","fact_ids"},loc)
         if row.get("sentence_id")!=sentence["sentence_id"]: issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {row.get('sentence_id')!r}",f"copy exact supplied sentence_id {sentence['sentence_id']!r}"))
         ids=row.get("fact_ids")
-        if not isinstance(ids,list): issues.append(ValidationIssue(f"{loc}.fact_ids","must be a list","list supplied same-domain fact IDs")); continue
-        domain_facts=[f for f in facts if f["domain"]==sentence["domain"]]
-        if not ids and domain_facts: issues.append(ValidationIssue(f"{loc}.fact_ids","must be a non-empty list","list one or more supplied same-domain fact IDs")); continue
+        if not isinstance(ids,list) or not ids: issues.append(ValidationIssue(f"{loc}.fact_ids","must be a non-empty list","list one or more supplied same-domain fact IDs")); continue
         if len(ids)!=len(set(ids)): issues.append(ValidationIssue(f"{loc}.fact_ids","contains duplicates","list each represented fact once"))
         for fid in ids:
             fact=fact_map.get(fid)
@@ -756,14 +731,8 @@ def validate_canonical_summary_doc(doc: dict, facts: list[dict]) -> str:
         seen.add(sid)
         if not isinstance(sentence,str) or not sentence.strip() or sentence!=sentence.strip() or not sentence.endswith(".") or "[card:" in sentence:
             issues.append(ValidationIssue(f"{loc}.sentence",f"invalid sentence {sentence!r}","return citation-free plain sentence prose ending with a full stop"))
-        if not isinstance(ids,list):
-            issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list supplied fact IDs")); ids=[]
-        elif len(ids)!=len(set(ids)):
-            issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list each fact ID at most once")); ids=[]
-        else:
-            domain_facts=[f for f in facts if f["domain"]==domain]
-            if not ids and domain_facts:
-                issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list one or more unique supplied fact IDs")); ids=[]
+        if not isinstance(ids,list) or not ids or len(ids)!=len(set(ids)):
+            issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list one or more unique supplied fact IDs")); ids=[]
         expected_tags=[]
         for fid in ids:
             fact=fact_map.get(fid)

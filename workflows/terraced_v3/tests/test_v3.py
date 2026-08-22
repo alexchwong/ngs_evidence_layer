@@ -1,3 +1,4 @@
+from pathlib import Path
 from scripts.core import validated_model_task
 from workflows.terraced_v3 import runtime
 
@@ -443,3 +444,72 @@ def test_pipeline_setup_persists_three_scheduler_overrides(tmp_path):
     assert schedulers["diagnosis"] in scheduler_registry.names("diagnosis")
     assert schedulers["ptbg"] in scheduler_registry.names("ptbg")
     assert schedulers["summarization"] in scheduler_registry.names("summarization")
+
+
+def test_core_contract_reference_resolves_mechanically():
+    from workflows.terraced_v3 import contract_registry
+
+    contract = contract_registry.load("core.case.structured")
+    expected = Path(__file__).resolve().parents[1] / "contracts" / "core" / "case" / "structured.md"
+    assert contract.path == expected
+    assert contract.semantic_type == "case.structured"
+    assert "```json" in contract.body
+
+
+def test_all_default_pipeline_dags_validate_and_compile_contract_edges():
+    from workflows.terraced_v3 import pipeline_registry
+
+    for name in ("self", "lmstudio", "openrouter"):
+        plan = pipeline_registry.load(name)
+        assert pipeline_registry.validate(plan) is plan
+        compiled = pipeline_registry.compiled_markdown(plan)
+        assert "compatibility: PASS" in compiled
+        assert "contracts/core/case/structured.md" in compiled
+        assert "scheduler.diagnosis.default-diagnosis" in compiled
+        assert "scheduler.ptbg.domain" in compiled
+        assert "scheduler.summarization.default-summarization" in compiled
+
+
+def test_pipeline_contract_mismatch_fails_before_execution_with_adapter_guidance(tmp_path):
+    import copy
+    import yaml
+    from workflows.terraced_v3 import pipeline_registry
+
+    source = pipeline_registry.load("self")
+    doc = copy.deepcopy(source.doc)
+    finalise = next(row for row in doc["modules"] if row["id"] == "finalise")
+    # Feed cited facts where a report summary is required.  Both artifacts exist,
+    # but their semantic types/contracts are intentionally incompatible.
+    finalise["inputs"]["summary"] = "evidence.cited_facts"
+    path = tmp_path / "bad-pipeline.yaml"
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    try:
+        pipeline_registry.load_yaml(path)
+    except ValueError as exc:
+        message = str(exc)
+        assert "pipeline contract mismatch" in message
+        assert "semantic type mismatch" in message
+        assert "explicit adapter module" in message
+        assert "Source evidence.cited_facts" in message
+        assert "expected contract" in message
+    else:
+        raise AssertionError("expected setup-time contract incompatibility")
+
+
+def test_scheduler_interface_output_names_are_scheduler_local(tmp_path):
+    from workflows.terraced_v3 import scheduler_engine
+
+    contracts = tmp_path / "contracts"
+    contracts.mkdir()
+    (contracts / "result.md").write_text(
+        """---\nid: local.weird-result\nsemantic_type: ptbg.experimental\nformat: yaml\nprovides: [payload]\nrequires: []\n---\n# Experimental result\n\n```yaml\npayload: {}\n```\n""",
+        encoding="utf-8",
+    )
+    (tmp_path / "prompt.md").write_text("Return the requested YAML.\n", encoding="utf-8")
+    (tmp_path / "scheduler.yaml").write_text(
+        """scheduler:\n  id: custom-output-name\n  phase: ptbg\n  version: 1\n  description: Demonstrate scheduler-local interface names.\ninterface:\n  inputs: {}\n  outputs:\n    whatever_i_call_it:\n      contract: local.result\nsteps:\n  - id: make\n    kind: model\n    inputs: {}\n    prompt:\n      template: prompt.md\n      inject: {}\n    output:\n      format: yaml\n      validator: global_ledger\n      contract: local.result\noutputs:\n  whatever_i_call_it: steps.make\n""",
+        encoding="utf-8",
+    )
+    plan = scheduler_engine.load_yaml(tmp_path / "scheduler.yaml")
+    assert tuple(plan.doc["interface"]["outputs"]) == ("whatever_i_call_it",)
+    assert scheduler_engine.output_contract(plan, "whatever_i_call_it").semantic_type == "ptbg.experimental"

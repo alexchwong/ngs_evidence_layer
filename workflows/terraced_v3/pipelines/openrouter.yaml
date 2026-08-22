@@ -1,6 +1,6 @@
 pipeline:
   id: openrouter
-  version: 1
+  version: 2
   order: 30
   description: OpenRouter pipeline using qwen/qwen3-coder-next defaults; role models can be edited independently.
 provider:
@@ -9,15 +9,86 @@ provider:
   base_url_env: NEL_OPENROUTER_BASE_URL
   api_key_env: OPENROUTER_API_KEY
   timeout_s: 900
-schedulers:
-  diagnosis: default-diagnosis
-  ptbg: domain
-  summarization: default-summarization
 models:
-  structure: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
-  diagnosis: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 65536}
-  ptbg: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 65536}
-  evidence_alignment: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
-  summarization: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
-  summarization_review: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
-  syntax_repair: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 16384}
+  structure:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  diagnosis:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 65536
+  ptbg:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 65536
+  evidence_alignment:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  summarization:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  summarization_review:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  syntax_repair:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 16384
+inputs:
+  case:
+    contract: core.input.case-md
+  panel_scope:
+    contract: core.setup.panel-scope
+  allowed_bootstrap_cmcs:
+    contract: core.setup.allowed-bootstrap-cmcs
+  allowed_who5_diseases:
+    contract: core.setup.allowed-who5-diseases
+modules:
+- id: structure
+  uses: core.structure-case
+  inputs:
+    case: inputs.case
+    panel_scope: inputs.panel_scope
+    allowed_bootstrap_cmcs: inputs.allowed_bootstrap_cmcs
+- id: corpus
+  uses: core.initialise-corpus
+  inputs:
+    case: structure.case
+- id: diagnosis
+  uses: scheduler.diagnosis.default-diagnosis
+  inputs:
+    case: structure.case
+    panel_scope: inputs.panel_scope
+    allowed_who5_diseases: inputs.allowed_who5_diseases
+    card_identity: corpus.card_identity
+- id: ptbg
+  uses: scheduler.ptbg.domain
+  inputs:
+    case: structure.case
+    who5: diagnosis.who5
+    routing: diagnosis.routing
+    card_identity: corpus.card_identity
+- id: evidence
+  uses: core.evidence-alignment
+  inputs:
+    card_identity: corpus.card_identity
+    diagnosis_who5: diagnosis.who5
+    diagnosis_icc: diagnosis.icc
+    prognosis: ptbg.prognosis
+    treatment: ptbg.treatment
+    biomarker: ptbg.biomarker
+    germline: ptbg.germline
+- id: summarization
+  uses: scheduler.summarization.default-summarization
+  inputs:
+    cited_facts: evidence.cited_facts
+- id: finalise
+  uses: core.finalise-report
+  inputs:
+    case: structure.case
+    summary: summarization.summary
+    card_identity: corpus.card_identity
