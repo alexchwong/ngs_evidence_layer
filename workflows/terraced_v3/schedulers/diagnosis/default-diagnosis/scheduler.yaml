@@ -25,11 +25,14 @@ steps:
         input: evidence
         render: text
       output_contract:
-        contract: local.icc-output
+        contract: core.diagnosis.icc-pairing-output
   output:
     format: yaml
     validator: icc
     contract: local.icc-output
+  evidence_resolution:
+    authority: icc
+    question: Determine the independent ICC diagnosis or concurrent diagnoses from the supplied patient case.
 - id: who5
   kind: diagnosis_loop
   depends_on:
@@ -60,7 +63,7 @@ steps:
         input: phase_instruction
         render: text
       output_contract:
-        contract: local.who5-output
+        contract: core.diagnosis.who5-pairing-output
   loop:
     strategy: who5_stabilisation
     max_passes: core.diagnosis.max-who5-passes
@@ -77,6 +80,9 @@ steps:
     format: yaml
     validator: who5
     contract: local.who5-output
+  evidence_resolution:
+    authority: who5
+    question: Determine the WHO 5th Edition diagnosis or concurrent diagnoses from the supplied patient case.
 outputs:
   icc: steps.icc
   who5: steps.who5.who5

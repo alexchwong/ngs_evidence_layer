@@ -307,6 +307,24 @@ def test_generic_yaml_deterministically_quotes_colon_in_plain_text_scalar():
     assert any("quoted YAML plain scalar" in repair for repair in result.deterministic_repairs)
 
 
+def test_stagnation_instruction_exists_and_is_concise():
+    from scripts.core import validated_model_task
+
+    assert validated_model_task.stagnation_instruction(0) == ""
+    msg = validated_model_task.stagnation_instruction(1)
+    assert "same invalid artifact" in msg
+    assert "material correction" in msg
+
+
+def test_relevance_extraction_selects_cards_by_header_line_number_only():
+    from workflows.terraced_v3.evidence_resolution import parse_relevance_output
+
+    labels = parse_relevance_output(
+        "relevant_card_header_lines: [21]\n",
+        header_line_to_label={21: "CARD 21"},
+        max_cards=10,
+    )
+    assert labels == ["CARD 21"]
 def test_retry_stagnation_guard_detects_three_identical_invalid_artifacts():
     from scripts.core.validated_model_task import RetryStagnationGuard
 
@@ -775,3 +793,157 @@ def test_scheduler_model_steps_reenter_call_model_when_output_already_exists(tmp
     except FileNotFoundError:
         pass
     assert any("-plan-" in call_id for call_id in calls)
+
+
+def test_diagnosis_corpus_filters_are_authority_specific():
+    from workflows.terraced_v3 import evidence_resolution
+    settings = evidence_resolution.load_settings()
+    cards = [
+        {"publication_key": "arber-2022-blood-140-1200", "card_id": "a"},
+        {"publication_key": "khoury-2022-leukemia-36-1703", "card_id": "b"},
+        {"publication_key": "other", "card_id": "c"},
+    ]
+    assert [c["card_id"] for c in evidence_resolution.filter_diagnosis_cards(cards, "icc", settings=settings)] == ["a"]
+    assert [c["card_id"] for c in evidence_resolution.filter_diagnosis_cards(cards, "who5", settings=settings)] == ["b"]
+
+
+def test_relevance_extraction_uses_only_supplied_card_header_lines():
+    from workflows.terraced_v3 import evidence_resolution
+    cards = [
+        {"card_id": "a", "category": "diagnosis", "genes": ["ASXL1"], "diseases": ["AML"], "evidence_tier": "guideline", "interpretation": "ASXL1 is a qualifying feature.", "paper_nickname": "Khoury", "publication_year": 2022},
+        {"card_id": "b", "category": "diagnosis", "genes": ["SRSF2"], "diseases": ["AML"], "evidence_tier": "guideline", "interpretation": "SRSF2 is a qualifying feature.", "paper_nickname": "Khoury", "publication_year": 2022},
+    ]
+    text, header_lines = evidence_resolution.render_numbered_relevance_blocks(cards)
+    assert "0001 | <<<CARD 01>>>" in text
+    assert header_lines == {1: "CARD 01", 10: "CARD 02"}
+    payload = "relevant_card_header_lines:\n  - 1\n  - 10\n"
+    assert evidence_resolution.parse_relevance_output(payload, header_line_to_label=header_lines, max_cards=10) == ["CARD 01", "CARD 02"]
+
+    for invalid in (
+        "relevant_card_header_lines: [2]\n",       # card body line
+        "relevant_card_header_lines: [999]\n",     # nonexistent line
+        "relevant_card_header_lines: [1, 1]\n",    # duplicate selection
+    ):
+        try:
+            evidence_resolution.parse_relevance_output(invalid, header_line_to_label=header_lines, max_cards=10)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"expected invalid relevance selection to fail: {invalid!r}")
+def test_pairing_uses_local_labels_and_python_resolves_runtime_card_tags():
+    from workflows.terraced_v3 import card_identity, evidence_resolution, scheduler_primitives
+    card = {"card_id": "khoury-C1", "category": "diagnosis", "genes": ["ASXL1"], "diseases": ["AML"], "interpretation": "WHO5 AML-MR criterion.", "publication_key": "khoury-2022-leukemia-36-1703"}
+    manifest = card_identity.build_manifest([card])
+    full = scheduler_primitives.EvidenceView(domain="diagnosis", cards=[card], manifest=manifest, permitted_tags=set(card_identity.tag_by_id(manifest).values()), text="unused")
+    local = evidence_resolution.local_evidence(full, [card])
+    paired = """diagnoses:\n  - diagnosis_id: ICC1\n    status: established\n    diagnosis: AML\n    fact: \"AML is established.\"\n    reason: x\n    case_refs: [C1]\n    card_refs: [\"CARD 01\"]\n"""
+    doc, _rendered = evidence_resolution.resolve_pairing_text(paired, local=local)
+    assert doc["diagnoses"][0]["card_tags"] == [f"[card:{card_identity.tag_by_id(manifest)['khoury-C1']}]"]
+    assert "card_refs" not in doc["diagnoses"][0]
+
+
+def test_support_audit_renders_interpretation_immediately_below_fact_with_balanced_question():
+    from workflows.terraced_v3 import card_identity, evidence_resolution, scheduler_primitives
+    card = {"card_id": "khoury-C1", "category": "diagnosis", "genes": ["ASXL1"], "diseases": ["AML"], "interpretation": "ASXL1 can satisfy the WHO5 AML-MR defining-mutation criterion.", "publication_key": "khoury-2022-leukemia-36-1703"}
+    manifest = card_identity.build_manifest([card])
+    raw = card_identity.tag_by_id(manifest)["khoury-C1"]
+    full = scheduler_primitives.EvidenceView(domain="diagnosis", cards=[card], manifest=manifest, permitted_tags={raw}, text="unused")
+    local = evidence_resolution.local_evidence(full, [card])
+    doc = {"diagnoses": [{"diagnosis_id": "ICC1", "fact": "With the patient findings, AML-MR is supported.", "case_refs": ["C1"], "card_tags": [f"[card:{raw}]"]}]}
+    pairs, _ = evidence_resolution._audit_payload(doc, authority="icc", local=local)
+    assert "Fact: With the patient findings, AML-MR is supported.\nPatient sources: C1\nSelected card 1:" in pairs
+    assert "Interpretation 1: ASXL1 can satisfy the WHO5 AML-MR defining-mutation criterion." in pairs
+    assert "Question: Does this interpretation reasonably support the fact? Treat patient observations as given." in pairs
+
+
+def test_diagnosis_schedulers_enable_three_pass_evidence_resolution():
+    from workflows.terraced_v3 import scheduler_registry
+    for name in ("default-diagnosis", "minimal-diagnosis"):
+        plan = scheduler_registry.load(name, "diagnosis")
+        by_id = {step["id"]: step for step in plan.doc["steps"]}
+        assert by_id["icc"]["evidence_resolution"]["authority"] == "icc"
+        assert by_id["who5"]["evidence_resolution"]["authority"] == "who5"
+        assert by_id["icc"]["prompt"]["inject"]["output_contract"]["contract"] == "core.diagnosis.icc-pairing-output"
+        assert by_id["who5"]["prompt"]["inject"]["output_contract"]["contract"] == "core.diagnosis.who5-pairing-output"
+
+
+def test_diagnosis_evidence_resolution_orchestrates_local_labels_to_final_tags(tmp_path):
+    from workflows.terraced_v3 import card_identity, evidence_resolution, scheduler_engine, scheduler_primitives, scheduler_registry
+
+    card = {
+        "card_id": "arber-C1",
+        "category": "diagnosis",
+        "genes": ["ASXL1"],
+        "diseases": ["AML"],
+        "evidence_tier": "classification",
+        "interpretation": "According to ICC, ASXL1 is an AML myelodysplasia-related gene mutation.",
+        "paper_nickname": "Arber",
+        "publication_year": 2022,
+        "publication_key": "arber-2022-blood-140-1200",
+    }
+    manifest = card_identity.build_manifest([card])
+    raw = card_identity.tag_by_id(manifest)["arber-C1"]
+    evidence = scheduler_primitives.EvidenceView(
+        domain="diagnosis", cards=[card], manifest=manifest, permitted_tags={raw}, text="unused"
+    )
+    case = {
+        "provisional_disease": "AML",
+        "bootstrap_cmcs": ["AML"],
+        "variants": [],
+        "detected_variants_summary": "No variants supplied.",
+        "case_facts": [{"fact_id": "C1", "kind": "marrow", "value": "30% blasts"}],
+    }
+    calls = []
+
+    def call_model(*, call_id, role, prompt, output, validator, format_name):
+        calls.append((call_id, prompt))
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if call_id.endswith("-relevance"):
+            assert "0001 | <<<CARD 01>>>" in prompt
+            assert "relevant_card_header_lines" in prompt
+            payload = "relevant_card_header_lines: [1]\n"
+        elif call_id.endswith("-pairing"):
+            assert "[card:" not in prompt
+            assert "card_refs" in prompt
+            payload = """diagnoses:\n  - diagnosis_id: ICC1\n    status: established\n    diagnosis: AML with myelodysplasia-related gene mutations\n    fact: \"The findings meet ICC criteria for AML with myelodysplasia-related gene mutations.\"\n    reason: \"The patient has AML-range blasts with a qualifying ASXL1 mutation.\"\n    case_refs: [C1]\n    card_refs: [\"CARD 01\"]\n"""
+        elif call_id.endswith("-audit"):
+            assert "Does this interpretation reasonably support the fact? Treat patient observations as given." in prompt
+            payload = """assessments:\n  - candidate_id: C1\n    assessment: supported\n    reason: \"The interpretation directly supports the classification claim.\"\n"""
+        else:
+            raise AssertionError(call_id)
+        validator(payload)
+        output.write_text(payload, encoding="utf-8")
+
+    ctx = scheduler_primitives.SchedulerContext(
+        work=tmp_path,
+        case=case,
+        diagnoses=[],
+        final_cmcs=[],
+        pipeline_id="test",
+        call_model=call_model,
+        ensure_evidence=lambda _domain: evidence,
+        read_text=lambda p: p.read_text(encoding="utf-8"),
+        write_text=lambda p, text: (p.parent.mkdir(parents=True, exist_ok=True), p.write_text(text, encoding="utf-8"), p)[-1],
+        status=lambda _msg: None,
+        phase="diagnosis",
+        values={},
+    )
+    plan = scheduler_registry.load("default-diagnosis", "diagnosis")
+    step = next(row for row in plan.doc["steps"] if row["id"] == "icc")
+    base_validator = lambda text: runtime.validate_icc_text(text, {raw}, {"C1"})
+    output = tmp_path / "icc.yaml"
+    doc = scheduler_engine._run_diagnosis_evidence_resolved(
+        plan=plan,
+        ctx=ctx,
+        base=plan.path.parent,
+        step=step,
+        inputs={"case": case, "panel_scope": "scope", "evidence": evidence},
+        item=None,
+        output=output,
+        base_validator=base_validator,
+        call_id="test-icc",
+        source="test",
+    )
+    assert doc["diagnoses"][0]["card_tags"] == [f"[card:{raw}]"]
+    assert output.is_file()
+    assert [cid for cid, _ in calls] == ["test-icc-relevance", "test-icc-pairing", "test-icc-audit"]

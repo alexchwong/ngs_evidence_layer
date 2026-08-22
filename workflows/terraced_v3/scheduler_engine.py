@@ -7,7 +7,7 @@ from typing import Any
 import re
 import yaml
 
-from workflows.terraced_v3 import layout, runtime, contract_registry
+from workflows.terraced_v3 import contract_registry, evidence_resolution, layout, runtime
 from workflows.terraced_v3 import scheduler_primitives as prim
 
 _SLOT_RE = re.compile(r"\{\{([A-Za-z0-9_.-]+)\}\}")
@@ -60,6 +60,12 @@ def load_yaml(path: Path, expected_phase: str | None = None) -> SchedulerPlan:
             raise ValueError(f"step {step['id']!r} has unsupported kind {kind!r}")
         if kind == "diagnosis_loop" and phase != "diagnosis":
             raise ValueError("diagnosis_loop is only valid in diagnosis schedulers")
+        resolution=step.get("evidence_resolution")
+        if resolution is not None:
+            if phase != "diagnosis" or kind not in {"model","diagnosis_loop"}:
+                raise ValueError(f"step {step['id']!r} evidence_resolution is only valid for diagnosis model/loop steps")
+            if not isinstance(resolution,dict) or resolution.get("authority") not in {"icc","who5"} or not isinstance(resolution.get("question"),str) or not resolution["question"].strip():
+                raise ValueError(f"step {step['id']!r} evidence_resolution requires authority icc/who5 and non-empty question")
         for dep in step.get("depends_on") or []:
             if dep not in previous:
                 raise ValueError(f"step {step['id']!r} depends on unknown or later step {dep!r}")
@@ -247,6 +253,7 @@ def _core_source(token:str,ctx:prim.SchedulerContext,item:Any)->Any:
     if token == "setup.panel-scope": return ctx.values["panel_scope"]
     if token == "setup.allowed-who5-diseases": return ctx.values["allowed_who5_diseases"]
     if token == "diagnosis.bootstrap-evidence": return ctx.values["bootstrap_evidence"]
+    if token == "diagnosis.who5-bootstrap-evidence": return ctx.values["who5_bootstrap_evidence"]
     if token == "diagnosis.max-who5-passes": return ctx.values["max_who5_passes"]
     if token == "diagnosis.who5.active": return ctx.diagnoses
     if token == "diagnosis.routing.final-cmcs": return ctx.final_cmcs
@@ -390,39 +397,95 @@ def _snapshot_evidence(ctx:prim.SchedulerContext,inputs:dict,snapshot:dict):
     return ctx.ensure_evidence(snapshot["domain"])
 
 
+def _diagnosis_resolution_context(inputs:dict)->dict:
+    out={}
+    for key in ("prior_state","phase_instruction"):
+        if key in inputs and inputs[key] is not None:
+            out[key]=inputs[key]
+    return out
+
+
+def _run_diagnosis_evidence_resolved(
+    *,plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,step:dict,inputs:dict,item:Any,
+    output:Path,base_validator,call_id:str,source:str,
+)->dict:
+    config=step.get("evidence_resolution") or {}
+    authority=str(config.get("authority") or "")
+    evidence=inputs.get("evidence")
+    if not isinstance(evidence,prim.EvidenceView):
+        raise ValueError(f"diagnosis evidence resolution for {step['id']!r} requires an EvidenceView input named evidence")
+    if output.is_file():
+        text=ctx.read_text(output); base_validator(text)
+        return runtime.parse_yaml_mapping(text,f"scheduler {step['id']} output")
+    eroot=output.parent/(output.stem+"-evidence-resolution"); eroot.mkdir(parents=True,exist_ok=True)
+    local=evidence_resolution.select_relevant_cards(
+        ctx=ctx,evidence=evidence,authority=authority,question=str(config["question"]),
+        task_context=_diagnosis_resolution_context(inputs),call_id=call_id,root=eroot,
+    )
+    paired_inputs=dict(inputs); paired_inputs["evidence"]=local.view
+    if "prior_state" in paired_inputs and paired_inputs["prior_state"] is not None:
+        paired_inputs["prior_state"]=evidence_resolution.localize_prior_state(paired_inputs["prior_state"],local=local)
+    prompt=_render_prompt_spec(base,step["prompt"],paired_inputs,item)
+    paired_output=eroot/"pairing.yaml"
+    case_refs=runtime.case_reference_ids(ctx.case)
+    ctx.call_model(
+        call_id=f"{call_id}-pairing",role=_role_for(plan,step),prompt=prompt,output=paired_output,
+        validator=lambda text:evidence_resolution.validate_pairing_text(text,local=local,authority=authority,case_refs=case_refs),
+        format_name="yaml",
+    )
+    doc,rendered=evidence_resolution.resolve_pairing_text(ctx.read_text(paired_output),local=local)
+    base_validator(rendered)
+    doc,_audit=evidence_resolution.audit_and_repair(
+        ctx=ctx,doc=doc,authority=authority,local=local,call_id=call_id,root=eroot,
+    )
+    final_text=yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110)
+    base_validator(final_text)
+    ctx.write_text(output,final_text)
+    return doc
+
+
 def _run_model(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,root:Path,step:dict,results:dict)->Any:
     items=_foreach_values(step["foreach"],ctx=ctx,results=results) if step.get("foreach") else [None]; collection={}
     validator_name=step["output"]["validator"]
     for index,item in enumerate(items,1):
         inputs=_resolve_inputs(step.get("inputs") or {},ctx=ctx,results=results,item=item)
         output=_artifact_path(root,step,item,index); output.parent.mkdir(parents=True,exist_ok=True)
-        prompt=_render_prompt_spec(base,step["prompt"],inputs,item); base_validator=_validator(validator_name,ctx=ctx,inputs=inputs,item=item)
+        base_validator=_validator(validator_name,ctx=ctx,inputs=inputs,item=item)
         fmt=step["output"]["format"]
         source=f"scheduler:{plan.phase}:{plan.scheduler_id}:{step['id']}:{_item_key(item,index)}"
+        base_call_id=f"scheduler-{plan.phase}-{plan.scheduler_id}-{step['id']}-{_item_key(item,index)}"
 
-        def validator(text:str, *, _base=base_validator, _name=validator_name, _item=item, _inputs=inputs, _source=source)->str:
-            message=_base(text)
-            if fmt == "yaml":
-                doc=runtime.parse_yaml_mapping(text,f"scheduler {step['id']} output")
-                snapshots=prim.model_fact_snapshots(_name,doc,item=_item,ctx=ctx)
-                if ctx.fact_guard is not None:
-                    for snapshot in snapshots:
-                        ctx.fact_guard(
-                            snapshot_key=snapshot["snapshot_key"],
-                            candidates=snapshot["facts"],
-                            evidence=_snapshot_evidence(ctx,_inputs,snapshot),
+        if step.get("evidence_resolution") is not None:
+            if fmt != "yaml" or validator_name not in {"icc","who5"}:
+                raise ValueError(f"step {step['id']!r} evidence_resolution requires yaml icc/who5 output")
+            value=_run_diagnosis_evidence_resolved(
+                plan=plan,ctx=ctx,base=base,step=step,inputs=inputs,item=item,output=output,
+                base_validator=base_validator,call_id=base_call_id,source=source,
+            )
+        else:
+            prompt=_render_prompt_spec(base,step["prompt"],inputs,item)
+            def validator(text:str, *, _base=base_validator, _name=validator_name, _item=item, _inputs=inputs, _source=source)->str:
+                message=_base(text)
+                if fmt == "yaml":
+                    doc=runtime.parse_yaml_mapping(text,f"scheduler {step['id']} output")
+                    snapshots=prim.model_fact_snapshots(_name,doc,item=_item,ctx=ctx)
+                    if ctx.fact_guard is not None:
+                        for snapshot in snapshots:
+                            ctx.fact_guard(
+                                snapshot_key=snapshot["snapshot_key"],
+                                candidates=snapshot["facts"],
+                                evidence=_snapshot_evidence(ctx,_inputs,snapshot),
+                                source=_source,
+                            )
+                    if _name == "paraphrase_sentence" and ctx.paraphrase_guard is not None:
+                        ctx.paraphrase_guard(
+                            sentence_plan=_item,
+                            sentence=doc["sentence"],
                             source=_source,
                         )
-                if _name == "paraphrase_sentence" and ctx.paraphrase_guard is not None:
-                    ctx.paraphrase_guard(
-                        sentence_plan=_item,
-                        sentence=doc["sentence"],
-                        source=_source,
-                    )
-            return message
-
-        ctx.call_model(call_id=f"scheduler-{plan.phase}-{plan.scheduler_id}-{step['id']}-{_item_key(item,index)}",role=_role_for(plan,step),prompt=prompt,output=output,validator=validator,format_name=fmt)
-        value=runtime.parse_yaml_mapping(ctx.read_text(output),f"scheduler {step['id']} output") if fmt=="yaml" else ctx.read_text(output)
+                return message
+            ctx.call_model(call_id=base_call_id,role=_role_for(plan,step),prompt=prompt,output=output,validator=validator,format_name=fmt)
+            value=runtime.parse_yaml_mapping(ctx.read_text(output),f"scheduler {step['id']} output") if fmt=="yaml" else ctx.read_text(output)
         if fmt == "yaml" and ctx.fact_commit is not None:
             for snapshot in prim.model_fact_snapshots(validator_name,value,item=item,ctx=ctx):
                 if snapshot.get("commit",True):
@@ -447,18 +510,26 @@ def _run_diagnosis_loop(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,r
     for pass_index in range(1,max_passes+1):
         evidence=ctx.ensure_diagnosis_evidence(history)
         inputs=dict(static,evidence=evidence,prior_state=previous,phase_instruction=instructions[phase])
-        prompt=_render_prompt_spec(base,step["prompt"],inputs,None)
         output=root/step["id"]/f"pass-{pass_index:02d}-{phase}.yaml"; output.parent.mkdir(parents=True,exist_ok=True)
         source=f"scheduler:diagnosis:{plan.scheduler_id}:who5:pass-{pass_index:02d}-{phase}"
-        def validator(text:str,e=evidence)->str:
-            message=runtime.validate_who5_text(text,e.permitted_tags,runtime.case_reference_ids(ctx.case))
-            state_for_check=runtime.parse_yaml_mapping(text,"WHO5 diagnosis")
-            if ctx.fact_guard is not None:
-                ctx.fact_guard(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state_for_check),evidence=e,source=source)
-            return message
-        ctx.status(f"WHO5 scheduler pass {pass_index}: {phase}; {len(evidence.cards)} cards; cumulative CMC evidence {' | '.join(history)}")
-        ctx.call_model(call_id=f"scheduler-diagnosis-{plan.scheduler_id}-who5-{pass_index:02d}-{phase}",role="diagnosis",prompt=prompt,output=output,validator=validator,format_name="yaml")
-        state=runtime.parse_yaml_mapping(ctx.read_text(output),"WHO5 diagnosis")
+        base_call_id=f"scheduler-diagnosis-{plan.scheduler_id}-who5-{pass_index:02d}-{phase}"
+        base_validator=lambda text,e=evidence:runtime.validate_who5_text(text,e.permitted_tags,runtime.case_reference_ids(ctx.case))
+        ctx.status(f"WHO5 scheduler pass {pass_index}: {phase}; {len(evidence.cards)} authority-filtered cards; cumulative CMC evidence {' | '.join(history)}")
+        if step.get("evidence_resolution") is not None:
+            state=_run_diagnosis_evidence_resolved(
+                plan=plan,ctx=ctx,base=base,step=step,inputs=inputs,item=None,output=output,
+                base_validator=base_validator,call_id=base_call_id,source=source,
+            )
+        else:
+            prompt=_render_prompt_spec(base,step["prompt"],inputs,None)
+            def validator(text:str,e=evidence)->str:
+                message=base_validator(text)
+                state_for_check=runtime.parse_yaml_mapping(text,"WHO5 diagnosis")
+                if ctx.fact_guard is not None:
+                    ctx.fact_guard(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state_for_check),evidence=e,source=source)
+                return message
+            ctx.call_model(call_id=base_call_id,role="diagnosis",prompt=prompt,output=output,validator=validator,format_name="yaml")
+            state=runtime.parse_yaml_mapping(ctx.read_text(output),"WHO5 diagnosis")
         if ctx.fact_commit is not None:
             ctx.fact_commit(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state),source=source)
         cmcs=runtime.derive_cmcs(state); sig=runtime.who5_signature(state)

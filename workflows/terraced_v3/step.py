@@ -30,7 +30,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v3 import card_identity, contract_registry, layout, model_client, module_registry, pipeline_registry, rendering, runtime
+from workflows.terraced_v3 import card_identity, contract_registry, evidence_resolution, layout, model_client, module_registry, pipeline_registry, rendering, runtime
 from workflows.terraced_v3 import scheduler_engine, scheduler_registry, scheduler_primitives
 
 WORKFLOW_ID = "terraced-v3"
@@ -490,7 +490,9 @@ def _configure_manifest(work:Path)->dict:
 def module_initialise_corpus(work:Path,stage:dict,profile:str|None)->None:
     del stage,profile; path=_manifest_path(work)
     if path.is_file(): return
-    all_cards,_eligible,_digest,manifest=_load_corpus(); _atomic_write(path,json.dumps(manifest,indent=2,ensure_ascii=False)+"\n"); _status(f"  corpus identity: {len(all_cards)} cards, sha256 tags initialised")
+    all_cards,_eligible,_digest,manifest=_load_corpus()
+    evidence_resolution.validate_configured_publications(all_cards)
+    _atomic_write(path,json.dumps(manifest,indent=2,ensure_ascii=False)+"\n"); _status(f"  corpus identity: {len(all_cards)} cards, sha256 tags initialised")
 
 
 def _render_cards(cards:list[dict],manifest:dict)->str:
@@ -669,14 +671,21 @@ def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
     final_path=_who5_final(work); icc_path=_icc_final(work); routing_path=_who5_routing(work)
     if final_path.is_file() and icc_path.is_file() and routing_path.is_file(): return
     case=runtime.read_json(_case_json(work)); _all,eligible,digest,manifest=_load_corpus(); genes=runtime.case_genes(case); bootstrap=list(case.get("bootstrap_cmcs") or [])
+    corpus_settings=evidence_resolution.load_settings()
+    evidence_resolution.validate_configured_publications(_all,settings=corpus_settings)
     bootstrap_cards=_draw_diagnosis_cards(eligible,genes,bootstrap)
-    _evidence_path,_tags_path,visible_bootstrap=_render_evidence_bundle(work,"icc",bootstrap_cards,cmcs=bootstrap,diagnoses=[],digest=digest,manifest=manifest)
+    icc_bootstrap_cards=evidence_resolution.filter_diagnosis_cards(bootstrap_cards,"icc",settings=corpus_settings)
+    who5_bootstrap_cards=evidence_resolution.filter_diagnosis_cards(bootstrap_cards,"who5",settings=corpus_settings)
+    _evidence_path,_tags_path,visible_bootstrap=_render_evidence_bundle(work,"icc",icc_bootstrap_cards,cmcs=bootstrap,diagnoses=[],digest=digest,manifest=manifest)
     bootstrap_view=scheduler_primitives.EvidenceView(domain="diagnosis",cards=visible_bootstrap,manifest=manifest,permitted_tags=_permitted_tags(visible_bootstrap,manifest),text=_render_cards(visible_bootstrap,manifest))
-    last_diag_view=bootstrap_view
+    _who5_bootstrap_path,_who5_tags_path,visible_who5_bootstrap=_render_evidence_bundle(work,"who5-bootstrap",who5_bootstrap_cards,cmcs=bootstrap,diagnoses=[],digest=digest,manifest=manifest)
+    who5_bootstrap_view=scheduler_primitives.EvidenceView(domain="diagnosis",cards=visible_who5_bootstrap,manifest=manifest,permitted_tags=_permitted_tags(visible_who5_bootstrap,manifest),text=_render_cards(visible_who5_bootstrap,manifest))
+    last_diag_view=who5_bootstrap_view
 
     def ensure_diag(cmcs:list[str])->scheduler_primitives.EvidenceView:
         nonlocal last_diag_view
         cards=_draw_diagnosis_cards(eligible,genes,cmcs)
+        cards=evidence_resolution.filter_diagnosis_cards(cards,"who5",settings=corpus_settings)
         view=scheduler_primitives.EvidenceView(domain="diagnosis",cards=cards,manifest=manifest,permitted_tags=_permitted_tags(cards,manifest),text=_render_cards(cards,manifest))
         last_diag_view=view; return view
 
@@ -692,6 +701,7 @@ def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
         "panel_scope":_read(layout.input(work,"ngs-panel-scope.md")),
         "allowed_who5_diseases":allowed,
         "bootstrap_evidence":bootstrap_view,
+        "who5_bootstrap_evidence":who5_bootstrap_view,
         "max_who5_passes":int(load_settings().get("max_who5_passes",7)),
     }
     fact_guard,fact_commit,paraphrase_guard=_fact_callbacks(work,profile)

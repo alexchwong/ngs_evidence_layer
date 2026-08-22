@@ -27,6 +27,8 @@ terraced_v3/
 │   ├── ptbg/
 │   └── summarization/
 ├── pipelines/                   user-editable pipeline DAGs and model bindings
+├── corpus_filters.yaml          authority-specific diagnosis corpus filtering + evidence-resolution limits
+├── evidence_resolution.py       bounded diagnosis card extraction/pairing/audit
 ├── contract_registry.py         Markdown-contract loading and compatibility
 ├── module_registry.py           core/adaptor module asset loading
 ├── pipeline_registry.py         DAG parsing + setup-time compatibility checks
@@ -151,9 +153,11 @@ Do not move these into YAML expressions.
 
 ## Immutable reportable-fact provenance
 
-Terraced-v3 attaches evidence when a reportable fact is first introduced; it does not reconstruct citations at the end. A fact-producing model returns exact patient-source `case_refs` and final literature `card_tags` for each surfaced `fact`. Before the artifact is accepted, core runs a narrow reject-only provenance/support check containing every new fact, its `case_refs`, and only its claimed card(s). Cardless facts are included so literature-dependent conclusions cannot escape checking by dropping citations. The checker cannot rewrite a fact, search for another card, or reassign citations. A rejection is returned through the originating model task's normal retry path.
+Diagnosis now resolves evidence in three bounded passes before committing a diagnosis snapshot. First, authority-filtered diagnosis cards are rendered as contiguous locally labelled blocks and the coding model copies at most the configured relevant-card limit. Second, the clinical question is asked again using only that reduced bundle; the model writes facts and pairs them to local `CARD nn` labels. Python then resolves those labels to immutable runtime `card_tags`. Third, Python renders each fact immediately with its selected card interpretation(s) and asks whether the interpretation reasonably supports the fact, treating patient observations as given. `partial` is accepted; `unsupported` receives bounded card-only repair and unresolved cases are logged as warnings rather than forcing whole-artifact regeneration.
 
-Core reconciles each accepted scheduler snapshot against a persistent audit ledger. Exact `fact` text + `case_refs` + `card_tags` retains the existing `fact_id`; surrounding subject/reason/decision metadata may evolve. If fact text or card attribution changes, the old fact is tombstoned and the replacement receives a new ID. No semantic-similarity matching is used.
+Diagnosis authority filtering is configured in `workflows/terraced_v3/corpus_filters.yaml`; the shipped defaults restrict WHO5 to Khoury 2022 and ICC to Arber 2022. Previously cited WHO5 cards are deterministically retained on reconsideration passes and prior runtime tags are localised back to `CARD nn` labels before the model sees them.
+
+Downstream PTBG fact-producing tasks retain the existing local reject-only provenance/support checker. Core reconciles accepted scheduler snapshots against a persistent audit ledger. Exact `fact` text + `case_refs` + `card_tags` retains the existing `fact_id`; surrounding subject/reason/decision metadata may evolve. If fact text or card attribution changes, the old fact is tombstoned and the replacement receives a new ID. No semantic-similarity matching is used.
 
 The active minimal ledger handed to summarization contains only `fact_id`, `domain`, `fact`, and `card_tags`. Summarization explicitly records include/omit decisions and constructs ordered sentences from `source_fact_ids`. Paraphrasing is sentence-local; a reject-only semantic-preservation check guards each paraphrase. Core then computes sentence citations deterministically from the source facts.
 

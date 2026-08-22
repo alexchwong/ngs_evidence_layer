@@ -25,11 +25,14 @@ steps:
         input: evidence
         render: text
       output_contract:
-        contract: local.icc-output
+        contract: core.diagnosis.icc-pairing-output
   output:
     format: yaml
     validator: icc
     contract: local.icc-output
+  evidence_resolution:
+    authority: icc
+    question: Determine the independent ICC diagnosis or concurrent diagnoses from the supplied patient case.
 - id: who5
   kind: model
   depends_on:
@@ -38,7 +41,7 @@ steps:
     case: core.case.structured
     panel_scope: core.setup.panel-scope
     allowed_who5_diseases: core.setup.allowed-who5-diseases
-    evidence: core.diagnosis.bootstrap-evidence
+    evidence: core.diagnosis.who5-bootstrap-evidence
     prior_state:
       literal: null
     phase_instruction:
@@ -65,11 +68,14 @@ steps:
         input: phase_instruction
         render: text
       output_contract:
-        contract: local.who5-output
+        contract: core.diagnosis.who5-pairing-output
   output:
     format: yaml
     validator: who5
     contract: local.who5-output
+  evidence_resolution:
+    authority: who5
+    question: Determine the WHO 5th Edition diagnosis or concurrent diagnoses from the supplied patient case.
 - id: publish
   kind: operation
   operation: publish_minimal_diagnosis

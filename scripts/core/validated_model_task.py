@@ -101,6 +101,20 @@ class RetryStagnationGuard:
         return self._repeats
 
 
+def stagnation_instruction(repeat_count: int) -> str:
+    """Add concise repair feedback when the same invalid artifact is repeated.
+
+    The caller owns the stopping policy.  This helper only tells the model that
+    its previous repair did not materially change the rejected artifact.
+    """
+    if repeat_count <= 0:
+        return ""
+    return (
+        "\n\nThe last repair repeated the same invalid artifact and validation error. "
+        "Make a material correction to the stated validation issue; do not return the same artifact again."
+    )
+
+
 def retry_instruction(error: Exception) -> str:
     """Render one complete, self-contained repair request for the next model attempt."""
     if isinstance(error, ValidationFailure):

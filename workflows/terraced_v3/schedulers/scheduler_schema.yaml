@@ -25,13 +25,24 @@ step:
   kinds:
     model:
       required: [prompt, output]
-      optional: [foreach, depends_on, inputs, retain_item_metadata, role]
+      optional: [foreach, depends_on, inputs, retain_item_metadata, role, evidence_resolution]
     operation:
       required: [operation]
       optional: [depends_on, inputs]
     diagnosis_loop:
       phase: diagnosis
       required: [prompt, loop, output]
+      optional: [evidence_resolution]
+
+
+evidence_resolution:
+  phase: diagnosis
+  required: [authority, question]
+  authorities: [icc, who5]
+  rule: >-
+    Runs bounded diagnosis evidence resolution: numbered card-header line selection with
+    deterministic original-block extraction, fact/local-card pairing, deterministic local-label to runtime-tag resolution, and
+    reasonable-support audit without whole-artifact semantic retry.
 
 prompt_injection:
   supported:
