@@ -114,8 +114,8 @@ Regardless of scheduler topology:
 - ICC is independently reasoned and does not control CMC;
 - diagnosis may retain historical CMC evidence while stabilising;
 - downstream retrieval uses the final CMC set;
-- every surfaced reportable fact acquires its final `card_tags` when first created;
-- a reject-only local evidence check sees only each new fact and its claimed cards before that fact is accepted;
+- every surfaced reportable fact acquires final patient `case_refs` and literature `card_tags` when first created;
+- a reject-only local provenance/support check sees every new fact, its case_refs, and only its claimed cards before that fact is accepted; cardless facts are checked too so literature-dependent conclusions cannot evade review;
 - accepted fact text plus card attribution is immutable; later passes may retain it verbatim or withdraw/replace it, with replacements receiving a new fact ID;
 - summarization explicitly decides include/omit, sentence order, merge and split using immutable fact IDs;
 - paraphrasing cannot change provenance and is followed by a reject-only semantic-preservation check;

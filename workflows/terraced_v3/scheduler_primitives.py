@@ -137,7 +137,7 @@ def validate_normalized(text: str, *, evidence: EvidenceView, diagnosis_ids: set
 
 
 def _dummy_cp() -> dict:
-    return {"supportive": False, "surface": False, "fact": None, "reason": None, "card_tags": []}
+    return {"supportive": False, "surface": False, "fact": None, "reason": None, "case_refs": [], "card_tags": []}
 
 
 def _snapshot(snapshot_key: str, domain: str, facts: list[dict], *, commit: bool = True) -> dict:
@@ -172,7 +172,7 @@ def model_fact_snapshots(validator_name: str, doc: dict, *, item: Any, ctx: Sche
     if validator_name == "germline_clinical_picture":
         germ={
             "variant_decisions":[
-                {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"fact":None,"reason":None,"card_tags":[]}
+                {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"fact":None,"reason":None,"case_refs":[],"card_tags":[]}
                 for v in ctx.case.get("variants") or []
             ],
             "clinical_picture":doc["clinical_picture"],
@@ -188,7 +188,7 @@ def model_fact_snapshots(validator_name: str, doc: dict, *, item: Any, ctx: Sche
         if domain == "germline" and item["key"] == "clinical_picture":
             germ={
                 "variant_decisions":[
-                    {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"fact":None,"reason":None,"card_tags":[]}
+                    {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"fact":None,"reason":None,"case_refs":[],"card_tags":[]}
                     for v in ctx.case.get("variants") or []
                 ],
                 "clinical_picture":replacement,
@@ -214,14 +214,14 @@ def validate_variant(text: str, *, item: dict, ctx: SchedulerContext, evidence: 
     fail("variant-centric task", issues)
     diagnosis_ids = [d["diagnosis_id"] for d in ctx.diagnoses]
     pair_spec = {"required_pairs": [(item["variant_id"], dx) for dx in diagnosis_ids]}
-    runtime.validate_domain_text(yaml.safe_dump(doc.get("prognosis"), sort_keys=False), domain="prognosis", spec=pair_spec, permitted_tags=evidence["prognosis"].permitted_tags)
-    runtime.validate_domain_text(yaml.safe_dump(doc.get("biomarker"), sort_keys=False), domain="biomarker", spec=pair_spec, permitted_tags=evidence["biomarker"].permitted_tags)
+    runtime.validate_domain_text(yaml.safe_dump(doc.get("prognosis"), sort_keys=False), domain="prognosis", spec=pair_spec, permitted_tags=evidence["prognosis"].permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
+    runtime.validate_domain_text(yaml.safe_dump(doc.get("biomarker"), sort_keys=False), domain="biomarker", spec=pair_spec, permitted_tags=evidence["biomarker"].permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     if include_treatment:
-        runtime.validate_domain_text(yaml.safe_dump(doc.get("treatment"), sort_keys=False), domain="treatment", spec={"required_pairs": [(item["gene"], dx) for dx in diagnosis_ids]}, permitted_tags=evidence["treatment"].permitted_tags)
+        runtime.validate_domain_text(yaml.safe_dump(doc.get("treatment"), sort_keys=False), domain="treatment", spec={"required_pairs": [(item["gene"], dx) for dx in diagnosis_ids]}, permitted_tags=evidence["treatment"].permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     elif doc.get("treatment") is not None:
         raise ValueError("variant-centric task treatment must be null because an earlier variant owns this gene's treatment decision")
     germ_doc = {"variant_decisions": [doc.get("germline_variant")], "clinical_picture": _dummy_cp()}
-    runtime.validate_domain_text(yaml.safe_dump(germ_doc, sort_keys=False), domain="germline", spec={"required_variants": [item["variant_id"]]}, permitted_tags=evidence["germline"].permitted_tags)
+    runtime.validate_domain_text(yaml.safe_dump(germ_doc, sort_keys=False), domain="germline", spec={"required_variants": [item["variant_id"]]}, permitted_tags=evidence["germline"].permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     return "variant-centric task validated"
 
 
@@ -229,8 +229,8 @@ def validate_clinical_picture(text: str, *, ctx: SchedulerContext, evidence: Evi
     doc = runtime.parse_yaml_mapping(text, "germline clinical-picture task")
     if set(doc) != {"clinical_picture"}:
         raise ValueError("germline clinical-picture task must return exactly clinical_picture")
-    dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "fact": None, "reason": None, "card_tags": []} for v in ctx.case.get("variants") or []]
-    runtime.validate_domain_text(yaml.safe_dump({"variant_decisions": dummy, "clinical_picture": doc["clinical_picture"]}, sort_keys=False), domain="germline", spec={"required_variants": [v["variant_id"] for v in ctx.case.get("variants") or []]}, permitted_tags=evidence.permitted_tags)
+    dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "fact": None, "reason": None, "case_refs": [], "card_tags": []} for v in ctx.case.get("variants") or []]
+    runtime.validate_domain_text(yaml.safe_dump({"variant_decisions": dummy, "clinical_picture": doc["clinical_picture"]}, sort_keys=False), domain="germline", spec={"required_variants": [v["variant_id"] for v in ctx.case.get("variants") or []]}, permitted_tags=evidence.permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     return "germline clinical-picture task validated"
 
 
@@ -239,7 +239,7 @@ def validate_global(text: str, *, ctx: SchedulerContext, evidence: dict[str, Evi
     if set(doc) != set(DOMAINS):
         raise ValueError(f"global hard-fact ledger must return exactly {list(DOMAINS)}")
     for domain in DOMAINS:
-        runtime.validate_domain_text(yaml.safe_dump(doc.get(domain), sort_keys=False), domain=domain, spec=ctx.specs[domain], permitted_tags=evidence[domain].permitted_tags)
+        runtime.validate_domain_text(yaml.safe_dump(doc.get(domain), sort_keys=False), domain=domain, spec=ctx.specs[domain], permitted_tags=evidence[domain].permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     return "global hard-fact ledger validated"
 
 
@@ -270,7 +270,7 @@ def validate_global_patch(text: str, *, ctx: SchedulerContext, evidence: dict[st
     for change in changes:
         if change.get("domain") in DOMAINS:
             d = change["domain"]
-            runtime.validate_domain_text(yaml.safe_dump(change.get("replacement"), sort_keys=False), domain=d, spec=ctx.specs[d], permitted_tags=evidence[d].permitted_tags)
+            runtime.validate_domain_text(yaml.safe_dump(change.get("replacement"), sort_keys=False), domain=d, spec=ctx.specs[d], permitted_tags=evidence[d].permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     return "global-ledger review patch validated"
 
 
@@ -303,12 +303,12 @@ def validate_cell_review(text: str, *, item: dict, ctx: SchedulerContext, eviden
         replacement = doc["replacement"]; domain = item["domain"]; key = item["key"]; current = item["row"]
         if domain != "germline" or key != "clinical_picture":
             one, spec = single_doc(domain, replacement)
-            runtime.validate_domain_text(yaml.safe_dump(one, sort_keys=False), domain=domain, spec=spec, permitted_tags=evidence.permitted_tags)
+            runtime.validate_domain_text(yaml.safe_dump(one, sort_keys=False), domain=domain, spec=spec, permitted_tags=evidence.permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
             if scope_key(domain, current) != scope_key(domain, replacement):
                 raise ValueError("adaptive review replacement changed protected cell scope")
         else:
-            dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "fact": None, "reason": None, "card_tags": []} for v in ctx.case.get("variants") or []]
-            runtime.validate_domain_text(yaml.safe_dump({"variant_decisions": dummy, "clinical_picture": replacement}, sort_keys=False), domain="germline", spec={"required_variants": [v["variant_id"] for v in ctx.case.get("variants") or []]}, permitted_tags=evidence.permitted_tags)
+            dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "fact": None, "reason": None, "case_refs": [], "card_tags": []} for v in ctx.case.get("variants") or []]
+            runtime.validate_domain_text(yaml.safe_dump({"variant_decisions": dummy, "clinical_picture": replacement}, sort_keys=False), domain="germline", spec={"required_variants": [v["variant_id"] for v in ctx.case.get("variants") or []]}, permitted_tags=evidence.permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     return "adaptive cell review validated"
 
 
@@ -395,7 +395,7 @@ def op_publish_domains(*, ctx: SchedulerContext, inputs: dict, root: Path) -> di
         if domain not in states: raise ValueError(f"scheduler publish missing canonical domain {domain}")
         evidence = ctx.ensure_evidence(domain)
         text = yaml.safe_dump(states[domain], sort_keys=False, allow_unicode=True, width=110)
-        runtime.validate_domain_text(text, domain=domain, spec=ctx.specs[domain], permitted_tags=evidence.permitted_tags)
+        runtime.validate_domain_text(text, domain=domain, spec=ctx.specs[domain], permitted_tags=evidence.permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
         if ctx.fact_commit is not None and scheduler_id != "variant-centric":
             ctx.fact_commit(
                 snapshot_key=f"ptbg.{domain}",

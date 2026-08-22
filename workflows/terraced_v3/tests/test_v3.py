@@ -30,6 +30,7 @@ def test_prognosis_validator_requires_variant_diagnosis_cartesian_scope():
     surface: false
     fact: null
     reason: null
+    case_refs: []
     card_tags: []
   - variant_id: V1
     diagnosis_id: DX2
@@ -38,6 +39,7 @@ def test_prognosis_validator_requires_variant_diagnosis_cartesian_scope():
     surface: true
     fact: "Variant V1 is adverse in this disease context."
     reason: "The supplied evidence classifies it as adverse."
+    case_refs: []
     card_tags: []
 """
     spec = {"required_pairs": [("V1", "DX1"), ("V1", "DX2")]}
@@ -52,6 +54,7 @@ def test_fact_ledger_reconciliation_preserves_id_for_reason_change_and_replaces_
         "decision": {"effect": "adverse"},
         "fact": "NPM1 is prognostically relevant in AML.",
         "reason": "Initial reason.",
+        "case_refs": ["V1"],
         "card_tags": ["[card:aaaaaaaaaaaa]"],
     }]
     runtime.reconcile_fact_snapshot(ledger, "ptbg.prognosis", first, source="pass-1")
@@ -71,14 +74,38 @@ def test_fact_ledger_reconciliation_preserves_id_for_reason_change_and_replaces_
     assert next(row for row in ledger["facts"] if row["fact_id"] == "F0001")["status"] == "withdrawn"
 
 
-def test_fact_evidence_check_is_required_only_for_new_cited_facts():
+def test_fact_evidence_check_is_required_for_every_new_reportable_fact():
     ledger = runtime.new_fact_ledger()
-    cited = {"domain": "diagnosis", "fact": "A cited fact.", "reason": "x", "subject": {}, "decision": {}, "card_tags": ["[card:aaaaaaaaaaaa]"]}
-    case_only = {"domain": "diagnosis", "fact": "A case-derived fact.", "reason": "x", "subject": {}, "decision": {}, "card_tags": []}
+    cited = {"domain": "diagnosis", "fact": "A cited fact.", "reason": "x", "subject": {}, "decision": {}, "case_refs": ["C1"], "card_tags": ["[card:aaaaaaaaaaaa]"]}
+    case_only = {"domain": "diagnosis", "fact": "A case-derived fact.", "reason": "x", "subject": {}, "decision": {}, "case_refs": ["C2"], "card_tags": []}
     pending = runtime.facts_needing_evidence_check(ledger, "diagnosis.who5", [cited, case_only])
-    assert pending == [cited]
+    assert pending == [cited, case_only]
     runtime.reconcile_fact_snapshot(ledger, "diagnosis.who5", [cited, case_only], source="pass-1")
     assert runtime.facts_needing_evidence_check(ledger, "diagnosis.who5", [cited, case_only]) == []
+
+
+def test_fact_ledger_replaces_fact_when_case_provenance_changes():
+    ledger = runtime.new_fact_ledger()
+    first = [{
+        "domain": "diagnosis", "fact": "A patient-level proposition.", "reason": "x",
+        "subject": {}, "decision": {}, "case_refs": ["C1"], "card_tags": [],
+    }]
+    runtime.reconcile_fact_snapshot(ledger, "diagnosis.who5", first, source="pass-1")
+    changed = [dict(first[0], case_refs=["C2"])]
+    runtime.reconcile_fact_snapshot(ledger, "diagnosis.who5", changed, source="pass-2")
+    assert [row["fact_id"] for row in runtime.active_ledger_facts(ledger)] == ["F0002"]
+    assert next(row for row in ledger["facts"] if row["fact_id"] == "F0001")["status"] == "withdrawn"
+
+
+def test_issue_specific_observation_repair_does_not_expand_fact_to_fit_cards():
+    from workflows.terraced_v3.step import _fact_evidence_repair_instruction
+    msg = _fact_evidence_repair_instruction(
+        "observation_should_be_cardless",
+        {"fact": "SRSF2 mutation is present.", "case_refs": ["V1"], "card_tags": ["[card:aaaaaaaaaaaa]"]},
+    )
+    assert "set card_tags: []" in msg
+    assert "Do not expand the observation merely to justify" in msg
+    assert "separate self-contained fact" in msg
 
 
 def test_yaml_parser_failure_is_actionable():
@@ -402,6 +429,7 @@ def test_bare_card_hash_is_only_accepted_when_exactly_supplied_after_normalizati
     surface: true
     fact: "Variant V1 is adverse in this disease context."
     reason: "The supplied evidence supports this conclusion."
+    case_refs: []
     card_tags: [abcdefabcdef]
 '''
     repaired, repairs = runtime.normalize_model_card_tag_syntax(text, format_name="yaml")
@@ -645,19 +673,48 @@ def test_non_surfaced_domain_row_cannot_carry_evidence_provenance():
         raise AssertionError("expected provenance on surface=false row to fail")
 
 
+def test_case_reference_in_card_tags_gets_provenance_specific_feedback():
+    text = """decisions:
+  - variant_id: V1
+    diagnosis_id: DX1
+    effect: neither
+    scoring_system: null
+    surface: true
+    fact: "SRSF2 mutation is present."
+    reason: "Reported in the structured case."
+    case_refs: []
+    card_tags: [V1]
+"""
+    try:
+        runtime.validate_domain_text(
+            text, domain="prognosis", spec={"required_pairs": [("V1", "DX1")]},
+            permitted_tags=set(), permitted_case_refs={"V1"},
+        )
+    except Exception as exc:
+        message = str(exc)
+        assert "patient case/variant identifier" in message
+        assert "move 'V1' to the sibling case_refs field" in message
+        assert "do not replace it with an arbitrary [card:...] tag" in message
+    else:
+        raise AssertionError("expected patient provenance in card_tags to fail")
+
+
 def test_local_evidence_checker_contract_is_reject_only_and_complete():
     good = """checks:
   - candidate_id: C1
     supported: true
+    issue_code: null
     issue: null
   - candidate_id: C2
     supported: false
+    issue_code: unsupported_inference
     issue: The claimed card does not support the complete proposition.
 """
     assert runtime.validate_fact_evidence_check_text(good, ["C1", "C2"])
     incomplete = """checks:
   - candidate_id: C1
     supported: true
+    issue_code: null
     issue: null
 """
     try:

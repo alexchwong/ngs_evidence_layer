@@ -1,6 +1,6 @@
 # Terraced-v3 variant-centric task
 
-Consider this one detected variant across the downstream clinical questions. Keep every decision disease-scoped. Return hard decisions plus reportable fact/reason only where surfaced. `card_tags` are final claimed evidence provenance and must use only exact tags from the matching domain evidence section that directly support the complete surfaced fact. Keep each surfaced fact atomic enough to be independently included or omitted later. Use `card_tags: []` only for a genuinely case-derived proposition needing no evidence card. If an existing surfaced fact remains correct, preserve its fact text and card tags exactly.
+Consider this one detected variant across the downstream clinical questions. Keep every decision disease-scoped. Return hard decisions plus reportable fact/reason only where surfaced. `case_refs` are exact C#/V# patient-source IDs used by surfaced propositions. `card_tags` are final claimed literature evidence provenance and must use only exact tags from the matching domain evidence section that directly support the complete surfaced fact. Keep each surfaced fact atomic enough to be independently included or omitted later. Pure patient observations should normally use `card_tags: []`; literature-dependent interpretations require supporting cards. If an existing surfaced fact remains correct, preserve its fact text, case refs, and card tags exactly.
 
 # Scheduler-specific output envelope
 {{output_contract}}

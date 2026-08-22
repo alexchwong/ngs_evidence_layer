@@ -561,6 +561,25 @@ def _card_check_payload(evidence:scheduler_primitives.EvidenceView,claimed_tags:
     return rows
 
 
+def _fact_evidence_repair_instruction(issue_code:str,row:dict)->str:
+    base="Preserve unrelated accepted facts verbatim. Use only evidence and structured-case IDs supplied to the originating task. "
+    refs=row.get("case_refs") or []
+    tags=row.get("card_tags") or []
+    if issue_code=="observation_should_be_cardless":
+        return base + f"This is a patient observation, not a literature inference. Keep it observational; put its exact C#/V# patient sources in case_refs (currently {refs!r}) and set card_tags: []. Do not expand the observation merely to justify the current cards {tags!r}. If a separate classification/prognostic/treatment/MRD/germline inference is needed, return that as a separate self-contained fact with its own card_tags."
+    if issue_code=="missing_card_evidence":
+        return base + "This fact makes a literature-dependent interpretive inference but has no adequate literature provenance. Keep the patient premises in case_refs and attach only exact supplied card tags that directly support the complete inference. Do not strip the interpretive conclusion merely to evade evidence review."
+    if issue_code=="irrelevant_card":
+        return base + f"One or more claimed cards are irrelevant to the proposition. Do not add extra wording merely to make those cards fit. Remove irrelevant card_tags from {tags!r}; if the remaining supplied evidence is insufficient, narrow or replace the fact accordingly."
+    if issue_code=="authority_mismatch":
+        return base + "The classification/guideline authority in the fact and the claimed evidence do not match. Preserve the intended authority and use only supplied cards from that authority, or correct the fact if the originating clinical conclusion itself used the wrong authority."
+    if issue_code=="incomplete_rule_support":
+        return base + "The claimed card set does not support the complete interpretive rule stated. Treat patient observations already stated in the fact as true premises; cards need only support the interpretation from those premises. Narrow the inference or correct the claimed card set without asking cards to prove patient-specific observations."
+    if issue_code=="scope_mismatch":
+        return base + "The claimed evidence is scoped to a different disease, alteration, treatment, MRD context, or other clinical setting. Correct the fact scope or use only supplied cards matching the stated context."
+    return base + "The interpretive inference is not supported by the claimed evidence. Keep case-derived premises in case_refs; repair the proposition and/or its card_tags without moving citations onto an unrelated observation or making a literature-dependent conclusion cardless."
+
+
 def _guard_fact_evidence(work:Path,profile:str|None,*,snapshot_key:str,candidates:list[dict],evidence:scheduler_primitives.EvidenceView,source:str)->None:
     ledger=_read_fact_ledger(work)
     new=runtime.facts_needing_evidence_check(ledger,snapshot_key,candidates)
@@ -569,7 +588,12 @@ def _guard_fact_evidence(work:Path,profile:str|None,*,snapshot_key:str,candidate
     for i,fact in enumerate(new,1):
         tags=list(fact.get("card_tags") or [])
         cid=f"C{i}"
-        check_facts.append({"candidate_id":cid,"fact":fact["fact"],"card_tags":tags})
+        check_facts.append({
+            "candidate_id":cid,
+            "fact":fact["fact"],
+            "case_refs":list(fact.get("case_refs") or []),
+            "card_tags":tags,
+        })
         claimed.update(tags)
     cards=_card_check_payload(evidence,claimed)
     available={row["card_tag"] for row in cards}
@@ -590,13 +614,13 @@ def _guard_fact_evidence(work:Path,profile:str|None,*,snapshot_key:str,candidate
     if rejections:
         fact_by_id={row["candidate_id"]:row for row in check_facts}
         issues=[]
-        for cid,issue in rejections:
+        for cid,issue_code,issue in rejections:
             row=fact_by_id[cid]
             excerpt=row["fact"] if len(row["fact"])<=120 else row["fact"][:117]+"..."
             issues.append(ValidationIssue(
-                f"local evidence check {cid} — {excerpt}",
+                f"local evidence check {cid} [{issue_code}] — {excerpt}",
                 issue,
-                f"repair this originating reportable fact and/or its card_tags {row['card_tags']!r} using only evidence supplied to the originating task; preserve unrelated accepted facts verbatim",
+                _fact_evidence_repair_instruction(issue_code,row),
             ))
         raise ValidationFailure(f"evidence support for {source}",issues)
 
@@ -681,8 +705,8 @@ def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
     icc=scheduler_engine.output_by_semantic_type(plan,outputs,"diagnosis.icc.state")
     who5=scheduler_engine.output_by_semantic_type(plan,outputs,"diagnosis.who5.state")
     routing=scheduler_engine.output_by_semantic_type(plan,outputs,"diagnosis.routing.state")
-    runtime.validate_icc_text(yaml.safe_dump(icc,sort_keys=False,allow_unicode=True,width=110),bootstrap_view.permitted_tags)
-    runtime.validate_who5_text(yaml.safe_dump(who5,sort_keys=False,allow_unicode=True,width=110),last_diag_view.permitted_tags)
+    runtime.validate_icc_text(yaml.safe_dump(icc,sort_keys=False,allow_unicode=True,width=110),bootstrap_view.permitted_tags,runtime.case_reference_ids(case))
+    runtime.validate_who5_text(yaml.safe_dump(who5,sort_keys=False,allow_unicode=True,width=110),last_diag_view.permitted_tags,runtime.case_reference_ids(case))
     derived=runtime.derive_cmcs(who5)
     if routing.get("final_cmcs")!=derived:
         raise StepFailure(f"diagnosis scheduler routing final_cmcs {routing.get('final_cmcs')!r} does not equal deterministic WHO5-derived CMCs {derived!r}")
@@ -757,7 +781,7 @@ def module_ptbg_scheduler(work:Path,stage:dict,profile:str|None)->None:
     for domain in scheduler_primitives.DOMAINS:
         state=scheduler_engine.output_by_semantic_type(scheduler_plan,outputs,semantic[domain])
         output=_domain_final(work,domain); text=yaml.safe_dump(state,sort_keys=False,allow_unicode=True,width=110)
-        view=ensure_evidence(domain); runtime.validate_domain_text(text,domain=domain,spec=ctx.specs[domain],permitted_tags=view.permitted_tags)
+        view=ensure_evidence(domain); runtime.validate_domain_text(text,domain=domain,spec=ctx.specs[domain],permitted_tags=view.permitted_tags,permitted_case_refs=runtime.case_reference_ids(case))
         _atomic_write(output,text)
 
 
@@ -796,9 +820,8 @@ def module_collect_fact_ledger(work:Path,stage:dict,profile:str|None)->None:
         if stale: detail.append(f"{len(stale)} withdrawn/replaced fact(s) remain incorrectly active")
         raise StepFailure("final scheduler states do not match the immutable fact ledger: "+"; ".join(detail))
     for row in active:
-        expected_status="passed" if row.get("card_tags") else "not_required_case_derived"
-        if row.get("evidence_check") != expected_status:
-            raise StepFailure(f"fact {row.get('fact_id')} has invalid evidence-check status {row.get('evidence_check')!r}")
+        if row.get("evidence_check") != "passed":
+            raise StepFailure(f"fact {row.get('fact_id')} has invalid evidence-check status {row.get('evidence_check')!r}; every reportable fact must pass local provenance/support review")
 
     published={"facts":runtime.reportable_active_facts(ledger)}
     _atomic_write(layout.synthesis(work,"fact-ledger-active.yaml",existing=False),yaml.safe_dump(published,sort_keys=False,allow_unicode=True,width=110))

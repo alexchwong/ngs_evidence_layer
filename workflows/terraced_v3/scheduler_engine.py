@@ -346,7 +346,7 @@ def _validator(name:str,*,ctx:prim.SchedulerContext,inputs:dict,item:Any):
     if name == "domain":
         domain=item; evidence=inputs.get("evidence")
         permitted=evidence.permitted_tags if isinstance(evidence,prim.EvidenceView) else prim.normalized_tags(inputs.get("normalized_evidence") or {})
-        return lambda text:runtime.validate_domain_text(text,domain=domain,spec=ctx.specs[domain],permitted_tags=permitted)
+        return lambda text:runtime.validate_domain_text(text,domain=domain,spec=ctx.specs[domain],permitted_tags=permitted,permitted_case_refs=runtime.case_reference_ids(ctx.case))
     if name == "normalized_evidence": return lambda text:prim.validate_normalized(text,evidence=inputs["evidence"],diagnosis_ids=set(d["diagnosis_id"] for d in ctx.diagnoses))
     if name == "variant_cross_domain":
         owners=prim.treatment_owner_map(ctx.case); include=owners[item["gene"]]==item["variant_id"]
@@ -356,9 +356,9 @@ def _validator(name:str,*,ctx:prim.SchedulerContext,inputs:dict,item:Any):
     if name == "global_patch": return lambda text:prim.validate_global_patch(text,ctx=ctx,evidence=inputs["evidence"])
     if name == "adaptive_cell_review": return lambda text:prim.validate_cell_review(text,item=item,ctx=ctx,evidence=inputs["evidence"])
     if name == "icc":
-        evidence=inputs["evidence"]; return lambda text:runtime.validate_icc_text(text,evidence.permitted_tags)
+        evidence=inputs["evidence"]; return lambda text:runtime.validate_icc_text(text,evidence.permitted_tags,runtime.case_reference_ids(ctx.case))
     if name == "who5":
-        evidence=inputs["evidence"]; return lambda text:runtime.validate_who5_text(text,evidence.permitted_tags)
+        evidence=inputs["evidence"]; return lambda text:runtime.validate_who5_text(text,evidence.permitted_tags,runtime.case_reference_ids(ctx.case))
     if name == "summary_plan":
         facts=inputs["facts"]; return lambda text:runtime.validate_summary_plan_text(text,facts)
     if name == "paraphrase_sentence":
@@ -451,7 +451,7 @@ def _run_diagnosis_loop(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,r
         output=root/step["id"]/f"pass-{pass_index:02d}-{phase}.yaml"; output.parent.mkdir(parents=True,exist_ok=True)
         source=f"scheduler:diagnosis:{plan.scheduler_id}:who5:pass-{pass_index:02d}-{phase}"
         def validator(text:str,e=evidence)->str:
-            message=runtime.validate_who5_text(text,e.permitted_tags)
+            message=runtime.validate_who5_text(text,e.permitted_tags,runtime.case_reference_ids(ctx.case))
             state_for_check=runtime.parse_yaml_mapping(text,"WHO5 diagnosis")
             if ctx.fact_guard is not None:
                 ctx.fact_guard(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state_for_check),evidence=e,source=source)

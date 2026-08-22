@@ -127,7 +127,7 @@ case → structure → corpus → default-diagnosis → domain PTBG
 
 The five PTBG schedulers are `domain`, `evidence-first`, `variant-centric`, `global-ledger`, and `adaptive-microtask`.
 
-Each surfaced diagnosis/PTBG fact acquires final `card_tags` when introduced. New cited facts undergo a minimal reject-only fact/card support check before acceptance; accepted fact text plus card attribution is immutable and later scheduler passes can only preserve it verbatim or withdraw/replace it.
+Each surfaced diagnosis/PTBG fact acquires final patient `case_refs` and literature `card_tags` when introduced. Every new reportable fact undergoes a minimal reject-only provenance/support check before acceptance; accepted fact text plus card attribution is immutable and later scheduler passes can only preserve it verbatim or withdraw/replace it.
 
 `default-summarization` explicitly decides fact include/omit, sentence order, merge and split, then paraphrases each planned sentence. A reject-only semantic-preservation check guards paraphrasing. Core derives sentence citations deterministically from `source_fact_ids` and creates `sentence-card-interpretations.yaml`; there is no end-stage semantic evidence alignment.
 
