@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "workflow_id": "terraced-v3",
+  "python_package": "workflows.terraced_v3",
+  "entrypoints": {
+    "rendering": "rendering",
+    "runtime": "runtime"
+  },
+  "skill": "workflows/terraced_v3/SKILL.md",
+  "pipeline": "workflows/terraced_v3/workflow.yaml",
+  "supported_modes": [
+    "ngs-report",
+    "nel-demo",
+    "nel-validate",
+    "nel-validate-function",
+    "nel-validate-brief"
+  ],
+  "status": "experimental",
+  "cloned_from": "terraced-v2",
+  "architecture": "typed-hard-fact-ledger"
+}

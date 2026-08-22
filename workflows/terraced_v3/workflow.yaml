@@ -1,0 +1,52 @@
+schema_version: 1
+workflow_id: terraced-v3
+pipeline:
+  - id: structure
+    module: structure_case
+    description: Structure immutable case and stable variant IDs
+  - id: corpus
+    module: initialise_corpus
+    description: Initialise deterministic whole-corpus card identity
+  - id: icc
+    module: icc_diagnosis
+    description: Run blind independent ICC diagnosis and freeze it
+  - id: who5
+    module: who5_stabilisation
+    description: Stabilise WHO5 diagnosis with deterministic multi-CMC routing
+  - id: clinical
+    module: clinical_tasks
+    description: Fill typed downstream hard-fact proformas with the selected scheduler
+  - id: evidence
+    module: evidence_alignment
+    description: Semantically align surfaced fact reasons to supporting cards
+  - id: prose
+    module: prose_synthesis
+    description: Losslessly synthesize locked cited facts into prose
+  - id: finalise
+    module: finalise_report
+    description: Render citations and package outputs
+invariants:
+  diagnosis_authority: WHO5
+  icc_blind_to_who5: true
+  icc_used_for_routing: false
+  cmc_source: deterministic_from_who5_schema_disease
+  diagnosis_cmc_history_visible_during_stabilisation: true
+  downstream_uses_final_cmcs_only: true
+  concurrent_diagnoses_supported: true
+  downstream_decision_scope: variant_or_gene_x_diagnosis
+  clinical_decisions_before_prose: true
+  evidence_alignment_uses_reason_as_semantic_bridge: true
+  sentence_to_fact_alignment: true
+  detected_variants_summary_prepended_invariant: true
+  scheduler_independent_pipeline_tail: true
+  run_root_true_case_input: case.md
+  generated_namespaces_numbered_by_creation_order: true
+  marking: package_only
+scheduler:
+  default: domain
+  implementations:
+    - domain
+    - evidence-first
+    - variant-centric
+    - global-ledger
+    - adaptive-microtask

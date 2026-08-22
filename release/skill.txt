@@ -18,6 +18,8 @@ scripts/core/rendering.py
 scripts/core/card_tags.py
 scripts/core/citations.py
 scripts/core/provenance.py
+scripts/core/validated_model_task.py
+scripts/core/syntax_repair/*
 schema/disease_vocabulary.json
 schema/ingestion_package_schema.json
 output/corpus/nel.corpus.json
@@ -64,3 +66,7 @@ examples/expected/03-ambiguous-disease.md
 examples/expected/04-genes-the-corpus-cannot-address.md
 examples/expected/05-germline-architecture.md
 examples/expected/06-sf3b1-diagnostic-adjudication.md
+workflows/terraced_v3/*
+workflows/terraced_v3/prompts/*
+workflows/terraced_v3/schedulers/*
+workflows/terraced_v3/tests/*
