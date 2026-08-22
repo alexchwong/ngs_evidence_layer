@@ -40,7 +40,7 @@ evidence_resolution:
   required: [authority, question]
   authorities: [icc, who5]
   rule: >-
-    Runs bounded diagnosis evidence resolution: numbered card-header line selection with
+    Runs bounded diagnosis evidence resolution: two-pass local CARD-ID selection (second pass over remaining cards, zero selections allowed),
     deterministic original-block extraction, statement/local-card pairing, deterministic local-label to runtime-tag resolution, and
     reasonable-support audit without whole-artifact semantic retry.
 

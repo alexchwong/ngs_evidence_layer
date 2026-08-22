@@ -2,22 +2,30 @@
 
 Question: {{question}}
 
-Select the card blocks that may be relevant to answering the question for this patient.
+{{pass_instruction}}
 
-Each line is numbered. Return only the line number of each relevant card's opening `<<<CARD nn>>>` header. Python will extract the complete original card block.
+Select the supplied card blocks that may be relevant to answering the question for this patient.
+
+Each card block has a local ID in its opening header, for example `<<<CARD 03>>>`. Return only those `CARD nn` IDs. Python will extract the complete original card blocks and resolve them deterministically.
 
 Rules:
-- select the opening header line only, not interpretation/body line numbers;
+- copy the local `CARD nn` ID exactly from the opening card header;
 - prefer inclusion when uncertain;
-- return at most {{max_cards}} card header line numbers;
+- return at most {{max_cards}} card IDs in this pass;
+- zero cards is valid: return `relevant_card_ids: []` when no supplied card may be relevant;
 - do not copy, summarize, rewrite, merge, or invent card text;
-- if no supplied card may be relevant, return exactly `NO_RELEVANT_CARDS`.
+- do not emit runtime `[card:...]` tags.
 
 Return YAML only:
 ```yaml
-relevant_card_header_lines:
-  - 1
-  - 10
+relevant_card_ids:
+  - CARD 03
+  - CARD 11
+```
+
+Or, when none are relevant:
+```yaml
+relevant_card_ids: []
 ```
 
 # Patient context

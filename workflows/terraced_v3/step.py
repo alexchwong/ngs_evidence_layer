@@ -332,8 +332,13 @@ def _model_call(work:Path,*,call_id:str,role:str,messages:list[dict[str,str]],ou
         raise Handoff(call_id,prompt_path,output)
 
     stagnation=validated_model_task.RetryStagnationGuard()
+    resumed_with_previous = previous is not None
     for attempt in range(1,attempts+1):
-        _status(f"  {call_id}: answering" if attempt==1 and previous is None else f"  {call_id}: retry {attempt-1 if previous is None else attempt}/{attempts-1}")
+        if attempt == 1 and not resumed_with_previous:
+            _status(f"  {call_id}: answering")
+        else:
+            retry_no = attempt if resumed_with_previous else attempt - 1
+            _status(f"  {call_id}: retry {retry_no}/{attempts-1}")
         call_messages=list(messages)
         if previous is not None:
             call_messages.extend([{"role":"assistant","content":previous},{"role":"user","content":last_error}])

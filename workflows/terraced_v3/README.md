@@ -115,9 +115,9 @@ Regardless of scheduler topology:
 - diagnosis may retain historical CMC evidence while stabilising;
 - downstream retrieval uses the final CMC set;
 - diagnosis evidence is authority-filtered by `corpus_filters.yaml` (WHO5 → Khoury 2022; ICC → Arber 2022 by default);
-- diagnosis uses three-pass evidence resolution: line-number relevance selection, statement/local-card pairing over the reduced bundle, then deterministic ID resolution plus binary reasonable-support audit;
+- diagnosis uses two-pass local-card-ID relevance selection (pass 2 sees only cards not selected in pass 1), followed by statement/local-card pairing over the union, deterministic ID resolution, and binary reasonable-support audit;
 - diagnosis models never generate immutable runtime card IDs during relevance selection or pairing; Python resolves local `CARD nn` labels to final `card_tags`;
-- PTBG clinical reasoning produces reportable `statement + reason + case_refs` with empty card fields; publication then performs line-number evidence reduction, local-card pairing, deterministic ID resolution and binary support audit;
+- PTBG clinical reasoning produces reportable `statement + reason + case_refs` with empty card fields; publication then performs the same two-pass local-card-ID relevance reduction, local-card pairing, deterministic ID resolution and binary support audit;
 - accepted statement text, reason, patient provenance and card attribution are immutable together; replacements receive a new statement ID;
 - summarization explicitly decides include/omit, sentence order, merge and split using immutable statement IDs; diagnosis statements cannot be omitted;
 - paraphrasing cannot change provenance and is followed by a reject-only semantic-preservation check;

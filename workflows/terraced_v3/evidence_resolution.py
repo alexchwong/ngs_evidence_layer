@@ -1,10 +1,10 @@
 """Small-context evidence resolution for terraced-v3 diagnosis tasks.
 
-The model never generates immutable card IDs during relevance selection or
-statement/card pairing. Relevance selection is by deterministic card-header line
-number; Python extracts the original card blocks. Candidate cards then receive
-ephemeral local labels for statement/card pairing, which Python maps back to runtime
-card tags before a separate reasonable-support review.
+The model never generates immutable runtime card IDs during relevance selection or
+statement/card pairing. Relevance selection uses deterministic local ``CARD nn`` IDs
+that are rendered with each complete original card block. A second pass reviews only
+the cards not selected in the first pass. Python maps the selected local IDs back to
+runtime card tags before a separate reasonable-support review.
 """
 from __future__ import annotations
 
@@ -110,52 +110,34 @@ def render_local_blocks(cards: list[dict]) -> tuple[str, dict[str, dict], dict[s
     return "\n\n".join(blocks), label_to_card, block_by_label
 
 
-def render_numbered_relevance_blocks(cards: list[dict]) -> tuple[str, dict[int, str]]:
-    """Render card blocks with stable physical line numbers for Pass-1 selection.
-
-    Only header line numbers are valid selections.  The model never copies a card
-    body or emits a local/runtime card identifier during relevance extraction.
-    """
-    raw, _label_to_card, _block_by_label = render_local_blocks(cards)
-    lines = raw.splitlines()
-    numbered: list[str] = []
-    header_line_to_label: dict[int, str] = {}
-    header_re = re.compile(r"^<<<(CARD \d{2})>>>$")
-    for line_no, line in enumerate(lines, 1):
-        match = header_re.fullmatch(line)
-        if match:
-            header_line_to_label[line_no] = match.group(1)
-        numbered.append(f"{line_no:04d} | {line}")
-    return "\n".join(numbered), header_line_to_label
+def render_relevance_blocks(cards: list[dict]) -> tuple[str, dict[str, dict], dict[str, str]]:
+    """Render complete card blocks keyed by deterministic local ``CARD nn`` IDs."""
+    return render_local_blocks(cards)
 
 
-def parse_relevance_output(text: str, *, header_line_to_label: dict[int, str], max_cards: int) -> list[str]:
-    cleaned = text.strip()
-    if cleaned == "NO_RELEVANT_CARDS":
-        return []
+def parse_relevance_output(text: str, *, allowed_card_ids: set[str], max_cards: int) -> list[str]:
     try:
-        doc = yaml.safe_load(cleaned)
+        doc = yaml.safe_load(text.strip())
     except yaml.YAMLError as exc:
         raise ValueError(f"relevance extraction must be valid YAML: {exc}") from exc
-    if not isinstance(doc, dict) or set(doc) != {"relevant_card_header_lines"}:
-        raise ValueError("relevance extraction must return exactly relevant_card_header_lines or NO_RELEVANT_CARDS")
-    rows = doc.get("relevant_card_header_lines")
+    if not isinstance(doc, dict) or set(doc) != {"relevant_card_ids"}:
+        raise ValueError("relevance extraction must return exactly relevant_card_ids")
+    rows = doc.get("relevant_card_ids")
     if not isinstance(rows, list):
-        raise ValueError("relevant_card_header_lines must be a list")
+        raise ValueError("relevant_card_ids must be a list; use [] when no cards are relevant")
     labels: list[str] = []
-    seen_lines: set[int] = set()
-    for i, line_no in enumerate(rows):
-        if not isinstance(line_no, int) or isinstance(line_no, bool):
-            raise ValueError(f"relevant_card_header_lines[{i}] must be an integer line number")
-        if line_no in seen_lines:
-            raise ValueError(f"relevance extraction duplicated header line {line_no}")
-        seen_lines.add(line_no)
-        label = header_line_to_label.get(line_no)
-        if label is None:
-            raise ValueError(f"line {line_no} is not the header line of a supplied card block")
+    seen: set[str] = set()
+    for i, label in enumerate(rows):
+        if not isinstance(label, str) or not _LOCAL_RE.fullmatch(label):
+            raise ValueError(f"relevant_card_ids[{i}] must copy one supplied CARD nn ID exactly")
+        if label not in allowed_card_ids:
+            raise ValueError(f"relevant_card_ids[{i}] uses unknown or unavailable card ID {label!r}")
+        if label in seen:
+            raise ValueError(f"relevance extraction duplicated card ID {label}")
+        seen.add(label)
         labels.append(label)
     if len(labels) > max_cards:
-        raise ValueError(f"relevance extraction returned {len(labels)} cards; maximum is {max_cards}")
+        raise ValueError(f"relevance extraction returned {len(labels)} cards; maximum per pass is {max_cards}")
     return labels
 
 
@@ -234,13 +216,14 @@ def localize_prior_state(value:Any, *, local:LocalEvidence)->Any:
     return walk(value)
 
 
-def build_relevance_prompt(*, question: str, case: dict, task_context: Any, cards_text: str, max_cards: int) -> str:
+def build_relevance_prompt(*, question: str, case: dict, task_context: Any, cards_text: str, max_cards: int, pass_instruction: str) -> str:
     template = (PROMPTS / "evidence_relevance_extract.md").read_text(encoding="utf-8")
     public_context=_without_card_tags(task_context)
     context = yaml.safe_dump(public_context, sort_keys=False, allow_unicode=True, width=110).rstrip() if public_context else "none"
     return (template
         .replace("{{question}}", question)
         .replace("{{max_cards}}", str(max_cards))
+        .replace("{{pass_instruction}}", pass_instruction)
         .replace("{{case}}", json.dumps(case, indent=2, ensure_ascii=False))
         .replace("{{task_context}}", context)
         .replace("{{cards}}", cards_text))
@@ -261,41 +244,78 @@ def select_relevant_cards(
     settings = settings or load_settings()
     filtered = filter_diagnosis_cards(evidence.cards, authority, settings=settings) if authority in {"icc", "who5"} else list(evidence.cards)
     max_cards = int(settings["evidence_resolution"]["max_relevant_cards"])
-    _cards_text, label_to_card, _block_by_label = render_local_blocks(filtered)
-    cards_text, header_line_to_label = render_numbered_relevance_blocks(filtered)
+    _cards_text, label_to_card, block_by_label = render_relevance_blocks(filtered)
     root.mkdir(parents=True, exist_ok=True)
     if not filtered:
-        (root / "relevance.txt").write_text("NO_RELEVANT_CARDS\n", encoding="utf-8")
+        empty = "relevant_card_ids: []\n"
+        (root / "relevance-pass-1.yaml").write_text(empty, encoding="utf-8")
+        (root / "relevance-pass-2.yaml").write_text(empty, encoding="utf-8")
         ctx.status(f"  {call_id}-relevance: 0 authority-filtered cards")
         return local_evidence(evidence, [])
-    prompt = build_relevance_prompt(
-        question=question,
-        case=ctx.case,
-        task_context=task_context,
-        cards_text=cards_text,
-        max_cards=max_cards,
-    )
-    output = root / "relevance.txt"
-    validator = lambda text: (parse_relevance_output(text, header_line_to_label=header_line_to_label, max_cards=max_cards) and "relevance extraction validated") or "relevance extraction validated"
-    ctx.call_model(
-        call_id=f"{call_id}-relevance",
-        role=role,
-        prompt=prompt,
-        output=output,
-        validator=validator,
-        format_name="text",
-    )
-    labels = parse_relevance_output(ctx.read_text(output), header_line_to_label=header_line_to_label, max_cards=max_cards)
-    line_by_label = {label: line_no for line_no, label in header_line_to_label.items()}
-    selected_header_lines = [line_by_label[label] for label in labels]
+
+    all_labels = list(label_to_card)
+
+    def run_pass(*, pass_no: int, candidate_labels: list[str]) -> list[str]:
+        if not candidate_labels:
+            output = root / f"relevance-pass-{pass_no}.yaml"
+            output.write_text("relevant_card_ids: []\n", encoding="utf-8")
+            return []
+        cards_text = "\n\n".join(block_by_label[label] for label in candidate_labels)
+        pass_instruction = (
+            "First relevance pass over the supplied candidate cards."
+            if pass_no == 1
+            else "Second relevance pass over only cards not selected in pass 1. Select any additional relevant cards; selecting zero cards is valid."
+        )
+        prompt = build_relevance_prompt(
+            question=question,
+            case=ctx.case,
+            task_context=task_context,
+            cards_text=cards_text,
+            max_cards=max_cards,
+            pass_instruction=pass_instruction,
+        )
+        output = root / f"relevance-pass-{pass_no}.yaml"
+        allowed = set(candidate_labels)
+        validator = lambda text: (parse_relevance_output(text, allowed_card_ids=allowed, max_cards=max_cards) and "relevance extraction validated") or "relevance extraction validated"
+        ctx.call_model(
+            call_id=f"{call_id}-relevance-pass-{pass_no}",
+            role=role,
+            prompt=prompt,
+            output=output,
+            validator=validator,
+            format_name="yaml",
+        )
+        return parse_relevance_output(ctx.read_text(output), allowed_card_ids=allowed, max_cards=max_cards)
+
+    pass_1_labels = run_pass(pass_no=1, candidate_labels=all_labels)
+    pass_1_set = set(pass_1_labels)
+    remaining_labels = [label for label in all_labels if label not in pass_1_set]
+    pass_2_labels = run_pass(pass_no=2, candidate_labels=remaining_labels)
+    labels = pass_1_labels + pass_2_labels
     extracted = [label_to_card[label] for label in labels]
     selected = _retain_prior_cards(extracted,evidence=evidence,prior_state=task_context.get("prior_state") if isinstance(task_context,dict) else None)
     (root / "relevance-selection.yaml").write_text(
-        yaml.safe_dump({"authority": authority or evidence.domain, "input_card_count": len(filtered), "selected_header_lines": selected_header_lines, "extracted_labels": labels, "extracted_card_count": len(extracted), "final_card_count": len(selected), "prior_cards_retained": len(selected)-len(extracted)}, sort_keys=False),
+        yaml.safe_dump({
+            "authority": authority or evidence.domain,
+            "input_card_count": len(filtered),
+            "max_relevant_cards_per_pass": max_cards,
+            "pass_1_selected_card_ids": pass_1_labels,
+            "pass_1_selected_count": len(pass_1_labels),
+            "pass_2_input_card_count": len(remaining_labels),
+            "pass_2_selected_card_ids": pass_2_labels,
+            "pass_2_selected_count": len(pass_2_labels),
+            "selected_card_ids": labels,
+            "extracted_card_count": len(extracted),
+            "final_card_count": len(selected),
+            "prior_cards_retained": len(selected)-len(extracted),
+        }, sort_keys=False),
         encoding="utf-8",
     )
     suffix=f" (+{len(selected)-len(extracted)} prior)" if len(selected)>len(extracted) else ""
-    ctx.status(f"  {call_id}: evidence relevance {len(filtered)} -> {len(extracted)} extracted cards{suffix}")
+    ctx.status(
+        f"  {call_id}: evidence relevance {len(filtered)} -> {len(pass_1_labels)} pass-1 + "
+        f"{len(pass_2_labels)} pass-2 = {len(extracted)} extracted cards{suffix}"
+    )
     return local_evidence(evidence, selected)
 
 
