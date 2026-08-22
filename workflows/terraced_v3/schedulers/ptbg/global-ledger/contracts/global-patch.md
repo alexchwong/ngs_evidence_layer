@@ -19,3 +19,5 @@ changes:
 Angle-bracketed text describes the required content only. It is not a preferred review outcome and must never be copied as the adjudication.
 
 Return `changes: []` when no domain requires replacement. A replacement is a complete canonical state for that domain.
+
+Within a replacement domain, preserve every still-correct surfaced `fact` and its `card_tags` exactly. A changed fact text or changed card attribution is treated by core as a new reportable fact.

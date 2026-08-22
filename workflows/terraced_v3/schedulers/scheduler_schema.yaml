@@ -32,9 +32,6 @@ step:
     diagnosis_loop:
       phase: diagnosis
       required: [prompt, loop, output]
-    summarization_loop:
-      phase: summarization
-      required: [prompts, loop, output]
 
 prompt_injection:
   supported:
@@ -75,12 +72,12 @@ runtime_sources:
 model_validators:
   diagnosis: [icc, who5]
   ptbg: [domain, normalized_evidence, variant_cross_domain, germline_clinical_picture, global_ledger, global_patch, adaptive_cell_review]
-  summarization: [summary_text, sentence_alignment, summary_pairs]
+  summarization: [summary_plan, paraphrase_sentence]
 
 operations:
   diagnosis: [publish_minimal_diagnosis]
   ptbg: [assemble_variant_outputs, apply_domain_patch, select_high_impact, apply_cell_reviews, publish_domains]
-  summarization: [publish_aligned_summary, publish_summary_pairs]
+  summarization: [prepare_paraphrase_items, publish_summary]
 
 safety:
   - Scheduler YAML may declare information flow but may not execute arbitrary Python or expressions.

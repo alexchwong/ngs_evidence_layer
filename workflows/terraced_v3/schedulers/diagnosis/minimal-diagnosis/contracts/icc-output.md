@@ -2,10 +2,10 @@
 id: diagnosis.minimal.icc-output
 semantic_type: diagnosis.icc.state
 format: yaml
-provides: ["diagnoses[].diagnosis_id", "diagnoses[].status", "diagnoses[].diagnosis", "diagnoses[].fact", "diagnoses[].reason", "diagnoses[].candidate_card_tags"]
+provides: ["diagnoses[].diagnosis_id", "diagnoses[].status", "diagnoses[].diagnosis", "diagnoses[].fact", "diagnoses[].reason", "diagnoses[].card_tags"]
 requires: []
 validator: icc
-runtime_invariants: [sequential_icc_ids, supplied_candidate_card_tags, blind_to_who5]
+runtime_invariants: [sequential_icc_ids, supplied_card_tags, blind_to_who5]
 ---
 # Independent ICC diagnosis output
 
@@ -18,9 +18,9 @@ diagnoses:
     diagnosis: "<ICC diagnostic label>"
     fact: "<concise patient-level ICC diagnostic statement>"
     reason: "<short auditable clinical justification>"
-    candidate_card_tags: []
+    card_tags: []
 ```
 
 Angle-bracketed text describes required content only. It is not case information and must never be copied as a clinical conclusion.
 
-Allowed `status`: `established`, `indeterminate`. Assign `ICC1`, `ICC2`, ... sequentially. `fact` is a concise reportable proposition ending with a full stop. Candidate card tags are hints only and must refer to cards supplied to this task.
+Allowed `status`: `established`, `indeterminate`. Assign `ICC1`, `ICC2`, ... sequentially. `fact` is a concise reportable proposition ending with a full stop. `card_tags` are the final claimed evidence provenance for the fact and must use only exact cards supplied to this task; use `[]` only for a genuinely case-derived proposition.

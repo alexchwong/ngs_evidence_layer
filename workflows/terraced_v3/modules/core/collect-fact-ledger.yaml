@@ -1,9 +1,8 @@
 module:
-  id: core.evidence-alignment
-  handler: evidence_alignment
-  description: Align surfaced fact reasons to supporting cards and freeze the cited fact ledger.
+  id: core.collect-fact-ledger
+  handler: collect_fact_ledger
+  description: Deterministically verify final scheduler states against the incrementally reconciled immutable fact ledger and publish active reportable facts.
 inputs:
-  card_identity: {contract: core.cards.identity}
   diagnosis_who5: {contract: core.requirements.diagnosis-who5}
   diagnosis_icc: {contract: core.requirements.diagnosis-icc}
   prognosis: {contract: core.requirements.ptbg-prognosis}

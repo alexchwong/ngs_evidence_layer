@@ -1,22 +1,25 @@
 ---
 id: core.provenance.sentence-card-interpretations
-semantic_type: report.sentence_card_interpretations
+semantic_type: provenance.sentence_card_interpretations
 format: yaml
-provides: ["sentences[].sentence_id", "sentences[].domain", "sentences[].sentence", "sentences[].fact_ids", "sentences[].cards[].card_tag", "sentences[].cards[].interpretation"]
+provides: ["sentences[].sentence_id", "sentences[].domain", "sentences[].sentence", "sentences[].source_fact_ids", "sentences[].cards[].card_tag", "sentences[].cards[].interpretation"]
 requires: []
+validator: deterministic
 runtime_invariants: [deterministic_from_summary_card_tags]
 ---
-# Sentence/card-interpretation provenance
+# Sentence-to-card provenance
 
-Deterministically generated intermediate pairing every final report sentence with its matched fact IDs and the interpretations of the inherited card tags. No model creates or edits this mapping.
+Core derives this artifact deterministically from the canonical summary and card corpus. It contains no model-generated evidence alignment.
 
 ```yaml
 sentences:
   - sentence_id: treatment-1
     domain: treatment
-    sentence: "FLT3 is therapeutically actionable."
-    fact_ids: [treatment-target-FLT3-DX1]
+    sentence: "A report sentence."
+    source_fact_ids: [F0007]
     cards:
       - card_tag: "[card:0123456789ab]"
-        interpretation: "..."
+        interpretation: "The exact card interpretation."
 ```
+
+`source_fact_ids` are the immutable cited facts used to construct the sentence. `cards` is the deterministic ordered expansion of the sentence's inherited `card_tags`.

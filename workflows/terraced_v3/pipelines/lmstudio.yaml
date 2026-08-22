@@ -22,7 +22,7 @@ models:
     model: qwen3-coder-next
     temperature: 0.0
     max_tokens: 65536
-  evidence_alignment:
+  fact_evidence_check:
     model: qwen3-coder-next
     temperature: 0.0
     max_tokens: 32768
@@ -30,7 +30,11 @@ models:
     model: qwen3-coder-next
     temperature: 0.0
     max_tokens: 32768
-  summarization_review:
+  paraphrasing:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  semantic_preservation_check:
     model: qwen3-coder-next
     temperature: 0.0
     max_tokens: 32768
@@ -72,10 +76,9 @@ modules:
     who5: diagnosis.who5
     routing: diagnosis.routing
     card_identity: corpus.card_identity
-- id: evidence
-  uses: core.evidence-alignment
+- id: facts
+  uses: core.collect-fact-ledger
   inputs:
-    card_identity: corpus.card_identity
     diagnosis_who5: diagnosis.who5
     diagnosis_icc: diagnosis.icc
     prognosis: ptbg.prognosis
@@ -85,7 +88,7 @@ modules:
 - id: summarization
   uses: scheduler.summarization.default-summarization
   inputs:
-    cited_facts: evidence.cited_facts
+    cited_facts: facts.cited_facts
 - id: finalise
   uses: core.finalise-report
   inputs:

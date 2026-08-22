@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import contextlib
+import hashlib
 import json
 import shutil
 import sys
@@ -22,6 +24,7 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.core import citations, corpus
 from scripts.core import retrieval as core_retrieval
 from scripts.core import validated_model_task
+from scripts.core.validated_model_task import ValidationFailure, ValidationIssue
 from scripts.core import syntax_repair
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
@@ -31,6 +34,7 @@ from workflows.terraced_v3 import card_identity, contract_registry, layout, mode
 from workflows.terraced_v3 import scheduler_engine, scheduler_registry, scheduler_primitives
 
 WORKFLOW_ID = "terraced-v3"
+RUN_STATE_SCHEMA_VERSION = 3
 HERE = Path(__file__).resolve().parent
 PROMPTS = HERE / "prompts"
 SETTINGS_PATH = HERE / "settings.json"
@@ -125,11 +129,22 @@ def _require_work(work:Path)->dict:
     state=read_workflow_state(work)
     if state.get("workflow_id")!=WORKFLOW_ID:
         raise StepFailure(f"work directory is bound to {state.get('workflow_id')!r}, not {WORKFLOW_ID!r}")
+    # The immutable cited-fact ledger changes checkpoint semantics.  Refuse
+    # incompatible pre-refactor runs immediately instead of discovering the
+    # mismatch after some modules have already resumed.
+    _load_run_state(work)
     return state
 
 
 def _run_state_path(work:Path)->Path: return layout.state(work,"terraced-v3-run.json",existing=False)
-def _load_run_state(work:Path)->dict: return json.loads(_read(_run_state_path(work)))
+def _load_run_state(work:Path)->dict:
+    doc=json.loads(_read(_run_state_path(work)))
+    if doc.get("schema_version") != RUN_STATE_SCHEMA_VERSION:
+        raise StepFailure(
+            f"incompatible terraced-v3 run-state schema {doc.get('schema_version')!r}; "
+            f"this fact-ledger architecture requires schema {RUN_STATE_SCHEMA_VERSION}. Start a fresh terraced-v3 run."
+        )
+    return doc
 def _save_run_state(work:Path,state:dict)->None: _atomic_write(_run_state_path(work),json.dumps(state,indent=2,ensure_ascii=False)+"\n")
 def _pipeline_id(work:Path, selector:str|None=None)->str:
     if selector:
@@ -284,27 +299,41 @@ def _prepare_candidate(*,raw:str,structured_format:str|None,binding,root:Path,ca
 
 def _model_call(work:Path,*,call_id:str,role:str,messages:list[dict[str,str]],output:Path,validator,profile:str|None,structured_format:str|None=None)->str:
     binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,"syntax_repair"); root,prompt_path,messages_path=_bundle_paths(work,call_id); attempts=int(load_settings().get("structural_attempts",10))
-    if binding.is_self:
-        error=None
-        if output.is_file():
-            try:
-                candidate,repairs=_prepare_candidate(raw=_read(output),structured_format=structured_format,binding=syntax_binding,root=root,call_id=call_id)
-                msg=validator(candidate)
-                _atomic_write(output,candidate)
-                if repairs: _atomic_write(root/"deterministic-repairs.txt","\n".join(repairs)+"\n")
-                _atomic_write(root/"validated.txt",msg+"\n"); return msg
-            except Handoff:
-                raise
-            except (ValueError,OSError,KeyError) as exc:
-                error=validated_model_task.retry_instruction(exc); _atomic_write(root/"attempt-self.validation.txt",error+"\n")
+    last_error=""; previous=None
+
+    # Resume always re-enters the normal model-call validation boundary.  This is
+    # essential when a nested reject-only guard (for example the local fact/card
+    # support checker) invalidates an already-written originating artifact: the
+    # originating task must receive correction feedback rather than failing outside
+    # its retry loop.
+    if output.is_file():
+        candidate=None
+        try:
+            candidate,repairs=_prepare_candidate(raw=_read(output),structured_format=structured_format,binding=syntax_binding,root=root,call_id=call_id)
+            msg=validator(candidate)
+            _atomic_write(output,candidate)
+            if repairs: _atomic_write(root/"deterministic-repairs.txt","\n".join(repairs)+"\n")
+            _atomic_write(root/"validated.txt",msg+"\n"); return msg
+        except Handoff:
+            raise
+        except (ValueError,OSError,KeyError) as exc:
+            previous=candidate if candidate is not None else _read(output)
+            last_error=validated_model_task.retry_instruction(exc)
+            _atomic_write(root/"attempt-resume.validation.txt",last_error+"\n")
+            if binding.is_self:
                 _status(f"  {call_id}: validation failed; correction handoff required")
+                _atomic_write(messages_path,json.dumps(messages,indent=2,ensure_ascii=False)+"\n")
+                _atomic_write(prompt_path,_render_bundle(call_id,messages,output,last_error))
+                raise Handoff(call_id,prompt_path,output)
+
+    if binding.is_self:
         _atomic_write(messages_path,json.dumps(messages,indent=2,ensure_ascii=False)+"\n")
-        _atomic_write(prompt_path,_render_bundle(call_id,messages,output,error))
+        _atomic_write(prompt_path,_render_bundle(call_id,messages,output,None))
         raise Handoff(call_id,prompt_path,output)
 
-    last_error=""; previous=None; stagnation=validated_model_task.RetryStagnationGuard()
+    stagnation=validated_model_task.RetryStagnationGuard()
     for attempt in range(1,attempts+1):
-        _status(f"  {call_id}: answering" if attempt==1 else f"  {call_id}: retry {attempt-1}/{attempts-1}")
+        _status(f"  {call_id}: answering" if attempt==1 and previous is None else f"  {call_id}: retry {attempt-1 if previous is None else attempt}/{attempts-1}")
         call_messages=list(messages)
         if previous is not None:
             call_messages.extend([{"role":"assistant","content":previous},{"role":"user","content":last_error}])
@@ -391,7 +420,7 @@ def run_setup(args:argparse.Namespace)->int:
     if not case_path.is_file() or not _read(case_path).strip(): raise StepFailure(f"authoritative case.md is missing or empty: {case_path}")
     if demo_expected: shutil.copyfile(demo_expected,layout.setup(work,"demo-expected.md",existing=False))
     _save_run_state(work,{
-        "schema_version":2,"workflow_id":WORKFLOW_ID,"mode":args.mode,"validation_case":args.case_id,
+        "schema_version":RUN_STATE_SCHEMA_VERSION,"workflow_id":WORKFLOW_ID,"mode":args.mode,"validation_case":args.case_id,
         "pipeline":pipeline_id,"schedulers":schedulers,"created_at":datetime.now(timezone.utc).isoformat(),
     })
     _atomic_write(layout.setup(work,"pipeline-resolved.yaml",existing=False),yaml.safe_dump(plan.doc,sort_keys=False,allow_unicode=True,width=110))
@@ -499,6 +528,114 @@ def _permitted_tags(cards:list[dict],manifest:dict)->set[str]:
     by_id=card_identity.tag_by_id(manifest); return {by_id[c["card_id"]] for c in cards}
 
 
+def _fact_ledger_path(work:Path)->Path:
+    return layout.synthesis(work,"fact-ledger.yaml",existing=False)
+
+
+def _read_fact_ledger(work:Path)->dict:
+    return runtime.load_fact_ledger(layout.synthesis(work,"fact-ledger.yaml"))
+
+
+def _commit_fact_snapshot(work:Path,*,snapshot_key:str,candidates:list[dict],source:str)->None:
+    ledger=_read_fact_ledger(work)
+    runtime.reconcile_fact_snapshot(ledger,snapshot_key,candidates,source=source)
+    _atomic_write(_fact_ledger_path(work),yaml.safe_dump(ledger,sort_keys=False,allow_unicode=True,width=110))
+
+
+def _card_check_payload(evidence:scheduler_primitives.EvidenceView,claimed_tags:set[str])->list[dict]:
+    tag_by_id=card_identity.tag_by_id(evidence.manifest); rows=[]
+    for card in evidence.cards:
+        raw=tag_by_id.get(card.get("card_id"))
+        token=f"[card:{raw}]" if raw else None
+        if token not in claimed_tags: continue
+        rows.append({
+            "card_tag":token,
+            "category":card.get("category"),
+            "genes":list(card.get("genes") or []),
+            "diseases":list(card.get("diseases") or []),
+            "evidence_tier":card.get("evidence_tier"),
+            "interpretation":card.get("interpretation"),
+            "locator":card.get("locator"),
+            "secondary_citation":card.get("secondary_citation"),
+        })
+    return rows
+
+
+def _guard_fact_evidence(work:Path,profile:str|None,*,snapshot_key:str,candidates:list[dict],evidence:scheduler_primitives.EvidenceView,source:str)->None:
+    ledger=_read_fact_ledger(work)
+    new=runtime.facts_needing_evidence_check(ledger,snapshot_key,candidates)
+    if not new: return
+    check_facts=[]; claimed=set()
+    for i,fact in enumerate(new,1):
+        tags=list(fact.get("card_tags") or [])
+        cid=f"C{i}"
+        check_facts.append({"candidate_id":cid,"fact":fact["fact"],"card_tags":tags})
+        claimed.update(tags)
+    cards=_card_check_payload(evidence,claimed)
+    available={row["card_tag"] for row in cards}
+    missing=sorted(claimed-available)
+    if missing:
+        raise ValueError(f"local evidence check cannot find claimed card tag(s) in the originating task evidence: {missing}")
+    payload={"facts":check_facts,"cards":cards}
+    digest=hashlib.sha256(json.dumps(payload,sort_keys=True,ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
+    call_id=f"fact-evidence-{_safe_slug(snapshot_key)}-{digest}"
+    root,_,_=_bundle_paths(work,call_id); output=root/"output.yaml"
+    template=_read(PROMPTS/"fact_evidence_check.md")
+    contract=contract_registry.load("core.facts.evidence-check").model_text
+    prompt=template.replace("{{output_contract}}",contract)+"\n\n# Facts and their claimed cards\n```yaml\n"+yaml.safe_dump(payload,sort_keys=False,allow_unicode=True,width=110)+"```\n"
+    messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
+    ids=[row["candidate_id"] for row in check_facts]
+    _model_call(work,call_id=call_id,role="fact_evidence_check",messages=messages,output=output,validator=lambda text:runtime.validate_fact_evidence_check_text(text,ids),profile=profile,structured_format="yaml")
+    rejections=runtime.fact_evidence_rejections(_read(output))
+    if rejections:
+        fact_by_id={row["candidate_id"]:row for row in check_facts}
+        issues=[]
+        for cid,issue in rejections:
+            row=fact_by_id[cid]
+            excerpt=row["fact"] if len(row["fact"])<=120 else row["fact"][:117]+"..."
+            issues.append(ValidationIssue(
+                f"local evidence check {cid} — {excerpt}",
+                issue,
+                f"repair this originating reportable fact and/or its card_tags {row['card_tags']!r} using only evidence supplied to the originating task; preserve unrelated accepted facts verbatim",
+            ))
+        raise ValidationFailure(f"evidence support for {source}",issues)
+
+
+def _guard_paraphrase(work:Path,profile:str|None,*,sentence_plan:dict,sentence:str,source:str)->None:
+    payload={
+        "draft_sentence":sentence_plan["draft_sentence"],
+        "source_facts":sentence_plan["source_facts"],
+        "split_source_fact_ids":sentence_plan.get("split_source_fact_ids") or [],
+        "paraphrased_sentence":sentence,
+    }
+    digest=hashlib.sha256(json.dumps(payload,sort_keys=True,ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
+    call_id=f"paraphrase-check-{digest}"
+    root,_,_=_bundle_paths(work,call_id); output=root/"output.yaml"
+    template=_read(PROMPTS/"paraphrase_preservation_check.md")
+    contract=contract_registry.load("core.report.paraphrase-check").model_text
+    prompt=template.replace("{{output_contract}}",contract)+"\n\n# Planned meaning and paraphrased sentence\n```yaml\n"+yaml.safe_dump(payload,sort_keys=False,allow_unicode=True,width=110)+"```\n"
+    messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
+    _model_call(work,call_id=call_id,role="semantic_preservation_check",messages=messages,output=output,validator=runtime.validate_semantic_preservation_check_text,profile=profile,structured_format="yaml")
+    result=runtime.parse_yaml_mapping(_read(output),"paraphrase semantic-preservation check")
+    if result["preserved"] is False:
+        raise ValidationFailure(
+            f"semantic preservation for {source}",
+            [ValidationIssue(
+                "paraphrased sentence",
+                result["issue"],
+                "rewrite the sentence so it is self-contained, preserves the complete planned meaning, preserves every unsplit source fact, and adds no new clinical proposition",
+            )],
+        )
+
+
+def _fact_callbacks(work:Path,profile:str|None):
+    return (
+        lambda **kwargs:_guard_fact_evidence(work,profile,**kwargs),
+        lambda **kwargs:_commit_fact_snapshot(work,**kwargs),
+        lambda **kwargs:_guard_paraphrase(work,profile,**kwargs),
+    )
+
+
 def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
     uses=str(stage.get("uses") or "")
     scheduler_name=uses.split(".",2)[2] if uses.startswith("scheduler.diagnosis.") else (_load_run_state(work).get("schedulers") or {}).get("diagnosis")
@@ -533,9 +670,11 @@ def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
         "bootstrap_evidence":bootstrap_view,
         "max_who5_passes":int(load_settings().get("max_who5_passes",7)),
     }
+    fact_guard,fact_commit,paraphrase_guard=_fact_callbacks(work,profile)
     ctx=scheduler_primitives.SchedulerContext(
         work=work,case=case,diagnoses=[],final_cmcs=[],pipeline_id=_pipeline_id(work,profile),call_model=call_model,
-        ensure_evidence=empty_domain,read_text=_read,write_text=_atomic_write,status=_status,phase="diagnosis",values=values,ensure_diagnosis_evidence=ensure_diag
+        ensure_evidence=empty_domain,read_text=_read,write_text=_atomic_write,status=_status,phase="diagnosis",values=values,ensure_diagnosis_evidence=ensure_diag,
+        fact_guard=fact_guard,fact_commit=fact_commit,paraphrase_guard=paraphrase_guard
     )
     _status(f"  diagnosis scheduler: {scheduler_name} — {plan.description}")
     outputs=scheduler_engine.execute(plan,ctx)
@@ -606,9 +745,11 @@ def module_ptbg_scheduler(work:Path,stage:dict,profile:str|None)->None:
         messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
         _model_call(work,call_id=call_id,role=role,messages=messages,output=output,validator=validator,profile=profile,structured_format=None if format_name=="text" else format_name)
 
+    fact_guard,fact_commit,paraphrase_guard=_fact_callbacks(work,profile)
     ctx=scheduler_primitives.SchedulerContext(
         work=work,case=case,diagnoses=diagnoses,final_cmcs=routing["final_cmcs"],pipeline_id=_pipeline_id(work,profile),
-        call_model=call_model,ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,phase="ptbg"
+        call_model=call_model,ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,phase="ptbg",
+        fact_guard=fact_guard,fact_commit=fact_commit,paraphrase_guard=paraphrase_guard
     )
     _status(f"  PTBG scheduler: {scheduler_name} — {scheduler_plan.description}")
     outputs=scheduler_engine.execute(scheduler_plan,ctx)
@@ -631,41 +772,36 @@ def _visible_ids(work:Path,name:str)->set[str]:
     return {r["card_id"] for r in json.loads(_read(path)).get("tags") or []}
 
 
-def _permitted_by_fact(work:Path,name:str,facts:list[dict],manifest:dict)->dict[str,set[str]]:
-    visible=_visible_ids(work,name); cards=[c for c in _load_bundle_cards(work,name) if c.get("card_id") in visible]; tag_by_id=card_identity.tag_by_id(manifest); result={}
-    for fact in facts:
-        dx_ids=set((fact.get("subject") or {}).get("diagnosis_ids") or []); allowed=set()
-        for card in cards:
-            card_scope=card.get("matched_diagnosis_ids")
-            if dx_ids and card_scope is not None and not (dx_ids & set(card_scope or [])): continue
-            allowed.add(tag_by_id[card["card_id"]])
-        result[fact["fact_id"]]=allowed
-    return result
+def module_collect_fact_ledger(work:Path,stage:dict,profile:str|None)->None:
+    """Publish the active immutable fact ledger after deterministic consistency checks."""
+    del stage,profile
+    ledger=_read_fact_ledger(work)
+    active=runtime.active_ledger_facts(ledger)
+    if not active:
+        raise StepFailure("fact ledger is empty; fact-producing scheduler outputs must be locally evidence-checked and reconciled before collection")
 
+    who5=runtime.parse_yaml_mapping(_read(_who5_final(work)),"WHO5 diagnosis")
+    icc=runtime.parse_yaml_mapping(_read(_icc_final(work)),"ICC diagnosis")
+    expected=runtime.facts_from_who5(who5)+runtime.facts_from_icc(icc)
+    for domain in scheduler_primitives.DOMAINS:
+        expected.extend(runtime.facts_from_domain(domain,runtime.parse_yaml_mapping(_read(_domain_final(work,domain)),f"{domain} task")))
 
-def _align_fact_group(work:Path,name:str,facts:list[dict],manifest:dict,profile:str|None)->list[dict]:
-    if not facts: return []
-    permitted=_permitted_by_fact(work,name,facts,manifest); cards=[c for c in _load_bundle_cards(work,name) if c.get("card_id") in _visible_ids(work,name)]
-    output=layout.synthesis(work,f"alignment-{name}.yaml",existing=False)
-    input_facts=[{k:f[k] for k in ("fact_id","domain","subject","decision","fact","reason","candidate_card_tags")} for f in facts]
-    template=_read(PROMPTS/"evidence_alignment.md")
-    contract=contract_registry.load("core.evidence.alignment-output").model_text
-    prompt=template.replace("{{output_contract}}",contract)+"\n\n# Surfaced facts\n```yaml\n"+yaml.safe_dump({"facts":input_facts},sort_keys=False,allow_unicode=True,width=110)+"```\n\n# Evidence cards\n"+_render_cards(cards,manifest)
-    messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
-    _model_call(work,call_id=f"align-{name}",role="evidence_alignment",messages=messages,output=output,validator=lambda t:runtime.validate_evidence_alignment_text(t,facts,permitted),profile=profile,structured_format="yaml")
-    return runtime.apply_alignment(facts,runtime.parse_yaml_mapping(_read(output),"evidence alignment"))
+    expected_counts=Counter(runtime.fact_signature(row) for row in expected)
+    active_counts=Counter(runtime.fact_signature(row) for row in active)
+    if expected_counts != active_counts:
+        missing=list((expected_counts-active_counts).elements())
+        stale=list((active_counts-expected_counts).elements())
+        detail=[]
+        if missing: detail.append(f"{len(missing)} final reportable fact(s) are missing from the active ledger")
+        if stale: detail.append(f"{len(stale)} withdrawn/replaced fact(s) remain incorrectly active")
+        raise StepFailure("final scheduler states do not match the immutable fact ledger: "+"; ".join(detail))
+    for row in active:
+        expected_status="passed" if row.get("card_tags") else "not_required_case_derived"
+        if row.get("evidence_check") != expected_status:
+            raise StepFailure(f"fact {row.get('fact_id')} has invalid evidence-check status {row.get('evidence_check')!r}")
 
-
-def module_evidence_alignment(work:Path,stage:dict,profile:str|None)->None:
-    del stage; manifest=_configure_manifest(work); who5=runtime.parse_yaml_mapping(_read(_who5_final(work)),"WHO5 diagnosis"); icc=runtime.parse_yaml_mapping(_read(_icc_final(work)),"ICC diagnosis")
-    raw_groups={"diagnosis":runtime.facts_from_who5(who5),"icc":runtime.facts_from_icc(icc)}
-    for domain in ("prognosis","treatment","biomarker","germline"):
-        raw_groups[domain]=runtime.facts_from_domain(domain,runtime.parse_yaml_mapping(_read(_domain_final(work,domain)),f"{domain} task"))
-    raw=[f for name in ("diagnosis","icc","prognosis","treatment","biomarker","germline") for f in raw_groups[name]]; _atomic_write(layout.synthesis(work,"fact-ledger-raw.yaml",existing=False),yaml.safe_dump({"facts":raw},sort_keys=False,allow_unicode=True,width=110))
-    cited=[]
-    for name in ("diagnosis","icc","prognosis","treatment","biomarker","germline"):
-        cited.extend(_align_fact_group(work,name,raw_groups[name],manifest,profile))
-    _atomic_write(layout.synthesis(work,"fact-ledger-cited.yaml",existing=False),yaml.safe_dump({"facts":cited},sort_keys=False,allow_unicode=True,width=110))
+    published={"facts":runtime.reportable_active_facts(ledger)}
+    _atomic_write(layout.synthesis(work,"fact-ledger-active.yaml",existing=False),yaml.safe_dump(published,sort_keys=False,allow_unicode=True,width=110))
 
 
 def _summary_interpretation_map(work:Path)->dict[str,str]:
@@ -686,7 +822,7 @@ def module_summarization_scheduler(work:Path,stage:dict,profile:str|None)->None:
     if not scheduler_name: raise StepFailure("run state is missing summarization scheduler selection")
     try: plan=scheduler_registry.load(scheduler_name,"summarization")
     except ValueError as exc: raise StepFailure(str(exc)) from exc
-    ledger=runtime.parse_yaml_mapping(_read(layout.synthesis(work,"fact-ledger-cited.yaml")),"fact ledger"); facts=ledger.get("facts") or []
+    ledger=runtime.parse_yaml_mapping(_read(layout.synthesis(work,"fact-ledger-active.yaml")),"active fact ledger"); facts=ledger.get("facts") or []
     if not facts: raise StepFailure("fact ledger contains no surfaced facts")
 
     def unavailable(_domain:str): raise ValueError("clinical evidence retrieval is unavailable inside the summarization scheduler")
@@ -695,10 +831,11 @@ def module_summarization_scheduler(work:Path,stage:dict,profile:str|None)->None:
         _model_call(work,call_id=call_id,role=role,messages=messages,output=output,validator=validator,profile=profile,structured_format=None if format_name=="text" else format_name)
 
     who5=runtime.parse_yaml_mapping(_read(_who5_final(work)),"WHO5 diagnosis"); routing=json.loads(_read(_who5_routing(work)))
+    fact_guard,fact_commit,paraphrase_guard=_fact_callbacks(work,profile)
     ctx=scheduler_primitives.SchedulerContext(
         work=work,case=runtime.read_json(_case_json(work)),diagnoses=runtime.active_who5_diagnoses(who5),final_cmcs=routing["final_cmcs"],
         pipeline_id=_pipeline_id(work,profile),call_model=call_model,ensure_evidence=unavailable,read_text=_read,write_text=_atomic_write,status=_status,
-        phase="summarization",values={"cited_facts":facts}
+        phase="summarization",values={"cited_facts":facts},fact_guard=fact_guard,fact_commit=fact_commit,paraphrase_guard=paraphrase_guard
     )
     _status(f"  summarization scheduler: {scheduler_name} — {plan.description}")
     outputs=scheduler_engine.execute(plan,ctx); summary=scheduler_engine.output_by_semantic_type(plan,outputs,"report.summary.sentences")
@@ -748,7 +885,7 @@ def module_finalise_report(work:Path,stage:dict,profile:str|None)->None:
     _package_debug(work)
 
 
-MODULES={"structure_case":module_structure_case,"initialise_corpus":module_initialise_corpus,"diagnosis_scheduler":module_diagnosis_scheduler,"ptbg_scheduler":module_ptbg_scheduler,"evidence_alignment":module_evidence_alignment,"summarization_scheduler":module_summarization_scheduler,"finalise_report":module_finalise_report}
+MODULES={"structure_case":module_structure_case,"initialise_corpus":module_initialise_corpus,"diagnosis_scheduler":module_diagnosis_scheduler,"ptbg_scheduler":module_ptbg_scheduler,"collect_fact_ledger":module_collect_fact_ledger,"summarization_scheduler":module_summarization_scheduler,"finalise_report":module_finalise_report}
 
 def _handler_for_uses(uses:str):
     if uses.startswith("core."):

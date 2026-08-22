@@ -3,46 +3,63 @@ scheduler:
   phase: summarization
   version: 1
   order: 10
-  description: Current v3 two-step report synthesis with semantic sentence-to-fact alignment and one coverage retry.
+  description: Plan fact inclusion/order/merge/split, paraphrase each sentence, then publish citations deterministically.
 steps:
-- id: synthesize
-  kind: summarization_loop
+- id: plan
+  kind: model
   inputs:
     facts: core.facts.cited
-  prompts:
-    draft:
-      template: prompts/draft.md
-      inject:
-        facts:
-          input: facts
-          render: yaml
-        correction:
-          input: correction
-          render: text
-    align:
-      template: prompts/align.md
-      inject:
-        draft:
-          input: draft
-          render: text
-        sentence_manifest:
-          input: sentence_manifest
-          render: yaml
-        facts:
-          input: facts
-          render: yaml
-        output_contract:
-          contract: local.alignment-output
-  loop:
-    max_cycles: 2
+  prompt:
+    template: prompts/plan.md
+    inject:
+      facts:
+        input: facts
+        render: yaml
+      output_contract:
+        contract: ../common/contracts/summary-plan.md
   output:
-    contract: local.summary-output
+    format: yaml
+    validator: summary_plan
+    contract: ../common/contracts/summary-plan.md
+- id: prepare
+  kind: operation
+  operation: prepare_paraphrase_items
+  inputs:
+    plan: steps.plan
+    facts: core.facts.cited
+- id: paraphrase
+  kind: model
+  foreach: steps.prepare
+  depends_on: [prepare]
+  role: paraphrasing
+  inputs:
+    sentence_plan: $item
+  prompt:
+    template: ../common/prompts/paraphrase.md
+    inject:
+      sentence_plan:
+        input: sentence_plan
+        render: yaml
+      output_contract:
+        contract: ../common/contracts/paraphrase-output.md
+  output:
+    format: yaml
+    validator: paraphrase_sentence
+    contract: ../common/contracts/paraphrase-output.md
+- id: publish
+  kind: operation
+  operation: publish_summary
+  depends_on: [paraphrase]
+  inputs:
+    plan: steps.plan
+    paraphrases: steps.paraphrase
+    facts: core.facts.cited
 outputs:
-  summary: steps.synthesize.summary
+  summary: steps.publish.summary
 interface:
   inputs:
     cited_facts:
       contract: core.facts.cited
   outputs:
     summary:
-      contract: local.summary-output
+      contract: ../common/contracts/summary-output.md

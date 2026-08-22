@@ -15,7 +15,7 @@ PHASES = {"diagnosis", "ptbg", "summarization"}
 MODEL_VALIDATORS = {
     "domain", "normalized_evidence", "variant_cross_domain", "germline_clinical_picture",
     "global_ledger", "global_patch", "adaptive_cell_review",
-    "icc", "who5", "summary_text", "sentence_alignment", "summary_pairs",
+    "icc", "who5", "summary_plan", "paraphrase_sentence",
 }
 
 
@@ -56,12 +56,10 @@ def load_yaml(path: Path, expected_phase: str | None = None) -> SchedulerPlan:
         if step["id"] in ids:
             raise ValueError(f"duplicate scheduler step id {step['id']!r}")
         previous=set(ids); kind=step.get("kind")
-        if kind not in {"model", "operation", "diagnosis_loop", "summarization_loop"}:
+        if kind not in {"model", "operation", "diagnosis_loop"}:
             raise ValueError(f"step {step['id']!r} has unsupported kind {kind!r}")
         if kind == "diagnosis_loop" and phase != "diagnosis":
             raise ValueError("diagnosis_loop is only valid in diagnosis schedulers")
-        if kind == "summarization_loop" and phase != "summarization":
-            raise ValueError("summarization_loop is only valid in summarization schedulers")
         for dep in step.get("depends_on") or []:
             if dep not in previous:
                 raise ValueError(f"step {step['id']!r} depends on unknown or later step {dep!r}")
@@ -200,19 +198,13 @@ def _validate_prompt_assets(base: Path, doc: dict) -> None:
     for step in doc.get("steps") or []:
         if step.get("kind") in {"model","diagnosis_loop"}:
             _check_prompt(base,f"step {step['id']!r}",step.get("prompt"))
-        elif step.get("kind") == "summarization_loop":
-            prompts=step.get("prompts") or {}
-            if set(prompts)!={"draft","align"}:
-                raise ValueError(f"summarization_loop {step['id']!r} requires prompts.draft and prompts.align")
-            _check_prompt(base,f"step {step['id']!r} draft",prompts["draft"])
-            _check_prompt(base,f"step {step['id']!r} align",prompts["align"])
 
 
 def describe(plan: SchedulerPlan) -> list[str]:
     lines=[]
     for step in plan.doc["steps"]:
         suffix=f" foreach={step['foreach']}" if step.get("foreach") else ""
-        if step["kind"] in {"model","diagnosis_loop","summarization_loop"}:
+        if step["kind"] in {"model","diagnosis_loop"}:
             lines.append(f"{step['id']}: {step['kind']}{suffix} -> {step.get('output',{}).get('contract') or step.get('output',{}).get('contract_select') or 'untyped'}")
         else:
             lines.append(f"{step['id']}: {step['operation']}{suffix}")
@@ -222,7 +214,7 @@ def describe(plan: SchedulerPlan) -> list[str]:
 def _item_key(item: Any,index:int)->str:
     if isinstance(item,str): return item
     if isinstance(item,dict):
-        return str(item.get("variant_id") or item.get("domain") and f"{item.get('domain')}-{item.get('key')}" or item.get("key") or index)
+        return str(item.get("sentence_id") or item.get("variant_id") or item.get("candidate_id") or (item.get("domain") and item.get("key") and f"{item.get('domain')}-{item.get('key')}") or item.get("key") or index)
     return str(index)
 
 
@@ -367,16 +359,10 @@ def _validator(name:str,*,ctx:prim.SchedulerContext,inputs:dict,item:Any):
         evidence=inputs["evidence"]; return lambda text:runtime.validate_icc_text(text,evidence.permitted_tags)
     if name == "who5":
         evidence=inputs["evidence"]; return lambda text:runtime.validate_who5_text(text,evidence.permitted_tags)
-    if name == "summary_text": return runtime.validate_summary_text
-    if name == "sentence_alignment":
-        sentences=runtime.sentence_manifest(inputs["draft"]); facts=inputs["facts"]
-        return lambda text:runtime.validate_sentence_alignment_text(text,sentences,facts)
-    if name == "summary_pairs":
-        facts=inputs["facts"]
-        def validate(text:str)->str:
-            prim.validate_summary_pairs_doc(runtime.parse_yaml_mapping(text,"summary sentence pairs"),facts)
-            return "summary sentence pairs validated"
-        return validate
+    if name == "summary_plan":
+        facts=inputs["facts"]; return lambda text:runtime.validate_summary_plan_text(text,facts)
+    if name == "paraphrase_sentence":
+        return lambda text:runtime.validate_paraphrase_text(text,item)
     raise ValueError(f"unknown scheduler validator {name!r}")
 
 
@@ -386,25 +372,61 @@ def _artifact_path(root:Path,step:dict,item:Any,index:int)->Path:
     return root/step["id"]/f"{key}.{suffix}"
 
 
-def _role_for(plan:SchedulerPlan,step:dict,secondary:bool=False)->str:
+def _role_for(plan:SchedulerPlan,step:dict)->str:
     explicit=step.get("role")
     if explicit: return explicit
     if plan.phase == "diagnosis": return "diagnosis"
     if plan.phase == "ptbg": return "ptbg"
-    if plan.phase == "summarization": return "summarization_review" if secondary else "summarization"
+    if plan.phase == "summarization": return "summarization"
     raise ValueError(plan.phase)
+
+
+def _snapshot_evidence(ctx:prim.SchedulerContext,inputs:dict,snapshot:dict):
+    if snapshot["domain"] == "diagnosis":
+        evidence=inputs.get("evidence")
+        if not isinstance(evidence,prim.EvidenceView):
+            raise ValueError("diagnosis fact snapshot requires the exact diagnosis evidence view supplied to the originating task")
+        return evidence
+    return ctx.ensure_evidence(snapshot["domain"])
 
 
 def _run_model(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,root:Path,step:dict,results:dict)->Any:
     items=_foreach_values(step["foreach"],ctx=ctx,results=results) if step.get("foreach") else [None]; collection={}
+    validator_name=step["output"]["validator"]
     for index,item in enumerate(items,1):
         inputs=_resolve_inputs(step.get("inputs") or {},ctx=ctx,results=results,item=item)
         output=_artifact_path(root,step,item,index); output.parent.mkdir(parents=True,exist_ok=True)
-        prompt=_render_prompt_spec(base,step["prompt"],inputs,item); validator=_validator(step["output"]["validator"],ctx=ctx,inputs=inputs,item=item)
+        prompt=_render_prompt_spec(base,step["prompt"],inputs,item); base_validator=_validator(validator_name,ctx=ctx,inputs=inputs,item=item)
         fmt=step["output"]["format"]
-        if output.is_file(): validator(ctx.read_text(output))
-        else: ctx.call_model(call_id=f"scheduler-{plan.phase}-{plan.scheduler_id}-{step['id']}-{_item_key(item,index)}",role=_role_for(plan,step),prompt=prompt,output=output,validator=validator,format_name=fmt)
+        source=f"scheduler:{plan.phase}:{plan.scheduler_id}:{step['id']}:{_item_key(item,index)}"
+
+        def validator(text:str, *, _base=base_validator, _name=validator_name, _item=item, _inputs=inputs, _source=source)->str:
+            message=_base(text)
+            if fmt == "yaml":
+                doc=runtime.parse_yaml_mapping(text,f"scheduler {step['id']} output")
+                snapshots=prim.model_fact_snapshots(_name,doc,item=_item,ctx=ctx)
+                if ctx.fact_guard is not None:
+                    for snapshot in snapshots:
+                        ctx.fact_guard(
+                            snapshot_key=snapshot["snapshot_key"],
+                            candidates=snapshot["facts"],
+                            evidence=_snapshot_evidence(ctx,_inputs,snapshot),
+                            source=_source,
+                        )
+                if _name == "paraphrase_sentence" and ctx.paraphrase_guard is not None:
+                    ctx.paraphrase_guard(
+                        sentence_plan=_item,
+                        sentence=doc["sentence"],
+                        source=_source,
+                    )
+            return message
+
+        ctx.call_model(call_id=f"scheduler-{plan.phase}-{plan.scheduler_id}-{step['id']}-{_item_key(item,index)}",role=_role_for(plan,step),prompt=prompt,output=output,validator=validator,format_name=fmt)
         value=runtime.parse_yaml_mapping(ctx.read_text(output),f"scheduler {step['id']} output") if fmt=="yaml" else ctx.read_text(output)
+        if fmt == "yaml" and ctx.fact_commit is not None:
+            for snapshot in prim.model_fact_snapshots(validator_name,value,item=item,ctx=ctx):
+                if snapshot.get("commit",True):
+                    ctx.fact_commit(snapshot_key=snapshot["snapshot_key"],candidates=snapshot["facts"],source=source)
         if step.get("foreach"):
             if step.get("retain_item_metadata"): collection[_item_key(item,index)]={"__item__":item,"__payload__":value}
             else: collection[_item_key(item,index)]=value
@@ -427,11 +449,19 @@ def _run_diagnosis_loop(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,r
         inputs=dict(static,evidence=evidence,prior_state=previous,phase_instruction=instructions[phase])
         prompt=_render_prompt_spec(base,step["prompt"],inputs,None)
         output=root/step["id"]/f"pass-{pass_index:02d}-{phase}.yaml"; output.parent.mkdir(parents=True,exist_ok=True)
-        validator=lambda text,e=evidence:runtime.validate_who5_text(text,e.permitted_tags)
+        source=f"scheduler:diagnosis:{plan.scheduler_id}:who5:pass-{pass_index:02d}-{phase}"
+        def validator(text:str,e=evidence)->str:
+            message=runtime.validate_who5_text(text,e.permitted_tags)
+            state_for_check=runtime.parse_yaml_mapping(text,"WHO5 diagnosis")
+            if ctx.fact_guard is not None:
+                ctx.fact_guard(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state_for_check),evidence=e,source=source)
+            return message
         ctx.status(f"WHO5 scheduler pass {pass_index}: {phase}; {len(evidence.cards)} cards; cumulative CMC evidence {' | '.join(history)}")
-        if output.is_file(): validator(ctx.read_text(output))
-        else: ctx.call_model(call_id=f"scheduler-diagnosis-{plan.scheduler_id}-who5-{pass_index:02d}-{phase}",role="diagnosis",prompt=prompt,output=output,validator=validator,format_name="yaml")
-        state=runtime.parse_yaml_mapping(ctx.read_text(output),"WHO5 diagnosis"); cmcs=runtime.derive_cmcs(state); sig=runtime.who5_signature(state)
+        ctx.call_model(call_id=f"scheduler-diagnosis-{plan.scheduler_id}-who5-{pass_index:02d}-{phase}",role="diagnosis",prompt=prompt,output=output,validator=validator,format_name="yaml")
+        state=runtime.parse_yaml_mapping(ctx.read_text(output),"WHO5 diagnosis")
+        if ctx.fact_commit is not None:
+            ctx.fact_commit(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state),source=source)
+        cmcs=runtime.derive_cmcs(state); sig=runtime.who5_signature(state)
         prev_cmcs=runtime.derive_cmcs(previous) if previous is not None else None; prev_sig=runtime.who5_signature(previous) if previous is not None else None
         if prev_cmcs is not None and cmcs!=prev_cmcs: transitions+=1
         new=[]
@@ -450,38 +480,13 @@ def _run_diagnosis_loop(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,r
     return {"who5":final,"routing":routing}
 
 
-def _run_summarization_loop(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,root:Path,step:dict,results:dict)->dict:
-    inputs=_resolve_inputs(step.get("inputs") or {},ctx=ctx,results=results); facts=inputs["facts"]
-    max_cycles=int((step.get("loop") or {}).get("max_cycles",2)); correction=""
-    for cycle in range(1,max_cycles+1):
-        draft_inputs=dict(inputs,correction=correction)
-        draft_prompt=_render_prompt_spec(base,step["prompts"]["draft"],draft_inputs,None)
-        draft=root/step["id"]/f"draft-{cycle}.md"; draft.parent.mkdir(parents=True,exist_ok=True)
-        if draft.is_file(): runtime.validate_summary_text(ctx.read_text(draft))
-        else: ctx.call_model(call_id=f"scheduler-summarization-{plan.scheduler_id}-draft-{cycle}",role="summarization",prompt=draft_prompt,output=draft,validator=runtime.validate_summary_text,format_name="text")
-        draft_text=ctx.read_text(draft); sentence_manifest=runtime.sentence_manifest(draft_text)
-        align_inputs=dict(inputs,draft=draft_text,sentence_manifest=sentence_manifest)
-        align_prompt=_render_prompt_spec(base,step["prompts"]["align"],align_inputs,None)
-        alignment=root/step["id"]/f"alignment-{cycle}.yaml"
-        validator=_validator("sentence_alignment",ctx=ctx,inputs=align_inputs,item=None)
-        if alignment.is_file(): validator(ctx.read_text(alignment))
-        else: ctx.call_model(call_id=f"scheduler-summarization-{plan.scheduler_id}-align-{cycle}",role="summarization_review",prompt=align_prompt,output=alignment,validator=validator,format_name="yaml")
-        align_doc=runtime.parse_yaml_mapping(ctx.read_text(alignment),"sentence-to-fact alignment"); uncovered=runtime.uncovered_fact_ids(align_doc,facts)
-        if not uncovered:
-            rows=prim._summary_rows_from_alignment(draft_text,align_doc,facts)
-            return {"summary":{"sentences":rows}}
-        omitted=[next(f for f in facts if f["fact_id"]==fid) for fid in uncovered]
-        correction="# Required correction from prior semantic alignment\nThe prior draft omitted these locked facts. Rewrite the complete report so all are represented:\n```yaml\n"+yaml.safe_dump({"omitted_facts":omitted},sort_keys=False,allow_unicode=True,width=110)+"```"
-    raise ValueError(f"final prose remained semantically incomplete after {max_cycles} synthesis cycles")
-
-
 def execute(plan:SchedulerPlan,ctx:prim.SchedulerContext)->dict[str,Any]:
     root=layout.scheduler_dir(ctx.work,f"{plan.phase}-{plan.scheduler_id}",existing=False); results:dict[str,Any]={}; base=plan.path.parent
+    ctx.values["_scheduler_id"]=plan.scheduler_id
     for step in plan.doc["steps"]:
         kind=step["kind"]
         if kind=="model": results[step["id"]]=_run_model(plan,ctx,base,root,step,results)
         elif kind=="diagnosis_loop": results[step["id"]]=_run_diagnosis_loop(plan,ctx,base,root,step,results)
-        elif kind=="summarization_loop": results[step["id"]]=_run_summarization_loop(plan,ctx,base,root,step,results)
         else:
             inputs=_resolve_inputs(step.get("inputs") or {},ctx=ctx,results=results); op=prim.OPERATIONS[step["operation"]]
             results[step["id"]]=op(ctx=ctx,inputs=inputs,root=root/step["id"])

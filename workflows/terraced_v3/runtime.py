@@ -67,7 +67,7 @@ def normalize_model_card_tag_syntax(text: str, *, format_name: str = "yaml") -> 
                     if canonical is not None and canonical != child:
                         value[key] = canonical
                         repairs.append(f"normalised bare runtime card hash at {child_path}")
-                elif key == "candidate_card_tags" or str(key).endswith("_candidate_card_tags"):
+                elif key == "card_tags" or str(key).endswith("_card_tags"):
                     if isinstance(child, list):
                         for i, item in enumerate(child):
                             canonical = _canonical_card_tag(item)
@@ -228,7 +228,7 @@ def _nonempty(value) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def _validate_candidate_tags(issues: list[ValidationIssue], value, path: str, permitted: set[str]) -> None:
+def _validate_card_tags(issues: list[ValidationIssue], value, path: str, permitted: set[str]) -> None:
     if not isinstance(value, list):
         issues.append(ValidationIssue(path, f"expected a list, received {type(value).__name__}", "return a YAML list of exact supplied card tags"))
         return
@@ -242,7 +242,7 @@ def _validate_candidate_tags(issues: list[ValidationIssue], value, path: str, pe
         if raw not in permitted:
             issues.append(ValidationIssue(loc, f"tag {tag} was not supplied to this task", "use only a supplied card tag or remove it"))
         if raw in seen:
-            issues.append(ValidationIssue(loc, f"duplicate tag {tag}", "list each candidate card once"))
+            issues.append(ValidationIssue(loc, f"duplicate tag {tag}", "list each card once"))
         seen.add(raw)
 
 
@@ -333,7 +333,7 @@ def case_genes(case: dict) -> list[str]:
 def _validate_fact_reason_row(
     issues: list[ValidationIssue], row: dict, loc: str, diagnosis_ids: set[str], permitted_tags: set[str]
 ) -> None:
-    _exact_keys(issues, row, {"diagnosis_ids", "fact", "reason", "candidate_card_tags"}, loc)
+    _exact_keys(issues, row, {"diagnosis_ids", "fact", "reason", "card_tags"}, loc)
     ids = row.get("diagnosis_ids")
     if not isinstance(ids, list) or not ids:
         issues.append(ValidationIssue(f"{loc}.diagnosis_ids", "must be a non-empty list", "scope the fact to one or more returned diagnosis IDs"))
@@ -343,7 +343,7 @@ def _validate_fact_reason_row(
         issues.append(ValidationIssue(f"{loc}.fact", "must be non-empty reportable prose ending with a full stop", "return one complete patient-level proposition ending in '.'"))
     if not _nonempty(row.get("reason")):
         issues.append(ValidationIssue(f"{loc}.reason", "blank or not a string", "return a short auditable clinical justification"))
-    _validate_candidate_tags(issues, row.get("candidate_card_tags"), f"{loc}.candidate_card_tags", permitted_tags)
+    _validate_card_tags(issues, row.get("card_tags"), f"{loc}.card_tags", permitted_tags)
 
 
 def validate_who5_text(text: str, permitted_tags: set[str]) -> str:
@@ -360,7 +360,7 @@ def validate_who5_text(text: str, permitted_tags: set[str]) -> str:
         if not isinstance(row, dict):
             issues.append(ValidationIssue(loc, f"expected object, received {type(row).__name__}", "return the complete diagnosis row"))
             continue
-        _exact_keys(issues, row, {"diagnosis_id", "schema_disease", "status", "diagnosis", "fact", "reason", "candidate_card_tags"}, loc)
+        _exact_keys(issues, row, {"diagnosis_id", "schema_disease", "status", "diagnosis", "fact", "reason", "card_tags"}, loc)
         expected_id = f"DX{i}"
         if row.get("diagnosis_id") != expected_id:
             issues.append(ValidationIssue(f"{loc}.diagnosis_id", f"received {row.get('diagnosis_id')!r}", f"use sequential ID {expected_id!r}"))
@@ -376,7 +376,7 @@ def validate_who5_text(text: str, permitted_tags: set[str]) -> str:
             issues.append(ValidationIssue(f"{loc}.fact", "must be reportable prose ending with a full stop", "state the WHO5 diagnosis as a complete sentence ending in '.'"))
         if not _nonempty(row.get("reason")):
             issues.append(ValidationIssue(f"{loc}.reason", "blank or not a string", "return a short auditable clinical justification"))
-        _validate_candidate_tags(issues, row.get("candidate_card_tags"), f"{loc}.candidate_card_tags", permitted_tags)
+        _validate_card_tags(issues, row.get("card_tags"), f"{loc}.card_tags", permitted_tags)
     for field in ("supporting_facts", "contradicting_facts"):
         rows = doc.get(field)
         if not isinstance(rows, list):
@@ -405,7 +405,7 @@ def validate_icc_text(text: str, permitted_tags: set[str]) -> str:
         if not isinstance(row, dict):
             issues.append(ValidationIssue(loc, f"expected object, received {type(row).__name__}", "return the complete ICC row"))
             continue
-        _exact_keys(issues, row, {"diagnosis_id", "status", "diagnosis", "fact", "reason", "candidate_card_tags"}, loc)
+        _exact_keys(issues, row, {"diagnosis_id", "status", "diagnosis", "fact", "reason", "card_tags"}, loc)
         expected_id = f"ICC{i}"
         if row.get("diagnosis_id") != expected_id:
             issues.append(ValidationIssue(f"{loc}.diagnosis_id", f"received {row.get('diagnosis_id')!r}", f"use sequential ID {expected_id!r}"))
@@ -416,7 +416,7 @@ def validate_icc_text(text: str, permitted_tags: set[str]) -> str:
                 issues.append(ValidationIssue(f"{loc}.{field}", "blank or not a string", "return a non-empty value"))
         if _nonempty(row.get("fact")) and not row["fact"].rstrip().endswith("."):
             issues.append(ValidationIssue(f"{loc}.fact", "does not end with a full stop", "end the complete reportable fact with '.'"))
-        _validate_candidate_tags(issues, row.get("candidate_card_tags"), f"{loc}.candidate_card_tags", permitted_tags)
+        _validate_card_tags(issues, row.get("card_tags"), f"{loc}.card_tags", permitted_tags)
     fail("ICC diagnosis", issues)
     return "ICC diagnosis validated"
 
@@ -453,7 +453,7 @@ def who5_signature(doc: dict) -> tuple:
 
 
 def _surface_fields(
-    issues: list[ValidationIssue], row: dict, loc: str, *, surface_key: str = "surface", fact_key: str = "fact", reason_key: str = "reason", tags_key: str = "candidate_card_tags", permitted_tags: set[str]
+    issues: list[ValidationIssue], row: dict, loc: str, *, surface_key: str = "surface", fact_key: str = "fact", reason_key: str = "reason", tags_key: str = "card_tags", permitted_tags: set[str]
 ) -> None:
     surface = row.get(surface_key)
     if not isinstance(surface, bool):
@@ -469,7 +469,9 @@ def _surface_fields(
     else:
         if fact is not None or reason is not None:
             issues.append(ValidationIssue(loc, f"{surface_key}=false but fact/reason are not null", f"set {fact_key} and {reason_key} to null"))
-    _validate_candidate_tags(issues, row.get(tags_key), f"{loc}.{tags_key}", permitted_tags)
+        if row.get(tags_key) not in ([], None):
+            issues.append(ValidationIssue(f"{loc}.{tags_key}", f"{surface_key}=false has evidence provenance {row.get(tags_key)!r}", "set card tags to [] because there is no surfaced reportable fact to cite"))
+    _validate_card_tags(issues, row.get(tags_key), f"{loc}.{tags_key}", permitted_tags)
 
 
 def validate_domain_text(text: str, *, domain: str, spec: dict, permitted_tags: set[str]) -> str:
@@ -488,7 +490,7 @@ def validate_domain_text(text: str, *, domain: str, spec: dict, permitted_tags: 
             if i >= len(rows) or not isinstance(rows[i], dict):
                 continue
             row = rows[i]; loc = f"decisions[{i}]"
-            _exact_keys(issues, row, {"variant_id", "diagnosis_id", "effect", "scoring_system", "surface", "fact", "reason", "candidate_card_tags"}, loc)
+            _exact_keys(issues, row, {"variant_id", "diagnosis_id", "effect", "scoring_system", "surface", "fact", "reason", "card_tags"}, loc)
             if (row.get("variant_id"), row.get("diagnosis_id")) != pair:
                 issues.append(ValidationIssue(loc, f"wrong scope {(row.get('variant_id'), row.get('diagnosis_id'))!r}", f"use exact required pair {pair!r}"))
             if row.get("effect") not in {"favorable", "adverse", "neither"}:
@@ -504,7 +506,7 @@ def validate_domain_text(text: str, *, domain: str, spec: dict, permitted_tags: 
             issues.append(ValidationIssue("decisions", f"expected list, received {type(rows).__name__}", "return one decision per required gene × diagnosis pair")); rows = []
         if len(rows) != len(required):
             issues.append(ValidationIssue("decisions", f"expected {len(required)} rows, received {len(rows)}", "return every required pair exactly once in supplied order"))
-        fields = {"gene", "diagnosis_id", "drug_target", "target_surface", "target_fact", "target_reason", "target_candidate_card_tags", "drug_resistance", "resistance_surface", "resistance_fact", "resistance_reason", "resistance_candidate_card_tags"}
+        fields = {"gene", "diagnosis_id", "drug_target", "target_surface", "target_fact", "target_reason", "target_card_tags", "drug_resistance", "resistance_surface", "resistance_fact", "resistance_reason", "resistance_card_tags"}
         for i, pair in enumerate(required):
             if i >= len(rows) or not isinstance(rows[i], dict): continue
             row=rows[i]; loc=f"decisions[{i}]"; _exact_keys(issues,row,fields,loc)
@@ -513,8 +515,8 @@ def validate_domain_text(text: str, *, domain: str, spec: dict, permitted_tags: 
             for key in ("drug_target", "drug_resistance"):
                 if not isinstance(row.get(key), bool):
                     issues.append(ValidationIssue(f"{loc}.{key}", f"expected boolean, received {row.get(key)!r}", "use true or false"))
-            _surface_fields(issues,row,loc,surface_key="target_surface",fact_key="target_fact",reason_key="target_reason",tags_key="target_candidate_card_tags",permitted_tags=permitted_tags)
-            _surface_fields(issues,row,loc,surface_key="resistance_surface",fact_key="resistance_fact",reason_key="resistance_reason",tags_key="resistance_candidate_card_tags",permitted_tags=permitted_tags)
+            _surface_fields(issues,row,loc,surface_key="target_surface",fact_key="target_fact",reason_key="target_reason",tags_key="target_card_tags",permitted_tags=permitted_tags)
+            _surface_fields(issues,row,loc,surface_key="resistance_surface",fact_key="resistance_fact",reason_key="resistance_reason",tags_key="resistance_card_tags",permitted_tags=permitted_tags)
     elif domain == "biomarker":
         _exact_keys(issues, doc, {"decisions"})
         rows=doc.get("decisions"); required=spec["required_pairs"]
@@ -523,7 +525,7 @@ def validate_domain_text(text: str, *, domain: str, spec: dict, permitted_tags: 
         if len(rows)!=len(required): issues.append(ValidationIssue("decisions",f"expected {len(required)} rows, received {len(rows)}","return every required pair exactly once in supplied order"))
         for i,pair in enumerate(required):
             if i>=len(rows) or not isinstance(rows[i],dict): continue
-            row=rows[i]; loc=f"decisions[{i}]"; _exact_keys(issues,row,{"variant_id","diagnosis_id","mrd_usable","surface","fact","reason","candidate_card_tags"},loc)
+            row=rows[i]; loc=f"decisions[{i}]"; _exact_keys(issues,row,{"variant_id","diagnosis_id","mrd_usable","surface","fact","reason","card_tags"},loc)
             if (row.get("variant_id"),row.get("diagnosis_id"))!=pair: issues.append(ValidationIssue(loc,f"wrong scope {(row.get('variant_id'),row.get('diagnosis_id'))!r}",f"use exact required pair {pair!r}"))
             if not isinstance(row.get("mrd_usable"),bool): issues.append(ValidationIssue(f"{loc}.mrd_usable",f"expected boolean, received {row.get('mrd_usable')!r}","use true or false"))
             _surface_fields(issues,row,loc,permitted_tags=permitted_tags)
@@ -534,14 +536,14 @@ def validate_domain_text(text: str, *, domain: str, spec: dict, permitted_tags: 
         if len(rows)!=len(required): issues.append(ValidationIssue("variant_decisions",f"expected {len(required)} rows, received {len(rows)}","return every required variant exactly once in supplied order"))
         for i,variant_id in enumerate(required):
             if i>=len(rows) or not isinstance(rows[i],dict): continue
-            row=rows[i]; loc=f"variant_decisions[{i}]"; _exact_keys(issues,row,{"variant_id","potentially_germline","surface","fact","reason","candidate_card_tags"},loc)
+            row=rows[i]; loc=f"variant_decisions[{i}]"; _exact_keys(issues,row,{"variant_id","potentially_germline","surface","fact","reason","card_tags"},loc)
             if row.get("variant_id")!=variant_id: issues.append(ValidationIssue(f"{loc}.variant_id",f"received {row.get('variant_id')!r}",f"use exact required variant {variant_id!r}"))
             if not isinstance(row.get("potentially_germline"),bool): issues.append(ValidationIssue(f"{loc}.potentially_germline",f"expected boolean, received {row.get('potentially_germline')!r}","use true or false"))
             _surface_fields(issues,row,loc,permitted_tags=permitted_tags)
         cp=doc.get("clinical_picture")
-        if not isinstance(cp,dict): issues.append(ValidationIssue("clinical_picture",f"expected object, received {type(cp).__name__}","return supportive, surface, fact, reason, candidate_card_tags"))
+        if not isinstance(cp,dict): issues.append(ValidationIssue("clinical_picture",f"expected object, received {type(cp).__name__}","return supportive, surface, fact, reason, card_tags"))
         else:
-            _exact_keys(issues,cp,{"supportive","surface","fact","reason","candidate_card_tags"},"clinical_picture")
+            _exact_keys(issues,cp,{"supportive","surface","fact","reason","card_tags"},"clinical_picture")
             if cp.get("supportive") not in {True,False,"uncertain"}: issues.append(ValidationIssue("clinical_picture.supportive",f"invalid value {cp.get('supportive')!r}","use true, false, or uncertain"))
             _surface_fields(issues,cp,"clinical_picture",permitted_tags=permitted_tags)
     else:
@@ -551,205 +553,417 @@ def validate_domain_text(text: str, *, domain: str, spec: dict, permitted_tags: 
 
 
 def facts_from_who5(doc: dict) -> list[dict]:
+    """Extract reportable WHO5 propositions without assigning ledger IDs."""
     facts=[]
     for row in doc.get("diagnoses") or []:
         facts.append({
-            "fact_id": f"who5-{row['diagnosis_id']}", "domain":"diagnosis",
-            "subject":{"diagnosis_ids":[row['diagnosis_id']]},
+            "domain":"diagnosis",
+            "subject":{"diagnosis_ids":[row["diagnosis_id"]]},
             "decision":{"classifier":"WHO5","schema_disease":row["schema_disease"],"status":row["status"],"diagnosis":row["diagnosis"]},
-            "fact":row["fact"],"reason":row["reason"],"candidate_card_tags":row["candidate_card_tags"],
+            "fact":row["fact"],"reason":row["reason"],"card_tags":list(row["card_tags"]),
         })
-    for field,prefix,kind in (("supporting_facts","who5-support","supporting"),("contradicting_facts","who5-contradiction","contradicting")):
-        for i,row in enumerate(doc.get(field) or [],1):
-            facts.append({"fact_id":f"{prefix}-{i}","domain":"diagnosis","subject":{"diagnosis_ids":row["diagnosis_ids"]},"decision":{"kind":kind},"fact":row["fact"],"reason":row["reason"],"candidate_card_tags":row["candidate_card_tags"]})
+    for field,kind in (("supporting_facts","supporting"),("contradicting_facts","contradicting")):
+        for row in doc.get(field) or []:
+            facts.append({
+                "domain":"diagnosis",
+                "subject":{"diagnosis_ids":list(row["diagnosis_ids"])},
+                "decision":{"kind":kind},
+                "fact":row["fact"],"reason":row["reason"],"card_tags":list(row["card_tags"]),
+            })
     return facts
 
 
 def facts_from_icc(doc: dict) -> list[dict]:
-    return [{"fact_id":f"icc-{row['diagnosis_id']}","domain":"diagnosis","subject":{"diagnosis_ids":[]},"decision":{"classifier":"ICC","status":row["status"],"diagnosis":row["diagnosis"]},"fact":row["fact"],"reason":row["reason"],"candidate_card_tags":row["candidate_card_tags"]} for row in doc.get("diagnoses") or []]
+    return [{
+        "domain":"diagnosis","subject":{"diagnosis_ids":[]},
+        "decision":{"classifier":"ICC","status":row["status"],"diagnosis":row["diagnosis"]},
+        "fact":row["fact"],"reason":row["reason"],"card_tags":list(row["card_tags"]),
+    } for row in doc.get("diagnoses") or []]
 
 
 def facts_from_domain(domain: str, doc: dict) -> list[dict]:
+    """Extract only surfaced reportable propositions from one PTBG state."""
     facts=[]
     if domain=="prognosis":
         for row in doc["decisions"]:
             if row["surface"]:
-                facts.append({"fact_id":f"prognosis-{row['variant_id']}-{row['diagnosis_id']}","domain":domain,"subject":{"variant_id":row["variant_id"],"diagnosis_ids":[row["diagnosis_id"]]},"decision":{"effect":row["effect"],"scoring_system":row["scoring_system"]},"fact":row["fact"],"reason":row["reason"],"candidate_card_tags":row["candidate_card_tags"]})
+                facts.append({"domain":domain,"subject":{"variant_id":row["variant_id"],"diagnosis_ids":[row["diagnosis_id"]]},"decision":{"effect":row["effect"],"scoring_system":row["scoring_system"]},"fact":row["fact"],"reason":row["reason"],"card_tags":list(row["card_tags"])})
     elif domain=="treatment":
         for row in doc["decisions"]:
             subject={"gene":row["gene"],"diagnosis_ids":[row["diagnosis_id"]]}
             if row["target_surface"]:
-                facts.append({"fact_id":f"treatment-target-{row['gene']}-{row['diagnosis_id']}","domain":domain,"subject":subject,"decision":{"drug_target":row["drug_target"]},"fact":row["target_fact"],"reason":row["target_reason"],"candidate_card_tags":row["target_candidate_card_tags"]})
+                facts.append({"domain":domain,"subject":subject,"decision":{"drug_target":row["drug_target"]},"fact":row["target_fact"],"reason":row["target_reason"],"card_tags":list(row["target_card_tags"])})
             if row["resistance_surface"]:
-                facts.append({"fact_id":f"treatment-resistance-{row['gene']}-{row['diagnosis_id']}","domain":domain,"subject":subject,"decision":{"drug_resistance":row["drug_resistance"]},"fact":row["resistance_fact"],"reason":row["resistance_reason"],"candidate_card_tags":row["resistance_candidate_card_tags"]})
+                facts.append({"domain":domain,"subject":subject,"decision":{"drug_resistance":row["drug_resistance"]},"fact":row["resistance_fact"],"reason":row["resistance_reason"],"card_tags":list(row["resistance_card_tags"])})
     elif domain=="biomarker":
         for row in doc["decisions"]:
             if row["surface"]:
-                facts.append({"fact_id":f"biomarker-{row['variant_id']}-{row['diagnosis_id']}","domain":domain,"subject":{"variant_id":row["variant_id"],"diagnosis_ids":[row["diagnosis_id"]]},"decision":{"mrd_usable":row["mrd_usable"]},"fact":row["fact"],"reason":row["reason"],"candidate_card_tags":row["candidate_card_tags"]})
+                facts.append({"domain":domain,"subject":{"variant_id":row["variant_id"],"diagnosis_ids":[row["diagnosis_id"]]},"decision":{"mrd_usable":row["mrd_usable"]},"fact":row["fact"],"reason":row["reason"],"card_tags":list(row["card_tags"])})
     elif domain=="germline":
         for row in doc["variant_decisions"]:
             if row["surface"]:
-                facts.append({"fact_id":f"germline-{row['variant_id']}","domain":domain,"subject":{"variant_id":row["variant_id"],"diagnosis_ids":[]},"decision":{"potentially_germline":row["potentially_germline"]},"fact":row["fact"],"reason":row["reason"],"candidate_card_tags":row["candidate_card_tags"]})
+                facts.append({"domain":domain,"subject":{"variant_id":row["variant_id"],"diagnosis_ids":[]},"decision":{"potentially_germline":row["potentially_germline"]},"fact":row["fact"],"reason":row["reason"],"card_tags":list(row["card_tags"])})
         cp=doc["clinical_picture"]
         if cp["surface"]:
-            facts.append({"fact_id":"germline-clinical","domain":domain,"subject":{"diagnosis_ids":[]},"decision":{"clinical_picture_supportive":cp["supportive"]},"fact":cp["fact"],"reason":cp["reason"],"candidate_card_tags":cp["candidate_card_tags"]})
+            facts.append({"domain":domain,"subject":{"diagnosis_ids":[]},"decision":{"clinical_picture_supportive":cp["supportive"]},"fact":cp["fact"],"reason":cp["reason"],"card_tags":list(cp["card_tags"])})
+    else:
+        raise ValueError(f"unknown fact domain {domain!r}")
     return facts
 
 
-def validate_evidence_alignment_text(text: str, facts: list[dict], permitted_by_fact: dict[str,set[str]]) -> str:
-    doc=parse_yaml_mapping(text,"evidence alignment"); issues=[]; _exact_keys(issues,doc,{"alignments"})
-    rows=doc.get("alignments")
-    if not isinstance(rows,list): issues.append(ValidationIssue("alignments",f"expected list, received {type(rows).__name__}","return one row per supplied fact in supplied order")); rows=[]
-    if len(rows)!=len(facts): issues.append(ValidationIssue("alignments",f"expected {len(facts)} rows, received {len(rows)}","return every supplied fact_id exactly once in order"))
-    for i,fact in enumerate(facts):
+def _fact_identity_payload(fact: dict) -> dict:
+    """Immutable reportable proposition plus its evidence provenance.
+
+    `subject`, `reason`, and decision fields are scheduler reasoning metadata.  They
+    may evolve while the reportable proposition and its card attribution remain
+    unchanged, so they are deliberately excluded from identity.  Snapshot key
+    already supplies the deterministic scheduler/domain reconciliation boundary.
+    """
+    return {
+        "domain": fact.get("domain"),
+        "fact": fact.get("fact"),
+        "card_tags": list(fact.get("card_tags") or []),
+    }
+
+
+def fact_signature(fact: dict) -> str:
+    return json.dumps(_fact_identity_payload(fact), sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def new_fact_ledger() -> dict:
+    return {"schema_version": 1, "next_fact_number": 1, "facts": []}
+
+
+def load_fact_ledger(path: Path) -> dict:
+    if not path.is_file():
+        return new_fact_ledger()
+    doc = parse_yaml_mapping(path.read_text(encoding="utf-8"), "fact ledger")
+    if doc.get("schema_version") != 1 or not isinstance(doc.get("next_fact_number"), int) or not isinstance(doc.get("facts"), list):
+        raise ValueError(f"invalid fact ledger structure in {path}")
+    return doc
+
+
+def active_ledger_facts(ledger: dict) -> list[dict]:
+    return [row for row in ledger.get("facts") or [] if row.get("status") == "active"]
+
+
+def facts_needing_evidence_check(ledger: dict, snapshot_key: str, candidates: list[dict]) -> list[dict]:
+    """Return cited candidates that are genuinely new/replaced for this snapshot."""
+    active_signatures={fact_signature(row) for row in active_ledger_facts(ledger) if row.get("snapshot_key") == snapshot_key}
+    seen=set(); out=[]
+    for candidate in candidates:
+        sig=fact_signature(candidate)
+        if sig in seen:
+            raise ValueError(f"snapshot {snapshot_key!r} contains duplicate reportable fact propositions")
+        seen.add(sig)
+        if sig not in active_signatures and candidate.get("card_tags"):
+            out.append(candidate)
+    return out
+
+
+def reconcile_fact_snapshot(ledger: dict, snapshot_key: str, candidates: list[dict], *, source: str) -> dict:
+    """Reconcile one accepted model state into the immutable audit ledger.
+
+    Exact proposition+provenance matches retain their fact_id.  Any changed fact
+    text or card attribution is a replacement: the old entry is withdrawn and a
+    new fact_id is created.  `subject`, `reason`, and `decision` are mutable
+    current-state metadata and therefore update in place for an unchanged fact.
+    """
+    seen=set()
+    for candidate in candidates:
+        sig=fact_signature(candidate)
+        if sig in seen:
+            raise ValueError(f"snapshot {snapshot_key!r} contains duplicate reportable fact propositions")
+        seen.add(sig)
+
+    active=[row for row in active_ledger_facts(ledger) if row.get("snapshot_key") == snapshot_key]
+    active_by_sig={fact_signature(row):row for row in active}
+    candidate_sigs={fact_signature(row) for row in candidates}
+
+    for old in active:
+        if fact_signature(old) not in candidate_sigs:
+            old["status"]="withdrawn"
+            old["withdrawn_by"]={"source":source}
+
+    for candidate in candidates:
+        sig=fact_signature(candidate)
+        existing=active_by_sig.get(sig)
+        if existing is not None:
+            existing["current_subject"]=candidate.get("subject") or {}
+            existing["current_reason"]=candidate.get("reason")
+            existing["current_decision"]=candidate.get("decision") or {}
+            existing["last_seen_by"]={"source":source}
+            continue
+        number=int(ledger["next_fact_number"])
+        ledger["next_fact_number"]=number+1
+        ledger["facts"].append({
+            "fact_id":f"F{number:04d}",
+            "snapshot_key":snapshot_key,
+            "status":"active",
+            **_fact_identity_payload(candidate),
+            "evidence_check":"passed" if candidate.get("card_tags") else "not_required_case_derived",
+            "introduced_by":{"source":source},
+            "withdrawn_by":None,
+            "current_subject":candidate.get("subject") or {},
+            "current_reason":candidate.get("reason"),
+            "current_decision":candidate.get("decision") or {},
+            "last_seen_by":{"source":source},
+        })
+    return ledger
+
+
+def reportable_active_facts(ledger: dict) -> list[dict]:
+    """Minimal immutable fact representation handed to summarization."""
+    return [{
+        "fact_id":row["fact_id"],
+        "domain":row["domain"],
+        "fact":row["fact"],
+        "card_tags":list(row.get("card_tags") or []),
+    } for row in active_ledger_facts(ledger)]
+
+
+def validate_fact_evidence_check_text(text: str, candidate_ids: list[str]) -> str:
+    doc=parse_yaml_mapping(text,"local fact evidence check"); issues=[]; _exact_keys(issues,doc,{"checks"})
+    rows=doc.get("checks")
+    if not isinstance(rows,list):
+        issues.append(ValidationIssue("checks",f"expected list, received {type(rows).__name__}","return one check per supplied candidate_id in order")); rows=[]
+    if len(rows)!=len(candidate_ids):
+        received_ids=[row.get("candidate_id") for row in rows if isinstance(row,dict)]
+        missing=[cid for cid in candidate_ids if cid not in received_ids]
+        issues.append(ValidationIssue(
+            "checks",
+            f"expected {len(candidate_ids)} rows, received {len(rows)}; missing candidate_id(s): {missing}",
+            "return every supplied candidate_id exactly once in order",
+        ))
+    for i,cid in enumerate(candidate_ids):
         if i>=len(rows) or not isinstance(rows[i],dict): continue
-        row=rows[i]; loc=f"alignments[{i}]"; _exact_keys(issues,row,{"fact_id","citation"},loc)
-        if row.get("fact_id")!=fact["fact_id"]: issues.append(ValidationIssue(f"{loc}.fact_id",f"received {row.get('fact_id')!r}",f"copy exact supplied fact_id {fact['fact_id']!r}"))
-        citation=row.get("citation")
-        if citation is None: continue
-        if not isinstance(citation,str) or CARD_TAGS_RE.fullmatch(citation) is None:
-            issues.append(ValidationIssue(f"{loc}.citation",f"invalid citation syntax {citation!r}","use null or adjacent exact runtime card tags")); continue
-        tags=CARD_TAG_RE.findall(citation); permitted=permitted_by_fact.get(fact["fact_id"],set())
-        unknown=sorted(set(tags)-permitted)
-        if unknown: issues.append(ValidationIssue(f"{loc}.citation",f"card tag(s) are not permitted for this fact scope: {unknown}","use only cards supplied for this fact's diagnosis context or null"))
-        if len(tags)!=len(set(tags)): issues.append(ValidationIssue(f"{loc}.citation","contains repeated card tag","include each card tag once"))
-    fail("evidence alignment",issues); return "evidence alignment validated"
+        row=rows[i]; loc=f"checks[{i}]"; _exact_keys(issues,row,{"candidate_id","supported","issue"},loc)
+        if row.get("candidate_id")!=cid:
+            issues.append(ValidationIssue(f"{loc}.candidate_id",f"received {row.get('candidate_id')!r}",f"copy exact candidate_id {cid!r}"))
+        supported=row.get("supported")
+        if not isinstance(supported,bool):
+            issues.append(ValidationIssue(f"{loc}.supported",f"expected boolean, received {supported!r}","use true or false"))
+        issue=row.get("issue")
+        if supported is True and issue is not None:
+            issues.append(ValidationIssue(f"{loc}.issue","supported=true requires issue: null","set issue to null"))
+        if supported is False and not _nonempty(issue):
+            issues.append(ValidationIssue(f"{loc}.issue","supported=false requires a concise explanation","state exactly what the claimed cards fail to support"))
+    fail("local fact evidence check",issues)
+    return "local fact evidence check validated"
 
 
-def apply_alignment(facts: list[dict], alignment: dict) -> list[dict]:
-    by_id={row["fact_id"]:row["citation"] for row in alignment["alignments"]}
-    return [dict(row,citation=by_id[row["fact_id"]]) for row in facts]
+def fact_evidence_rejections(text: str) -> list[tuple[str,str]]:
+    doc=parse_yaml_mapping(text,"local fact evidence check")
+    return [(row["candidate_id"],row["issue"]) for row in doc.get("checks") or [] if row.get("supported") is False]
 
 
-def validate_summary_text(text: str) -> str:
-    lines=[line.rstrip() for line in text.splitlines()]
-    while lines and not lines[-1]: lines.pop()
-    issues=[]; current=None; seen_headings=[]; sentence_count=0
-    if not lines: issues.append(ValidationIssue("Report","empty output","return the complete report under allowed headings"))
-    for i,line in enumerate(lines,1):
-        if not line: continue
-        if line in HEADINGS:
-            current=HEADINGS[line]; seen_headings.append(line); continue
-        if line.startswith("**") and line.endswith("**"):
-            issues.append(ValidationIssue(f"Line {i}",f"unknown heading {line!r}","use only the exact allowed bold headings")); continue
-        if current is None:
-            issues.append(ValidationIssue(f"Line {i}","sentence appears before an allowed heading","place every sentence under an allowed heading")); continue
-        sentence_count+=1
-        if line != line.strip(): issues.append(ValidationIssue(f"Line {i}","contains surrounding whitespace","remove leading/trailing whitespace"))
-        if line.startswith(("-","*","#",">")): issues.append(ValidationIssue(f"Line {i}","uses Markdown list/heading structure","return plain sentence prose"))
-        if not line.endswith("."): issues.append(ValidationIssue(f"Line {i}","sentence does not end with a full stop","end the sentence with '.'"))
-        if "[card:" in line: issues.append(ValidationIssue(f"Line {i}","contains a runtime card tag","remove citations from synthesis prose"))
-    if len(seen_headings)!=len(set(seen_headings)): issues.append(ValidationIssue("Headings","a heading is repeated","use each domain heading at most once"))
-    if sentence_count==0: issues.append(ValidationIssue("Report body","contains no sentences","return at least one report sentence"))
-    fail("final synthesis",issues); return "final synthesis validated"
+def validate_semantic_preservation_check_text(text: str) -> str:
+    doc=parse_yaml_mapping(text,"paraphrase semantic-preservation check"); issues=[]
+    _exact_keys(issues,doc,{"preserved","issue"})
+    preserved=doc.get("preserved")
+    if not isinstance(preserved,bool):
+        issues.append(ValidationIssue("preserved",f"expected boolean, received {preserved!r}","use true or false"))
+    issue=doc.get("issue")
+    if preserved is True and issue is not None:
+        issues.append(ValidationIssue("issue","preserved=true requires issue: null","set issue to null"))
+    if preserved is False and not _nonempty(issue):
+        issues.append(ValidationIssue("issue","preserved=false requires a concise explanation","state the omitted, altered, or added proposition"))
+    fail("paraphrase semantic-preservation check",issues)
+    return "paraphrase semantic-preservation check validated"
 
 
-def sentence_manifest(text: str) -> list[dict]:
-    validate_summary_text(text)
-    rows=[]; current=None; counts={d:0 for d in DOMAIN_HEADINGS}
-    for line in text.splitlines():
-        stripped=line.strip()
-        if not stripped: continue
-        if stripped in HEADINGS:
-            current=HEADINGS[stripped]; continue
-        counts[current]+=1
-        rows.append({"sentence_id":f"{current}-{counts[current]}","domain":current,"sentence":stripped})
-    return rows
-
-
-def validate_sentence_alignment_text(text: str, sentences: list[dict], facts: list[dict]) -> str:
-    doc=parse_yaml_mapping(text,"sentence-to-fact alignment"); issues=[]; _exact_keys(issues,doc,{"alignments"})
-    rows=doc.get("alignments")
-    if not isinstance(rows,list): issues.append(ValidationIssue("alignments",f"expected list, received {type(rows).__name__}","return one row per supplied sentence in order")); rows=[]
-    if len(rows)!=len(sentences): issues.append(ValidationIssue("alignments",f"expected {len(sentences)} rows, received {len(rows)}","return every supplied sentence_id exactly once"))
-    fact_map={f["fact_id"]:f for f in facts}
-    for i,sentence in enumerate(sentences):
-        if i>=len(rows) or not isinstance(rows[i],dict): continue
-        row=rows[i]; loc=f"alignments[{i}]"; _exact_keys(issues,row,{"sentence_id","fact_ids"},loc)
-        if row.get("sentence_id")!=sentence["sentence_id"]: issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {row.get('sentence_id')!r}",f"copy exact supplied sentence_id {sentence['sentence_id']!r}"))
-        ids=row.get("fact_ids")
-        if not isinstance(ids,list) or not ids: issues.append(ValidationIssue(f"{loc}.fact_ids","must be a non-empty list","list one or more supplied same-domain fact IDs")); continue
-        if len(ids)!=len(set(ids)): issues.append(ValidationIssue(f"{loc}.fact_ids","contains duplicates","list each represented fact once"))
-        for fid in ids:
-            fact=fact_map.get(fid)
-            if fact is None: issues.append(ValidationIssue(f"{loc}.fact_ids",f"unknown fact ID {fid!r}","use only supplied fact IDs"))
-            elif fact["domain"]!=sentence["domain"]: issues.append(ValidationIssue(f"{loc}.fact_ids",f"fact {fid!r} belongs to {fact['domain']}, not {sentence['domain']}","use only same-domain facts"))
-    fail("sentence-to-fact alignment",issues); return "sentence-to-fact alignment validated"
-
-
-def uncovered_fact_ids(alignment: dict, facts: list[dict]) -> list[str]:
-    covered={fid for row in alignment.get("alignments") or [] for fid in (row.get("fact_ids") or [])}
-    return [f["fact_id"] for f in facts if f["fact_id"] not in covered]
-
-
-def render_cited_report(summary: str, alignment: dict, facts: list[dict]) -> str:
-    fact_map={f["fact_id"]:f for f in facts}; align={r["sentence_id"]:r["fact_ids"] for r in alignment["alignments"]}
-    manifest=sentence_manifest(summary); by_sentence={r["sentence"]:(r["sentence_id"],r["domain"]) for r in manifest}
-    # sentence text may duplicate; consume IDs by ordered traversal instead of dict lookup.
-    rendered=[]; si=0
-    for line in summary.splitlines():
-        stripped=line.strip()
-        if not stripped: rendered.append(""); continue
-        if stripped in HEADINGS: rendered.append(stripped); continue
-        sentence=manifest[si]; si+=1
-        tags=[]
-        for fid in align[sentence["sentence_id"]]:
-            citation=fact_map[fid].get("citation")
-            if not citation: continue
-            for tag in CARD_TAG_RE.findall(citation):
-                token=f"[card:{tag}]"
-                if token not in tags: tags.append(token)
-        rendered.append(stripped + ((" " + "".join(tags)) if tags else ""))
-    return "\n".join(rendered).rstrip()+"\n"
-
-
-def validate_canonical_summary_doc(doc: dict, facts: list[dict]) -> str:
-    """Validate the invariant summarization-scheduler output contract."""
+def validate_summary_plan_doc(doc: dict, facts: list[dict]) -> str:
+    """Validate summarizer decisions: in/out, ordering, merge and split."""
     issues: list[ValidationIssue] = []
-    if set(doc) != {"sentences"}:
-        issues.append(ValidationIssue("Top level", f"received fields {sorted(doc)}", "return exactly sentences"))
-    rows = doc.get("sentences")
-    if not isinstance(rows, list) or not rows:
-        issues.append(ValidationIssue("sentences", f"expected non-empty list, received {type(rows).__name__}", "return one or more sentence rows")); rows=[]
-    fact_map={f["fact_id"]:f for f in facts}; covered=set(); seen=set(); expected_counts={d:0 for d in DOMAIN_HEADINGS}
+    _exact_keys(issues, doc, {"dispositions", "sentences"})
+    fact_map={f["fact_id"]:f for f in facts}
+
+    dispositions=doc.get("dispositions")
+    if not isinstance(dispositions,list):
+        issues.append(ValidationIssue("dispositions",f"expected list, received {type(dispositions).__name__}","return one disposition for every supplied fact in supplied order")); dispositions=[]
+    if len(dispositions)!=len(facts):
+        issues.append(ValidationIssue("dispositions",f"expected {len(facts)} rows, received {len(dispositions)}","return every supplied fact exactly once in supplied order"))
+    included=set(); omitted=set()
+    for i,fact in enumerate(facts):
+        if i>=len(dispositions) or not isinstance(dispositions[i],dict): continue
+        row=dispositions[i]; loc=f"dispositions[{i}]"; _exact_keys(issues,row,{"fact_id","decision","reason"},loc)
+        if row.get("fact_id")!=fact["fact_id"]:
+            issues.append(ValidationIssue(f"{loc}.fact_id",f"received {row.get('fact_id')!r}",f"copy exact supplied fact_id {fact['fact_id']!r} in supplied order"))
+        decision=row.get("decision")
+        if decision not in {"include","omit"}:
+            issues.append(ValidationIssue(f"{loc}.decision",f"invalid value {decision!r}","use include or omit"))
+        reason=row.get("reason")
+        if decision=="include":
+            included.add(fact["fact_id"])
+            if reason is not None:
+                issues.append(ValidationIssue(f"{loc}.reason","include requires reason: null","set reason to null; only omissions require an audit reason"))
+        elif decision=="omit":
+            omitted.add(fact["fact_id"])
+            if not _nonempty(reason):
+                issues.append(ValidationIssue(f"{loc}.reason","omit requires a concise audit reason","state why this reportable fact is safely omitted"))
+
+    rows=doc.get("sentences")
+    if not isinstance(rows,list) or not rows:
+        issues.append(ValidationIssue("sentences",f"expected non-empty list, received {type(rows).__name__}","return one or more ordered sentence plans")); rows=[]
+    represented=set(); seen_ids=set(); counts={d:0 for d in DOMAIN_HEADINGS}; domain_order={d:i for i,d in enumerate(DOMAIN_HEADINGS)}; last_domain=-1
     for i,row in enumerate(rows):
         loc=f"sentences[{i}]"
         if not isinstance(row,dict):
-            issues.append(ValidationIssue(loc,"expected mapping","return sentence_id, domain, sentence, fact_ids, card_tags")); continue
-        expected={"sentence_id","domain","sentence","fact_ids","card_tags"}
-        if set(row)!=expected:
-            issues.append(ValidationIssue(loc,f"received fields {sorted(row)}",f"return exactly {sorted(expected)}"))
-        sid=row.get("sentence_id"); domain=row.get("domain"); sentence=row.get("sentence"); ids=row.get("fact_ids"); tags=row.get("card_tags")
+            issues.append(ValidationIssue(loc,"expected mapping","return sentence_id, domain, source_fact_ids, draft_sentence")); continue
+        _exact_keys(issues,row,{"sentence_id","domain","source_fact_ids","draft_sentence"},loc)
+        domain=row.get("domain")
         if domain not in DOMAIN_HEADINGS:
-            issues.append(ValidationIssue(f"{loc}.domain",f"invalid domain {domain!r}",f"use one of {sorted(DOMAIN_HEADINGS)}"))
+            issues.append(ValidationIssue(f"{loc}.domain",f"invalid domain {domain!r}",f"use one of {list(DOMAIN_HEADINGS)}"))
         else:
-            expected_counts[domain]+=1
-            expected_sid=f"{domain}-{expected_counts[domain]}"
-            if sid!=expected_sid:
-                issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {sid!r}",f"use deterministic sentence_id {expected_sid!r}"))
-        if sid in seen: issues.append(ValidationIssue(f"{loc}.sentence_id",f"duplicate {sid!r}","use each sentence_id once"))
-        seen.add(sid)
-        if not isinstance(sentence,str) or not sentence.strip() or sentence!=sentence.strip() or not sentence.endswith(".") or "[card:" in sentence:
-            issues.append(ValidationIssue(f"{loc}.sentence",f"invalid sentence {sentence!r}","return citation-free plain sentence prose ending with a full stop"))
+            order=domain_order[domain]
+            if order<last_domain:
+                issues.append(ValidationIssue(f"{loc}.domain",f"domain {domain!r} appears after a later report section","group sentences in canonical report section order"))
+            last_domain=max(last_domain,order)
+            counts[domain]+=1
+            expected_sid=f"{domain}-{counts[domain]}"
+            if row.get("sentence_id")!=expected_sid:
+                issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {row.get('sentence_id')!r}",f"use deterministic sentence_id {expected_sid!r}"))
+        sid=row.get("sentence_id")
+        if sid in seen_ids:
+            issues.append(ValidationIssue(f"{loc}.sentence_id",f"duplicate {sid!r}","use each sentence_id once"))
+        seen_ids.add(sid)
+        draft=row.get("draft_sentence")
+        if not isinstance(draft,str) or not draft.strip() or draft!=draft.strip() or not draft.endswith(".") or "[card:" in draft:
+            issues.append(ValidationIssue(f"{loc}.draft_sentence",f"invalid sentence {draft!r}","return one citation-free complete sentence ending with a full stop"))
+        ids=row.get("source_fact_ids")
         if not isinstance(ids,list) or not ids or len(ids)!=len(set(ids)):
-            issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list one or more unique supplied fact IDs")); ids=[]
-        expected_tags=[]
+            issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"invalid source_fact_ids {ids!r}","list one or more unique included supplied fact IDs")); continue
         for fid in ids:
             fact=fact_map.get(fid)
             if fact is None:
-                issues.append(ValidationIssue(f"{loc}.fact_ids",f"unknown fact ID {fid!r}","use only supplied fact IDs")); continue
+                issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"unknown fact ID {fid!r}","use only supplied fact IDs")); continue
+            if fid in omitted:
+                issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"omitted fact {fid!r} is used in a sentence","remove it from sentences or change its disposition to include"))
             if fact["domain"]!=domain:
-                issues.append(ValidationIssue(f"{loc}.fact_ids",f"fact {fid!r} belongs to {fact['domain']}, not {domain}","use only same-domain facts")); continue
-            covered.add(fid)
-            citation=fact.get("citation")
-            if citation:
-                for raw in CARD_TAG_RE.findall(citation):
-                    token=f"[card:{raw}]"
-                    if token not in expected_tags: expected_tags.append(token)
-        if tags!=expected_tags:
-            issues.append(ValidationIssue(f"{loc}.card_tags",f"received {tags!r}",f"card_tags are deterministic from paired facts; expected {expected_tags!r}"))
-    missing=[fid for fid in fact_map if fid not in covered]
-    if missing: issues.append(ValidationIssue("fact coverage",f"omitted supplied fact IDs {missing}","represent every supplied fact at least once"))
+                issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"fact {fid!r} belongs to {fact['domain']}, not {domain}","merge/split only facts within the same report domain"))
+            represented.add(fid)
+    missing=sorted(included-represented)
+    if missing:
+        issues.append(ValidationIssue("included fact coverage",f"included fact IDs are not represented in any sentence: {missing}","represent every included fact in at least one sentence; splitting may repeat a fact across sentences"))
+    unexpected=sorted(represented-included)
+    if unexpected:
+        issues.append(ValidationIssue("sentence sources",f"sentence sources are not dispositioned include: {unexpected}","only include-disposition facts may appear in sentence plans"))
+    fail("summarization plan",issues)
+    return "summarization plan validated"
+
+
+def validate_summary_plan_text(text: str, facts: list[dict]) -> str:
+    return validate_summary_plan_doc(parse_yaml_mapping(text,"summarization plan"),facts)
+
+
+def paraphrase_items(plan: dict, facts: list[dict]) -> list[dict]:
+    """Build minimal per-sentence paraphrase tasks from a validated plan.
+
+    A source fact may intentionally be split across more than one planned sentence.
+    The paraphraser therefore receives the complete source fact for guardrails plus
+    an explicit list of source IDs whose semantics were partitioned by the planner.
+    """
+    validate_summary_plan_doc(plan,facts)
+    fact_map={f["fact_id"]:f for f in facts}
+    use_counts={}
+    for row in plan["sentences"]:
+        for fid in row["source_fact_ids"]:
+            use_counts[fid]=use_counts.get(fid,0)+1
+    out=[]
+    for row in plan["sentences"]:
+        out.append({
+            "sentence_id":row["sentence_id"],
+            "domain":row["domain"],
+            "draft_sentence":row["draft_sentence"],
+            "source_fact_ids":list(row["source_fact_ids"]),
+            "source_facts":[{"fact_id":fid,"fact":fact_map[fid]["fact"]} for fid in row["source_fact_ids"]],
+            "split_source_fact_ids":[fid for fid in row["source_fact_ids"] if use_counts.get(fid,0)>1],
+        })
+    return out
+
+
+def validate_paraphrase_text(text: str, item: dict) -> str:
+    doc=parse_yaml_mapping(text,"paraphrased sentence"); issues=[]; _exact_keys(issues,doc,{"sentence_id","sentence"})
+    if doc.get("sentence_id")!=item["sentence_id"]:
+        issues.append(ValidationIssue("sentence_id",f"received {doc.get('sentence_id')!r}",f"copy exact sentence_id {item['sentence_id']!r}"))
+    sentence=doc.get("sentence")
+    if not isinstance(sentence,str) or not sentence.strip() or sentence!=sentence.strip() or not sentence.endswith(".") or "[card:" in sentence or "\n" in sentence:
+        issues.append(ValidationIssue("sentence",f"invalid sentence {sentence!r}","return exactly one self-contained citation-free sentence ending with a full stop"))
+    fail("paraphrased sentence",issues)
+    return "paraphrased sentence validated"
+
+
+def deterministic_sentence_card_tags(source_fact_ids: list[str], facts: list[dict]) -> list[str]:
+    fact_map={f["fact_id"]:f for f in facts}; tags=[]
+    for fid in source_fact_ids:
+        fact=fact_map[fid]
+        for tag in fact.get("card_tags") or []:
+            if tag not in tags: tags.append(tag)
+    return tags
+
+
+def validate_canonical_summary_doc(doc: dict, facts: list[dict]) -> str:
+    """Validate final summary provenance after paraphrasing and deterministic citation inheritance."""
+    issues: list[ValidationIssue] = []
+    _exact_keys(issues,doc,{"dispositions","sentences"})
+    dispositions=doc.get("dispositions")
+    plan_like={"dispositions":dispositions,"sentences":[]}
+    # Validate disposition rows independently so final sentences can use `sentence`
+    fact_map={f["fact_id"]:f for f in facts}; included=set(); omitted=set()
+    if not isinstance(dispositions,list):
+        issues.append(ValidationIssue("dispositions",f"expected list, received {type(dispositions).__name__}","preserve the validated summarization dispositions")); dispositions=[]
+    if len(dispositions)!=len(facts):
+        issues.append(ValidationIssue("dispositions",f"expected {len(facts)} rows, received {len(dispositions)}","preserve one disposition per supplied fact"))
+    for i,fact in enumerate(facts):
+        if i>=len(dispositions) or not isinstance(dispositions[i],dict): continue
+        row=dispositions[i]; loc=f"dispositions[{i}]"; _exact_keys(issues,row,{"fact_id","decision","reason"},loc)
+        if row.get("fact_id")!=fact["fact_id"]: issues.append(ValidationIssue(f"{loc}.fact_id",f"received {row.get('fact_id')!r}",f"expected {fact['fact_id']!r}"))
+        if row.get("decision")=="include":
+            included.add(fact["fact_id"])
+            if row.get("reason") is not None: issues.append(ValidationIssue(f"{loc}.reason","include requires reason: null","preserve the plan disposition"))
+        elif row.get("decision")=="omit":
+            omitted.add(fact["fact_id"])
+            if not _nonempty(row.get("reason")): issues.append(ValidationIssue(f"{loc}.reason","omit requires an audit reason","preserve the plan omission reason"))
+        else: issues.append(ValidationIssue(f"{loc}.decision",f"invalid value {row.get('decision')!r}","use include or omit"))
+
+    rows=doc.get("sentences")
+    if not isinstance(rows,list) or not rows:
+        issues.append(ValidationIssue("sentences",f"expected non-empty list, received {type(rows).__name__}","return the ordered paraphrased sentences")); rows=[]
+    represented=set(); counts={d:0 for d in DOMAIN_HEADINGS}; domain_order={d:i for i,d in enumerate(DOMAIN_HEADINGS)}; last_domain=-1; seen=set()
+    for i,row in enumerate(rows):
+        loc=f"sentences[{i}]"
+        if not isinstance(row,dict):
+            issues.append(ValidationIssue(loc,"expected mapping","return sentence_id, domain, sentence, source_fact_ids, card_tags")); continue
+        expected={"sentence_id","domain","sentence","source_fact_ids","card_tags"}
+        if set(row)!=expected: issues.append(ValidationIssue(loc,f"received fields {sorted(row)}",f"return exactly {sorted(expected)}"))
+        domain=row.get("domain")
+        if domain not in DOMAIN_HEADINGS:
+            issues.append(ValidationIssue(f"{loc}.domain",f"invalid domain {domain!r}",f"use one of {list(DOMAIN_HEADINGS)}"))
+        else:
+            order=domain_order[domain]
+            if order<last_domain: issues.append(ValidationIssue(f"{loc}.domain",f"domain {domain!r} is out of report-section order","preserve summarization plan order"))
+            last_domain=max(last_domain,order); counts[domain]+=1; expected_sid=f"{domain}-{counts[domain]}"
+            if row.get("sentence_id")!=expected_sid: issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {row.get('sentence_id')!r}",f"expected {expected_sid!r}"))
+        sid=row.get("sentence_id")
+        if sid in seen: issues.append(ValidationIssue(f"{loc}.sentence_id",f"duplicate {sid!r}","use each sentence_id once"))
+        seen.add(sid)
+        sentence=row.get("sentence")
+        if not isinstance(sentence,str) or not sentence.strip() or sentence!=sentence.strip() or not sentence.endswith(".") or "[card:" in sentence or "\n" in sentence:
+            issues.append(ValidationIssue(f"{loc}.sentence",f"invalid sentence {sentence!r}","return one citation-free complete sentence ending with a full stop"))
+        ids=row.get("source_fact_ids")
+        if not isinstance(ids,list) or not ids or len(ids)!=len(set(ids)):
+            issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"invalid source_fact_ids {ids!r}","preserve one or more unique included fact IDs")); ids=[]
+        for fid in ids:
+            fact=fact_map.get(fid)
+            if fact is None: issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"unknown fact ID {fid!r}","use only supplied facts")); continue
+            if fid not in included: issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"fact {fid!r} was not dispositioned include","do not surface omitted facts"))
+            if fact["domain"]!=domain: issues.append(ValidationIssue(f"{loc}.source_fact_ids",f"fact {fid!r} belongs to {fact['domain']}, not {domain}","preserve same-domain composition"))
+            represented.add(fid)
+        expected_tags=deterministic_sentence_card_tags(ids,facts) if ids and all(fid in fact_map for fid in ids) else []
+        if row.get("card_tags")!=expected_tags:
+            issues.append(ValidationIssue(f"{loc}.card_tags",f"received {row.get('card_tags')!r}",f"citations are deterministic from source facts; expected {expected_tags!r}"))
+    missing=sorted(included-represented)
+    if missing: issues.append(ValidationIssue("included fact coverage",f"included facts missing from final sentences: {missing}","preserve every included source fact through paraphrasing"))
     fail("canonical summarization output",issues)
     return "canonical summarization output validated"
 
@@ -778,6 +992,6 @@ def sentence_card_interpretations(doc: dict, interpretation_by_tag: dict[str,str
             cards.append({"card_tag":tag,"interpretation":interpretation_by_tag[tag]})
         rows.append({
             "sentence_id":row["sentence_id"],"domain":row["domain"],"sentence":row["sentence"],
-            "fact_ids":list(row.get("fact_ids") or []),"cards":cards,
+            "source_fact_ids":list(row.get("source_fact_ids") or []),"cards":cards,
         })
     return {"sentences":rows}

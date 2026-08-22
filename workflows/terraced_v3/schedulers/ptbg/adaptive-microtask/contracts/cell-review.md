@@ -20,3 +20,5 @@ replacement: "<null when keeping; complete corrected decision row when replacing
 Angle-bracketed text describes the required content only. It is not a preferred review outcome and must never be copied as the adjudication.
 
 Use `action: replace` only when correction is required, with `replacement` containing the complete corrected decision row for the selected cell. The replacement may not change the protected cell scope.
+
+When replacing a cell, preserve the existing `fact` text and `card_tags` exactly if that reportable proposition remains correct. Change either only when the proposition or its evidence provenance truly changes.

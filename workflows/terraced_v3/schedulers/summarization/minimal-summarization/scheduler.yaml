@@ -3,29 +3,56 @@ scheduler:
   phase: summarization
   version: 1
   order: 90
-  description: 'Minimal developer example: one model call returns sentence-to-fact pairs directly.'
+  description: Minimal provenance-preserving summarizer using explicit fact disposition and sentence source IDs.
 steps:
-- id: summarize
+- id: plan
   kind: model
   inputs:
     facts: core.facts.cited
   prompt:
-    template: prompts/summarize.md
+    template: prompts/plan.md
     inject:
       facts:
         input: facts
         render: yaml
       output_contract:
-        contract: local.summary-pairs
+        contract: ../common/contracts/summary-plan.md
   output:
     format: yaml
-    validator: summary_pairs
-    contract: local.summary-pairs
+    validator: summary_plan
+    contract: ../common/contracts/summary-plan.md
+- id: prepare
+  kind: operation
+  operation: prepare_paraphrase_items
+  inputs:
+    plan: steps.plan
+    facts: core.facts.cited
+- id: paraphrase
+  kind: model
+  foreach: steps.prepare
+  depends_on: [prepare]
+  role: paraphrasing
+  inputs:
+    sentence_plan: $item
+  prompt:
+    template: ../common/prompts/paraphrase.md
+    inject:
+      sentence_plan:
+        input: sentence_plan
+        render: yaml
+      output_contract:
+        contract: ../common/contracts/paraphrase-output.md
+  output:
+    format: yaml
+    validator: paraphrase_sentence
+    contract: ../common/contracts/paraphrase-output.md
 - id: publish
   kind: operation
-  operation: publish_summary_pairs
+  operation: publish_summary
+  depends_on: [paraphrase]
   inputs:
-    pairs: steps.summarize
+    plan: steps.plan
+    paraphrases: steps.paraphrase
     facts: core.facts.cited
 outputs:
   summary: steps.publish.summary
@@ -35,4 +62,4 @@ interface:
       contract: core.facts.cited
   outputs:
     summary:
-      contract: local.summary-output
+      contract: ../common/contracts/summary-output.md

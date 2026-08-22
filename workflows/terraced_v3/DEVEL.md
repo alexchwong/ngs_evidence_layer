@@ -57,8 +57,8 @@ core.case.structured
 core.facts.cited
 → contracts/core/facts/cited.md
 
-core.evidence.alignment-output
-→ contracts/core/evidence/alignment-output.md
+core.facts.evidence-check
+→ contracts/core/facts/evidence-check.md
 ```
 
 Scheduler-private contracts use `local.*` and resolve inside that scheduler:
@@ -140,11 +140,22 @@ Python should continue to own algorithms and live-state invariants, including:
 - WHO5 → CMC derivation and CMC history logic;
 - exact case-specific variant/gene × diagnosis scope generation;
 - verification that a card tag was actually supplied to a task;
-- disease-scoped citation permission;
-- evidence/fact provenance and deterministic citation inheritance;
+- disease-scoped evidence permission;
+- immutable reportable-fact reconciliation and tombstoning;
+- local reject-only fact/card support checking;
+- deterministic citation inheritance from summary `source_fact_ids`;
+- reject-only semantic preservation checking after paraphrasing;
 - registered deterministic scheduler operations and explicit adapters.
 
 Do not move these into YAML expressions.
+
+## Immutable reportable-fact provenance
+
+Terraced-v3 attaches evidence when a reportable fact is first introduced; it does not reconstruct citations at the end. A fact-producing model returns the final exact `card_tags` for each surfaced `fact`. Before the artifact is accepted, core runs a narrow reject-only evidence check containing only the new fact(s) and their claimed card(s). The checker cannot rewrite a fact, search for another card, or reassign citations. A rejection is returned through the originating model task's normal retry path.
+
+Core reconciles each accepted scheduler snapshot against a persistent audit ledger. Exact `fact` text + `card_tags` retains the existing `fact_id`; surrounding subject/reason/decision metadata may evolve. If fact text or card attribution changes, the old fact is tombstoned and the replacement receives a new ID. No semantic-similarity matching is used.
+
+The active minimal ledger handed to summarization contains only `fact_id`, `domain`, `fact`, and `card_tags`. Summarization explicitly records include/omit decisions and constructs ordered sentences from `source_fact_ids`. Paraphrasing is sentence-local; a reject-only semantic-preservation check guards each paraphrase. Core then computes sentence citations deterministically from the source facts.
 
 ## Prompt/output contracts
 

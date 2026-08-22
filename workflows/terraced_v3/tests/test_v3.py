@@ -12,8 +12,8 @@ def test_safe_representation_repair_removes_fence():
 def test_who5_multiple_diagnoses_derive_multiple_primary_cmcs():
     doc = {
         "diagnoses": [
-            {"diagnosis_id": "DX1", "schema_disease": "MDS", "status": "established", "diagnosis": "MDS", "fact": "x.", "reason": "x", "candidate_card_tags": []},
-            {"diagnosis_id": "DX2", "schema_disease": "CLL/SLL", "status": "established", "diagnosis": "CLL/SLL", "fact": "y.", "reason": "y", "candidate_card_tags": []},
+            {"diagnosis_id": "DX1", "schema_disease": "MDS", "status": "established", "diagnosis": "MDS", "fact": "x.", "reason": "x", "card_tags": []},
+            {"diagnosis_id": "DX2", "schema_disease": "CLL/SLL", "status": "established", "diagnosis": "CLL/SLL", "fact": "y.", "reason": "y", "card_tags": []},
         ],
         "supporting_facts": [],
         "contradicting_facts": [],
@@ -30,7 +30,7 @@ def test_prognosis_validator_requires_variant_diagnosis_cartesian_scope():
     surface: false
     fact: null
     reason: null
-    candidate_card_tags: []
+    card_tags: []
   - variant_id: V1
     diagnosis_id: DX2
     effect: adverse
@@ -38,21 +38,47 @@ def test_prognosis_validator_requires_variant_diagnosis_cartesian_scope():
     surface: true
     fact: "Variant V1 is adverse in this disease context."
     reason: "The supplied evidence classifies it as adverse."
-    candidate_card_tags: []
+    card_tags: []
 """
     spec = {"required_pairs": [("V1", "DX1"), ("V1", "DX2")]}
     assert runtime.validate_domain_text(text, domain="prognosis", spec=spec, permitted_tags=set())
 
 
-def test_alignment_enforces_diagnosis_scoped_permitted_tags():
-    facts = [{"fact_id": "f1", "domain": "prognosis", "subject": {"diagnosis_ids": ["DX1"]}}]
-    bad = "alignments:\n  - fact_id: f1\n    citation: \"[card:aaaaaaaaaaaa]\"\n"
-    try:
-        runtime.validate_evidence_alignment_text(bad, facts, {"f1": {"bbbbbbbbbbbb"}})
-    except ValueError as exc:
-        assert "not permitted for this fact scope" in str(exc)
-    else:
-        raise AssertionError("expected scoped citation validation failure")
+def test_fact_ledger_reconciliation_preserves_id_for_reason_change_and_replaces_changed_fact():
+    ledger = runtime.new_fact_ledger()
+    first = [{
+        "domain": "prognosis",
+        "subject": {"variant_id": "V1", "diagnosis_ids": ["DX1"]},
+        "decision": {"effect": "adverse"},
+        "fact": "NPM1 is prognostically relevant in AML.",
+        "reason": "Initial reason.",
+        "card_tags": ["[card:aaaaaaaaaaaa]"],
+    }]
+    runtime.reconcile_fact_snapshot(ledger, "ptbg.prognosis", first, source="pass-1")
+    assert runtime.active_ledger_facts(ledger)[0]["fact_id"] == "F0001"
+
+    same = [dict(first[0], subject={"variant_id": "V1", "diagnosis_ids": ["DX2"]}, reason="Updated reason.")]
+    runtime.reconcile_fact_snapshot(ledger, "ptbg.prognosis", same, source="pass-2")
+    active = runtime.active_ledger_facts(ledger)
+    assert [row["fact_id"] for row in active] == ["F0001"]
+    assert active[0]["current_reason"] == "Updated reason."
+    assert active[0]["current_subject"]["diagnosis_ids"] == ["DX2"]
+
+    changed = [dict(same[0], fact="NPM1 is favourable in this AML context.")]
+    runtime.reconcile_fact_snapshot(ledger, "ptbg.prognosis", changed, source="pass-3")
+    active = runtime.active_ledger_facts(ledger)
+    assert [row["fact_id"] for row in active] == ["F0002"]
+    assert next(row for row in ledger["facts"] if row["fact_id"] == "F0001")["status"] == "withdrawn"
+
+
+def test_fact_evidence_check_is_required_only_for_new_cited_facts():
+    ledger = runtime.new_fact_ledger()
+    cited = {"domain": "diagnosis", "fact": "A cited fact.", "reason": "x", "subject": {}, "decision": {}, "card_tags": ["[card:aaaaaaaaaaaa]"]}
+    case_only = {"domain": "diagnosis", "fact": "A case-derived fact.", "reason": "x", "subject": {}, "decision": {}, "card_tags": []}
+    pending = runtime.facts_needing_evidence_check(ledger, "diagnosis.who5", [cited, case_only])
+    assert pending == [cited]
+    runtime.reconcile_fact_snapshot(ledger, "diagnosis.who5", [cited, case_only], source="pass-1")
+    assert runtime.facts_needing_evidence_check(ledger, "diagnosis.who5", [cited, case_only]) == []
 
 
 def test_yaml_parser_failure_is_actionable():
@@ -242,7 +268,7 @@ def test_generic_yaml_deterministically_quotes_colon_in_plain_text_scalar():
         "  - diagnosis_ids: [DX1]\n"
         "    fact: Bone marrow morphology shows 30% myeloid blasts.\n"
         "    reason: Case fact C2: 30% myeloid blasts.\n"
-        "    candidate_card_tags: []\n"
+        "    card_tags: []\n"
     )
     result = syntax_repair.repair_structured_output(
         broken,
@@ -350,19 +376,19 @@ def test_card_tag_syntax_normalizer_accepts_bare_hash_lists_and_canonicalizes():
     import yaml
 
     text = '''decisions:
-  - candidate_card_tags: [abcdefabcdef]
-  - candidate_card_tags: ["abcdefabcdef"]
-  - target_candidate_card_tags: [abcdefabcdef, "1234567890ab"]
-  - resistance_candidate_card_tags: [card:abcdefabcdef]
+  - card_tags: [abcdefabcdef]
+  - card_tags: ["abcdefabcdef"]
+  - target_card_tags: [abcdefabcdef, "1234567890ab"]
+  - resistance_card_tags: [card:abcdefabcdef]
 evidence_items:
   - card_tag: 1234567890ab
 '''
     repaired, repairs = runtime.normalize_model_card_tag_syntax(text, format_name="yaml")
     doc = yaml.safe_load(repaired)
-    assert doc["decisions"][0]["candidate_card_tags"] == ["[card:abcdefabcdef]"]
-    assert doc["decisions"][1]["candidate_card_tags"] == ["[card:abcdefabcdef]"]
-    assert doc["decisions"][2]["target_candidate_card_tags"] == ["[card:abcdefabcdef]", "[card:1234567890ab]"]
-    assert doc["decisions"][3]["resistance_candidate_card_tags"] == ["[card:abcdefabcdef]"]
+    assert doc["decisions"][0]["card_tags"] == ["[card:abcdefabcdef]"]
+    assert doc["decisions"][1]["card_tags"] == ["[card:abcdefabcdef]"]
+    assert doc["decisions"][2]["target_card_tags"] == ["[card:abcdefabcdef]", "[card:1234567890ab]"]
+    assert doc["decisions"][3]["resistance_card_tags"] == ["[card:abcdefabcdef]"]
     assert doc["evidence_items"][0]["card_tag"] == "[card:1234567890ab]"
     assert len(repairs) == 6
 
@@ -376,7 +402,7 @@ def test_bare_card_hash_is_only_accepted_when_exactly_supplied_after_normalizati
     surface: true
     fact: "Variant V1 is adverse in this disease context."
     reason: "The supplied evidence supports this conclusion."
-    candidate_card_tags: [abcdefabcdef]
+    card_tags: [abcdefabcdef]
 '''
     repaired, repairs = runtime.normalize_model_card_tag_syntax(text, format_name="yaml")
     assert repairs
@@ -405,21 +431,24 @@ def test_pipeline_registry_ships_three_defaults_and_resolves_roles():
             assert binding.role == role
 
 
-def test_canonical_summary_requires_card_tags_derived_from_fact_citations():
+def test_canonical_summary_requires_card_tags_derived_from_source_facts():
     facts = [{
-        "fact_id": "prognosis-V1-DX1", "domain": "prognosis", "fact": "x", "reason": "y",
-        "citation": "[card:abcdefabcdef]", "subject": {}, "decision": {}, "candidate_card_tags": [],
+        "fact_id": "F0001", "domain": "prognosis", "fact": "A prognostic fact.",
+        "card_tags": ["[card:abcdefabcdef]"],
     }]
-    good = {"sentences": [{
-        "sentence_id": "prognosis-1", "domain": "prognosis", "sentence": "This is favorable.",
-        "fact_ids": ["prognosis-V1-DX1"], "card_tags": ["[card:abcdefabcdef]"],
-    }]}
+    good = {
+        "dispositions": [{"fact_id": "F0001", "decision": "include", "reason": None}],
+        "sentences": [{
+            "sentence_id": "prognosis-1", "domain": "prognosis", "sentence": "This is favourable.",
+            "source_fact_ids": ["F0001"], "card_tags": ["[card:abcdefabcdef]"],
+        }],
+    }
     assert runtime.validate_canonical_summary_doc(good, facts)
-    bad = {"sentences": [dict(good["sentences"][0], card_tags=[])]}
+    bad = {"dispositions": good["dispositions"], "sentences": [dict(good["sentences"][0], card_tags=[])]}
     try:
         runtime.validate_canonical_summary_doc(bad, facts)
     except ValueError as exc:
-        assert "card_tags are deterministic" in str(exc)
+        assert "citations are deterministic from source facts" in str(exc)
     else:
         raise AssertionError("expected canonical summary tag mismatch")
 
@@ -427,9 +456,10 @@ def test_canonical_summary_requires_card_tags_derived_from_fact_citations():
 def test_sentence_card_interpretations_are_created_deterministically():
     summary = {"sentences": [{
         "sentence_id": "treatment-1", "domain": "treatment", "sentence": "FLT3 is targetable.",
-        "fact_ids": ["f1"], "card_tags": ["[card:abcdefabcdef]"],
+        "source_fact_ids": ["F0001"], "card_tags": ["[card:abcdefabcdef]"],
     }]}
     paired = runtime.sentence_card_interpretations(summary, {"[card:abcdefabcdef]": "FLT3 alterations can be therapeutically targeted in AML."})
+    assert paired["sentences"][0]["source_fact_ids"] == ["F0001"]
     assert paired["sentences"][0]["cards"] == [{
         "card_tag": "[card:abcdefabcdef]",
         "interpretation": "FLT3 alterations can be therapeutically targeted in AML.",
@@ -480,7 +510,7 @@ def test_pipeline_contract_mismatch_fails_before_execution_with_adapter_guidance
     finalise = next(row for row in doc["modules"] if row["id"] == "finalise")
     # Feed cited facts where a report summary is required.  Both artifacts exist,
     # but their semantic types/contracts are intentionally incompatible.
-    finalise["inputs"]["summary"] = "evidence.cited_facts"
+    finalise["inputs"]["summary"] = "facts.cited_facts"
     path = tmp_path / "bad-pipeline.yaml"
     path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
     try:
@@ -490,7 +520,7 @@ def test_pipeline_contract_mismatch_fails_before_execution_with_adapter_guidance
         assert "pipeline contract mismatch" in message
         assert "semantic type mismatch" in message
         assert "explicit adapter module" in message
-        assert "Source evidence.cited_facts" in message
+        assert "Source facts.cited_facts" in message
         assert "expected contract" in message
     else:
         raise AssertionError("expected setup-time contract incompatibility")
@@ -515,70 +545,176 @@ def test_scheduler_interface_output_names_are_scheduler_local(tmp_path):
     assert scheduler_engine.output_contract(plan, "whatever_i_call_it").semantic_type == "ptbg.experimental"
 
 
-def test_default_summarization_supplies_deterministic_sentence_manifest_to_aligner(tmp_path):
+def test_default_summarization_plans_paraphrases_and_inherits_citations(tmp_path):
     from workflows.terraced_v3 import scheduler_engine, scheduler_primitives, scheduler_registry
 
     facts = [
-        {
-            "fact_id": "diagnosis-DX1",
-            "domain": "diagnosis",
-            "fact": "Diagnosis fact.",
-            "reason": "Diagnosis reason.",
-            "citation": "[card:aaaaaaaaaaaa]",
-            "subject": {},
-            "decision": {},
-            "candidate_card_tags": [],
-        },
-        {
-            "fact_id": "treatment-V1-DX1",
-            "domain": "treatment",
-            "fact": "Treatment fact.",
-            "reason": "Treatment reason.",
-            "citation": "[card:bbbbbbbbbbbb]",
-            "subject": {},
-            "decision": {},
-            "candidate_card_tags": [],
-        },
+        {"fact_id": "F0001", "domain": "diagnosis", "fact": "Diagnosis fact.", "card_tags": ["[card:aaaaaaaaaaaa]"]},
+        {"fact_id": "F0002", "domain": "treatment", "fact": "Treatment fact.", "card_tags": ["[card:bbbbbbbbbbbb]"]},
+        {"fact_id": "F0003", "domain": "treatment", "fact": "Redundant treatment fact.", "card_tags": ["[card:cccccccccccc]"]},
     ]
-    draft = "**Diagnosis**\nDiagnosis sentence.\n**Treatment Implications**\nTreatment sentence.\n"
+    seen_paraphrase_items = []
 
     def call_model(*, call_id, prompt, output, validator, **_):
-        if "-draft-" in call_id:
-            output.write_text(draft, encoding="utf-8")
-        else:
-            assert "# Supplied sentence manifest" in prompt
-            assert "sentence_id: diagnosis-1" in prompt
-            assert "domain: diagnosis" in prompt
-            assert "sentence: Diagnosis sentence." in prompt
-            assert "sentence_id: treatment-1" in prompt
-            assert "domain: treatment" in prompt
-            assert "sentence: Treatment sentence." in prompt
-            assert prompt.index("sentence_id: diagnosis-1") < prompt.index("sentence_id: treatment-1")
+        if "-plan-" in call_id:
+            assert "# Immutable cited reportable facts" in prompt
             output.write_text(
-                "alignments:\n"
-                "  - sentence_id: diagnosis-1\n"
-                "    fact_ids: [diagnosis-DX1]\n"
-                "  - sentence_id: treatment-1\n"
-                "    fact_ids: [treatment-V1-DX1]\n",
+                "dispositions:\n"
+                "  - fact_id: F0001\n    decision: include\n    reason: null\n"
+                "  - fact_id: F0002\n    decision: include\n    reason: null\n"
+                "  - fact_id: F0003\n    decision: omit\n    reason: Redundant with F0002.\n"
+                "sentences:\n"
+                "  - sentence_id: diagnosis-1\n    domain: diagnosis\n    source_fact_ids: [F0001]\n    draft_sentence: Diagnosis fact.\n"
+                "  - sentence_id: treatment-1\n    domain: treatment\n    source_fact_ids: [F0002]\n    draft_sentence: Treatment fact.\n",
                 encoding="utf-8",
             )
+        else:
+            assert "# Planned sentence and its source facts" in prompt
+            if "diagnosis-1" in call_id:
+                seen_paraphrase_items.append("diagnosis-1")
+                output.write_text("sentence_id: diagnosis-1\nsentence: Diagnosis fact.\n", encoding="utf-8")
+            else:
+                seen_paraphrase_items.append("treatment-1")
+                output.write_text("sentence_id: treatment-1\nsentence: Treatment fact.\n", encoding="utf-8")
         validator(output.read_text(encoding="utf-8"))
 
+    checked = []
     ctx = scheduler_primitives.SchedulerContext(
-        work=tmp_path,
-        case={},
-        diagnoses=[],
-        final_cmcs=[],
-        pipeline_id="test",
-        call_model=call_model,
-        ensure_evidence=lambda _: None,
-        read_text=lambda path: path.read_text(encoding="utf-8"),
-        write_text=lambda path, text: path.write_text(text, encoding="utf-8"),
-        status=lambda _: None,
-        phase="summarization",
-        values={"cited_facts": facts},
+        work=tmp_path, case={}, diagnoses=[], final_cmcs=[], pipeline_id="test", call_model=call_model,
+        ensure_evidence=lambda _: None, read_text=lambda path: path.read_text(encoding="utf-8"),
+        write_text=lambda path, text: path.write_text(text, encoding="utf-8"), status=lambda _: None,
+        phase="summarization", values={"cited_facts": facts},
+        paraphrase_guard=lambda **kwargs: checked.append(kwargs),
     )
     plan = scheduler_registry.load("default-summarization", "summarization")
     result = scheduler_engine.execute(plan, ctx)
 
-    assert [row["sentence_id"] for row in result["summary"]["sentences"]] == ["diagnosis-1", "treatment-1"]
+    assert seen_paraphrase_items == ["diagnosis-1", "treatment-1"]
+    assert len(checked) == 2
+    assert result["summary"]["dispositions"][2]["decision"] == "omit"
+    assert result["summary"]["sentences"][0]["source_fact_ids"] == ["F0001"]
+    assert result["summary"]["sentences"][0]["card_tags"] == ["[card:aaaaaaaaaaaa]"]
+    assert result["summary"]["sentences"][1]["card_tags"] == ["[card:bbbbbbbbbbbb]"]
+
+
+def test_summary_plan_supports_merge_and_split_with_explicit_omission():
+    facts = [
+        {"fact_id": "F0001", "domain": "prognosis", "fact": "Fact one.", "card_tags": ["[card:aaaaaaaaaaaa]"]},
+        {"fact_id": "F0002", "domain": "prognosis", "fact": "Fact two.", "card_tags": ["[card:bbbbbbbbbbbb]"]},
+        {"fact_id": "F0003", "domain": "prognosis", "fact": "Fact three.", "card_tags": []},
+    ]
+    plan = {
+        "dispositions": [
+            {"fact_id": "F0001", "decision": "include", "reason": None},
+            {"fact_id": "F0002", "decision": "include", "reason": None},
+            {"fact_id": "F0003", "decision": "omit", "reason": "Redundant."},
+        ],
+        "sentences": [
+            {"sentence_id": "prognosis-1", "domain": "prognosis", "source_fact_ids": ["F0001", "F0002"], "draft_sentence": "Facts one and two are relevant."},
+            {"sentence_id": "prognosis-2", "domain": "prognosis", "source_fact_ids": ["F0001"], "draft_sentence": "Fact one is also stated separately."},
+        ],
+    }
+    assert runtime.validate_summary_plan_doc(plan, facts)
+    items = runtime.paraphrase_items(plan, facts)
+    assert items[0]["split_source_fact_ids"] == ["F0001"]
+    assert items[1]["split_source_fact_ids"] == ["F0001"]
+
+
+
+def test_non_surfaced_domain_row_cannot_carry_evidence_provenance():
+    text = """decisions:
+  - variant_id: V1
+    diagnosis_id: DX1
+    effect: neither
+    scoring_system: null
+    surface: false
+    fact: null
+    reason: null
+    card_tags: [\"[card:abcdefabcdef]\"]
+"""
+    try:
+        runtime.validate_domain_text(
+            text,
+            domain="prognosis",
+            spec={"required_pairs": [("V1", "DX1")]},
+            permitted_tags={"abcdefabcdef"},
+        )
+    except Exception as exc:
+        assert "no surfaced reportable fact to cite" in str(exc)
+    else:
+        raise AssertionError("expected provenance on surface=false row to fail")
+
+
+def test_local_evidence_checker_contract_is_reject_only_and_complete():
+    good = """checks:
+  - candidate_id: C1
+    supported: true
+    issue: null
+  - candidate_id: C2
+    supported: false
+    issue: The claimed card does not support the complete proposition.
+"""
+    assert runtime.validate_fact_evidence_check_text(good, ["C1", "C2"])
+    incomplete = """checks:
+  - candidate_id: C1
+    supported: true
+    issue: null
+"""
+    try:
+        runtime.validate_fact_evidence_check_text(incomplete, ["C1", "C2"])
+    except Exception as exc:
+        assert "C2" in str(exc)
+    else:
+        raise AssertionError("expected missing checker result to fail")
+
+
+def test_merged_summary_sentence_inherits_union_of_source_cards_in_source_order():
+    facts = [
+        {"fact_id": "F0001", "domain": "prognosis", "fact": "Fact one.", "card_tags": ["[card:aaaaaaaaaaaa]", "[card:bbbbbbbbbbbb]"]},
+        {"fact_id": "F0002", "domain": "prognosis", "fact": "Fact two.", "card_tags": ["[card:bbbbbbbbbbbb]", "[card:cccccccccccc]"]},
+    ]
+    assert runtime.deterministic_sentence_card_tags(["F0001", "F0002"], facts) == [
+        "[card:aaaaaaaaaaaa]", "[card:bbbbbbbbbbbb]", "[card:cccccccccccc]"
+    ]
+
+
+def test_fact_evidence_prompt_treats_case_observations_as_supplied_premises():
+    prompt = (Path(__file__).parents[1] / "prompts" / "fact_evidence_check.md").read_text(encoding="utf-8")
+    assert "patient-specific observations" in prompt
+    assert "supplied premises" in prompt
+    assert "interpretive inference" in prompt
+
+
+def test_scheduler_model_steps_reenter_call_model_when_output_already_exists(tmp_path):
+    from workflows.terraced_v3 import scheduler_engine, scheduler_primitives, scheduler_registry
+
+    facts = [{"fact_id": "F0001", "domain": "diagnosis", "fact": "Diagnosis fact.", "card_tags": []}]
+    calls = []
+
+    def call_model(*, call_id, output, validator, **_):
+        calls.append(call_id)
+        # The scheduler must still invoke the model-call boundary on resume; that
+        # boundary decides whether the existing artifact is valid or needs retry.
+        validator(output.read_text(encoding="utf-8"))
+
+    ctx = scheduler_primitives.SchedulerContext(
+        work=tmp_path, case={}, diagnoses=[], final_cmcs=[], pipeline_id="test", call_model=call_model,
+        ensure_evidence=lambda _: None, read_text=lambda path: path.read_text(encoding="utf-8"),
+        write_text=lambda path, text: path.write_text(text, encoding="utf-8"), status=lambda _: None,
+        phase="summarization", values={"cited_facts": facts},
+    )
+    plan = scheduler_registry.load("default-summarization", "summarization")
+    root = tmp_path / "schedulers" / "summarization-default-summarization" / "plan"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "1.yaml").write_text(
+        "dispositions:\n  - fact_id: F0001\n    decision: include\n    reason: null\n"
+        "sentences:\n  - sentence_id: diagnosis-1\n    domain: diagnosis\n    source_fact_ids: [F0001]\n    draft_sentence: Diagnosis fact.\n",
+        encoding="utf-8",
+    )
+    # We only need to prove the first existing model artifact re-enters call_model;
+    # stop deliberately when the next model artifact is absent.
+    try:
+        scheduler_engine.execute(plan, ctx)
+    except FileNotFoundError:
+        pass
+    assert any("-plan-" in call_id for call_id in calls)

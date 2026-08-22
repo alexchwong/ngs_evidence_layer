@@ -120,14 +120,16 @@ The shipped default pipelines currently connect:
 
 ```text
 case → structure → corpus → default-diagnosis → domain PTBG
-     → core evidence alignment → default-summarization → core finalise
+     → core immutable fact-ledger collection → default-summarization → core finalise
 ```
 
 `default-diagnosis` preserves blind ICC, iterative WHO5/CMC reconsideration, cumulative old+new CMC diagnosis evidence, adversarial confirmation and oscillation protection. ICC never determines CMC.
 
 The five PTBG schedulers are `domain`, `evidence-first`, `variant-centric`, `global-ledger`, and `adaptive-microtask`.
 
-`default-summarization` performs draft → sentence/fact semantic alignment with bounded coverage repair. Core later creates `sentence-card-interpretations.yaml` deterministically from the accepted sentence/fact/card-tag mapping.
+Each surfaced diagnosis/PTBG fact acquires final `card_tags` when introduced. New cited facts undergo a minimal reject-only fact/card support check before acceptance; accepted fact text plus card attribution is immutable and later scheduler passes can only preserve it verbatim or withdraw/replace it.
+
+`default-summarization` explicitly decides fact include/omit, sentence order, merge and split, then paraphrases each planned sentence. A reject-only semantic-preservation check guards paraphrasing. Core derives sentence citations deterministically from `source_fact_ids` and creates `sentence-card-interpretations.yaml`; there is no end-stage semantic evidence alignment.
 
 ## Self-provider handoff
 

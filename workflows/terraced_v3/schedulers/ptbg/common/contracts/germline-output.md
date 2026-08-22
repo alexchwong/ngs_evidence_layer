@@ -2,10 +2,10 @@
 id: ptbg.common.germline-output
 semantic_type: ptbg.germline.state
 format: yaml
-provides: ["variant_decisions[].variant_id", "variant_decisions[].potentially_germline", "variant_decisions[].surface", "variant_decisions[].fact", "variant_decisions[].reason", "variant_decisions[].candidate_card_tags", "clinical_picture.supportive", "clinical_picture.surface", "clinical_picture.fact", "clinical_picture.reason", "clinical_picture.candidate_card_tags"]
+provides: ["variant_decisions[].variant_id", "variant_decisions[].potentially_germline", "variant_decisions[].surface", "variant_decisions[].fact", "variant_decisions[].reason", "variant_decisions[].card_tags", "clinical_picture.supportive", "clinical_picture.surface", "clinical_picture.fact", "clinical_picture.reason", "clinical_picture.card_tags"]
 requires: []
 validator: domain
-runtime_invariants: [exact_variant_scope, well_documented_germline_gene_rule, supplied_candidate_card_tags]
+runtime_invariants: [exact_variant_scope, well_documented_germline_gene_rule, supplied_card_tags]
 ---
 # Germline output
 
@@ -18,15 +18,17 @@ variant_decisions:
     surface: "<true or false>"
     fact: "<concise reportable germline fact, or null>"
     reason: "<short auditable justification, or null>"
-    candidate_card_tags: []
+    card_tags: []
 clinical_picture:
   supportive: "<true, false, or uncertain>"
   surface: "<true or false>"
   fact: "<concise reportable clinical-picture statement, or null>"
   reason: "<short auditable justification, or null>"
-  candidate_card_tags: []
+  card_tags: []
 ```
 
 Angle-bracketed text describes the required content only. It is not case information and must never be copied as a clinical conclusion.
 
 `clinical_picture.supportive` must be `true`, `false`, or `uncertain`.
+
+`card_tags` fields are final claimed evidence provenance for surfaced reportable facts. Use only exact supplied tags that directly support the complete proposition; use an empty list only for a genuinely case-derived proposition.
