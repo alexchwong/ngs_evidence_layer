@@ -12,12 +12,10 @@ def test_safe_representation_repair_removes_fence():
 def test_who5_multiple_diagnoses_derive_multiple_primary_cmcs():
     doc = {
         "diagnoses": [
-            {"diagnosis_id": "DX1", "schema_disease": "MDS", "status": "established", "diagnosis": "MDS", "fact": "x.", "reason": "x", "card_tags": []},
-            {"diagnosis_id": "DX2", "schema_disease": "CLL/SLL", "status": "established", "diagnosis": "CLL/SLL", "fact": "y.", "reason": "y", "card_tags": []},
+            {"diagnosis_id": "DX1", "schema_disease": "MDS", "status": "established", "diagnosis": "MDS", "statement": "x.", "reason": "x", "card_tags": []},
+            {"diagnosis_id": "DX2", "schema_disease": "CLL/SLL", "status": "established", "diagnosis": "CLL/SLL", "statement": "y.", "reason": "y", "card_tags": []},
         ],
-        "supporting_facts": [],
-        "contradicting_facts": [],
-    }
+            }
     assert runtime.derive_cmcs(doc) == ["MDS", "mature B-cell neoplasm"]
 
 
@@ -28,7 +26,7 @@ def test_prognosis_validator_requires_variant_diagnosis_cartesian_scope():
     effect: neither
     scoring_system: null
     surface: false
-    fact: null
+    statement: null
     reason: null
     case_refs: []
     card_tags: []
@@ -37,7 +35,7 @@ def test_prognosis_validator_requires_variant_diagnosis_cartesian_scope():
     effect: adverse
     scoring_system: CLL-IPI
     surface: true
-    fact: "Variant V1 is adverse in this disease context."
+    statement: "Variant V1 is adverse in this disease context."
     reason: "The supplied evidence classifies it as adverse."
     case_refs: []
     card_tags: []
@@ -46,66 +44,57 @@ def test_prognosis_validator_requires_variant_diagnosis_cartesian_scope():
     assert runtime.validate_domain_text(text, domain="prognosis", spec=spec, permitted_tags=set())
 
 
-def test_fact_ledger_reconciliation_preserves_id_for_reason_change_and_replaces_changed_fact():
-    ledger = runtime.new_fact_ledger()
+def test_statement_ledger_reconciliation_treats_reason_as_immutable_and_subject_as_metadata():
+    ledger = runtime.new_statement_ledger()
     first = [{
         "domain": "prognosis",
         "subject": {"variant_id": "V1", "diagnosis_ids": ["DX1"]},
         "decision": {"effect": "adverse"},
-        "fact": "NPM1 is prognostically relevant in AML.",
+        "statement": "NPM1 is prognostically relevant in AML.",
         "reason": "Initial reason.",
         "case_refs": ["V1"],
         "card_tags": ["[card:aaaaaaaaaaaa]"],
     }]
-    runtime.reconcile_fact_snapshot(ledger, "ptbg.prognosis", first, source="pass-1")
-    assert runtime.active_ledger_facts(ledger)[0]["fact_id"] == "F0001"
+    runtime.reconcile_statement_snapshot(ledger, "ptbg.prognosis", first, source="pass-1")
+    assert runtime.active_ledger_statements(ledger)[0]["statement_id"] == "S0001"
 
-    same = [dict(first[0], subject={"variant_id": "V1", "diagnosis_ids": ["DX2"]}, reason="Updated reason.")]
-    runtime.reconcile_fact_snapshot(ledger, "ptbg.prognosis", same, source="pass-2")
-    active = runtime.active_ledger_facts(ledger)
-    assert [row["fact_id"] for row in active] == ["F0001"]
-    assert active[0]["current_reason"] == "Updated reason."
+    # Subject/decision metadata may evolve without changing the immutable reportable statement.
+    same = [dict(first[0], subject={"variant_id": "V1", "diagnosis_ids": ["DX2"]})]
+    runtime.reconcile_statement_snapshot(ledger, "ptbg.prognosis", same, source="pass-2")
+    active = runtime.active_ledger_statements(ledger)
+    assert [row["statement_id"] for row in active] == ["S0001"]
     assert active[0]["current_subject"]["diagnosis_ids"] == ["DX2"]
 
-    changed = [dict(same[0], fact="NPM1 is favourable in this AML context.")]
-    runtime.reconcile_fact_snapshot(ledger, "ptbg.prognosis", changed, source="pass-3")
-    active = runtime.active_ledger_facts(ledger)
-    assert [row["fact_id"] for row in active] == ["F0002"]
-    assert next(row for row in ledger["facts"] if row["fact_id"] == "F0001")["status"] == "withdrawn"
+    # Reason is part of the auditable statement/evidence object, so changing it creates a replacement.
+    changed_reason = [dict(same[0], reason="Updated reason.")]
+    runtime.reconcile_statement_snapshot(ledger, "ptbg.prognosis", changed_reason, source="pass-3")
+    active = runtime.active_ledger_statements(ledger)
+    assert [row["statement_id"] for row in active] == ["S0002"]
+    assert next(row for row in ledger["statements"] if row["statement_id"] == "S0001")["status"] == "withdrawn"
 
 
-def test_fact_evidence_check_is_required_for_every_new_reportable_fact():
-    ledger = runtime.new_fact_ledger()
-    cited = {"domain": "diagnosis", "fact": "A cited fact.", "reason": "x", "subject": {}, "decision": {}, "case_refs": ["C1"], "card_tags": ["[card:aaaaaaaaaaaa]"]}
-    case_only = {"domain": "diagnosis", "fact": "A case-derived fact.", "reason": "x", "subject": {}, "decision": {}, "case_refs": ["C2"], "card_tags": []}
-    pending = runtime.facts_needing_evidence_check(ledger, "diagnosis.who5", [cited, case_only])
-    assert pending == [cited, case_only]
-    runtime.reconcile_fact_snapshot(ledger, "diagnosis.who5", [cited, case_only], source="pass-1")
-    assert runtime.facts_needing_evidence_check(ledger, "diagnosis.who5", [cited, case_only]) == []
+def test_statement_ledger_detects_every_new_reportable_statement():
+    ledger = runtime.new_statement_ledger()
+    cited = {"domain": "diagnosis", "statement": "WHO5 classification: AML.", "reason": "x", "subject": {}, "decision": {}, "case_refs": ["C1"], "card_tags": ["[card:aaaaaaaaaaaa]"]}
+    cardless = {"domain": "diagnosis", "statement": "ICC classification: AML.", "reason": "x", "subject": {}, "decision": {}, "case_refs": ["C2"], "card_tags": []}
+    pending = runtime.statements_needing_evidence_check(ledger, "diagnosis.who5", [cited, cardless])
+    assert pending == [cited, cardless]
+    runtime.reconcile_statement_snapshot(ledger, "diagnosis.who5", [cited, cardless], source="pass-1")
+    assert runtime.statements_needing_evidence_check(ledger, "diagnosis.who5", [cited, cardless]) == []
 
 
-def test_fact_ledger_replaces_fact_when_case_provenance_changes():
-    ledger = runtime.new_fact_ledger()
+def test_statement_ledger_replaces_statement_when_case_provenance_changes():
+    ledger = runtime.new_statement_ledger()
     first = [{
-        "domain": "diagnosis", "fact": "A patient-level proposition.", "reason": "x",
+        "domain": "diagnosis", "statement": "WHO5 classification: AML.", "reason": "Patient premises support AML.",
         "subject": {}, "decision": {}, "case_refs": ["C1"], "card_tags": [],
     }]
-    runtime.reconcile_fact_snapshot(ledger, "diagnosis.who5", first, source="pass-1")
+    runtime.reconcile_statement_snapshot(ledger, "diagnosis.who5", first, source="pass-1")
     changed = [dict(first[0], case_refs=["C2"])]
-    runtime.reconcile_fact_snapshot(ledger, "diagnosis.who5", changed, source="pass-2")
-    assert [row["fact_id"] for row in runtime.active_ledger_facts(ledger)] == ["F0002"]
-    assert next(row for row in ledger["facts"] if row["fact_id"] == "F0001")["status"] == "withdrawn"
+    runtime.reconcile_statement_snapshot(ledger, "diagnosis.who5", changed, source="pass-2")
+    assert [row["statement_id"] for row in runtime.active_ledger_statements(ledger)] == ["S0002"]
+    assert next(row for row in ledger["statements"] if row["statement_id"] == "S0001")["status"] == "withdrawn"
 
-
-def test_issue_specific_observation_repair_does_not_expand_fact_to_fit_cards():
-    from workflows.terraced_v3.step import _fact_evidence_repair_instruction
-    msg = _fact_evidence_repair_instruction(
-        "observation_should_be_cardless",
-        {"fact": "SRSF2 mutation is present.", "case_refs": ["V1"], "card_tags": ["[card:aaaaaaaaaaaa]"]},
-    )
-    assert "set card_tags: []" in msg
-    assert "Do not expand the observation merely to justify" in msg
-    assert "separate self-contained fact" in msg
 
 
 def test_yaml_parser_failure_is_actionable():
@@ -445,7 +434,7 @@ def test_bare_card_hash_is_only_accepted_when_exactly_supplied_after_normalizati
     effect: adverse
     scoring_system: ELN 2022
     surface: true
-    fact: "Variant V1 is adverse in this disease context."
+    statement: "Variant V1 is adverse in this disease context."
     reason: "The supplied evidence supports this conclusion."
     case_refs: []
     card_tags: [abcdefabcdef]
@@ -479,14 +468,14 @@ def test_pipeline_registry_ships_three_defaults_and_resolves_roles():
 
 def test_canonical_summary_requires_card_tags_derived_from_source_facts():
     facts = [{
-        "fact_id": "F0001", "domain": "prognosis", "fact": "A prognostic fact.",
+        "statement_id": "S0001", "domain": "prognosis", "statement": "A prognostic fact.",
         "card_tags": ["[card:abcdefabcdef]"],
     }]
     good = {
-        "dispositions": [{"fact_id": "F0001", "decision": "include", "reason": None}],
+        "dispositions": [{"statement_id": "S0001", "decision": "include", "reason": None}],
         "sentences": [{
             "sentence_id": "prognosis-1", "domain": "prognosis", "sentence": "This is favourable.",
-            "source_fact_ids": ["F0001"], "card_tags": ["[card:abcdefabcdef]"],
+            "source_statement_ids": ["S0001"], "card_tags": ["[card:abcdefabcdef]"],
         }],
     }
     assert runtime.validate_canonical_summary_doc(good, facts)
@@ -494,7 +483,7 @@ def test_canonical_summary_requires_card_tags_derived_from_source_facts():
     try:
         runtime.validate_canonical_summary_doc(bad, facts)
     except ValueError as exc:
-        assert "citations are deterministic from source facts" in str(exc)
+        assert "citations are deterministic from source statements" in str(exc)
     else:
         raise AssertionError("expected canonical summary tag mismatch")
 
@@ -502,10 +491,10 @@ def test_canonical_summary_requires_card_tags_derived_from_source_facts():
 def test_sentence_card_interpretations_are_created_deterministically():
     summary = {"sentences": [{
         "sentence_id": "treatment-1", "domain": "treatment", "sentence": "FLT3 is targetable.",
-        "source_fact_ids": ["F0001"], "card_tags": ["[card:abcdefabcdef]"],
+        "source_statement_ids": ["S0001"], "card_tags": ["[card:abcdefabcdef]"],
     }]}
     paired = runtime.sentence_card_interpretations(summary, {"[card:abcdefabcdef]": "FLT3 alterations can be therapeutically targeted in AML."})
-    assert paired["sentences"][0]["source_fact_ids"] == ["F0001"]
+    assert paired["sentences"][0]["source_statement_ids"] == ["S0001"]
     assert paired["sentences"][0]["cards"] == [{
         "card_tag": "[card:abcdefabcdef]",
         "interpretation": "FLT3 alterations can be therapeutically targeted in AML.",
@@ -556,7 +545,7 @@ def test_pipeline_contract_mismatch_fails_before_execution_with_adapter_guidance
     finalise = next(row for row in doc["modules"] if row["id"] == "finalise")
     # Feed cited facts where a report summary is required.  Both artifacts exist,
     # but their semantic types/contracts are intentionally incompatible.
-    finalise["inputs"]["summary"] = "facts.cited_facts"
+    finalise["inputs"]["summary"] = "statements.cited_statements"
     path = tmp_path / "bad-pipeline.yaml"
     path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
     try:
@@ -566,7 +555,7 @@ def test_pipeline_contract_mismatch_fails_before_execution_with_adapter_guidance
         assert "pipeline contract mismatch" in message
         assert "semantic type mismatch" in message
         assert "explicit adapter module" in message
-        assert "Source facts.cited_facts" in message
+        assert "Source statements.cited_statements" in message
         assert "expected contract" in message
     else:
         raise AssertionError("expected setup-time contract incompatibility")
@@ -595,27 +584,27 @@ def test_default_summarization_plans_paraphrases_and_inherits_citations(tmp_path
     from workflows.terraced_v3 import scheduler_engine, scheduler_primitives, scheduler_registry
 
     facts = [
-        {"fact_id": "F0001", "domain": "diagnosis", "fact": "Diagnosis fact.", "card_tags": ["[card:aaaaaaaaaaaa]"]},
-        {"fact_id": "F0002", "domain": "treatment", "fact": "Treatment fact.", "card_tags": ["[card:bbbbbbbbbbbb]"]},
-        {"fact_id": "F0003", "domain": "treatment", "fact": "Redundant treatment fact.", "card_tags": ["[card:cccccccccccc]"]},
+        {"statement_id": "S0001", "domain": "diagnosis", "statement": "Diagnosis fact.", "card_tags": ["[card:aaaaaaaaaaaa]"]},
+        {"statement_id": "S0002", "domain": "treatment", "statement": "Treatment fact.", "card_tags": ["[card:bbbbbbbbbbbb]"]},
+        {"statement_id": "S0003", "domain": "treatment", "statement": "Redundant treatment fact.", "card_tags": ["[card:cccccccccccc]"]},
     ]
     seen_paraphrase_items = []
 
     def call_model(*, call_id, prompt, output, validator, **_):
         if "-plan-" in call_id:
-            assert "# Immutable cited reportable facts" in prompt
+            assert "# Immutable cited reportable statements" in prompt
             output.write_text(
                 "dispositions:\n"
-                "  - fact_id: F0001\n    decision: include\n    reason: null\n"
-                "  - fact_id: F0002\n    decision: include\n    reason: null\n"
-                "  - fact_id: F0003\n    decision: omit\n    reason: Redundant with F0002.\n"
+                "  - statement_id: S0001\n    decision: include\n    reason: null\n"
+                "  - statement_id: S0002\n    decision: include\n    reason: null\n"
+                "  - statement_id: S0003\n    decision: omit\n    reason: Redundant with S0002.\n"
                 "sentences:\n"
-                "  - sentence_id: diagnosis-1\n    domain: diagnosis\n    source_fact_ids: [F0001]\n    draft_sentence: Diagnosis fact.\n"
-                "  - sentence_id: treatment-1\n    domain: treatment\n    source_fact_ids: [F0002]\n    draft_sentence: Treatment fact.\n",
+                "  - sentence_id: diagnosis-1\n    domain: diagnosis\n    source_statement_ids: [S0001]\n    draft_sentence: Diagnosis fact.\n"
+                "  - sentence_id: treatment-1\n    domain: treatment\n    source_statement_ids: [S0002]\n    draft_sentence: Treatment fact.\n",
                 encoding="utf-8",
             )
         else:
-            assert "# Planned sentence and its source facts" in prompt
+            assert "# Planned sentence and its source statements" in prompt
             if "diagnosis-1" in call_id:
                 seen_paraphrase_items.append("diagnosis-1")
                 output.write_text("sentence_id: diagnosis-1\nsentence: Diagnosis fact.\n", encoding="utf-8")
@@ -629,7 +618,7 @@ def test_default_summarization_plans_paraphrases_and_inherits_citations(tmp_path
         work=tmp_path, case={}, diagnoses=[], final_cmcs=[], pipeline_id="test", call_model=call_model,
         ensure_evidence=lambda _: None, read_text=lambda path: path.read_text(encoding="utf-8"),
         write_text=lambda path, text: path.write_text(text, encoding="utf-8"), status=lambda _: None,
-        phase="summarization", values={"cited_facts": facts},
+        phase="summarization", values={"cited_statements": facts},
         paraphrase_guard=lambda **kwargs: checked.append(kwargs),
     )
     plan = scheduler_registry.load("default-summarization", "summarization")
@@ -638,32 +627,32 @@ def test_default_summarization_plans_paraphrases_and_inherits_citations(tmp_path
     assert seen_paraphrase_items == ["diagnosis-1", "treatment-1"]
     assert len(checked) == 2
     assert result["summary"]["dispositions"][2]["decision"] == "omit"
-    assert result["summary"]["sentences"][0]["source_fact_ids"] == ["F0001"]
+    assert result["summary"]["sentences"][0]["source_statement_ids"] == ["S0001"]
     assert result["summary"]["sentences"][0]["card_tags"] == ["[card:aaaaaaaaaaaa]"]
     assert result["summary"]["sentences"][1]["card_tags"] == ["[card:bbbbbbbbbbbb]"]
 
 
 def test_summary_plan_supports_merge_and_split_with_explicit_omission():
     facts = [
-        {"fact_id": "F0001", "domain": "prognosis", "fact": "Fact one.", "card_tags": ["[card:aaaaaaaaaaaa]"]},
-        {"fact_id": "F0002", "domain": "prognosis", "fact": "Fact two.", "card_tags": ["[card:bbbbbbbbbbbb]"]},
-        {"fact_id": "F0003", "domain": "prognosis", "fact": "Fact three.", "card_tags": []},
+        {"statement_id": "S0001", "domain": "prognosis", "statement": "Fact one.", "card_tags": ["[card:aaaaaaaaaaaa]"]},
+        {"statement_id": "S0002", "domain": "prognosis", "statement": "Fact two.", "card_tags": ["[card:bbbbbbbbbbbb]"]},
+        {"statement_id": "S0003", "domain": "prognosis", "statement": "Fact three.", "card_tags": []},
     ]
     plan = {
         "dispositions": [
-            {"fact_id": "F0001", "decision": "include", "reason": None},
-            {"fact_id": "F0002", "decision": "include", "reason": None},
-            {"fact_id": "F0003", "decision": "omit", "reason": "Redundant."},
+            {"statement_id": "S0001", "decision": "include", "reason": None},
+            {"statement_id": "S0002", "decision": "include", "reason": None},
+            {"statement_id": "S0003", "decision": "omit", "reason": "Redundant."},
         ],
         "sentences": [
-            {"sentence_id": "prognosis-1", "domain": "prognosis", "source_fact_ids": ["F0001", "F0002"], "draft_sentence": "Facts one and two are relevant."},
-            {"sentence_id": "prognosis-2", "domain": "prognosis", "source_fact_ids": ["F0001"], "draft_sentence": "Fact one is also stated separately."},
+            {"sentence_id": "prognosis-1", "domain": "prognosis", "source_statement_ids": ["S0001", "S0002"], "draft_sentence": "Facts one and two are relevant."},
+            {"sentence_id": "prognosis-2", "domain": "prognosis", "source_statement_ids": ["S0001"], "draft_sentence": "Fact one is also stated separately."},
         ],
     }
     assert runtime.validate_summary_plan_doc(plan, facts)
     items = runtime.paraphrase_items(plan, facts)
-    assert items[0]["split_source_fact_ids"] == ["F0001"]
-    assert items[1]["split_source_fact_ids"] == ["F0001"]
+    assert items[0]["split_source_statement_ids"] == ["S0001"]
+    assert items[1]["split_source_statement_ids"] == ["S0001"]
 
 
 
@@ -674,8 +663,9 @@ def test_non_surfaced_domain_row_cannot_carry_evidence_provenance():
     effect: neither
     scoring_system: null
     surface: false
-    fact: null
+    statement: null
     reason: null
+    case_refs: []
     card_tags: [\"[card:abcdefabcdef]\"]
 """
     try:
@@ -686,7 +676,7 @@ def test_non_surfaced_domain_row_cannot_carry_evidence_provenance():
             permitted_tags={"abcdefabcdef"},
         )
     except Exception as exc:
-        assert "no surfaced reportable fact to cite" in str(exc)
+        assert "no surfaced statement" in str(exc)
     else:
         raise AssertionError("expected provenance on surface=false row to fail")
 
@@ -698,7 +688,7 @@ def test_case_reference_in_card_tags_gets_provenance_specific_feedback():
     effect: neither
     scoring_system: null
     surface: true
-    fact: "SRSF2 mutation is present."
+    statement: "SRSF2 mutation is present."
     reason: "Reported in the structured case."
     case_refs: []
     card_tags: [V1]
@@ -717,53 +707,20 @@ def test_case_reference_in_card_tags_gets_provenance_specific_feedback():
         raise AssertionError("expected patient provenance in card_tags to fail")
 
 
-def test_local_evidence_checker_contract_is_reject_only_and_complete():
-    good = """checks:
-  - candidate_id: C1
-    supported: true
-    issue_code: null
-    issue: null
-  - candidate_id: C2
-    supported: false
-    issue_code: unsupported_inference
-    issue: The claimed card does not support the complete proposition.
-"""
-    assert runtime.validate_fact_evidence_check_text(good, ["C1", "C2"])
-    incomplete = """checks:
-  - candidate_id: C1
-    supported: true
-    issue_code: null
-    issue: null
-"""
-    try:
-        runtime.validate_fact_evidence_check_text(incomplete, ["C1", "C2"])
-    except Exception as exc:
-        assert "C2" in str(exc)
-    else:
-        raise AssertionError("expected missing checker result to fail")
-
-
 def test_merged_summary_sentence_inherits_union_of_source_cards_in_source_order():
     facts = [
-        {"fact_id": "F0001", "domain": "prognosis", "fact": "Fact one.", "card_tags": ["[card:aaaaaaaaaaaa]", "[card:bbbbbbbbbbbb]"]},
-        {"fact_id": "F0002", "domain": "prognosis", "fact": "Fact two.", "card_tags": ["[card:bbbbbbbbbbbb]", "[card:cccccccccccc]"]},
+        {"statement_id": "S0001", "domain": "prognosis", "statement": "Fact one.", "card_tags": ["[card:aaaaaaaaaaaa]", "[card:bbbbbbbbbbbb]"]},
+        {"statement_id": "S0002", "domain": "prognosis", "statement": "Fact two.", "card_tags": ["[card:bbbbbbbbbbbb]", "[card:cccccccccccc]"]},
     ]
-    assert runtime.deterministic_sentence_card_tags(["F0001", "F0002"], facts) == [
+    assert runtime.deterministic_sentence_card_tags(["S0001", "S0002"], facts) == [
         "[card:aaaaaaaaaaaa]", "[card:bbbbbbbbbbbb]", "[card:cccccccccccc]"
     ]
-
-
-def test_fact_evidence_prompt_treats_case_observations_as_supplied_premises():
-    prompt = (Path(__file__).parents[1] / "prompts" / "fact_evidence_check.md").read_text(encoding="utf-8")
-    assert "patient-specific observations" in prompt
-    assert "supplied premises" in prompt
-    assert "interpretive inference" in prompt
 
 
 def test_scheduler_model_steps_reenter_call_model_when_output_already_exists(tmp_path):
     from workflows.terraced_v3 import scheduler_engine, scheduler_primitives, scheduler_registry
 
-    facts = [{"fact_id": "F0001", "domain": "diagnosis", "fact": "Diagnosis fact.", "card_tags": []}]
+    facts = [{"statement_id": "S0001", "domain": "diagnosis", "statement": "Diagnosis fact.", "card_tags": []}]
     calls = []
 
     def call_model(*, call_id, output, validator, **_):
@@ -776,14 +733,14 @@ def test_scheduler_model_steps_reenter_call_model_when_output_already_exists(tmp
         work=tmp_path, case={}, diagnoses=[], final_cmcs=[], pipeline_id="test", call_model=call_model,
         ensure_evidence=lambda _: None, read_text=lambda path: path.read_text(encoding="utf-8"),
         write_text=lambda path, text: path.write_text(text, encoding="utf-8"), status=lambda _: None,
-        phase="summarization", values={"cited_facts": facts},
+        phase="summarization", values={"cited_statements": facts},
     )
     plan = scheduler_registry.load("default-summarization", "summarization")
     root = tmp_path / "schedulers" / "summarization-default-summarization" / "plan"
     root.mkdir(parents=True, exist_ok=True)
     (root / "1.yaml").write_text(
-        "dispositions:\n  - fact_id: F0001\n    decision: include\n    reason: null\n"
-        "sentences:\n  - sentence_id: diagnosis-1\n    domain: diagnosis\n    source_fact_ids: [F0001]\n    draft_sentence: Diagnosis fact.\n",
+        "dispositions:\n  - statement_id: S0001\n    decision: include\n    reason: null\n"
+        "sentences:\n  - sentence_id: diagnosis-1\n    domain: diagnosis\n    source_statement_ids: [S0001]\n    draft_sentence: Diagnosis fact.\n",
         encoding="utf-8",
     )
     # We only need to prove the first existing model artifact re-enters call_model;
@@ -836,7 +793,7 @@ def test_pairing_uses_local_labels_and_python_resolves_runtime_card_tags():
     manifest = card_identity.build_manifest([card])
     full = scheduler_primitives.EvidenceView(domain="diagnosis", cards=[card], manifest=manifest, permitted_tags=set(card_identity.tag_by_id(manifest).values()), text="unused")
     local = evidence_resolution.local_evidence(full, [card])
-    paired = """diagnoses:\n  - diagnosis_id: ICC1\n    status: established\n    diagnosis: AML\n    fact: \"AML is established.\"\n    reason: x\n    case_refs: [C1]\n    card_refs: [\"CARD 01\"]\n"""
+    paired = """diagnoses:\n  - diagnosis_id: ICC1\n    status: established\n    diagnosis: AML\n    statement: \"ICC classification: AML.\"\n    reason: x\n    case_refs: [C1]\n    card_refs: [\"CARD 01\"]\n"""
     doc, _rendered = evidence_resolution.resolve_pairing_text(paired, local=local)
     assert doc["diagnoses"][0]["card_tags"] == [f"[card:{card_identity.tag_by_id(manifest)['khoury-C1']}]"]
     assert "card_refs" not in doc["diagnoses"][0]
@@ -849,11 +806,11 @@ def test_support_audit_renders_interpretation_immediately_below_fact_with_balanc
     raw = card_identity.tag_by_id(manifest)["khoury-C1"]
     full = scheduler_primitives.EvidenceView(domain="diagnosis", cards=[card], manifest=manifest, permitted_tags={raw}, text="unused")
     local = evidence_resolution.local_evidence(full, [card])
-    doc = {"diagnoses": [{"diagnosis_id": "ICC1", "fact": "With the patient findings, AML-MR is supported.", "case_refs": ["C1"], "card_tags": [f"[card:{raw}]"]}]}
+    doc = {"diagnoses": [{"diagnosis_id": "ICC1", "statement": "With the patient findings, AML-MR is supported.", "reason": "30% blasts and ASXL1 mutation are present.", "case_refs": ["C1"], "card_tags": [f"[card:{raw}]"]}]}
     pairs, _ = evidence_resolution._audit_payload(doc, authority="icc", local=local)
-    assert "Fact: With the patient findings, AML-MR is supported.\nPatient sources: C1\nSelected card 1:" in pairs
+    assert "Statement: With the patient findings, AML-MR is supported.\nReason: 30% blasts and ASXL1 mutation are present.\nPatient sources: C1\nSelected card 1:" in pairs
     assert "Interpretation 1: ASXL1 can satisfy the WHO5 AML-MR defining-mutation criterion." in pairs
-    assert "Question: Does this interpretation reasonably support the fact? Treat patient observations as given." in pairs
+    assert "Question: Does this interpretation reasonably support the statement? Treat patient observations as given." in pairs
 
 
 def test_diagnosis_schedulers_enable_three_pass_evidence_resolution():
@@ -905,9 +862,9 @@ def test_diagnosis_evidence_resolution_orchestrates_local_labels_to_final_tags(t
         elif call_id.endswith("-pairing"):
             assert "[card:" not in prompt
             assert "card_refs" in prompt
-            payload = """diagnoses:\n  - diagnosis_id: ICC1\n    status: established\n    diagnosis: AML with myelodysplasia-related gene mutations\n    fact: \"The findings meet ICC criteria for AML with myelodysplasia-related gene mutations.\"\n    reason: \"The patient has AML-range blasts with a qualifying ASXL1 mutation.\"\n    case_refs: [C1]\n    card_refs: [\"CARD 01\"]\n"""
+            payload = """diagnoses:\n  - diagnosis_id: ICC1\n    status: established\n    diagnosis: AML with myelodysplasia-related gene mutations\n    statement: \"ICC classification: AML with myelodysplasia-related gene mutations.\"\n    reason: \"The patient has AML-range blasts with a qualifying ASXL1 mutation.\"\n    case_refs: [C1]\n    card_refs: [\"CARD 01\"]\n"""
         elif call_id.endswith("-audit"):
-            assert "Does this interpretation reasonably support the fact? Treat patient observations as given." in prompt
+            assert "Does this interpretation reasonably support the statement? Treat patient observations as given." in prompt
             payload = """assessments:\n  - candidate_id: C1\n    assessment: supported\n    reason: \"The interpretation directly supports the classification claim.\"\n"""
         else:
             raise AssertionError(call_id)
@@ -947,3 +904,73 @@ def test_diagnosis_evidence_resolution_orchestrates_local_labels_to_final_tags(t
     assert doc["diagnoses"][0]["card_tags"] == [f"[card:{raw}]"]
     assert output.is_file()
     assert [cid for cid, _ in calls] == ["test-icc-relevance", "test-icc-pairing", "test-icc-audit"]
+
+
+def test_reasonable_support_audit_rejects_partial():
+    from workflows.terraced_v3 import evidence_resolution
+    text = """assessments:
+  - candidate_id: C1
+    assessment: partial
+    reason: Relevant but incomplete.
+"""
+    try:
+        evidence_resolution.validate_support_audit_text(text, ["C1"])
+    except Exception as exc:
+        assert "use supported or unsupported" in str(exc)
+    else:
+        raise AssertionError("partial must not be an allowed support assessment")
+
+
+def test_who5_output_rejects_supporting_case_facts_as_reportable_rows():
+    text = """diagnoses:
+  - diagnosis_id: DX1
+    schema_disease: AML
+    status: established
+    diagnosis: AML
+    statement: "WHO5 classification: AML."
+    reason: "The supplied patient premises establish AML."
+    case_refs: [C1]
+    card_tags: []
+supporting_facts:
+  - statement: "Thirty percent blasts are present."
+"""
+    try:
+        runtime.validate_who5_text(text, set(), {"C1"})
+    except Exception as exc:
+        assert "unexpected supporting_facts" in str(exc)
+    else:
+        raise AssertionError("case observations must not be reportable WHO5 statement rows")
+
+
+def test_summary_plan_cannot_omit_diagnosis_statement():
+    statements = [{"statement_id": "S0001", "domain": "diagnosis", "statement": "WHO5 classification: AML.", "reason": "x", "case_refs": ["C1"], "card_tags": []}]
+    plan = {
+        "dispositions": [{"statement_id": "S0001", "decision": "omit", "reason": "Redundant with the reason."}],
+        "sentences": [{"sentence_id": "diagnosis-1", "domain": "diagnosis", "source_statement_ids": ["S0001"], "draft_sentence": "WHO5 classification: AML."}],
+    }
+    try:
+        runtime.validate_summary_plan_doc(plan, statements)
+    except Exception as exc:
+        assert "diagnostic classification statements cannot be omitted" in str(exc)
+    else:
+        raise AssertionError("diagnosis statement omission must fail")
+
+
+def test_ptbg_surface_requires_statement_not_case_fact_field():
+    text = """decisions:
+  - variant_id: V1
+    diagnosis_id: DX1
+    effect: adverse
+    scoring_system: ELN 2022
+    surface: true
+    fact: "ASXL1 is present."
+    reason: "ASXL1 is present in the case."
+    case_refs: [V1]
+    card_tags: []
+"""
+    try:
+        runtime.validate_domain_text(text, domain="prognosis", spec={"required_pairs": [("V1", "DX1")]}, permitted_tags=set(), permitted_case_refs={"V1"})
+    except Exception as exc:
+        assert "missing statement; unexpected fact" in str(exc)
+    else:
+        raise AssertionError("PTBG reportable output must use statement + reason")

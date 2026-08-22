@@ -14,7 +14,7 @@ from workflows.terraced_v3 import contract_registry, module_registry, scheduler_
 HERE = Path(__file__).resolve().parent
 ROOT = HERE / "pipelines"
 ROLES = (
-    "structure", "diagnosis", "ptbg", "fact_evidence_check",
+    "structure", "diagnosis", "ptbg", "statement_evidence_check",
     "summarization", "paraphrasing", "semantic_preservation_check", "syntax_repair",
 )
 PHASES = ("diagnosis", "ptbg", "summarization")

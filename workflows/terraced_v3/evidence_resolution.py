@@ -1,9 +1,9 @@
 """Small-context evidence resolution for terraced-v3 diagnosis tasks.
 
 The model never generates immutable card IDs during relevance selection or
-fact/card pairing. Relevance selection is by deterministic card-header line
+statement/card pairing. Relevance selection is by deterministic card-header line
 number; Python extracts the original card blocks. Candidate cards then receive
-ephemeral local labels for fact/card pairing, which Python maps back to runtime
+ephemeral local labels for statement/card pairing, which Python maps back to runtime
 card tags before a separate reasonable-support review.
 """
 from __future__ import annotations
@@ -250,15 +250,16 @@ def select_relevant_cards(
     *,
     ctx,
     evidence: EvidenceView,
-    authority: str,
+    authority: str | None,
     question: str,
     task_context: Any,
     call_id: str,
     root: Path,
     settings: dict | None = None,
+    role: str = "diagnosis",
 ) -> LocalEvidence:
     settings = settings or load_settings()
-    filtered = filter_diagnosis_cards(evidence.cards, authority, settings=settings)
+    filtered = filter_diagnosis_cards(evidence.cards, authority, settings=settings) if authority in {"icc", "who5"} else list(evidence.cards)
     max_cards = int(settings["evidence_resolution"]["max_relevant_cards"])
     _cards_text, label_to_card, _block_by_label = render_local_blocks(filtered)
     cards_text, header_line_to_label = render_numbered_relevance_blocks(filtered)
@@ -278,7 +279,7 @@ def select_relevant_cards(
     validator = lambda text: (parse_relevance_output(text, header_line_to_label=header_line_to_label, max_cards=max_cards) and "relevance extraction validated") or "relevance extraction validated"
     ctx.call_model(
         call_id=f"{call_id}-relevance",
-        role="diagnosis",
+        role=role,
         prompt=prompt,
         output=output,
         validator=validator,
@@ -290,7 +291,7 @@ def select_relevant_cards(
     extracted = [label_to_card[label] for label in labels]
     selected = _retain_prior_cards(extracted,evidence=evidence,prior_state=task_context.get("prior_state") if isinstance(task_context,dict) else None)
     (root / "relevance-selection.yaml").write_text(
-        yaml.safe_dump({"authority": authority, "input_card_count": len(filtered), "selected_header_lines": selected_header_lines, "extracted_labels": labels, "extracted_card_count": len(extracted), "final_card_count": len(selected), "prior_cards_retained": len(selected)-len(extracted)}, sort_keys=False),
+        yaml.safe_dump({"authority": authority or evidence.domain, "input_card_count": len(filtered), "selected_header_lines": selected_header_lines, "extracted_labels": labels, "extracted_card_count": len(extracted), "final_card_count": len(selected), "prior_cards_retained": len(selected)-len(extracted)}, sort_keys=False),
         encoding="utf-8",
     )
     suffix=f" (+{len(selected)-len(extracted)} prior)" if len(selected)>len(extracted) else ""
@@ -325,7 +326,7 @@ def _resolve_refs(value: Any, *, label_to_tag: dict[str, str], path: str = "") -
 
 
 def resolve_pairing_text(text: str, *, local: LocalEvidence) -> tuple[dict, str]:
-    doc = runtime.parse_yaml_mapping(text, "diagnosis fact/card pairing")
+    doc = runtime.parse_yaml_mapping(text, "diagnosis statement/card pairing")
     tag_by_id = card_identity.tag_by_id(local.view.manifest)
     label_to_tag = {label: f"[card:{tag_by_id[card['card_id']]}]" for label, card in local.label_to_card.items()}
     resolved = _resolve_refs(doc, label_to_tag=label_to_tag)
@@ -341,14 +342,75 @@ def validate_pairing_text(text: str, *, local: LocalEvidence, authority: str, ca
         runtime.validate_who5_text(rendered, local.view.permitted_tags, case_refs)
     else:
         raise ValueError(f"unknown diagnosis authority {authority!r}")
-    return f"{authority} fact/card pairing validated"
+    return f"{authority} statement/card pairing validated"
+
+
+
+def validate_statement_pairing_text(text: str, *, candidate_ids: list[str], local: LocalEvidence) -> str:
+    """Validate generic statement-to-local-card pairing without exposing runtime IDs."""
+    doc=runtime.parse_yaml_mapping(text,"statement/card pairing"); issues=[]
+    if set(doc)!={"pairings"}:
+        issues.append(ValidationIssue("Top level",f"received fields {sorted(doc)}","return exactly pairings"))
+    rows=doc.get("pairings")
+    if not isinstance(rows,list):
+        issues.append(ValidationIssue("pairings",f"expected list, received {type(rows).__name__}","return one pairing per supplied candidate in order")); rows=[]
+    if len(rows)!=len(candidate_ids):
+        issues.append(ValidationIssue("pairings",f"expected {len(candidate_ids)} rows, received {len(rows)}","return every supplied candidate exactly once in order"))
+    labels=set(local.label_to_card)
+    for i,cid in enumerate(candidate_ids):
+        if i>=len(rows) or not isinstance(rows[i],dict): continue
+        row=rows[i]; loc=f"pairings[{i}]"
+        if set(row)!={"candidate_id","card_refs"}:
+            issues.append(ValidationIssue(loc,f"received fields {sorted(row)}","return exactly candidate_id and card_refs"))
+        if row.get("candidate_id")!=cid:
+            issues.append(ValidationIssue(f"{loc}.candidate_id",f"received {row.get('candidate_id')!r}",f"copy exact candidate_id {cid!r}"))
+        refs=row.get("card_refs")
+        if not isinstance(refs,list):
+            issues.append(ValidationIssue(f"{loc}.card_refs",f"expected list, received {type(refs).__name__}","return [] or unique supplied CARD nn labels")); continue
+        seen=set()
+        for j,label in enumerate(refs):
+            if not isinstance(label,str) or label not in labels:
+                issues.append(ValidationIssue(f"{loc}.card_refs[{j}]",f"unknown local card label {label!r}","copy one supplied CARD nn label"))
+            elif label in seen:
+                issues.append(ValidationIssue(f"{loc}.card_refs[{j}]",f"duplicate {label}","list each card once"))
+            seen.add(label)
+    fail("statement/card pairing",issues)
+    return "statement/card pairing validated"
+
+
+def pair_statements_to_cards(*,ctx,rows:list[dict],local:LocalEvidence,call_id:str,root:Path,role:str="ptbg")->list[list[str]]:
+    """Pair frozen statement+reason rows to local cards, then resolve tags deterministically."""
+    ids=[f"C{i}" for i in range(1,len(rows)+1)]
+    if not rows: return []
+    if not local.label_to_card:
+        return [[] for _ in rows]
+    payload={"statements":[{
+        "candidate_id":cid,
+        "statement":row.get("statement"),
+        "reason":row.get("reason"),
+        "case_refs":list(row.get("case_refs") or []),
+    } for cid,row in zip(ids,rows)]}
+    template=(PROMPTS/"evidence_statement_pairing.md").read_text(encoding="utf-8")
+    contract=contract_registry.load("core.statements.card-pairing").model_text
+    prompt=(template.replace("{{output_contract}}",contract)
+        .replace("{{statements}}",yaml.safe_dump(payload,sort_keys=False,allow_unicode=True,width=110).rstrip())
+        .replace("{{cards}}",local.view.text))
+    output=root/"pairing.yaml"
+    ctx.call_model(
+        call_id=f"{call_id}-pairing",role=role,prompt=prompt,output=output,
+        validator=lambda text:validate_statement_pairing_text(text,candidate_ids=ids,local=local),format_name="yaml",
+    )
+    doc=runtime.parse_yaml_mapping(ctx.read_text(output),"statement/card pairing")
+    tag_by_id=card_identity.tag_by_id(local.view.manifest)
+    label_to_tag={label:f"[card:{tag_by_id[card['card_id']]}]" for label,card in local.label_to_card.items()}
+    return [[label_to_tag[label] for label in row["card_refs"]] for row in doc["pairings"]]
 
 
 def _fact_rows(doc: dict, authority: str) -> list[dict]:
     if authority == "icc":
         return list(doc.get("diagnoses") or [])
     if authority == "who5":
-        return list(doc.get("diagnoses") or []) + list(doc.get("supporting_facts") or []) + list(doc.get("contradicting_facts") or [])
+        return list(doc.get("diagnoses") or [])
     raise ValueError(authority)
 
 
@@ -362,7 +424,7 @@ def _audit_payload(doc: dict, *, authority: str, local: LocalEvidence, candidate
         if candidate_ids is not None and cid not in candidate_ids:
             continue
         by_candidate[cid] = row
-        lines = [f"## {cid}", f"Fact: {row.get('fact') or ''}", f"Patient sources: {', '.join(row.get('case_refs') or []) or 'none'}"]
+        lines = [f"## {cid}", f"Statement: {row.get('statement') or ''}", f"Reason: {row.get('reason') or ''}", f"Patient sources: {', '.join(row.get('case_refs') or []) or 'none'}"]
         tags = list(row.get("card_tags") or [])
         if not tags:
             lines.append("Interpretation: none selected")
@@ -373,7 +435,7 @@ def _audit_payload(doc: dict, *, authority: str, local: LocalEvidence, candidate
                     raise ValueError(f"audit cannot resolve selected card {tag}")
                 lines.append(f"Selected card {j}: {tag}")
                 lines.append(f"Interpretation {j}: {card.get('interpretation') or ''}")
-        lines.append("Question: Does this interpretation reasonably support the fact? Treat patient observations as given.")
+        lines.append("Question: Does this interpretation reasonably support the statement? Treat patient observations as given.")
         pairs.append("\n".join(lines))
     return "\n\n".join(pairs), by_candidate
 
@@ -401,8 +463,8 @@ def validate_support_audit_text(text: str, candidate_ids: list[str]) -> str:
             issues.append(ValidationIssue(f"{loc}.candidate_id", f"duplicate candidate {cid}", "return each candidate once"))
         else:
             seen.add(cid)
-        if row.get("assessment") not in {"supported", "partial", "unsupported"}:
-            issues.append(ValidationIssue(f"{loc}.assessment", f"invalid value {row.get('assessment')!r}", "use supported, partial, or unsupported"))
+        if row.get("assessment") not in {"supported", "unsupported"}:
+            issues.append(ValidationIssue(f"{loc}.assessment", f"invalid value {row.get('assessment')!r}", "use supported or unsupported"))
         if not isinstance(row.get("reason"), str) or not row["reason"].strip():
             issues.append(ValidationIssue(f"{loc}.reason", "blank or not a string", "give one brief reason"))
     missing = [cid for cid in candidate_ids if cid not in seen]
@@ -414,7 +476,7 @@ def validate_support_audit_text(text: str, candidate_ids: list[str]) -> str:
 
 def build_support_audit_prompt(pairs: str) -> str:
     template = (PROMPTS / "evidence_support_audit.md").read_text(encoding="utf-8")
-    contract = contract_registry.load("core.facts.reasonable-support-check").model_text
+    contract = contract_registry.load("core.statements.reasonable-support-check").model_text
     return template.replace("{{output_contract}}", contract).replace("{{pairs}}", pairs)
 
 
@@ -427,7 +489,7 @@ def run_support_audit(*, ctx, doc: dict, authority: str, local: LocalEvidence, c
     prompt = build_support_audit_prompt(pairs)
     ctx.call_model(
         call_id=call_id,
-        role="fact_evidence_check",
+        role="statement_evidence_check",
         prompt=prompt,
         output=output,
         validator=lambda text: validate_support_audit_text(text, ids),
@@ -497,11 +559,12 @@ def audit_and_repair(
     call_id: str,
     root: Path,
     settings: dict | None = None,
+    repair_role: str = "diagnosis",
 ) -> tuple[dict, dict]:
     """Audit pairings without feeding semantic rejection into whole-artifact retries.
 
     Unsupported rows receive bounded card-only repair.  A repair is adopted only
-    when the re-audit improves it to supported/partial.  Remaining unsupported
+    when the re-audit improves it to supported.  Remaining unsupported
     rows are retained and explicitly recorded as warnings rather than causing the
     diagnosis model to regenerate the complete clinical state.
     """
@@ -521,15 +584,15 @@ def audit_and_repair(
         for i, row in enumerate(rows, 1):
             cid = f"C{i}"
             if cid in unsupported:
-                frozen.append({"candidate_id": cid, "fact": row.get("fact"), "case_refs": row.get("case_refs") or [], "current_card_tags": row.get("card_tags") or []})
+                frozen.append({"candidate_id": cid, "statement": row.get("statement"), "reason": row.get("reason"), "case_refs": row.get("case_refs") or [], "current_card_tags": row.get("card_tags") or []})
         labels = set(local.label_to_card)
         prompt = (PROMPTS / "evidence_card_repair.md").read_text(encoding="utf-8")
-        prompt = prompt.replace("{{facts}}", yaml.safe_dump(frozen, sort_keys=False, allow_unicode=True, width=110).rstrip())
+        prompt = prompt.replace("{{statements}}", yaml.safe_dump(frozen, sort_keys=False, allow_unicode=True, width=110).rstrip())
         prompt = prompt.replace("{{cards}}", local.view.text)
         output = root / f"repair-{attempt}.yaml"
         ids = [row["candidate_id"] for row in frozen]
         ctx.call_model(
-            call_id=f"{call_id}-repair-{attempt}", role="diagnosis", prompt=prompt, output=output,
+            call_id=f"{call_id}-repair-{attempt}", role=repair_role, prompt=prompt, output=output,
             validator=lambda text, ids=ids, labels=labels: validate_repair_text(text, ids, labels), format_name="yaml",
         )
         repair_doc = runtime.parse_yaml_mapping(ctx.read_text(output), "local card-pairing repair")
@@ -541,7 +604,7 @@ def audit_and_repair(
         )
         accepted: set[str] = set()
         for cid in ids:
-            if reaudit[cid]["assessment"] in {"supported", "partial"}:
+            if reaudit[cid]["assessment"] == "supported":
                 accepted.add(cid); final[cid] = reaudit[cid]
         if accepted:
             accepted_repairs = {cid: repairs[cid] for cid in accepted}
@@ -560,11 +623,57 @@ def audit_and_repair(
         "repairs": repair_log,
         "final": [dict(row) for row in final.values()],
         "unresolved_unsupported": sorted(unsupported),
-        "policy": "partial is accepted; unsupported gets bounded card-only repair; unresolved unsupported is warned and does not regenerate the clinical artifact",
+        "policy": "unsupported gets bounded card-only repair; unresolved unsupported is warned and does not regenerate the clinical artifact",
     }
     (root / "audit-summary.yaml").write_text(yaml.safe_dump(summary, sort_keys=False, allow_unicode=True, width=110), encoding="utf-8")
-    counts = {name: sum(1 for row in final.values() if row["assessment"] == name) for name in ("supported", "partial", "unsupported")}
-    ctx.status(f"  {call_id}: evidence audit supported={counts['supported']} partial={counts['partial']} unsupported={counts['unsupported']}")
+    counts = {name: sum(1 for row in final.values() if row["assessment"] == name) for name in ("supported", "unsupported")}
+    ctx.status(f"  {call_id}: evidence audit supported={counts['supported']} unsupported={counts['unsupported']}")
     if unsupported:
-        ctx.status(f"  {call_id}: warning — unresolved unsupported fact/card pairings: {', '.join(sorted(unsupported))}")
+        ctx.status(f"  {call_id}: warning — unresolved unsupported statement/card pairings: {', '.join(sorted(unsupported))}")
     return current, summary
+
+
+def _ptbg_bindings(doc: dict, domain: str) -> list[tuple[dict, str, str, str, str]]:
+    """Return mutable surfaced statement bindings: row, statement, reason, refs, tags keys."""
+    out=[]
+    if domain in {"prognosis","biomarker"}:
+        for row in doc.get("decisions") or []:
+            if row.get("surface"): out.append((row,"statement","reason","case_refs","card_tags"))
+    elif domain=="treatment":
+        for row in doc.get("decisions") or []:
+            if row.get("target_surface"): out.append((row,"target_statement","target_reason","target_case_refs","target_card_tags"))
+            if row.get("resistance_surface"): out.append((row,"resistance_statement","resistance_reason","resistance_case_refs","resistance_card_tags"))
+    elif domain=="germline":
+        for row in doc.get("variant_decisions") or []:
+            if row.get("surface"): out.append((row,"statement","reason","case_refs","card_tags"))
+        cp=doc.get("clinical_picture") or {}
+        if cp.get("surface"): out.append((cp,"statement","reason","case_refs","card_tags"))
+    else: raise ValueError(f"unknown PTBG domain {domain!r}")
+    return out
+
+
+def audit_ptbg_domain_and_repair(*, ctx, doc: dict, domain: str, evidence: EvidenceView, call_id: str, root: Path, settings: dict | None = None) -> tuple[dict, dict]:
+    """Freeze PTBG statements, reduce evidence, pair local cards, audit, and repair cards only."""
+    current=deepcopy(doc); bindings=_ptbg_bindings(current,domain)
+    if not bindings:
+        summary={"initial":[],"repairs":[],"final":[],"unresolved_unsupported":[],"policy":"no surfaced statements"}
+        return current,summary
+    # Ignore any model-emitted card tags from the clinical reasoning pass. Citation
+    # assignment is a separate local-card task and runtime IDs are resolved by Python.
+    synthetic={"diagnoses":[{
+        "statement":row[skey],"reason":row[rkey],"case_refs":list(row.get(refkey) or []),"card_tags":[]
+    } for row,skey,rkey,refkey,tagkey in bindings]}
+    question=f"Which evidence cards may be relevant to the surfaced {domain} statements?"
+    local=select_relevant_cards(
+        ctx=ctx,evidence=evidence,authority=None,question=question,
+        task_context={"statements":[{"statement":r["statement"],"reason":r["reason"]} for r in synthetic["diagnoses"]]},
+        call_id=call_id,root=root,settings=settings,role="ptbg",
+    )
+    paired_tags=pair_statements_to_cards(ctx=ctx,rows=synthetic["diagnoses"],local=local,call_id=call_id,root=root,role="ptbg")
+    for row,tags in zip(synthetic["diagnoses"],paired_tags): row["card_tags"]=tags
+    repaired,summary=audit_and_repair(ctx=ctx,doc=synthetic,authority="icc",local=local,call_id=call_id,root=root,settings=settings,repair_role="ptbg")
+    for binding,repaired_row in zip(bindings,repaired["diagnoses"]):
+        row,_skey,_rkey,_refkey,tagkey=binding
+        row[tagkey]=list(repaired_row.get("card_tags") or [])
+    return current,summary
+

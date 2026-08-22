@@ -5,12 +5,12 @@ Determine the WHO 5th Edition diagnosis or concurrent diagnoses from the supplie
 {{output_contract}}
 
 Additional task rules:
-- supporting and contradicting rows are patient-level propositions relevant to the returned diagnosis set, not generic literature summaries;
 - absence of a card is not evidence that a case fact is absent;
 - `case_refs` are exact C#/V# patient-source IDs from the structured case that the proposition relies on;
-- `card_refs` pair each literature-dependent fact to the supplied local `CARD nn` evidence blocks; pure patient observations should normally use `card_refs: []`; do not write runtime or source card IDs;
-- keep each returned fact to one atomic reportable proposition wherever practical;
-- on reconsideration, if a previously validated fact remains correct, copy its `fact` text, `case_refs`, and `card_refs` exactly; do not paraphrase an unchanged fact. Change those only when the proposition or its evidence provenance truly changes;
+- `card_refs` pair each literature-dependent statement to the supplied local `CARD nn` evidence blocks; do not write runtime or source card IDs;
+- return only diagnosis statements; patient findings, supporting premises and limitations belong in `reason`, not as separate reportable rows;
+- `statement` must directly answer the WHO5 diagnosis question and must be exactly `WHO5 classification: <diagnosis>.` using the same diagnostic label from the row;
+- on reconsideration, if a previously validated statement remains correct, copy its `statement`, `reason`, `case_refs`, and `card_refs` exactly. Change them only when the conclusion, justification, or evidence provenance truly changes;
 - do not write CMC values.
 
 # Structured immutable case

@@ -2,7 +2,7 @@
 id: ptbg.common.prognosis-output
 semantic_type: ptbg.prognosis.state
 format: yaml
-provides: ["decisions[].variant_id", "decisions[].diagnosis_id", "decisions[].effect", "decisions[].scoring_system", "decisions[].surface", "decisions[].fact", "decisions[].reason", "decisions[].case_refs", "decisions[].card_tags"]
+provides: ["decisions[].variant_id", "decisions[].diagnosis_id", "decisions[].effect", "decisions[].scoring_system", "decisions[].surface", "decisions[].statement", "decisions[].reason", "decisions[].case_refs", "decisions[].card_tags"]
 requires: []
 validator: domain
 runtime_invariants: [exact_variant_x_diagnosis_scope, supplied_case_refs, supplied_card_tags]
@@ -18,7 +18,7 @@ decisions:
     effect: "<favorable, adverse, or neither>"
     scoring_system: "<applicable named scoring system, or null>"
     surface: "<true or false>"
-    fact: "<concise reportable prognostic fact, or null>"
+    statement: "<concise reportable prognostic statement, or null>"
     reason: "<short auditable justification>"
     case_refs: []
     card_tags: []
@@ -28,4 +28,4 @@ Angle-bracketed text describes the required content only. It is not case informa
 
 Allowed `effect`: `favorable`, `adverse`, `neither`. `scoring_system` is a non-empty named system when applicable, otherwise null.
 
-`case_refs` fields contain exact supplied C#/V# patient-source IDs used by surfaced facts. `card_tags` fields contain only final claimed literature evidence for interpretive propositions. Pure patient observations should normally use `card_tags: []`; literature-dependent interpretations require supporting cards.
+`case_refs` fields contain exact supplied C#/V# patient-source IDs used by surfaced statements. `card_tags` fields are populated by the downstream evidence-resolution step; clinical reasoning passes return them empty.

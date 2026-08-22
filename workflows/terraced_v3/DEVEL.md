@@ -56,11 +56,11 @@ Examples:
 core.case.structured
 → contracts/core/case/structured.md
 
-core.facts.cited
-→ contracts/core/facts/cited.md
+core.statements.cited
+→ contracts/core/statements/cited.md
 
-core.facts.evidence-check
-→ contracts/core/facts/evidence-check.md
+core.statements.reasonable-support-check
+→ contracts/core/statements/reasonable-support-check.md
 ```
 
 Scheduler-private contracts use `local.*` and resolve inside that scheduler:
@@ -143,23 +143,25 @@ Python should continue to own algorithms and live-state invariants, including:
 - exact case-specific variant/gene × diagnosis scope generation;
 - verification that a card tag was actually supplied to a task;
 - disease-scoped evidence permission;
-- immutable reportable-fact reconciliation and tombstoning;
-- local reject-only fact/card support checking;
-- deterministic citation inheritance from summary `source_fact_ids`;
+- immutable reportable-statement reconciliation and tombstoning;
+- binary statement/reason/card support checking with bounded local card repair;
+- deterministic citation inheritance from summary `source_statement_ids`;
 - reject-only semantic preservation checking after paraphrasing;
 - registered deterministic scheduler operations and explicit adapters.
 
 Do not move these into YAML expressions.
 
-## Immutable reportable-fact provenance
+## Immutable reportable-statement provenance
 
-Diagnosis now resolves evidence in three bounded passes before committing a diagnosis snapshot. First, authority-filtered diagnosis cards are rendered as contiguous locally labelled blocks and the coding model copies at most the configured relevant-card limit. Second, the clinical question is asked again using only that reduced bundle; the model writes facts and pairs them to local `CARD nn` labels. Python then resolves those labels to immutable runtime `card_tags`. Third, Python renders each fact immediately with its selected card interpretation(s) and asks whether the interpretation reasonably supports the fact, treating patient observations as given. `partial` is accepted; `unsupported` receives bounded card-only repair and unresolved cases are logged as warnings rather than forcing whole-artifact regeneration.
+Diagnosis resolves evidence in three bounded passes before committing a diagnosis snapshot. First, authority-filtered cards are rendered with deterministic line numbers and the model selects potentially relevant card-header lines. Second, the diagnosis question is answered using only that reduced bundle; each diagnosis is a canonical reportable `statement` with a `reason`, patient `case_refs`, and local `CARD nn` references. Python resolves those local references to immutable runtime `card_tags`. Third, each `statement + reason` is rendered immediately beside its selected interpretation(s) and receives a binary `supported` or `unsupported` assessment. Unsupported evidence gets bounded card-only repair; unresolved unsupported statements are recorded and blocked before summarization rather than regenerating the whole clinical artifact.
 
 Diagnosis authority filtering is configured in `workflows/terraced_v3/corpus_filters.yaml`; the shipped defaults restrict WHO5 to Khoury 2022 and ICC to Arber 2022. Previously cited WHO5 cards are deterministically retained on reconsideration passes and prior runtime tags are localised back to `CARD nn` labels before the model sees them.
 
-Downstream PTBG fact-producing tasks retain the existing local reject-only provenance/support checker. Core reconciles accepted scheduler snapshots against a persistent audit ledger. Exact `fact` text + `case_refs` + `card_tags` retains the existing `fact_id`; surrounding subject/reason/decision metadata may evolve. If fact text or card attribution changes, the old fact is tombstoned and the replacement receives a new ID. No semantic-similarity matching is used.
+PTBG uses the same statement/evidence separation. Clinical reasoning produces only reportable statements, reasons and patient references; card fields are empty at that stage. At domain publication, core performs line-number relevance reduction, local-card pairing, deterministic runtime-ID resolution, binary support audit and bounded card-only repair.
 
-The active minimal ledger handed to summarization contains only `fact_id`, `domain`, `fact`, and `card_tags`. Summarization explicitly records include/omit decisions and constructs ordered sentences from `source_fact_ids`. Paraphrasing is sentence-local; a reject-only semantic-preservation check guards each paraphrase. Core then computes sentence citations deterministically from the source facts.
+Core reconciles accepted scheduler snapshots against a persistent statement ledger. Exact `statement + reason + case_refs + card_tags` retains the existing `statement_id`; a change to any of those immutable fields tombstones the old statement and creates a replacement ID. Subject/decision metadata may evolve without changing identity.
+
+The active ledger handed to summarization contains `statement_id`, `domain`, `statement`, `reason`, `case_refs`, and `card_tags`. Summarization may omit non-diagnostic statements with an audit reason, but WHO5/ICC diagnosis statements are mandatory. Sentence plans use `source_statement_ids`; core computes sentence citations deterministically from those source statements.
 
 ## Prompt/output contracts
 

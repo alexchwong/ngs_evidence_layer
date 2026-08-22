@@ -62,8 +62,8 @@ class SchedulerContext:
     phase: str = "ptbg"
     values: dict[str, Any] = field(default_factory=dict)
     ensure_diagnosis_evidence: Callable[[list[str]], EvidenceView] | None = None
-    fact_guard: Callable[..., None] | None = None
-    fact_commit: Callable[..., None] | None = None
+    statement_guard: Callable[..., None] | None = None
+    statement_commit: Callable[..., None] | None = None
     paraphrase_guard: Callable[..., None] | None = None
 
     @property
@@ -137,69 +137,69 @@ def validate_normalized(text: str, *, evidence: EvidenceView, diagnosis_ids: set
 
 
 def _dummy_cp() -> dict:
-    return {"supportive": False, "surface": False, "fact": None, "reason": None, "case_refs": [], "card_tags": []}
+    return {"supportive": False, "surface": False, "statement": None, "reason": None, "case_refs": [], "card_tags": []}
 
 
-def _snapshot(snapshot_key: str, domain: str, facts: list[dict], *, commit: bool = True) -> dict:
-    return {"snapshot_key": snapshot_key, "domain": domain, "facts": facts, "commit": commit}
+def _snapshot(snapshot_key: str, domain: str, statements: list[dict], *, commit: bool = True) -> dict:
+    return {"snapshot_key": snapshot_key, "domain": domain, "statements": statements, "commit": commit}
 
 
-def model_fact_snapshots(validator_name: str, doc: dict, *, item: Any, ctx: SchedulerContext) -> list[dict]:
-    """Describe fact snapshots introduced by one validated model artifact.
+def model_statement_snapshots(validator_name: str, doc: dict, *, item: Any, ctx: SchedulerContext) -> list[dict]:
+    """Describe statement snapshots introduced by one validated model artifact.
 
     Snapshot keys define the deterministic reconciliation boundary.  Full-domain
     schedulers use one snapshot per domain; variant-centric tasks use one snapshot
-    per variant so later variant calls cannot withdraw earlier variant facts.
+    per variant so later variant calls cannot withdraw earlier variant statements.
     """
     if validator_name == "icc":
-        return [_snapshot("diagnosis.icc", "diagnosis", runtime.facts_from_icc(doc))]
+        return [_snapshot("diagnosis.icc", "diagnosis", runtime.statements_from_icc(doc))]
     if validator_name == "who5":
-        return [_snapshot("diagnosis.who5", "diagnosis", runtime.facts_from_who5(doc))]
+        return [_snapshot("diagnosis.who5", "diagnosis", runtime.statements_from_who5(doc))]
     if validator_name == "domain":
         domain=str(item)
-        return [_snapshot(f"ptbg.{domain}", domain, runtime.facts_from_domain(domain, doc))]
+        return [_snapshot(f"ptbg.{domain}", domain, runtime.statements_from_domain(domain, doc))]
     if validator_name == "variant_cross_domain":
         variant_id=doc["variant_id"]
         rows=[
-            _snapshot(f"ptbg.prognosis.variant.{variant_id}", "prognosis", runtime.facts_from_domain("prognosis",doc["prognosis"])),
-            _snapshot(f"ptbg.biomarker.variant.{variant_id}", "biomarker", runtime.facts_from_domain("biomarker",doc["biomarker"])),
+            _snapshot(f"ptbg.prognosis.variant.{variant_id}", "prognosis", runtime.statements_from_domain("prognosis",doc["prognosis"])),
+            _snapshot(f"ptbg.biomarker.variant.{variant_id}", "biomarker", runtime.statements_from_domain("biomarker",doc["biomarker"])),
         ]
         if doc.get("treatment") is not None:
-            rows.append(_snapshot(f"ptbg.treatment.variant.{variant_id}", "treatment", runtime.facts_from_domain("treatment",doc["treatment"])))
+            rows.append(_snapshot(f"ptbg.treatment.variant.{variant_id}", "treatment", runtime.statements_from_domain("treatment",doc["treatment"])))
         germ={"variant_decisions":[doc["germline_variant"]],"clinical_picture":_dummy_cp()}
-        rows.append(_snapshot(f"ptbg.germline.variant.{variant_id}", "germline", runtime.facts_from_domain("germline",germ)))
+        rows.append(_snapshot(f"ptbg.germline.variant.{variant_id}", "germline", runtime.statements_from_domain("germline",germ)))
         return rows
     if validator_name == "germline_clinical_picture":
         germ={
             "variant_decisions":[
-                {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"fact":None,"reason":None,"case_refs":[],"card_tags":[]}
+                {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"statement":None,"reason":None,"case_refs":[],"card_tags":[]}
                 for v in ctx.case.get("variants") or []
             ],
             "clinical_picture":doc["clinical_picture"],
         }
-        return [_snapshot("ptbg.germline.clinical-picture","germline",runtime.facts_from_domain("germline",germ))]
+        return [_snapshot("ptbg.germline.clinical-picture","germline",runtime.statements_from_domain("germline",germ))]
     if validator_name == "global_ledger":
-        return [_snapshot(f"ptbg.{domain}",domain,runtime.facts_from_domain(domain,doc[domain])) for domain in DOMAINS]
+        return [_snapshot(f"ptbg.{domain}",domain,runtime.statements_from_domain(domain,doc[domain])) for domain in DOMAINS]
     if validator_name == "global_patch":
-        return [_snapshot(f"ptbg.{change['domain']}",change["domain"],runtime.facts_from_domain(change["domain"],change["replacement"])) for change in doc.get("changes") or []]
+        return [_snapshot(f"ptbg.{change['domain']}",change["domain"],runtime.statements_from_domain(change["domain"],change["replacement"])) for change in doc.get("changes") or []]
     if validator_name == "adaptive_cell_review":
         if doc.get("action") != "replace": return []
         domain=item["domain"]; replacement=doc["replacement"]
         if domain == "germline" and item["key"] == "clinical_picture":
             germ={
                 "variant_decisions":[
-                    {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"fact":None,"reason":None,"case_refs":[],"card_tags":[]}
+                    {"variant_id":v["variant_id"],"potentially_germline":False,"surface":False,"statement":None,"reason":None,"case_refs":[],"card_tags":[]}
                     for v in ctx.case.get("variants") or []
                 ],
                 "clinical_picture":replacement,
             }
-            facts=runtime.facts_from_domain("germline",germ)
+            statements=runtime.statements_from_domain("germline",germ)
         else:
             one,_spec=single_doc(domain,replacement)
-            facts=runtime.facts_from_domain(domain,one)
-        # A cell review is only a partial domain view: evidence-check any replacement
-        # fact now, but reconcile the complete domain after reviews are applied.
-        return [_snapshot(f"ptbg.{domain}",domain,facts,commit=False)]
+            statements=runtime.statements_from_domain(domain,one)
+        # A cell review is only an incomplete domain view: evidence-check any replacement
+        # statement now, but reconcile the complete domain after reviews are applied.
+        return [_snapshot(f"ptbg.{domain}",domain,statements,commit=False)]
     return []
 
 
@@ -229,18 +229,18 @@ def validate_clinical_picture(text: str, *, ctx: SchedulerContext, evidence: Evi
     doc = runtime.parse_yaml_mapping(text, "germline clinical-picture task")
     if set(doc) != {"clinical_picture"}:
         raise ValueError("germline clinical-picture task must return exactly clinical_picture")
-    dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "fact": None, "reason": None, "case_refs": [], "card_tags": []} for v in ctx.case.get("variants") or []]
+    dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "statement": None, "reason": None, "case_refs": [], "card_tags": []} for v in ctx.case.get("variants") or []]
     runtime.validate_domain_text(yaml.safe_dump({"variant_decisions": dummy, "clinical_picture": doc["clinical_picture"]}, sort_keys=False), domain="germline", spec={"required_variants": [v["variant_id"] for v in ctx.case.get("variants") or []]}, permitted_tags=evidence.permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     return "germline clinical-picture task validated"
 
 
 def validate_global(text: str, *, ctx: SchedulerContext, evidence: dict[str, EvidenceView], **_: Any) -> str:
-    doc = runtime.parse_yaml_mapping(text, "global hard-fact ledger")
+    doc = runtime.parse_yaml_mapping(text, "global clinical-statement ledger")
     if set(doc) != set(DOMAINS):
-        raise ValueError(f"global hard-fact ledger must return exactly {list(DOMAINS)}")
+        raise ValueError(f"global clinical-statement ledger must return exactly {list(DOMAINS)}")
     for domain in DOMAINS:
         runtime.validate_domain_text(yaml.safe_dump(doc.get(domain), sort_keys=False), domain=domain, spec=ctx.specs[domain], permitted_tags=evidence[domain].permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
-    return "global hard-fact ledger validated"
+    return "global clinical-statement ledger validated"
 
 
 def validate_global_patch(text: str, *, ctx: SchedulerContext, evidence: dict[str, EvidenceView], **_: Any) -> str:
@@ -307,7 +307,7 @@ def validate_cell_review(text: str, *, item: dict, ctx: SchedulerContext, eviden
             if scope_key(domain, current) != scope_key(domain, replacement):
                 raise ValueError("adaptive review replacement changed protected cell scope")
         else:
-            dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "fact": None, "reason": None, "case_refs": [], "card_tags": []} for v in ctx.case.get("variants") or []]
+            dummy = [{"variant_id": v["variant_id"], "potentially_germline": False, "surface": False, "statement": None, "reason": None, "case_refs": [], "card_tags": []} for v in ctx.case.get("variants") or []]
             runtime.validate_domain_text(yaml.safe_dump({"variant_decisions": dummy, "clinical_picture": replacement}, sort_keys=False), domain="germline", spec={"required_variants": [v["variant_id"] for v in ctx.case.get("variants") or []]}, permitted_tags=evidence.permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
     return "adaptive cell review validated"
 
@@ -388,21 +388,25 @@ def op_apply_cell_reviews(*, ctx: SchedulerContext, inputs: dict, root: Path) ->
 
 
 def op_publish_domains(*, ctx: SchedulerContext, inputs: dict, root: Path) -> dict[str, dict]:
-    del root
-    states = inputs["states"]
+    from workflows.terraced_v3 import evidence_resolution
+    states = copy.deepcopy(inputs["states"])
     scheduler_id=str(ctx.values.get("_scheduler_id") or "")
     for domain in DOMAINS:
         if domain not in states: raise ValueError(f"scheduler publish missing canonical domain {domain}")
-        evidence = ctx.ensure_evidence(domain)
-        text = yaml.safe_dump(states[domain], sort_keys=False, allow_unicode=True, width=110)
-        runtime.validate_domain_text(text, domain=domain, spec=ctx.specs[domain], permitted_tags=evidence.permitted_tags, permitted_case_refs=runtime.case_reference_ids(ctx.case))
-        if ctx.fact_commit is not None and scheduler_id != "variant-centric":
-            ctx.fact_commit(
-                snapshot_key=f"ptbg.{domain}",
-                candidates=runtime.facts_from_domain(domain,states[domain]),
-                source=f"scheduler:ptbg:{scheduler_id}:publish:{domain}",
-            )
-        ctx.write_text(layout.domain(ctx.work, domain, "FINAL_STATE.yaml", existing=False), text)
+        evidence=ctx.ensure_evidence(domain)
+        audit_root=root/f"{domain}-statement-evidence"
+        states[domain],audit=evidence_resolution.audit_ptbg_domain_and_repair(
+            ctx=ctx,doc=states[domain],domain=domain,evidence=evidence,
+            call_id=f"scheduler-ptbg-{scheduler_id}-publish-{domain}",root=audit_root,
+        )
+        text=yaml.safe_dump(states[domain],sort_keys=False,allow_unicode=True,width=110)
+        runtime.validate_domain_text(text,domain=domain,spec=ctx.specs[domain],permitted_tags=evidence.permitted_tags,permitted_case_refs=runtime.case_reference_ids(ctx.case))
+        candidates=runtime.statements_from_domain(domain,states[domain])
+        assessment_by_id={row["candidate_id"]:row["assessment"] for row in audit.get("final") or []}
+        for i,candidate in enumerate(candidates,1): candidate["evidence_check"]=assessment_by_id.get(f"C{i}","supported" if not candidate.get("card_tags") else "not_checked")
+        if ctx.statement_commit is not None:
+            ctx.statement_commit(snapshot_key=f"ptbg.{domain}",candidates=candidates,source=f"scheduler:ptbg:{scheduler_id}:publish:{domain}")
+        ctx.write_text(layout.domain(ctx.work,domain,"FINAL_STATE.yaml",existing=False),text)
     return states
 
 
@@ -433,8 +437,8 @@ def op_publish_minimal_diagnosis(*, ctx: SchedulerContext, inputs: dict, root: P
 
 def op_prepare_paraphrase_items(*, ctx: SchedulerContext, inputs: dict, root: Path) -> list[dict]:
     del ctx
-    plan=inputs["plan"]; facts=inputs["facts"]
-    items=runtime.paraphrase_items(plan,facts)
+    plan=inputs["plan"]; statements=inputs["statements"]
+    items=runtime.paraphrase_items(plan,statements)
     root.mkdir(parents=True,exist_ok=True)
     (root/"PARAPHRASE_ITEMS.yaml").write_text(yaml.safe_dump({"items":items},sort_keys=False,allow_unicode=True,width=110),encoding="utf-8")
     return items
@@ -442,8 +446,8 @@ def op_prepare_paraphrase_items(*, ctx: SchedulerContext, inputs: dict, root: Pa
 
 def op_publish_summary(*, ctx: SchedulerContext, inputs: dict, root: Path) -> dict:
     del ctx
-    plan=inputs["plan"]; paraphrases=inputs["paraphrases"]; facts=inputs["facts"]
-    fact_map={f["fact_id"]:f for f in facts}
+    plan=inputs["plan"]; paraphrases=inputs["paraphrases"]; statements=inputs["statements"]
+    statement_map={s["statement_id"]:s for s in statements}
     by_id={}
     values=paraphrases.values() if isinstance(paraphrases,dict) else paraphrases
     for row in values:
@@ -452,23 +456,23 @@ def op_publish_summary(*, ctx: SchedulerContext, inputs: dict, root: Path) -> di
         by_id[row["sentence_id"]]=row["sentence"]
     rows=[]
     for planned in plan["sentences"]:
-        sid=planned["sentence_id"]
-        if sid not in by_id:
-            raise ValueError(f"missing paraphrase for planned sentence {sid}")
-        ids=list(planned["source_fact_ids"])
+        sentence_id=planned["sentence_id"]
+        if sentence_id not in by_id:
+            raise ValueError(f"missing paraphrase for planned sentence {sentence_id}")
+        ids=list(planned["source_statement_ids"])
         tags=[]
-        for fid in ids:
-            for tag in fact_map[fid].get("card_tags") or []:
+        for statement_id in ids:
+            for tag in statement_map[statement_id].get("card_tags") or []:
                 if tag not in tags: tags.append(tag)
         rows.append({
-            "sentence_id":sid,
+            "sentence_id":sentence_id,
             "domain":planned["domain"],
-            "sentence":by_id[sid],
-            "source_fact_ids":ids,
+            "sentence":by_id[sentence_id],
+            "source_statement_ids":ids,
             "card_tags":tags,
         })
     doc={"dispositions":copy.deepcopy(plan["dispositions"]),"sentences":rows}
-    runtime.validate_canonical_summary_doc(doc,facts)
+    runtime.validate_canonical_summary_doc(doc,statements)
     root.mkdir(parents=True,exist_ok=True)
     (root/"SUMMARY.yaml").write_text(yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110),encoding="utf-8")
     return {"summary":doc}

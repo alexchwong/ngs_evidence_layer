@@ -17,7 +17,7 @@ def render_header(bundle):
         "",
         textwrap.fill(
             "Collated evidence cards for one terraced clinical category. Card tags are runtime identifiers; "
-            "clinical answering should state facts and reasons without selecting citations.",
+            "clinical answering should state statements and reasons without selecting citations.",
             width=core.WRAP_WIDTH,
         ),
         "",

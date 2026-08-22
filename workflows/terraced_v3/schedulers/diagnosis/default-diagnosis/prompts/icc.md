@@ -7,8 +7,9 @@ Apply ICC classification independently to the supplied case and evidence. This b
 Additional task rules:
 - return each concurrent ICC diagnosis that is established or materially plausible;
 - `case_refs` are exact C#/V# patient-source IDs from the structured case that the proposition relies on;
-- `card_refs` pair each literature-dependent fact to the supplied local `CARD nn` evidence blocks; pure patient observations should normally use `card_refs: []`; do not write runtime or source card IDs;
-- keep each returned `fact` to one atomic reportable proposition wherever practical;
+- `card_refs` pair each literature-dependent statement to the supplied local `CARD nn` evidence blocks; do not write runtime or source card IDs;
+- `statement` must directly answer the ICC diagnosis question; patient findings belong in `reason`, not as separate statements;
+- return `statement` exactly as `ICC classification: <diagnosis>.` using the same diagnostic label from the row;
 - do not mention CMC, WHO5, prior model output, or downstream domains.
 
 # Structured immutable case

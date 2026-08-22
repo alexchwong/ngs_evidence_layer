@@ -1,6 +1,6 @@
 ---
-id: core.facts.reasonable-support-check
-semantic_type: facts.reasonable-support-check
+id: core.statements.reasonable-support-check
+semantic_type: statements.reasonable-support-check
 format: yaml
 provides: ["assessments[].candidate_id", "assessments[].assessment", "assessments[].reason"]
 requires: []
@@ -18,5 +18,5 @@ assessments:
     reason: "<brief reason>"
 ```
 
-Allowed `assessment`: `supported`, `partial`, `unsupported`.
+Allowed `assessment`: `supported`, `unsupported`.
 Return exactly one row for every supplied candidate ID and do not add other top-level fields.

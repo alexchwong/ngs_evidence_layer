@@ -21,4 +21,4 @@ Angle-bracketed text describes the required content only. It is not a preferred 
 
 Use `action: replace` only when correction is required, with `replacement` containing the complete corrected decision row for the selected cell. The replacement may not change the protected cell scope.
 
-When replacing a cell, preserve the existing `fact` text, `case_refs`, and `card_tags` exactly if that reportable proposition remains correct. Change either only when the proposition or its evidence provenance truly changes.
+When replacing a cell, preserve the existing `statement` text and `case_refs` exactly if that reportable proposition remains correct. Return card-tag fields empty; evidence provenance is assigned separately downstream.

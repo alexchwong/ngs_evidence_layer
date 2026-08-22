@@ -246,7 +246,7 @@ def _core_source(token:str,ctx:prim.SchedulerContext,item:Any)->Any:
         "specs[$item]": "ptbg.task-scope",
         "diagnosis_context": "diagnosis.context",
         "treatment_owner[$item]": "ptbg.treatment-owner-current",
-        "cited_facts": "facts.cited",
+        "cited_statements": "statements.cited",
     }
     token = aliases.get(token, token)
     if token == "case.structured": return ctx.case
@@ -261,7 +261,7 @@ def _core_source(token:str,ctx:prim.SchedulerContext,item:Any)->Any:
     if token == "ptbg.task-scopes": return ctx.specs
     if token == "ptbg.task-scope": return ctx.specs[item]
     if token == "ptbg.treatment-owner-current": return prim.treatment_owner_map(ctx.case)[item["gene"]] == item["variant_id"]
-    if token == "facts.cited": return ctx.values["cited_facts"]
+    if token == "statements.cited": return ctx.values["cited_statements"]
     if token == "evidence.domain-current": return ctx.ensure_evidence(item)
     if token == "evidence.cell-domain": return ctx.ensure_evidence(item["domain"])
     if token == "evidence.all-domains": return {d:ctx.ensure_evidence(d) for d in prim.DOMAINS}
@@ -367,7 +367,7 @@ def _validator(name:str,*,ctx:prim.SchedulerContext,inputs:dict,item:Any):
     if name == "who5":
         evidence=inputs["evidence"]; return lambda text:runtime.validate_who5_text(text,evidence.permitted_tags,runtime.case_reference_ids(ctx.case))
     if name == "summary_plan":
-        facts=inputs["facts"]; return lambda text:runtime.validate_summary_plan_text(text,facts)
+        statements=inputs["statements"]; return lambda text:runtime.validate_summary_plan_text(text,statements)
     if name == "paraphrase_sentence":
         return lambda text:runtime.validate_paraphrase_text(text,item)
     raise ValueError(f"unknown scheduler validator {name!r}")
@@ -435,9 +435,14 @@ def _run_diagnosis_evidence_resolved(
     )
     doc,rendered=evidence_resolution.resolve_pairing_text(ctx.read_text(paired_output),local=local)
     base_validator(rendered)
-    doc,_audit=evidence_resolution.audit_and_repair(
+    doc,audit=evidence_resolution.audit_and_repair(
         ctx=ctx,doc=doc,authority=authority,local=local,call_id=call_id,root=eroot,
     )
+    candidates = runtime.statements_from_icc(doc) if authority == "icc" else runtime.statements_from_who5(doc)
+    assessment_by_id={row["candidate_id"]:row["assessment"] for row in audit.get("final") or []}
+    status_map=ctx.values.setdefault("_evidence_status_by_signature",{})
+    for index,candidate in enumerate(candidates,1):
+        status_map[runtime.statement_signature(candidate)]=assessment_by_id.get(f"C{index}","not_checked")
     final_text=yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110)
     base_validator(final_text)
     ctx.write_text(output,final_text)
@@ -468,12 +473,12 @@ def _run_model(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,root:Path,
                 message=_base(text)
                 if fmt == "yaml":
                     doc=runtime.parse_yaml_mapping(text,f"scheduler {step['id']} output")
-                    snapshots=prim.model_fact_snapshots(_name,doc,item=_item,ctx=ctx)
-                    if ctx.fact_guard is not None:
+                    snapshots=prim.model_statement_snapshots(_name,doc,item=_item,ctx=ctx)
+                    if ctx.statement_guard is not None and plan.phase != "ptbg":
                         for snapshot in snapshots:
-                            ctx.fact_guard(
+                            ctx.statement_guard(
                                 snapshot_key=snapshot["snapshot_key"],
-                                candidates=snapshot["facts"],
+                                candidates=snapshot["statements"],
                                 evidence=_snapshot_evidence(ctx,_inputs,snapshot),
                                 source=_source,
                             )
@@ -486,10 +491,15 @@ def _run_model(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,root:Path,
                 return message
             ctx.call_model(call_id=base_call_id,role=_role_for(plan,step),prompt=prompt,output=output,validator=validator,format_name=fmt)
             value=runtime.parse_yaml_mapping(ctx.read_text(output),f"scheduler {step['id']} output") if fmt=="yaml" else ctx.read_text(output)
-        if fmt == "yaml" and ctx.fact_commit is not None:
-            for snapshot in prim.model_fact_snapshots(validator_name,value,item=item,ctx=ctx):
+        if fmt == "yaml" and ctx.statement_commit is not None and plan.phase != "ptbg":
+            status_map=ctx.values.get("_evidence_status_by_signature") or {}
+            for snapshot in prim.model_statement_snapshots(validator_name,value,item=item,ctx=ctx):
+                candidates=snapshot["statements"]
+                for candidate in candidates:
+                    status=status_map.get(runtime.statement_signature(candidate))
+                    if status is not None: candidate["evidence_check"]=status
                 if snapshot.get("commit",True):
-                    ctx.fact_commit(snapshot_key=snapshot["snapshot_key"],candidates=snapshot["facts"],source=source)
+                    ctx.statement_commit(snapshot_key=snapshot["snapshot_key"],candidates=candidates,source=source)
         if step.get("foreach"):
             if step.get("retain_item_metadata"): collection[_item_key(item,index)]={"__item__":item,"__payload__":value}
             else: collection[_item_key(item,index)]=value
@@ -525,13 +535,18 @@ def _run_diagnosis_loop(plan:SchedulerPlan,ctx:prim.SchedulerContext,base:Path,r
             def validator(text:str,e=evidence)->str:
                 message=base_validator(text)
                 state_for_check=runtime.parse_yaml_mapping(text,"WHO5 diagnosis")
-                if ctx.fact_guard is not None:
-                    ctx.fact_guard(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state_for_check),evidence=e,source=source)
+                if ctx.statement_guard is not None:
+                    ctx.statement_guard(snapshot_key="diagnosis.who5",candidates=runtime.statements_from_who5(state_for_check),evidence=e,source=source)
                 return message
             ctx.call_model(call_id=base_call_id,role="diagnosis",prompt=prompt,output=output,validator=validator,format_name="yaml")
             state=runtime.parse_yaml_mapping(ctx.read_text(output),"WHO5 diagnosis")
-        if ctx.fact_commit is not None:
-            ctx.fact_commit(snapshot_key="diagnosis.who5",candidates=runtime.facts_from_who5(state),source=source)
+        if ctx.statement_commit is not None:
+            candidates=runtime.statements_from_who5(state)
+            status_map=ctx.values.get("_evidence_status_by_signature") or {}
+            for candidate in candidates:
+                status=status_map.get(runtime.statement_signature(candidate))
+                if status is not None: candidate["evidence_check"]=status
+            ctx.statement_commit(snapshot_key="diagnosis.who5",candidates=candidates,source=source)
         cmcs=runtime.derive_cmcs(state); sig=runtime.who5_signature(state)
         prev_cmcs=runtime.derive_cmcs(previous) if previous is not None else None; prev_sig=runtime.who5_signature(previous) if previous is not None else None
         if prev_cmcs is not None and cmcs!=prev_cmcs: transitions+=1

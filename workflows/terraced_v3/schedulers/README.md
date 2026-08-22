@@ -110,9 +110,9 @@ Every `{{slot}}` in a prompt must have exactly one injection declaration; undecl
 
 ## Summarization provenance rule
 
-Summarization schedulers consume immutable `core.facts.cited` rows. They must explicitly disposition every fact as `include` or `omit`, then construct ordered sentence plans with `source_fact_ids`; several IDs may be merged into one sentence and an ID may appear in more than one sentence when the planner intentionally splits its expression. Paraphrasing receives one planned sentence at a time and never chooses citations. Core publishes the ordered union of each source fact's locked `card_tags`.
+Summarization schedulers consume immutable `core.statements.cited` rows. They must explicitly disposition every non-diagnostic statement as `include` or `omit`; diagnosis classification statements are mandatory. Sentence plans use `source_statement_ids`, and paraphrasing never chooses citations. Core publishes the ordered union of each source statement's locked `card_tags`.
 
-Do not add an end-stage semantic evidence alignment or sentence-to-fact matching step: provenance must already be explicit in the scheduler artifacts.
+Do not add an end-stage semantic evidence alignment or sentence-to-statement matching step: provenance must already be explicit in the scheduler artifacts.
 
 ## Deterministic operations
 

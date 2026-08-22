@@ -20,5 +20,5 @@ or, when any source proposition is lost/altered or new clinical content is added
 
 ```yaml
 preserved: false
-issue: "The paraphrase omits the adverse-risk qualification from source fact F0004."
+issue: "The paraphrase omits the adverse-risk qualification from source statement S0004."
 ```

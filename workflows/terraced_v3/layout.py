@@ -181,8 +181,8 @@ def evidence(work: Path, name: str, *, existing: bool = True) -> Path:
 
 
 def _synthesis_group(name: str) -> str:
-    if name.startswith("fact-ledger"):
-        return "fact_ledger"
+    if name.startswith("statement-ledger"):
+        return "statement_ledger"
     if name.startswith("sentence-card") or name == "summary-final.yaml" or name == "report-cited.md":
         return "prose_synthesis"
     return "synthesis"

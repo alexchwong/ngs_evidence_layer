@@ -2,7 +2,7 @@
 id: core.diagnosis.icc-pairing-output
 semantic_type: diagnosis.icc.pairing-state
 format: yaml
-provides: ["diagnoses[].diagnosis_id", "diagnoses[].status", "diagnoses[].diagnosis", "diagnoses[].fact", "diagnoses[].reason", "diagnoses[].case_refs", "diagnoses[].card_refs"]
+provides: ["diagnoses[].diagnosis_id", "diagnoses[].status", "diagnoses[].diagnosis", "diagnoses[].statement", "diagnoses[].reason", "diagnoses[].case_refs", "diagnoses[].card_refs"]
 requires: []
 validator: icc_pairing
 runtime_invariants: [sequential_icc_ids, supplied_case_refs, supplied_local_card_refs, blind_to_who5]
@@ -16,7 +16,7 @@ diagnoses:
   - diagnosis_id: "<sequential ICC diagnosis ID>"
     status: "<established or indeterminate>"
     diagnosis: "<ICC diagnostic label>"
-    fact: "<concise patient-level ICC diagnostic statement>"
+    statement: "ICC classification: <same ICC diagnostic label>."
     reason: "<short auditable clinical justification>"
     case_refs: []
     card_refs: []

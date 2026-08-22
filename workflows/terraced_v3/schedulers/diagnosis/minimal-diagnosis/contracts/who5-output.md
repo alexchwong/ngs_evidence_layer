@@ -2,7 +2,7 @@
 id: diagnosis.minimal.who5-output
 semantic_type: diagnosis.who5.state
 format: yaml
-provides: ["diagnoses[].diagnosis_id", "diagnoses[].schema_disease", "diagnoses[].status", "diagnoses[].diagnosis", "diagnoses[].fact", "diagnoses[].reason", "diagnoses[].case_refs", "diagnoses[].card_tags", "supporting_facts[].diagnosis_ids", "supporting_facts[].fact", "supporting_facts[].reason", "supporting_facts[].case_refs", "supporting_facts[].card_tags", "contradicting_facts[].diagnosis_ids", "contradicting_facts[].fact", "contradicting_facts[].reason", "contradicting_facts[].case_refs", "contradicting_facts[].card_tags"]
+provides: ["diagnoses[].diagnosis_id", "diagnoses[].schema_disease", "diagnoses[].status", "diagnoses[].diagnosis", "diagnoses[].statement", "diagnoses[].reason", "diagnoses[].case_refs", "diagnoses[].card_tags"]
 requires: []
 validator: who5
 runtime_invariants: [allowed_schema_disease, sequential_who5_ids, supplied_case_refs, supplied_card_tags, cmc_derived_only_by_core]
@@ -17,20 +17,8 @@ diagnoses:
     schema_disease: "<supplied canonical schema_disease value>"
     status: "<established or indeterminate>"
     diagnosis: "<WHO5 diagnostic label>"
-    fact: "<concise patient-level WHO5 diagnostic statement>"
-    reason: "<short auditable clinical justification>"
-    case_refs: []
-    card_tags: []
-supporting_facts:
-  - diagnosis_ids: ["<WHO5 diagnosis ID>"]
-    fact: "<patient-level finding supporting the linked diagnosis>"
-    reason: "<why this finding supports the linked diagnosis>"
-    case_refs: []
-    card_tags: []
-contradicting_facts:
-  - diagnosis_ids: ["<WHO5 diagnosis ID>"]
-    fact: "<patient-level finding contradicting or limiting the linked diagnosis>"
-    reason: "<why this finding contradicts or limits the linked diagnosis>"
+    statement: "WHO5 classification: <same WHO5 diagnostic label>."
+    reason: "<short auditable clinical justification using patient findings as premises>"
     case_refs: []
     card_tags: []
 ```
@@ -39,4 +27,4 @@ Angle-bracketed text describes required content only. It is not case information
 
 Use only supplied canonical `schema_disease` values. Return concurrent WHO5 pathologies separately. Allowed `status`: `established`, `indeterminate`. Assign `DX1`, `DX2`, ... sequentially. Do not write CMC values; core derives CMC from validated WHO5 `schema_disease` values.
 
-`case_refs` contain exact supplied C#/V# patient-source IDs used by each reportable proposition. `card_tags` contain only literature evidence for interpretive claims; pure patient observations should normally use `card_tags: []`.
+`case_refs` identify patient observations used in `reason`. Literature cards support the diagnostic `statement`; patient observations themselves are not separate reportable statements.

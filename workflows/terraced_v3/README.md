@@ -1,6 +1,6 @@
 # Terraced-v3
 
-Terraced-v3 is an experimental NGS evidence workflow in which a **pipeline** chooses the model/provider configuration and connects diagnosis, PTBG, immutable fact-ledger collection, summarization and rendering modules.
+Terraced-v3 is an experimental NGS evidence workflow in which a **pipeline** chooses the model/provider configuration and connects diagnosis, PTBG, immutable statement-ledger collection, summarization and rendering modules.
 
 ## Quick start
 
@@ -115,12 +115,12 @@ Regardless of scheduler topology:
 - diagnosis may retain historical CMC evidence while stabilising;
 - downstream retrieval uses the final CMC set;
 - diagnosis evidence is authority-filtered by `corpus_filters.yaml` (WHO5 → Khoury 2022; ICC → Arber 2022 by default);
-- diagnosis uses three-pass evidence resolution: permissive card-block extraction, fact/local-card pairing over the reduced bundle, then deterministic ID resolution plus reasonable-support audit;
+- diagnosis uses three-pass evidence resolution: line-number relevance selection, statement/local-card pairing over the reduced bundle, then deterministic ID resolution plus binary reasonable-support audit;
 - diagnosis models never generate immutable runtime card IDs during relevance selection or pairing; Python resolves local `CARD nn` labels to final `card_tags`;
-- downstream surfaced reportable facts continue to acquire patient `case_refs` and literature `card_tags` when first created and use the existing local provenance/support checker;
-- accepted fact text plus card attribution is immutable; later passes may retain it verbatim or withdraw/replace it, with replacements receiving a new fact ID;
-- summarization explicitly decides include/omit, sentence order, merge and split using immutable fact IDs;
+- PTBG clinical reasoning produces reportable `statement + reason + case_refs` with empty card fields; publication then performs line-number evidence reduction, local-card pairing, deterministic ID resolution and binary support audit;
+- accepted statement text, reason, patient provenance and card attribution are immutable together; replacements receive a new statement ID;
+- summarization explicitly decides include/omit, sentence order, merge and split using immutable statement IDs; diagnosis statements cannot be omitted;
 - paraphrasing cannot change provenance and is followed by a reject-only semantic-preservation check;
-- sentence citations are inherited deterministically as the union of the sentence's `source_fact_ids`;
-- no final semantic evidence-alignment or sentence-to-fact alignment model call is used;
-- `sentence-card-interpretations.yaml` is generated deterministically from final sentence/fact/card-tag provenance.
+- sentence citations are inherited deterministically as the union of the sentence's `source_statement_ids`;
+- no final semantic evidence-alignment or sentence-to-statement matching model call is used;
+- `sentence-card-interpretations.yaml` is generated deterministically from final sentence/statement/card-tag provenance.

@@ -67,7 +67,7 @@ Each pipeline defines these independent roles:
 structure
 diagnosis
 ptbg
-fact_evidence_check
+statement_evidence_check
 summarization
 paraphrasing
 semantic_preservation_check

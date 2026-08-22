@@ -1,7 +1,7 @@
 module:
-  id: core.collect-fact-ledger
-  handler: collect_fact_ledger
-  description: Deterministically verify final scheduler states against the incrementally reconciled immutable fact ledger and publish active reportable facts.
+  id: core.collect-statement-ledger
+  handler: collect_statement_ledger
+  description: Deterministically verify final scheduler states against the incrementally reconciled immutable statement ledger and publish active reportable statements.
 inputs:
   diagnosis_who5: {contract: core.requirements.diagnosis-who5}
   diagnosis_icc: {contract: core.requirements.diagnosis-icc}
@@ -10,4 +10,4 @@ inputs:
   biomarker: {contract: core.requirements.ptbg-biomarker}
   germline: {contract: core.requirements.ptbg-germline}
 outputs:
-  cited_facts: {contract: core.facts.cited}
+  cited_statements: {contract: core.statements.cited}

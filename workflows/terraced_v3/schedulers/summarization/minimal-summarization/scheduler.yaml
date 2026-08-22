@@ -3,17 +3,17 @@ scheduler:
   phase: summarization
   version: 1
   order: 90
-  description: Minimal provenance-preserving summarizer using explicit fact disposition and sentence source IDs.
+  description: Minimal provenance-preserving summarizer using explicit statement disposition and sentence source IDs.
 steps:
 - id: plan
   kind: model
   inputs:
-    facts: core.facts.cited
+    statements: core.statements.cited
   prompt:
     template: prompts/plan.md
     inject:
-      facts:
-        input: facts
+      statements:
+        input: statements
         render: yaml
       output_contract:
         contract: ../common/contracts/summary-plan.md
@@ -26,7 +26,7 @@ steps:
   operation: prepare_paraphrase_items
   inputs:
     plan: steps.plan
-    facts: core.facts.cited
+    statements: core.statements.cited
 - id: paraphrase
   kind: model
   foreach: steps.prepare
@@ -53,13 +53,13 @@ steps:
   inputs:
     plan: steps.plan
     paraphrases: steps.paraphrase
-    facts: core.facts.cited
+    statements: core.statements.cited
 outputs:
   summary: steps.publish.summary
 interface:
   inputs:
-    cited_facts:
-      contract: core.facts.cited
+    cited_statements:
+      contract: core.statements.cited
   outputs:
     summary:
       contract: ../common/contracts/summary-output.md

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scripted terraced-v3 hard-fact workflow runner."""
+"""Scripted terraced-v3 clinical-statement workflow runner."""
 from __future__ import annotations
 
 import argparse
@@ -34,7 +34,7 @@ from workflows.terraced_v3 import card_identity, contract_registry, evidence_res
 from workflows.terraced_v3 import scheduler_engine, scheduler_registry, scheduler_primitives
 
 WORKFLOW_ID = "terraced-v3"
-RUN_STATE_SCHEMA_VERSION = 3
+RUN_STATE_SCHEMA_VERSION = 4
 HERE = Path(__file__).resolve().parent
 PROMPTS = HERE / "prompts"
 SETTINGS_PATH = HERE / "settings.json"
@@ -129,7 +129,7 @@ def _require_work(work:Path)->dict:
     state=read_workflow_state(work)
     if state.get("workflow_id")!=WORKFLOW_ID:
         raise StepFailure(f"work directory is bound to {state.get('workflow_id')!r}, not {WORKFLOW_ID!r}")
-    # The immutable cited-fact ledger changes checkpoint semantics.  Refuse
+    # The immutable cited-statement ledger changes checkpoint semantics.  Refuse
     # incompatible pre-refactor runs immediately instead of discovering the
     # mismatch after some modules have already resumed.
     _load_run_state(work)
@@ -142,7 +142,7 @@ def _load_run_state(work:Path)->dict:
     if doc.get("schema_version") != RUN_STATE_SCHEMA_VERSION:
         raise StepFailure(
             f"incompatible terraced-v3 run-state schema {doc.get('schema_version')!r}; "
-            f"this fact-ledger architecture requires schema {RUN_STATE_SCHEMA_VERSION}. Start a fresh terraced-v3 run."
+            f"this statement-ledger architecture requires schema {RUN_STATE_SCHEMA_VERSION}. Start a fresh terraced-v3 run."
         )
     return doc
 def _save_run_state(work:Path,state:dict)->None: _atomic_write(_run_state_path(work),json.dumps(state,indent=2,ensure_ascii=False)+"\n")
@@ -530,108 +530,25 @@ def _permitted_tags(cards:list[dict],manifest:dict)->set[str]:
     by_id=card_identity.tag_by_id(manifest); return {by_id[c["card_id"]] for c in cards}
 
 
-def _fact_ledger_path(work:Path)->Path:
-    return layout.synthesis(work,"fact-ledger.yaml",existing=False)
+def _statement_ledger_path(work:Path)->Path:
+    return layout.synthesis(work,"statement-ledger.yaml",existing=False)
 
 
-def _read_fact_ledger(work:Path)->dict:
-    return runtime.load_fact_ledger(layout.synthesis(work,"fact-ledger.yaml"))
+def _read_statement_ledger(work:Path)->dict:
+    return runtime.load_statement_ledger(layout.synthesis(work,"statement-ledger.yaml"))
 
 
-def _commit_fact_snapshot(work:Path,*,snapshot_key:str,candidates:list[dict],source:str)->None:
-    ledger=_read_fact_ledger(work)
-    runtime.reconcile_fact_snapshot(ledger,snapshot_key,candidates,source=source)
-    _atomic_write(_fact_ledger_path(work),yaml.safe_dump(ledger,sort_keys=False,allow_unicode=True,width=110))
-
-
-def _card_check_payload(evidence:scheduler_primitives.EvidenceView,claimed_tags:set[str])->list[dict]:
-    tag_by_id=card_identity.tag_by_id(evidence.manifest); rows=[]
-    for card in evidence.cards:
-        raw=tag_by_id.get(card.get("card_id"))
-        token=f"[card:{raw}]" if raw else None
-        if token not in claimed_tags: continue
-        rows.append({
-            "card_tag":token,
-            "category":card.get("category"),
-            "genes":list(card.get("genes") or []),
-            "diseases":list(card.get("diseases") or []),
-            "evidence_tier":card.get("evidence_tier"),
-            "interpretation":card.get("interpretation"),
-            "locator":card.get("locator"),
-            "secondary_citation":card.get("secondary_citation"),
-        })
-    return rows
-
-
-def _fact_evidence_repair_instruction(issue_code:str,row:dict)->str:
-    base="Preserve unrelated accepted facts verbatim. Use only evidence and structured-case IDs supplied to the originating task. "
-    refs=row.get("case_refs") or []
-    tags=row.get("card_tags") or []
-    if issue_code=="observation_should_be_cardless":
-        return base + f"This is a patient observation, not a literature inference. Keep it observational; put its exact C#/V# patient sources in case_refs (currently {refs!r}) and set card_tags: []. Do not expand the observation merely to justify the current cards {tags!r}. If a separate classification/prognostic/treatment/MRD/germline inference is needed, return that as a separate self-contained fact with its own card_tags."
-    if issue_code=="missing_card_evidence":
-        return base + "This fact makes a literature-dependent interpretive inference but has no adequate literature provenance. Keep the patient premises in case_refs and attach only exact supplied card tags that directly support the complete inference. Do not strip the interpretive conclusion merely to evade evidence review."
-    if issue_code=="irrelevant_card":
-        return base + f"One or more claimed cards are irrelevant to the proposition. Do not add extra wording merely to make those cards fit. Remove irrelevant card_tags from {tags!r}; if the remaining supplied evidence is insufficient, narrow or replace the fact accordingly."
-    if issue_code=="authority_mismatch":
-        return base + "The classification/guideline authority in the fact and the claimed evidence do not match. Preserve the intended authority and use only supplied cards from that authority, or correct the fact if the originating clinical conclusion itself used the wrong authority."
-    if issue_code=="incomplete_rule_support":
-        return base + "The claimed card set does not support the complete interpretive rule stated. Treat patient observations already stated in the fact as true premises; cards need only support the interpretation from those premises. Narrow the inference or correct the claimed card set without asking cards to prove patient-specific observations."
-    if issue_code=="scope_mismatch":
-        return base + "The claimed evidence is scoped to a different disease, alteration, treatment, MRD context, or other clinical setting. Correct the fact scope or use only supplied cards matching the stated context."
-    return base + "The interpretive inference is not supported by the claimed evidence. Keep case-derived premises in case_refs; repair the proposition and/or its card_tags without moving citations onto an unrelated observation or making a literature-dependent conclusion cardless."
-
-
-def _guard_fact_evidence(work:Path,profile:str|None,*,snapshot_key:str,candidates:list[dict],evidence:scheduler_primitives.EvidenceView,source:str)->None:
-    ledger=_read_fact_ledger(work)
-    new=runtime.facts_needing_evidence_check(ledger,snapshot_key,candidates)
-    if not new: return
-    check_facts=[]; claimed=set()
-    for i,fact in enumerate(new,1):
-        tags=list(fact.get("card_tags") or [])
-        cid=f"C{i}"
-        check_facts.append({
-            "candidate_id":cid,
-            "fact":fact["fact"],
-            "case_refs":list(fact.get("case_refs") or []),
-            "card_tags":tags,
-        })
-        claimed.update(tags)
-    cards=_card_check_payload(evidence,claimed)
-    available={row["card_tag"] for row in cards}
-    missing=sorted(claimed-available)
-    if missing:
-        raise ValueError(f"local evidence check cannot find claimed card tag(s) in the originating task evidence: {missing}")
-    payload={"facts":check_facts,"cards":cards}
-    digest=hashlib.sha256(json.dumps(payload,sort_keys=True,ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
-    call_id=f"fact-evidence-{_safe_slug(snapshot_key)}-{digest}"
-    root,_,_=_bundle_paths(work,call_id); output=root/"output.yaml"
-    template=_read(PROMPTS/"fact_evidence_check.md")
-    contract=contract_registry.load("core.facts.evidence-check").model_text
-    prompt=template.replace("{{output_contract}}",contract)+"\n\n# Facts and their claimed cards\n```yaml\n"+yaml.safe_dump(payload,sort_keys=False,allow_unicode=True,width=110)+"```\n"
-    messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
-    ids=[row["candidate_id"] for row in check_facts]
-    _model_call(work,call_id=call_id,role="fact_evidence_check",messages=messages,output=output,validator=lambda text:runtime.validate_fact_evidence_check_text(text,ids),profile=profile,structured_format="yaml")
-    rejections=runtime.fact_evidence_rejections(_read(output))
-    if rejections:
-        fact_by_id={row["candidate_id"]:row for row in check_facts}
-        issues=[]
-        for cid,issue_code,issue in rejections:
-            row=fact_by_id[cid]
-            excerpt=row["fact"] if len(row["fact"])<=120 else row["fact"][:117]+"..."
-            issues.append(ValidationIssue(
-                f"local evidence check {cid} [{issue_code}] — {excerpt}",
-                issue,
-                _fact_evidence_repair_instruction(issue_code,row),
-            ))
-        raise ValidationFailure(f"evidence support for {source}",issues)
+def _commit_statement_snapshot(work:Path,*,snapshot_key:str,candidates:list[dict],source:str)->None:
+    ledger=_read_statement_ledger(work)
+    runtime.reconcile_statement_snapshot(ledger,snapshot_key,candidates,source=source)
+    _atomic_write(_statement_ledger_path(work),yaml.safe_dump(ledger,sort_keys=False,allow_unicode=True,width=110))
 
 
 def _guard_paraphrase(work:Path,profile:str|None,*,sentence_plan:dict,sentence:str,source:str)->None:
     payload={
         "draft_sentence":sentence_plan["draft_sentence"],
-        "source_facts":sentence_plan["source_facts"],
-        "split_source_fact_ids":sentence_plan.get("split_source_fact_ids") or [],
+        "source_statements":sentence_plan["source_statements"],
+        "split_source_statement_ids":sentence_plan.get("split_source_statement_ids") or [],
         "paraphrased_sentence":sentence,
     }
     digest=hashlib.sha256(json.dumps(payload,sort_keys=True,ensure_ascii=False).encode("utf-8")).hexdigest()[:12]
@@ -649,18 +566,19 @@ def _guard_paraphrase(work:Path,profile:str|None,*,sentence_plan:dict,sentence:s
             [ValidationIssue(
                 "paraphrased sentence",
                 result["issue"],
-                "rewrite the sentence so it is self-contained, preserves the complete planned meaning, preserves every unsplit source fact, and adds no new clinical proposition",
+                "rewrite the sentence so it is self-contained, preserves the complete planned meaning, preserves every unsplit source statement, and adds no new clinical proposition",
             )],
         )
 
 
-def _fact_callbacks(work:Path,profile:str|None):
+def _statement_callbacks(work:Path,profile:str|None):
+    # Diagnosis and PTBG evidence support are resolved outside the originating
+    # model validator so semantic disagreement cannot trigger whole-artifact retries.
     return (
-        lambda **kwargs:_guard_fact_evidence(work,profile,**kwargs),
-        lambda **kwargs:_commit_fact_snapshot(work,**kwargs),
+        None,
+        lambda **kwargs:_commit_statement_snapshot(work,**kwargs),
         lambda **kwargs:_guard_paraphrase(work,profile,**kwargs),
     )
-
 
 def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
     uses=str(stage.get("uses") or "")
@@ -704,11 +622,11 @@ def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
         "who5_bootstrap_evidence":who5_bootstrap_view,
         "max_who5_passes":int(load_settings().get("max_who5_passes",7)),
     }
-    fact_guard,fact_commit,paraphrase_guard=_fact_callbacks(work,profile)
+    statement_guard,statement_commit,paraphrase_guard=_statement_callbacks(work,profile)
     ctx=scheduler_primitives.SchedulerContext(
         work=work,case=case,diagnoses=[],final_cmcs=[],pipeline_id=_pipeline_id(work,profile),call_model=call_model,
         ensure_evidence=empty_domain,read_text=_read,write_text=_atomic_write,status=_status,phase="diagnosis",values=values,ensure_diagnosis_evidence=ensure_diag,
-        fact_guard=fact_guard,fact_commit=fact_commit,paraphrase_guard=paraphrase_guard
+        statement_guard=statement_guard,statement_commit=statement_commit,paraphrase_guard=paraphrase_guard
     )
     _status(f"  diagnosis scheduler: {scheduler_name} — {plan.description}")
     outputs=scheduler_engine.execute(plan,ctx)
@@ -779,11 +697,11 @@ def module_ptbg_scheduler(work:Path,stage:dict,profile:str|None)->None:
         messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
         _model_call(work,call_id=call_id,role=role,messages=messages,output=output,validator=validator,profile=profile,structured_format=None if format_name=="text" else format_name)
 
-    fact_guard,fact_commit,paraphrase_guard=_fact_callbacks(work,profile)
+    statement_guard,statement_commit,paraphrase_guard=_statement_callbacks(work,profile)
     ctx=scheduler_primitives.SchedulerContext(
         work=work,case=case,diagnoses=diagnoses,final_cmcs=routing["final_cmcs"],pipeline_id=_pipeline_id(work,profile),
         call_model=call_model,ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,phase="ptbg",
-        fact_guard=fact_guard,fact_commit=fact_commit,paraphrase_guard=paraphrase_guard
+        statement_guard=statement_guard,statement_commit=statement_commit,paraphrase_guard=paraphrase_guard
     )
     _status(f"  PTBG scheduler: {scheduler_name} — {scheduler_plan.description}")
     outputs=scheduler_engine.execute(scheduler_plan,ctx)
@@ -806,35 +724,35 @@ def _visible_ids(work:Path,name:str)->set[str]:
     return {r["card_id"] for r in json.loads(_read(path)).get("tags") or []}
 
 
-def module_collect_fact_ledger(work:Path,stage:dict,profile:str|None)->None:
-    """Publish the active immutable fact ledger after deterministic consistency checks."""
+def module_collect_statement_ledger(work:Path,stage:dict,profile:str|None)->None:
+    """Publish the active immutable statement ledger after deterministic consistency checks."""
     del stage,profile
-    ledger=_read_fact_ledger(work)
-    active=runtime.active_ledger_facts(ledger)
+    ledger=_read_statement_ledger(work)
+    active=runtime.active_ledger_statements(ledger)
     if not active:
-        raise StepFailure("fact ledger is empty; fact-producing scheduler outputs must be locally evidence-checked and reconciled before collection")
+        raise StepFailure("statement ledger is empty; statement-producing scheduler outputs must be locally evidence-checked and reconciled before collection")
 
     who5=runtime.parse_yaml_mapping(_read(_who5_final(work)),"WHO5 diagnosis")
     icc=runtime.parse_yaml_mapping(_read(_icc_final(work)),"ICC diagnosis")
-    expected=runtime.facts_from_who5(who5)+runtime.facts_from_icc(icc)
+    expected=runtime.statements_from_who5(who5)+runtime.statements_from_icc(icc)
     for domain in scheduler_primitives.DOMAINS:
-        expected.extend(runtime.facts_from_domain(domain,runtime.parse_yaml_mapping(_read(_domain_final(work,domain)),f"{domain} task")))
+        expected.extend(runtime.statements_from_domain(domain,runtime.parse_yaml_mapping(_read(_domain_final(work,domain)),f"{domain} task")))
 
-    expected_counts=Counter(runtime.fact_signature(row) for row in expected)
-    active_counts=Counter(runtime.fact_signature(row) for row in active)
+    expected_counts=Counter(runtime.statement_signature(row) for row in expected)
+    active_counts=Counter(runtime.statement_signature(row) for row in active)
     if expected_counts != active_counts:
         missing=list((expected_counts-active_counts).elements())
         stale=list((active_counts-expected_counts).elements())
         detail=[]
-        if missing: detail.append(f"{len(missing)} final reportable fact(s) are missing from the active ledger")
-        if stale: detail.append(f"{len(stale)} withdrawn/replaced fact(s) remain incorrectly active")
-        raise StepFailure("final scheduler states do not match the immutable fact ledger: "+"; ".join(detail))
+        if missing: detail.append(f"{len(missing)} final reportable statement(s) are missing from the active ledger")
+        if stale: detail.append(f"{len(stale)} withdrawn/replaced statement(s) remain incorrectly active")
+        raise StepFailure("final scheduler states do not match the immutable statement ledger: "+"; ".join(detail))
     for row in active:
-        if row.get("evidence_check") != "passed":
-            raise StepFailure(f"fact {row.get('fact_id')} has invalid evidence-check status {row.get('evidence_check')!r}; every reportable fact must pass local provenance/support review")
+        if row.get("evidence_check") != "supported":
+            raise StepFailure(f"statement {row.get('statement_id')} has invalid evidence-check status {row.get('evidence_check')!r}; every reportable statement must pass local provenance/support review")
 
-    published={"facts":runtime.reportable_active_facts(ledger)}
-    _atomic_write(layout.synthesis(work,"fact-ledger-active.yaml",existing=False),yaml.safe_dump(published,sort_keys=False,allow_unicode=True,width=110))
+    published={"statements":runtime.reportable_active_statements(ledger)}
+    _atomic_write(layout.synthesis(work,"statement-ledger-active.yaml",existing=False),yaml.safe_dump(published,sort_keys=False,allow_unicode=True,width=110))
 
 
 def _summary_interpretation_map(work:Path)->dict[str,str]:
@@ -855,8 +773,8 @@ def module_summarization_scheduler(work:Path,stage:dict,profile:str|None)->None:
     if not scheduler_name: raise StepFailure("run state is missing summarization scheduler selection")
     try: plan=scheduler_registry.load(scheduler_name,"summarization")
     except ValueError as exc: raise StepFailure(str(exc)) from exc
-    ledger=runtime.parse_yaml_mapping(_read(layout.synthesis(work,"fact-ledger-active.yaml")),"active fact ledger"); facts=ledger.get("facts") or []
-    if not facts: raise StepFailure("fact ledger contains no surfaced facts")
+    ledger=runtime.parse_yaml_mapping(_read(layout.synthesis(work,"statement-ledger-active.yaml")),"active statement ledger"); statements=ledger.get("statements") or []
+    if not statements: raise StepFailure("statement ledger contains no surfaced statements")
 
     def unavailable(_domain:str): raise ValueError("clinical evidence retrieval is unavailable inside the summarization scheduler")
     def call_model(*,call_id:str,role:str,prompt:str,output:Path,validator,format_name:str)->None:
@@ -864,15 +782,15 @@ def module_summarization_scheduler(work:Path,stage:dict,profile:str|None)->None:
         _model_call(work,call_id=call_id,role=role,messages=messages,output=output,validator=validator,profile=profile,structured_format=None if format_name=="text" else format_name)
 
     who5=runtime.parse_yaml_mapping(_read(_who5_final(work)),"WHO5 diagnosis"); routing=json.loads(_read(_who5_routing(work)))
-    fact_guard,fact_commit,paraphrase_guard=_fact_callbacks(work,profile)
+    statement_guard,statement_commit,paraphrase_guard=_statement_callbacks(work,profile)
     ctx=scheduler_primitives.SchedulerContext(
         work=work,case=runtime.read_json(_case_json(work)),diagnoses=runtime.active_who5_diagnoses(who5),final_cmcs=routing["final_cmcs"],
         pipeline_id=_pipeline_id(work,profile),call_model=call_model,ensure_evidence=unavailable,read_text=_read,write_text=_atomic_write,status=_status,
-        phase="summarization",values={"cited_facts":facts},fact_guard=fact_guard,fact_commit=fact_commit,paraphrase_guard=paraphrase_guard
+        phase="summarization",values={"cited_statements":statements},statement_guard=statement_guard,statement_commit=statement_commit,paraphrase_guard=paraphrase_guard
     )
     _status(f"  summarization scheduler: {scheduler_name} — {plan.description}")
     outputs=scheduler_engine.execute(plan,ctx); summary=scheduler_engine.output_by_semantic_type(plan,outputs,"report.summary.sentences")
-    runtime.validate_canonical_summary_doc(summary,facts)
+    runtime.validate_canonical_summary_doc(summary,statements)
     summary_path=layout.synthesis(work,"summary-final.yaml",existing=False); _atomic_write(summary_path,yaml.safe_dump(summary,sort_keys=False,allow_unicode=True,width=110))
     _atomic_write(layout.synthesis(work,"report-cited.md",existing=False),runtime.render_canonical_summary(summary))
 
@@ -918,7 +836,7 @@ def module_finalise_report(work:Path,stage:dict,profile:str|None)->None:
     _package_debug(work)
 
 
-MODULES={"structure_case":module_structure_case,"initialise_corpus":module_initialise_corpus,"diagnosis_scheduler":module_diagnosis_scheduler,"ptbg_scheduler":module_ptbg_scheduler,"collect_fact_ledger":module_collect_fact_ledger,"summarization_scheduler":module_summarization_scheduler,"finalise_report":module_finalise_report}
+MODULES={"structure_case":module_structure_case,"initialise_corpus":module_initialise_corpus,"diagnosis_scheduler":module_diagnosis_scheduler,"ptbg_scheduler":module_ptbg_scheduler,"collect_statement_ledger":module_collect_statement_ledger,"summarization_scheduler":module_summarization_scheduler,"finalise_report":module_finalise_report}
 
 def _handler_for_uses(uses:str):
     if uses.startswith("core."):

@@ -41,7 +41,7 @@ evidence_resolution:
   authorities: [icc, who5]
   rule: >-
     Runs bounded diagnosis evidence resolution: numbered card-header line selection with
-    deterministic original-block extraction, fact/local-card pairing, deterministic local-label to runtime-tag resolution, and
+    deterministic original-block extraction, statement/local-card pairing, deterministic local-label to runtime-tag resolution, and
     reasonable-support audit without whole-artifact semantic retry.
 
 prompt_injection:
@@ -77,7 +77,7 @@ runtime_sources:
     - core.diagnosis.routing.final-cmcs
     - core.ptbg.task-scope
     - core.evidence.domain-current
-    - core.facts.cited
+    - core.statements.cited
     - steps.<step-id>
 
 model_validators:

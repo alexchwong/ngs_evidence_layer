@@ -108,7 +108,7 @@ Python/core continues to own algorithms and live-state guarantees, including:
 - verification that model card tags were actually supplied to the task;
 - disease-scoped evidence permission;
 - generic YAML/JSON syntax repair and retry handling;
-- evidence/fact provenance, citation trust and deterministic citation inheritance;
+- evidence/statement provenance, citation trust and deterministic citation inheritance;
 - invariant detected-NGS-variant sentence;
 - logging, resume/checkpointing, run-directory layout and packaging.
 
@@ -120,16 +120,16 @@ The shipped default pipelines currently connect:
 
 ```text
 case → structure → corpus → default-diagnosis → domain PTBG
-     → core immutable fact-ledger collection → default-summarization → core finalise
+     → core immutable statement-ledger collection → default-summarization → core finalise
 ```
 
 `default-diagnosis` preserves blind ICC, iterative WHO5/CMC reconsideration, cumulative old+new CMC diagnosis evidence, adversarial confirmation and oscillation protection. ICC never determines CMC.
 
 The five PTBG schedulers are `domain`, `evidence-first`, `variant-centric`, `global-ledger`, and `adaptive-microtask`.
 
-Each surfaced diagnosis/PTBG fact acquires final patient `case_refs` and literature `card_tags` when introduced. Every new reportable fact undergoes a minimal reject-only provenance/support check before acceptance; accepted fact text plus card attribution is immutable and later scheduler passes can only preserve it verbatim or withdraw/replace it.
+Each surfaced diagnosis/PTBG statement carries a reason and patient `case_refs`. Evidence resolution separately pairs literature cards, resolves immutable card IDs deterministically, and performs a binary support audit before the statement can reach summarization.
 
-`default-summarization` explicitly decides fact include/omit, sentence order, merge and split, then paraphrases each planned sentence. A reject-only semantic-preservation check guards paraphrasing. Core derives sentence citations deterministically from `source_fact_ids` and creates `sentence-card-interpretations.yaml`; there is no end-stage semantic evidence alignment.
+`default-summarization` explicitly decides statement include/omit, sentence order, merge and split; diagnosis statements are mandatory. A reject-only semantic-preservation check guards paraphrasing. Core derives sentence citations deterministically from `source_statement_ids` and creates `sentence-card-interpretations.yaml`; there is no end-stage semantic evidence alignment.
 
 ## Self-provider handoff
 
@@ -139,7 +139,7 @@ Do not read validation marking criteria during a validation run. Marking is pack
 
 ## Structured-output repair
 
-`scripts/core/syntax_repair/` repairs YAML/JSON syntax before task validation. It performs conservative representation-only cleanup, then at most two syntax-only model repairs with strict content preservation. Syntax repair receives no clinical context and must not change facts. Bare exact 12-character hashes in known card-tag fields may be canonicalized to `[card:<hash>]`; the normal validator still requires that card to have been supplied to the task.
+`scripts/core/syntax_repair/` repairs YAML/JSON syntax before task validation. It performs conservative representation-only cleanup, then at most two syntax-only model repairs with strict content preservation. Syntax repair receives no clinical context and must not change clinical content. Bare exact 12-character hashes in known card-tag fields may be canonicalized to `[card:<hash>]`; the normal validator still requires that card to have been supplied to the task.
 
 ## Run-directory contract
 
