@@ -27,7 +27,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v3 import card_identity, layout, model_client, model_registry, rendering, runtime
+from workflows.terraced_v3 import card_identity, layout, model_client, pipeline_registry, rendering, runtime
 from workflows.terraced_v3 import scheduler_engine, scheduler_registry, scheduler_primitives
 
 WORKFLOW_ID = "terraced-v3"
@@ -80,9 +80,9 @@ def load_settings() -> dict:
     return doc
 
 
-def configured_profile() -> str | None:
-    value = load_settings().get("model_profile")
-    return value if isinstance(value, str) and value else None
+def configured_pipeline() -> str:
+    value = load_settings().get("pipeline", "self")
+    return value if isinstance(value, str) and value else "self"
 
 
 class _LoggedStream:
@@ -131,7 +131,20 @@ def _require_work(work:Path)->dict:
 def _run_state_path(work:Path)->Path: return layout.state(work,"terraced-v3-run.json",existing=False)
 def _load_run_state(work:Path)->dict: return json.loads(_read(_run_state_path(work)))
 def _save_run_state(work:Path,state:dict)->None: _atomic_write(_run_state_path(work),json.dumps(state,indent=2,ensure_ascii=False)+"\n")
-def _profile(work:Path,selector:str|None,role:str): return model_registry.resolve(role,selector,work)
+def _pipeline_id(work:Path, selector:str|None=None)->str:
+    if selector:
+        return selector
+    try:
+        state=_load_run_state(work)
+        value=state.get("pipeline")
+        if isinstance(value,str) and value:
+            return value
+    except (OSError,ValueError,KeyError,json.JSONDecodeError):
+        pass
+    return configured_pipeline()
+
+def _profile(work:Path,selector:str|None,role:str):
+    return pipeline_registry.binding(pipeline_registry.load(_pipeline_id(work,selector)),role)
 
 
 def _bundle_paths(work:Path,call_id:str)->tuple[Path,Path,Path]:
@@ -259,12 +272,12 @@ def _prepare_candidate(*,raw:str,structured_format:str|None,binding,root:Path,ca
 
 
 def _model_call(work:Path,*,call_id:str,role:str,messages:list[dict[str,str]],output:Path,validator,profile:str|None,structured_format:str|None=None)->str:
-    binding=_profile(work,profile,role); root,prompt_path,messages_path=_bundle_paths(work,call_id); attempts=int(load_settings().get("structural_attempts",10))
+    binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,"syntax_repair"); root,prompt_path,messages_path=_bundle_paths(work,call_id); attempts=int(load_settings().get("structural_attempts",10))
     if binding.is_self:
         error=None
         if output.is_file():
             try:
-                candidate,repairs=_prepare_candidate(raw=_read(output),structured_format=structured_format,binding=binding,root=root,call_id=call_id)
+                candidate,repairs=_prepare_candidate(raw=_read(output),structured_format=structured_format,binding=syntax_binding,root=root,call_id=call_id)
                 msg=validator(candidate)
                 _atomic_write(output,candidate)
                 if repairs: _atomic_write(root/"deterministic-repairs.txt","\n".join(repairs)+"\n")
@@ -295,7 +308,7 @@ def _model_call(work:Path,*,call_id:str,role:str,messages:list[dict[str,str]],ou
         _atomic_write(root/f"attempt-{attempt}.raw",raw.rstrip()+"\n")
         candidate=None
         try:
-            candidate,repairs=_prepare_candidate(raw=raw,structured_format=structured_format,binding=binding,root=root,call_id=call_id)
+            candidate,repairs=_prepare_candidate(raw=raw,structured_format=structured_format,binding=syntax_binding,root=root,call_id=call_id)
             msg=validator(candidate)
         except Handoff:
             raise
@@ -331,12 +344,32 @@ def _timestamped_work_dir(root:Path,label:str)->Path:
     return candidate
 
 
+def _selected_pipeline_and_schedulers(args:argparse.Namespace)->tuple[str,dict[str,str]]:
+    pipeline_id=(getattr(args,"pipeline",None) or getattr(args,"model_profile",None) or configured_pipeline())
+    try:
+        plan=pipeline_registry.load(pipeline_id)
+    except ValueError as exc:
+        raise StepFailure(str(exc)) from exc
+    schedulers=dict(plan.schedulers)
+    overrides={
+        "diagnosis":getattr(args,"diagnosis_scheduler",None),
+        "ptbg":getattr(args,"ptbg_scheduler",None) or getattr(args,"scheduler",None),
+        "summarization":getattr(args,"summarization_scheduler",None),
+    }
+    for phase,name in overrides.items():
+        if name:
+            schedulers[phase]=name
+    for phase,name in schedulers.items():
+        if name not in scheduler_registry.names(phase):
+            raise StepFailure(f"pipeline {pipeline_id!r} selects unknown {phase} scheduler {name!r}; choose one of: {', '.join(scheduler_registry.names(phase))}")
+        scheduler_registry.check(name,phase)
+    for role in pipeline_registry.ROLES:
+        pipeline_registry.binding(plan,role)
+    return pipeline_id,schedulers
+
+
 def run_setup(args:argparse.Namespace)->int:
-    registry=model_registry.load_registry(); model_profile=model_registry.resolve_profile(args.model_profile or configured_profile(),None,registry)
-    for role in registry["roles"]: model_registry.resolve(role,model_profile,None,registry)
-    scheduler=args.scheduler or load_settings().get("scheduler","domain")
-    if scheduler not in scheduler_registry.names():
-        raise StepFailure(f"unknown scheduler {scheduler!r}; choose one of: {', '.join(scheduler_registry.names())}")
+    pipeline_id,schedulers=_selected_pipeline_and_schedulers(args)
     label=args.mode
     if args.mode=="ngs-report" and args.case_file: label += "-"+args.case_file.stem
     elif args.mode=="nel-demo" and args.example is not None: label += f"-{args.example}"
@@ -345,7 +378,8 @@ def run_setup(args:argparse.Namespace)->int:
     else:
         root=HERE/"runs"; root.mkdir(parents=True,exist_ok=True); work_arg=_timestamped_work_dir(root,label)
     work,demo_case,demo_expected=setup_workflow(workflow=WORKFLOW_ID,mode=args.mode,work_dir=work_arg,project=False,example=args.example,case_id=args.case_id)
-    write_workflow_state(work,WORKFLOW_ID,args.mode,model_profile=model_profile)
+    # Keep the existing workflow registry field populated for compatibility, but the run-state `pipeline` is authoritative.
+    write_workflow_state(work,WORKFLOW_ID,args.mode,model_profile=pipeline_id)
     case_path=layout.input(work,"case.md",existing=False)
     if args.case_file:
         supplied=args.case_file.expanduser().resolve()
@@ -354,8 +388,18 @@ def run_setup(args:argparse.Namespace)->int:
     elif args.mode=="nel-demo" and demo_case: shutil.copyfile(demo_case,case_path)
     if not case_path.is_file() or not _read(case_path).strip(): raise StepFailure(f"authoritative case.md is missing or empty: {case_path}")
     if demo_expected: shutil.copyfile(demo_expected,layout.setup(work,"demo-expected.md",existing=False))
-    _save_run_state(work,{"schema_version":1,"workflow_id":WORKFLOW_ID,"mode":args.mode,"validation_case":args.case_id,"model_profile":model_profile,"scheduler":scheduler,"created_at":datetime.now(timezone.utc).isoformat()})
-    with _cli_logging(work): print(work); print(f"MODEL_PROFILE={model_profile}"); print(f"SCHEDULER={scheduler}")
+    _save_run_state(work,{
+        "schema_version":2,"workflow_id":WORKFLOW_ID,"mode":args.mode,"validation_case":args.case_id,
+        "pipeline":pipeline_id,"schedulers":schedulers,"created_at":datetime.now(timezone.utc).isoformat(),
+    })
+    resolved_pipeline=dict(pipeline_registry.load(pipeline_id).doc)
+    resolved_pipeline["schedulers"]=dict(schedulers)
+    _atomic_write(layout.setup(work,"pipeline-resolved.yaml",existing=False),yaml.safe_dump(resolved_pipeline,sort_keys=False,allow_unicode=True,width=110))
+    with _cli_logging(work):
+        print(work); print(f"PIPELINE={pipeline_id}")
+        print(f"DIAGNOSIS_SCHEDULER={schedulers['diagnosis']}")
+        print(f"PTBG_SCHEDULER={schedulers['ptbg']}")
+        print(f"SUMMARIZATION_SCHEDULER={schedulers['summarization']}")
     return EXIT_OK
 
 
@@ -451,66 +495,59 @@ def _permitted_tags(cards:list[dict],manifest:dict)->set[str]:
     by_id=card_identity.tag_by_id(manifest); return {by_id[c["card_id"]] for c in cards}
 
 
-def module_icc_diagnosis(work:Path,stage:dict,profile:str|None)->None:
-    del stage; output=_icc_final(work)
-    if output.is_file(): return
-    case=runtime.read_json(_case_json(work)); _all,eligible,digest,manifest=_load_corpus(); bootstrap=list(case["bootstrap_cmcs"]); cards=_draw_diagnosis_cards(eligible,runtime.case_genes(case),bootstrap)
-    evidence_path,tag_path,visible=_render_evidence_bundle(work,"icc",cards,cmcs=bootstrap,diagnoses=[],digest=digest,manifest=manifest); permitted=_permitted_tags(visible,manifest)
-    context="# Structured immutable case\n```json\n"+json.dumps(case,indent=2,ensure_ascii=False)+"\n```\n\n# NGS assay scope\n"+_read(layout.input(work,"ngs-panel-scope.md"))+"\n\n# Independent diagnostic evidence\n"+_render_cards(visible,manifest)
-    messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":_read(PROMPTS/"icc_diagnosis.md")+"\n\n"+context}]
-    _model_call(work,call_id="icc-independent",role="diagnosis",messages=messages,output=output,validator=lambda t:runtime.validate_icc_text(t,permitted),profile=profile,structured_format="yaml")
-    _atomic_write(_icc_frozen_marker(work),"ICC result is frozen and excluded from WHO5/downstream reasoning until final evidence/prose assembly.\n")
+def module_diagnosis_scheduler(work:Path,stage:dict,profile:str|None)->None:
+    del stage
+    run_state=_load_run_state(work); scheduler_name=(run_state.get("schedulers") or {}).get("diagnosis")
+    if not scheduler_name: raise StepFailure("run state is missing diagnosis scheduler selection")
+    try: plan=scheduler_registry.load(scheduler_name,"diagnosis")
+    except ValueError as exc: raise StepFailure(str(exc)) from exc
+    final_path=_who5_final(work); icc_path=_icc_final(work); routing_path=_who5_routing(work)
+    if final_path.is_file() and icc_path.is_file() and routing_path.is_file(): return
+    case=runtime.read_json(_case_json(work)); _all,eligible,digest,manifest=_load_corpus(); genes=runtime.case_genes(case); bootstrap=list(case.get("bootstrap_cmcs") or [])
+    bootstrap_cards=_draw_diagnosis_cards(eligible,genes,bootstrap)
+    _evidence_path,_tags_path,visible_bootstrap=_render_evidence_bundle(work,"icc",bootstrap_cards,cmcs=bootstrap,diagnoses=[],digest=digest,manifest=manifest)
+    bootstrap_view=scheduler_primitives.EvidenceView(domain="diagnosis",cards=visible_bootstrap,manifest=manifest,permitted_tags=_permitted_tags(visible_bootstrap,manifest),text=_render_cards(visible_bootstrap,manifest))
+    last_diag_view=bootstrap_view
 
+    def ensure_diag(cmcs:list[str])->scheduler_primitives.EvidenceView:
+        nonlocal last_diag_view
+        cards=_draw_diagnosis_cards(eligible,genes,cmcs)
+        view=scheduler_primitives.EvidenceView(domain="diagnosis",cards=cards,manifest=manifest,permitted_tags=_permitted_tags(cards,manifest),text=_render_cards(cards,manifest))
+        last_diag_view=view; return view
 
-def module_who5_stabilisation(work:Path,stage:dict,profile:str|None)->None:
-    del stage; final_path=_who5_final(work); routing_path=_who5_routing(work)
-    if final_path.is_file() and routing_path.is_file(): return
-    case=runtime.read_json(_case_json(work)); _all,eligible,digest,manifest=_load_corpus(); genes=runtime.case_genes(case)
-    history=[]
-    for cmc in case["bootstrap_cmcs"]:
-        if cmc not in history: history.append(cmc)
-    previous=None; phase="main"; max_passes=int(load_settings().get("max_who5_passes",7)); cmc_transitions=0; audit=[]; seen_cards={}
-    final_doc=None
-    for pass_index in range(1,max_passes+1):
-        cards=_draw_diagnosis_cards(eligible,genes,history)
-        for c in cards: seen_cards.setdefault(c["card_id"],c)
-        permitted=_permitted_tags(cards,manifest)
-        instruction={
-            "main":"Initial WHO5 pass. Build the complete diagnosis state from the case and evidence without assuming the provisional diagnosis is correct.",
-            "reconsider":"Targeted reconsideration pass. Re-evaluate the complete prior WHO5 state using the cumulative evidence from every CMC encountered. Preserve it exactly when still correct; otherwise return the complete corrected state.",
-            "review":"Adversarial confirmation pass. Actively look for supplied WHO5 criteria/evidence that would overturn, narrow, broaden, or add a concurrent diagnosis. If no material change is warranted, copy the complete prior state exactly.",
-        }[phase]
-        context="# Structured immutable case\n```json\n"+json.dumps(case,indent=2,ensure_ascii=False)+"\n```\n\n# Allowed WHO5 schema diseases\n"+_read(layout.input(work,"allowed-schema-diseases.json"))+"\n\n# NGS assay scope\n"+_read(layout.input(work,"ngs-panel-scope.md"))+"\n\n# Cumulative diagnosis evidence\n"+_render_cards(cards,manifest)
-        if previous is not None: context += "\n\n# Prior validated WHO5 state\n```yaml\n"+yaml.safe_dump(previous,sort_keys=False,allow_unicode=True,width=110)+"```\n"
-        context += "\n\n# Current pass\n"+instruction
-        call_dir=layout.diagnosis_pass_dir(work,f"pass_{pass_index:02d}_{phase}",existing=False); output=call_dir/"OUTPUT.yaml"
-        _atomic_write(call_dir/"INPUT_cards.json",json.dumps(cards,indent=2,ensure_ascii=False)+"\n"); _atomic_write(call_dir/"INPUT_context.md",context+"\n")
-        _status(f"  WHO5 pass {pass_index}: {phase}; {len(cards)} cards; cumulative CMC evidence {' | '.join(history)}")
-        messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":_read(PROMPTS/"who5_diagnosis.md")+"\n\n"+context}]
-        _model_call(work,call_id=f"who5-{pass_index:02d}-{phase}",role="diagnosis",messages=messages,output=output,validator=lambda t,p=permitted:runtime.validate_who5_text(t,p),profile=profile,structured_format="yaml")
-        state=runtime.parse_yaml_mapping(_read(output),"WHO5 diagnosis"); cmcs=runtime.derive_cmcs(state); sig=runtime.who5_signature(state)
-        prev_cmcs=runtime.derive_cmcs(previous) if previous is not None else None; prev_sig=runtime.who5_signature(previous) if previous is not None else None
-        if prev_cmcs is not None and cmcs!=prev_cmcs: cmc_transitions += 1
-        new_cmcs=[]
-        for cmc in cmcs:
-            if cmc not in history: history.append(cmc); new_cmcs.append(cmc)
-        audit.append({"pass":pass_index,"phase":phase,"who5_signature":sig,"derived_cmcs":cmcs,"new_cmc_evidence_added":new_cmcs,"cumulative_cmc_history":list(history),"card_count":len(cards)})
-        if cmc_transitions>4: raise StepFailure("WHO5/CMC routing oscillated through more than four CMC transitions; refusing to select the last state")
-        if previous is None:
-            previous=state; phase="reconsider"; continue
-        unchanged=(sig==prev_sig)
-        previous=state
-        if phase=="review" and unchanged:
-            final_doc=state; break
-        if phase=="review" and not unchanged:
-            phase="reconsider"; continue
-        if phase=="reconsider" and unchanged:
-            phase="review"; continue
-        phase="reconsider"
-    if final_doc is None: raise StepFailure(f"WHO5 diagnosis did not stabilise within {max_passes} passes")
-    final_cmcs=runtime.derive_cmcs(final_doc); _atomic_write(final_path,yaml.safe_dump(final_doc,sort_keys=False,allow_unicode=True,width=110))
-    _atomic_write(routing_path,json.dumps({"schema_version":1,"final_cmcs":final_cmcs,"diagnostic_cmc_history":history,"passes":audit},indent=2,ensure_ascii=False)+"\n")
-    final_cards=[seen_cards[k] for k in sorted(seen_cards)]; _render_evidence_bundle(work,"diagnosis",final_cards,cmcs=history,diagnoses=[r["schema_disease"] for r in runtime.active_who5_diagnoses(final_doc)],digest=digest,manifest=manifest)
+    def empty_domain(_domain:str)->scheduler_primitives.EvidenceView:
+        raise ValueError("downstream evidence is unavailable inside a diagnosis scheduler")
+
+    def call_model(*,call_id:str,role:str,prompt:str,output:Path,validator,format_name:str)->None:
+        messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
+        _model_call(work,call_id=call_id,role=role,messages=messages,output=output,validator=validator,profile=profile,structured_format=None if format_name=="text" else format_name)
+
+    allowed=runtime.read_json(layout.input(work,"allowed-schema-diseases.json"))
+    values={
+        "panel_scope":_read(layout.input(work,"ngs-panel-scope.md")),
+        "allowed_who5_diseases":allowed,
+        "bootstrap_evidence":bootstrap_view,
+        "max_who5_passes":int(load_settings().get("max_who5_passes",7)),
+    }
+    ctx=scheduler_primitives.SchedulerContext(
+        work=work,case=case,diagnoses=[],final_cmcs=[],pipeline_id=_pipeline_id(work,profile),call_model=call_model,
+        ensure_evidence=empty_domain,read_text=_read,write_text=_atomic_write,status=_status,phase="diagnosis",values=values,ensure_diagnosis_evidence=ensure_diag
+    )
+    _status(f"  diagnosis scheduler: {scheduler_name} — {plan.description}")
+    outputs=scheduler_engine.execute(plan,ctx)
+    icc=outputs["icc"]; who5=outputs["who5"]; routing=outputs["routing"]
+    runtime.validate_icc_text(yaml.safe_dump(icc,sort_keys=False,allow_unicode=True,width=110),bootstrap_view.permitted_tags)
+    runtime.validate_who5_text(yaml.safe_dump(who5,sort_keys=False,allow_unicode=True,width=110),last_diag_view.permitted_tags)
+    derived=runtime.derive_cmcs(who5)
+    if routing.get("final_cmcs")!=derived:
+        raise StepFailure(f"diagnosis scheduler routing final_cmcs {routing.get('final_cmcs')!r} does not equal deterministic WHO5-derived CMCs {derived!r}")
+    history=routing.get("diagnostic_cmc_history")
+    if not isinstance(history,list) or any(c not in history for c in derived):
+        raise StepFailure("diagnosis scheduler routing history must contain every final WHO5-derived CMC")
+    _atomic_write(icc_path,yaml.safe_dump(icc,sort_keys=False,allow_unicode=True,width=110)); _atomic_write(_icc_frozen_marker(work),"ICC result is frozen and excluded from WHO5/downstream reasoning until final reporting.\n")
+    _atomic_write(final_path,yaml.safe_dump(who5,sort_keys=False,allow_unicode=True,width=110)); _atomic_write(routing_path,json.dumps(routing,indent=2,ensure_ascii=False)+"\n")
+    # Persist exactly the WHO5 evidence environment exposed by the diagnosis scheduler, never a broader post-hoc draw.
+    _render_evidence_bundle(work,"diagnosis",last_diag_view.cards,cmcs=history,diagnoses=[d["schema_disease"] for d in runtime.active_who5_diagnoses(who5)],digest=digest,manifest=manifest)
 
 
 def _disease_matches(card:dict,disease:str,category:str)->bool:
@@ -534,12 +571,14 @@ def _retrieve_downstream(work:Path,category:str)->tuple[list[dict],str,dict]:
     return sorted(hits,key=lambda r:r.get("card_id") or ""),digest,manifest
 
 
-def module_clinical_tasks(work:Path,stage:dict,profile:str|None)->None:
+def module_ptbg_scheduler(work:Path,stage:dict,profile:str|None)->None:
     del stage
     run_state=_load_run_state(work)
-    scheduler_name=run_state.get("scheduler") or load_settings().get("scheduler","domain")
+    scheduler_name=(run_state.get("schedulers") or {}).get("ptbg")
+    if not scheduler_name:
+        raise StepFailure("run state is missing PTBG scheduler selection")
     try:
-        scheduler_plan=scheduler_registry.load(scheduler_name)
+        scheduler_plan=scheduler_registry.load(scheduler_name,"ptbg")
     except ValueError as exc:
         raise StepFailure(str(exc)) from exc
     case=runtime.read_json(_case_json(work))
@@ -549,34 +588,28 @@ def module_clinical_tasks(work:Path,stage:dict,profile:str|None)->None:
     evidence_cache={}
 
     def ensure_evidence(domain:str)->scheduler_primitives.EvidenceView:
-        if domain in evidence_cache:
-            return evidence_cache[domain]
+        if domain in evidence_cache: return evidence_cache[domain]
         cards,digest,manifest=_retrieve_downstream(work,domain)
-        evidence_path,tag_path,visible=_render_evidence_bundle(
+        _evidence_path,_tag_path,visible=_render_evidence_bundle(
             work,domain,cards,cmcs=routing["final_cmcs"],
             diagnoses=[d["schema_disease"] for d in diagnoses],digest=digest,manifest=manifest
         )
-        view=scheduler_primitives.EvidenceView(
-            domain=domain,cards=visible,manifest=manifest,
-            permitted_tags=_permitted_tags(visible,manifest),text=_render_cards(visible,manifest)
-        )
-        evidence_cache[domain]=view
-        return view
+        view=scheduler_primitives.EvidenceView(domain=domain,cards=visible,manifest=manifest,permitted_tags=_permitted_tags(visible,manifest),text=_render_cards(visible,manifest))
+        evidence_cache[domain]=view; return view
 
-    def call_yaml(*,call_id:str,prompt:str,output:Path,validator)->None:
+    def call_model(*,call_id:str,role:str,prompt:str,output:Path,validator,format_name:str)->None:
         messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
-        _model_call(work,call_id=call_id,role="answer",messages=messages,output=output,validator=validator,profile=profile,structured_format="yaml")
+        _model_call(work,call_id=call_id,role=role,messages=messages,output=output,validator=validator,profile=profile,structured_format=None if format_name=="text" else format_name)
 
     ctx=scheduler_primitives.SchedulerContext(
-        work=work,case=case,diagnoses=diagnoses,final_cmcs=routing["final_cmcs"],profile=profile,
-        call_yaml=call_yaml,ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,
+        work=work,case=case,diagnoses=diagnoses,final_cmcs=routing["final_cmcs"],pipeline_id=_pipeline_id(work,profile),
+        call_model=call_model,ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,phase="ptbg"
     )
-    _status(f"  scheduler: {scheduler_name} — {scheduler_plan.description}")
+    _status(f"  PTBG scheduler: {scheduler_name} — {scheduler_plan.description}")
     scheduler_engine.execute(scheduler_plan,ctx)
     for domain in scheduler_primitives.DOMAINS:
         output=_domain_final(work,domain)
-        if not output.is_file():
-            raise StepFailure(f"scheduler {scheduler_name!r} did not produce {output}")
+        if not output.is_file(): raise StepFailure(f"PTBG scheduler {scheduler_name!r} did not produce {output}")
         view=ensure_evidence(domain)
         runtime.validate_domain_text(_read(output),domain=domain,spec=ctx.specs[domain],permitted_tags=view.permitted_tags)
 
@@ -627,25 +660,45 @@ def module_evidence_alignment(work:Path,stage:dict,profile:str|None)->None:
     _atomic_write(layout.synthesis(work,"fact-ledger-cited.yaml",existing=False),yaml.safe_dump({"facts":cited},sort_keys=False,allow_unicode=True,width=110))
 
 
-def module_prose_synthesis(work:Path,stage:dict,profile:str|None)->None:
-    del stage; ledger=runtime.parse_yaml_mapping(_read(layout.synthesis(work,"fact-ledger-cited.yaml")),"fact ledger"); facts=ledger.get("facts") or []
+def _summary_interpretation_map(work:Path)->dict[str,str]:
+    manifest=_configure_manifest(work); tag_by_id=card_identity.tag_by_id(manifest); seen={}
+    for name in ("diagnosis","icc","prognosis","treatment","biomarker","germline"):
+        for card in _load_bundle_cards(work,name):
+            cid=card.get("card_id")
+            if cid in tag_by_id and cid in _visible_ids(work,name):
+                interpretation=card.get("interpretation")
+                if isinstance(interpretation,str) and interpretation.strip():
+                    seen[f"[card:{tag_by_id[cid]}]"]=interpretation.strip()
+    return seen
+
+
+def module_summarization_scheduler(work:Path,stage:dict,profile:str|None)->None:
+    del stage
+    run_state=_load_run_state(work); scheduler_name=(run_state.get("schedulers") or {}).get("summarization")
+    if not scheduler_name: raise StepFailure("run state is missing summarization scheduler selection")
+    try: plan=scheduler_registry.load(scheduler_name,"summarization")
+    except ValueError as exc: raise StepFailure(str(exc)) from exc
+    ledger=runtime.parse_yaml_mapping(_read(layout.synthesis(work,"fact-ledger-cited.yaml")),"fact ledger"); facts=ledger.get("facts") or []
     if not facts: raise StepFailure("fact ledger contains no surfaced facts")
-    summary_feedback=""; max_cycles=2
-    for cycle in range(1,max_cycles+1):
-        draft=layout.synthesis(work,"report-draft.md",existing=False); summary_input=[{"fact_id":f["fact_id"],"domain":f["domain"],"fact":f["fact"]} for f in facts]
-        suffix=""
-        if summary_feedback: suffix="\n\n# Required correction from prior semantic alignment\nThe prior draft omitted these locked facts. Rewrite the complete report so all are represented:\n"+summary_feedback
-        messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":_read(PROMPTS/"final_summary.md")+suffix+"\n\n# Locked surfaced facts\n```yaml\n"+yaml.safe_dump({"facts":summary_input},sort_keys=False,allow_unicode=True,width=110)+"```\n"}]
-        _model_call(work,call_id=f"summary-{cycle}",role="summarisation",messages=messages,output=draft,validator=runtime.validate_summary_text,profile=profile)
-        sentences=runtime.sentence_manifest(_read(draft)); alignment=layout.synthesis(work,"sentence-fact-alignment.yaml",existing=False); align_input={"sentences":sentences,"facts":summary_input}
-        messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":_read(PROMPTS/"sentence_fact_alignment.md")+"\n\n# Sentence and fact manifest\n```yaml\n"+yaml.safe_dump(align_input,sort_keys=False,allow_unicode=True,width=110)+"```\n"}]
-        _model_call(work,call_id=f"sentence-facts-{cycle}",role="sentence_alignment",messages=messages,output=alignment,validator=lambda t:runtime.validate_sentence_alignment_text(t,sentences,facts),profile=profile,structured_format="yaml")
-        align_doc=runtime.parse_yaml_mapping(_read(alignment),"sentence-to-fact alignment"); uncovered=runtime.uncovered_fact_ids(align_doc,facts)
-        if not uncovered:
-            _atomic_write(layout.synthesis(work,"report-cited.md",existing=False),runtime.render_cited_report(_read(draft),align_doc,facts)); return
-        summary_feedback=yaml.safe_dump({"omitted_facts":[next(x for x in summary_input if x["fact_id"]==fid) for fid in uncovered]},sort_keys=False,allow_unicode=True,width=110)
-        draft.rename(layout.synthesis(work,f"report-draft-unmatched-{cycle}.md",existing=False)); alignment.rename(layout.synthesis(work,f"sentence-fact-alignment-unmatched-{cycle}.yaml",existing=False))
-    raise StepFailure("final prose remained semantically incomplete after two synthesis cycles")
+
+    def unavailable(_domain:str): raise ValueError("clinical evidence retrieval is unavailable inside the summarization scheduler")
+    def call_model(*,call_id:str,role:str,prompt:str,output:Path,validator,format_name:str)->None:
+        messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
+        _model_call(work,call_id=call_id,role=role,messages=messages,output=output,validator=validator,profile=profile,structured_format=None if format_name=="text" else format_name)
+
+    who5=runtime.parse_yaml_mapping(_read(_who5_final(work)),"WHO5 diagnosis"); routing=json.loads(_read(_who5_routing(work)))
+    ctx=scheduler_primitives.SchedulerContext(
+        work=work,case=runtime.read_json(_case_json(work)),diagnoses=runtime.active_who5_diagnoses(who5),final_cmcs=routing["final_cmcs"],
+        pipeline_id=_pipeline_id(work,profile),call_model=call_model,ensure_evidence=unavailable,read_text=_read,write_text=_atomic_write,status=_status,
+        phase="summarization",values={"cited_facts":facts}
+    )
+    _status(f"  summarization scheduler: {scheduler_name} — {plan.description}")
+    outputs=scheduler_engine.execute(plan,ctx); summary=outputs["summary"]
+    runtime.validate_canonical_summary_doc(summary,facts)
+    summary_path=layout.synthesis(work,"summary-final.yaml",existing=False); _atomic_write(summary_path,yaml.safe_dump(summary,sort_keys=False,allow_unicode=True,width=110))
+    paired=runtime.sentence_card_interpretations(summary,_summary_interpretation_map(work))
+    _atomic_write(layout.synthesis(work,"sentence-card-interpretations.yaml",existing=False),yaml.safe_dump(paired,sort_keys=False,allow_unicode=True,width=110))
+    _atomic_write(layout.synthesis(work,"report-cited.md",existing=False),runtime.render_canonical_summary(summary))
 
 
 def _combined_evidence(work:Path,names:list[str])->tuple[Path,Path]:
@@ -686,7 +739,7 @@ def module_finalise_report(work:Path,stage:dict,profile:str|None)->None:
     _package_debug(work)
 
 
-MODULES={"structure_case":module_structure_case,"initialise_corpus":module_initialise_corpus,"icc_diagnosis":module_icc_diagnosis,"who5_stabilisation":module_who5_stabilisation,"clinical_tasks":module_clinical_tasks,"evidence_alignment":module_evidence_alignment,"prose_synthesis":module_prose_synthesis,"finalise_report":module_finalise_report}
+MODULES={"structure_case":module_structure_case,"initialise_corpus":module_initialise_corpus,"diagnosis_scheduler":module_diagnosis_scheduler,"ptbg_scheduler":module_ptbg_scheduler,"evidence_alignment":module_evidence_alignment,"summarization_scheduler":module_summarization_scheduler,"finalise_report":module_finalise_report}
 
 
 def run_pipeline(work:Path,*,profile:str|None=None,only_stage:str|None=None)->int:
@@ -700,23 +753,39 @@ def run_pipeline(work:Path,*,profile:str|None=None,only_stage:str|None=None)->in
     return EXIT_OK
 
 
-def run_provider(model_profile:str|None)->int:
-    registry=model_registry.load_registry(); configured=configured_profile()
-    if model_profile is not None:
-        model_profile=model_registry.resolve_profile(model_profile,None,registry)
-        for role in registry["roles"]: model_registry.resolve(role,model_profile,None,registry)
-        settings=load_settings(); settings["model_profile"]=model_profile; _atomic_write(SETTINGS_PATH,json.dumps(settings,indent=2,ensure_ascii=False)+"\n"); configured=model_profile
-    effective=model_registry.resolve_profile(configured,None,registry); print(f"MODEL_PROFILE={effective}"); print(f"SCHEDULER={load_settings().get('scheduler','domain')}"); return EXIT_OK
+def _check_pipeline(name:str):
+    plan=pipeline_registry.load(name)
+    for role in pipeline_registry.ROLES: pipeline_registry.binding(plan,role)
+    for phase,scheduler_name in plan.schedulers.items(): scheduler_registry.check(scheduler_name,phase)
+    return plan
+
+
+def run_pipeline_setting(pipeline_id:str|None)->int:
+    if pipeline_id is not None:
+        plan=_check_pipeline(pipeline_id); settings=load_settings(); settings["pipeline"]=plan.pipeline_id
+        _atomic_write(SETTINGS_PATH,json.dumps(settings,indent=2,ensure_ascii=False)+"\n")
+    plan=_check_pipeline(configured_pipeline()); print(f"PIPELINE={plan.pipeline_id}")
+    for phase,name in plan.schedulers.items(): print(f"{phase.upper()}_SCHEDULER={name}")
+    return EXIT_OK
 
 
 def build_parser()->argparse.ArgumentParser:
     parser=argparse.ArgumentParser(description=__doc__); sub=parser.add_subparsers(dest="command",required=True)
-    setup=sub.add_parser("setup"); setup.add_argument("--mode",required=True,choices=["ngs-report","nel-demo","nel-validate","nel-validate-function","nel-validate-brief"]); setup.add_argument("--case-file",type=Path); setup.add_argument("--example",type=int); setup.add_argument("--case-id"); setup.add_argument("--work-dir",type=Path); setup.add_argument("--model-profile"); setup.add_argument("--scheduler",choices=scheduler_registry.names())
-    sub.add_parser("schedulers")
-    check=sub.add_parser("scheduler-check"); check.add_argument("--scheduler",required=True,choices=scheduler_registry.names())
-    plan=sub.add_parser("scheduler-plan"); plan.add_argument("--scheduler",required=True,choices=scheduler_registry.names())
-    run=sub.add_parser("run"); run.add_argument("--work-dir",type=Path); run.add_argument("--profile"); run.add_argument("--stage")
-    provider=sub.add_parser("provider"); provider.add_argument("model_profile",nargs="?")
+    setup=sub.add_parser("setup")
+    setup.add_argument("--mode",required=True,choices=["ngs-report","nel-demo","nel-validate","nel-validate-function","nel-validate-brief"]); setup.add_argument("--case-file",type=Path); setup.add_argument("--example",type=int); setup.add_argument("--case-id"); setup.add_argument("--work-dir",type=Path)
+    setup.add_argument("--pipeline",choices=pipeline_registry.names(),help="pipeline YAML selecting provider, phase schedulers and model-role bindings")
+    setup.add_argument("--diagnosis-scheduler",choices=scheduler_registry.names("diagnosis"),help="developer override of the pipeline diagnosis scheduler")
+    setup.add_argument("--ptbg-scheduler",choices=scheduler_registry.names("ptbg"),help="developer override of the pipeline PTBG scheduler")
+    setup.add_argument("--summarization-scheduler",choices=scheduler_registry.names("summarization"),help="developer override of the pipeline summarization scheduler")
+    setup.add_argument("--model-profile",help=argparse.SUPPRESS); setup.add_argument("--scheduler",help=argparse.SUPPRESS)
+    sub.add_parser("pipelines")
+    pcheck=sub.add_parser("pipeline-check"); pcheck.add_argument("--pipeline",required=True,choices=pipeline_registry.names())
+    pplan=sub.add_parser("pipeline-plan"); pplan.add_argument("--pipeline",required=True,choices=pipeline_registry.names())
+    pset=sub.add_parser("pipeline"); pset.add_argument("pipeline_id",nargs="?",choices=pipeline_registry.names())
+    slist=sub.add_parser("schedulers"); slist.add_argument("--phase",choices=scheduler_registry.PHASES)
+    check=sub.add_parser("scheduler-check"); check.add_argument("--phase",required=True,choices=scheduler_registry.PHASES); check.add_argument("--scheduler",required=True)
+    plan=sub.add_parser("scheduler-plan"); plan.add_argument("--phase",required=True,choices=scheduler_registry.PHASES); plan.add_argument("--scheduler",required=True)
+    run=sub.add_parser("run"); run.add_argument("--work-dir",type=Path); run.add_argument("--stage"); run.add_argument("--profile",help=argparse.SUPPRESS)
     return parser
 
 
@@ -728,14 +797,29 @@ def main(argv:list[str]|None=None)->int:
             if args.mode=="nel-demo" and args.example is None: raise StepFailure("nel-demo requires --example N")
             if args.mode in VALIDATION_MODES and not args.case_id: raise StepFailure(f"{args.mode} requires --case-id ID")
             return run_setup(args)
-        if args.command=="provider": return run_provider(args.model_profile)
+        if args.command=="pipeline": return run_pipeline_setting(args.pipeline_id)
+        if args.command=="pipelines":
+            for name,description in pipeline_registry.descriptions().items(): print(f"{name}: {description}")
+            return EXIT_OK
+        if args.command=="pipeline-check":
+            plan=_check_pipeline(args.pipeline); print(f"OK {plan.pipeline_id}: {plan.path}"); return EXIT_OK
+        if args.command=="pipeline-plan":
+            plan=_check_pipeline(args.pipeline); print(f"PIPELINE={plan.pipeline_id}")
+            for line in pipeline_registry.describe(plan): print(line)
+            for phase,name in plan.schedulers.items():
+                sched=scheduler_registry.load(name,phase); print(f"\n[{phase}] {name}")
+                for line in scheduler_engine.describe(sched): print("  "+line)
+            return EXIT_OK
         if args.command=="schedulers":
-            for name,description in scheduler_registry.descriptions().items(): print(f"{name}: {description}")
+            phases=[args.phase] if args.phase else list(scheduler_registry.PHASES)
+            for phase in phases:
+                print(f"[{phase}]")
+                for name,description in scheduler_registry.descriptions(phase).items(): print(f"{name}: {description}")
             return EXIT_OK
         if args.command=="scheduler-check":
-            plan=scheduler_registry.check(args.scheduler); print(f"OK {plan.scheduler_id}: {plan.path}"); return EXIT_OK
+            plan=scheduler_registry.check(args.scheduler,args.phase); print(f"OK {plan.phase}/{plan.scheduler_id}: {plan.path}"); return EXIT_OK
         if args.command=="scheduler-plan":
-            plan=scheduler_registry.load(args.scheduler); print(f"SCHEDULER={plan.scheduler_id}");
+            plan=scheduler_registry.load(args.scheduler,args.phase); print(f"SCHEDULER={plan.phase}/{plan.scheduler_id}")
             for line in scheduler_engine.describe(plan): print(line)
             return EXIT_OK
         work=args.work_dir.expanduser().resolve() if args.work_dir else None
@@ -743,7 +827,7 @@ def main(argv:list[str]|None=None)->int:
             root=HERE/"runs"; candidates=sorted([p for p in root.iterdir() if p.is_dir()],key=lambda p:p.stat().st_mtime,reverse=True) if root.is_dir() else []
             if not candidates: raise StepFailure("no --work-dir given and no terraced-v3 runs exist")
             work=candidates[0]; _status(f"using most recent run directory: {work}")
-        with _cli_logging(work): return run_pipeline(work,profile=args.profile,only_stage=args.stage)
+        with _cli_logging(work): return run_pipeline(work,profile=None,only_stage=args.stage)
     except Handoff as h:
         print(f"HANDOFF={h.call_id}"); print(f"PROMPT={h.prompt}"); print(f"OUTPUT={h.output}"); return EXIT_HANDOFF
     except (StepFailure,ValueError,OSError,KeyError,json.JSONDecodeError,yaml.YAMLError) as exc:

@@ -1,0 +1,19 @@
+pipeline:
+  id: self
+  version: 1
+  order: 10
+  description: Session-model pipeline using the default diagnosis, domain PTBG and default two-step summarization schedulers.
+provider:
+  type: self
+schedulers:
+  diagnosis: default-diagnosis
+  ptbg: domain
+  summarization: default-summarization
+models:
+  structure: {model: self, temperature: 0.0, max_tokens: 16384}
+  diagnosis: {model: self, temperature: 0.0, max_tokens: 32768}
+  ptbg: {model: self, temperature: 0.0, max_tokens: 32768}
+  evidence_alignment: {model: self, temperature: 0.0, max_tokens: 16384}
+  summarization: {model: self, temperature: 0.0, max_tokens: 16384}
+  summarization_review: {model: self, temperature: 0.0, max_tokens: 16384}
+  syntax_repair: {model: self, temperature: 0.0, max_tokens: 8192}

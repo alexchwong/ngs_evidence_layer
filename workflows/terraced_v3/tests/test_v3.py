@@ -87,20 +87,20 @@ def test_domain_scheduler_scopes_treatment_across_concurrent_diagnoses():
     ]
 
 
-def test_all_five_schedulers_registered():
+def test_phase_scheduler_registries_have_invariant_sets():
     from workflows.terraced_v3 import scheduler_registry
 
-    assert scheduler_registry.names() == (
-        "domain",
-        "evidence-first",
-        "variant-centric",
-        "global-ledger",
-        "adaptive-microtask",
+    assert scheduler_registry.names("diagnosis") == ("default-diagnosis", "minimal-diagnosis")
+    assert scheduler_registry.names("ptbg") == (
+        "domain", "evidence-first", "variant-centric", "global-ledger", "adaptive-microtask",
     )
-    for name in scheduler_registry.names():
-        plan = scheduler_registry.load(name)
-        assert plan.scheduler_id == name
-        assert plan.path.name == "scheduler.yaml"
+    assert scheduler_registry.names("summarization") == ("default-summarization", "minimal-summarization")
+    for phase in scheduler_registry.PHASES:
+        for name in scheduler_registry.names(phase):
+            plan = scheduler_registry.load(name, phase)
+            assert plan.scheduler_id == name
+            assert plan.phase == phase
+            assert plan.path.name == "scheduler.yaml"
 
 
 def test_structured_case_requires_source_faithful_variant_summary_tokens():
@@ -296,18 +296,20 @@ def test_layout_read_does_not_allocate_numbered_directory(tmp_path):
     assert created.parent.name == "001_prognosis_evidence"
 
 
-def test_scheduler_yaml_prompt_slots_compile_for_all_five():
+def test_scheduler_yaml_prompt_slots_compile_for_all_phases():
     from workflows.terraced_v3 import scheduler_registry
-    for name in scheduler_registry.names():
-        assert scheduler_registry.check(name).scheduler_id == name
+    for phase in scheduler_registry.PHASES:
+        for name in scheduler_registry.names(phase):
+            assert scheduler_registry.check(name, phase).scheduler_id == name
 
 
 def test_scheduler_directories_are_declarative_not_python():
     from workflows.terraced_v3 import scheduler_registry
-    for name in scheduler_registry.names():
-        folder = scheduler_registry.load(name).path.parent
-        assert (folder / "scheduler.yaml").is_file()
-        assert not list(folder.glob("*.py"))
+    for phase in scheduler_registry.PHASES:
+        for name in scheduler_registry.names(phase):
+            folder = scheduler_registry.load(name, phase).path.parent
+            assert (folder / "scheduler.yaml").is_file()
+            assert not list(folder.glob("*.py"))
 
 
 def test_scheduler_prompt_injection_rejects_undeclared_slot(tmp_path):
@@ -316,6 +318,7 @@ def test_scheduler_prompt_injection_rejects_undeclared_slot(tmp_path):
     (tmp_path / "scheduler.yaml").write_text(
         """scheduler:
   id: broken
+  phase: ptbg
   version: 1
   description: broken
 steps:
@@ -384,3 +387,59 @@ def test_bare_card_hash_is_only_accepted_when_exactly_supplied_after_normalizati
         assert "was not supplied to this task" in str(exc)
     else:
         raise AssertionError("expected undrawn bare hash to remain invalid after syntax normalization")
+
+
+
+def test_pipeline_registry_ships_three_defaults_and_resolves_roles():
+    from workflows.terraced_v3 import pipeline_registry, scheduler_registry
+    assert pipeline_registry.names() == ("self", "lmstudio", "openrouter")
+    for name in pipeline_registry.names():
+        plan = pipeline_registry.load(name)
+        assert set(plan.schedulers) == {"diagnosis", "ptbg", "summarization"}
+        for phase, scheduler in plan.schedulers.items():
+            assert scheduler in scheduler_registry.names(phase)
+        for role in pipeline_registry.ROLES:
+            binding = pipeline_registry.binding(plan, role)
+            assert binding.max_tokens > 0
+            assert binding.role == role
+
+
+def test_canonical_summary_requires_card_tags_derived_from_fact_citations():
+    facts = [{
+        "fact_id": "prognosis-V1-DX1", "domain": "prognosis", "fact": "x", "reason": "y",
+        "citation": "[card:abcdefabcdef]", "subject": {}, "decision": {}, "candidate_card_tags": [],
+    }]
+    good = {"sentences": [{
+        "sentence_id": "prognosis-1", "domain": "prognosis", "sentence": "This is favorable.",
+        "fact_ids": ["prognosis-V1-DX1"], "card_tags": ["[card:abcdefabcdef]"],
+    }]}
+    assert runtime.validate_canonical_summary_doc(good, facts)
+    bad = {"sentences": [dict(good["sentences"][0], card_tags=[])]}
+    try:
+        runtime.validate_canonical_summary_doc(bad, facts)
+    except ValueError as exc:
+        assert "card_tags are deterministic" in str(exc)
+    else:
+        raise AssertionError("expected canonical summary tag mismatch")
+
+
+def test_sentence_card_interpretations_are_created_deterministically():
+    summary = {"sentences": [{
+        "sentence_id": "treatment-1", "domain": "treatment", "sentence": "FLT3 is targetable.",
+        "fact_ids": ["f1"], "card_tags": ["[card:abcdefabcdef]"],
+    }]}
+    paired = runtime.sentence_card_interpretations(summary, {"[card:abcdefabcdef]": "FLT3 alterations can be therapeutically targeted in AML."})
+    assert paired["sentences"][0]["cards"] == [{
+        "card_tag": "[card:abcdefabcdef]",
+        "interpretation": "FLT3 alterations can be therapeutically targeted in AML.",
+    }]
+
+
+def test_pipeline_setup_persists_three_scheduler_overrides(tmp_path):
+    from workflows.terraced_v3 import pipeline_registry, scheduler_registry
+    plan = pipeline_registry.load("self")
+    schedulers = dict(plan.schedulers)
+    schedulers.update({"diagnosis": "minimal-diagnosis", "ptbg": "evidence-first", "summarization": "minimal-summarization"})
+    assert schedulers["diagnosis"] in scheduler_registry.names("diagnosis")
+    assert schedulers["ptbg"] in scheduler_registry.names("ptbg")
+    assert schedulers["summarization"] in scheduler_registry.names("summarization")

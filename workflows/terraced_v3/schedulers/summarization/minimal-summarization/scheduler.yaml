@@ -1,0 +1,27 @@
+scheduler:
+  id: minimal-summarization
+  phase: summarization
+  version: 1
+  order: 90
+  description: "Minimal developer example: one model call returns sentence-to-fact pairs directly."
+steps:
+  - id: summarize
+    kind: model
+    inputs:
+      facts: core.cited_facts
+    prompt:
+      template: prompts/summarize.md
+      inject:
+        facts: {input: facts, render: yaml}
+    output:
+      format: yaml
+      validator: summary_pairs
+      contract: summary_pairs
+  - id: publish
+    kind: operation
+    operation: publish_summary_pairs
+    inputs:
+      pairs: steps.summarize
+      facts: core.cited_facts
+outputs:
+  summary: steps.publish.summary

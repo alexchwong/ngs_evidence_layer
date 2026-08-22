@@ -1,47 +1,46 @@
 schema_version: 1
-purpose: Declarative terraced-v3 scheduler contract.
+purpose: Declarative terraced-v3 phase scheduler contract.
+phases:
+  diagnosis:
+    canonical_outputs: [icc, who5, routing]
+    special_kinds: [diagnosis_loop]
+  ptbg:
+    canonical_outputs: [prognosis, treatment, biomarker, germline]
+  summarization:
+    canonical_outputs: [summary]
+    special_kinds: [summarization_loop]
 required_top_level: [scheduler, steps, outputs]
-scheduler_required: [id, version, description]
+scheduler_required: [id, phase, version, description]
 step:
   required: [id, kind]
   kinds:
     model:
       required: [prompt, output]
-      optional: [foreach, depends_on, inputs, retain_item_metadata]
+      optional: [foreach, depends_on, inputs, retain_item_metadata, role]
     operation:
       required: [operation]
       optional: [depends_on, inputs]
+    diagnosis_loop:
+      phase: diagnosis
+      required: [prompt, loop, output]
+    summarization_loop:
+      phase: summarization
+      required: [prompts, loop, output]
 foreach_sources: [domains, variants, steps.<step-id>]
 core_sources:
-  - core.case
-  - core.diagnoses
-  - core.diagnosis_context
-  - core.final_cmcs
-  - core.specs
-  - core.specs[$item]
-  - core.variants
-  - core.domains
-  - core.diagnosis_ids
-  - core.treatment_owner[$item]
+  shared: [core.case]
+  diagnosis: [core.panel_scope, core.allowed_who5_diseases, core.max_who5_passes]
+  ptbg: [core.diagnoses, core.diagnosis_context, core.final_cmcs, core.specs, core.specs[$item], core.variants, core.domains, core.diagnosis_ids, core.treatment_owner[$item]]
+  summarization: [core.cited_facts]
 evidence_sources:
-  - evidence[$item]
-  - evidence[$item.domain]
-  - evidence.all
-step_sources:
-  - steps.<step-id>
-  - steps.<step-id>[$item]
+  diagnosis: [diagnosis.bootstrap_evidence]
+  ptbg: [evidence[$item], evidence[$item.domain], evidence.all, evidence.<domain>]
+step_sources: [steps.<step-id>, steps.<step-id>[$item]]
 model_validators:
-  - domain
-  - normalized_evidence
-  - variant_cross_domain
-  - germline_clinical_picture
-  - global_ledger
-  - global_patch
-  - adaptive_cell_review
+  diagnosis: [icc, who5]
+  ptbg: [domain, normalized_evidence, variant_cross_domain, germline_clinical_picture, global_ledger, global_patch, adaptive_cell_review]
+  summarization: [summary_text, sentence_alignment, summary_pairs]
 operations:
-  - assemble_variant_outputs
-  - apply_domain_patch
-  - select_high_impact
-  - apply_cell_reviews
-  - publish_domains
-canonical_outputs: [prognosis, treatment, biomarker, germline]
+  diagnosis: [publish_minimal_diagnosis]
+  ptbg: [assemble_variant_outputs, apply_domain_patch, select_high_impact, apply_cell_reviews, publish_domains]
+  summarization: [publish_aligned_summary, publish_summary_pairs]

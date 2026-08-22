@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OpenAI-compatible chat client used by terraced-v3 provider profiles."""
+"""OpenAI-compatible chat client used by terraced-v3 pipeline model bindings."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
-from workflows.terraced_v3.model_registry import Binding
+from workflows.terraced_v3.model_binding import Binding
 
 SYSTEM_PROMPT = (
     "You are executing a bounded step of a clinical NGS reporting workflow. "

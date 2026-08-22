@@ -8,7 +8,6 @@ content. Workflow/task validators remain responsible for semantic invariants.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import hashlib
 from typing import Callable
 
 
@@ -31,36 +30,6 @@ class ValidationIssue:
         if self.expected is not None:
             parts.append(f"Expected: {self.expected}.")
         return " ".join(parts)
-
-
-@dataclass
-class RetryStagnationGuard:
-    """Detect repeated byte-equivalent invalid candidates with the same failure.
-
-    The first repeat is allowed but gets explicit feedback.  A second consecutive
-    repeat means the task model is not responding to the validator and the caller
-    should stop rather than spend the remainder of its retry budget.
-    """
-
-    last_key: str | None = None
-    repeats: int = 0
-
-    def observe(self, candidate: str, error_text: str) -> int:
-        key = hashlib.sha256((candidate + "\0" + error_text).encode("utf-8")).hexdigest()
-        if key == self.last_key:
-            self.repeats += 1
-        else:
-            self.last_key = key
-            self.repeats = 0
-        return self.repeats
-
-
-def stagnation_instruction(repeat_count: int) -> str:
-    return (
-        "\n\nThe last invalid artifact was byte-identical to the prior invalid artifact. "
-        f"This is repeated invalid output #{repeat_count}. Do not repeat it again; "
-        "make the specific serialization or validation correction requested above while preserving unrelated content."
-    )
 
 
 class ValidationFailure(ValueError):
@@ -107,6 +76,29 @@ def validate_with_safe_repair(
     candidate, repairs = safe_representation_repair(raw_text)
     message = validator(candidate)
     return candidate, message, repairs
+
+
+class RetryStagnationGuard:
+    """Track repeated identical invalid artifacts without altering retry policy.
+
+    ``observe`` returns the number of consecutive repeats *after* the first
+    occurrence of the same candidate/error pair.  A changed candidate or error
+    resets the count.  Callers can use this to stop wasting clinical retries on
+    a model that is returning the exact same invalid serialization.
+    """
+
+    def __init__(self) -> None:
+        self._last: tuple[str, str] | None = None
+        self._repeats = 0
+
+    def observe(self, candidate: str, error: str) -> int:
+        current = (candidate, error)
+        if current == self._last:
+            self._repeats += 1
+        else:
+            self._last = current
+            self._repeats = 0
+        return self._repeats
 
 
 def retry_instruction(error: Exception) -> str:

@@ -12,3 +12,10 @@ Requirements:
 - omit a heading if no supplied fact belongs to that domain;
 - put each sentence on its own line and end each sentence with a full stop;
 - do not write citations, card tags, fact IDs, reasons, or machine-state field names.
+
+# Locked surfaced facts
+```yaml
+{{facts}}
+```
+
+{{correction}}

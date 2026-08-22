@@ -691,7 +691,9 @@ def validate_sentence_alignment_text(text: str, sentences: list[dict], facts: li
         row=rows[i]; loc=f"alignments[{i}]"; _exact_keys(issues,row,{"sentence_id","fact_ids"},loc)
         if row.get("sentence_id")!=sentence["sentence_id"]: issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {row.get('sentence_id')!r}",f"copy exact supplied sentence_id {sentence['sentence_id']!r}"))
         ids=row.get("fact_ids")
-        if not isinstance(ids,list) or not ids: issues.append(ValidationIssue(f"{loc}.fact_ids","must be a non-empty list","list one or more supplied same-domain fact IDs")); continue
+        if not isinstance(ids,list): issues.append(ValidationIssue(f"{loc}.fact_ids","must be a list","list supplied same-domain fact IDs")); continue
+        domain_facts=[f for f in facts if f["domain"]==sentence["domain"]]
+        if not ids and domain_facts: issues.append(ValidationIssue(f"{loc}.fact_ids","must be a non-empty list","list one or more supplied same-domain fact IDs")); continue
         if len(ids)!=len(set(ids)): issues.append(ValidationIssue(f"{loc}.fact_ids","contains duplicates","list each represented fact once"))
         for fid in ids:
             fact=fact_map.get(fid)
@@ -724,3 +726,89 @@ def render_cited_report(summary: str, alignment: dict, facts: list[dict]) -> str
                 if token not in tags: tags.append(token)
         rendered.append(stripped + ((" " + "".join(tags)) if tags else ""))
     return "\n".join(rendered).rstrip()+"\n"
+
+
+def validate_canonical_summary_doc(doc: dict, facts: list[dict]) -> str:
+    """Validate the invariant summarization-scheduler output contract."""
+    issues: list[ValidationIssue] = []
+    if set(doc) != {"sentences"}:
+        issues.append(ValidationIssue("Top level", f"received fields {sorted(doc)}", "return exactly sentences"))
+    rows = doc.get("sentences")
+    if not isinstance(rows, list) or not rows:
+        issues.append(ValidationIssue("sentences", f"expected non-empty list, received {type(rows).__name__}", "return one or more sentence rows")); rows=[]
+    fact_map={f["fact_id"]:f for f in facts}; covered=set(); seen=set(); expected_counts={d:0 for d in DOMAIN_HEADINGS}
+    for i,row in enumerate(rows):
+        loc=f"sentences[{i}]"
+        if not isinstance(row,dict):
+            issues.append(ValidationIssue(loc,"expected mapping","return sentence_id, domain, sentence, fact_ids, card_tags")); continue
+        expected={"sentence_id","domain","sentence","fact_ids","card_tags"}
+        if set(row)!=expected:
+            issues.append(ValidationIssue(loc,f"received fields {sorted(row)}",f"return exactly {sorted(expected)}"))
+        sid=row.get("sentence_id"); domain=row.get("domain"); sentence=row.get("sentence"); ids=row.get("fact_ids"); tags=row.get("card_tags")
+        if domain not in DOMAIN_HEADINGS:
+            issues.append(ValidationIssue(f"{loc}.domain",f"invalid domain {domain!r}",f"use one of {sorted(DOMAIN_HEADINGS)}"))
+        else:
+            expected_counts[domain]+=1
+            expected_sid=f"{domain}-{expected_counts[domain]}"
+            if sid!=expected_sid:
+                issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {sid!r}",f"use deterministic sentence_id {expected_sid!r}"))
+        if sid in seen: issues.append(ValidationIssue(f"{loc}.sentence_id",f"duplicate {sid!r}","use each sentence_id once"))
+        seen.add(sid)
+        if not isinstance(sentence,str) or not sentence.strip() or sentence!=sentence.strip() or not sentence.endswith(".") or "[card:" in sentence:
+            issues.append(ValidationIssue(f"{loc}.sentence",f"invalid sentence {sentence!r}","return citation-free plain sentence prose ending with a full stop"))
+        if not isinstance(ids,list):
+            issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list supplied fact IDs")); ids=[]
+        elif len(ids)!=len(set(ids)):
+            issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list each fact ID at most once")); ids=[]
+        else:
+            domain_facts=[f for f in facts if f["domain"]==domain]
+            if not ids and domain_facts:
+                issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list one or more unique supplied fact IDs")); ids=[]
+        expected_tags=[]
+        for fid in ids:
+            fact=fact_map.get(fid)
+            if fact is None:
+                issues.append(ValidationIssue(f"{loc}.fact_ids",f"unknown fact ID {fid!r}","use only supplied fact IDs")); continue
+            if fact["domain"]!=domain:
+                issues.append(ValidationIssue(f"{loc}.fact_ids",f"fact {fid!r} belongs to {fact['domain']}, not {domain}","use only same-domain facts")); continue
+            covered.add(fid)
+            citation=fact.get("citation")
+            if citation:
+                for raw in CARD_TAG_RE.findall(citation):
+                    token=f"[card:{raw}]"
+                    if token not in expected_tags: expected_tags.append(token)
+        if tags!=expected_tags:
+            issues.append(ValidationIssue(f"{loc}.card_tags",f"received {tags!r}",f"card_tags are deterministic from paired facts; expected {expected_tags!r}"))
+    missing=[fid for fid in fact_map if fid not in covered]
+    if missing: issues.append(ValidationIssue("fact coverage",f"omitted supplied fact IDs {missing}","represent every supplied fact at least once"))
+    fail("canonical summarization output",issues)
+    return "canonical summarization output validated"
+
+
+def render_canonical_summary(doc: dict) -> str:
+    """Render canonical sentence/card-tag YAML to citation-bearing report Markdown."""
+    out=[]; current=None
+    for row in doc.get("sentences") or []:
+        domain=row["domain"]
+        if domain!=current:
+            if out: out.append("")
+            out.append(DOMAIN_HEADINGS[domain]); current=domain
+        tags="".join(row.get("card_tags") or [])
+        out.append(row["sentence"] + ((" " + tags) if tags else ""))
+    return "\n".join(out).rstrip()+"\n"
+
+
+def sentence_card_interpretations(doc: dict, interpretation_by_tag: dict[str,str]) -> dict:
+    """Deterministically pair each final sentence with the interpretations of its paired card tags."""
+    rows=[]
+    for row in doc.get("sentences") or []:
+        cards=[]
+        for tag in row.get("card_tags") or []:
+            if tag not in interpretation_by_tag:
+                raise ValueError(f"summary references card tag without a drawn-card interpretation: {tag}")
+            cards.append({"card_tag":tag,"interpretation":interpretation_by_tag[tag]})
+        rows.append({
+            "sentence_id":row["sentence_id"],"domain":row["domain"],"sentence":row["sentence"],
+            "fact_ids":list(row.get("fact_ids") or []),"cards":cards,
+        })
+    return {"sentences":rows}

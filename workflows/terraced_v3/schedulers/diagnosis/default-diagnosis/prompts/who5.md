@@ -37,3 +37,23 @@ Rules:
 - candidate card tags are non-authoritative hints and must use only supplied tags;
 - absence of a card is not evidence that a case fact is absent;
 - do not write CMC values. Python derives CMC only after this output validates.
+
+# Structured immutable case
+```json
+{{case}}
+```
+
+# Allowed WHO5 schema diseases
+{{allowed_who5_diseases}}
+
+# NGS assay scope
+{{panel_scope}}
+
+# Cumulative diagnosis evidence
+{{evidence}}
+
+# Prior validated WHO5 state
+{{prior_state}}
+
+# Current pass
+{{phase_instruction}}

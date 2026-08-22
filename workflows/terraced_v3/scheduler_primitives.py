@@ -6,7 +6,7 @@ Python modules.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 import copy
@@ -53,16 +53,19 @@ class SchedulerContext:
     case: dict
     diagnoses: list[dict]
     final_cmcs: list[str]
-    profile: str | None
-    call_yaml: Callable[..., None]
+    pipeline_id: str
+    call_model: Callable[..., None]
     ensure_evidence: Callable[[str], EvidenceView]
     read_text: Callable[[Path], str]
     write_text: Callable[[Path, str], Path]
     status: Callable[[str], None]
+    phase: str = "ptbg"
+    values: dict[str, Any] = field(default_factory=dict)
+    ensure_diagnosis_evidence: Callable[[list[str]], EvidenceView] | None = None
 
     @property
     def specs(self) -> dict[str, dict]:
-        return task_specs(self.case, self.diagnoses)
+        return task_specs(self.case, self.diagnoses) if self.diagnoses else {}
 
 
 def dump(value: Any, render: str | None = None) -> str:
@@ -330,10 +333,134 @@ def op_publish_domains(*, ctx: SchedulerContext, inputs: dict, root: Path) -> di
     return states
 
 
+
+def op_publish_minimal_diagnosis(*, ctx: SchedulerContext, inputs: dict, root: Path) -> dict:
+    del root
+    who5 = inputs["who5"]
+    final_cmcs = runtime.derive_cmcs(who5)
+    history = []
+    for cmc in list(ctx.case.get("bootstrap_cmcs") or []) + final_cmcs:
+        if cmc not in history:
+            history.append(cmc)
+    routing = {
+        "schema_version": 1,
+        "final_cmcs": final_cmcs,
+        "diagnostic_cmc_history": history,
+        "passes": [{
+            "pass": 1,
+            "phase": "minimal",
+            "who5_signature": runtime.who5_signature(who5),
+            "derived_cmcs": final_cmcs,
+            "new_cmc_evidence_added": [c for c in final_cmcs if c not in (ctx.case.get("bootstrap_cmcs") or [])],
+            "cumulative_cmc_history": history,
+        }],
+    }
+    return {"who5": who5, "routing": routing}
+
+
+def _summary_rows_from_alignment(draft: str, alignment: dict, facts: list[dict]) -> list[dict]:
+    fact_map = {f["fact_id"]: f for f in facts}
+    rows = []
+    manifest = runtime.sentence_manifest(draft)
+    by_sentence = {row["sentence_id"]: row["fact_ids"] for row in alignment.get("alignments") or []}
+    for sentence in manifest:
+        fact_ids = list(by_sentence[sentence["sentence_id"]])
+        tags = []
+        for fid in fact_ids:
+            citation = fact_map[fid].get("citation")
+            if not citation:
+                continue
+            for raw in runtime.CARD_TAG_RE.findall(citation):
+                token = f"[card:{raw}]"
+                if token not in tags:
+                    tags.append(token)
+        rows.append({**sentence, "fact_ids": fact_ids, "card_tags": tags})
+    return rows
+
+
+def validate_summary_pairs_doc(doc: dict, facts: list[dict]) -> None:
+    issues: list[ValidationIssue] = []
+    if set(doc) != {"sentences"}:
+        issues.append(ValidationIssue("Top level", f"received fields {sorted(doc)}", "return exactly sentences"))
+    rows = doc.get("sentences")
+    if not isinstance(rows, list) or not rows:
+        issues.append(ValidationIssue("sentences", f"expected non-empty list, received {type(rows).__name__}", "return one or more sentence rows")); rows=[]
+    fact_map = {f["fact_id"]: f for f in facts}
+    seen_ids=set(); covered=set(); domain_counts={d:0 for d in runtime.DOMAIN_HEADINGS}
+    for i,row in enumerate(rows):
+        loc=f"sentences[{i}]"
+        if not isinstance(row,dict):
+            issues.append(ValidationIssue(loc,"expected mapping","return sentence_id, domain, sentence, fact_ids")); continue
+        expected={"sentence_id","domain","sentence","fact_ids"}
+        if set(row)!=expected:
+            issues.append(ValidationIssue(loc,f"received fields {sorted(row)}",f"return exactly {sorted(expected)}"))
+        sid=row.get("sentence_id"); domain=row.get("domain"); sentence=row.get("sentence"); ids=row.get("fact_ids")
+        if domain not in runtime.DOMAIN_HEADINGS:
+            issues.append(ValidationIssue(f"{loc}.domain",f"invalid domain {domain!r}",f"use one of {sorted(runtime.DOMAIN_HEADINGS)}"))
+        else:
+            domain_counts[domain]+=1
+            expected_sid=f"{domain}-{domain_counts[domain]}"
+            if sid!=expected_sid:
+                issues.append(ValidationIssue(f"{loc}.sentence_id",f"received {sid!r}",f"use deterministic sentence_id {expected_sid!r}"))
+        if not isinstance(sid,str) or not sid or sid in seen_ids:
+            issues.append(ValidationIssue(f"{loc}.sentence_id",f"invalid or duplicate {sid!r}","return a unique sentence_id"))
+        else: seen_ids.add(sid)
+        if not isinstance(sentence,str) or not sentence.strip() or not sentence.strip().endswith('.') or '[card:' in sentence:
+            issues.append(ValidationIssue(f"{loc}.sentence",f"invalid sentence {sentence!r}","return plain citation-free prose ending with a full stop"))
+        if not isinstance(ids,list) or not ids or len(ids)!=len(set(ids)):
+            issues.append(ValidationIssue(f"{loc}.fact_ids",f"invalid fact_ids {ids!r}","list one or more unique supplied fact IDs")); continue
+        for fid in ids:
+            fact=fact_map.get(fid)
+            if fact is None:
+                issues.append(ValidationIssue(f"{loc}.fact_ids",f"unknown fact ID {fid!r}","use only supplied fact IDs"))
+            elif fact["domain"]!=domain:
+                issues.append(ValidationIssue(f"{loc}.fact_ids",f"fact {fid!r} belongs to {fact['domain']}, not {domain}","use only same-domain facts"))
+            else: covered.add(fid)
+    missing=[fid for fid in fact_map if fid not in covered]
+    if missing:
+        issues.append(ValidationIssue("fact coverage",f"omitted supplied fact IDs {missing}","represent every supplied fact at least once"))
+    fail("summary sentence pairs",issues)
+
+
+def op_publish_aligned_summary(*, ctx: SchedulerContext, inputs: dict, root: Path) -> dict:
+    del ctx
+    draft=inputs["draft"]; alignment=inputs["alignment"]; facts=inputs["facts"]
+    uncovered=runtime.uncovered_fact_ids(alignment,facts)
+    if uncovered:
+        raise ValueError("summary alignment omitted locked facts: "+", ".join(uncovered))
+    doc={"sentences":_summary_rows_from_alignment(draft,alignment,facts)}
+    root.mkdir(parents=True,exist_ok=True)
+    (root/"SUMMARY.yaml").write_text(yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110),encoding="utf-8")
+    return {"summary":doc}
+
+
+def op_publish_summary_pairs(*, ctx: SchedulerContext, inputs: dict, root: Path) -> dict:
+    del ctx
+    pairs=inputs["pairs"]; facts=inputs["facts"]
+    validate_summary_pairs_doc(pairs,facts)
+    fact_map={f["fact_id"]:f for f in facts}
+    rows=[]
+    for row in pairs["sentences"]:
+        tags=[]
+        for fid in row["fact_ids"]:
+            citation=fact_map[fid].get("citation")
+            if citation:
+                for raw in runtime.CARD_TAG_RE.findall(citation):
+                    token=f"[card:{raw}]"
+                    if token not in tags: tags.append(token)
+        rows.append(dict(row,card_tags=tags))
+    doc={"sentences":rows}
+    root.mkdir(parents=True,exist_ok=True)
+    (root/"SUMMARY.yaml").write_text(yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110),encoding="utf-8")
+    return {"summary":doc}
+
 OPERATIONS = {
     "assemble_variant_outputs": op_assemble_variant_outputs,
     "apply_domain_patch": op_apply_domain_patch,
     "select_high_impact": op_select_high_impact,
     "apply_cell_reviews": op_apply_cell_reviews,
     "publish_domains": op_publish_domains,
+    "publish_minimal_diagnosis": op_publish_minimal_diagnosis,
+    "publish_aligned_summary": op_publish_aligned_summary,
+    "publish_summary_pairs": op_publish_summary_pairs,
 }

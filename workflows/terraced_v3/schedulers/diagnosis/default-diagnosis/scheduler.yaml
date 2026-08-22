@@ -1,0 +1,79 @@
+scheduler:
+  id: default-diagnosis
+  phase: diagnosis
+  version: 1
+  order: 10
+  description: Blind ICC plus WHO5 multi-pass stabilisation with cumulative historical-CMC evidence and adversarial
+    confirmation.
+steps:
+- id: icc
+  kind: model
+  inputs:
+    case: core.case
+    panel_scope: core.panel_scope
+    evidence: diagnosis.bootstrap_evidence
+  prompt:
+    template: prompts/icc.md
+    inject:
+      case:
+        input: case
+        render: json
+      panel_scope:
+        input: panel_scope
+        render: text
+      evidence:
+        input: evidence
+        render: text
+  output:
+    format: yaml
+    validator: icc
+    contract: diagnosis_icc
+- id: who5
+  kind: diagnosis_loop
+  depends_on:
+  - icc
+  inputs:
+    case: core.case
+    panel_scope: core.panel_scope
+    allowed_who5_diseases: core.allowed_who5_diseases
+  prompt:
+    template: prompts/who5.md
+    inject:
+      case:
+        input: case
+        render: json
+      allowed_who5_diseases:
+        input: allowed_who5_diseases
+        render: json
+      panel_scope:
+        input: panel_scope
+        render: text
+      evidence:
+        input: evidence
+        render: text
+      prior_state:
+        input: prior_state
+        render: yaml
+      phase_instruction:
+        input: phase_instruction
+        render: text
+  loop:
+    strategy: who5_stabilisation
+    max_passes: core.max_who5_passes
+    instructions:
+      main: Initial WHO5 pass. Build the complete diagnosis state from the case and evidence without assuming the
+        provisional diagnosis is correct.
+      reconsider: Targeted reconsideration pass. Re-evaluate the complete prior WHO5 state using cumulative evidence
+        from every CMC encountered. Preserve it exactly when still correct; otherwise return the complete corrected
+        state.
+      review: Adversarial confirmation pass. Actively look for supplied WHO5 criteria/evidence that would overturn,
+        narrow, broaden, or add a concurrent diagnosis. If no material change is warranted, copy the complete prior
+        state exactly.
+  output:
+    format: yaml
+    validator: who5
+    contract: diagnosis_who5
+outputs:
+  icc: steps.icc
+  who5: steps.who5.who5
+  routing: steps.who5.routing

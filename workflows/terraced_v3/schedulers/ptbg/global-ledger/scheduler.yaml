@@ -1,5 +1,6 @@
 scheduler:
   id: global-ledger
+  phase: ptbg
   version: 1
   order: 40
   description: Fill the complete downstream ledger globally, then apply a validated adversarial domain patch.
@@ -14,7 +15,7 @@ steps:
     prompt:
       template: prompts/initial_ledger.md
       inject:
-        all_contracts: {prompt: ../common/prompts/all_contracts.md}
+        all_contracts: {prompt: ../../common/prompts/all_contracts.md}
         case: {input: case, render: json}
         diagnoses: {input: diagnoses, render: yaml}
         scopes: {input: scopes, render: yaml}

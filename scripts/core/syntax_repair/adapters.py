@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -61,54 +60,6 @@ def _common_cleanup(text: str) -> tuple[str, list[str]]:
     return candidate, repairs
 
 
-_YAML_MAPPING_LINE_RE = re.compile(r"^(?P<indent>\s*(?:-\s+)?)" r"(?P<key>[A-Za-z_][A-Za-z0-9_.-]*):(?P<space>\s+)(?P<value>.+)$")
-
-def _repair_yaml_plain_scalar_colon(candidate: str) -> tuple[str, list[str]]:
-    """Quote parser-identified YAML plain scalars containing ``: ``.
-
-    This is representation-only: the complete scalar text is preserved byte-for-byte
-    after YAML decoding.  The repair is attempted only when PyYAML reports the
-    specific ``mapping values are not allowed here`` error and the offending line
-    has a simple ``key: scalar`` shape.  Any resulting structure is still subject to
-    the caller's ordinary task/schema validator.
-    """
-    repairs: list[str] = []
-    # More than a handful of such failures in one artifact usually indicates a
-    # different structural problem; keep the deterministic rescue deliberately
-    # bounded.
-    for _ in range(12):
-        try:
-            yaml.safe_load(candidate)
-            return candidate, repairs
-        except yaml.YAMLError as exc:
-            problem = (getattr(exc, "problem", None) or "").strip().lower()
-            mark = getattr(exc, "problem_mark", None)
-            if problem != "mapping values are not allowed here" or mark is None:
-                return candidate, repairs
-            lines = candidate.splitlines()
-            if mark.line < 0 or mark.line >= len(lines):
-                return candidate, repairs
-            line = lines[mark.line]
-            match = _YAML_MAPPING_LINE_RE.match(line)
-            if not match:
-                return candidate, repairs
-            value = match.group("value")
-            # Already-explicit YAML scalars/collections should not be rewritten.
-            if not value or value[0] in "\"'|>[{&*!?%@`":
-                return candidate, repairs
-            # The parser mark must point to a colon-space sequence inside the value,
-            # not the key/value delimiter itself.
-            value_start = match.start("value")
-            relative = mark.column - value_start
-            if relative < 0 or relative >= len(value) or value[relative:relative + 2] != ": ":
-                return candidate, repairs
-            quoted = json.dumps(value, ensure_ascii=False)
-            lines[mark.line] = line[:value_start] + quoted
-            candidate = "\n".join(lines) + ("\n" if candidate.endswith("\n") else "")
-            repairs.append(f"quoted YAML plain scalar on line {mark.line + 1} containing ': '")
-    return candidate, repairs
-
-
 class YamlSyntaxAdapter:
     name = "yaml"
 
@@ -138,8 +89,49 @@ class YamlSyntaxAdapter:
         if expanded:
             candidate = "\n".join(lines) + ("\n" if candidate else "")
             repairs.append("expanded indentation tabs to spaces")
-        candidate, scalar_repairs = _repair_yaml_plain_scalar_colon(candidate)
-        repairs.extend(scalar_repairs)
+
+        # A common model serialization error is an unquoted plain-text mapping
+        # scalar containing ``: `` (for example ``reason: Case fact C2: 30%``).
+        # YAML interprets the second colon as another mapping delimiter.  Quoting
+        # the complete value is representation-only when the line is otherwise a
+        # simple key/value mapping, so repair that narrow form deterministically.
+        try:
+            self.parse(candidate)
+        except SyntaxParseError:
+            import json as _json
+            import re as _re
+
+            scalar_line = _re.compile(
+                r"^(?P<prefix>\s*(?:-\s+)?[^:#\n][^:\n]*:\s*)"
+                r"(?P<value>[^\n]+)$"
+            )
+            quoted_lines: list[str] = []
+            quoted_any = False
+            for line in candidate.splitlines():
+                match = scalar_line.match(line)
+                if not match:
+                    quoted_lines.append(line)
+                    continue
+                value = match.group("value")
+                stripped = value.strip()
+                if (
+                    ": " in value
+                    and stripped
+                    and stripped[0] not in "'\"[{>|&*!"
+                ):
+                    quoted_lines.append(match.group("prefix") + _json.dumps(value))
+                    quoted_any = True
+                else:
+                    quoted_lines.append(line)
+            if quoted_any:
+                repaired = "\n".join(quoted_lines) + ("\n" if candidate.endswith("\n") else "")
+                try:
+                    self.parse(repaired)
+                except SyntaxParseError:
+                    pass
+                else:
+                    candidate = repaired
+                    repairs.append("quoted YAML plain scalar containing colon-space")
         return candidate, repairs
 
 

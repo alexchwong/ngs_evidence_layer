@@ -1,0 +1,28 @@
+scheduler:
+  id: default-summarization
+  phase: summarization
+  version: 1
+  order: 10
+  description: Current v3 two-step report synthesis with semantic sentence-to-fact alignment and one coverage retry.
+steps:
+  - id: synthesize
+    kind: summarization_loop
+    inputs:
+      facts: core.cited_facts
+    prompts:
+      draft:
+        template: prompts/draft.md
+        inject:
+          facts: {input: facts, render: yaml}
+          correction: {input: correction, render: text}
+      align:
+        template: prompts/align.md
+        inject:
+          draft: {input: draft, render: text}
+          facts: {input: facts, render: yaml}
+    loop:
+      max_cycles: 2
+    output:
+      contract: canonical_summary
+outputs:
+  summary: steps.synthesize.summary

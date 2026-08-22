@@ -185,7 +185,7 @@ def _synthesis_group(name: str) -> str:
         return "evidence_alignment"
     if name.startswith("fact-ledger"):
         return "fact_ledger"
-    if name.startswith("report-draft") or name.startswith("sentence-fact") or name == "report-cited.md":
+    if name.startswith("report-draft") or name.startswith("sentence-fact") or name.startswith("sentence-card") or name == "summary-final.yaml" or name == "report-cited.md":
         return "prose_synthesis"
     return "synthesis"
 

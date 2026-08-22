@@ -17,3 +17,11 @@ Rules:
 - do not falsely attach an omitted fact to an unrelated sentence merely to force coverage;
 - do not copy prose, reasons, citations or card tags into the output;
 - do not create new clinical content.
+
+# Draft report
+{{draft}}
+
+# Locked surfaced facts
+```yaml
+{{facts}}
+```

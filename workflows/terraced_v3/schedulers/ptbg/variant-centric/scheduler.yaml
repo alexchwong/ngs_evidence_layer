@@ -1,5 +1,6 @@
 scheduler:
   id: variant-centric
+  phase: ptbg
   version: 1
   order: 30
   description: One cross-domain task per detected variant, plus a case-level germline phenotype task.

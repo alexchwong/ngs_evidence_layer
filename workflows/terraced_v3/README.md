@@ -1,26 +1,44 @@
 # Terraced v3
 
-Terraced v3 is a rapid prototype that separates **clinical decisions** from **report prose**. It keeps the reliable execution assets of v2 but replaces the large evolving prompt state with small typed hard-fact proformas.
+Terraced v3 separates **clinical reasoning**, **evidence trust**, and **report wording**. The normal user-facing configuration unit is a **pipeline**. A pipeline chooses one declarative scheduler for each of three invariant phases and binds every model role to a provider/model/token cap.
 
 ## Quickstart
 
+Default self pipeline:
+
 ```bash
-python workflows/terraced_v3/step.py setup --mode ngs-report --case-file case.md
+python workflows/terraced_v3/step.py setup \
+  --mode nel-validate-brief --case-id 1 --pipeline self
 python workflows/terraced_v3/step.py run --work-dir <printed-work-dir>
 ```
 
-Validation example:
+Normal report mode:
 
 ```bash
-python workflows/terraced_v3/step.py setup --mode nel-validate-brief --case-id 1 --model-profile self
+python workflows/terraced_v3/step.py setup \
+  --mode ngs-report --case-file case.md --pipeline self
 python workflows/terraced_v3/step.py run --work-dir <printed-work-dir>
 ```
 
-Configure a delegated provider with:
+Shipped pipelines are `self`, `lmstudio`, and `openrouter`.
 
 ```bash
-python workflows/terraced_v3/step.py provider openrouter
+python workflows/terraced_v3/step.py pipelines
+python workflows/terraced_v3/step.py pipeline-check --pipeline lmstudio
+python workflows/terraced_v3/step.py pipeline-plan --pipeline openrouter
 ```
+
+For development, one scheduler phase can be overridden without cloning the pipeline:
+
+```bash
+python workflows/terraced_v3/step.py setup \
+  --mode nel-validate-brief --case-id 1 --pipeline self \
+  --diagnosis-scheduler minimal-diagnosis \
+  --ptbg-scheduler evidence-first \
+  --summarization-scheduler minimal-summarization
+```
+
+The resolved pipeline and scheduler overrides are snapshotted into the run intermediates at setup.
 
 ## Architecture
 
@@ -28,115 +46,144 @@ python workflows/terraced_v3/step.py provider openrouter
 case.md
   │
   ▼
-structured case + stable IDs
+[C] structure immutable case + stable variant IDs
   │
-  ├────────────► independent ICC ────────────────┐
-  │                                              │ frozen
-  ▼                                              │
-WHO5 pass 1                                      │
-  │                                              │
-  ▼                                              │
-Python WHO5 → CMC set                            │
-  │                                              │
-  ▼                                              │
-cumulative old + new CMC diagnosis cards        │
-  │                                              │
-  ▼                                              │
-targeted reconsideration → adversarial review   │
-  │                                              │
-  ▼ stable WHO5                                  │
-final current CMC set only                       │
-  │                                              │
-  ├─ prognosis                                   │
-  ├─ treatment                                   │
-  ├─ MRD                                         │
-  └─ germline                                    │
-  │                                              │
-  ▼                                              │
-typed decision + surfaced fact + reason          │
-  │                                              │
-  └──────────── evidence alignment ◄─────────────┘
-                    │
-                    ▼
-             locked cited ledger
-                    │
-                    ▼
-               prose synthesis
-                    │
-                    ▼
-           sentence ↔ fact matching
-                    │
-                    ▼
-          deterministic citation render
+  ▼
+[S-DX] diagnosis scheduler
+  │       blind ICC + WHO5 reasoning topology defined by YAML
+  ▼
+[C] validate diagnosis contract; derive CMC only from WHO5
+  │
+  ▼
+[S-PTBG] prognosis/treatment/biomarker/germline scheduler
+  │       decision + surfaced fact + reason + candidate card tags
+  ▼
+[C] validate canonical PTBG states
+  │
+  ▼
+[C] fact/reason ↔ card semantic alignment
+  │
+  ▼
+[C] locked cited fact ledger
+  │
+  ▼
+[S-SUM] summarization scheduler
+  │       final report sentences paired to fact IDs/card tags
+  ▼
+[C] validate sentence/fact/card provenance
+  │
+  ├─► deterministic sentence-card-interpretations.yaml
+  │
+  ▼
+[C] prepend invariant detected-variant sentence + render citations
+  │
+  ▼
+report-final.md
 ```
 
-### CMC invariant
+`C` is core; `S-DX`, `S-PTBG`, and `S-SUM` are independently selectable declarative schedulers.
 
-Authoritative CMC is never model-authored. Python calls `vocab.preferred_case_major_category()` for every active WHO5 `schema_disease` and takes the ordered union. ICC never participates. `bootstrap_cmcs` exist only for first-pass retrieval.
+## Invariant scheduler contracts
 
-If WHO5 changes the CMC set, the next diagnosis pass receives diagnosis cards from all CMCs encountered in that run. Once WHO5 stabilises, historical CMCs are audit-only and downstream retrieval uses the final set.
+Schedulers may alter **how** a phase reaches its answer, but not what crosses the phase boundary.
 
-### Concurrent diagnoses
+- Diagnosis output: `icc`, `who5`, `routing`.
+- PTBG output: `prognosis`, `treatment`, `biomarker`, `germline` canonical states.
+- Summarization output: ordered sentence rows containing `sentence_id`, `domain`, `sentence`, paired `fact_ids`, and inherited `card_tags`.
 
-WHO5 can return multiple rows (`DX1`, `DX2`, ...). Prognosis and MRD are decided per `variant × diagnosis`; treatment is decided per `gene × diagnosis`. Retrieved cards record `matched_diagnosis_ids`, and evidence alignment refuses a card that was retrieved only for another concurrent disease context.
+Core validates every boundary before the next phase starts.
 
-### ICC independence
+### Diagnosis and CMC
 
-The ICC pass receives the structured case, bootstrap diagnostic evidence and assay scope only. It is frozen before WHO5 runs and is not exposed to WHO5 or downstream tasks. It re-enters only during final fact/evidence assembly and prose synthesis.
+CMC is never model-authored. Core derives the ordered set of active CMCs from validated WHO5 `schema_disease` values. ICC never controls routing.
 
-## Generic validated model task engine
+The shipped `default-diagnosis` scheduler reproduces the protected v3 diagnosis flow: blind ICC; WHO5 initial pass; cumulative old+new CMC evidence after routing changes; targeted reconsideration; adversarial confirmation; bounded oscillation protection. `minimal-diagnosis` is a small developer example demonstrating the same output contract with less safety depth.
 
-Structured-output repair is split into two workflow-neutral layers:
+Concurrent WHO5 diagnoses are supported. Downstream evidence and decisions remain diagnosis-scoped so one alteration can be considered separately in overlapping diseases.
 
-- `scripts/core/syntax_repair/` repairs YAML/JSON serialization only;
-- `scripts/core/validated_model_task.py` owns structured path-specific validation issues and clinical/schema retry instructions.
+### PTBG
 
-For YAML/JSON model output, v3 first parses the artifact, applies only conservative deterministic representation cleanup, then (only if syntax is still invalid) gives a compact syntax-only prompt to the same configured model. The syntax repair model receives the parser error and broken artifact, not the original clinical prompt/case/cards, and is explicitly forbidden to change facts. Two syntax-only attempts are allowed. Every repaired candidate must preserve the complete recoverable lexical-content multiset plus protected numeric/ID/card-tag tokens. A repair that changes content is rejected.
+Five PTBG schedulers are shipped under `schedulers/ptbg/`:
 
-If both syntax-only attempts fail, one short same-answer reserialization request is tried before the workflow falls back to the normal task retry. Syntax-repair attempts do not consume the ordinary clinical retry budget and are logged separately under `model_steps/NNN_<call>/syntax-repair/`. JSON and YAML use format-specific adapters; plain Markdown model operations bypass this layer.
+- `domain`
+- `evidence-first`
+- `variant-centric`
+- `global-ledger`
+- `adaptive-microtask`
 
-Each clinical proforma retains its own validator in `runtime.py`. This boundary lets every scheduler share syntax recovery without duplicating clinical validation machinery.
+They differ in model-call topology only. All must publish the same four canonical clinical states.
 
-## Declarative schedulers
+### Summarization
 
-Terraced-v3 implements five interchangeable schedulers: `domain`, `evidence-first`, `variant-centric`, `global-ledger`, and `adaptive-microtask`. Each scheduler is a `schedulers/<id>/scheduler.yaml` information-flow specification plus optional local prompt assets, interpreted by one core scheduler engine; there are no scheduler-specific Python runners. Select one at setup with `--scheduler`; the choice is persisted in the run state. All schedulers must converge on the same four canonical downstream `FINAL_STATE.yaml` artifacts, so validation, evidence alignment and reporting are scheduler-independent. Use `scheduler-check` and `scheduler-plan` for development; see `schedulers/README.md` for the YAML/prompt contract.
+The summarization scheduler receives the **locked cited fact ledger**, not raw case/card reasoning context. It may change drafting/review topology but cannot change the accepted clinical facts or citation trust rules.
+
+`default-summarization` reproduces the current two-step behaviour: prose draft followed by sentence↔fact semantic alignment, with one complete rewrite if accepted facts are omitted. `minimal-summarization` is a one-call developer example that directly emits sentence/fact pairs.
+
+After the scheduler completes, core deterministically resolves each sentence's paired card tags to the exact drawn card interpretations and writes `sentence-card-interpretations.yaml`. This intermediate is not another model judgement.
+
+## Pipelines
+
+Pipeline YAMLs live under `pipelines/`. They contain **composition and model configuration only**:
+
+```yaml
+pipeline:
+  id: self
+schedulers:
+  diagnosis: default-diagnosis
+  ptbg: domain
+  summarization: default-summarization
+models:
+  structure: {model: self, temperature: 0.0, max_tokens: 16384}
+  diagnosis: {model: self, temperature: 0.0, max_tokens: 32768}
+  ptbg: {model: self, temperature: 0.0, max_tokens: 32768}
+  evidence_alignment: {model: self, temperature: 0.0, max_tokens: 16384}
+  summarization: {model: self, temperature: 0.0, max_tokens: 16384}
+  summarization_review: {model: self, temperature: 0.0, max_tokens: 16384}
+  syntax_repair: {model: self, temperature: 0.0, max_tokens: 8192}
+```
+
+See `pipelines/README.md` for provider fields and pipeline development.
+
+## Scheduler development
+
+Schedulers are YAML instruction sets interpreted by one generic Python engine. Scheduler-specific model instructions live beside the YAML in `prompts/`; scheduler folders contain no Python runners.
+
+```bash
+python workflows/terraced_v3/step.py schedulers
+python workflows/terraced_v3/step.py schedulers --phase diagnosis
+python workflows/terraced_v3/step.py scheduler-check --phase ptbg --scheduler evidence-first
+python workflows/terraced_v3/step.py scheduler-plan --phase summarization --scheduler default-summarization
+```
+
+See `schedulers/README.md` for the YAML DSL, invariant phase interfaces, prompt templates, static prompt-fragment injection, previous-model-output injection, registered deterministic primitives, and how to add a scheduler.
+
+## Evidence and citation integrity
+
+Clinical schedulers may return candidate card tags, but candidate citations are not trusted. Core performs semantic fact/reason↔card alignment and freezes a cited fact ledger. Summarization may only pair report sentences to those accepted facts; core requires the sentence card tags to equal the citations inherited from the paired facts.
+
+Thus scheduler experimentation cannot weaken citation guarantees.
+
+## Structured-output repair
+
+`scripts/core/syntax_repair/` is the generic YAML/JSON syntax fixer used before task-specific validation. It performs conservative deterministic representation cleanup, then at most two compact syntax-only model repairs. The repair model sees the parser error and malformed artifact, not the clinical context, and is forbidden to change informational content. Content-preservation checks reject changed facts. Syntax-repair attempts do not consume ordinary clinical retry attempts.
+
+Bare 12-character card hashes in known card-tag fields are deterministically canonicalized to `[card:<hash>]` before validation when the hash exactly matches a card supplied to that task; an undrawn hash remains invalid.
 
 ## Invariant detected-variant sentence
 
-Case structuring creates one source-faithful `detected_variants_summary` sentence listing every detected NGS variant in case order, including supplied gene, HGVS nomenclature and VAF. It is outside scheduler logic and outside prose synthesis. Final rendering prepends the exact stored sentence to `report-final.md`, so no scheduler or model can omit or paraphrase it.
-
-## Evidence → prose
-
-A surfaced conclusion contains:
-
-```text
-decision → fact → reason → verified card citation
-```
-
-Candidate card tags returned by the clinical model are not trusted. A separate semantic alignment pass verifies which cards support the reason sufficiently to justify the fact. Prose is then generated from locked facts only. A final v1-style semantic pass maps every report sentence back to one or more locked facts, and citations are inherited deterministically from that mapping.
+Case structuring creates a source-faithful sentence listing every detected NGS variant in case order with supplied gene, HGVS and VAF. It is outside all schedulers and is deterministically prepended to `report-final.md`.
 
 ## Run-directory layout
 
-Terraced-v3 keeps the run root intentionally sparse. `case.md` is copied there as the immutable true case input. Generated working state lives under `intermediates/`; model-call audit material lives under `model_steps/`; genuine deliverables and operational run outputs remain at root.
-
-Both generated namespaces use three-digit directories allocated in actual creation order within that namespace:
-
 ```text
 <run>/
-├── case.md
-├── model_steps/
-│   ├── 001_structure_case/
-│   ├── 002_icc_independent/
-│   ├── 003_who5_01_main/
+├── case.md                         # immutable true input
+├── model_steps/                    # numbered model-call audit trail
+│   ├── 001_.../
 │   └── ...
-├── intermediates/
+├── intermediates/                  # numbered workflow state/artifacts
 │   ├── 001_setup/
 │   ├── 002_run_state/
-│   ├── 003_structured_case/
-│   ├── 004_card_identity/
-│   ├── 005_icc_evidence/
-│   ├── 006_icc_diagnosis/
-│   ├── 007_who5_diagnosis/
 │   └── ...
 ├── report-final.md
 ├── terraced-v3-debug.zip
@@ -145,12 +192,10 @@ Both generated namespaces use three-digit directories allocated in actual creati
 └── workflow.log
 ```
 
-The numbers are not hard-coded stage numbers. If a diagnosis requires extra WHO5 passes or a scheduler creates extra tasks, the directory sequence reflects what was actually generated. Numbering is independent within `model_steps/` and `intermediates/`. Syntax-repair artifacts stay inside their owning numbered model-step directory rather than consuming another top-level sequence number.
+Numbers reflect actual creation order independently within `model_steps/` and `intermediates/`. Syntax-repair files remain nested inside their owning model step.
 
-## Audit files
+Useful intermediates include the resolved pipeline snapshot, frozen diagnosis/routing state, canonical PTBG states, cited fact ledger, canonical summary YAML, and `sentence-card-interpretations.yaml`.
 
-Power users should inspect the numbered `intermediates/*_who5_diagnosis/ROUTING.json`, domain `*_state/FINAL_STATE.yaml` files and `*_fact_ledger/fact-ledger-cited.yaml`. Developers should additionally inspect `model_steps/`, the WHO5 pass subdirectories, scheduler-specific intermediates and `workflow.log`.
+## Main risks / prototype limitations
 
-## Prototype limitations
-
-This build intentionally keeps the clinical schemas compact. The adaptive scheduler currently uses a simple high-impact-cell escalation rule rather than a learned uncertainty score; there is no separate card→reason / reason→fact entailment reviewer, and clone assignment remains disease-scoped rather than independently inferred when one variant could belong to multiple concurrent neoplasms.
+`minimal-diagnosis` intentionally lacks the safety depth of `default-diagnosis` and is for development only. The adaptive PTBG scheduler still uses a simple deterministic escalation policy. Clone assignment is disease-scoped rather than independently inferred when one variant may belong to more than one concurrent neoplasm. Pipeline YAML is intentionally not a programming language; genuinely new deterministic behaviour should be added as a reusable tested core primitive rather than arbitrary executable YAML.

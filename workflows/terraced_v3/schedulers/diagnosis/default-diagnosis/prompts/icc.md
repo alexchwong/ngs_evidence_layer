@@ -21,3 +21,14 @@ Rules:
 - `reason` explains why the fact follows from the supplied case/evidence; it is not hidden chain-of-thought;
 - candidate card tags are hints only and must be exact supplied tags; use an empty list when the conclusion is case-derived without a supporting card;
 - do not mention CMC, WHO5, prior model output, or downstream domains.
+
+# Structured immutable case
+```json
+{{case}}
+```
+
+# NGS assay scope
+{{panel_scope}}
+
+# Independent diagnostic evidence
+{{evidence}}

@@ -1,0 +1,23 @@
+pipeline:
+  id: openrouter
+  version: 1
+  order: 30
+  description: OpenRouter pipeline using qwen/qwen3-coder-next defaults; role models can be edited independently.
+provider:
+  type: openai-compatible
+  base_url: https://openrouter.ai/api/v1
+  base_url_env: NEL_OPENROUTER_BASE_URL
+  api_key_env: OPENROUTER_API_KEY
+  timeout_s: 900
+schedulers:
+  diagnosis: default-diagnosis
+  ptbg: domain
+  summarization: default-summarization
+models:
+  structure: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  diagnosis: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 65536}
+  ptbg: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 65536}
+  evidence_alignment: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  summarization: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  summarization_review: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  syntax_repair: {model: qwen/qwen3-coder-next, temperature: 0.0, max_tokens: 16384}

@@ -1,0 +1,23 @@
+pipeline:
+  id: lmstudio
+  version: 1
+  order: 20
+  description: LM Studio OpenAI-compatible pipeline using qwen3-coder-next placeholders for all roles.
+provider:
+  type: openai-compatible
+  base_url: http://localhost:1234/v1
+  base_url_env: NEL_LMSTUDIO_BASE_URL
+  api_key_env: NEL_LMSTUDIO_API_KEY
+  timeout_s: 900
+schedulers:
+  diagnosis: default-diagnosis
+  ptbg: domain
+  summarization: default-summarization
+models:
+  structure: {model: qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  diagnosis: {model: qwen3-coder-next, temperature: 0.0, max_tokens: 65536}
+  ptbg: {model: qwen3-coder-next, temperature: 0.0, max_tokens: 65536}
+  evidence_alignment: {model: qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  summarization: {model: qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  summarization_review: {model: qwen3-coder-next, temperature: 0.0, max_tokens: 32768}
+  syntax_repair: {model: qwen3-coder-next, temperature: 0.0, max_tokens: 16384}
