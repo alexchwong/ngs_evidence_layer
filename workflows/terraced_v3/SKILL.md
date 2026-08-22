@@ -40,7 +40,7 @@ Terraced-v3 supports five interchangeable schedulers:
 - `global-ledger` — one global hard-fact pass plus adversarial patch review;
 - `adaptive-microtask` — initial batches plus targeted review of high-impact cells.
 
-Select one at setup with `--scheduler <id>`. The selection is persisted in the run state and cannot drift if `settings.json` later changes. `python workflows/terraced_v3/step.py schedulers` lists the registered schedulers. Developer details are in `schedulers/README.md`.
+Select one at setup with `--scheduler <id>`. The selection is persisted in the run state and cannot drift if `settings.json` later changes. Schedulers are declarative `schedulers/<id>/scheduler.yaml` instruction sets interpreted by one core scheduler engine; scheduler-specific model instructions live beside them under `prompts/`. `python workflows/terraced_v3/step.py schedulers` lists discovered schedulers. Use `scheduler-check --scheduler <id>` to validate YAML/prompt wiring without a model and `scheduler-plan --scheduler <id>` to inspect execution order. Developer details are in `schedulers/README.md`.
 
 Examples:
 

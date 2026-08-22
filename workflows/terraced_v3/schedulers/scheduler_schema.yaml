@@ -1,0 +1,47 @@
+schema_version: 1
+purpose: Declarative terraced-v3 scheduler contract.
+required_top_level: [scheduler, steps, outputs]
+scheduler_required: [id, version, description]
+step:
+  required: [id, kind]
+  kinds:
+    model:
+      required: [prompt, output]
+      optional: [foreach, depends_on, inputs, retain_item_metadata]
+    operation:
+      required: [operation]
+      optional: [depends_on, inputs]
+foreach_sources: [domains, variants, steps.<step-id>]
+core_sources:
+  - core.case
+  - core.diagnoses
+  - core.diagnosis_context
+  - core.final_cmcs
+  - core.specs
+  - core.specs[$item]
+  - core.variants
+  - core.domains
+  - core.diagnosis_ids
+  - core.treatment_owner[$item]
+evidence_sources:
+  - evidence[$item]
+  - evidence[$item.domain]
+  - evidence.all
+step_sources:
+  - steps.<step-id>
+  - steps.<step-id>[$item]
+model_validators:
+  - domain
+  - normalized_evidence
+  - variant_cross_domain
+  - germline_clinical_picture
+  - global_ledger
+  - global_patch
+  - adaptive_cell_review
+operations:
+  - assemble_variant_outputs
+  - apply_domain_patch
+  - select_high_impact
+  - apply_cell_reviews
+  - publish_domains
+canonical_outputs: [prognosis, treatment, biomarker, germline]

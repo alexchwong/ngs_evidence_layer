@@ -1,0 +1,74 @@
+scheduler:
+  id: adaptive-microtask
+  version: 1
+  order: 50
+  description: Initial domain batches followed by targeted review only for high-impact decision cells.
+steps:
+  - id: initial
+    kind: model
+    foreach: domains
+    inputs:
+      case: core.case
+      diagnoses: core.diagnoses
+      scope: core.specs[$item]
+      evidence: evidence[$item]
+    prompt:
+      template: prompts/initial_domain.md
+      inject:
+        common_rules: {prompt: ../common/prompts/domain_task.md}
+        domain_contract:
+          prompt_select:
+            prognosis: ../common/prompts/prognosis_contract.md
+            treatment: ../common/prompts/treatment_contract.md
+            biomarker: ../common/prompts/biomarker_contract.md
+            germline: ../common/prompts/germline_contract.md
+        case: {input: case, render: json}
+        diagnoses: {input: diagnoses, render: yaml}
+        scope: {input: scope, render: yaml}
+        evidence: {input: evidence, render: text}
+    output:
+      format: yaml
+      validator: domain
+      contract: canonical_domain
+  - id: select
+    kind: operation
+    operation: select_high_impact
+    inputs:
+      states: steps.initial
+  - id: review
+    kind: model
+    foreach: steps.select
+    depends_on: [select]
+    retain_item_metadata: true
+    inputs:
+      cell: $item
+      case: core.case
+      diagnoses: core.diagnoses
+      evidence: evidence[$item.domain]
+    prompt:
+      template: prompts/review_cell.md
+      inject:
+        cell: {input: cell, render: yaml}
+        case: {input: case, render: json}
+        diagnoses: {input: diagnoses, render: yaml}
+        evidence: {input: evidence, render: text}
+    output:
+      format: yaml
+      validator: adaptive_cell_review
+      contract: adaptive_cell_review
+  - id: apply_reviews
+    kind: operation
+    operation: apply_cell_reviews
+    inputs:
+      initial: steps.initial
+      reviews: steps.review
+  - id: publish
+    kind: operation
+    operation: publish_domains
+    inputs:
+      states: steps.apply_reviews
+outputs:
+  prognosis: steps.publish.prognosis
+  treatment: steps.publish.treatment
+  biomarker: steps.publish.biomarker
+  germline: steps.publish.germline

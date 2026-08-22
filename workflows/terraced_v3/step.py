@@ -28,8 +28,7 @@ from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
 from workflows.terraced_v3 import card_identity, layout, model_client, model_registry, rendering, runtime
-from workflows.terraced_v3 import schedulers
-from workflows.terraced_v3.schedulers import common as scheduler_common
+from workflows.terraced_v3 import scheduler_engine, scheduler_registry, scheduler_primitives
 
 WORKFLOW_ID = "terraced-v3"
 HERE = Path(__file__).resolve().parent
@@ -328,8 +327,8 @@ def run_setup(args:argparse.Namespace)->int:
     registry=model_registry.load_registry(); model_profile=model_registry.resolve_profile(args.model_profile or configured_profile(),None,registry)
     for role in registry["roles"]: model_registry.resolve(role,model_profile,None,registry)
     scheduler=args.scheduler or load_settings().get("scheduler","domain")
-    if scheduler not in schedulers.names():
-        raise StepFailure(f"unknown scheduler {scheduler!r}; choose one of: {', '.join(schedulers.names())}")
+    if scheduler not in scheduler_registry.names():
+        raise StepFailure(f"unknown scheduler {scheduler!r}; choose one of: {', '.join(scheduler_registry.names())}")
     label=args.mode
     if args.mode=="ngs-report" and args.case_file: label += "-"+args.case_file.stem
     elif args.mode=="nel-demo" and args.example is not None: label += f"-{args.example}"
@@ -532,7 +531,7 @@ def module_clinical_tasks(work:Path,stage:dict,profile:str|None)->None:
     run_state=_load_run_state(work)
     scheduler_name=run_state.get("scheduler") or load_settings().get("scheduler","domain")
     try:
-        scheduler_module=schedulers.load(scheduler_name)
+        scheduler_plan=scheduler_registry.load(scheduler_name)
     except ValueError as exc:
         raise StepFailure(str(exc)) from exc
     case=runtime.read_json(_case_json(work))
@@ -541,7 +540,7 @@ def module_clinical_tasks(work:Path,stage:dict,profile:str|None)->None:
     routing=json.loads(_read(_who5_routing(work)))
     evidence_cache={}
 
-    def ensure_evidence(domain:str)->scheduler_common.EvidenceView:
+    def ensure_evidence(domain:str)->scheduler_primitives.EvidenceView:
         if domain in evidence_cache:
             return evidence_cache[domain]
         cards,digest,manifest=_retrieve_downstream(work,domain)
@@ -549,7 +548,7 @@ def module_clinical_tasks(work:Path,stage:dict,profile:str|None)->None:
             work,domain,cards,cmcs=routing["final_cmcs"],
             diagnoses=[d["schema_disease"] for d in diagnoses],digest=digest,manifest=manifest
         )
-        view=scheduler_common.EvidenceView(
+        view=scheduler_primitives.EvidenceView(
             domain=domain,cards=visible,manifest=manifest,
             permitted_tags=_permitted_tags(visible,manifest),text=_render_cards(visible,manifest)
         )
@@ -560,14 +559,13 @@ def module_clinical_tasks(work:Path,stage:dict,profile:str|None)->None:
         messages=[{"role":"system","content":model_client.SYSTEM_PROMPT},{"role":"user","content":prompt}]
         _model_call(work,call_id=call_id,role="answer",messages=messages,output=output,validator=validator,profile=profile,structured_format="yaml")
 
-    ctx=scheduler_common.SchedulerContext(
+    ctx=scheduler_primitives.SchedulerContext(
         work=work,case=case,diagnoses=diagnoses,final_cmcs=routing["final_cmcs"],profile=profile,
-        domain_task_prompt=_read(PROMPTS/"domain_task.md"),call_yaml=call_yaml,
-        ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,
+        call_yaml=call_yaml,ensure_evidence=ensure_evidence,read_text=_read,write_text=_atomic_write,status=_status,
     )
-    _status(f"  scheduler: {scheduler_name} — {getattr(scheduler_module,'DESCRIPTION','')}")
-    scheduler_module.run(ctx)
-    for domain in scheduler_common.DOMAINS:
+    _status(f"  scheduler: {scheduler_name} — {scheduler_plan.description}")
+    scheduler_engine.execute(scheduler_plan,ctx)
+    for domain in scheduler_primitives.DOMAINS:
         output=_domain_final(work,domain)
         if not output.is_file():
             raise StepFailure(f"scheduler {scheduler_name!r} did not produce {output}")
@@ -705,8 +703,10 @@ def run_provider(model_profile:str|None)->int:
 
 def build_parser()->argparse.ArgumentParser:
     parser=argparse.ArgumentParser(description=__doc__); sub=parser.add_subparsers(dest="command",required=True)
-    setup=sub.add_parser("setup"); setup.add_argument("--mode",required=True,choices=["ngs-report","nel-demo","nel-validate","nel-validate-function","nel-validate-brief"]); setup.add_argument("--case-file",type=Path); setup.add_argument("--example",type=int); setup.add_argument("--case-id"); setup.add_argument("--work-dir",type=Path); setup.add_argument("--model-profile"); setup.add_argument("--scheduler",choices=schedulers.names())
+    setup=sub.add_parser("setup"); setup.add_argument("--mode",required=True,choices=["ngs-report","nel-demo","nel-validate","nel-validate-function","nel-validate-brief"]); setup.add_argument("--case-file",type=Path); setup.add_argument("--example",type=int); setup.add_argument("--case-id"); setup.add_argument("--work-dir",type=Path); setup.add_argument("--model-profile"); setup.add_argument("--scheduler",choices=scheduler_registry.names())
     sub.add_parser("schedulers")
+    check=sub.add_parser("scheduler-check"); check.add_argument("--scheduler",required=True,choices=scheduler_registry.names())
+    plan=sub.add_parser("scheduler-plan"); plan.add_argument("--scheduler",required=True,choices=scheduler_registry.names())
     run=sub.add_parser("run"); run.add_argument("--work-dir",type=Path); run.add_argument("--profile"); run.add_argument("--stage")
     provider=sub.add_parser("provider"); provider.add_argument("model_profile",nargs="?")
     return parser
@@ -722,7 +722,13 @@ def main(argv:list[str]|None=None)->int:
             return run_setup(args)
         if args.command=="provider": return run_provider(args.model_profile)
         if args.command=="schedulers":
-            for name,description in schedulers.descriptions().items(): print(f"{name}: {description}")
+            for name,description in scheduler_registry.descriptions().items(): print(f"{name}: {description}")
+            return EXIT_OK
+        if args.command=="scheduler-check":
+            plan=scheduler_registry.check(args.scheduler); print(f"OK {plan.scheduler_id}: {plan.path}"); return EXIT_OK
+        if args.command=="scheduler-plan":
+            plan=scheduler_registry.load(args.scheduler); print(f"SCHEDULER={plan.scheduler_id}");
+            for line in scheduler_engine.describe(plan): print(line)
             return EXIT_OK
         work=args.work_dir.expanduser().resolve() if args.work_dir else None
         if work is None:

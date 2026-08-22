@@ -68,7 +68,7 @@ def test_yaml_parser_failure_is_actionable():
 
 
 def test_domain_scheduler_scopes_treatment_across_concurrent_diagnoses():
-    from workflows.terraced_v3.schedulers import domain
+    from workflows.terraced_v3 import scheduler_primitives
 
     case = {
         "variants": [
@@ -80,7 +80,7 @@ def test_domain_scheduler_scopes_treatment_across_concurrent_diagnoses():
         {"diagnosis_id": "DX1", "schema_disease": "MDS"},
         {"diagnosis_id": "DX2", "schema_disease": "CLL/SLL"},
     ]
-    specs = {row["domain"]: row for row in domain.task_specs(case, diagnoses)}
+    specs = scheduler_primitives.task_specs(case, diagnoses)
     assert specs["treatment"]["required_pairs"] == [
         ("SF3B1", "DX1"), ("SF3B1", "DX2"),
         ("TP53", "DX1"), ("TP53", "DX2"),
@@ -88,19 +88,19 @@ def test_domain_scheduler_scopes_treatment_across_concurrent_diagnoses():
 
 
 def test_all_five_schedulers_registered():
-    from workflows.terraced_v3 import schedulers
+    from workflows.terraced_v3 import scheduler_registry
 
-    assert schedulers.names() == (
+    assert scheduler_registry.names() == (
         "domain",
         "evidence-first",
         "variant-centric",
         "global-ledger",
         "adaptive-microtask",
     )
-    for name in schedulers.names():
-        module = schedulers.load(name)
-        assert module.SCHEDULER_ID == name
-        assert callable(module.run)
+    for name in scheduler_registry.names():
+        plan = scheduler_registry.load(name)
+        assert plan.scheduler_id == name
+        assert plan.path.name == "scheduler.yaml"
 
 
 def test_structured_case_requires_source_faithful_variant_summary_tokens():
@@ -136,13 +136,14 @@ def test_structured_case_requires_source_faithful_variant_summary_tokens():
 
 
 def test_adaptive_scheduler_only_escalates_high_impact_cells():
-    from workflows.terraced_v3.schedulers import adaptive_microtask
+    from workflows.terraced_v3 import scheduler_primitives
 
     prognosis = {"decisions": [
         {"variant_id": "V1", "diagnosis_id": "DX1", "effect": "neither"},
         {"variant_id": "V2", "diagnosis_id": "DX1", "effect": "adverse"},
     ]}
-    assert [key for key, _ in adaptive_microtask._high_impact("prognosis", prognosis)] == ["V2|DX1"]
+    cells = scheduler_primitives.high_impact_cells({"prognosis": prognosis})
+    assert [(cell["domain"], cell["key"]) for cell in cells] == [("prognosis", "V2|DX1")]
 
 
 def test_generic_yaml_syntax_repair_preserves_content_and_fixes_quote():
@@ -293,3 +294,49 @@ def test_layout_read_does_not_allocate_numbered_directory(tmp_path):
 
     created = layout.evidence(tmp_path, "prognosis-bundle.json", existing=False)
     assert created.parent.name == "001_prognosis_evidence"
+
+
+def test_scheduler_yaml_prompt_slots_compile_for_all_five():
+    from workflows.terraced_v3 import scheduler_registry
+    for name in scheduler_registry.names():
+        assert scheduler_registry.check(name).scheduler_id == name
+
+
+def test_scheduler_directories_are_declarative_not_python():
+    from workflows.terraced_v3 import scheduler_registry
+    for name in scheduler_registry.names():
+        folder = scheduler_registry.load(name).path.parent
+        assert (folder / "scheduler.yaml").is_file()
+        assert not list(folder.glob("*.py"))
+
+
+def test_scheduler_prompt_injection_rejects_undeclared_slot(tmp_path):
+    from workflows.terraced_v3 import scheduler_engine
+    (tmp_path / "prompt.md").write_text("{{missing}}\n", encoding="utf-8")
+    (tmp_path / "scheduler.yaml").write_text(
+        """scheduler:
+  id: broken
+  version: 1
+  description: broken
+steps:
+  - id: x
+    kind: model
+    inputs: {}
+    prompt:
+      template: prompt.md
+      inject: {}
+    output:
+      format: yaml
+      validator: global_ledger
+outputs:
+  prognosis: steps.x.prognosis
+  treatment: steps.x.treatment
+  biomarker: steps.x.biomarker
+  germline: steps.x.germline
+""", encoding="utf-8")
+    try:
+        scheduler_engine.load_yaml(tmp_path / "scheduler.yaml")
+    except ValueError as exc:
+        assert "prompt slots mismatch" in str(exc)
+    else:
+        raise AssertionError("expected scheduler compile failure")

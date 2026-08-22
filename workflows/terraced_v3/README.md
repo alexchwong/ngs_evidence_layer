@@ -97,9 +97,9 @@ If both syntax-only attempts fail, one short same-answer reserialization request
 
 Each clinical proforma retains its own validator in `runtime.py`. This boundary lets every scheduler share syntax recovery without duplicating clinical validation machinery.
 
-## Current domain scheduler
+## Declarative schedulers
 
-Terraced-v3 implements five interchangeable schedulers: `domain`, `evidence-first`, `variant-centric`, `global-ledger`, and `adaptive-microtask`. Select one at setup with `--scheduler`; the choice is persisted in the run state. All schedulers must converge on the same four canonical downstream `FINAL_STATE.yaml` artifacts, so validation, evidence alignment and reporting are scheduler-independent. See `schedulers/README.md` for the developer contract.
+Terraced-v3 implements five interchangeable schedulers: `domain`, `evidence-first`, `variant-centric`, `global-ledger`, and `adaptive-microtask`. Each scheduler is a `schedulers/<id>/scheduler.yaml` information-flow specification plus optional local prompt assets, interpreted by one core scheduler engine; there are no scheduler-specific Python runners. Select one at setup with `--scheduler`; the choice is persisted in the run state. All schedulers must converge on the same four canonical downstream `FINAL_STATE.yaml` artifacts, so validation, evidence alignment and reporting are scheduler-independent. Use `scheduler-check` and `scheduler-plan` for development; see `schedulers/README.md` for the YAML/prompt contract.
 
 ## Invariant detected-variant sentence
 

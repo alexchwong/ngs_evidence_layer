@@ -1,0 +1,60 @@
+scheduler:
+  id: evidence-first
+  version: 1
+  order: 20
+  description: Normalise relevant cards first, then independently adjudicate each clinical domain.
+steps:
+  - id: normalize
+    kind: model
+    foreach: domains
+    inputs:
+      diagnoses: core.diagnoses
+      evidence: evidence[$item]
+      domain: $item
+    prompt:
+      template: prompts/normalize_evidence.md
+      inject:
+        domain: {input: domain, render: text}
+        diagnoses: {input: diagnoses, render: yaml}
+        evidence: {input: evidence, render: text}
+    output:
+      format: yaml
+      validator: normalized_evidence
+      contract: normalized_evidence
+  - id: adjudicate
+    kind: model
+    foreach: domains
+    depends_on: [normalize]
+    inputs:
+      case: core.case
+      diagnoses: core.diagnoses
+      scope: core.specs[$item]
+      normalized_evidence: steps.normalize[$item]
+    prompt:
+      template: prompts/adjudicate.md
+      inject:
+        common_rules: {prompt: ../common/prompts/domain_task.md}
+        domain_contract:
+          prompt_select:
+            prognosis: ../common/prompts/prognosis_contract.md
+            treatment: ../common/prompts/treatment_contract.md
+            biomarker: ../common/prompts/biomarker_contract.md
+            germline: ../common/prompts/germline_contract.md
+        case: {input: case, render: json}
+        diagnoses: {input: diagnoses, render: yaml}
+        scope: {input: scope, render: yaml}
+        normalized_evidence: {input: normalized_evidence, render: yaml}
+    output:
+      format: yaml
+      validator: domain
+      contract: canonical_domain
+  - id: publish
+    kind: operation
+    operation: publish_domains
+    inputs:
+      states: steps.adjudicate
+outputs:
+  prognosis: steps.publish.prognosis
+  treatment: steps.publish.treatment
+  biomarker: steps.publish.biomarker
+  germline: steps.publish.germline

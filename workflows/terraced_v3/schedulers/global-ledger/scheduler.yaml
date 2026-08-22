@@ -1,0 +1,60 @@
+scheduler:
+  id: global-ledger
+  version: 1
+  order: 40
+  description: Fill the complete downstream ledger globally, then apply a validated adversarial domain patch.
+steps:
+  - id: initial
+    kind: model
+    inputs:
+      case: core.case
+      diagnoses: core.diagnosis_context
+      scopes: core.specs
+      evidence: evidence.all
+    prompt:
+      template: prompts/initial_ledger.md
+      inject:
+        all_contracts: {prompt: ../common/prompts/all_contracts.md}
+        case: {input: case, render: json}
+        diagnoses: {input: diagnoses, render: yaml}
+        scopes: {input: scopes, render: yaml}
+        evidence: {input: evidence, render: evidence_by_domain}
+    output:
+      format: yaml
+      validator: global_ledger
+      contract: canonical_all_domains
+  - id: review
+    kind: model
+    depends_on: [initial]
+    inputs:
+      initial: steps.initial
+      case: core.case
+      diagnoses: core.diagnosis_context
+      evidence: evidence.all
+    prompt:
+      template: prompts/adversarial_review.md
+      inject:
+        initial: {input: initial, render: yaml}
+        case: {input: case, render: json}
+        diagnoses: {input: diagnoses, render: yaml}
+        evidence: {input: evidence, render: evidence_by_domain}
+    output:
+      format: yaml
+      validator: global_patch
+      contract: domain_replacement_patch
+  - id: apply_patch
+    kind: operation
+    operation: apply_domain_patch
+    inputs:
+      initial: steps.initial
+      patch: steps.review
+  - id: publish
+    kind: operation
+    operation: publish_domains
+    inputs:
+      states: steps.apply_patch
+outputs:
+  prognosis: steps.publish.prognosis
+  treatment: steps.publish.treatment
+  biomarker: steps.publish.biomarker
+  germline: steps.publish.germline

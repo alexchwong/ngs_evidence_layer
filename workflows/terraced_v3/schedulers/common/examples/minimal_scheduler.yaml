@@ -1,0 +1,37 @@
+scheduler:
+  id: example-domain
+  version: 1
+  description: Minimal example; one model call per canonical domain.
+steps:
+  - id: adjudicate
+    kind: model
+    foreach: domains
+    inputs:
+      case: core.case
+      diagnoses: core.diagnoses
+      scope: core.specs[$item]
+      evidence: evidence[$item]
+    prompt:
+      template: ../../domain/prompts/adjudicate.md
+      inject:
+        common_rules: {prompt: ../prompts/domain_task.md}
+        domain_contract:
+          prompt_select:
+            prognosis: ../prompts/prognosis_contract.md
+            treatment: ../prompts/treatment_contract.md
+            biomarker: ../prompts/biomarker_contract.md
+            germline: ../prompts/germline_contract.md
+        case: {input: case, render: json}
+        diagnoses: {input: diagnoses, render: yaml}
+        scope: {input: scope, render: yaml}
+        evidence: {input: evidence, render: text}
+    output: {format: yaml, validator: domain}
+  - id: publish
+    kind: operation
+    operation: publish_domains
+    inputs: {states: steps.adjudicate}
+outputs:
+  prognosis: steps.publish.prognosis
+  treatment: steps.publish.treatment
+  biomarker: steps.publish.biomarker
+  germline: steps.publish.germline
