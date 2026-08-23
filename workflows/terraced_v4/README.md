@@ -1,20 +1,55 @@
 # Terraced v4 prototype
 
-Terraced-v4 is a deliberately small prototype cloned conceptually from terraced-v3. It keeps v3 provider/model plumbing, case initialisation, deterministic WHO5→CMC routing, chronological model-step capture, and the plan→paraphrase summarisation pattern. The v3 scheduler/statement-ledger/evidence-pairing architecture is not used.
+Terraced-v4 is a deliberately small prototype cloned conceptually from terraced-v3. It keeps v3 provider/model plumbing, case initialisation, deterministic WHO5→CMC routing, authority-specific diagnosis evidence, chronological model-step capture, and ID-preserving report synthesis. The v3 scheduler/statement-ledger machinery is not used.
+
+## Quick start
+
+List shipped pipelines:
+
+```bash
+python workflows/terraced_v4/step.py pipelines
+```
+
+Validate a pipeline before running it:
+
+```bash
+python workflows/terraced_v4/step.py pipeline-check --pipeline self
+```
+
+Run validation brief case 1 with the self pipeline:
+
+```bash
+python workflows/terraced_v4/step.py setup \
+  --mode nel-validate-brief \
+  --case-id 1 \
+  --pipeline self
+```
+
+Then continue the scripted run:
+
+```bash
+python workflows/terraced_v4/step.py run --work-dir <run-directory>
+```
+
+For `self`, the CLI emits model handoffs to be completed by the session model. LM Studio and OpenRouter pipelines call their configured OpenAI-compatible endpoints directly.
 
 ## Flow
 
 1. Structure `case.md`; create stable patient variant registry `v01`, `v02`, ...
-2. Diagnosis pass 1 from bootstrap CMC evidence.
-3. Derive CMCs deterministically from WHO5 schema disease and redraw diagnostic cards.
-4. Diagnosis pass 2: start from scratch when CMC changes; otherwise edit/reconsider pass 1. Pass 2 is authoritative.
-5. One proforma pass each for prognosis, treatment, biomarker/MRD and germline. Every variant must be covered.
-6. Match each reportable reason to the closest semantic evidence card, with at most three bounded reconsiderations. Auditor objections are specific, non-authoritative feedback: if the matcher reaffirms the same card after seeing the objection, retain it with a human-review warning rather than looping.
-7. Generate one reportable sentence per schema element.
-8. Plan safe same-domain sentence combinations, audit the plan against the original reportable sentences for semantic loss, then paraphrase each accepted planned sentence. If plan repair exhausts its bounded attempts, fall back to one original reportable sentence per output sentence.
-9. Render citations deterministically from the evidence cards inherited through schema/sentence IDs.
+2. WHO5 pass 1 runs from bootstrap CMC evidence using **Khoury 2022 cards only**.
+3. Derive CMCs deterministically from WHO5. If CMC changes, WHO5 pass 2 starts from scratch using cumulative old+new CMC evidence, again Khoury-only. If CMC does not change, pass 1 is authoritative and there is no WHO5 pass 2.
+4. ICC runs once after authoritative WHO5 is frozen, using **Arber 2022 cards only**. WHO5 is supplied only so ICC can state whether the classifications are significantly different.
+5. Other diagnostic considerations run separately from the case + authoritative WHO5 only; ICC is not supplied.
+6. One proforma pass each for prognosis, treatment, biomarker/MRD and germline. Every variant must be covered. Each call injects shared PTBG interpretation discipline plus a domain-specific semantic boundary file before the small YAML proforma; the schema and interpretation policy are separate assets.
+7. Build all evidence-bearing reasons, then perform **one batched evidence-match call** and **one batched evidence-audit call**. Obvious mismatches are reconsidered in bounded batches; advisory concerns are logged rather than allowed to veto the matcher.
+8. Generate one reportable sentence per schema element.
+9. In one planning call decide which reportable sentences to omit, split or merge. Python deterministically rearranges accepted parts into canonical domain blocks. A preservation audit can force a safe one-statement-per-block fallback.
+10. Paraphrase all blocks in **one whole-report model call**. One batched preservation audit follows; unsafe blocks deterministically fall back to source-preserving text rather than launching per-sentence model loops.
+11. Render citations deterministically from evidence ancestry through schema IDs → statement IDs → final blocks.
 
-## CLI
+All model-produced structured artifacts pass through the shared v3 syntax-repair machinery before task validation. Deterministic validators accumulate all detectable issues in one pass. Only defects that can be repaired without changing informational content are classified as syntax/serialization problems. Clinical proformas allow at most **5 syntax-only repairs for one artifact**; if those fail, that artifact is abandoned and the original proforma task is regenerated from scratch. A clinical proforma may be fully rewritten at most **3 times** after its initial generation. Remaining content/coverage defects are returned together to the originating clinical task rather than being misrouted to syntax repair.
+
+## CLI reference
 
 ```bash
 python workflows/terraced_v4/step.py pipelines
@@ -27,14 +62,15 @@ Use `--pipeline lmstudio` or `--pipeline openrouter` as configured in `pipelines
 
 ## Run directory
 
-- `model_steps/`: chronological accepted model operations/prompts.
+- `model_steps/`: chronological model operations/prompts.
 - `intermediates/`: machine-readable workflow state.
 - `logs/workflow.log`: CLI/runtime log.
-- `logs/progress.json`: stage-announcement state so self-handoff resumes do not replay completed stage banners.
+- `logs/model-usage.json`: provider-reported prompt/completion/total tokens for every direct-provider attempt, including syntax repair. `self` handoffs cannot report token usage and are not estimated.
 - `logs/risk_log.yaml`: non-gating evidence/summarisation risks and graceful degradations.
-- `logs/errors/`: invalid/retried model artifacts.
-- root: final deliverables only (`report-final.md`, `report-final.json`, and validation package where applicable), plus immutable workflow inputs/state created by common setup.
+- `logs/errors/`: invalid/retried clinical and syntax-repair artifacts.
+- root: final deliverables (`report-final.md`, `report-final.json`, validation ZIP where applicable) plus common immutable workflow input/state.
 
 ## Prototype limitations
 
-Two diagnosis passes are intentionally fixed. If pass 2 changes the CMC again, the workflow logs that no third redraw occurred. Citation audit detects obvious mismatch and fidelity risk but does not claim to prove semantic entailment or overrule the matcher. The risk log is idempotent across self-handoff replay. Negative PTBG buckets are coverage/audit state and do not automatically become report sentences.
+WHO5 stops after at most two passes. If WHO5 pass 2 changes CMC again, the workflow logs the unresolved routing risk and does not perform a third redraw. Citation audit detects obvious mismatch and fidelity risk but does not claim to prove entailment or overrule the matcher. Negative PTBG buckets are coverage/audit state and do not automatically become report sentences.
+PTBG semantic guardrails reduce cross-domain over-inference but do not replace curated clinical evidence; in particular, a positive germline-suspect call must be supported by the supplied case/evidence rather than model memory alone.

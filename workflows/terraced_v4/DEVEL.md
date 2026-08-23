@@ -1,6 +1,6 @@
 # Terraced v4 developer notes
 
-`step.py` owns the fixed workflow; `schema_validation.py` owns structural/coverage checks; `runtime.py` owns deterministic CMC and summary/block operations; prompts are small category-specific files under `prompts/`; `corpus_filters.yaml` pins WHO5 diagnosis to Khoury 2022 and ICC diagnosis to Arber 2022.
+`step.py` owns the fixed workflow; `schema_validation.py` owns structural/coverage checks; `runtime.py` owns deterministic CMC and summary/block operations; prompts are small category-specific files under `prompts/`; `prompts/includes/ptbg_common.md` plus `*_semantics.md` files hold injectable PTBG interpretation policy; `corpus_filters.yaml` pins WHO5 diagnosis to Khoury 2022 and ICC diagnosis to Arber 2022.
 
 Deterministic validation is limited to syntax, schema shape, stable IDs, variant coverage, incompatible bucket membership, row completeness and summary ancestry. Clinical meaning, evidence relevance, source naming and quote fidelity remain model/human-audited. Validators accumulate all detectable defects instead of failing on the first field. Representation-only (`serialization`) defects are repaired through shared `scripts/core/syntax_repair` before the originating task is retried.
 
@@ -9,6 +9,11 @@ Deterministic validation is limited to syntax, schema shape, stable IDs, variant
 `WHO5 pass 1 → conditional WHO5 pass 2 → ICC → other diagnostic considerations`.
 
 WHO5 alone drives deterministic CMC derivation. A CMC-changing WHO5 pass 1 causes pass 2 to start from scratch with cumulative old+new CMC recall. ICC then receives authoritative WHO5 for comparison but uses Arber-only evidence. The other-diagnosis call receives authoritative WHO5 but not ICC.
+
+
+## PTBG prompt composition
+
+PTBG calls are assembled as `shared interpretation discipline → domain semantic boundaries → small proforma → case/diagnosis/cards`. The shared include blocks cross-domain inference (for example diagnostic importance → MRD suitability), while each domain include defines the clinical meaning of its buckets. Keep these semantic policies outside the YAML proforma so they can be tuned without changing schema validation or Python. Germline no longer receives a special system prompt licensing unsupported model-memory classification; a positive `suspect` call must be supported by supplied case/evidence plus VAF compatibility.
 
 ## Batched semantic operations
 

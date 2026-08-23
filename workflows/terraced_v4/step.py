@@ -15,7 +15,7 @@ from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
 from workflows.terraced_v4 import card_identity, layout, model_client, pipeline_registry, rendering, runtime, schema_validation
 
-WORKFLOW_ID='terraced-v4'; RUN_STATE_SCHEMA_VERSION=1; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
+WORKFLOW_ID='terraced-v4'; RUN_STATE_SCHEMA_VERSION=1; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; PROMPT_INCLUDES=PROMPTS/'includes'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; CORPUS_FILTERS=HERE/'corpus_filters.yaml'; USAGE_FILE='model-usage.json'
 EXIT_OK=0; EXIT_FAILURE=1; EXIT_HANDOFF=10
 VALIDATION_MODES={'nel-validate','nel-validate-function','nel-validate-brief'}
@@ -629,19 +629,20 @@ def stage_diagnosis(work,case,eligible,profile):
     return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards}
 
 def _variant_context(reg): return yaml.safe_dump({'variants':reg},sort_keys=False,allow_unicode=True,width=110)
+def _ptbg_prompt_text(domain):
+    if domain not in {'prognosis','treatment','biomarker','germline'}:
+        raise StepFailure(f'unsupported PTBG prompt domain {domain!r}')
+    parts=[
+        _read(PROMPT_INCLUDES/'ptbg_common.md'),
+        _read(PROMPT_INCLUDES/f'{domain}_semantics.md'),
+        _read(PROMPTS/f'{domain}.md'),
+    ]
+    return '\n\n'.join(part.rstrip() for part in parts)+'\n'
 def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
     valid=set(reg); diseases=[r['schema_disease'] for r in diagnosis['who5']['diagnoses']]; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),diseases)
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml'); validator={'prognosis':schema_validation.validate_prognosis,'treatment':schema_validation.validate_treatment,'biomarker':schema_validation.validate_biomarker,'germline':schema_validation.validate_germline}[domain]
-    prompt=_read(PROMPTS/f'{domain}.md')+'\n\n# Variant registry\n```yaml\n'+_variant_context(reg)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Authoritative diagnosis\n```yaml\n'+yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate evidence cards\n'+_render_cards(cards)
-    system_prompt=None
-    if domain=='germline':
-        system_prompt=(
-            'You are executing the germline-classification step of a clinical NGS reporting workflow. '
-            'Use the supplied case and your clinical knowledge to decide whether each gene is a recognised germline-predisposition gene and whether the observed VAF is compatible with germline origin. '
-            'Candidate evidence cards are not exhaustive, so absence of a germline card is not a reason to classify a variant as uncertain. '
-            'Do not search the web or consult outside literature during this call. Evidence substantiation is handled later. Return exactly the requested artifact.'
-        )
-    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:validator(t,valid),profile=profile,system_prompt=system_prompt,proforma=True)
+    prompt=_ptbg_prompt_text(domain)+'\n# Variant registry\n```yaml\n'+_variant_context(reg)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Authoritative diagnosis\n```yaml\n'+yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate evidence cards\n'+_render_cards(cards)
+    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:validator(t,valid),profile=profile,proforma=True)
     return yaml.safe_load(_read(out)),cards
 
 def _schema_elements(diagnosis,domains):

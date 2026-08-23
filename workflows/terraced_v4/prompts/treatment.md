@@ -2,8 +2,6 @@
 
 Discuss EVERY supplied variant ID. A variant may have multiple distinct treatment effects. A variant with no supported treatment implication must appear in `no_effect`.
 
-Keep drug targeting and drug resistance separate.
-
 Return YAML only:
 ```yaml
 drug_target:

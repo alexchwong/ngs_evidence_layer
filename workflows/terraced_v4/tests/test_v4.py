@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 import yaml
 from workflows.terraced_v4 import pipeline_registry, schema_validation
 from workflows.terraced_v4 import step
@@ -444,3 +445,71 @@ def test_proforma_runs_five_real_syntax_attempts_then_full_fresh_rewrite(monkeyp
     second=[msgs for role,msgs in seen if role=='diagnosis'][1]
     assert all(m['role']!='assistant' for m in second)
     assert any('Regenerate the complete proforma from scratch' in m['content'] for m in second if m['role']=='user')
+
+
+def test_ptbg_prompt_injects_shared_and_domain_semantics():
+    expected={
+        'prognosis':'Do not infer one directly from the other.',
+        'treatment':'Poor prognosis is not drug resistance.',
+        'biomarker':'MRD suitability is a distinct clinical property.',
+        'germline':'VAF compatibility alone must never establish germline suspicion.',
+    }
+    for domain,needle in expected.items():
+        text=step._ptbg_prompt_text(domain)
+        assert '# Shared PTBG interpretation discipline' in text
+        assert needle in text
+        assert f'# Terraced-v4 {"biomarker/MRD" if domain == "biomarker" else domain} proforma' in text
+
+
+def test_ptbg_shared_rules_block_cross_domain_inference():
+    text=step._ptbg_prompt_text('biomarker')
+    assert 'does not by itself establish an effect in another domain' in text
+    assert 'recommendation to test the variant at diagnosis' in text
+    assert 'negative MRD evidence takes precedence' in text
+
+
+def test_germline_prompt_does_not_license_positive_calls_from_model_memory():
+    text=step._ptbg_prompt_text('germline')
+    assert 'do not make a positive `suspect` classification from model memory alone' in text
+    assert 'commonly somatically mutated in myeloid neoplasia' in text
+    assert 'CHIP or clonal haematopoiesis' in text
+    assert 'Use the supplied case and your clinical knowledge' not in text
+
+
+def test_stage_domain_uses_injected_prompt_without_germline_system_override(monkeypatch,tmp_path):
+    case={'variants':[]}
+    diagnosis={'who5':{'diagnoses':[{'schema_disease':'AML'}]}}
+    reg={'v01':{'gene':'DNMT3A','variant':'DNMT3A p.R882H'}}
+    monkeypatch.setattr(step.runtime,'case_genes',lambda case:['DNMT3A'])
+    monkeypatch.setattr(step,'_draw_domain_cards',lambda eligible,domain,genes,diseases:[])
+    captured={}
+    def fake_model_call(work,**kwargs):
+        captured.update(kwargs)
+        kwargs['output'].parent.mkdir(parents=True,exist_ok=True)
+        kwargs['output'].write_text('suspect: []\nuncertain: []\nnot_suspect: [v01]\nclinical_support: []\n')
+        return kwargs['output'].read_text()
+    monkeypatch.setattr(step,'_model_call',fake_model_call)
+    step.stage_domain(tmp_path,'germline',case,reg,diagnosis,[],profile='self')
+    assert '# Shared PTBG interpretation discipline' in captured['prompt']
+    assert '# Germline interpretation boundaries' in captured['prompt']
+    assert 'system_prompt' not in captured
+
+
+def test_ptbg_common_requires_affirmative_card_support_for_positive_effects():
+    text=(Path(__file__).resolve().parents[1]/'prompts'/'includes'/'ptbg_common.md').read_text(encoding='utf-8').lower()
+    assert 'a positive effect requires affirmative support from a supplied card' in text
+    assert 'absence of contrary evidence is not support' in text
+    assert 'do not use pretrained/model knowledge to create a positive effect' in text
+    assert 'do not themselves establish an external clinical effect' in text
+
+
+def test_biomarker_requires_affirmative_mrd_specific_support():
+    text=(Path(__file__).resolve().parents[1]/'prompts'/'includes'/'biomarker_semantics.md').read_text(encoding='utf-8').lower()
+    assert '`suitable_mrd` requires affirmative mrd-specific support' in text
+    assert 'diagnostic, prognostic, or technical-detectability evidence is insufficient' in text
+
+
+def test_evidence_audit_treats_cross_domain_same_gene_card_as_mismatch():
+    text=(Path(__file__).resolve().parents[1]/'prompts'/'evidence_audit.md').read_text(encoding='utf-8').lower()
+    assert 'a card supporting a different clinical use of the same gene' in text
+    assert 'is an obvious mismatch' in text
