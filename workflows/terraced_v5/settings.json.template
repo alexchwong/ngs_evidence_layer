@@ -1,0 +1,114 @@
+{
+  "schema_version": 2,
+  "pipeline": "self",
+  "retries": {
+    "fatal_model_attempts": 10,
+    "syntax_repair_attempts": 5,
+    "proforma_rewrite_attempts": 3,
+    "semantic_proforma_regenerations": 2,
+    "statement_generation_attempts": 3,
+    "statement_audit_attempts": 3,
+    "statement_regenerations": 2,
+    "evidence_match_rounds": 3,
+    "evidence_match_model_attempts": 3,
+    "evidence_audit_model_attempts": 3,
+    "summary_plan_attempts": 2,
+    "summary_plan_audit_attempts": 2,
+    "summary_plan_regenerations": 2,
+    "paraphrase_attempts": 2,
+    "paraphrase_audit_attempts": 2,
+    "paraphrase_regenerations": 2,
+    "summary_plan_fragmentation_regenerations": 1
+  },
+  "diagnosis": {
+    "who5": {
+      "publication_keys": [
+        "khoury-2022-leukemia-36-1703"
+      ],
+      "max_cmc_passes": 2,
+      "supply_cards_to_proforma": true
+    },
+    "icc": {
+      "publication_keys": [
+        "arber-2022-blood-140-1200"
+      ],
+      "supply_cards_to_proforma": true
+    },
+    "other": {
+      "publication_keys": [],
+      "supply_cards_to_proforma": false
+    }
+  },
+  "ptbg": {
+    "domains": {
+      "prognosis": {
+        "card_category": "prognosis",
+        "positive_buckets": [
+          "favorable",
+          "adverse",
+          "other"
+        ],
+        "overall_requires_evidence": true
+      },
+      "treatment": {
+        "card_category": "treatment",
+        "positive_buckets": [
+          "drug_target",
+          "drug_resistance",
+          "other"
+        ]
+      },
+      "biomarker": {
+        "card_category": "biomarker",
+        "positive_buckets": [
+          "suitable_mrd"
+        ]
+      },
+      "germline": {
+        "card_category": "germline",
+        "positive_buckets": [
+          "suspect"
+        ]
+      }
+    }
+  },
+  "reportability": {
+    "semantic_unresolved": "suppress_and_log",
+    "positive_ptbg_unresolved_evidence": "suppress_and_log"
+  },
+  "summary": {
+    "domain_order": [
+      "diagnosis",
+      "prognosis",
+      "treatment",
+      "biomarker",
+      "germline"
+    ],
+    "allow_cross_domain_merge": false,
+    "prefer_fewest_readable_sentences": true
+  },
+  "prompts": {
+    "structure_case": "structure_case.md",
+    "diagnosis_who5": "diagnosis_who5.md",
+    "diagnosis_icc": "diagnosis_icc.md",
+    "diagnosis_other": "diagnosis_other.md",
+    "prognosis": "prognosis.md",
+    "treatment": "treatment.md",
+    "biomarker": "biomarker.md",
+    "germline": "germline.md",
+    "statement_generation": "statement_generation.md",
+    "statement_audit": "statement_audit.md",
+    "evidence_match": "evidence_match.md",
+    "evidence_audit": "evidence_audit.md",
+    "summary_plan": "summary_plan.md",
+    "summary_plan_audit": "summary_plan_audit.md",
+    "paraphrase": "paraphrase.md",
+    "paraphrase_audit": "paraphrase_audit.md"
+  },
+  "reporting": {
+    "variant_display_fields": [
+      "description",
+      "gene"
+    ]
+  }
+}

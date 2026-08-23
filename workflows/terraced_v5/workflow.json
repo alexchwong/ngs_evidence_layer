@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "workflow_id": "terraced-v5",
+  "python_package": "workflows.terraced_v5",
+  "entrypoints": {
+    "runtime": "runtime"
+  },
+  "skill": "workflows/terraced_v5/SKILL.md",
+  "pipeline": "workflows/terraced_v5/pipelines/self.yaml",
+  "supported_modes": [
+    "ngs-report",
+    "nel-demo",
+    "nel-validate",
+    "nel-validate-function",
+    "nel-validate-brief"
+  ],
+  "status": "experimental",
+  "cloned_from": "terraced-v4",
+  "architecture": "proforma-statement-audit-evidence-audit-block-paraphrase"
+}
