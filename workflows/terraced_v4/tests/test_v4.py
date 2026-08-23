@@ -1,6 +1,7 @@
 from __future__ import annotations
 import yaml
 from workflows.terraced_v4 import pipeline_registry, schema_validation
+from workflows.terraced_v4 import step
 
 
 def test_pipelines_load():
@@ -37,3 +38,26 @@ def test_germline_requires_clinical_support_for_suspect_or_uncertain():
 def test_evidence_match_does_not_validate_quote_exactness():
     text=yaml.safe_dump({'card_id':'C1','source':'IPSS-M','quote':'slightly normalized wording'})
     assert 'valid' in schema_validation.validate_evidence_match(text,{'C1'})
+
+
+def test_evidence_audit_requires_actionable_comment_for_obvious_mismatch():
+    text=yaml.safe_dump({'obvious_mismatch':True,'risk':'none','comments':[]})
+    try: schema_validation.validate_evidence_audit(text)
+    except ValueError as exc: assert 'actionable feedback' in str(exc)
+    else: raise AssertionError('expected missing-comment failure')
+
+
+def test_risk_log_is_idempotent_across_resume(tmp_path):
+    kwargs=dict(stage='evidence',risk_type='citation_fidelity',message='same concern',schema_element='PX-01',attempts=1,action='retained_pending_human_review',human_review='recommended')
+    first=step._risk(tmp_path,**kwargs); second=step._risk(tmp_path,**kwargs)
+    doc=yaml.safe_load((tmp_path/'logs'/'risk_log.yaml').read_text())
+    assert first==second=='R001'
+    assert len(doc['risks'])==1
+
+
+def test_summary_plan_audit_structure_and_fallback():
+    audit=yaml.safe_dump({'preserved':False,'issues':[{'target':'diagnosis-1','issue':'Dropped qualifying molecular basis.'}]})
+    assert 'valid' in step._validate_summary_plan_audit(audit)
+    statements=[{'statement_id':'S0001','domain':'diagnosis','statement':'Diagnosis A.','card_tags':[]},{'statement_id':'S0002','domain':'prognosis','statement':'Risk B.','card_tags':[]}]
+    plan=step._fallback_summary_plan(statements)
+    assert [x['source_statement_ids'] for x in plan['sentences']]==[['S0001'],['S0002']]

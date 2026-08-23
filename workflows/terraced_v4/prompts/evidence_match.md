@@ -12,6 +12,8 @@ Priorities:
 
 Do not rewrite the clinical reason to fit a card.
 
+On a rematch you may receive a previous citation-auditor concern. Treat it as useful but NON-AUTHORITATIVE feedback. Reconsider the stated problem. If the auditor appears wrong and the same card remains the closest semantic match, you may select that same card again; this will be surfaced for human review rather than forcing another semantic compromise.
+
 Return YAML only:
 ```yaml
 card_id: "exact supplied card_id"

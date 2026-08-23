@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Terraced-v4 prototype: proformas -> semantic evidence -> sentence planning -> report."""
 from __future__ import annotations
-import argparse, contextlib, hashlib, json, shutil, sys, tempfile, time, zipfile
+import argparse, contextlib, hashlib, io, json, shutil, sys, tempfile, time, zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 import yaml
@@ -77,10 +77,35 @@ def _risk_doc(work):
     if _risk_path(work).is_file(): return yaml.safe_load(_read(_risk_path(work))) or {'run_status':'completed','risks':[]}
     return {'run_status':'completed','risks':[]}
 def _risk(work,*,stage,risk_type,message,severity='warning',schema_element=None,attempts=0,action='retained',human_review='recommended'):
-    d=_risk_doc(work); rows=d.setdefault('risks',[]); rid=f'R{len(rows)+1:03d}'
-    rows.append({'id':rid,'stage':stage,'schema_element':schema_element,'severity':severity,'type':risk_type,'message':message,'action_taken':action,'attempts':attempts,'human_review':human_review})
+    d=_risk_doc(work); rows=d.setdefault('risks',[])
+    payload={'stage':stage,'schema_element':schema_element,'severity':severity,'type':risk_type,'message':message,'action_taken':action,'attempts':attempts,'human_review':human_review}
+    # Self handoffs replay completed Python stages. Risk logging must therefore be
+    # idempotent: the same resolved event may be encountered many times while a
+    # later model call is pending, but it is still one risk.
+    for row in rows:
+        if all(row.get(k)==v for k,v in payload.items()): return row.get('id')
+    rid=f'R{len(rows)+1:03d}'
+    rows.append({'id':rid,**payload})
     if severity in {'warning','error'}: d['run_status']='completed_with_risks'
     _write(_risk_path(work),yaml.safe_dump(d,sort_keys=False,allow_unicode=True,width=110))
+    return rid
+
+def _progress_path(work): return layout.logs(work)/'progress.json'
+def _log_once(work,key,msg,*,raw=False):
+    """Log one diagnostic or stage message once across self-handoff resumes."""
+    p=_progress_path(work); doc={'announced':[]}
+    if p.is_file():
+        try: doc=json.loads(_read(p))
+        except (json.JSONDecodeError,TypeError): doc={'announced':[]}
+    announced=doc.setdefault('announced',[])
+    if key in announced: return
+    if raw: print(msg,file=sys.stderr)
+    else: _status(msg)
+    announced.append(key); _write(p,json.dumps(doc,indent=2,ensure_ascii=False)+'\n')
+
+def _stage_status(work,key,msg):
+    """Log each coarse workflow stage once across self-handoff resumes."""
+    _log_once(work,key,msg)
 
 def _render_bundle(call_id,messages,output,error=None):
     out=[f'# Terraced-v4 model operation — {call_id}','']
@@ -109,9 +134,9 @@ def _prepare_structured(work,raw,fmt,call_id,syntax_binding):
     result=syntax_repair.repair_structured_output(raw,format_name=fmt,model_repair=_syntax_callback(work,syntax_binding,call_id),model_attempts=attempts)
     return result.text
 
-def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',fatal=True,max_attempts=None,feedback=None):
+def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',fatal=True,max_attempts=None,feedback=None,system_prompt=None):
     binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair'); root=layout.model_step_dir(work,call_id,existing=False)
-    messages=[{'role':'system','content':model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
+    messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
     attempts=int(max_attempts or (load_settings().get('fatal_attempts',10) if fatal else 3)); previous=None; last_error=feedback or ''
     self_count_path=root/'self-attempt-count.json'
     self_count=0
@@ -208,7 +233,17 @@ def stage_structure(work,profile):
 
 def stage_corpus(work):
     p=_manifest_path(work)
-    all_cards,eligible,digest,manifest=_load_corpus()
+    # Core corpus loading emits useful retrieval diagnostics to stderr.  A self
+    # handoff re-enters this deterministic stage many times, so capture those
+    # diagnostics and publish each distinct line only once per run.
+    captured=io.StringIO()
+    with contextlib.redirect_stderr(captured):
+        all_cards,eligible,digest,manifest=_load_corpus()
+    for line in captured.getvalue().splitlines():
+        line=line.strip()
+        if line:
+            key='corpus-diagnostic-'+hashlib.sha256(line.encode('utf-8')).hexdigest()[:16]
+            _log_once(work,key,line,raw=True)
     if not p.is_file(): _write(p,json.dumps(manifest,indent=2,ensure_ascii=False)+'\n')
     return all_cards,eligible,digest,manifest
 
@@ -269,7 +304,15 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
     valid=set(reg); diseases=[r['schema_disease'] for r in diagnosis['who5']['diagnoses']]; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),diseases)
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml'); validator={'prognosis':schema_validation.validate_prognosis,'treatment':schema_validation.validate_treatment,'biomarker':schema_validation.validate_biomarker,'germline':schema_validation.validate_germline}[domain]
     prompt=_read(PROMPTS/f'{domain}.md')+'\n\n# Variant registry\n```yaml\n'+_variant_context(reg)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Authoritative diagnosis\n```yaml\n'+yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate evidence cards\n'+_render_cards(cards)
-    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:validator(t,valid),profile=profile)
+    system_prompt=None
+    if domain=='germline':
+        system_prompt=(
+            'You are executing the germline-classification step of a clinical NGS reporting workflow. '
+            'Use the supplied case and your clinical knowledge to decide whether each gene is a recognised germline-predisposition gene and whether the observed VAF is compatible with germline origin. '
+            'Candidate evidence cards are not exhaustive, so absence of a germline card is not a reason to classify a variant as uncertain. '
+            'Do not search the web or consult outside literature during this call. Evidence substantiation is handled later. Return exactly the requested artifact.'
+        )
+    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:validator(t,valid),profile=profile,system_prompt=system_prompt)
     return yaml.safe_load(_read(out)),cards
 
 def _schema_elements(diagnosis,domains):
@@ -323,11 +366,21 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
             if not candidates:
                 _risk(work,stage='evidence',risk_type='no_candidate_cards',message='No candidate evidence cards were available for this reason.',schema_element=el['schema_id'],action='continued_without_resolved_evidence',human_review='required')
                 row['evidence'].append({'reason':reason,'status':'unresolved','card_id':None,'card_tag':None,'source':None,'quote':None,'audit':None}); continue
-            excluded=set(); chosen=None; audit=None; max_sem=int(load_settings().get('evidence_match_attempts',3))
+            chosen=None; audit=None; max_sem=int(load_settings().get('evidence_match_attempts',3)); previous_objection=None; previous_card_id=None; retained_after_disagreement=False
             for attempt in range(1,max_sem+1):
-                available=[c for c in candidates if c.get('card_id') not in excluded] or candidates
+                available=list(candidates)
                 out=_artifact(work,'evidence_matches',f'{el["schema_id"]}-reason-{ri:02d}-match-{attempt:02d}.yaml',new=True)
-                prompt=_read(PROMPTS/'evidence_match.md')+'\n\n# Clinical schema element\n```yaml\n'+yaml.safe_dump({'schema_id':el['schema_id'],'proposition':el['proposition'],'reason':reason},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate cards\n'+_render_cards(available)
+                feedback=''
+                if previous_objection:
+                    feedback=(
+                        '\n\n# Previous citation-auditor concern — non-authoritative\n'
+                        f'The previous matcher selected `{previous_card_id}`. The citation auditor raised this concern:\n'
+                        +previous_objection+
+                        '\nReconsider the match in light of this concern. The auditor can be wrong. '
+                        'You MAY select the same card again if, after considering the stated concern, it remains the best semantic match. '
+                        'Do not rewrite the clinical reason merely to satisfy the auditor.\n'
+                    )
+                prompt=_read(PROMPTS/'evidence_match.md')+'\n\n# Clinical schema element\n```yaml\n'+yaml.safe_dump({'schema_id':el['schema_id'],'proposition':el['proposition'],'reason':reason},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate cards\n'+_render_cards(available)+feedback
                 try:
                     _model_call(work,call_id=f'evidence-match-{el["schema_id"]}-r{ri:02d}-a{attempt}',role='evidence_match',prompt=prompt,output=out,validator=lambda t,ids={c['card_id'] for c in available}:schema_validation.validate_evidence_match(t,ids),profile=profile,fatal=False,max_attempts=3)
                 except StepFailure as exc:
@@ -344,10 +397,16 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
                     _risk(work,stage='evidence',risk_type='citation_audit_unavailable',message=str(exc),schema_element=el['schema_id'],attempts=attempt,action='retained_match_without_successful_audit',human_review='recommended')
                 if audit['risk']=='warning': _risk(work,stage='evidence',risk_type='citation_fidelity',message='; '.join(audit['comments']) or 'Citation auditor flagged a fidelity concern.',schema_element=el['schema_id'],attempts=attempt,action='retained_pending_human_review',human_review='recommended')
                 if not audit['obvious_mismatch']: break
-                excluded.add(chosen['card_id']); _risk(work,stage='evidence',risk_type='obvious_citation_mismatch',message='; '.join(audit['comments']) or f'Citation auditor rejected {chosen["card_id"]} as an obvious mismatch.',schema_element=el['schema_id'],attempts=attempt,action='rematched' if attempt<max_sem else 'continued_unresolved',human_review='recommended' if attempt<max_sem else 'required')
-            if chosen is None or (audit and audit['obvious_mismatch']):
+                objection='; '.join(audit['comments']) or f'Citation auditor flagged {chosen["card_id"]} as an obvious mismatch without a detailed comment.'
+                if previous_objection is not None and chosen['card_id']==previous_card_id:
+                    retained_after_disagreement=True
+                    _risk(work,stage='evidence',risk_type='citation_auditor_disagreement',message=f'Matcher re-selected {chosen["card_id"]} after being shown the auditor concern: {objection}',schema_element=el['schema_id'],attempts=attempt,action='retained_after_matcher_reaffirmation',human_review='required')
+                    break
+                _risk(work,stage='evidence',risk_type='obvious_citation_mismatch',message=objection,schema_element=el['schema_id'],attempts=attempt,action='rematched_with_auditor_feedback' if attempt<max_sem else 'continued_unresolved',human_review='recommended' if attempt<max_sem else 'required')
+                previous_objection=objection; previous_card_id=chosen['card_id']
+            if chosen is None or (audit and audit['obvious_mismatch'] and not retained_after_disagreement):
                 row['evidence'].append({'reason':reason,'status':'unresolved','card_id':chosen.get('card_id') if chosen else None,'card_tag':None,'source':chosen.get('source') if chosen else None,'quote':chosen.get('quote') if chosen else None,'audit':audit}); continue
-            row['evidence'].append({'reason':reason,'status':'matched','card_id':chosen['card_id'],'card_tag':f'[card:{tag_by_id[chosen["card_id"]]}]','source':chosen['source'],'quote':chosen['quote'],'audit':audit})
+            row['evidence'].append({'reason':reason,'status':'matched','card_id':chosen['card_id'],'card_tag':f'[card:{tag_by_id[chosen["card_id"]]}]','source':chosen['source'],'quote':chosen['quote'],'audit':audit,'resolution':'auditor_disagreement_retained' if retained_after_disagreement else 'accepted'})
         enriched.append(row)
     _write(_existing_or_new(work,'evidence_enriched','schema-elements.yaml'),yaml.safe_dump({'elements':enriched},sort_keys=False,allow_unicode=True,width=110)); return enriched
 
@@ -371,22 +430,63 @@ def _validate_para_audit(text):
     if d['preserved'] and d['issue'] is not None: raise ValueError('preserved=true requires issue: null')
     if not d['preserved'] and (not isinstance(d['issue'],str) or not d['issue'].strip()): raise ValueError('preserved=false requires non-empty issue')
     return 'paraphrase audit structurally valid'
+
+def _validate_summary_plan_audit(text):
+    d=yaml.safe_load(text)
+    if not isinstance(d,dict) or set(d)!={'preserved','issues'} or not isinstance(d['preserved'],bool): raise ValueError('summary-plan audit requires preserved:boolean and issues:list')
+    issues=d['issues']
+    if not isinstance(issues,list): raise ValueError('summary-plan audit issues must be a list')
+    for i,row in enumerate(issues):
+        if not isinstance(row,dict) or set(row)!={'target','issue'}: raise ValueError(f'summary-plan audit issues[{i}] requires target and issue')
+        if not isinstance(row['target'],str) or not row['target'].strip(): raise ValueError(f'summary-plan audit issues[{i}].target must be non-empty')
+        if not isinstance(row['issue'],str) or not row['issue'].strip(): raise ValueError(f'summary-plan audit issues[{i}].issue must be non-empty')
+    if d['preserved'] and issues: raise ValueError('summary-plan audit preserved=true requires issues: []')
+    if not d['preserved'] and not issues: raise ValueError('summary-plan audit preserved=false requires at least one issue')
+    return 'summary-plan audit structurally valid'
+
+def _fallback_summary_plan(statements):
+    counts={}; sentences=[]; dispositions=[]
+    for statement in statements:
+        dispositions.append({'statement_id':statement['statement_id'],'decision':'include','reason':None})
+        domain=statement['domain']; counts[domain]=counts.get(domain,0)+1
+        sentences.append({'sentence_id':f'{domain}-{counts[domain]}','domain':domain,'source_statement_ids':[statement['statement_id']],'draft_sentence':statement['statement']})
+    plan={'dispositions':dispositions,'sentences':sentences}; runtime.validate_summary_plan_doc(plan,statements); return plan
+
 def stage_summary(work,statements,profile):
     plan_path=_existing_or_new(work,'summary','summary-plan.yaml')
-    prompt=_read(PROMPTS/'summary_plan.md')+'\n\n# Reportable sentences\n```yaml\n'+yaml.safe_dump(statements,sort_keys=False,allow_unicode=True,width=110)+'```\n'
-    try:
-        _model_call(work,call_id='summary-plan',role='summarization',prompt=prompt,output=plan_path,validator=lambda t:runtime.validate_summary_plan_text(t,statements),profile=profile,fatal=False,max_attempts=2)
-        plan=yaml.safe_load(_read(plan_path))
-    except StepFailure as exc:
-        counts={}; sentences=[]; dispositions=[]
-        for statement in statements:
-            dispositions.append({'statement_id':statement['statement_id'],'decision':'include','reason':None})
-            domain=statement['domain']; counts[domain]=counts.get(domain,0)+1
-            sentences.append({'sentence_id':f'{domain}-{counts[domain]}','domain':domain,'source_statement_ids':[statement['statement_id']],'draft_sentence':statement['statement']})
-        plan={'dispositions':dispositions,'sentences':sentences}
-        runtime.validate_summary_plan_doc(plan,statements)
+    plan_status=_existing_or_new(work,'summary','summary-plan-status.json')
+    if plan_path.is_file() and plan_status.is_file():
+        plan=yaml.safe_load(_read(plan_path)); runtime.validate_summary_plan_doc(plan,statements)
+    else:
+        max_plan=int(load_settings().get('summary_plan_repair_attempts',2)); plan=None; last_issue=None; structural_issue=None
+        for attempt in range(1,max_plan+1):
+            attempt_path=_artifact(work,'summary',f'summary-plan-attempt-{attempt:02d}.yaml',new=True)
+            feedback=('\n\n# Previous semantic-preservation audit feedback\n'+last_issue+'\nRepair the plan so every retained material proposition survives.\n' if last_issue else '')
+            prompt=_read(PROMPTS/'summary_plan.md')+'\n\n# Reportable sentences\n```yaml\n'+yaml.safe_dump(statements,sort_keys=False,allow_unicode=True,width=110)+'```\n'+feedback
+            try:
+                _model_call(work,call_id=f'summary-plan-a{attempt}',role='summarization',prompt=prompt,output=attempt_path,validator=lambda t:runtime.validate_summary_plan_text(t,statements),profile=profile,fatal=False,max_attempts=2)
+                candidate=yaml.safe_load(_read(attempt_path)); structural_issue=None
+            except StepFailure as exc:
+                structural_issue=str(exc); last_issue=structural_issue
+                continue
+            audit_path=_artifact(work,'summary',f'summary-plan-audit-attempt-{attempt:02d}.yaml',new=True)
+            audit_prompt=_read(PROMPTS/'summary_plan_audit.md')+'\n\n# Source reportable sentences\n```yaml\n'+yaml.safe_dump(statements,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Proposed combination plan\n```yaml\n'+yaml.safe_dump(candidate,sort_keys=False,allow_unicode=True,width=110)+'```\n'
+            try:
+                _model_call(work,call_id=f'summary-plan-audit-a{attempt}',role='semantic_preservation_check',prompt=audit_prompt,output=audit_path,validator=_validate_summary_plan_audit,profile=profile,fatal=False,max_attempts=2)
+                audit=yaml.safe_load(_read(audit_path))
+            except StepFailure as exc:
+                _risk(work,stage='summarization',risk_type='summary_plan_audit_unavailable',message=str(exc),attempts=attempt,action='fell_back_to_one_sentence_per_reportable_statement',human_review='recommended')
+                plan=_fallback_summary_plan(statements); break
+            if audit['preserved']:
+                plan=candidate; break
+            last_issue='; '.join(f'{x["target"]}: {x["issue"]}' for x in audit['issues'])
+            _risk(work,stage='summarization',risk_type='summary_plan_semantic_preservation',message=last_issue,schema_element='summary-plan',attempts=attempt,action='replanned_with_audit_feedback' if attempt<max_plan else 'fell_back_to_one_sentence_per_reportable_statement',human_review='optional' if attempt<max_plan else 'recommended')
+        if plan is None:
+            plan=_fallback_summary_plan(statements)
+            msg=last_issue or structural_issue or 'Summary-plan generation did not produce an auditable semantics-preserving plan.'
+            _risk(work,stage='summarization',risk_type='summary_plan_failure',message=msg,attempts=max_plan,action='fell_back_to_one_sentence_per_reportable_statement',human_review='optional')
         _write(plan_path,yaml.safe_dump(plan,sort_keys=False,allow_unicode=True,width=110))
-        _risk(work,stage='summarization',risk_type='summary_plan_failure',message=str(exc),attempts=2,action='fell_back_to_one_sentence_per_reportable_statement',human_review='optional')
+        _write(plan_status,json.dumps({'status':'audited_or_safe_fallback'},indent=2)+'\n')
     items=runtime.paraphrase_items(plan,statements); paras=[]; max_sem=int(load_settings().get('paraphrase_repair_attempts',2))
     for item in items:
         accepted=None; last_issue=None
@@ -437,15 +537,15 @@ def stage_final(work,case,summary,elements,all_cards,digest,manifest):
 
 def run_pipeline(work,profile=None):
     _require_work(work); layout.ensure_dirs(work)
-    _status('Stage 1 of 9 — structure case'); case,reg=stage_structure(work,profile)
-    _status('Stage 2 of 9 — initialise corpus'); all_cards,eligible,digest,manifest=stage_corpus(work)
-    _status('Stage 3 of 9 — diagnosis: two serial passes'); diagnosis,cmcs,diagnosis_cards=stage_diagnosis(work,case,eligible,profile)
+    _stage_status(work,'stage-1','Stage 1 of 9 — structure case'); case,reg=stage_structure(work,profile)
+    _stage_status(work,'stage-2','Stage 2 of 9 — initialise corpus'); all_cards,eligible,digest,manifest=stage_corpus(work)
+    _stage_status(work,'stage-3','Stage 3 of 9 — diagnosis: two serial passes'); diagnosis,cmcs,diagnosis_cards=stage_diagnosis(work,case,eligible,profile)
     domains={}; cards_by_domain={'diagnosis':diagnosis_cards}
     for idx,domain in enumerate(('prognosis','treatment','biomarker','germline'),4):
-        _status(f'Stage {idx} of 9 — {domain} proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,profile)
-    _status('Stage 8 of 9 — semantic evidence matching and report synthesis')
+        _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,profile)
+    _stage_status(work,'stage-8','Stage 8 of 9 — semantic evidence matching and report synthesis')
     elements=_schema_elements(diagnosis,domains); enriched=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile); statements=stage_reportable_sentences(work,enriched,profile); summary=stage_summary(work,statements,profile)
-    _status('Stage 9 of 9 — finalise report'); stage_final(work,case,summary,enriched,all_cards,digest,manifest); _status('terraced-v4 complete'); return EXIT_OK
+    _stage_status(work,'stage-9','Stage 9 of 9 — finalise report'); stage_final(work,case,summary,enriched,all_cards,digest,manifest); _stage_status(work,'complete','terraced-v4 complete'); return EXIT_OK
 
 def run_pipeline_setting(pid):
     if pid is not None:

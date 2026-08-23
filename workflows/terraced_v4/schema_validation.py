@@ -153,6 +153,8 @@ def validate_evidence_audit(text:str)->str:
     if not isinstance(d['obvious_mismatch'],bool): raise ValueError('evidence_audit.obvious_mismatch: expected boolean')
     if d['risk'] not in {'none','warning'}: raise ValueError('evidence_audit.risk: use none or warning')
     if not isinstance(d['comments'],list) or any(not isinstance(x,str) or not x.strip() for x in d['comments']): raise ValueError('evidence_audit.comments: expected list of non-empty strings (may be empty)')
+    if (d['obvious_mismatch'] or d['risk']=='warning') and not d['comments']:
+        raise ValueError('evidence_audit.comments: explain the specific mismatch or warning so any rematch receives actionable feedback')
     return 'evidence audit structurally valid'
 
 def validate_reportable_sentences(text:str, elements:list[dict])->str:

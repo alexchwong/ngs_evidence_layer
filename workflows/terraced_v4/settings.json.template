@@ -4,5 +4,6 @@
   "fatal_attempts": 10,
   "syntax_repair_attempts": 2,
   "evidence_match_attempts": 3,
-  "paraphrase_repair_attempts": 2
+  "paraphrase_repair_attempts": 2,
+  "summary_plan_repair_attempts": 2
 }
