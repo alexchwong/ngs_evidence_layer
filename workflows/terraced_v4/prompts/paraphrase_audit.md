@@ -1,9 +1,13 @@
-# Semantic-preservation audit
+# Batched semantic-preservation audit
 
-Compare the paraphrased sentence with the planned draft and source statements. Return `preserved: true` unless the paraphrase materially loses, reverses, overstates or adds a clinical proposition. Do not reject harmless wording/style differences.
+For EVERY supplied block, compare the paraphrased output sentence with all source parts in that block.
 
-Return YAML only:
+Return `preserved: true` unless the paraphrase materially loses, reverses, overstates or adds a clinical proposition. Do not reject harmless wording/style differences.
+
+Return YAML only, preserving block IDs and order:
 ```yaml
-preserved: true
-issue: null
+audits:
+  - block_id: diagnosis-1
+    preserved: true
+    issue: null
 ```

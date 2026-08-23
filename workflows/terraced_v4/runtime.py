@@ -39,49 +39,106 @@ def read_json(path:Path)->dict:
     if not isinstance(d,dict): raise ValueError(f'expected JSON object: {path}')
     return d
 
+def _type_name(v):
+    if v is None: return 'null'
+    if isinstance(v,bool): return 'boolean'
+    if isinstance(v,dict): return 'mapping'
+    if isinstance(v,list): return 'list'
+    if isinstance(v,str): return 'string'
+    if isinstance(v,int): return 'integer'
+    if isinstance(v,float): return 'number'
+    return type(v).__name__
+
+def _preview(v,limit=180):
+    text=repr(v); return text if len(text)<=limit else text[:limit-3]+'...'
+
+def _single_mapping_list(v): return isinstance(v,list) and len(v)==1 and isinstance(v[0],dict)
+def _single_scalar_mapping(v):
+    if not isinstance(v,dict) or len(v)!=1:return False
+    k,val=next(iter(v.items()))
+    scalar=lambda x: x is None or isinstance(x,(str,int,float,bool))
+    return scalar(k) and scalar(val)
+def _scalar_string_repairable(v): return _single_scalar_mapping(v) or isinstance(v,(bool,int,float)) or (isinstance(v,list) and len(v)==1 and isinstance(v[0],str))
+def _bool_repairable(v): return isinstance(v,str) and v.strip().lower() in {'true','false','yes','no'}
+
 def parse_yaml_mapping(text:str,context='YAML')->dict:
     try:d=yaml.safe_load(text)
     except yaml.YAMLError as exc: raise ValueError(f'{context}: invalid YAML: {exc}') from exc
-    if not isinstance(d,dict): raise ValueError(f'{context}: expected mapping')
+    if not isinstance(d,dict):
+        safe=_single_mapping_list(d)
+        fail(context,[ValidationIssue(context,f'expected mapping; received {_type_name(d)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required top-level mapping; this value cannot be safely repaired by syntax-only reserialization',repair_class='serialization' if safe else 'content',received=_preview(d),expected='mapping/object')])
     return d
 
 def _exact(issues,row,expected,path=''):
     if not isinstance(row,dict): return
-    if set(row)!=set(expected): issues.append(ValidationIssue(path or 'root',f'received fields {sorted(row)}',f'return exactly {sorted(expected)}'))
+    missing=sorted(set(expected)-set(row)); extra=sorted(set(row)-set(expected))
+    if missing or extra:
+        issues.append(ValidationIssue(path or 'root',f'missing fields {missing}; unexpected fields {extra}',f'return exactly {sorted(expected)}',repair_class='content',received=str(sorted(row)),expected=str(sorted(expected))))
 def _nonempty(v): return isinstance(v,str) and bool(v.strip())
 
 def validate_case_text(text:str)->str:
     try:d=json.loads(text)
     except json.JSONDecodeError as exc: raise ValueError(f'structured case: invalid JSON: {exc}') from exc
-    if not isinstance(d,dict): raise ValueError('structured case: expected object')
-    issues=[]; _exact(issues,d,{'provisional_disease','bootstrap_cmcs','variants','detected_variants_summary','case_facts'})
-    if not _nonempty(d.get('provisional_disease')): issues.append(ValidationIssue('provisional_disease','blank or not a string','return a source-faithful provisional disease description'))
+    issues=[]
+    if not isinstance(d,dict):
+        safe=_single_mapping_list(d)
+        issues.append(ValidationIssue('structured case',f'expected object; received {_type_name(d)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required top-level object from the case-structure proforma',repair_class='serialization' if safe else 'content',received=_preview(d),expected='object'))
+        d={}
+    _exact(issues,d,{'provisional_disease','bootstrap_cmcs','variants','detected_variants_summary','case_facts'})
+    provisional=d.get('provisional_disease')
+    if not _nonempty(provisional):
+        cls='serialization' if _scalar_string_repairable(provisional) else 'content'
+        fix='quote/reserialize the existing value as one string without changing its words' if cls=='serialization' else 'return a source-faithful provisional disease description'
+        issues.append(ValidationIssue('provisional_disease',f'expected non-empty string; received {_type_name(provisional)}',fix,repair_class=cls,received=_preview(provisional),expected='non-empty string'))
     cmcs=d.get('bootstrap_cmcs')
-    if not isinstance(cmcs,list) or not cmcs: issues.append(ValidationIssue('bootstrap_cmcs','must be a non-empty list','use one or more exact allowed CMC values'))
-    else:
-        for i,c in enumerate(cmcs):
-            if c not in vocab.CASE_MAJOR_CATEGORY_SET: issues.append(ValidationIssue(f'bootstrap_cmcs[{i}]',f'unknown CMC {c!r}','use an exact allowed CMC'))
-        if len(cmcs)!=len(set(cmcs)): issues.append(ValidationIssue('bootstrap_cmcs','contains duplicates','list each CMC once'))
+    if not isinstance(cmcs,list):
+        safe=isinstance(cmcs,str)
+        issues.append(ValidationIssue('bootstrap_cmcs',f'expected non-empty list; received {_type_name(cmcs)}','wrap the existing single CMC scalar in a JSON list without changing it' if safe else 'use one or more exact allowed CMC values as a list',repair_class='serialization' if safe else 'content',received=_preview(cmcs),expected='non-empty list of allowed CMC values'))
+        cmcs=[]
+    elif not cmcs:
+        issues.append(ValidationIssue('bootstrap_cmcs','list is empty','use one or more exact allowed CMC values',repair_class='content'))
+    for i,c in enumerate(cmcs):
+        if c not in vocab.CASE_MAJOR_CATEGORY_SET: issues.append(ValidationIssue(f'bootstrap_cmcs[{i}]',f'unknown CMC {c!r}',f'use an exact allowed CMC from {list(vocab.CASE_MAJOR_CATEGORIES)}',repair_class='content',received=repr(c),expected=str(list(vocab.CASE_MAJOR_CATEGORIES))))
+    scalar_cmcs=[c for c in cmcs if isinstance(c,str)]
+    if len(scalar_cmcs)!=len(set(scalar_cmcs)): issues.append(ValidationIssue('bootstrap_cmcs','contains duplicate CMC values','list each CMC once',repair_class='content'))
     variants=d.get('variants')
-    if not isinstance(variants,list): issues.append(ValidationIssue('variants','expected list','return every detected variant in case order')); variants=[]
+    if not isinstance(variants,list):
+        safe=isinstance(variants,dict)
+        issues.append(ValidationIssue('variants',f'expected list; received {_type_name(variants)}','wrap the existing single variant object in a JSON list without changing it' if safe else 'return every detected variant as a list of variant objects in case order',repair_class='serialization' if safe else 'content',received=_preview(variants),expected='list of variant objects')); variants=[]
     for i,row in enumerate(variants,1):
         path=f'variants[{i-1}]'
-        if not isinstance(row,dict): issues.append(ValidationIssue(path,'expected object','return variant_id, gene, description')); continue
+        if not isinstance(row,dict):
+            safe=_single_mapping_list(row)
+            issues.append(ValidationIssue(path,f'expected object; received {_type_name(row)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one variant object with variant_id, gene, and description',repair_class='serialization' if safe else 'content',received=_preview(row),expected='object')); continue
         _exact(issues,row,{'variant_id','gene','description'},path)
-        if row.get('variant_id')!=f'V{i}': issues.append(ValidationIssue(f'{path}.variant_id',f'received {row.get("variant_id")!r}',f'use sequential stable ID V{i}'))
-        if not _nonempty(row.get('gene')) or row['gene']!=row['gene'].upper(): issues.append(ValidationIssue(f'{path}.gene',f'invalid gene {row.get("gene")!r}','use uppercase reported gene symbol'))
-        if not _nonempty(row.get('description')): issues.append(ValidationIssue(f'{path}.description','blank','preserve complete variant description'))
+        if row.get('variant_id')!=f'V{i}': issues.append(ValidationIssue(f'{path}.variant_id',f'received {row.get("variant_id")!r}',f'use sequential stable ID V{i}',repair_class='content'))
+        gene=row.get('gene')
+        if not _nonempty(gene) or gene!=gene.upper(): issues.append(ValidationIssue(f'{path}.gene',f'invalid gene {gene!r}','use uppercase reported gene symbol',repair_class='content'))
+        desc=row.get('description')
+        if not _nonempty(desc):
+            cls='serialization' if _scalar_string_repairable(desc) else 'content'
+            issues.append(ValidationIssue(f'{path}.description',f'expected non-empty string; received {_type_name(desc)}','quote/reserialize the existing description as one string without changing its words' if cls=='serialization' else 'preserve complete variant description',repair_class=cls,received=_preview(desc),expected='non-empty string'))
     summary=d.get('detected_variants_summary')
-    if not _nonempty(summary) or '\n' in str(summary) or str(summary)!=str(summary).strip(): issues.append(ValidationIssue('detected_variants_summary','must be one non-empty physical line','return one clean source-faithful sentence'))
+    if not _nonempty(summary):
+        cls='serialization' if _scalar_string_repairable(summary) else 'content'
+        issues.append(ValidationIssue('detected_variants_summary',f'expected non-empty string; received {_type_name(summary)}','quote/reserialize the existing summary as one string without changing its words' if cls=='serialization' else 'return one clean source-faithful sentence',repair_class=cls,received=_preview(summary),expected='non-empty one-line string'))
+    elif '\n' in summary or summary!=summary.strip():
+        issues.append(ValidationIssue('detected_variants_summary','must be one clean physical line','reserialize the same summary on one physical line without changing its words',repair_class='serialization',received=_preview(summary),expected='one physical-line string'))
     facts=d.get('case_facts')
-    if not isinstance(facts,list): issues.append(ValidationIssue('case_facts','expected list','return case facts as a list')); facts=[]
+    if not isinstance(facts,list):
+        safe=isinstance(facts,dict)
+        issues.append(ValidationIssue('case_facts',f'expected list; received {_type_name(facts)}','wrap the existing single case-fact object in a JSON list without changing it' if safe else 'return case facts as a list of objects',repair_class='serialization' if safe else 'content',received=_preview(facts),expected='list')); facts=[]
     for i,row in enumerate(facts,1):
         path=f'case_facts[{i-1}]'
-        if not isinstance(row,dict): issues.append(ValidationIssue(path,'expected object','return fact_id, kind, value')); continue
+        if not isinstance(row,dict):
+            safe=_single_mapping_list(row); issues.append(ValidationIssue(path,f'expected object; received {_type_name(row)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one case-fact object with fact_id, kind, and value',repair_class='serialization' if safe else 'content',received=_preview(row),expected='object')); continue
         _exact(issues,row,{'fact_id','kind','value'},path)
-        if row.get('fact_id')!=f'C{i}': issues.append(ValidationIssue(f'{path}.fact_id',f'received {row.get("fact_id")!r}',f'use sequential C{i}'))
+        if row.get('fact_id')!=f'C{i}': issues.append(ValidationIssue(f'{path}.fact_id',f'received {row.get("fact_id")!r}',f'use sequential C{i}',repair_class='content'))
         for f in ('kind','value'):
-            if not _nonempty(row.get(f)): issues.append(ValidationIssue(f'{path}.{f}','blank','return non-empty source-faithful text'))
+            value=row.get(f)
+            if not _nonempty(value):
+                cls='serialization' if _scalar_string_repairable(value) else 'content'
+                issues.append(ValidationIssue(f'{path}.{f}',f'expected non-empty string; received {_type_name(value)}','quote/reserialize the existing value as one string without changing its words' if cls=='serialization' else 'return non-empty source-faithful text',repair_class=cls,received=_preview(value),expected='non-empty string'))
     fail('structured case',issues); return 'structured case validated'
 
 def case_genes(case:dict)->list[str]:
@@ -103,60 +160,128 @@ def derive_cmcs(doc:dict)->list[str]:
     return cmcs
 
 def validate_summary_plan_doc(doc:dict,statements:list[dict])->str:
-    issues=[]; _exact(issues,doc,{'dispositions','sentences'}); smap={s['statement_id']:s for s in statements}
-    disp=doc.get('dispositions');
-    if not isinstance(disp,list): issues.append(ValidationIssue('dispositions','expected list','return one disposition per statement')); disp=[]
-    if len(disp)!=len(statements): issues.append(ValidationIssue('dispositions',f'expected {len(statements)} rows, received {len(disp)}','return every statement exactly once in order'))
-    included=set(); omitted=set()
-    for i,s in enumerate(statements):
-        if i>=len(disp) or not isinstance(disp[i],dict): continue
-        r=disp[i]; path=f'dispositions[{i}]'; _exact(issues,r,{'statement_id','decision','reason'},path)
-        if r.get('statement_id')!=s['statement_id']: issues.append(ValidationIssue(f'{path}.statement_id',f'received {r.get("statement_id")!r}',f'copy {s["statement_id"]!r}'))
-        dec=r.get('decision')
-        if dec=='include': included.add(s['statement_id']);
-        elif dec=='omit': omitted.add(s['statement_id'])
-        else: issues.append(ValidationIssue(f'{path}.decision',f'invalid {dec!r}','use include or omit'))
-        if s.get('domain')=='diagnosis' and dec=='omit': issues.append(ValidationIssue(f'{path}.decision','diagnosis sentence cannot be omitted','include diagnosis statements'))
-        if dec=='include' and r.get('reason') is not None: issues.append(ValidationIssue(f'{path}.reason','include requires null','set reason: null'))
-        if dec=='omit' and not _nonempty(r.get('reason')): issues.append(ValidationIssue(f'{path}.reason','omit requires reason','state why omission is safe'))
-    rows=doc.get('sentences')
-    if not isinstance(rows,list) or not rows: issues.append(ValidationIssue('sentences','expected non-empty list','return ordered sentence plans')); rows=[]
-    represented=set(); counts={d:0 for d in DOMAIN_HEADINGS}; order={d:i for i,d in enumerate(DOMAIN_HEADINGS)}; last=-1; seen=set()
-    for i,r in enumerate(rows):
-        path=f'sentences[{i}]'
-        if not isinstance(r,dict): issues.append(ValidationIssue(path,'expected mapping','return sentence plan')); continue
-        _exact(issues,r,{'sentence_id','domain','source_statement_ids','draft_sentence'},path); domain=r.get('domain')
-        if domain not in DOMAIN_HEADINGS: issues.append(ValidationIssue(f'{path}.domain',f'invalid {domain!r}',f'use one of {list(DOMAIN_HEADINGS)}'))
+    issues=[]
+    if not isinstance(doc,dict):
+        safe=_single_mapping_list(doc)
+        issues.append(ValidationIssue('summary plan',f'expected mapping; received {_type_name(doc)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required mapping with dispositions and parts',repair_class='serialization' if safe else 'content',received=_preview(doc),expected='mapping')); doc={}
+    _exact(issues,doc,{'dispositions','parts'}); smap={s['statement_id']:s for s in statements}
+    disp=doc.get('dispositions')
+    if not isinstance(disp,list):
+        safe=isinstance(disp,dict)
+        issues.append(ValidationIssue('dispositions',f'expected list; received {_type_name(disp)}','wrap the existing single disposition mapping in a list without changing it' if safe else 'return one disposition mapping per statement',repair_class='serialization' if safe else 'content',received=_preview(disp),expected=f'list with {len(statements)} rows')); disp=[]
+    if len(disp)!=len(statements): issues.append(ValidationIssue('dispositions',f'expected {len(statements)} rows, received {len(disp)}','return every statement exactly once in order',repair_class='content'))
+    decisions={}
+    for i,srow in enumerate(statements):
+        if i>=len(disp): continue
+        raw=disp[i]; path=f'dispositions[{i}]'
+        if not isinstance(raw,dict):
+            safe=_single_mapping_list(raw); issues.append(ValidationIssue(path,f'expected mapping; received {_type_name(raw)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one disposition mapping with statement_id, decision, and reason',repair_class='serialization' if safe else 'content',received=_preview(raw),expected='mapping')); continue
+        _exact(issues,raw,{'statement_id','decision','reason'},path)
+        if raw.get('statement_id')!=srow['statement_id']: issues.append(ValidationIssue(f'{path}.statement_id',f'received {raw.get("statement_id")!r}',f'copy {srow["statement_id"]!r}',repair_class='content'))
+        dec=raw.get('decision'); decisions[srow['statement_id']]=dec
+        if dec not in {'include','omit','split'}: issues.append(ValidationIssue(f'{path}.decision',f'invalid {dec!r}',"use exactly 'include', 'omit', or 'split'",repair_class='content'))
+        if srow.get('domain')=='diagnosis' and dec=='omit': issues.append(ValidationIssue(f'{path}.decision','diagnosis sentence cannot be omitted','use include or split for diagnosis statements',repair_class='content'))
+        if dec in {'include','split'} and raw.get('reason') is not None: issues.append(ValidationIssue(f'{path}.reason',f'{dec} requires null','set reason: null',repair_class='content'))
+        if dec=='omit' and not _nonempty(raw.get('reason')): issues.append(ValidationIssue(f'{path}.reason','omit requires reason','state why omission is safe',repair_class='content'))
+    parts=doc.get('parts')
+    if not isinstance(parts,list):
+        safe=isinstance(parts,dict)
+        issues.append(ValidationIssue('parts',f'expected list; received {_type_name(parts)}','wrap the existing single part mapping in a list without changing it' if safe else 'return the included/split statement parts as a list of mappings',repair_class='serialization' if safe else 'content',received=_preview(parts),expected='list')); parts=[]
+    occurrences={sid:[] for sid in smap}; group_domains={}
+    for i,raw in enumerate(parts):
+        path=f'parts[{i}]'
+        if not isinstance(raw,dict):
+            safe=_single_mapping_list(raw); issues.append(ValidationIssue(path,f'expected mapping; received {_type_name(raw)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one part mapping with statement_id, group, and split_text',repair_class='serialization' if safe else 'content',received=_preview(raw),expected='mapping')); continue
+        _exact(issues,raw,{'statement_id','group','split_text'},path); sid=raw.get('statement_id'); group=raw.get('group')
+        if sid not in smap: issues.append(ValidationIssue(f'{path}.statement_id',f'unknown {sid!r}','use one exact supplied statement ID',repair_class='content',expected=str(sorted(smap)))); continue
+        if not _nonempty(group):
+            cls='serialization' if group is not None and not isinstance(group,str) else 'content'; issues.append(ValidationIssue(f'{path}.group',f'expected non-empty string; received {_type_name(group)}','quote/reserialize the existing group label as one string' if cls=='serialization' else 'return a non-empty temporary group label',repair_class=cls,received=_preview(group),expected='non-empty string'))
         else:
-            if order[domain]<last: issues.append(ValidationIssue(f'{path}.domain','out of canonical section order','preserve diagnosis→prognosis→treatment→biomarker→germline'))
-            last=max(last,order[domain]); counts[domain]+=1; expected=f'{domain}-{counts[domain]}'
-            if r.get('sentence_id')!=expected: issues.append(ValidationIssue(f'{path}.sentence_id',f'received {r.get("sentence_id")!r}',f'use {expected!r}'))
-        if r.get('sentence_id') in seen: issues.append(ValidationIssue(f'{path}.sentence_id','duplicate','use each sentence ID once'))
-        seen.add(r.get('sentence_id')); draft=r.get('draft_sentence')
-        if not _nonempty(draft) or draft!=draft.strip() or '\n' in draft or not draft.endswith('.'): issues.append(ValidationIssue(f'{path}.draft_sentence','must be one complete physical-line sentence','return a self-contained sentence ending with a full stop'))
-        ids=r.get('source_statement_ids')
-        if not isinstance(ids,list) or not ids or len(ids)!=len(set(ids)): issues.append(ValidationIssue(f'{path}.source_statement_ids','invalid','list one or more unique included statement IDs')); continue
-        for sid in ids:
-            s=smap.get(sid)
-            if s is None: issues.append(ValidationIssue(f'{path}.source_statement_ids',f'unknown {sid!r}','use only supplied IDs')); continue
-            if sid in omitted: issues.append(ValidationIssue(f'{path}.source_statement_ids',f'{sid} is omitted','remove it or include it'))
-            if s['domain']!=domain: issues.append(ValidationIssue(f'{path}.source_statement_ids',f'{sid} belongs to {s["domain"]}','combine only same-domain sentences'))
-            represented.add(sid)
-    missing=sorted(included-represented)
-    if missing: issues.append(ValidationIssue('included statement coverage',f'missing {missing}','represent every included statement'))
+            domain=smap[sid]['domain']; prior=group_domains.get(group)
+            if prior is not None and prior!=domain: issues.append(ValidationIssue(f'{path}.group',f'group {group!r} mixes domains {prior!r} and {domain!r}','use a different group label; only same-domain statements may merge',repair_class='content'))
+            else: group_domains[group]=domain
+        occurrences[sid].append(raw)
+    for sid,statement in smap.items():
+        dec=decisions.get(sid); rows=occurrences.get(sid) or []
+        if dec=='omit' and rows: issues.append(ValidationIssue(f'parts for {sid}',f'omitted statement appears {len(rows)} time(s)','remove all parts for omitted statements',repair_class='content'))
+        if dec=='include':
+            if len(rows)!=1: issues.append(ValidationIssue(f'parts for {sid}',f'include requires exactly one part, received {len(rows)}','return exactly one part for the included statement',repair_class='content'))
+            elif rows[0].get('split_text') is not None: issues.append(ValidationIssue(f'parts for {sid}.split_text','include requires split_text: null','set split_text: null so Python uses the original sentence verbatim',repair_class='content'))
+        if dec=='split':
+            if len(rows)<2: issues.append(ValidationIssue(f'parts for {sid}',f'split requires at least two parts, received {len(rows)}','return two or more parts for the split statement',repair_class='content'))
+            for j,row in enumerate(rows):
+                value=row.get('split_text')
+                if not _nonempty(value):
+                    cls='serialization' if _scalar_string_repairable(value) else 'content'; issues.append(ValidationIssue(f'parts for {sid}[{j}].split_text',f'expected non-empty split text; received {_type_name(value)}','quote/reserialize the existing split text as one string without changing its words' if cls=='serialization' else 'state the semantic fragment assigned to this split part',repair_class=cls,received=_preview(value),expected='non-empty string'))
     fail('summarization plan',issues); return 'summarization plan validated'
+
 def validate_summary_plan_text(text:str,statements:list[dict])->str: return validate_summary_plan_doc(parse_yaml_mapping(text,'summary plan'),statements)
-def paraphrase_items(plan:dict,statements:list[dict])->list[dict]:
-    validate_summary_plan_doc(plan,statements); smap={s['statement_id']:s for s in statements}; counts={}
-    for r in plan['sentences']:
-        for sid in r['source_statement_ids']: counts[sid]=counts.get(sid,0)+1
-    return [{'sentence_id':r['sentence_id'],'domain':r['domain'],'draft_sentence':r['draft_sentence'],'source_statement_ids':list(r['source_statement_ids']),'source_statements':[{'statement_id':sid,'statement':smap[sid]['statement']} for sid in r['source_statement_ids']],'split_source_statement_ids':[sid for sid in r['source_statement_ids'] if counts.get(sid,0)>1]} for r in plan['sentences']]
-def validate_paraphrase_text(text:str,item:dict)->str:
-    d=parse_yaml_mapping(text,'paraphrase'); issues=[]; _exact(issues,d,{'sentence_id','sentence'})
-    if d.get('sentence_id')!=item['sentence_id']: issues.append(ValidationIssue('sentence_id',f'received {d.get("sentence_id")!r}',f'copy {item["sentence_id"]!r}'))
-    s=d.get('sentence')
-    if not _nonempty(s) or s!=s.strip() or '\n' in s or not s.endswith('.'): issues.append(ValidationIssue('sentence','must be one self-contained sentence ending with a full stop','return one physical-line sentence'))
-    fail('paraphrase',issues); return 'paraphrase validated'
+
+def build_summary_blocks(plan:dict,statements:list[dict])->list[dict]:
+    validate_summary_plan_doc(plan,statements); smap={s['statement_id']:s for s in statements}; order={s['statement_id']:i for i,s in enumerate(statements)}; domain_order={d:i for i,d in enumerate(DOMAIN_HEADINGS)}
+    groups={}
+    for part_index,part in enumerate(plan['parts']):
+        sid=part['statement_id']; statement=smap[sid]; key=(statement['domain'],part['group'])
+        text=statement['statement'] if part.get('split_text') is None else part['split_text']
+        groups.setdefault(key,[]).append({'statement_id':sid,'text':text,'split':part.get('split_text') is not None,'_part_index':part_index})
+    for parts in groups.values(): parts.sort(key=lambda p:(order[p['statement_id']],p['_part_index']))
+    sorted_groups=sorted(groups.items(),key=lambda kv:(domain_order[kv[0][0]],min(order[p['statement_id']] for p in kv[1]),min(p['_part_index'] for p in kv[1])))
+    counts={d:0 for d in DOMAIN_HEADINGS}; blocks=[]
+    for (domain,_group),parts in sorted_groups:
+        counts[domain]+=1; ids=[]
+        for p in parts:
+            if p['statement_id'] not in ids: ids.append(p['statement_id'])
+        clean_parts=[]
+        for p in parts:
+            q=dict(p); q.pop('_part_index',None); clean_parts.append(q)
+        blocks.append({'block_id':f'{domain}-{counts[domain]}','domain':domain,'source_statement_ids':ids,'source_parts':clean_parts})
+    return blocks
+
+def validate_paraphrase_batch_text(text:str,blocks:list[dict])->str:
+    d=parse_yaml_mapping(text,'paraphrase batch'); issues=[]; _exact(issues,d,{'sentences'}); rows=d.get('sentences')
+    if not isinstance(rows,list):
+        safe=isinstance(rows,dict)
+        issues.append(ValidationIssue('sentences',f'expected list; received {_type_name(rows)}','wrap the existing single sentence mapping in a list without changing it' if safe else 'return one sentence mapping per block',repair_class='serialization' if safe else 'content',received=_preview(rows),expected=f'list with {len(blocks)} rows')); rows=[]
+    if len(rows)!=len(blocks): issues.append(ValidationIssue('sentences',f'expected {len(blocks)} rows, received {len(rows)}','return exactly one sentence row for every supplied block, in the same order',repair_class='content'))
+    for i,raw in enumerate(rows):
+        path=f'sentences[{i}]'
+        if not isinstance(raw,dict):
+            safe=_single_mapping_list(raw); issues.append(ValidationIssue(path,f'expected mapping; received {_type_name(raw)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one mapping with block_id and sentence',repair_class='serialization' if safe else 'content',received=_preview(raw),expected='mapping')); continue
+        _exact(issues,raw,{'block_id','sentence'},path)
+        if i<len(blocks) and raw.get('block_id')!=blocks[i]['block_id']: issues.append(ValidationIssue(f'{path}.block_id',f'received {raw.get("block_id")!r}',f'copy {blocks[i]["block_id"]!r}',repair_class='content'))
+        sentence=raw.get('sentence')
+        if not _nonempty(sentence):
+            cls='serialization' if _scalar_string_repairable(sentence) else 'content'; issues.append(ValidationIssue(f'{path}.sentence',f'expected non-empty string; received {_type_name(sentence)}','quote/reserialize the existing sentence as one string without changing its words' if cls=='serialization' else 'return one self-contained sentence ending with a full stop',repair_class=cls,received=_preview(sentence),expected='one-line sentence'))
+        elif sentence!=sentence.strip() or '\n' in sentence: issues.append(ValidationIssue(f'{path}.sentence','must be one clean physical-line sentence','reserialize the same sentence on one physical line without changing its words',repair_class='serialization',received=_preview(sentence),expected='one physical-line sentence'))
+        elif not sentence.endswith('.'): issues.append(ValidationIssue(f'{path}.sentence','sentence does not end with a full stop','return one self-contained sentence ending with a full stop',repair_class='content'))
+    fail('paraphrase batch',issues); return 'paraphrase batch validated'
+
+def validate_paraphrase_audit_batch_text(text:str,blocks:list[dict])->str:
+    d=parse_yaml_mapping(text,'paraphrase audit batch'); issues=[]; _exact(issues,d,{'audits'}); rows=d.get('audits')
+    if not isinstance(rows,list):
+        safe=isinstance(rows,dict)
+        issues.append(ValidationIssue('audits',f'expected list; received {_type_name(rows)}','wrap the existing single audit mapping in a list without changing it' if safe else 'return one audit mapping per block',repair_class='serialization' if safe else 'content',received=_preview(rows),expected=f'list with {len(blocks)} rows')); rows=[]
+    if len(rows)!=len(blocks): issues.append(ValidationIssue('audits',f'expected {len(blocks)} rows, received {len(rows)}','return exactly one audit row for every supplied block, in the same order',repair_class='content'))
+    for i,raw in enumerate(rows):
+        path=f'audits[{i}]'
+        if not isinstance(raw,dict):
+            safe=_single_mapping_list(raw); issues.append(ValidationIssue(path,f'expected mapping; received {_type_name(raw)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one audit mapping with block_id, preserved, and issue',repair_class='serialization' if safe else 'content',received=_preview(raw),expected='mapping')); continue
+        _exact(issues,raw,{'block_id','preserved','issue'},path)
+        if i<len(blocks) and raw.get('block_id')!=blocks[i]['block_id']: issues.append(ValidationIssue(f'{path}.block_id',f'received {raw.get("block_id")!r}',f'copy {blocks[i]["block_id"]!r}',repair_class='content'))
+        preserved=raw.get('preserved')
+        if not isinstance(preserved,bool): issues.append(ValidationIssue(f'{path}.preserved',f'expected boolean; received {_type_name(preserved)}','serialize the existing true/false decision as a YAML boolean' if _bool_repairable(preserved) else 'return the required true/false decision',repair_class='serialization' if _bool_repairable(preserved) else 'content',received=_preview(preserved),expected='true or false'))
+        issue=raw.get('issue')
+        if preserved is True and issue is not None: issues.append(ValidationIssue(f'{path}.issue','preserved=true requires issue: null','set issue: null',repair_class='content'))
+        if preserved is False and not _nonempty(issue): issues.append(ValidationIssue(f'{path}.issue','preserved=false requires a non-empty explanation','state the specific semantic-preservation problem',repair_class='content'))
+    fail('paraphrase audit batch',issues); return 'paraphrase audit batch validated'
+
+def fallback_block_sentence(block:dict)->str:
+    texts=[]
+    for part in block.get('source_parts') or []:
+        text=str(part.get('text') or '').strip()
+        if text: texts.append(text.rstrip('.'))
+    return ('; '.join(texts).strip()+'.') if texts else 'Unresolved report block.'
+
 def deterministic_sentence_card_tags(ids:list[str],statements:list[dict])->list[str]:
     smap={s['statement_id']:s for s in statements}; out=[]
     for sid in ids:

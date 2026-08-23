@@ -11,5 +11,7 @@ unsuitable_mrd:
   - variants: [v02]
     reason: "why unsuitable for MRD"
 uncertain: []
-no_effect: []
+no_effect:
+  - v03
+# `no_effect` contains bare variant IDs only: no reason/effect mapping.
 ```

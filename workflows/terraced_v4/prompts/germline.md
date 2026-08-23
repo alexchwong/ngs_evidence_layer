@@ -20,7 +20,9 @@ suspect:
   - variants: [v01]
     reason: "known germline gene and VAF-compatible reasoning"
 uncertain: []
-not_suspect: []
+not_suspect:
+  - v02
+# `not_suspect` contains bare variant IDs only.
 clinical_support:
   - variants: [v01]
     support: "present | absent | unknown"

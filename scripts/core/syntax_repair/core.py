@@ -47,6 +47,7 @@ class SyntaxRepairAttempt:
     response: str
     parser_error: str | None = None
     preservation_error: str | None = None
+    validation_error: str | None = None
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,29 @@ class SyntaxRepairResult:
     deterministic_repairs: tuple[str, ...] = ()
     model_attempts: tuple[SyntaxRepairAttempt, ...] = ()
 
+
+
+
+class SchemaSerializationRepairExhausted(ValueError):
+    """A parsable artifact still violates representation-only schema constraints."""
+
+    def __init__(
+        self,
+        *,
+        format_name: str,
+        original: str,
+        candidate: str,
+        validation_error: str,
+        attempts: list[SyntaxRepairAttempt],
+    ):
+        self.format_name = format_name
+        self.original = original
+        self.candidate = candidate
+        self.validation_error = validation_error
+        self.attempts = list(attempts)
+        super().__init__(
+            f"{format_name.upper()} schema-serialization repair exhausted after {len(attempts)} model attempt(s): {validation_error}"
+        )
 
 class SyntaxRepairExhausted(ValueError):
     def __init__(
@@ -174,6 +198,156 @@ def reserialization_prompt(
         lines.extend(["", "Expected serialization/shape hint:", expected_schema.strip()])
     lines.extend(["", "Previous artifact:", broken_text.rstrip()])
     return "\n".join(lines).rstrip() + "\n"
+
+
+def schema_serialization_prompt(
+    *,
+    format_name: str,
+    broken_text: str,
+    validation_feedback: str,
+    preservation_feedback: str | None = None,
+    expected_schema: str | None = None,
+) -> str:
+    """Prompt a generic syntax model to repair parsable-but-mis-serialized data.
+
+    Unlike :func:`repair_prompt`, the input already parses.  Only YAML/JSON
+    representation may change; lexical informational content remains protected.
+    """
+    fmt = format_name.upper()
+    lines = [
+        f"Repair {fmt} serialization/shape only.",
+        "The artifact already parses, but deterministic schema validation shows that some existing content was serialized into the wrong YAML/JSON type or nesting.",
+        "Return only the repaired artifact.",
+        "",
+        "STRICT CONTENT INVARIANT:",
+        "Do not add, remove, correct, reinterpret, summarise, or otherwise change informational content.",
+        "Preserve every key and every scalar token exactly: diagnoses, decisions, numbers, identifiers, gene/variant text, VAFs, reasons, sources, quotes, citations, and IDs.",
+        f"You may change only {fmt} representation needed to satisfy the listed serialization defects: quoting, indentation, list markers/brackets, mapping/list nesting, scalar quoting, escaping, or physical-line layout.",
+        "Do NOT fix missing clinical content, invalid clinical choices, coverage gaps, unknown IDs, or semantic contradictions. Those belong to the originating task, not syntax repair.",
+        "Do not add commentary.",
+        "",
+        "Representation-only validation defects to fix:",
+        validation_feedback.strip(),
+    ]
+    if preservation_feedback:
+        lines.extend([
+            "",
+            "The prior serialization-repair attempt changed informational content and was rejected:",
+            preservation_feedback.strip(),
+            "Repair the ORIGINAL artifact below without those content changes.",
+        ])
+    if expected_schema:
+        lines.extend(["", "Expected serialization/shape hint:", expected_schema.strip()])
+    lines.extend(["", f"Current {fmt} artifact:", broken_text.rstrip()])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def repair_schema_serialization(
+    text: str,
+    *,
+    format_name: str,
+    validator: Callable[[str], str],
+    serialization_feedback: Callable[[Exception], str | None],
+    model_repair: Callable[[str, int], str] | None = None,
+    model_attempts: int = 2,
+    expected_schema: str | None = None,
+) -> SyntaxRepairResult:
+    """Repair schema *representation* errors without changing lexical content.
+
+    ``serialization_feedback`` returns a compact actionable error string when
+    the validator exception contains one or more representation-only defects,
+    otherwise ``None``.  The function stops once no representation-only defect
+    remains; ordinary content/coverage validation may still fail afterwards and
+    is intentionally left to the originating task.
+    """
+    adapter: SyntaxAdapter = adapter_for(format_name)
+    candidate, deterministic_repairs = adapter.deterministic_cleanup(text)
+    try:
+        adapter.parse(candidate)
+    except SyntaxParseError as exc:
+        raise ValueError("repair_schema_serialization requires already-parsable structured text") from exc
+
+    try:
+        validator(candidate)
+        return SyntaxRepairResult(
+            text=candidate, format_name=adapter.name, deterministic_repairs=tuple(deterministic_repairs)
+        )
+    except Exception as exc:
+        validation_feedback = serialization_feedback(exc)
+        if not validation_feedback:
+            return SyntaxRepairResult(
+                text=candidate, format_name=adapter.name, deterministic_repairs=tuple(deterministic_repairs)
+            )
+
+    if model_repair is None or model_attempts <= 0:
+        raise SchemaSerializationRepairExhausted(
+            format_name=adapter.name, original=text, candidate=candidate,
+            validation_error=validation_feedback, attempts=[]
+        )
+
+    attempts: list[SyntaxRepairAttempt] = []
+    preservation_feedback: str | None = None
+    original_candidate = candidate
+    current = candidate
+    for attempt_index in range(1, model_attempts + 1):
+        prompt = schema_serialization_prompt(
+            format_name=adapter.name,
+            broken_text=current,
+            validation_feedback=validation_feedback,
+            preservation_feedback=preservation_feedback,
+            expected_schema=expected_schema,
+        )
+        response = model_repair(prompt, attempt_index)
+        cleaned, _ = adapter.deterministic_cleanup(response)
+        changed = preservation_error(original_candidate, cleaned)
+        if changed:
+            preservation_feedback = changed
+            attempts.append(SyntaxRepairAttempt(
+                index=attempt_index, prompt=prompt, response=response, preservation_error=changed
+            ))
+            # Keep repairing from the last content-preserving artifact, not the
+            # content-changing response.
+            continue
+        try:
+            adapter.parse(cleaned)
+        except SyntaxParseError as exc:
+            validation_feedback = f"repair introduced parser error: {exc}"
+            preservation_feedback = None
+            attempts.append(SyntaxRepairAttempt(
+                index=attempt_index, prompt=prompt, response=response, parser_error=str(exc)
+            ))
+            current = cleaned
+            continue
+
+        current = cleaned
+        preservation_feedback = None
+        try:
+            validator(current)
+        except Exception as exc:
+            next_feedback = serialization_feedback(exc)
+            if next_feedback:
+                validation_feedback = next_feedback
+                attempts.append(SyntaxRepairAttempt(
+                    index=attempt_index, prompt=prompt, response=response, validation_error=next_feedback
+                ))
+                continue
+            # Representation defects are gone.  Remaining content/schema
+            # decisions intentionally flow back to the originating task.
+            attempts.append(SyntaxRepairAttempt(index=attempt_index, prompt=prompt, response=response))
+            return SyntaxRepairResult(
+                text=current, format_name=adapter.name,
+                deterministic_repairs=tuple(deterministic_repairs), model_attempts=tuple(attempts)
+            )
+        attempts.append(SyntaxRepairAttempt(index=attempt_index, prompt=prompt, response=response))
+        return SyntaxRepairResult(
+            text=current, format_name=adapter.name,
+            deterministic_repairs=tuple(deterministic_repairs), model_attempts=tuple(attempts)
+        )
+
+    raise SchemaSerializationRepairExhausted(
+        format_name=adapter.name, original=text, candidate=current,
+        validation_error=validation_feedback, attempts=attempts
+    )
 
 
 def repair_structured_output(

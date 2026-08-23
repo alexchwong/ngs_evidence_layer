@@ -1,9 +1,12 @@
-# Paraphrase one planned report sentence
+# Batched block paraphrasing
 
-Rewrite the planned sentence into one concise, clinically readable, self-contained report sentence. Preserve every semantic proposition represented by the supplied source statements; preserve disease/gene scope, polarity, uncertainty and authoritative qualifiers; add no new proposition; include no citations.
+For EVERY supplied block, write exactly ONE concise, clinically readable, self-contained report sentence.
 
-Return YAML only:
+Preserve ALL semantic information contained in every source part within that block. Preserve disease/gene scope, polarity, uncertainty, thresholds, classification basis and authoritative qualifiers. Do not add any proposition from another block. Do not add citations.
+
+Return YAML only, preserving block IDs and order:
 ```yaml
-sentence_id: "copy exact supplied sentence_id"
-sentence: "One self-contained sentence."
+sentences:
+  - block_id: diagnosis-1
+    sentence: "One self-contained sentence preserving every source proposition in this block."
 ```

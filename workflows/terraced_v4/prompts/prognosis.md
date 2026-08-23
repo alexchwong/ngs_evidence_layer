@@ -12,7 +12,9 @@ adverse:
     reason: "one discrete prognostic proposition"
 other: []
 uncertain: []
-no_effect: []
+no_effect:
+  - v02
+# `no_effect` contains bare variant IDs only: no variants/reason/source mapping.
 overall:
   classification: "named framework/tier, not calculable, not applicable, or uncertain"
   reason: "why this overall classification applies"

@@ -15,5 +15,9 @@ drug_resistance:
     therapy: "drug or drug class"
     reason: "why this variant predicts or confers resistance"
 other: []
-no_effect: []
+no_effect:
+  - v03
+  - v04
+# `no_effect` contains bare variant IDs only. Do not put `variants`, `therapy`,
+# or `reason` mappings under `no_effect`.
 ```
