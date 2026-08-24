@@ -9,6 +9,7 @@ those before the originating clinical task is asked to reconsider anything.
 from __future__ import annotations
 
 from typing import Any
+import re
 import yaml
 
 from scripts.core.validated_model_task import ValidationIssue, fail
@@ -441,11 +442,22 @@ def validate_prognosis(text: str, valid: set[str]) -> str:
     for bucket in ("favorable", "adverse", "other", "uncertain"):
         positive |= _effect_rows(d, bucket, valid, issues)
     _coverage(valid, positive, d.get("no_effect"), "prognosis", issues)
-    overall = _mapping(d.get("overall"), "overall", issues) if "overall" in d else None
+    overall = None
+    if "overall" in d and d.get("overall") is not None:
+        overall = _mapping(d.get("overall"), "overall", issues)
     if overall is not None:
         _exact(overall, {"classification", "reason"}, "overall", issues)
-        _text(overall.get("classification"), "overall.classification", issues)
-        _text(overall.get("reason"), "overall.reason", issues)
+        classification=overall.get("classification"); reason=overall.get("reason")
+        _text(classification, "overall.classification", issues)
+        _text(reason, "overall.reason", issues)
+        combined=f"{classification or ''} {reason or ''}"
+        if re.search(r"\b(?:not\s+calculable|cannot\s+be\s+calculated|unable\s+to\s+calculate|insufficient[^.;]{0,40}\b(?:calculate|score)|missing[^.;]{0,60}\b(?:variable|parameter))\b",combined,flags=re.IGNORECASE):
+            issues.append(ValidationIssue(
+                "overall",
+                "overall contains a score-availability/not-calculable statement",
+                "set overall: null; this workflow does not report inability to calculate an overall prognostic score",
+                repair_class="content",
+            ))
     fail("prognosis proforma", issues)
     return "prognosis proforma structurally valid"
 

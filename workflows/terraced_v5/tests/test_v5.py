@@ -879,3 +879,112 @@ def test_who5_and_icc_framework_labels_are_locked_in_diagnosis_statements():
             yaml.safe_dump({'statements':[{'schema_id':'DX-ICC-01','statement':'The diagnosis is Framework diagnosis.'}]}),
             icc,
         )
+
+
+def test_diagnosis_elements_are_sentence_form_and_framework_locked():
+    who={'diagnoses':[{'status':'established','diagnosis':'MDS with increased blasts-2 (MDS-IB2)','criteria':[]}]}
+    icc={'diagnoses':[{'status':'established','diagnosis':'MDS with increased blasts-2 (MDS-IB2)','criteria':[]}],
+         'comparison_with_who5':{'significantly_different':False,'explanation':'No material difference.'}}
+    wel=step._who5_elements(who,{}, {})[0]
+    iel=step._icc_elements(icc,{}, {})[0]
+    assert wel['proposition']=='Under WHO5, the diagnosis is MDS with increased blasts-2 (MDS-IB2).'
+    assert iel['proposition']=='Under ICC, the diagnosis is MDS with increased blasts-2 (MDS-IB2).'
+    assert wel['summary_role']==iel['summary_role']=='diagnosis_classification'
+    assert wel['locked_terms'][0]=='WHO5' and iel['locked_terms'][0]=='ICC'
+
+
+def test_summary_plan_requires_shared_summary_merge_key_to_merge():
+    statements=[
+        {'statement_id':'S0001','schema_id':'DX-W','domain':'diagnosis','summary_role':'diagnosis_classification','summary_merge_key':'diagnosis-concordant-01','statement':'Under WHO5, the diagnosis is X.','reason':'r','card_tags':[]},
+        {'statement_id':'S0002','schema_id':'DX-I','domain':'diagnosis','summary_role':'diagnosis_classification','summary_merge_key':'diagnosis-concordant-01','statement':'Under ICC, the diagnosis is X.','reason':'r','card_tags':[]},
+    ]
+    bad={'dispositions':[{'statement_id':s['statement_id'],'decision':'include','reason':None} for s in statements],
+         'parts':[{'statement_id':'S0001','group':'G1','split_text':None},{'statement_id':'S0002','group':'G2','split_text':None}]}
+    with pytest.raises(ValidationFailure):
+        runtime.validate_summary_plan_doc(bad,statements)
+    good=json.loads(json.dumps(bad)); good['parts'][1]['group']='G1'
+    assert 'validated' in runtime.validate_summary_plan_doc(good,statements)
+
+
+def test_parallel_ptbg_rows_consolidate_only_when_reason_differs_by_variant_identity():
+    reg={
+        'v01':{'gene':'EZH2','description':'EZH2 NM_1:c.1A>G, p.(Arg1Gly)'},
+        'v02':{'gene':'CBL','description':'CBL NM_2:c.2A>G, p.(Arg2Gly)'},
+        'v03':{'gene':'SF3B1','description':'SF3B1 NM_3:c.3A>G, p.(Arg3Gly)'},
+    }
+    doc={
+        'favorable':[{'variants':['v03'],'reason':'SF3B1 mutation has a favorable association under IPSS-M.'}],
+        'adverse':[
+            {'variants':['v01'],'reason':'EZH2 mutation is associated with adverse outcomes per IPSS-M evidence.'},
+            {'variants':['v02'],'reason':'CBL mutation is associated with adverse outcomes per IPSS-M evidence.'},
+        ],
+        'other':[],'uncertain':[],'no_effect':[],'overall':None,
+    }
+    out=step._consolidate_parallel_effect_rows('prognosis',doc,reg)
+    assert len(out['adverse'])==1
+    assert out['adverse'][0]['variants']==['v01','v02']
+    assert 'listed variants' in out['adverse'][0]['reason'].lower()
+    assert len(out['favorable'])==1
+
+
+def test_parallel_ptbg_rows_do_not_merge_different_propositions():
+    reg={'v01':{'gene':'A','description':'A x'},'v02':{'gene':'B','description':'B y'}}
+    doc={'favorable':[],'adverse':[{'variants':['v01'],'reason':'A mutation is adverse under framework X.'},{'variants':['v02'],'reason':'B mutation is adverse only after treatment Y.'}],'other':[],'uncertain':[],'no_effect':[],'overall':None}
+    out=step._consolidate_parallel_effect_rows('prognosis',doc,reg)
+    assert len(out['adverse'])==2
+
+
+def test_prognosis_overall_may_be_null_and_not_calculable_text_is_rejected():
+    valid={'v01'}
+    good={'favorable':[],'adverse':[],'other':[],'uncertain':[],'no_effect':['v01'],'overall':None}
+    assert 'valid' in schema_validation.validate_prognosis(yaml.safe_dump(good,sort_keys=False),valid)
+    bad=dict(good); bad['overall']={'classification':'IPSS-M is not calculable.','reason':'Missing clinical variables.'}
+    with pytest.raises(ValidationFailure):
+        schema_validation.validate_prognosis(yaml.safe_dump(bad,sort_keys=False),valid)
+
+
+def test_configured_non_molecular_overall_framework_is_rejected_but_variant_effects_remain():
+    valid={'v01'}
+    case={'case_facts':[]}
+    doc={'favorable':[{'variants':['v01'],'reason':'Variant has a favorable association under IPSS-M.'}],'adverse':[],'other':[],'uncertain':[],'no_effect':[],
+         'overall':{'classification':'IPSS-M moderate-high.','reason':'Overall IPSS-M tier.'}}
+    with pytest.raises(ValidationFailure):
+        step._validate_domain_proforma(yaml.safe_dump(doc,sort_keys=False),'prognosis',schema_validation.validate_prognosis,valid,case)
+    doc['overall']=None
+    assert 'validated' in step._validate_domain_proforma(yaml.safe_dump(doc,sort_keys=False),'prognosis',schema_validation.validate_prognosis,valid,case)
+
+
+def test_false_missing_claim_for_observed_case_fact_is_rejected():
+    case={'case_facts':[{'fact_id':'C3','kind':'marrow blasts','value':'12%'},{'fact_id':'C4','kind':'cytogenetics','value':'normal'}]}
+    doc={'favorable':[],'adverse':[],'other':[],'uncertain':[],'no_effect':['v01'],
+         'overall':{'classification':'Overall risk uncertain.','reason':'Missing cytogenetics and blast percentage.'}}
+    with pytest.raises(ValidationFailure):
+        runtime.validate_no_false_missing_case_claims(doc,case,domain='prognosis')
+
+
+def test_prognosis_framework_terms_are_locked_for_variant_effect_statements():
+    doc={'favorable':[],'adverse':[{'variants':['v01','v02'],'reason':'The listed variants are adverse per multivariable-adjusted IPSS-M evidence.'}],
+         'other':[],'uncertain':[],'no_effect':[],'overall':None}
+    el=step._domain_elements('prognosis',doc)[0]
+    assert 'IPSS-M' in el['locked_terms']
+
+
+def test_prognosis_prompt_does_not_cancel_variant_effects_and_suppresses_composite_score_calculation():
+    text=step._prompt('prognosis')
+    assert 'Do not offer to calculate composite prognostic scores' in text
+    assert "Do not cancel or reverse one variant's supported prognostic association" in text
+    assert 'set `overall: null`' in text
+
+
+def test_diagnosis_summary_policy_merges_concordant_and_separates_significant_difference():
+    who=[{'schema_id':'DX-W','summary_role':'diagnosis_classification'}]
+    icc=[{'schema_id':'DX-I','summary_role':'diagnosis_classification'}]
+    step._apply_diagnosis_summary_policy(who,icc,significantly_different=False)
+    assert who[0]['summary_merge_key']==icc[0]['summary_merge_key']
+    assert who[0]['summary_role']==icc[0]['summary_role']=='diagnosis_classification'
+    who=[{'schema_id':'DX-W','summary_role':'diagnosis_classification'}]
+    icc=[{'schema_id':'DX-I','summary_role':'diagnosis_classification'}]
+    step._apply_diagnosis_summary_policy(who,icc,significantly_different=True)
+    assert who[0]['summary_role']=='diagnosis_classification:who5'
+    assert icc[0]['summary_role']=='diagnosis_classification:icc'
+    assert 'summary_merge_key' not in who[0] and 'summary_merge_key' not in icc[0]

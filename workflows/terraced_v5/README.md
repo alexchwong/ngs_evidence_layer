@@ -58,7 +58,7 @@ For `self`, the CLI emits model handoffs to be completed by the session model. L
 - every retry/regeneration budget;
 - WHO5 and ICC authority `publication_keys`;
 - maximum WHO5 CMC passes;
-- PTBG card category and positive-bucket definitions;
+- PTBG card category, positive-bucket definitions, and prognosis overall-framework exclusions;
 - unresolved-reportability policy;
 - domain/bucket reportability switches;
 - summary domain order and cross-domain merge policy;
@@ -86,6 +86,8 @@ Reportability is configured under `reportability.domains`. These switches contro
   }
 }
 ```
+
+Prognosis overall-score policy is configured under `ptbg.domains.prognosis.overall_non_molecular_frameworks`. Frameworks listed there may still contribute authority-backed molecular variant effects, but v5 does not offer to calculate or report an overall score/tier for them. The default list contains `IPSS-M`.
 
 For example, WHO5 currently uses the configured myeloid authority publication key. A future WHO5 lymphoid authority can be added by appending its `publication_key` under `diagnosis.who5.publication_keys`; Python does not name Khoury/Alaggio or otherwise hardcode that authority choice.
 

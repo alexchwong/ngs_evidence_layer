@@ -194,6 +194,44 @@ def diagnostic_result_context(case:dict, reg:dict, panel_scope_text:str)->dict:
         },
     }
 
+def validate_no_false_missing_case_claims(doc:dict,case:dict,*,domain:str='clinical')->str:
+    """Reject claims that an explicitly observed case fact is missing/pending/unavailable."""
+    issues=[]
+    text=yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110)
+    negative=r'(?:missing|pending|unavailable|unknown|not\s+(?:done|performed|available|reported)|no\s+(?:available\s+)?)'
+    for row in case.get('case_facts') or []:
+        if not isinstance(row,dict): continue
+        kind=str(row.get('kind') or '').strip()
+        value=str(row.get('value') or '').strip()
+        observed=' '.join((kind,value)).casefold()
+        if not kind or any(token in observed for token in ('pending','not done','not performed','unavailable','awaiting')):
+            continue
+        aliases={kind.casefold()}
+        words=[re.sub(r'[^a-z0-9]+','',w.casefold()) for w in kind.split()]
+        for word in words:
+            if len(word)>=5:
+                aliases.add(word[:-1] if word.endswith('s') else word)
+        if 'blast' in kind.casefold(): aliases.update({'blast','blast percentage','blast count'})
+        if 'cytogen' in kind.casefold(): aliases.update({'cytogenetic','cytogenetics','karyotype'})
+        for alias in sorted(aliases,key=len,reverse=True):
+            a=re.escape(alias)
+            patterns=(
+                rf'\b{negative}\b[^.;\n]{{0,45}}\b{a}\b',
+                rf'\b{a}\b[^.;\n]{{0,18}}\b(?:is\s+|are\s+|was\s+|were\s+)?{negative}\b',
+            )
+            if any(re.search(pattern,text,flags=re.IGNORECASE) for pattern in patterns):
+                issues.append(ValidationIssue(
+                    f'{domain} proforma',
+                    f'claims observed case fact {kind!r} is missing/pending/unavailable',
+                    f'use the supplied observed value {value!r}; do not describe this case fact as missing or indeterminate',
+                    repair_class='content',
+                    received=f'{kind}: {value}',
+                    expected='observed case fact used as supplied',
+                ))
+                break
+    fail(f'{domain} case-fact consistency',issues)
+    return f'{domain} case facts consistent'
+
 def case_genes(case:dict)->list[str]:
     out=[]
     for row in case.get('variants') or []:
@@ -240,7 +278,7 @@ def validate_summary_plan_doc(doc:dict,statements:list[dict],*,allow_cross_domai
     if not isinstance(parts,list):
         safe=isinstance(parts,dict)
         issues.append(ValidationIssue('parts',f'expected list; received {_type_name(parts)}','wrap the existing single part mapping in a list without changing it' if safe else 'return the included/split statement parts as a list of mappings',repair_class='serialization' if safe else 'content',received=_preview(parts),expected='list')); parts=[]
-    occurrences={sid:[] for sid in smap}; group_domains={}; group_roles={}
+    occurrences={sid:[] for sid in smap}; group_domains={}; group_roles={}; merge_key_groups={}
     for i,raw in enumerate(parts):
         path=f'parts[{i}]'
         if not isinstance(raw,dict):
@@ -259,6 +297,11 @@ def validate_summary_plan_doc(doc:dict,statements:list[dict],*,allow_cross_domai
                     issues.append(ValidationIssue(f'{path}.group',f'group {group!r} mixes summary roles {prior_role!r} and {role!r}','use separate groups for statements with different summary_role values',repair_class='content'))
             else: group_roles[group]=role
         occurrences[sid].append(raw)
+        merge_key=smap[sid].get('summary_merge_key')
+        if merge_key and _nonempty(group): merge_key_groups.setdefault(merge_key,set()).add(group)
+    for merge_key,groups in merge_key_groups.items():
+        if len(groups)>1:
+            issues.append(ValidationIssue(f'summary_merge_key {merge_key}',f'mandatory merge spans groups {sorted(groups)}',f'use one shared group for all statements with summary_merge_key {merge_key!r}',repair_class='content'))
     for sid,statement in smap.items():
         dec=decisions.get(sid); rows=occurrences.get(sid) or []
         if dec=='omit' and rows: issues.append(ValidationIssue(f'parts for {sid}',f'omitted statement appears {len(rows)} time(s)','remove all parts for omitted statements',repair_class='content'))

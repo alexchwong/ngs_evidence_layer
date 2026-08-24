@@ -62,6 +62,7 @@ Keep separate when merging would:
 - combine statements with different `summary_role` values.
 
 `summary_role` is a deterministic merge boundary. Statements with different `summary_role` values MUST use different groups.
+`summary_merge_key` is a deterministic mandatory-merge instruction. Statements carrying the same `summary_merge_key` MUST use the same group.
 
 Before returning:
 - compare all retained statements within each category;

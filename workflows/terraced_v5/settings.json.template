@@ -48,7 +48,10 @@
           "adverse",
           "other"
         ],
-        "overall_requires_evidence": true
+        "overall_requires_evidence": true,
+        "overall_non_molecular_frameworks": [
+          "IPSS-M"
+        ]
       },
       "treatment": {
         "card_category": "treatment",

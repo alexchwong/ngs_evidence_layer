@@ -1130,7 +1130,7 @@ def _who5_elements(who,reg,case):
         status=row.get('status')
         qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
         reasons=_diagnosis_row_reasons(row,reg,case)
-        rows.append({'schema_id':f'DX-WHO5-{i:02d}','domain':'diagnosis','proposition':f'WHO5 classification{qualifier}: {row["diagnosis"]}.','reasons':reasons,'evidence_domain':'diagnosis_who5','positive_effect':False,'locked_terms':['WHO5',row['diagnosis']]})
+        rows.append({'schema_id':f'DX-WHO5-{i:02d}','domain':'diagnosis','summary_role':'diagnosis_classification','proposition':f'Under WHO5, the diagnosis is {row["diagnosis"]}{qualifier}.','reasons':reasons,'evidence_domain':'diagnosis_who5','positive_effect':False,'locked_terms':['WHO5',row['diagnosis']]})
     return rows
 
 def _icc_elements(icc,reg,case):
@@ -1139,13 +1139,25 @@ def _icc_elements(icc,reg,case):
         for i,row in enumerate(icc['diagnoses'],1):
             status=row.get('status')
             qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
-            els.append({'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','proposition':f'ICC classification{qualifier}: {row["diagnosis"]}.','reasons':_diagnosis_row_reasons(row,reg,case),'evidence_domain':'diagnosis_icc','positive_effect':False,'locked_terms':['ICC',row['diagnosis']]})
+            els.append({'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','summary_role':'diagnosis_classification','proposition':f'Under ICC, the diagnosis is {row["diagnosis"]}{qualifier}.','reasons':_diagnosis_row_reasons(row,reg,case),'evidence_domain':'diagnosis_icc','positive_effect':False,'locked_terms':['ICC',row['diagnosis']]})
     comp=icc['comparison_with_who5']
     significant=bool(comp['significantly_different'])
     concordance_key='concordance_significant' if significant else 'concordance_nonsignificant'
     if _reportable('diagnosis',concordance_key):
         els.append({'schema_id':'DX-CONCORDANCE','domain':'diagnosis','proposition':'WHO5 and ICC are significantly different.' if significant else 'WHO5 and ICC are not significantly different.','reasons':[comp['explanation']],'evidence_domain':'diagnosis_icc','positive_effect':False})
     return els
+
+def _apply_diagnosis_summary_policy(who_elements,icc_elements,*,significantly_different):
+    if significantly_different:
+        for row in who_elements: row['summary_role']='diagnosis_classification:who5'
+        for row in icc_elements: row['summary_role']='diagnosis_classification:icc'
+        return
+    for row in who_elements+icc_elements: row['summary_role']='diagnosis_classification'
+    if len(who_elements)==len(icc_elements):
+        for i,(who_el,icc_el) in enumerate(zip(who_elements,icc_elements),1):
+            merge_key=f'diagnosis-concordant-{i:02d}'
+            who_el['summary_merge_key']=merge_key
+            icc_el['summary_merge_key']=merge_key
 
 def _other_elements(other):
     if not _reportable('diagnosis','concurrent'): return []
@@ -1154,6 +1166,69 @@ def _other_elements(other):
     answer=str(row.get('answer') or '').strip()
     if not answer: return []
     return [{'schema_id':'DX-CONCURRENT','domain':'diagnosis','proposition':answer,'reasons':row.get('reasons') or [],'evidence_domain':'diagnosis_other','positive_effect':False}]
+
+def _parallel_identity_terms(reg, variants):
+    terms=[]
+    for variant_id in variants or []:
+        row=reg.get(variant_id) or {}
+        for value in (variant_id,row.get('description'),row.get('gene')):
+            if isinstance(value,str) and value.strip() and value.strip() not in terms:
+                terms.append(value.strip())
+        desc=str(row.get('description') or '')
+        for token in re.findall(r'\bNM_[0-9.]+|\bc\.[^,;\s]+|\bp\.\([^)]*\)',desc):
+            if token not in terms: terms.append(token)
+    return sorted(terms,key=len,reverse=True)
+
+def _parallel_reason_template(reason, variants, reg):
+    """Return conservative identity-normalized reason plus generic shared prose."""
+    text=' '.join(str(reason or '').split()).strip()
+    if not text: return '',text
+    for term in _parallel_identity_terms(reg,variants):
+        # Preserve molecular subtype suffixes such as -ITD/-TKD by replacing only
+        # the exact supplied identity token, not surrounding clinical wording.
+        text=re.sub(re.escape(term),'<VARIANT>',text,flags=re.IGNORECASE)
+    # Common gene/variant noun phrases are one semantic subject.
+    text=re.sub(r'(?:<VARIANT>\s*)+(?:mutation|mutations|variant|variants)\b','<SUBJECT>',text,flags=re.IGNORECASE)
+    text=re.sub(r'(?:<VARIANT>\s*)+','<SUBJECT> ',text,flags=re.IGNORECASE)
+    text=re.sub(r'(?:<SUBJECT>\s*(?:and|,)?\s*){2,}','<SUBJECT> ',text,flags=re.IGNORECASE)
+    text=' '.join(text.split()).strip()
+    canonical=text.casefold()
+    shared=text.replace('<SUBJECT>','The listed variants')
+    shared=re.sub(r'\bThe listed variants\s+is\b','The listed variants are',shared,flags=re.IGNORECASE)
+    shared=re.sub(r'\bThe listed variants\s+has\b','The listed variants have',shared,flags=re.IGNORECASE)
+    for singular,plural in (('confers','confer'),('contributes','contribute'),('defines','define'),('predicts','predict'),('indicates','indicate'),('supports','support')):
+        shared=re.sub(rf'\bThe listed variants\s+{singular}\b',f'The listed variants {plural}',shared,flags=re.IGNORECASE)
+    return canonical,shared
+
+def _consolidate_parallel_effect_rows(domain,doc,reg):
+    """Deterministically merge only rows identical apart from their own variant identities."""
+    buckets={
+        'prognosis':('favorable','adverse','other','uncertain'),
+        'treatment':('drug_target','drug_resistance','other'),
+        'biomarker':('suitable_mrd','unsuitable_mrd','uncertain'),
+        'germline':('suspect','uncertain'),
+    }.get(domain,())
+    for bucket in buckets:
+        rows=doc.get(bucket)
+        if not isinstance(rows,list) or len(rows)<2: continue
+        groups=[]; index={}
+        for row in rows:
+            if not isinstance(row,dict) or not row.get('variants') or not str(row.get('reason') or '').strip():
+                groups.append(row); continue
+            canonical,shared=_parallel_reason_template(row['reason'],row['variants'],reg)
+            extras=tuple(sorted((k,json.dumps(v,sort_keys=True,ensure_ascii=False)) for k,v in row.items() if k not in {'variants','reason'}))
+            key=(canonical,extras)
+            if canonical and key in index:
+                target=groups[index[key]]
+                for variant_id in row['variants']:
+                    if variant_id not in target['variants']: target['variants'].append(variant_id)
+                target['reason']=shared
+            else:
+                clone=dict(row); clone['variants']=list(row['variants'])
+                if canonical: clone['reason']=shared
+                index[key]=len(groups); groups.append(clone)
+        doc[bucket]=groups
+    return doc
 
 def _drop_empty_effect_rows(domain,doc):
     """Deterministically remove semantically empty PTBG placeholder rows."""
@@ -1169,15 +1244,28 @@ def _drop_empty_effect_rows(domain,doc):
         doc[bucket]=[row for row in rows if not (isinstance(row,dict) and not (row.get('variants') or []) and not str(row.get('reason') or '').strip() and not str(row.get('therapy') or '').strip())]
     return doc
 
+def _named_framework_terms(text):
+    """Extract compact named framework anchors from authority-backed PTBG reasons."""
+    out=[]
+    source=str(text or '')
+    # Restrict extraction to short windows after provenance cues. This avoids
+    # treating arbitrary genes/disease abbreviations as reporting frameworks.
+    for m in re.finditer(r'\b(?:per|under|according to)\b([^.;]{0,80})',source,flags=re.IGNORECASE):
+        window=m.group(1)
+        for token in re.findall(r'\b(?:[A-Z]{2,}(?:-[A-Z0-9]+)+(?:\s+\d{4})?|[A-Z]{2,}\s+\d{4}|[A-Z]{3,}(?:-[A-Z0-9]+)*)\b',window):
+            token=' '.join(token.split())
+            if token not in out: out.append(token)
+    return out
+
 def _domain_elements(domain,doc):
     cfg=_setting('ptbg','domains',domain); positive=set(cfg.get('positive_buckets') or []); els=[]
     if domain=='prognosis':
         for bucket in ('favorable','adverse','other','uncertain'):
             if not _reportable('prognosis',bucket): continue
             for i,row in enumerate(doc[bucket],1):
-                els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','summary_role':f'variant_effect:{bucket}','proposition':f'{bucket} prognostic contribution for {", ".join(row["variants"])}','reasons':[row['reason']],'variants':row['variants'],'evidence_domain':'prognosis','positive_effect':bucket in positive})
-        if _reportable('prognosis','overall'):
-            els.append({'schema_id':'PX-OVERALL','domain':'prognosis','summary_role':'overall_classification','proposition':doc['overall']['classification'],'reasons':[doc['overall']['reason']],'evidence_domain':'prognosis','positive_effect':bool(cfg.get('overall_requires_evidence',False))})
+                els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','summary_role':f'variant_effect:{bucket}','proposition':f'{bucket} prognostic contribution for {", ".join(row["variants"])}','reasons':[row['reason']],'variants':row['variants'],'evidence_domain':'prognosis','positive_effect':bucket in positive,'locked_terms':_named_framework_terms(row['reason'])})
+        if _reportable('prognosis','overall') and isinstance(doc.get('overall'),dict):
+            els.append({'schema_id':'PX-OVERALL','domain':'prognosis','summary_role':'overall_classification','proposition':doc['overall']['classification'],'reasons':[doc['overall']['reason']],'evidence_domain':'prognosis','positive_effect':bool(cfg.get('overall_requires_evidence',False)),'locked_terms':_named_framework_terms(str(doc['overall'].get('classification') or '')+' '+str(doc['overall'].get('reason') or ''))})
     elif domain=='treatment':
         for bucket in ('drug_target','drug_resistance','other'):
             if not _reportable('treatment',bucket): continue
@@ -1289,6 +1377,7 @@ def stage_diagnosis(work,case,reg,eligible,profile):
         other_sem+=1
 
     comp=icc_full['comparison_with_who5']
+    _apply_diagnosis_summary_policy(who_elements,icc_elements,significantly_different=bool(comp.get('significantly_different')))
     diagnosis={'who5':final_who,'icc':{'diagnoses':icc_full['diagnoses']},'concordance':{'answer':'WHO5 and ICC are significantly different.' if comp['significantly_different'] else 'WHO5 and ICC are not significantly different.','reasons':[comp['explanation']]},'concurrent_second_diagnosis':other['concurrent_second_diagnosis']}
     _write(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'),yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110))
     routing={'bootstrap_cmcs':bootstrap,'who5_authoritative_pass':authoritative_pass,'final_cmcs':final_cmcs,'diagnostic_cmc_history':cmc_history,'who5_max_cmc_passes':max_cmc}
@@ -1299,6 +1388,20 @@ def stage_diagnosis(work,case,reg,eligible,profile):
     _write(_existing_or_new(work,'statement_generation','diagnosis-elements.yaml'),yaml.safe_dump({'elements':elements},sort_keys=False,allow_unicode=True,width=110))
     return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards},elements
 
+def _validate_domain_proforma(text,domain,validator,valid,case):
+    validator(text,valid)
+    doc=yaml.safe_load(text)
+    runtime.validate_no_false_missing_case_claims(doc,case,domain=domain)
+    if domain=='prognosis':
+        overall=doc.get('overall') if isinstance(doc,dict) else None
+        if isinstance(overall,dict):
+            combined=' '.join(str(overall.get(k) or '') for k in ('classification','reason'))
+            excluded=[str(x) for x in (_setting('ptbg','domains','prognosis').get('overall_non_molecular_frameworks',['IPSS-M']) or []) if str(x).strip()]
+            for framework in excluded:
+                if framework.casefold() in combined.casefold():
+                    raise validated_model_task.ValidationFailure('prognosis overall policy',[validated_model_task.ValidationIssue('overall',f'overall classification for non-molecular/mixed framework {framework!r} is not offered by this workflow','set overall: null; retain authority-backed molecular variant effects in their appropriate buckets',repair_class='content')])
+    return f'{domain} proforma validated'
+
 def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
     valid=set(reg); diseases=[r['schema_disease'] for r in diagnosis['who5']['diagnoses']]; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),diseases)
     validator={'prognosis':schema_validation.validate_prognosis,'treatment':schema_validation.validate_treatment,'biomarker':schema_validation.validate_biomarker,'germline':schema_validation.validate_germline}[domain]
@@ -1308,8 +1411,8 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
         out=_artifact(work,f'{domain}_state',f'proforma-semantic-{sem:02d}.yaml',new=True)
         prompt=base+(_semantic_guidance_block(guidance) if guidance else '')
         call_id=domain if sem==0 else f'{domain}-semantic-rewrite-{sem:02d}'
-        _model_call(work,call_id=call_id,role='ptbg',prompt=prompt,output=out,validator=lambda t:validator(t,valid),profile=profile,proforma=True)
-        accepted=_drop_empty_effect_rows(domain,yaml.safe_load(_read(out))); _write(out,yaml.safe_dump(accepted,sort_keys=False,allow_unicode=True,width=110)); raw_elements=_domain_elements(domain,accepted)
+        _model_call(work,call_id=call_id,role='ptbg',prompt=prompt,output=out,validator=lambda t:_validate_domain_proforma(t,domain,validator,valid,case),profile=profile,proforma=True)
+        accepted=_consolidate_parallel_effect_rows(domain,_drop_empty_effect_rows(domain,yaml.safe_load(_read(out))),reg); _write(out,yaml.safe_dump(accepted,sort_keys=False,allow_unicode=True,width=110)); raw_elements=_domain_elements(domain,accepted)
         elements,need,guidance=_generate_and_audit_statements(work,f'{domain}-proforma-{sem:02d}',raw_elements,case,reg,profile)
         if not need: break
         if sem==sem_cap:
@@ -1441,6 +1544,7 @@ def stage_reportable_sentences(work,elements):
             if tag and tag not in tags: tags.append(tag)
         row={'schema_id':el['schema_id'],'domain':el['domain'],'statement':el['statement'].strip().rstrip('.')+'.','reason':' | '.join(el['reasons']),'card_tags':tags,'semantic_status':reason_status}
         if el.get('summary_role'): row['summary_role']=el['summary_role']
+        if el.get('summary_merge_key'): row['summary_merge_key']=el['summary_merge_key']
         statements.append(row)
     for i,row in enumerate(statements,1): row['statement_id']=f'S{i:04d}'
     _write(_existing_or_new(work,'reportable_sentences','statements.yaml'),yaml.safe_dump({'statements':statements,'suppressed':suppressed},sort_keys=False,allow_unicode=True,width=110)); return statements

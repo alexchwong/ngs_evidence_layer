@@ -16,7 +16,9 @@ uncertain: []
 no_effect:
   - v02
 # `no_effect` contains bare variant IDs only: no variants/reason/source mapping.
-overall:
-  classification: "named framework/tier, not calculable, not applicable, or uncertain"
-  reason: "why this overall classification applies"
+overall: null
+# OR, only when this workflow can actually assign an overall molecularly supported framework classification:
+# overall:
+#   classification: "named framework/tier"
+#   reason: "why this overall classification applies"
 ```
