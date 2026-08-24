@@ -75,13 +75,13 @@ Reportability is configured under `reportability.domains`. These switches contro
   "biomarker": {
     "suitable_mrd": true,
     "unsuitable_mrd": false,
-    "uncertain": true
+    "uncertain": false
   },
   "prognosis": {
     "favorable": true,
     "adverse": true,
     "other": true,
-    "uncertain": true,
+    "uncertain": false,
     "overall": true
   }
 }
@@ -114,8 +114,9 @@ Includes are recursive, resolved inside `prompts/`, and protected against cycles
 - `logs/workflow.log`: CLI/runtime progression.
 - `logs/model-usage.json`: provider-reported token usage.
 - `logs/risk_log.yaml`: semantic/evidence/degradation risks.
+- `logs/semantic_dissent.yaml`: issue-centric semantic dissent ledger with stage-by-stage actions, outcomes, and resolution status across retries/audits.
 - `logs/errors/`: rejected model and syntax-repair artifacts.
-- run root: final report artifacts and common immutable run inputs/state.
+- run root: final report artifacts and common immutable run inputs/state, including `dissent.md`, which groups each semantic dissent issue by where it was first raised and how later stages addressed it.
 
 ## Prototype limitations
 

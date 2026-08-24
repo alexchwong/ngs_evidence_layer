@@ -65,7 +65,7 @@ _REPORTABILITY_DEFAULTS={
         'favorable':True,
         'adverse':True,
         'other':True,
-        'uncertain':True,
+        'uncertain':False,
         'overall':True,
     },
     'treatment':{
@@ -76,7 +76,7 @@ _REPORTABILITY_DEFAULTS={
     'biomarker':{
         'suitable_mrd':True,
         'unsuitable_mrd':False,
-        'uncertain':True,
+        'uncertain':False,
     },
     'germline':{
         'suspect':True,
@@ -175,6 +175,112 @@ def _risk(work,*,stage,risk_type,message,severity='warning',schema_element=None,
     if severity in {'warning','error'}: d['run_status']='completed_with_risks'
     _write(_risk_path(work),yaml.safe_dump(d,sort_keys=False,allow_unicode=True,width=110))
     return rid
+
+def _semantic_dissent_path(work): return layout.logs(work)/'semantic_dissent.yaml'
+
+def _semantic_dissent_doc(work):
+    """Load the persistent semantic-dissent issue ledger.
+
+    Schema v2 is issue-centric.  A small migration keeps older interrupted runs
+    readable: each legacy flat item becomes one open issue whose first history
+    event is the original dissent.
+    """
+    path=_semantic_dissent_path(work)
+    if path.is_file():
+        try:
+            doc=yaml.safe_load(_read(path)) or {}
+        except (OSError,yaml.YAMLError,TypeError):
+            doc={}
+        if isinstance(doc,dict) and isinstance(doc.get('issues'),list):
+            doc.setdefault('schema_version',2)
+            return doc
+        if isinstance(doc,dict) and isinstance(doc.get('items'),list):
+            issues=[]
+            for idx,row in enumerate(doc.get('items') or [],1):
+                reviewed=str(row.get('reviewed_text') or '').strip()
+                reasons=[str(x).strip() for x in row.get('dissent_reason') or [] if str(x).strip()]
+                actions=[str(x).strip() for x in row.get('action_recommended') or [] if str(x).strip()]
+                if not reviewed or not reasons or not actions: continue
+                did=str(row.get('id') or f'D{idx:03d}')
+                issues.append({
+                    'id':did,
+                    'issue_key':f'legacy:{did}',
+                    'reviewed_text':reviewed,
+                    'status':'open',
+                    'history':[{
+                        'stage':'legacy semantic dissent',
+                        'event':'raised',
+                        'reason':reasons,
+                        'resolution_recommendation':actions,
+                    }],
+                })
+            migrated={'schema_version':2,'issues':issues}
+            _write(path,yaml.safe_dump(migrated,sort_keys=False,allow_unicode=True,width=110))
+            return migrated
+    return {'schema_version':2,'issues':[]}
+
+def _semantic_dissent_issue(work,issue_key):
+    key=str(issue_key or '').strip()
+    if not key: return None
+    for issue in _semantic_dissent_doc(work).get('issues') or []:
+        if issue.get('issue_key')==key: return issue
+    return None
+
+def _semantic_dissent(work,*,issue_key,stage,reviewed_text,dissent_reason,action_recommended):
+    """Raise or revisit one semantic dissent issue.
+
+    `issue_key` is stable across retries/self-handoffs and is never rendered.
+    Repeated raises append history only when the stage/reason/recommendation is
+    materially different, so replay remains idempotent.
+    """
+    key=str(issue_key or '').strip(); stage=str(stage or '').strip(); reviewed=str(reviewed_text or '').strip()
+    reasons=[str(x).strip() for x in (dissent_reason if isinstance(dissent_reason,list) else [dissent_reason]) if str(x or '').strip()]
+    actions=[str(x).strip() for x in (action_recommended if isinstance(action_recommended,list) else [action_recommended]) if str(x or '').strip()]
+    if not key or not stage or not reviewed or not reasons or not actions: return None
+    doc=_semantic_dissent_doc(work); issues=doc.setdefault('issues',[])
+    issue=next((row for row in issues if row.get('issue_key')==key),None)
+    if issue is None:
+        did=f'D{len(issues)+1:03d}'
+        issue={'id':did,'issue_key':key,'reviewed_text':reviewed,'status':'open','history':[]}
+        issues.append(issue)
+    else:
+        did=issue.get('id')
+        if not issue.get('reviewed_text'): issue['reviewed_text']=reviewed
+        # A recurring concern means the issue is open again unless it was
+        # deliberately retained with dissent.
+        if issue.get('status')=='resolved': issue['status']='open'
+    event={'stage':stage,'event':'raised','reason':reasons,'resolution_recommendation':actions}
+    if event not in issue.setdefault('history',[]): issue['history'].append(event)
+    _write(_semantic_dissent_path(work),yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
+    _write_dissent(work)
+    return did
+
+def _semantic_dissent_address(work,*,issue_key,stage,action,outcome=None,status=None):
+    """Append an action/outcome to an existing semantic dissent issue."""
+    key=str(issue_key or '').strip(); stage=str(stage or '').strip()
+    actions=[str(x).strip() for x in (action if isinstance(action,list) else [action]) if str(x or '').strip()]
+    outcomes=[str(x).strip() for x in (outcome if isinstance(outcome,list) else [outcome]) if str(x or '').strip()]
+    if not key or not stage or not actions: return None
+    doc=_semantic_dissent_doc(work); issues=doc.setdefault('issues',[])
+    issue=next((row for row in issues if row.get('issue_key')==key),None)
+    if issue is None: return None
+    event={'stage':stage,'event':'addressed','action':actions}
+    if outcomes: event['outcome']=outcomes
+    if event not in issue.setdefault('history',[]): issue['history'].append(event)
+    if status:
+        if status not in {'open','resolved','retained_with_dissent'}: raise ValueError(f'unsupported dissent status: {status}')
+        issue['status']=status
+    _write(_semantic_dissent_path(work),yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
+    _write_dissent(work)
+    return issue.get('id')
+
+def _semantic_dissent_keys(work,prefix,*,statuses=('open',)):
+    wanted=set(statuses or [])
+    return [
+        str(issue.get('issue_key'))
+        for issue in _semantic_dissent_doc(work).get('issues') or []
+        if str(issue.get('issue_key') or '').startswith(prefix) and (not wanted or issue.get('status') in wanted)
+    ]
 
 def _progress_path(work): return layout.logs(work)/'progress.json'
 
@@ -715,6 +821,23 @@ def _normalize_diagnosis_checks(doc,case,reg,cards,panel_genes):
     return doc,corrections
 
 
+def _record_diagnosis_corrections(work,authority,corrections):
+    for row in corrections or []:
+        if row.get('from')=='positive_supportive' and row.get('to')=='not_contributory':
+            reviewed=f"{authority.upper()} criterion {row.get('criterion_index')}: {row.get('subject')} classified as positive supportive."
+            action=f"Reclassify {row.get('subject')} as not contributory for this criterion."
+        elif row.get('from_status') and row.get('to_status'):
+            reviewed=f"{authority.upper()} diagnosis {row.get('diagnosis_index')} status: {row.get('from_status')}."
+            action=f"Use diagnosis status {row.get('to_status')}."
+        elif row.get('from_result_status') and row.get('to_result_status'):
+            reviewed=f"{authority.upper()} criterion {row.get('criterion_index')}: {row.get('subject')} result status {row.get('from_result_status')}."
+            action=f"Use deterministic result status {row.get('to_result_status')}."
+        else:
+            continue
+        issue_key='diagnosis-correction:'+':'.join(str(row.get(k,'')) for k in ('diagnosis_index','criterion_index','subject','from','to','from_status','to_status','from_result_status','to_result_status'))
+        _semantic_dissent(work,issue_key=issue_key,stage='diagnosis criterion validation',reviewed_text=reviewed,dissent_reason=row.get('reason') or 'Deterministic diagnostic invariant disagreed with the model output.',action_recommended=action)
+        _semantic_dissent_address(work,issue_key=issue_key,stage='deterministic diagnosis correction',action=action,outcome='The corrected diagnostic state was used for downstream synthesis.',status='resolved')
+
 def _diagnosis_public_view(doc):
     """Remove internal non-contributory checks before downstream clinical synthesis."""
     import copy
@@ -899,6 +1022,7 @@ def _generate_and_audit_statements(work,block_key,elements,case,reg,profile,*,pr
     if not elements: return [],False,[]
     max_regen=_retry('statement_regenerations'); negative=[]
     source=_statement_public(elements,reg)
+    dissent_scope=re.sub(r'-proforma-\d+$','',block_key)
     for regen in range(max_regen+1):
         sid=f'{block_key}-statement-generation-a{regen+1}'
         out=_artifact(work,'statement_generation',f'{sid}.yaml',new=True)
@@ -937,6 +1061,38 @@ def _generate_and_audit_statements(work,block_key,elements,case,reg,profile,*,pr
             failed=[dict(e,statement=amap[e['schema_id']],semantic_status='unsupported',statement_audit=None) for e in elements]
             return failed,False,[]
         audit_map={a['schema_id']:a for a in audits}
+        reviewed_by_id={row['schema_id']:row.get('statement') or '' for row in audit_items}
+        for audit in audits:
+            reasoning_unsupported=audit.get('reasoning_status')=='unsupported'
+            representation_failed=not audit.get('statement_represents_proforma')
+            schema_id=audit['schema_id']
+            rep_key=f'statement:{dissent_scope}:{schema_id}:representation'
+            reasoning_key=f'statement:{dissent_scope}:{schema_id}:reasoning'
+            if not representation_failed and _semantic_dissent_issue(work,rep_key) and _semantic_dissent_issue(work,rep_key).get('status')=='open':
+                _semantic_dissent_address(work,issue_key=rep_key,stage='statement re-audit',action='Re-audit the regenerated statement against the original validated proforma element.',outcome='The regenerated statement faithfully represented the validated proforma.',status='resolved')
+            if not reasoning_unsupported and _semantic_dissent_issue(work,reasoning_key) and _semantic_dissent_issue(work,reasoning_key).get('status')=='open':
+                _semantic_dissent_address(work,issue_key=reasoning_key,stage='statement re-audit',action='Re-audit the regenerated statement/reason against the validated proforma.',outcome='The semantic reasoning audit passed.',status='resolved')
+            if not (reasoning_unsupported or representation_failed):
+                continue
+            reasons=list(audit.get('issues') or []) or list(audit.get('negative_guidance') or [])
+            guidance=list(audit.get('negative_guidance') or [])
+            if representation_failed:
+                action=guidance or ['Regenerate the statement from the original validated proforma element without the disputed semantic change.']
+                issue_key=rep_key
+            elif preservation_only:
+                action=['Retain the validated diagnosis; review the dissent against the validated authority-backed criteria.']
+                issue_key=reasoning_key
+            else:
+                action=['Regenerate the proforma from the original case and supplied evidence.']
+                issue_key=reasoning_key
+            _semantic_dissent(work,issue_key=issue_key,stage='statement audit',reviewed_text=reviewed_by_id.get(schema_id) or source[0].get('proposition',''),dissent_reason=reasons,action_recommended=action)
+            if representation_failed:
+                if regen<max_regen:
+                    _semantic_dissent_address(work,issue_key=issue_key,stage='statement generation retry',action=action,outcome='A de-novo statement regeneration was scheduled from the original proforma.',status='open')
+            elif preservation_only:
+                _semantic_dissent_address(work,issue_key=issue_key,stage='statement audit decision',action=action,outcome='The validated diagnosis was retained; the downstream audit dissent was not allowed to re-diagnose the case.',status='retained_with_dissent')
+            else:
+                _semantic_dissent_address(work,issue_key=issue_key,stage='proforma semantic rewrite',action=action,outcome='A de-novo proforma rewrite was requested from the original case and evidence.',status='open')
         proforma_fail=[a for a in audits if a['reasoning_status']=='unsupported']
         if proforma_fail and not preservation_only:
             return [dict(e,statement=amap[e['schema_id']],semantic_status=audit_map[e['schema_id']]['reasoning_status'],statement_audit=audit_map[e['schema_id']]) for e in elements],True,proforma_fail
@@ -950,13 +1106,7 @@ def _generate_and_audit_statements(work,block_key,elements,case,reg,profile,*,pr
             def completed_element(e):
                 audit=audit_map[e['schema_id']]
                 status='supported' if preservation_only else audit['reasoning_status']
-                extra={}
-                if preservation_only and audit['reasoning_status']=='unsupported':
-                    extra['dissent']={
-                        'dissent':list(audit.get('negative_guidance') or []),
-                        'reasoning':list(audit.get('issues') or []),
-                    }
-                return dict(e,statement=amap[e['schema_id']],semantic_status=status,statement_audit=audit,**extra)
+                return dict(e,statement=amap[e['schema_id']],semantic_status=status,statement_audit=audit)
             return [completed_element(e) for e in elements],False,[]
         negative=_merge_audit_guidance(negative,statement_fail)
         if regen>=max_regen:
@@ -965,9 +1115,11 @@ def _generate_and_audit_statements(work,block_key,elements,case,reg,profile,*,pr
                 public_by_id={row['schema_id']:row for row in source}
                 for a in statement_fail:
                     _risk(work,stage='statement_audit',risk_type='diagnosis_statement_representation_unresolved',message='; '.join(a.get('issues') or a.get('negative_guidance') or ['statement did not faithfully represent validated proforma']),schema_element=a['schema_id'],attempts=regen+1,action='fell_back_to_validated_proforma_proposition',human_review='optional')
+                    _semantic_dissent_address(work,issue_key=f'statement:{dissent_scope}:{a["schema_id"]}:representation',stage='statement fallback',action='Replace the disputed generated statement with the validated proforma proposition.',outcome='The disputed wording was removed from the reportable statement.',status='resolved')
                 return [dict(e,statement=public_by_id[e['schema_id']]['proposition'] if e['schema_id'] in bad else amap[e['schema_id']],semantic_status='supported',statement_audit=audit_map[e['schema_id']]) for e in elements],False,[]
             for a in statement_fail:
                 _risk(work,stage='statement_audit',risk_type='statement_representation_unresolved',message='; '.join(a.get('issues') or a.get('negative_guidance') or ['statement did not faithfully represent proforma']),schema_element=a['schema_id'],attempts=regen+1,action='suppressed_from_automatic_reporting',human_review='required')
+                _semantic_dissent_address(work,issue_key=f'statement:{dissent_scope}:{a["schema_id"]}:representation',stage='reportability suppression',action='Suppress the semantically unresolved statement from automatic reporting.',outcome='The disputed statement was excluded from the final report path.',status='resolved')
             return [dict(e,statement=amap[e['schema_id']],semantic_status='unsupported' if e['schema_id'] in bad else audit_map[e['schema_id']]['reasoning_status'],statement_audit=audit_map[e['schema_id']]) for e in elements],False,[]
     raise AssertionError('unreachable statement regeneration loop')
 
@@ -978,7 +1130,7 @@ def _who5_elements(who,reg,case):
         status=row.get('status')
         qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
         reasons=_diagnosis_row_reasons(row,reg,case)
-        rows.append({'schema_id':f'DX-WHO5-{i:02d}','domain':'diagnosis','proposition':f'WHO5 classification{qualifier}: {row["diagnosis"]}.','reasons':reasons,'evidence_domain':'diagnosis_who5','positive_effect':False,'locked_terms':[row['diagnosis']]})
+        rows.append({'schema_id':f'DX-WHO5-{i:02d}','domain':'diagnosis','proposition':f'WHO5 classification{qualifier}: {row["diagnosis"]}.','reasons':reasons,'evidence_domain':'diagnosis_who5','positive_effect':False,'locked_terms':['WHO5',row['diagnosis']]})
     return rows
 
 def _icc_elements(icc,reg,case):
@@ -987,7 +1139,7 @@ def _icc_elements(icc,reg,case):
         for i,row in enumerate(icc['diagnoses'],1):
             status=row.get('status')
             qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
-            els.append({'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','proposition':f'ICC classification{qualifier}: {row["diagnosis"]}.','reasons':_diagnosis_row_reasons(row,reg,case),'evidence_domain':'diagnosis_icc','positive_effect':False,'locked_terms':[row['diagnosis']]})
+            els.append({'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','proposition':f'ICC classification{qualifier}: {row["diagnosis"]}.','reasons':_diagnosis_row_reasons(row,reg,case),'evidence_domain':'diagnosis_icc','positive_effect':False,'locked_terms':['ICC',row['diagnosis']]})
     comp=icc['comparison_with_who5']
     significant=bool(comp['significantly_different'])
     concordance_key='concordance_significant' if significant else 'concordance_nonsignificant'
@@ -997,9 +1149,11 @@ def _icc_elements(icc,reg,case):
 
 def _other_elements(other):
     if not _reportable('diagnosis','concurrent'): return []
-    row=other['concurrent_second_diagnosis']; answer=row['answer']
-    if answer.strip().lower() in {'none','none supported','no concurrent second diagnosis supported'}: return []
-    return [{'schema_id':'DX-CONCURRENT','domain':'diagnosis','proposition':answer,'reasons':row['reasons'],'evidence_domain':'diagnosis_other','positive_effect':False}]
+    row=other['concurrent_second_diagnosis']; status=row.get('status')
+    if status=='none': return []
+    answer=str(row.get('answer') or '').strip()
+    if not answer: return []
+    return [{'schema_id':'DX-CONCURRENT','domain':'diagnosis','proposition':answer,'reasons':row.get('reasons') or [],'evidence_domain':'diagnosis_other','positive_effect':False}]
 
 def _drop_empty_effect_rows(domain,doc):
     """Deterministically remove semantically empty PTBG placeholder rows."""
@@ -1077,7 +1231,7 @@ def stage_diagnosis(work,case,reg,eligible,profile):
         pass_note='WHO5 pass 1: classify from scratch.' if pass_idx==1 else f'WHO5 pass {pass_idx}: CMC changed. START FROM SCRATCH; do not anchor on earlier answers.'
         prompt=_prompt('diagnosis_who5')+f'\n\n# Pass\n{pass_note}\n\n# Cumulative CMC recall\n```yaml\n'+yaml.safe_dump(cmc_history,sort_keys=False)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Deterministic diagnostic result context\n```yaml\n'+yaml.safe_dump(_diagnosis_prompt_context(case,reg,panel_scope,who_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed WHO5 schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# Configured WHO5 authority cards\n'+_render_cards(who_cards)
         _model_call(work,call_id=f'diagnosis-who5-pass-{pass_idx:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t,c=who_cards:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,**_diagnosis_validation_kwargs(c,reg,case,panel_genes)),profile=profile,proforma=True)
-        final_who,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,who_cards,panel_genes); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(final_who,sort_keys=False,allow_unicode=True,width=110)); cmcs=runtime.derive_cmcs(final_who); authoritative_pass=pass_idx
+        final_who,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,who_cards,panel_genes); _record_diagnosis_corrections(work,'who5',corr); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(final_who,sort_keys=False,allow_unicode=True,width=110)); cmcs=runtime.derive_cmcs(final_who); authoritative_pass=pass_idx
         if cmcs==prior: break
         for cmc in cmcs:
             if cmc not in cmc_history: cmc_history.append(cmc)
@@ -1102,7 +1256,7 @@ def stage_diagnosis(work,case,reg,eligible,profile):
         path=_artifact(work,'diagnosis_who5_semantic',f'who5-rewrite-{sem_round:02d}.yaml',new=True)
         prompt=_prompt('diagnosis_who5')+'\n\n# Semantic regeneration\nRegenerate authoritative WHO5 classification from scratch.\n\n# Cumulative CMC recall\n```yaml\n'+yaml.safe_dump(cmc_history,sort_keys=False)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Deterministic diagnostic result context\n```yaml\n'+yaml.safe_dump(_diagnosis_prompt_context(case,reg,panel_scope,who_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed WHO5 schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# Configured WHO5 authority cards\n'+_render_cards(who_cards)+_semantic_guidance_block(guidance)
         _model_call(work,call_id=f'diagnosis-who5-semantic-rewrite-{sem_round:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t,c=who_cards:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,**_diagnosis_validation_kwargs(c,reg,case,panel_genes)),profile=profile,proforma=True)
-        final_who,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,who_cards,panel_genes); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(final_who,sort_keys=False,allow_unicode=True,width=110))
+        final_who,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,who_cards,panel_genes); _record_diagnosis_corrections(work,'who5',corr); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(final_who,sort_keys=False,allow_unicode=True,width=110))
     final_cmcs=runtime.derive_cmcs(final_who)
     for cmc in final_cmcs:
         if cmc not in cmc_history: cmc_history.append(cmc)
@@ -1113,7 +1267,7 @@ def stage_diagnosis(work,case,reg,eligible,profile):
         prompt=_prompt('diagnosis_icc')+'\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Deterministic diagnostic result context\n```yaml\n'+yaml.safe_dump(_diagnosis_prompt_context(case,reg,panel_scope,icc_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Authoritative WHO5 result — comparison only\n```yaml\n'+yaml.safe_dump(_diagnosis_public_view(final_who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Configured ICC authority cards\n'+_render_cards(icc_cards)
         if icc_guidance: prompt+=_semantic_guidance_block(icc_guidance)
         _model_call(work,call_id='diagnosis-icc' if icc_sem==0 else f'diagnosis-icc-semantic-rewrite-{icc_sem:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t,c=icc_cards:schema_validation.validate_icc_diagnosis(t,**_diagnosis_validation_kwargs(c,reg,case,panel_genes)),profile=profile,proforma=True)
-        icc_full,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,icc_cards,panel_genes); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(icc_full,sort_keys=False,allow_unicode=True,width=110)); icc_elements,need,icc_guidance=_generate_and_audit_statements(work,f'diagnosis-icc-proforma-{icc_sem:02d}',_icc_elements(icc_full,reg,case),case,reg,profile,preservation_only=True,authority_context=_diagnosis_statement_audit_context('icc',icc_full,icc_cards))
+        icc_full,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,icc_cards,panel_genes); _record_diagnosis_corrections(work,'icc',corr); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(icc_full,sort_keys=False,allow_unicode=True,width=110)); icc_elements,need,icc_guidance=_generate_and_audit_statements(work,f'diagnosis-icc-proforma-{icc_sem:02d}',_icc_elements(icc_full,reg,case),case,reg,profile,preservation_only=True,authority_context=_diagnosis_statement_audit_context('icc',icc_full,icc_cards))
         if not need: break
         if icc_sem>=sem_cap:
             for row in icc_guidance: _risk(work,stage='statement_audit',risk_type='icc_reasoning_unresolved',message='; '.join(row.get('issues') or row.get('negative_guidance') or ['ICC reason did not justify statement']),schema_element=row['schema_id'],attempts=icc_sem+1,action='suppressed_from_automatic_reporting',human_review='required')
@@ -1231,7 +1385,27 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
         mmap={m['evidence_id']:m for m in matches}; amap={a['evidence_id']:a for a in audits}; next_pending=[]
         for item in pending:
             evid=item['evidence_id']; chosen=mmap[evid]; audit=amap[evid]; supports=bool(audit['quote_supports_statement'] and audit['quote_supports_reason'])
-            if audit['risk']=='warning': _risk(work,stage='evidence',risk_type='citation_fidelity',message='; '.join(audit['comments']) or 'Evidence auditor flagged a fidelity concern.',schema_element=item['schema_id'],attempts=attempt,action='retained_if_support_checks_pass',human_review='recommended')
+            comments=list(audit.get('comments') or [])
+            support_key=f'evidence:{evid}:support'
+            fidelity_key=f'evidence:{evid}:fidelity'
+            reviewed='Statement: '+str(item.get('statement') or '').strip()+'\nReason: '+str(item.get('reason') or '').strip()
+            if not supports:
+                if attempt<max_rounds:
+                    action=['Rematch the evidence using the audit concern as negative guidance.']
+                else:
+                    action=['Treat this evidence item as unresolved rather than resolved support.']
+                _semantic_dissent(work,issue_key=support_key,stage=f'evidence audit attempt {attempt}',reviewed_text=reviewed,dissent_reason=comments or ['Selected evidence did not support both the statement and its reason.'],action_recommended=action)
+                if attempt<max_rounds:
+                    _semantic_dissent_address(work,issue_key=support_key,stage=f'evidence rematch attempt {attempt+1}',action=action,outcome='A new evidence match was requested using the audit concern as negative guidance.',status='open')
+                else:
+                    _semantic_dissent_address(work,issue_key=support_key,stage='evidence resolution',action=action,outcome='The evidence item remained unresolved after the configured rematch rounds.',status='retained_with_dissent')
+            elif _semantic_dissent_issue(work,support_key) and _semantic_dissent_issue(work,support_key).get('status')=='open':
+                _semantic_dissent_address(work,issue_key=support_key,stage=f'evidence audit attempt {attempt}',action='Re-audit the rematched evidence against the statement and reason.',outcome='The selected evidence supported both the statement and its reason.',status='resolved')
+            if audit.get('risk')=='warning':
+                action=['Retain the evidence match with the stated fidelity or context concern visible for review.']
+                _semantic_dissent(work,issue_key=fidelity_key,stage=f'evidence audit attempt {attempt}',reviewed_text=reviewed,dissent_reason=comments or ['Evidence auditor flagged a fidelity or context concern.'],action_recommended=action)
+                _semantic_dissent_address(work,issue_key=fidelity_key,stage='evidence resolution',action=action,outcome='The support checks passed, but the cited fidelity/context concern remains visible.',status='retained_with_dissent')
+                _risk(work,stage='evidence',risk_type='citation_fidelity',message='; '.join(audit['comments']) or 'Evidence auditor flagged a fidelity concern.',schema_element=item['schema_id'],attempts=attempt,action='retained_if_support_checks_pass',human_review='recommended')
             if supports:
                 results[evid]={'reason':item['reason'],'status':'matched','card_id':chosen['card_id'],'card_tag':f'[card:{tag_by_id[chosen["card_id"]]}]','source':chosen['source'],'quote':chosen['quote'],'audit':audit,'resolution':'accepted'}; continue
             objection='; '.join(audit['comments']) or 'Selected quote did not support both the statement and its reason.'; st=state.setdefault(evid,{})
@@ -1310,6 +1484,27 @@ def _fallback_summary_plan(statements):
 def _summary_blocks(plan,statements):
     return runtime.build_summary_blocks(plan,statements,domain_order=list(_setting('summary','domain_order')),allow_cross_domain_merge=bool(_setting('summary','allow_cross_domain_merge')))
 
+def _summary_reviewed_text(target,statements,blocks):
+    target=str(target or '').strip()
+    for statement in statements:
+        if target==statement.get('statement_id') or target==statement.get('schema_id'):
+            return str(statement.get('statement') or '').strip()
+    for block in blocks:
+        if target==block.get('block_id'):
+            return ' '.join(str(part.get('text') or '').strip() for part in block.get('source_parts') or [] if str(part.get('text') or '').strip())
+    # Auditors often name multiple IDs in one target.  Resolve any IDs embedded
+    # in that text so dissent.md shows the actual reviewed clinical text.
+    resolved=[]
+    for statement in statements:
+        if str(statement.get('statement_id') or '') in target or str(statement.get('schema_id') or '') in target:
+            text=str(statement.get('statement') or '').strip()
+            if text and text not in resolved: resolved.append(text)
+    for block in blocks:
+        if str(block.get('block_id') or '') in target:
+            text=' '.join(str(part.get('text') or '').strip() for part in block.get('source_parts') or [] if str(part.get('text') or '').strip())
+            if text and text not in resolved: resolved.append(text)
+    return ' '.join(resolved) or target or 'Summary plan'
+
 def stage_summary(work,statements,case,profile):
     if not statements:
         final={'dispositions':[],'sentences':[]}; _write(_existing_or_new(work,'summary','summary-final.yaml'),yaml.safe_dump(final,sort_keys=False)); return final
@@ -1330,9 +1525,34 @@ def stage_summary(work,statements,case,profile):
             audit=yaml.safe_load(_read(apath)); issues=[f"{x['target']}: {x['issue']}" for x in audit['issues']]
             clean=all(audit[field] for field in ('preserved','omission_valid','split_valid','merge_complete'))
             if clean:
+                for issue_key in _semantic_dissent_keys(work,'summary-plan:'):
+                    _semantic_dissent_address(work,issue_key=issue_key,stage=f'summary plan audit attempt {attempt_idx+1}',action='Re-audit the regenerated summary plan against the original reportable statements.',outcome='The regenerated summary plan passed preservation, omission, split, and merge checks.',status='resolved')
                 plan=candidate; blocks=candidate_blocks; break
 
             merge_only=audit['preserved'] and audit['omission_valid'] and audit['split_valid'] and not audit['merge_complete']
+            if merge_only and frag_used<frag_cap:
+                next_action='Regenerate the summary plan to repair the identified merge/fragmentation defect.'
+            elif semantic_used<semantic_cap:
+                next_action='Regenerate the summary plan from the original reportable statements using the audit concern as negative guidance.'
+            elif audit['preserved'] and not audit['merge_complete'] and frag_used<frag_cap:
+                next_action='Regenerate the summary plan to repair the identified merge/fragmentation defect.'
+            elif audit['preserved']:
+                next_action='Retain the semantically preserved plan after the configured replan budget; review the unresolved planning dissent.'
+            else:
+                next_action='Fall back to one block per reportable statement to preserve source semantics.'
+            raised_issue_keys=[]
+            for issue in audit['issues']:
+                fingerprint=hashlib.sha256((str(issue.get('target') or '')+'\n'+str(issue.get('issue') or '')).encode('utf-8')).hexdigest()[:12]
+                issue_key=f'summary-plan:{issue.get("target") or "unknown"}:{fingerprint}'
+                raised_issue_keys.append(issue_key)
+                _semantic_dissent(work,issue_key=issue_key,stage=f'summary plan audit attempt {attempt_idx+1}',reviewed_text=_summary_reviewed_text(issue.get('target'),statements,candidate_blocks),dissent_reason=issue.get('issue'),action_recommended=next_action)
+                if next_action.startswith('Regenerate'):
+                    _semantic_dissent_address(work,issue_key=issue_key,stage='summary plan regeneration',action=next_action,outcome='A new plan was scheduled from the original reportable statements.',status='open')
+                elif next_action.startswith('Retain'):
+                    _semantic_dissent_address(work,issue_key=issue_key,stage='summary plan resolution',action=next_action,outcome='The semantically preserved plan was retained after the configured replan budget.',status='retained_with_dissent')
+                else:
+                    _semantic_dissent_address(work,issue_key=issue_key,stage='summary plan fallback',action=next_action,outcome='The rejected plan was replaced by the deterministic one-block-per-statement fallback.',status='resolved')
+
             if merge_only and frag_used<frag_cap:
                 frag_used+=1; negative=issues; attempt_idx+=1; continue
 
@@ -1372,7 +1592,20 @@ def stage_summary(work,statements,case,profile):
             _model_call(work,call_id=aid,role='semantic_preservation_check',prompt=aprompt,output=apath,validator=lambda t:runtime.validate_paraphrase_audit_batch_text(t,blocks),profile=profile,fatal=False,max_attempts=_retry('paraphrase_audit_attempts'))
             candidate_audits=yaml.safe_load(_read(apath))['audits']; failed=[a for a in candidate_audits if not a['preserved']]
             paras=candidate; audits=candidate_audits
+            for passed_audit in (a for a in candidate_audits if a['preserved']):
+                for issue_key in _semantic_dissent_keys(work,f'paraphrase:{passed_audit["block_id"]}:'):
+                    _semantic_dissent_address(work,issue_key=issue_key,stage=f'paraphrase audit attempt {sem+1}',action='Re-audit the regenerated sentence against its deterministic semantic block.',outcome='The regenerated paraphrase preserved the source block semantics.',status='resolved')
             if not failed: break
+            sentence_map={row['block_id']:row['sentence'] for row in candidate}
+            for failed_audit in failed:
+                action=(failed_audit.get('negative_guidance') or ['Regenerate the paraphrase from the original semantic block.']) if sem<para_cap else ['Use the deterministic source-preserving block sentence.']
+                fingerprint=hashlib.sha256((str(failed_audit.get('block_id') or '')+'\n'+str(failed_audit.get('issue') or '')).encode('utf-8')).hexdigest()[:12]
+                issue_key=f'paraphrase:{failed_audit["block_id"]}:{fingerprint}'
+                _semantic_dissent(work,issue_key=issue_key,stage=f'paraphrase audit attempt {sem+1}',reviewed_text=sentence_map.get(failed_audit['block_id']) or failed_audit['block_id'],dissent_reason=failed_audit.get('issue'),action_recommended=action)
+                if sem<para_cap:
+                    _semantic_dissent_address(work,issue_key=issue_key,stage='paraphrase regeneration',action=action,outcome='A new paraphrase was scheduled from the original deterministic semantic block.',status='open')
+                else:
+                    _semantic_dissent_address(work,issue_key=issue_key,stage='paraphrase fallback',action=action,outcome='The rejected paraphrase was replaced by the deterministic source-preserving block sentence.',status='resolved')
             para_negative=[{'block_id':a['block_id'],'issue':a['issue'],'negative_guidance':a.get('negative_guidance') or []} for a in failed]
             if sem==para_cap: break
         except StepFailure as exc:
@@ -1389,35 +1622,43 @@ def stage_summary(work,statements,case,profile):
     runtime.validate_canonical_summary_doc(final,statements); _write(_existing_or_new(work,'summary','summary-final.yaml'),yaml.safe_dump(final,sort_keys=False,allow_unicode=True,width=110)); return final
 
 
-def _render_dissent_markdown(elements):
-    """Render only retained statement-audit dissent intended for the end user."""
+def _render_dissent_markdown(issues):
     sections=[]
-    for element in elements:
-        dissent=element.get('dissent')
-        if not isinstance(dissent,dict):
-            continue
-        objections=[str(x).strip() for x in dissent.get('dissent') or [] if str(x).strip()]
-        reasoning=[str(x).strip() for x in dissent.get('reasoning') or [] if str(x).strip()]
-        if not objections and not reasoning:
-            continue
-        statement=str(element.get('statement') or '').strip()
-        lines=['## Statement','',statement,'','## Dissent','']
-        lines.extend(f'- {text}' for text in objections)
-        lines.extend(['','## Dissent reasoning',''])
-        lines.extend(f'- {text}' for text in reasoning)
+    status_label={'open':'Open','resolved':'Resolved','retained_with_dissent':'Retained with dissent'}
+    for issue in issues:
+        reviewed=str(issue.get('reviewed_text') or '').strip()
+        history=list(issue.get('history') or [])
+        if not reviewed or not history: continue
+        lines=[f"## Issue {issue.get('id') or ''}".rstrip(),'','**Reviewed text:**','',reviewed]
+        addressed_count=0
+        for event in history:
+            stage=str(event.get('stage') or '').strip() or 'unknown stage'
+            if event.get('event')=='raised':
+                heading='### Stage first raised' if not any(x.get('event')=='raised' for x in history[:history.index(event)]) else '### Stage dissent re-raised'
+                lines.extend(['',f'{heading} — {stage}','','**Reason**',''])
+                lines.extend(f'- {text}' for text in event.get('reason') or [] if str(text).strip())
+                lines.extend(['','**Resolution recommendation**',''])
+                lines.extend(f'- {text}' for text in event.get('resolution_recommendation') or [] if str(text).strip())
+            elif event.get('event')=='addressed':
+                addressed_count+=1
+                lines.extend(['',f'### Stage next addressed — {stage}','','**Action**',''])
+                lines.extend(f'- {text}' for text in event.get('action') or [] if str(text).strip())
+                outcomes=[str(x).strip() for x in event.get('outcome') or [] if str(x).strip()]
+                if outcomes:
+                    lines.extend(['','**Outcome**',''])
+                    lines.extend(f'- {text}' for text in outcomes)
+        lines.extend(['',f"**Status:** {status_label.get(issue.get('status'),str(issue.get('status') or 'Open'))}"])
         sections.append('\n'.join(lines).rstrip())
-    return '\n\n---\n\n'.join(sections)+'\n' if sections else ''
+    return '# Semantic dissent\n\n'+'\n\n---\n\n'.join(sections)+'\n' if sections else ''
 
-
-def _write_dissent(work,elements):
+def _write_dissent(work):
     path=Path(work)/'dissent.md'
-    rendered=_render_dissent_markdown(elements)
+    rendered=_render_dissent_markdown(_semantic_dissent_doc(work).get('issues') or [])
     if rendered:
         _write(path,rendered)
     elif path.exists():
         path.unlink()
     return path if rendered else None
-
 
 def stage_final(work,case,summary,elements,all_cards,digest,manifest):
     selected=[]; ids=[]
@@ -1430,7 +1671,7 @@ def stage_final(work,case,summary,elements,all_cards,digest,manifest):
     bpath=_existing_or_new(work,'final_evidence','bundle.json'); epath=_existing_or_new(work,'final_evidence','evidence.md'); tpath=_existing_or_new(work,'final_evidence','card-tags.json'); _write(bpath,json.dumps(bundle,indent=2,ensure_ascii=False)+'\n'); rendering.render_to_files(bpath,output=epath,card_tag_output=tpath,retrieved_only=True)
     cited=runtime.render_canonical_summary(summary); cpath=_existing_or_new(work,'summary','report-cited.md'); _write(cpath,cited)
     rendered=citations.render(cited,_read(epath),_read(tpath),require_citation_after_full_stop=False); rendered=case['detected_variants_summary']+'\n\n'+rendered.lstrip(); report=work/'report-final.md'; _write(report,rendered)
-    _write_dissent(work,elements)
+    _write_dissent(work)
     risks=_risk_doc(work); payload={'workflow':WORKFLOW_ID,'summary':summary,'risk_log':risks,'model_usage':_usage_summary(work),'report_markdown':rendered}; _write(work/'report-final.json',json.dumps(payload,indent=2,ensure_ascii=False)+'\n')
     mode=_load_run_state(work).get('mode')
     if mode in VALIDATION_MODES:

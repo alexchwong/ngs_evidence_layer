@@ -87,7 +87,7 @@
         "favorable": true,
         "adverse": true,
         "other": true,
-        "uncertain": true,
+        "uncertain": false,
         "overall": true
       },
       "treatment": {
@@ -98,7 +98,7 @@
       "biomarker": {
         "suitable_mrd": true,
         "unsuitable_mrd": false,
-        "uncertain": true
+        "uncertain": false
       },
       "germline": {
         "suspect": true,

@@ -803,9 +803,19 @@ def validate_other_diagnosis(text: str) -> str:
     _exact(d, {"concurrent_second_diagnosis"}, "other_diagnostic_considerations", issues)
     sec = _mapping(d.get("concurrent_second_diagnosis"), "concurrent_second_diagnosis", issues) if "concurrent_second_diagnosis" in d else None
     if sec is not None:
-        _exact(sec, {"answer", "reasons"}, "concurrent_second_diagnosis", issues)
-        _text(sec.get("answer"), "concurrent_second_diagnosis.answer", issues)
-        _reasons(sec.get("reasons"), "concurrent_second_diagnosis.reasons", issues)
+        _exact(sec, {"status", "answer", "reasons"}, "concurrent_second_diagnosis", issues)
+        status=sec.get("status")
+        _enum(status, {"none", "supported", "uncertain"}, "concurrent_second_diagnosis.status", issues)
+        answer=sec.get("answer")
+        reasons=sec.get("reasons")
+        if status=="none":
+            if answer not in (None, ""):
+                issues.append(ValidationIssue("concurrent_second_diagnosis.answer", "status=none requires answer: null", "set answer: null without adding a diagnosis", repair_class="content", received=_preview(answer), expected="null"))
+            if reasons != []:
+                issues.append(ValidationIssue("concurrent_second_diagnosis.reasons", "status=none requires reasons: []", "return an empty reasons list", repair_class="content", received=_preview(reasons), expected="[]"))
+        else:
+            _text(answer, "concurrent_second_diagnosis.answer", issues)
+            _reasons(reasons, "concurrent_second_diagnosis.reasons", issues)
     fail("other diagnostic considerations", issues)
     return "other diagnostic considerations structurally valid"
 

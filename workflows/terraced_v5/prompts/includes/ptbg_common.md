@@ -9,5 +9,6 @@ Apply these rules before completing the domain proforma.
 - A positive effect requires affirmative support from a supplied card whose content is specific to this domain. Absence of contrary evidence is not support. Do not use pretrained/model knowledge to create a positive effect when the supplied cards do not support it. Case facts may determine whether a supported rule applies to this patient, but do not themselves establish an external clinical effect.
 - Preserve important qualifiers from the supplied evidence, including disease, treatment setting, population, named framework, and uncertainty. Do not generalize a context-specific association into a universal effect.
 - Each `reason` must state one discrete clinical proposition explaining why the listed variant(s) belong in that bucket.
+- Within one bucket, variants sharing the same clinical proposition, framework, context, polarity, and qualifiers MUST be consolidated into one row with one shared `reason`. Do not emit parallel rows that differ only by variant identity.
 - Prefer a negative or uncertain classification over an unsupported positive conclusion.
 - Do not manufacture a clinical implication from biological plausibility, gene familiarity, high VAF, diagnostic importance, technical detectability, or simple persistence alone.

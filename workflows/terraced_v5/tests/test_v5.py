@@ -206,12 +206,14 @@ def test_stage_domain_reasoning_failure_regenerates_proforma_de_novo(monkeypatch
     monkeypatch.setattr(step,'_model_call',fake)
     proforma,cards,elements=step.stage_domain(tmp_path,'biomarker',case,reg,diagnosis,[],profile='self')
     assert proforma['suitable_mrd']==[]
-    assert elements[0]['schema_id']=='MRD-UNCERTAIN-01'
-    assert elements[0]['semantic_status']=='supported'
+    assert elements==[]
     assert calls==[
         'biomarker','biomarker-proforma-00-statement-generation-a1','biomarker-proforma-00-statement-audit-a1',
-        'biomarker-semantic-rewrite-01','biomarker-proforma-01-statement-generation-a1','biomarker-proforma-01-statement-audit-a1'
+        'biomarker-semantic-rewrite-01'
     ]
+    dissent=yaml.safe_load((tmp_path/'logs'/'semantic_dissent.yaml').read_text())['issues']
+    assert dissent[0]['reviewed_text']=='SRSF2 is suitable for MRD monitoring.'
+    assert dissent[0]['history'][0]['resolution_recommendation']==['Regenerate the proforma from the original case and supplied evidence.']
 
 
 def test_stage_evidence_batches_statement_reason_and_quote_audit(monkeypatch,tmp_path):
@@ -233,6 +235,35 @@ def test_stage_evidence_batches_statement_reason_and_quote_audit(monkeypatch,tmp
     enriched=step.stage_evidence(tmp_path,elements,{'prognosis':[card]},{'v01':{'gene':'FLT3'}},{},'self')
     assert calls==['evidence-match-batch-a1','evidence-audit-batch-a1']
     assert enriched[0]['evidence'][0]['status']=='matched'
+
+
+def test_evidence_semantic_dissent_persists_after_successful_rematch(monkeypatch,tmp_path):
+    elements=[{'schema_id':'PX-A','domain':'prognosis','statement':'A has an adverse association.','proposition':'adverse','reasons':['Authority-backed adverse proposition.'],'variants':['v01'],'evidence_domain':'prognosis','positive_effect':True,'semantic_status':'supported'}]
+    cards=[
+        {'card_id':'C1','category':'prognosis','genes':['A'],'diseases':['AML'],'interpretation':'Unrelated context.'},
+        {'card_id':'C2','category':'prognosis','genes':['A'],'diseases':['AML'],'interpretation':'Adverse association.'},
+    ]
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'T1','C2':'T2'})
+    def fake(work,**kw):
+        kw['output'].parent.mkdir(parents=True,exist_ok=True); cid=kw['call_id']
+        if cid=='evidence-match-batch-a1':
+            doc={'matches':[{'evidence_id':'E0001','card_id':'C1','source':'Study 1','quote':'Unrelated context.'}]}
+        elif cid=='evidence-audit-batch-a1':
+            doc={'audits':[{'evidence_id':'E0001','quote_supports_statement':False,'quote_supports_reason':False,'risk':'none','comments':['The selected evidence is from the wrong clinical context.']}]}
+        elif cid=='evidence-match-batch-a2':
+            doc={'matches':[{'evidence_id':'E0001','card_id':'C2','source':'Study 2','quote':'Adverse association.'}]}
+        elif cid=='evidence-audit-batch-a2':
+            doc={'audits':[{'evidence_id':'E0001','quote_supports_statement':True,'quote_supports_reason':True,'risk':'none','comments':[]}]}
+        else: raise AssertionError(cid)
+        kw['output'].write_text(yaml.safe_dump(doc,sort_keys=False))
+    monkeypatch.setattr(step,'_model_call',fake)
+    enriched=step.stage_evidence(tmp_path,elements,{'prognosis':cards},{'v01':{'gene':'A'}},{},'self')
+    assert enriched[0]['evidence'][0]['status']=='matched'
+    dissent=yaml.safe_load((tmp_path/'logs'/'semantic_dissent.yaml').read_text())['issues']
+    assert dissent[0]['history'][0]['reason']==['The selected evidence is from the wrong clinical context.']
+    assert dissent[0]['history'][0]['resolution_recommendation']==['Rematch the evidence using the audit concern as negative guidance.']
+    assert dissent[0]['status']=='resolved'
+    assert dissent[0]['history'][-1]['outcome']==['The selected evidence supported both the statement and its reason.']
 
 
 def test_stage_summary_is_one_plan_and_one_whole_report_paraphrase_when_clean(monkeypatch,tmp_path):
@@ -299,6 +330,10 @@ def test_summary_fragmentation_retry_budget_survives_semantic_retries(monkeypatc
     assert 'summary-plan-regenerate-03' in calls
     assert calls.count('summary-plan-regenerate-03')==1
     assert [x['sentence_id'] for x in final['sentences']]==['prognosis-1']
+    dissent=yaml.safe_load((tmp_path/'logs'/'semantic_dissent.yaml').read_text())['issues']
+    assert any(row['reviewed_text']=='Gene A has adverse risk.' for row in dissent)
+    assert any(any('Parallel blocks remain unmerged.' in reason for event in row['history'] if event.get('event')=='raised' for reason in event.get('reason',[])) for row in dissent)
+    assert all(row['status']=='resolved' for row in dissent)
 
 def test_statement_public_separates_internal_variant_ids_from_reportable_display():
     reg={
@@ -589,47 +624,86 @@ def test_diagnosis_preservation_dissent_is_retained_for_end_user(monkeypatch,tmp
     out,need,_=step._generate_and_audit_statements(tmp_path,'dx-dissent',elements,{}, {},'self',preservation_only=True,authority_context={'audit_mode':'preservation_only'})
     assert need is False
     assert out[0]['semantic_status']=='supported'
-    assert out[0]['dissent']=={
-        'dissent':['The auditor would not support this diagnosis.'],
-        'reasoning':['The auditor disputes the validated diagnostic reasoning.'],
-    }
+    dissent=yaml.safe_load((tmp_path/'logs'/'semantic_dissent.yaml').read_text())['issues']
+    assert len(dissent)==1
+    assert dissent[0]['id']=='D001'
+    assert dissent[0]['reviewed_text']=='WHO5 classification: AML-MR.'
+    assert dissent[0]['status']=='retained_with_dissent'
+    assert dissent[0]['history'][0]['reason']==['The auditor disputes the validated diagnostic reasoning.']
+    assert dissent[0]['history'][0]['resolution_recommendation']==['Retain the validated diagnosis; review the dissent against the validated authority-backed criteria.']
+    assert dissent[0]['history'][-1]['outcome']==['The validated diagnosis was retained; the downstream audit dissent was not allowed to re-diagnose the case.']
 
 
-def test_dissent_markdown_contains_only_statement_dissent_and_reasoning(tmp_path):
-    elements=[{
-        'schema_id':'DX-A',
-        'statement':'WHO5 classification: AML-MR.',
-        'dissent':{
-            'dissent':['Do not support this classification.'],
-            'reasoning':['A dissenting audit raised a criterion concern.'],
-        },
-    }]
-    path=step._write_dissent(tmp_path,elements)
+def test_dissent_markdown_renders_persistent_semantic_ledger(tmp_path):
+    step._semantic_dissent(
+        tmp_path,
+        issue_key='statement:dx:DX-A:reasoning',
+        stage='statement audit',
+        reviewed_text='WHO5 classification: AML-MR.',
+        dissent_reason=['A dissenting audit raised a criterion concern.'],
+        action_recommended=['Retain the validated diagnosis and review the dissent.'],
+    )
+    step._semantic_dissent_address(
+        tmp_path,
+        issue_key='statement:dx:DX-A:reasoning',
+        stage='statement audit decision',
+        action=['Retain the validated diagnosis and review the dissent.'],
+        outcome=['The validated diagnosis was retained.'],
+        status='retained_with_dissent',
+    )
+    path=step._write_dissent(tmp_path)
     assert path==tmp_path/'dissent.md'
     text=path.read_text()
     assert text==(
-        '## Statement\n\n'
+        '# Semantic dissent\n\n'
+        '## Issue D001\n\n'
+        '**Reviewed text:**\n\n'
         'WHO5 classification: AML-MR.\n\n'
-        '## Dissent\n\n'
-        '- Do not support this classification.\n\n'
-        '## Dissent reasoning\n\n'
-        '- A dissenting audit raised a criterion concern.\n'
+        '### Stage first raised — statement audit\n\n'
+        '**Reason**\n\n'
+        '- A dissenting audit raised a criterion concern.\n\n'
+        '**Resolution recommendation**\n\n'
+        '- Retain the validated diagnosis and review the dissent.\n\n'
+        '### Stage next addressed — statement audit decision\n\n'
+        '**Action**\n\n'
+        '- Retain the validated diagnosis and review the dissent.\n\n'
+        '**Outcome**\n\n'
+        '- The validated diagnosis was retained.\n\n'
+        '**Status:** Retained with dissent\n'
     )
-    for forbidden in ('schema_id','risk','action','human_review','attempt'):
+    for forbidden in ('schema_id','risk','human_review','attempt'):
         assert forbidden not in text
 
 
-def test_dissent_markdown_absent_when_no_retained_dissent(tmp_path):
+def test_dissent_markdown_absent_when_no_semantic_dissent(tmp_path):
     stale=tmp_path/'dissent.md'
     stale.write_text('stale')
-    assert step._write_dissent(tmp_path,[{'schema_id':'DX-A','statement':'WHO5 classification: AML-MR.'}]) is None
+    assert step._write_dissent(tmp_path) is None
     assert not stale.exists()
+
+
+def test_semantic_dissent_is_idempotent_across_self_handoff_replay(tmp_path):
+    kwargs=dict(
+        issue_key='statement:test:S0001:representation',
+        stage='statement audit',
+        reviewed_text='Reviewed statement.',
+        dissent_reason='Semantic concern.',
+        action_recommended='Regenerate from source.',
+    )
+    assert step._semantic_dissent(tmp_path,**kwargs)=='D001'
+    assert (tmp_path/'dissent.md').is_file()
+    assert step._semantic_dissent(tmp_path,**kwargs)=='D001'
+    doc=yaml.safe_load((tmp_path/'logs'/'semantic_dissent.yaml').read_text())
+    assert len(doc['issues'])==1
+    assert len(doc['issues'][0]['history'])==1
 
 
 def test_reportability_defaults_are_user_configurable():
     s=step.load_settings()
     domains=s['reportability']['domains']
     assert domains['biomarker']['unsuitable_mrd'] is False
+    assert domains['biomarker']['uncertain'] is False
+    assert domains['prognosis']['uncertain'] is False
     assert domains['diagnosis']['concordance_significant'] is True
     assert domains['diagnosis']['concordance_nonsignificant'] is False
     assert domains['prognosis']['overall'] is True
@@ -701,3 +775,107 @@ def test_summary_plan_rejects_mixed_summary_roles_and_allows_same_role_merge():
     bad=json.loads(json.dumps(good))
     bad['parts'][2]['group']='G1'
     with pytest.raises(ValidationFailure): runtime.validate_summary_plan_doc(bad,statements)
+
+
+def test_ptbg_prompt_requires_parallel_row_consolidation():
+    text=step._prompt('prognosis')
+    assert 'MUST be consolidated into one row' in text
+    assert 'Do not emit parallel rows that differ only by variant identity' in text
+
+
+def test_structured_concurrent_diagnosis_none_is_internal():
+    doc={'concurrent_second_diagnosis':{'status':'none','answer':None,'reasons':[]}}
+    assert 'valid' in schema_validation.validate_other_diagnosis(yaml.safe_dump(doc,sort_keys=False))
+    assert step._other_elements(doc)==[]
+
+
+def test_structured_concurrent_diagnosis_supported_is_reportable():
+    doc={'concurrent_second_diagnosis':{'status':'supported','answer':'Concurrent diagnosis X.','reasons':['Case fact supports X.']}}
+    assert 'valid' in schema_validation.validate_other_diagnosis(yaml.safe_dump(doc,sort_keys=False))
+    els=step._other_elements(doc)
+    assert len(els)==1 and els[0]['proposition']=='Concurrent diagnosis X.'
+
+
+def test_structured_concurrent_diagnosis_none_rejects_free_text_negative():
+    doc={'concurrent_second_diagnosis':{'status':'none','answer':'No concurrent diagnosis is supported.','reasons':['No discordant facts.']}}
+    with pytest.raises(ValidationFailure):
+        schema_validation.validate_other_diagnosis(yaml.safe_dump(doc,sort_keys=False))
+
+
+def test_statement_audit_dissent_persists_even_when_statement_is_regenerated(monkeypatch,tmp_path):
+    elements=[{'schema_id':'PX-A','domain':'prognosis','proposition':'A and B are adverse.','reasons':['Shared authority-backed proposition.'],'positive_effect':True}]
+    calls=[]
+    def fake(work,**kw):
+        calls.append(kw['call_id']); kw['output'].parent.mkdir(parents=True,exist_ok=True)
+        if 'statement-generation-a1' in kw['call_id']:
+            doc={'statements':[{'schema_id':'PX-A','statement':'A and B are adverse with an unsupported qualifier.'}]}
+        elif 'statement-audit-a1' in kw['call_id']:
+            doc={'audits':[{'schema_id':'PX-A','statement_represents_proforma':False,'reasoning_status':'supported','issues':['Unsupported qualifier added.'],'negative_guidance':['Do not add the unsupported qualifier.']}]}
+        elif 'statement-generation-a2' in kw['call_id']:
+            doc={'statements':[{'schema_id':'PX-A','statement':'A and B are adverse.'}]}
+        else:
+            doc={'audits':[{'schema_id':'PX-A','statement_represents_proforma':True,'reasoning_status':'supported','issues':[],'negative_guidance':[]}]}
+        kw['output'].write_text(yaml.safe_dump(doc,sort_keys=False))
+    monkeypatch.setattr(step,'_model_call',fake)
+    out,need,_=step._generate_and_audit_statements(tmp_path,'px',elements,{}, {},'self')
+    assert need is False and out[0]['statement']=='A and B are adverse.'
+    dissent=yaml.safe_load((tmp_path/'logs'/'semantic_dissent.yaml').read_text())['issues']
+    assert len(dissent)==1
+    assert dissent[0]['reviewed_text'].endswith('unsupported qualifier.')
+    assert dissent[0]['history'][0]['reason']==['Unsupported qualifier added.']
+    assert dissent[0]['history'][0]['resolution_recommendation']==['Do not add the unsupported qualifier.']
+    assert dissent[0]['status']=='resolved'
+    assert dissent[0]['history'][-1]['outcome']==['The regenerated statement faithfully represented the validated proforma.']
+
+
+def test_paraphrase_semantic_dissent_persists_after_successful_regeneration(monkeypatch,tmp_path):
+    (tmp_path/'case.md').write_text('Example case.\n')
+    statements=[{'statement_id':'S0001','schema_id':'PX-A','domain':'prognosis','statement':'A is adverse.','reason':'r','card_tags':[],'semantic_status':'supported'}]
+    def fake(work,**kw):
+        kw['output'].parent.mkdir(parents=True,exist_ok=True); cid=kw['call_id']
+        if cid=='summary-plan':
+            doc={'dispositions':[{'statement_id':'S0001','decision':'include','reason':None}],'parts':[{'statement_id':'S0001','group':'G1','split_text':None}]}
+        elif cid=='summary-plan-audit':
+            doc={'preserved':True,'omission_valid':True,'split_valid':True,'merge_complete':True,'issues':[]}
+        elif cid=='paraphrase-batch':
+            doc={'sentences':[{'block_id':'prognosis-1','sentence':'A is favorable.'}]}
+        elif cid=='paraphrase-batch-audit':
+            doc={'audits':[{'block_id':'prognosis-1','preserved':False,'issue':'Polarity was reversed.','negative_guidance':['Do not reverse adverse to favorable.']}]}
+        elif cid=='paraphrase-batch-regenerate-01':
+            doc={'sentences':[{'block_id':'prognosis-1','sentence':'A is adverse.'}]}
+        elif cid=='paraphrase-batch-regenerate-01-audit':
+            doc={'audits':[{'block_id':'prognosis-1','preserved':True,'issue':None,'negative_guidance':[]}]}
+        else: raise AssertionError(cid)
+        kw['output'].write_text(yaml.safe_dump(doc,sort_keys=False))
+    monkeypatch.setattr(step,'_model_call',fake)
+    final=step.stage_summary(tmp_path,statements,{},'self')
+    assert final['sentences'][0]['sentence']=='A is adverse.'
+    dissent=yaml.safe_load((tmp_path/'logs'/'semantic_dissent.yaml').read_text())['issues']
+    assert dissent[-1]['reviewed_text']=='A is favorable.'
+    assert dissent[-1]['history'][0]['reason']==['Polarity was reversed.']
+    assert dissent[-1]['history'][0]['resolution_recommendation']==['Do not reverse adverse to favorable.']
+    assert dissent[-1]['status']=='resolved'
+    assert dissent[-1]['history'][-1]['outcome']==['The regenerated paraphrase preserved the source block semantics.']
+
+
+def test_who5_and_icc_framework_labels_are_locked_in_diagnosis_statements():
+    who_doc={'diagnoses':[{'status':'established','diagnosis':'Framework diagnosis','criteria':[]}]}
+    who=step._who5_elements(who_doc,{}, {})
+    assert who[0]['locked_terms']==['WHO5','Framework diagnosis']
+    with pytest.raises(ValidationFailure):
+        schema_validation.validate_statement_generation_batch(
+            yaml.safe_dump({'statements':[{'schema_id':'DX-WHO5-01','statement':'The diagnosis is Framework diagnosis.'}]}),
+            who,
+        )
+
+    icc_doc={
+        'diagnoses':[{'status':'established','diagnosis':'Framework diagnosis','criteria':[]}],
+        'comparison_with_who5':{'significantly_different':False,'explanation':'No material difference.'},
+    }
+    icc=step._icc_elements(icc_doc,{}, {})
+    assert icc[0]['locked_terms']==['ICC','Framework diagnosis']
+    with pytest.raises(ValidationFailure):
+        schema_validation.validate_statement_generation_batch(
+            yaml.safe_dump({'statements':[{'schema_id':'DX-ICC-01','statement':'The diagnosis is Framework diagnosis.'}]}),
+            icc,
+        )

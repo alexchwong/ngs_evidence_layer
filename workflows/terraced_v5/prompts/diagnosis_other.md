@@ -6,10 +6,15 @@ Ask: which case facts contradict or are inadequately explained by the primary WH
 
 Do not reassess WHO5. Do not compare with ICC. Provide one or more granular reasons. Do not choose citations in this pass.
 
+Output rules:
+- `status: none` requires `answer: null` and `reasons: []`.
+- `status: supported` or `status: uncertain` requires a concise non-empty `answer` and one or more granular reasons.
+
 Return YAML only:
 ```yaml
 concurrent_second_diagnosis:
-  answer: "<supported diagnosis, none supported, or uncertain>"
+  status: "<none | supported | uncertain>"
+  answer: "<concise diagnosis text, or null according to status>"
   reasons:
-    - "<granular reason>"
+    - "<granular reason, or no rows according to status>"
 ```
