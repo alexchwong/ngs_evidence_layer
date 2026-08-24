@@ -6,34 +6,34 @@ Terraced-v5 is a major refactor cloned from terraced-v4. It keeps v4 provider pl
 
 ## Quick start
 
-List pipelines:
+List shipped pipelines:
 
 ```bash
 python workflows/terraced_v5/step.py pipelines
 ```
 
-Validate a pipeline:
+Validate a pipeline before running it:
 
 ```bash
 python workflows/terraced_v5/step.py pipeline-check --pipeline self
 ```
 
-Set up validation brief 2:
+Run validation brief case 1 with the self pipeline:
 
 ```bash
 python workflows/terraced_v5/step.py setup \
   --mode nel-validate-brief \
-  --case-id 2 \
+  --case-id 1 \
   --pipeline self
 ```
 
-Continue the run:
+Then continue the scripted run:
 
 ```bash
 python workflows/terraced_v5/step.py run --work-dir <run-directory>
 ```
 
-For `self`, each pending model operation is emitted as `HANDOFF/PROMPT/OUTPUT`. LM Studio and OpenRouter pipelines call their configured OpenAI-compatible endpoint directly.
+For `self`, the CLI emits model handoffs to be completed by the session model. LM Studio and OpenRouter pipelines call their configured OpenAI-compatible endpoints directly.
 
 ## Workflow
 

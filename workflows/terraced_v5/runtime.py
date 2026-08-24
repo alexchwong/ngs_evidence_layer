@@ -76,7 +76,18 @@ def _exact(issues,row,expected,path=''):
         issues.append(ValidationIssue(path or 'root',f'missing fields {missing}; unexpected fields {extra}',f'return exactly {sorted(expected)}',repair_class='content',received=str(sorted(row)),expected=str(sorted(expected))))
 def _nonempty(v): return isinstance(v,str) and bool(v.strip())
 
-def validate_case_text(text:str)->str:
+def normalize_case_variant_descriptions(case:dict)->dict:
+    """Preserve detailed variant text while enforcing a gene-prefixed description."""
+    for row in case.get('variants') or []:
+        if not isinstance(row,dict):
+            continue
+        gene=row.get('gene'); desc=row.get('description')
+        if isinstance(gene,str) and gene.strip() and isinstance(desc,str) and desc.strip():
+            gene=gene.strip(); desc=desc.strip()
+            row['description']=desc if desc.startswith(gene) else f'{gene} {desc}'
+    return case
+
+def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)->str:
     try:d=json.loads(text)
     except json.JSONDecodeError as exc: raise ValueError(f'structured case: invalid JSON: {exc}') from exc
     issues=[]
@@ -118,6 +129,8 @@ def validate_case_text(text:str)->str:
         if not _nonempty(desc):
             cls='serialization' if _scalar_string_repairable(desc) else 'content'
             issues.append(ValidationIssue(f'{path}.description',f'expected non-empty string; received {_type_name(desc)}','quote/reserialize the existing description as one string without changing its words' if cls=='serialization' else 'preserve complete variant description',repair_class=cls,received=_preview(desc),expected='non-empty string'))
+        elif require_gene_prefixed_description and isinstance(gene,str) and gene.strip() and not desc.strip().startswith(gene.strip()):
+            issues.append(ValidationIssue(f'{path}.description',f'description does not begin with gene {gene!r}',f'prefix the unchanged detailed variant description with exact gene {gene!r}',repair_class='content',received=_preview(desc),expected=f'{gene} + complete reported variant description'))
     summary=d.get('detected_variants_summary')
     if not _nonempty(summary):
         cls='serialization' if _scalar_string_repairable(summary) else 'content'

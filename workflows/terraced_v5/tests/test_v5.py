@@ -131,9 +131,33 @@ def test_summary_plan_validator_respects_cross_domain_setting():
     with pytest.raises(ValidationFailure): runtime.validate_summary_plan_doc(plan,statements,allow_cross_domain_merge=False)
     assert 'validated' in runtime.validate_summary_plan_doc(plan,statements,allow_cross_domain_merge=True)
 
-def test_summary_plan_audit_has_fragmentation_dimension():
-    audit={'preserved':True,'unnecessarily_fragmented':True,'issues':[{'target':'prognosis','issue':'Two same-category blocks can safely merge.'}]}
+def test_summary_plan_audit_has_explicit_omit_split_merge_dimensions():
+    audit={'preserved':True,'omission_valid':True,'split_valid':True,'merge_complete':False,'issues':[{'target':'prognosis','issue':'Parallel same-category blocks remain unmerged.'}]}
     assert 'valid' in step._validate_summary_plan_audit(yaml.safe_dump(audit))
+
+
+def test_case_variant_description_gene_prefix_is_lossless():
+    detail='NM_003016.5:c.284C>A, p.(Pro95His), VAF 36%'
+    case={'variants':[{'variant_id':'V1','gene':'SRSF2','description':detail}]}
+    out=runtime.normalize_case_variant_descriptions(case)
+    assert out['variants'][0]['description']==f'SRSF2 {detail}'
+    assert detail in out['variants'][0]['description']
+    assert runtime.normalize_case_variant_descriptions(out)['variants'][0]['description']==f'SRSF2 {detail}'
+
+
+def test_case_validator_can_enforce_gene_prefixed_description():
+    base={
+        'provisional_disease':'AML',
+        'bootstrap_cmcs':['AML'],
+        'variants':[{'variant_id':'V1','gene':'SRSF2','description':'NM_003016.5:c.284C>A'}],
+        'detected_variants_summary':'SRSF2 variant detected.',
+        'case_facts':[{'fact_id':'C1','kind':'age','value':'58 years'}],
+    }
+    assert 'validated' in runtime.validate_case_text(json.dumps(base))
+    with pytest.raises(ValidationFailure):
+        runtime.validate_case_text(json.dumps(base),require_gene_prefixed_description=True)
+    runtime.normalize_case_variant_descriptions(base)
+    assert 'validated' in runtime.validate_case_text(json.dumps(base),require_gene_prefixed_description=True)
 
 def test_paraphrase_audit_requires_negative_guidance_on_failure():
     blocks=[{'block_id':'prognosis-1'}]
@@ -223,7 +247,7 @@ def test_stage_summary_is_one_plan_and_one_whole_report_paraphrase_when_clean(mo
         cid=kw['call_id']
         if cid=='summary-plan':
             doc={'dispositions':[{'statement_id':'S0001','decision':'include','reason':None},{'statement_id':'S0002','decision':'include','reason':None}], 'parts':[{'statement_id':'S0001','group':'G1','split_text':None},{'statement_id':'S0002','group':'G2','split_text':None}]}
-        elif cid=='summary-plan-audit': doc={'preserved':True,'unnecessarily_fragmented':False,'issues':[]}
+        elif cid=='summary-plan-audit': doc={'preserved':True,'omission_valid':True,'split_valid':True,'merge_complete':True,'issues':[]}
         elif cid=='paraphrase-batch':
             assert 'case.md — context only' in kw['prompt']; doc={'sentences':[{'block_id':'diagnosis-1','sentence':'Diagnosis A.'},{'block_id':'prognosis-1','sentence':'Risk B.'}]}
         elif cid=='paraphrase-batch-audit':
@@ -235,6 +259,46 @@ def test_stage_summary_is_one_plan_and_one_whole_report_paraphrase_when_clean(mo
     assert calls==['summary-plan','summary-plan-audit','paraphrase-batch','paraphrase-batch-audit']
     assert [x['sentence_id'] for x in final['sentences']]==['diagnosis-1','prognosis-1']
 
+
+
+
+def test_summary_fragmentation_retry_budget_survives_semantic_retries(monkeypatch,tmp_path):
+    (tmp_path/'case.md').write_text('Example case.\n')
+    statements=[
+        {'statement_id':'S0001','schema_id':'PX-A','domain':'prognosis','statement':'Gene A has adverse risk.','reason':'r','card_tags':['[card:1]'],'semantic_status':'supported'},
+        {'statement_id':'S0002','schema_id':'PX-B','domain':'prognosis','statement':'Gene B has adverse risk.','reason':'r','card_tags':['[card:1]'],'semantic_status':'supported'},
+    ]
+    calls=[]; audit_round=0
+    def fake(work,**kw):
+        nonlocal audit_round
+        calls.append(kw['call_id']); kw['output'].parent.mkdir(parents=True,exist_ok=True)
+        cid=kw['call_id']
+        if cid.startswith('summary-plan') and not cid.endswith('-audit'):
+            merged=cid=='summary-plan-regenerate-03'
+            doc={
+                'dispositions':[{'statement_id':'S0001','decision':'include','reason':None},{'statement_id':'S0002','decision':'include','reason':None}],
+                'parts':[{'statement_id':'S0001','group':'G1','split_text':None},{'statement_id':'S0002','group':'G1' if merged else 'G2','split_text':None}],
+            }
+        elif cid.startswith('summary-plan') and cid.endswith('-audit'):
+            audit_round+=1
+            if audit_round<=2:
+                doc={'preserved':False,'omission_valid':False,'split_valid':True,'merge_complete':False,'issues':[{'target':'S0001','issue':'Material planning defect.'}]}
+            elif audit_round==3:
+                doc={'preserved':True,'omission_valid':True,'split_valid':True,'merge_complete':False,'issues':[{'target':'prognosis','issue':'Parallel blocks remain unmerged.'}]}
+            else:
+                doc={'preserved':True,'omission_valid':True,'split_valid':True,'merge_complete':True,'issues':[]}
+        elif cid=='paraphrase-batch':
+            doc={'sentences':[{'block_id':'prognosis-1','sentence':'Gene A and Gene B have adverse risk.'}]}
+        elif cid=='paraphrase-batch-audit':
+            doc={'audits':[{'block_id':'prognosis-1','preserved':True,'issue':None,'negative_guidance':[]}]}
+        else:
+            raise AssertionError(cid)
+        kw['output'].write_text(yaml.safe_dump(doc,sort_keys=False))
+    monkeypatch.setattr(step,'_model_call',fake)
+    final=step.stage_summary(tmp_path,statements,{},'self')
+    assert 'summary-plan-regenerate-03' in calls
+    assert calls.count('summary-plan-regenerate-03')==1
+    assert [x['sentence_id'] for x in final['sentences']]==['prognosis-1']
 
 def test_statement_public_separates_internal_variant_ids_from_reportable_display():
     reg={

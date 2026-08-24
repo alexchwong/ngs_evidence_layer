@@ -519,7 +519,10 @@ def stage_structure(work,profile):
     out=_case_json(work)
     prompt=_prompt('structure_case')+'\n\n# Authoritative case\n'+_read(layout.input(work,'case.md'))+'\n\n# Allowed bootstrap CMCs\n'+_read(layout.setup(work,'case-major-categories.json'))+'\n\n# Assay scope\n'+_read(layout.setup(work,'ngs-panel-scope.md'))
     _model_call(work,call_id='structure-case',role='structure',prompt=prompt,output=out,validator=runtime.validate_case_text,profile=profile,fmt='json')
-    case=runtime.read_json(out); reg={f'v{i:02d}':{'variant_id':row['variant_id'],'gene':row['gene'],'description':row['description']} for i,row in enumerate(case.get('variants') or [],1)}
+    case=runtime.normalize_case_variant_descriptions(runtime.read_json(out))
+    _write(out,json.dumps(case,indent=2,ensure_ascii=False)+'\n')
+    runtime.validate_case_text(_read(out),require_gene_prefixed_description=True)
+    reg={f'v{i:02d}':{'variant_id':row['variant_id'],'gene':row['gene'],'description':row['description']} for i,row in enumerate(case.get('variants') or [],1)}
     _write(_variants_path(work),yaml.safe_dump({'variants':reg},sort_keys=False,allow_unicode=True,width=110)); return case,reg
 
 def stage_corpus(work):
@@ -934,10 +937,10 @@ def _validate_summary_plan_audit(text):
     out=[]
     if not isinstance(d,dict):
         safe=runtime._single_mapping_list(d); out.append(validated_model_task.ValidationIssue('summary-plan audit',f'expected mapping; received {type(d).__name__}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required mapping',repair_class='serialization' if safe else 'content',received=repr(d),expected='mapping')); d={}
-    expected={'preserved','unnecessarily_fragmented','issues'}; missing=sorted(expected-set(d)); extra=sorted(set(d)-expected)
+    expected={'preserved','omission_valid','split_valid','merge_complete','issues'}; missing=sorted(expected-set(d)); extra=sorted(set(d)-expected)
     if missing or extra: out.append(validated_model_task.ValidationIssue('summary-plan audit',f'missing fields {missing}; unexpected fields {extra}',f'return exactly {sorted(expected)}',repair_class='content'))
-    preserved=d.get('preserved'); fragmented=d.get('unnecessarily_fragmented')
-    for field,value in (('preserved',preserved),('unnecessarily_fragmented',fragmented)):
+    decisions={field:d.get(field) for field in ('preserved','omission_valid','split_valid','merge_complete')}
+    for field,value in decisions.items():
         if not isinstance(value,bool):
             safe=runtime._bool_repairable(value); out.append(validated_model_task.ValidationIssue(field,f'expected boolean; received {type(value).__name__}','serialize the existing true/false decision as a YAML boolean' if safe else 'return the required true/false decision',repair_class='serialization' if safe else 'content',received=repr(value),expected='true or false'))
     rows=d.get('issues')
@@ -951,8 +954,10 @@ def _validate_summary_plan_audit(text):
         for field in ('target','issue'):
             value=row.get(field)
             if not isinstance(value,str) or not value.strip(): out.append(validated_model_task.ValidationIssue(f'{path}.{field}',f'expected non-empty string; received {type(value).__name__}',f'return a non-empty {field} string',repair_class='content'))
-    if (preserved is False or fragmented is True) and not rows: out.append(validated_model_task.ValidationIssue('issues','failed preservation/fragmentation audit requires at least one actionable issue','identify the affected statement/block and the semantic or fragmentation problem; do not write replacement prose',repair_class='content'))
-    if preserved is True and fragmented is False and rows: out.append(validated_model_task.ValidationIssue('issues','clean audit requires issues: []','return issues: []',repair_class='content'))
+    failed=any(value is False for value in decisions.values())
+    clean=all(value is True for value in decisions.values())
+    if failed and not rows: out.append(validated_model_task.ValidationIssue('issues','failed summary-plan audit requires at least one actionable issue','identify the affected statement/block and violated omission, split, merge, or preservation rule; do not write replacement prose',repair_class='content'))
+    if clean and rows: out.append(validated_model_task.ValidationIssue('issues','clean audit requires issues: []','return issues: []',repair_class='content'))
     validated_model_task.fail('summary-plan audit',out); return 'summary-plan audit structurally valid'
 
 def _fallback_summary_plan(statements):
@@ -967,34 +972,48 @@ def _summary_blocks(plan,statements):
 def stage_summary(work,statements,case,profile):
     if not statements:
         final={'dispositions':[],'sentences':[]}; _write(_existing_or_new(work,'summary','summary-final.yaml'),yaml.safe_dump(final,sort_keys=False)); return final
-    allow_cross=bool(_setting('summary','allow_cross_domain_merge')); plan=None; blocks=None; negative=[]; semantic_cap=_retry('summary_plan_regenerations'); frag_cap=_retry('summary_plan_fragmentation_regenerations'); frag_used=0
-    for sem in range(semantic_cap+1):
-        call_id='summary-plan' if sem==0 else f'summary-plan-regenerate-{sem:02d}'; path=_artifact(work,'summary',f'summary-plan-attempt-{sem+1:02d}.yaml',new=True)
+    allow_cross=bool(_setting('summary','allow_cross_domain_merge')); plan=None; blocks=None; negative=[]
+    semantic_cap=_retry('summary_plan_regenerations'); frag_cap=_retry('summary_plan_fragmentation_regenerations')
+    semantic_used=0; frag_used=0; attempt_idx=0
+    while True:
+        call_id='summary-plan' if attempt_idx==0 else f'summary-plan-regenerate-{attempt_idx:02d}'; path=_artifact(work,'summary',f'summary-plan-attempt-{attempt_idx+1:02d}.yaml',new=True)
         policy={'allow_cross_domain_merge':allow_cross,'domain_order':list(_setting('summary','domain_order')),'prefer_fewest_readable_sentences':bool(_setting('summary','prefer_fewest_readable_sentences'))}
         prompt=_prompt('summary_plan')+'\n\n# Workflow summary policy\n```yaml\n'+yaml.safe_dump(policy,sort_keys=False)+'```\n\n# Reportable statements\n```yaml\n'+yaml.safe_dump(statements,sort_keys=False,allow_unicode=True,width=110)+'```\n'
         if negative: prompt+='\n# Negative guidance from prior plan audit\nGenerate a new plan de novo from the original statements. Do not edit the rejected plan.\n```yaml\n'+yaml.safe_dump({'do_not_repeat':negative},sort_keys=False,allow_unicode=True,width=110)+'```\n'
         try:
             _model_call(work,call_id=call_id,role='summarization',prompt=prompt,output=path,validator=lambda t:runtime.validate_summary_plan_text(t,statements,allow_cross_domain_merge=allow_cross),profile=profile,fatal=False,max_attempts=_retry('summary_plan_attempts'))
             candidate=yaml.safe_load(_read(path)); candidate_blocks=_summary_blocks(candidate,statements)
-            aid=f'{call_id}-audit'; apath=_artifact(work,'summary',f'summary-plan-audit-{sem+1:02d}.yaml',new=True)
+            aid=f'{call_id}-audit'; apath=_artifact(work,'summary',f'summary-plan-audit-{attempt_idx+1:02d}.yaml',new=True)
             aprompt=_prompt('summary_plan_audit')+'\n\n# Original reportable statements\n```yaml\n'+yaml.safe_dump(statements,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Proposed plan\n```yaml\n'+yaml.safe_dump(candidate,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministically assembled blocks\n```yaml\n'+yaml.safe_dump({'blocks':candidate_blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n'
             _model_call(work,call_id=aid,role='semantic_preservation_check',prompt=aprompt,output=apath,validator=_validate_summary_plan_audit,profile=profile,fatal=False,max_attempts=_retry('summary_plan_audit_attempts'))
             audit=yaml.safe_load(_read(apath)); issues=[f"{x['target']}: {x['issue']}" for x in audit['issues']]
-            if audit['preserved'] and not audit['unnecessarily_fragmented']:
+            clean=all(audit[field] for field in ('preserved','omission_valid','split_valid','merge_complete'))
+            if clean:
                 plan=candidate; blocks=candidate_blocks; break
-            if audit['preserved'] and audit['unnecessarily_fragmented']:
-                if frag_used>=frag_cap:
-                    _risk(work,stage='summarization',risk_type='summary_fragmentation_retained',message='; '.join(issues),attempts=sem+1,action='retained_after_configured_fragmentation_replans',human_review='optional'); plan=candidate; blocks=candidate_blocks; break
-                frag_used+=1
-            negative=issues
-            if sem==semantic_cap:
-                if audit['preserved']:
-                    plan=candidate; blocks=candidate_blocks; break
-                _risk(work,stage='summarization',risk_type='summary_plan_semantic_preservation',message='; '.join(issues) or 'Summary plan failed semantic-preservation audit.',attempts=sem+1,action='fell_back_to_one_block_per_reportable_statement',human_review='optional'); plan=_fallback_summary_plan(statements); blocks=_summary_blocks(plan,statements); break
+
+            merge_only=audit['preserved'] and audit['omission_valid'] and audit['split_valid'] and not audit['merge_complete']
+            if merge_only and frag_used<frag_cap:
+                frag_used+=1; negative=issues; attempt_idx+=1; continue
+
+            if semantic_used<semantic_cap:
+                semantic_used+=1; negative=issues; attempt_idx+=1; continue
+
+            # A merge failure still gets its independent fragmentation budget,
+            # even if earlier semantic-plan failures exhausted their own budget.
+            if audit['preserved'] and not audit['merge_complete'] and frag_used<frag_cap:
+                frag_used+=1; negative=issues; attempt_idx+=1; continue
+
+            if audit['preserved']:
+                risk_type='summary_fragmentation_retained' if not audit['merge_complete'] else 'summary_plan_rule_failure_retained'
+                action='retained_after_configured_fragmentation_replans' if not audit['merge_complete'] else 'retained_after_configured_summary_replans'
+                _risk(work,stage='summarization',risk_type=risk_type,message='; '.join(issues) or 'Summary plan retained a non-semantic planning defect after configured replans.',attempts=attempt_idx+1,action=action,human_review='optional')
+                plan=candidate; blocks=candidate_blocks; break
+
+            _risk(work,stage='summarization',risk_type='summary_plan_semantic_preservation',message='; '.join(issues) or 'Summary plan failed semantic-preservation audit.',attempts=attempt_idx+1,action='fell_back_to_one_block_per_reportable_statement',human_review='optional'); plan=_fallback_summary_plan(statements); blocks=_summary_blocks(plan,statements); break
         except StepFailure as exc:
-            if sem==semantic_cap:
-                _risk(work,stage='summarization',risk_type='summary_plan_failure',message=str(exc),attempts=sem+1,action='fell_back_to_one_block_per_reportable_statement',human_review='optional'); plan=_fallback_summary_plan(statements); blocks=_summary_blocks(plan,statements); break
-            negative=[str(exc)]
+            if semantic_used<semantic_cap:
+                semantic_used+=1; negative=[str(exc)]; attempt_idx+=1; continue
+            _risk(work,stage='summarization',risk_type='summary_plan_failure',message=str(exc),attempts=attempt_idx+1,action='fell_back_to_one_block_per_reportable_statement',human_review='optional'); plan=_fallback_summary_plan(statements); blocks=_summary_blocks(plan,statements); break
     assert plan is not None and blocks is not None
     _write(_existing_or_new(work,'summary','summary-plan.yaml'),yaml.safe_dump(plan,sort_keys=False,allow_unicode=True,width=110)); _write(_existing_or_new(work,'summary','summary-blocks.yaml'),yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110))
 
