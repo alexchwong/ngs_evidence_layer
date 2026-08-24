@@ -25,6 +25,14 @@ python workflows/terraced_v6/step.py setup \
   --pipeline self
 ```
 
+Check one stage's validator against a candidate artifact, with no model call:
+
+```bash
+python workflows/terraced_v6/step.py stages
+python workflows/terraced_v6/step.py check-stage --stage prognosis --file candidate.yaml
+python workflows/terraced_v6/step.py show-prompt --stage prognosis
+```
+
 Run or resume the run created by the immediately preceding `setup`:
 
 ```bash
@@ -57,7 +65,9 @@ No statement-generation/audit stage, summary planner, fragmentation repair, or p
 - MRD: marker, not marker.
 - Germline: support, against, uncertain; every conclusion must integrate the NGS result with supplied clinical context.
 
-Variant IDs (`v01`, `v02`, ...) link owner reasoning to the structured variant registry. A single concise reason per row is retained for evidence matching.
+Variant IDs (`v01`, `v02`, ...) link owner reasoning to the structured variant registry, and are the only variant identifiers any model sees.
+
+Owner models return one row per variant (`variant`, `bucket`, `reason`), filling in a pre-supplied skeleton. Rows sharing one proposition are merged deterministically afterwards and recorded in `logs/transforms.yaml`; the stored proforma keeps the familiar bucket-list shape.
 
 ## Reportability
 
@@ -79,6 +89,7 @@ Pay attention to:
 - `intermediates/*diagnosis*` and `*_state/proforma.yaml` — owner-model conclusions.
 - `intermediates/report_blocks/report-blocks.yaml` — deterministic composition contract sent to the final writer.
 - `logs/workflow.log` — run trace.
+- `logs/transforms.yaml` — every deterministic change made to an accepted model artifact.
 
 ## Failure policy
 

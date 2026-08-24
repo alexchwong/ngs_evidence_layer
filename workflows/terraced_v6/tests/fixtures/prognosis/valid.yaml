@@ -1,0 +1,11 @@
+classification:
+  - variant: v01
+    bucket: adverse
+    reason: "ASXL1 mutation confers an adverse prognosis in this context."
+  - variant: v02
+    bucket: adverse
+    reason: "SRSF2 mutation confers an adverse prognosis in this context."
+  - variant: v03
+    bucket: neutral
+    reason: "No independent prognostic effect is supported in this context."
+prognostic_score: null

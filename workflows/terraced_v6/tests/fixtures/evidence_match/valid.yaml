@@ -1,0 +1,9 @@
+matches:
+  - evidence_id: E0001
+    card_id: C001
+    source: Khoury 2022
+    quote: "Adverse prognosis is associated with this lesion."
+  - evidence_id: E0002
+    card_id: C003
+    source: Arber 2022
+    quote: "The finding is diagnostic in this setting."

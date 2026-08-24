@@ -1,0 +1,8 @@
+classification:
+  - variant: v01
+    bucket: adverse
+    reason: "Adverse."
+  - variant: v02
+    bucket: neutral
+    reason: "Neutral."
+prognostic_score: null

@@ -1,0 +1,6 @@
+treatment failed validation with 1 issue(s):
+1. classification
+   Problem: v01 appears in no_drug_implication and also in ['drug_target'].
+   Required fix: a variant in no_drug_implication must not appear in any other bucket; remove either the no_drug_implication row or the other row(s).
+   Received: v01: ['drug_target', 'no_drug_implication']
+   Expected: v01 in no_drug_implication alone, or not in no_drug_implication at all

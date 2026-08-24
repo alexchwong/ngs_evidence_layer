@@ -4,7 +4,7 @@ import json, re, shutil, sys
 from pathlib import Path
 import yaml
 from scripts import vocab
-from scripts.core.validated_model_task import ValidationFailure, ValidationIssue, fail
+from scripts.core.validated_model_task import ValidationIssue, fail
 from workflows.terraced_v6 import layout
 
 HERE=Path(__file__).resolve().parent; REPO_ROOT=HERE.parents[1]
@@ -155,82 +155,6 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
     fail('structured case',issues); return 'structured case validated'
 
 
-
-def panel_genes_from_scope(text:str)->list[str]:
-    """Return the explicit gene-level NGS panel scope in source order."""
-    out=[]
-    for gene in re.findall(r"^- `([A-Z0-9]+)`\s*$", str(text), flags=re.MULTILINE):
-        if gene not in out:
-            out.append(gene)
-    return out
-
-def diagnostic_result_context(case:dict, reg:dict, panel_scope_text:str)->dict:
-    """Build compact deterministic testing-state context for diagnosis prompts.
-
-    Do not materialize the full set of unreported panel genes.  The workflow
-    invariant is supplied as a rule and core verifies any authority-relevant
-    bare-gene negative on demand.  This keeps model prompts proportional to the
-    detected findings rather than panel size.
-    """
-    # Parse the panel here so malformed/empty scope still fails through the same
-    # setup path, but intentionally do not serialize the gene list into prompts.
-    panel=panel_genes_from_scope(panel_scope_text)
-    detected=[]
-    for vid,row in reg.items():
-        detected.append({'subject':vid,'gene':row.get('gene')})
-    facts=[]
-    for row in case.get('case_facts') or []:
-        if isinstance(row,dict):
-            facts.append({'subject':row.get('fact_id'),'kind':row.get('kind'),'value':row.get('value')})
-    return {
-        'ngs':{
-            'detected_variants':detected,
-            'panel_gene_count':len(panel),
-            'negative_rule':'An unreported gene on the supplied NGS panel is verified negative within assay scope; mention one only when an authority card makes that negative result relevant.',
-        },
-        'non_ngs':{
-            'reported_case_facts':facts,
-            'absence_rule':'A relevant non-NGS test not supplied, or explicitly pending/not done, is presumed negative/normal for provisional diagnostic reasoning.',
-        },
-    }
-
-def validate_no_false_missing_case_claims(doc:dict,case:dict,*,domain:str='clinical')->str:
-    """Reject claims that an explicitly observed case fact is missing/pending/unavailable."""
-    issues=[]
-    text=yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110)
-    negative=r'(?:missing|pending|unavailable|unknown|not\s+(?:done|performed|available|reported)|no\s+(?:available\s+)?)'
-    for row in case.get('case_facts') or []:
-        if not isinstance(row,dict): continue
-        kind=str(row.get('kind') or '').strip()
-        value=str(row.get('value') or '').strip()
-        observed=' '.join((kind,value)).casefold()
-        if not kind or any(token in observed for token in ('pending','not done','not performed','unavailable','awaiting')):
-            continue
-        aliases={kind.casefold()}
-        words=[re.sub(r'[^a-z0-9]+','',w.casefold()) for w in kind.split()]
-        for word in words:
-            if len(word)>=5:
-                aliases.add(word[:-1] if word.endswith('s') else word)
-        if 'blast' in kind.casefold(): aliases.update({'blast','blast percentage','blast count'})
-        if 'cytogen' in kind.casefold(): aliases.update({'cytogenetic','cytogenetics','karyotype'})
-        for alias in sorted(aliases,key=len,reverse=True):
-            a=re.escape(alias)
-            patterns=(
-                rf'\b{negative}\b[^.;\n]{{0,45}}\b{a}\b',
-                rf'\b{a}\b[^.;\n]{{0,18}}\b(?:is\s+|are\s+|was\s+|were\s+)?{negative}\b',
-            )
-            if any(re.search(pattern,text,flags=re.IGNORECASE) for pattern in patterns):
-                issues.append(ValidationIssue(
-                    f'{domain} proforma',
-                    f'claims observed case fact {kind!r} is missing/pending/unavailable',
-                    f'use the supplied observed value {value!r}; do not describe this case fact as missing or indeterminate',
-                    repair_class='content',
-                    received=f'{kind}: {value}',
-                    expected='observed case fact used as supplied',
-                ))
-                break
-    fail(f'{domain} case-fact consistency',issues)
-    return f'{domain} case facts consistent'
 
 def case_genes(case:dict)->list[str]:
     out=[]

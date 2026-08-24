@@ -1,0 +1,11 @@
+evidence match failed validation with 2 issue(s):
+1. matches
+   Problem: missing ['E0002']; unexpected ['E0099'].
+   Required fix: return exactly one row for every supplied evidence_id and no other rows.
+   Received: 2 row(s): ['E0001', 'E0099']
+   Expected: 2 row(s): ['E0001', 'E0002']
+2. matches[0].card_id
+   Problem: 'C009' is not an allowed candidate card.
+   Required fix: use one exact candidate card from ['C001', 'C002'].
+   Received: C009
+   Expected: ['C001', 'C002']

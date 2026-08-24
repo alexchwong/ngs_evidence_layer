@@ -13,7 +13,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v6 import card_identity, layout, model_client, pipeline_registry, prompt_loader, rendering, runtime, schema_validation
+from workflows.terraced_v6 import card_identity, domain_contract, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks
 
 WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=1; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
@@ -276,6 +276,60 @@ def _set_retry_entry(work,call_id,entry):
     else: state.pop(call_id,None)
     _save_model_retry_state(work,state)
 
+def _transform_log_path(work): return layout.logs(work)/'transforms.yaml'
+def _log_transforms(work,records):
+    """Record every deterministic change made to an accepted model artifact.
+
+    Without this a developer cannot tell whether a stored artifact differs from
+    the model's answer because the model said so or because Python normalised it.
+    Idempotent: self handoffs replay completed deterministic stages.
+    """
+    records=[r for r in (records or []) if r]
+    if not records: return
+    path=_transform_log_path(work); doc={'schema_version':1,'transforms':[]}
+    if path.is_file():
+        try: doc=yaml.safe_load(_read(path)) or doc
+        except (OSError,yaml.YAMLError,TypeError): pass
+    rows=doc.setdefault('transforms',[])
+    for record in records:
+        if record not in rows: rows.append(record)
+    _write(path,yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
+
+def _fingerprint(text): return hashlib.sha256(str(text or '').encode('utf-8')).hexdigest()[:16]
+
+def _observe_stagnation(work,call_id,candidate,error):
+    """Count consecutive identical (artifact, error) pairs for one model task.
+
+    The in-memory RetryStagnationGuard cannot survive a self handoff, and the
+    self pipeline is exactly where a wasted turn is most expensive: it costs a
+    human round-trip. State therefore lives in the retry entry that already
+    persists across handoffs.
+    """
+    entry=_retry_entry(work,call_id); current=[_fingerprint(candidate),_fingerprint(error)]
+    repeats=int(entry.get('stagnation_repeats',0))+1 if entry.get('stagnation')==current else 0
+    entry['stagnation']=current; entry['stagnation_repeats']=repeats
+    _set_retry_entry(work,call_id,entry)
+    return repeats
+
+def _clear_stagnation(work,call_id):
+    entry=_retry_entry(work,call_id)
+    if entry.pop('stagnation',None) is not None or entry.pop('stagnation_repeats',None) is not None:
+        _set_retry_entry(work,call_id,entry)
+
+# After this many consecutive identical rejected artifacts, another unchanged
+# retry has no expected value; surface the deterministic failure instead.
+STAGNATION_ABORT_AFTER=2
+
+def _apply_stagnation(work,call_id,candidate,feedback):
+    """Escalate, then stop, when a model keeps returning the same rejected artifact."""
+    repeats=_observe_stagnation(work,call_id,candidate,feedback)
+    if repeats>=STAGNATION_ABORT_AFTER:
+        raise StepFailure(f'model operation {call_id} returned the same rejected artifact and the same deterministic error {repeats+1} times; stopping early rather than retrying unchanged. Last validation feedback:\n{feedback}')
+    if repeats>0:
+        _status(f'  {call_id}: unchanged rejected artifact ({repeats+1} identical attempts)')
+        return feedback+validated_model_task.stagnation_instruction(repeats)
+    return feedback
+
 def _log_once(work,key,msg,*,raw=False):
     """Log one diagnostic or stage message once across self-handoff resumes."""
     p=_progress_path(work); doc={'announced':[]}
@@ -415,12 +469,12 @@ def _validate_candidate(work,*,candidate,fmt,call_id,syntax_binding,validator,sy
     msg=validator(repaired)
     return repaired,msg
 
-def _standard_model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',fatal=True,max_attempts=None,feedback=None,system_prompt=None):
+def _standard_model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',max_attempts=None,feedback=None,system_prompt=None):
     binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair'); root=layout.model_step_dir(work,call_id,existing=False)
     messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
     attempts=int(max_attempts if max_attempts is not None else _retry('fatal_model_attempts')); previous=None; last_error=feedback or ''
     # Syntax repair has its own global cap. It must never silently inherit
-    # the larger clinical/fatal retry budget.
+    # the larger clinical retry budget.
     syntax_attempts=_retry('syntax_repair_attempts')
     self_count_path=root/'self-attempt-count.json'
     self_count=0
@@ -433,7 +487,7 @@ def _standard_model_call(work,*,call_id,role,prompt,output,validator,profile=Non
         except Handoff: raise
         except StepFailure: raise
         except Exception as exc:
-            previous=_read(output); last_error=validated_model_task.retry_instruction(exc)
+            previous=_read(output); last_error=_apply_stagnation(work,call_id,previous,validated_model_task.retry_instruction(exc))
             if binding.is_self:
                 self_count += 1
                 _write(self_count_path,json.dumps({'attempts':self_count},indent=2)+'\n')
@@ -465,10 +519,10 @@ def _standard_model_call(work,*,call_id,role,prompt,output,validator,profile=Non
         except Handoff: raise
         except StepFailure: raise
         except Exception as exc:
-            previous=raw; last_error=validated_model_task.retry_instruction(exc)
+            previous=raw; last_error=_apply_stagnation(work,call_id,raw,validated_model_task.retry_instruction(exc))
             _write(layout.errors(work)/f'{call_id}-attempt-{attempt:02d}.txt',raw.rstrip()+'\n\nVALIDATION:\n'+last_error+'\n')
             continue
-        _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); return candidate
+        _clear_stagnation(work,call_id); _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); return candidate
     raise StepFailure(f'model operation {call_id} failed validation after {attempts} attempts: {last_error}')
 
 
@@ -500,7 +554,7 @@ def _proforma_model_call(work,*,call_id,role,prompt,output,validator,profile=Non
     One proforma generation may use at most ``syntax_repair_attempts`` syntax-only
     repairs.  If that budget is exhausted, the damaged artifact is abandoned and
     the original proforma task is run again from scratch.  Full proforma rewrites
-    have a separate cap and never inherit the old generic 10-attempt fatal budget.
+    have a separate cap and never inherit the old generic 10-attempt retry budget.
     """
     syntax_attempts=_retry('syntax_repair_attempts'); max_rewrites=int(_retry('proforma_rewrite_attempts') if max_rewrites is None else max_rewrites)
     binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair')
@@ -525,7 +579,7 @@ def _proforma_model_call(work,*,call_id,role,prompt,output,validator,profile=Non
                 _set_retry_entry(work,call_id,{'rewrites':rewrite_index,'mode':mode,'feedback':restart_feedback,'previous':None})
                 active_id=_proforma_active_id(call_id,rewrite_index); root=layout.model_step_dir(work,active_id,existing=False)
             except Exception as exc:
-                last_error=validated_model_task.retry_instruction(exc)
+                last_error=_apply_stagnation(work,call_id,raw,validated_model_task.retry_instruction(exc))
                 _write(layout.errors(work)/f'{active_id}-proforma-invalid.txt',raw.rstrip()+'\n\nVALIDATION:\n'+last_error+'\n')
                 if rewrite_index>=max_rewrites:
                     raise StepFailure(f'model operation {call_id} failed after the initial proforma plus {max_rewrites} full proforma rewrite(s): {last_error}') from exc
@@ -585,16 +639,44 @@ def _proforma_model_call(work,*,call_id,role,prompt,output,validator,profile=Non
             _write(layout.errors(work)/f'{active_id}-proforma-invalid.txt',raw.rstrip()+'\n\nSYNTAX_REPAIR_EXHAUSTED:\n'+str(exc)+'\n')
             previous=None; mode='fresh'; restart_feedback=_proforma_restart_feedback(call_id,syntax_attempts,exc.feedback); continue
         except Exception as exc:
-            previous=raw; mode='repair'; restart_feedback=validated_model_task.retry_instruction(exc)
+            previous=raw; mode='repair'; restart_feedback=_apply_stagnation(work,call_id,raw,validated_model_task.retry_instruction(exc))
             _write(layout.errors(work)/f'{active_id}-proforma-invalid.txt',raw.rstrip()+'\n\nVALIDATION:\n'+restart_feedback+'\n'); continue
         _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); return candidate
     raise StepFailure(f'model operation {call_id} failed after the initial proforma plus {max_rewrites} full proforma rewrite(s): {restart_feedback}')
 
 
-def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',fatal=True,max_attempts=None,feedback=None,system_prompt=None,proforma=False,max_rewrites=None):
+def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',max_attempts=None,feedback=None,system_prompt=None,proforma=False,max_rewrites=None):
     if proforma:
         return _proforma_model_call(work,call_id=call_id,role=role,prompt=prompt,output=output,validator=validator,profile=profile,fmt=fmt,feedback=feedback,system_prompt=system_prompt,max_rewrites=max_rewrites)
-    return _standard_model_call(work,call_id=call_id,role=role,prompt=prompt,output=output,validator=validator,profile=profile,fmt=fmt,fatal=fatal,max_attempts=max_attempts,feedback=feedback,system_prompt=system_prompt)
+    return _standard_model_call(work,call_id=call_id,role=role,prompt=prompt,output=output,validator=validator,profile=profile,fmt=fmt,max_attempts=max_attempts,feedback=feedback,system_prompt=system_prompt)
+
+def run_check_stage(args):
+    """Validate one artifact against one stage, with no model and no run directory.
+
+    Prints exactly the deterministic feedback the model would receive, so the
+    validation loop can be iterated on in seconds rather than per model round-trip.
+    """
+    context=stage_checks.fixture_context(args.stage)
+    if args.context: context=yaml.safe_load(_read(args.context)) or {}
+    try:
+        message=stage_checks.check(args.stage,_read(args.file),context)
+    except validated_model_task.ValidationFailure as exc:
+        print(f'STAGE={args.stage}'); print('RESULT=invalid'); print(); print(str(exc)); return EXIT_FAILURE
+    except ValueError as exc:
+        print(f'STAGE={args.stage}'); print('RESULT=invalid'); print(); print(str(exc)); return EXIT_FAILURE
+    print(f'STAGE={args.stage}'); print(f'RESULT=valid ({message})'); return EXIT_OK
+
+
+def run_show_prompt(args):
+    """Print a stage's prompt asset and its model-facing output contract."""
+    context=stage_checks.fixture_context(args.stage)
+    if args.context: context=yaml.safe_load(_read(args.context)) or {}
+    name=args.stage if args.stage in (load_settings().get('prompts') or {}) else None
+    if name: print(_prompt(name))
+    else: print(f'(no prompt asset registered for stage {args.stage!r})')
+    skeleton=stage_checks.skeleton(args.stage,context)
+    if skeleton: print(); print(skeleton)
+    return EXIT_OK
 
 def _safe_slug(text):
     s=''.join(c.lower() if c.isalnum() else '-' for c in text).strip('-')
@@ -723,8 +805,6 @@ def _draw_domain_cards(eligible,domain,genes,diseases):
 def _allowed_diseases(work):
     return set(runtime.read_json(layout.setup(work,'allowed-schema-diseases.json'))['allowed_schema_diseases'])
 
-def _variant_context(reg): return yaml.safe_dump({'variants':reg},sort_keys=False,allow_unicode=True,width=110)
-
 def _variant_identity_terms(reg,variants):
     terms=[]
     for vid in variants or []:
@@ -757,12 +837,13 @@ def _render_shared_reason(template,variants,reg):
     return text
 
 def _consolidate_rows(domain,doc,reg):
-    buckets={
-      'prognosis':('favorable','adverse','neutral','uncertain'),
-      'treatment':('drug_target','drug_sensitive','drug_resistant','no_drug_implication'),
-      'biomarker':('mrd_marker','not_mrd_marker'),
-      'germline':('germline_support','germline_against','germline_uncertain'),
-    }[domain]
+    """Merge rows sharing one normalised proposition. Returns (doc, merge records).
+
+    The model now emits one row per variant (see domain_contract), so this is the
+    only place grouping happens.  Every merge is reported so a developer can tell
+    model output from deterministic normalisation.
+    """
+    buckets=domain_contract.contract(domain).buckets; merges=[]
     for bucket in buckets:
         rows=doc.get(bucket) or []; groups=[]; index={}; templates={}
         for row in rows:
@@ -771,15 +852,17 @@ def _consolidate_rows(domain,doc,reg):
             key=(canonical,extras)
             if canonical and key in index:
                 target=groups[index[key]]
+                merged=[]
                 for vid in row['variants']:
-                    if vid not in target['variants']: target['variants'].append(vid)
+                    if vid not in target['variants']: target['variants'].append(vid); merged.append(vid)
                 target['reason']=_render_shared_reason(templates[key],target['variants'],reg)
+                if merged: merges.append({'domain':domain,'bucket':bucket,'transform':'consolidate_parallel_variant_rows','merged_variants':merged,'into_variants':list(target['variants']),'resulting_reason':target['reason']})
             else:
                 clone=dict(row); clone['variants']=list(row.get('variants') or [])
                 if canonical: index[key]=len(groups); templates[key]=template
                 groups.append(clone)
         doc[bucket]=groups
-    return doc
+    return doc,merges
 
 def stage_diagnosis(work,case,reg,eligible,profile):
     allowed=_allowed_diseases(work); genes=runtime.case_genes(case); bootstrap=list(case.get('bootstrap_cmcs') or [])
@@ -787,9 +870,10 @@ def stage_diagnosis(work,case,reg,eligible,profile):
     for idx in range(1,max_passes+1):
         who_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'who5')
         out=_artifact(work,f'diagnosis_who5_pass_{idx}','who5.yaml',new=True)
-        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_cards(who_cards)
+        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_cards(who_cards)
+        model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
         _model_call(work,call_id=f'diagnosis-who5-pass-{idx:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
-        who=yaml.safe_load(_read(out)); runtime.validate_no_false_missing_case_claims(who,case,domain='WHO5 diagnosis'); cmcs=runtime.derive_cmcs(who); authoritative=idx
+        who=yaml.safe_load(_read(out)); cmcs=runtime.derive_cmcs(who); authoritative=idx
         if cmcs==prior: break
         for cmc in cmcs:
             if cmc not in history: history.append(cmc)
@@ -799,14 +883,16 @@ def stage_diagnosis(work,case,reg,eligible,profile):
         if cmc not in history: history.append(cmc)
 
     icc_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
-    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_cards(icc_cards)
+    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_cards(icc_cards)
+    model_context.assert_canonical(iprompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=iprompt,output=icc_out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
-    icc=yaml.safe_load(_read(icc_out)); runtime.validate_no_false_missing_case_claims(icc,case,domain='ICC diagnosis')
+    icc=yaml.safe_load(_read(icc_out))
 
     other_cards=_draw_diagnosis_cards(eligible,genes,history); other_out=_existing_or_new(work,'diagnosis_other','other.yaml')
-    oprompt=_prompt('diagnosis_other')+'\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Primary framework diagnoses\n```yaml\n'+yaml.safe_dump({'who5':who,'icc':icc},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate diagnosis cards\n'+_render_cards(other_cards)
+    oprompt=_prompt('diagnosis_other')+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Primary framework diagnoses\n```yaml\n'+yaml.safe_dump({'who5':who,'icc':icc},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate diagnosis cards\n'+_render_cards(other_cards)
+    model_context.assert_canonical(oprompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-other',role='diagnosis',prompt=oprompt,output=other_out,validator=lambda t:schema_validation.validate_second_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
-    other=yaml.safe_load(_read(other_out)); runtime.validate_no_false_missing_case_claims(other,case,domain='second diagnosis')
+    other=yaml.safe_load(_read(other_out))
     relationship='same' if runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
     diagnosis={'who5':who,'icc':icc,'second_diagnosis':other,'relationship':relationship}
     _write(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'),yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110))
@@ -815,11 +901,24 @@ def stage_diagnosis(work,case,reg,eligible,profile):
 
 def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
     valid=set(reg); disease=diagnosis['who5']['schema_disease']; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),[disease])
-    validator={'prognosis':schema_validation.validate_prognosis,'treatment':schema_validation.validate_treatment,'biomarker':schema_validation.validate_biomarker,'germline':schema_validation.validate_germline}[domain]
+    contract=domain_contract.contract(domain)
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml')
-    prompt=_prompt(domain)+'\n\n# Variant registry\n```yaml\n'+_variant_context(reg)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Authoritative framework diagnoses\n```yaml\n'+yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate evidence cards\n'+_render_cards(cards)
-    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:validator(t,valid),profile=profile,proforma=True)
-    doc=yaml.safe_load(_read(out)); runtime.validate_no_false_missing_case_claims(doc,case,domain=domain); doc=_consolidate_rows(domain,doc,reg); _write(out,yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
+    # The output contract is the final block of the prompt: recency matters
+    # disproportionately for a low-active-parameter model.
+    prompt=(_prompt(domain)
+        +'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```'
+        +'\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DOMAIN_CASE_FIELDS)+'\n```'
+        +'\n\n# Authoritative framework diagnoses\n```yaml\n'+model_context.diagnosis_context(diagnosis)+'```'
+        +'\n\n# Candidate evidence cards\n'+_render_cards(cards)
+        +'\n\n'+domain_contract.skeleton(contract,sorted(reg)))
+    model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
+    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_domain(t,domain,valid),profile=profile,proforma=True)
+    # The model returns the flat one-row-per-variant form; everything downstream
+    # reads the bucket-list form, so pivot before the artifact is stored.
+    flat=yaml.safe_load(_read(out)); doc=domain_contract.pivot(flat,contract)
+    doc,merges=_consolidate_rows(domain,doc,reg); _log_transforms(work,merges)
+    _write(out,yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
+    _write(_artifact(work,f'{domain}_state','model-classification.yaml',new=False),yaml.safe_dump(flat,sort_keys=False,allow_unicode=True,width=110))
     return doc,cards
 
 def _elements(diagnosis,domains):
@@ -831,25 +930,15 @@ def _elements(diagnosis,domains):
     sec=diagnosis['second_diagnosis']
     if _reportable('diagnosis','second_diagnosis') and sec.get('diagnosis'):
         els.append({'schema_id':'DX-SECOND','domain':'diagnosis','bucket':'second_diagnosis','statement':sec['diagnosis'],'reason':sec['reason'],'variants':sec['variants'],'evidence_domain':'diagnosis_other','required':False,'source':sec})
-    p=domains['prognosis']
-    for bucket in ('favorable','adverse','neutral','uncertain'):
-        if not _reportable('prognosis',bucket): continue
-        for i,row in enumerate(p[bucket],1): els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'prognosis','required':False,'source':row})
-    score=p.get('prognostic_score')
+    # Bucket vocabulary comes from domain_contract, not from four literal tuples.
+    for domain,prefix in (('prognosis','PX'),('treatment','TX'),('biomarker','MRD'),('germline','GL')):
+        doc=domains[domain]
+        for bucket in domain_contract.contract(domain).buckets:
+            if not _reportable(domain,bucket): continue
+            for i,row in enumerate(doc[bucket],1): els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row})
+    score=(domains['prognosis'] or {}).get('prognostic_score')
     if score and _reportable('prognosis','prognostic_score'):
         els.append({'schema_id':'PX-SCORE','domain':'prognosis','bucket':'prognostic_score','statement':f'{score["name"]}: {score["result"]}.','reason':score['reason'],'variants':[],'evidence_domain':'prognosis','required':False,'source':score})
-    t=domains['treatment']
-    for bucket in ('drug_target','drug_sensitive','drug_resistant','no_drug_implication'):
-        if not _reportable('treatment',bucket): continue
-        for i,row in enumerate(t[bucket],1): els.append({'schema_id':f'TX-{bucket.upper()}-{i:02d}','domain':'treatment','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'treatment','required':False,'source':row})
-    b=domains['biomarker']
-    for bucket in ('mrd_marker','not_mrd_marker'):
-        if not _reportable('biomarker',bucket): continue
-        for i,row in enumerate(b[bucket],1): els.append({'schema_id':f'MRD-{bucket.upper()}-{i:02d}','domain':'biomarker','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'biomarker','required':False,'source':row})
-    g=domains['germline']
-    for bucket in ('germline_support','germline_against','germline_uncertain'):
-        if not _reportable('germline',bucket): continue
-        for i,row in enumerate(g[bucket],1): els.append({'schema_id':f'GL-{bucket.upper()}-{i:02d}','domain':'germline','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'germline','required':False,'source':row})
     return els
 
 def _candidate_cards(el,cards_by_domain,reg):
@@ -880,13 +969,13 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
     public=[{k:item[k] for k in ('evidence_id','schema_id','statement','reason','candidate_card_ids')} for item in items]
     cards=[_card_view(catalog[cid]) for cid in dict.fromkeys(cid for item in items for cid in item['candidate_card_ids'])]
     mpath=_existing_or_new(work,'evidence_matches','batch-match.yaml'); mprompt=_prompt('evidence_match')+'\n\n# Evidence items\n```yaml\n'+yaml.safe_dump({'items':public},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate card catalog\n```yaml\n'+yaml.safe_dump({'cards':cards},sort_keys=False,allow_unicode=True,width=110)+'```\n'
-    _model_call(work,call_id='evidence-match-batch',role='evidence_match',prompt=mprompt,output=mpath,validator=lambda t:schema_validation.validate_evidence_match_batch(t,items),profile=profile,fatal=False,max_attempts=_retry('evidence_match_model_attempts'))
+    _model_call(work,call_id='evidence-match-batch',role='evidence_match',prompt=mprompt,output=mpath,validator=lambda t:schema_validation.validate_evidence_match_batch(t,items),profile=profile,max_attempts=_retry('evidence_match_model_attempts'))
     matches=yaml.safe_load(_read(mpath))['matches']; mmap={m['evidence_id']:m for m in matches}
     audit_rows=[]
     for item in items:
         m=mmap[item['evidence_id']]; audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'statement':item['statement'],'reason':item['reason'],'source':m['source'],'quote':m['quote'],'selected_card':_card_view(catalog[m['card_id']])})
     apath=_existing_or_new(work,'evidence_audits','batch-audit.yaml'); aprompt=_prompt('evidence_audit')+'\n\n# Selected evidence pairs\n```yaml\n'+yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
-    _model_call(work,call_id='evidence-audit-batch',role='evidence_audit',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_evidence_audit_batch(t,items),profile=profile,fatal=False,max_attempts=_retry('evidence_audit_model_attempts'))
+    _model_call(work,call_id='evidence-audit-batch',role='evidence_audit',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_evidence_audit_batch(t,items),profile=profile,max_attempts=_retry('evidence_audit_model_attempts'))
     audits=yaml.safe_load(_read(apath))['audits']; amap={a['evidence_id']:a for a in audits}; keep=[]
     for item in items:
         el=enriched[item['element_index']]; m=mmap[item['evidence_id']]; a=amap[item['evidence_id']]; ok=bool(a['quote_supports_statement'] and a['quote_supports_reason'])
@@ -936,12 +1025,13 @@ def stage_blocks(work,diagnosis,elements,reg):
     return blocks
 
 def stage_report_write(work,blocks,case,reg,profile):
-    path=_existing_or_new(work,'report_write','report-write.yaml'); prompt=_prompt('report_write')+'\n\n# Deterministic report blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Variant registry — naming context only\n```yaml\n'+_variant_context(reg)+'```\n'
-    _model_call(work,call_id='report-write',role='report_write',prompt=prompt,output=path,validator=lambda t:schema_validation.validate_report_write(t,blocks),profile=profile,fatal=False,max_attempts=_retry('report_write_attempts'))
+    path=_existing_or_new(work,'report_write','report-write.yaml'); prompt=_prompt('report_write')+'\n\n# Deterministic report blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Variant registry — naming context only\n```yaml\n'+model_context.registry_context(reg)+'```\n'
+    model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
+    _model_call(work,call_id='report-write',role='report_write',prompt=prompt,output=path,validator=lambda t:schema_validation.validate_report_write(t,blocks),profile=profile,max_attempts=_retry('report_write_attempts'))
     rendered=yaml.safe_load(_read(path))['blocks']; amap={r['block_id']:r['text'] for r in rendered}
     apath=_existing_or_new(work,'report_write','report-preservation.yaml'); aprompt=_prompt('report_preservation')+'\n\n# Deterministic source blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Rendered blocks\n```yaml\n'+yaml.safe_dump({'blocks':rendered},sort_keys=False,allow_unicode=True,width=110)+'```\n'
     try:
-        _model_call(work,call_id='report-preservation',role='preservation_check',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_preservation(t,blocks),profile=profile,fatal=False,max_attempts=_retry('preservation_attempts'))
+        _model_call(work,call_id='report-preservation',role='preservation_check',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_preservation(t,blocks),profile=profile,max_attempts=_retry('preservation_attempts'))
         audits=yaml.safe_load(_read(apath))['audits']; audit_map={a['block_id']:a for a in audits}
     except StepFailure as exc:
         audit_map={b['block_id']:{'preserved':False,'issue':'Preservation audit unavailable: '+str(exc)} for b in blocks}
@@ -1037,6 +1127,9 @@ def _resolve_run_work_dir(work_dir):
 def build_parser():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='command',required=True)
     s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=['ngs-report','nel-demo','nel-validate','nel-validate-function','nel-validate-brief']); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names())
+    cs=sub.add_parser('check-stage'); cs.add_argument('--stage',required=True,choices=stage_checks.names()); cs.add_argument('--file',type=Path,required=True); cs.add_argument('--context',type=Path)
+    sp=sub.add_parser('show-prompt'); sp.add_argument('--stage',required=True,choices=stage_checks.names()); sp.add_argument('--context',type=Path)
+    sub.add_parser('stages')
     sub.add_parser('pipelines'); pc=sub.add_parser('pipeline-check'); pc.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pp=sub.add_parser('pipeline-plan'); pp.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); ps=sub.add_parser('pipeline'); ps.add_argument('pipeline_id',nargs='?',choices=pipeline_registry.names()); r=sub.add_parser('run'); r.add_argument('--work-dir',type=Path)
     return p
 
@@ -1044,6 +1137,11 @@ def main(argv=None):
     args=build_parser().parse_args(argv)
     try:
         if args.command=='setup': return run_setup(args)
+        if args.command=='check-stage': return run_check_stage(args)
+        if args.command=='show-prompt': return run_show_prompt(args)
+        if args.command=='stages':
+            for name in stage_checks.names(): print(name)
+            return EXIT_OK
         if args.command=='pipelines':
             for name in pipeline_registry.names(): print(f'{name}: {pipeline_registry.descriptions()[name]}')
             return EXIT_OK

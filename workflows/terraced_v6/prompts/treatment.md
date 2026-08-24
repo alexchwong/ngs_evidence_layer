@@ -10,27 +10,6 @@ Buckets:
 
 Rules:
 - A variant may appear in more than one positive bucket when the propositions are genuinely distinct.
-- Variants sharing the same proposition, therapy, context, and qualifiers MUST be in one row.
+- Give variants sharing one proposition the same `reason` wording; they are merged deterministically afterwards.
 - A variant with any positive treatment implication must not appear in `no_drug_implication`.
 - Keep reasons concise and evidence-backed.
-
-Return YAML only:
-```yaml
-drug_target: []
-drug_sensitive: []
-drug_resistant: []
-no_drug_implication: []
-```
-
-Positive rows use:
-```yaml
-- variants: [v01]
-  therapy: "<drug or drug class>"
-  reason: "<one shared treatment proposition>"
-```
-
-Negative rows use:
-```yaml
-- variants: [v02]
-  reason: "<one shared negative proposition>"
-```

@@ -1,0 +1,9 @@
+matches:
+  - evidence_id: E0001
+    card_id: C009
+    source: Khoury 2022
+    quote: "Adverse prognosis."
+  - evidence_id: E0099
+    card_id: C003
+    source: Arber 2022
+    quote: "Diagnostic."

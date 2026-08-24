@@ -21,15 +21,37 @@ class ValidationIssue:
     expected: str | None = None
 
     def render(self, index: int) -> str:
-        parts = [
-            f"{index}. {self.path} — Problem: {self.problem}.",
-            f"Required fix: {self.required_fix}.",
-        ]
+        """Render one issue over several short lines.
+
+        A single run-on line is harder for a small model to parse than a labelled
+        block, and the field path is the part that most needs to survive: it is
+        the only element that tells the model *where* to edit.
+        """
+        lines = [f"{index}. {self.path}"]
+        lines.append(f"   Problem: {self.problem}.")
+        lines.append(f"   Required fix: {self.required_fix}.")
         if self.received is not None:
-            parts.append(f"Received: {self.received}.")
+            lines.append(f"   Received: {self.received}")
         if self.expected is not None:
-            parts.append(f"Expected: {self.expected}.")
-        return " ".join(parts)
+            lines.append(f"   Expected: {self.expected}")
+        return "\n".join(lines)
+
+
+# A model asked to repair forty simultaneous defects repairs a prefix and stops.
+# Report a bounded, representative set and say how many were withheld.
+MAX_RENDERED_ISSUES = 8
+
+
+def render_issues(issues: list[ValidationIssue], *, limit: int = MAX_RENDERED_ISSUES) -> str:
+    shown = issues[:limit]
+    body = "\n".join(issue.render(i) for i, issue in enumerate(shown, 1))
+    hidden = len(issues) - len(shown)
+    if hidden > 0:
+        body += (
+            f"\n\n{hidden} further issue(s) of the same kinds were not listed. "
+            "Fix the listed issues and apply the same corrections throughout the artifact."
+        )
+    return body
 
 
 class ValidationFailure(ValueError):
@@ -38,9 +60,9 @@ class ValidationFailure(ValueError):
     def __init__(self, context: str, issues: list[ValidationIssue]):
         self.context = context
         self.issues = list(issues)
-        rendered = "\n".join(issue.render(i) for i, issue in enumerate(self.issues, 1))
         super().__init__(
-            f"{context} failed validation with {len(self.issues)} issue(s):\n{rendered}"
+            f"{context} failed validation with {len(self.issues)} issue(s):\n"
+            + render_issues(self.issues)
         )
 
 

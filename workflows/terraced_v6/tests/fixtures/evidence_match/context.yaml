@@ -1,0 +1,5 @@
+items:
+  - evidence_id: E0001
+    candidate_card_ids: [C001, C002]
+  - evidence_id: E0002
+    candidate_card_ids: [C003]
