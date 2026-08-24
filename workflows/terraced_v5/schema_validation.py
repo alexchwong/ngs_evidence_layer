@@ -397,6 +397,10 @@ def _effect_rows(doc: dict, bucket: str, valid: set[str], issues: list[Validatio
         if row is None:
             continue
         _exact(row, {"variants", "reason", *extra}, path, issues)
+        # Empty placeholder rows carry no semantic content. Treat them as an
+        # empty bucket; core removes them deterministically after validation.
+        if row.get("variants") == [] and not str(row.get("reason") or "").strip() and all(not str(row.get(field) or "").strip() for field in extra):
+            continue
         covered.update(_variant_list(row.get("variants"), f"{path}.variants", valid, issues))
         _text(row.get("reason"), f"{path}.reason", issues)
         for field in sorted(extra):
@@ -568,18 +572,167 @@ def validate_germline(text: str, valid: set[str]) -> str:
     return "germline proforma structurally valid"
 
 
-def validate_who5_diagnosis(text: str, *, allowed_diseases: set[str]) -> str:
+def _diagnosis_criteria(
+    value: Any,
+    path: str,
+    issues: list[ValidationIssue],
+    *,
+    valid_variants: set[str] | None = None,
+    case_fact_ids: set[str] | None = None,
+    observed_case_fact_ids: set[str] | None = None,
+    panel_genes: set[str] | None = None,
+    detected_genes: set[str] | None = None,
+    allowed_card_ids: set[str] | None = None,
+    closed_gene_sets: dict[str, set[str]] | None = None,
+) -> None:
+    """Validate compact model-facing diagnostic criterion checks.
+
+    The model emits subject IDs only.  Result status is deterministic workflow
+    state and is expanded by core after this structural/semantic validation.
+    """
+    rows = _list(value, path, issues, allow_empty=False, item_hint="diagnostic criterion mappings")
+    if rows is None:
+        return
+    valid_variants = set(valid_variants or set())
+    case_fact_ids = set(case_fact_ids or set())
+    observed_case_fact_ids = set(observed_case_fact_ids or set())
+    panel_genes = set(panel_genes or set())
+    detected_genes = set(detected_genes or set())
+    allowed_card_ids = set(allowed_card_ids or set())
+    closed_gene_sets = dict(closed_gene_sets or {})
+    buckets = ("positive_supportive", "negative_supportive", "indeterminate", "not_contributory")
+
+    for i, raw in enumerate(rows):
+        cpath = f"{path}[{i}]"
+        row = _mapping(raw, cpath, issues)
+        if row is None:
+            continue
+        _exact(row, {"authority_card_id", "criterion_type", "criterion", "reason", "checks"}, cpath, issues)
+        card_id = row.get("authority_card_id")
+        if allowed_card_ids and card_id not in allowed_card_ids:
+            issues.append(ValidationIssue(
+                f"{cpath}.authority_card_id", f"unknown authority card {card_id!r}",
+                "use one exact supplied authority card ID that contains this diagnostic rule",
+                repair_class="content", received=_preview(card_id), expected=str(sorted(allowed_card_ids)),
+            ))
+        ctype = row.get("criterion_type")
+        _enum(ctype, {"molecular_membership", "other"}, f"{cpath}.criterion_type", issues)
+        _text(row.get("criterion"), f"{cpath}.criterion", issues)
+        _text(row.get("reason"), f"{cpath}.reason", issues)
+        checks = _mapping(row.get("checks"), f"{cpath}.checks", issues)
+        if checks is None:
+            continue
+        _exact(checks, set(buckets), f"{cpath}.checks", issues)
+        seen: dict[str, str] = {}
+        by_bucket: dict[str, list[str]] = {b: [] for b in buckets}
+        for bucket in buckets:
+            vals = _list(checks.get(bucket), f"{cpath}.checks.{bucket}", issues, allow_empty=True, item_hint="subject IDs")
+            if vals is None:
+                continue
+            for j, raw_subject in enumerate(vals):
+                qpath = f"{cpath}.checks.{bucket}[{j}]"
+                if not isinstance(raw_subject, str) or not raw_subject.strip():
+                    issues.append(ValidationIssue(
+                        qpath, f"expected compact subject string; received {_type_name(raw_subject)}",
+                        "return only the subject ID/name here; core derives result_status deterministically",
+                        repair_class="content", received=_preview(raw_subject), expected="subject string",
+                    ))
+                    continue
+                subject = raw_subject.strip()
+                if subject != raw_subject:
+                    issues.append(ValidationIssue(
+                        qpath, "subject has surrounding whitespace",
+                        "return the same subject without surrounding whitespace", repair_class="serialization",
+                    ))
+                if subject in seen:
+                    issues.append(ValidationIssue(
+                        qpath, f"subject {subject!r} already appears in {seen[subject]}",
+                        "classify each subject exactly once within this criterion", repair_class="content",
+                    ))
+                else:
+                    seen[subject] = bucket
+                by_bucket[bucket].append(subject)
+
+                if subject in panel_genes and subject in detected_genes:
+                    issues.append(ValidationIssue(
+                        qpath, f"detected panel gene {subject!r} was referenced by gene symbol",
+                        "use the supplied internal variant ID for a detected NGS positive; reserve bare gene symbols for authority-relevant unreported panel genes",
+                        repair_class="content",
+                    ))
+                if bucket == "positive_supportive":
+                    if subject in panel_genes and subject not in detected_genes:
+                        issues.append(ValidationIssue(
+                            qpath, f"unreported panel gene {subject!r} cannot be positive_supportive",
+                            "move it only to negative_supportive when the authority card explicitly requires its negative status, otherwise omit it",
+                            repair_class="content",
+                        ))
+                    elif subject not in valid_variants and subject not in case_fact_ids:
+                        issues.append(ValidationIssue(
+                            qpath, f"unsupplied subject {subject!r} cannot be positive_supportive",
+                            "use a detected variant ID or supplied case-fact ID for positive support", repair_class="content",
+                        ))
+                elif bucket == "negative_supportive" and subject in valid_variants:
+                    issues.append(ValidationIssue(
+                        qpath, f"detected positive variant {subject!r} cannot be negative_supportive",
+                        "use negative_supportive only for authority-relevant negative results", repair_class="content",
+                    ))
+                elif bucket == "indeterminate" and subject in observed_case_fact_ids:
+                    issues.append(ValidationIssue(
+                        qpath, f"supplied non-pending case fact {subject!r} cannot be indeterminate",
+                        "the result is observed; classify its criterion contribution as positive_supportive, negative_supportive, or not_contributory according to the supplied authority rule",
+                        repair_class="content",
+                    ))
+
+        if ctype == "molecular_membership":
+            closed = closed_gene_sets.get(card_id or "")
+            if not closed:
+                issues.append(ValidationIssue(
+                    f"{cpath}.criterion_type",
+                    "molecular_membership requires an authority card that explicitly defines a finite qualifying gene set",
+                    "use criterion_type: other unless the supplied card is marked as a closed gene set",
+                    repair_class="content",
+                ))
+            accounted = set(seen)
+            missing = valid_variants - accounted
+            extras = accounted - valid_variants
+            if missing:
+                issues.append(ValidationIssue(
+                    f"{cpath}.checks", f"molecular membership check omitted detected variants {sorted(missing)}",
+                    "classify every supplied detected variant exactly once for this finite gene-set criterion",
+                    repair_class="content",
+                ))
+            if extras:
+                issues.append(ValidationIssue(
+                    f"{cpath}.checks", f"molecular membership check included non-variant subjects {sorted(extras)}",
+                    "for molecular_membership classify detected variant IDs only; express any separate negative dependency as its own criterion",
+                    repair_class="content",
+                ))
+
+
+def validate_who5_diagnosis(
+    text: str,
+    *,
+    allowed_diseases: set[str],
+    valid_variants: set[str] | None = None,
+    variant_genes: dict[str, str] | None = None,
+    case_fact_ids: set[str] | None = None,
+    observed_case_fact_ids: set[str] | None = None,
+    panel_genes: set[str] | None = None,
+    allowed_card_ids: set[str] | None = None,
+    closed_gene_sets: dict[str, set[str]] | None = None,
+) -> str:
     issues: list[ValidationIssue] = []
     d = _doc(text, "WHO5 diagnosis", issues)
     _exact(d, {"diagnoses"}, "who5", issues)
     rows = _list(d.get("diagnoses"), "diagnoses", issues, allow_empty=False, item_hint="WHO5 diagnosis mappings") if "diagnoses" in d else []
+    detected_genes = set((variant_genes or {}).values())
     if rows is not None:
         for i, raw_row in enumerate(rows):
             path = f"diagnoses[{i}]"
             row = _mapping(raw_row, path, issues)
             if row is None:
                 continue
-            _exact(row, {"schema_disease", "status", "diagnosis", "reasons"}, path, issues)
+            _exact(row, {"schema_disease", "status", "diagnosis", "criteria"}, path, issues)
             disease = row.get("schema_disease")
             if disease not in allowed_diseases:
                 issues.append(ValidationIssue(
@@ -587,28 +740,47 @@ def validate_who5_diagnosis(text: str, *, allowed_diseases: set[str]) -> str:
                     "use one exact supplied allowed schema disease", repair_class="content",
                     received=_preview(disease), expected=f"one of {sorted(allowed_diseases)}",
                 ))
-            _enum(row.get("status"), {"established", "indeterminate"}, f"{path}.status", issues)
+            _enum(row.get("status"), {"established", "conditional", "indeterminate"}, f"{path}.status", issues)
             _text(row.get("diagnosis"), f"{path}.diagnosis", issues)
-            _reasons(row.get("reasons"), f"{path}.reasons", issues)
+            _diagnosis_criteria(
+                row.get("criteria"), f"{path}.criteria", issues,
+                valid_variants=valid_variants, case_fact_ids=case_fact_ids, observed_case_fact_ids=observed_case_fact_ids, panel_genes=panel_genes,
+                detected_genes=detected_genes, allowed_card_ids=allowed_card_ids, closed_gene_sets=closed_gene_sets,
+            )
     fail("WHO5 diagnosis", issues)
     return "WHO5 diagnosis structurally valid"
 
 
-def validate_icc_diagnosis(text: str) -> str:
+def validate_icc_diagnosis(
+    text: str,
+    *,
+    valid_variants: set[str] | None = None,
+    variant_genes: dict[str, str] | None = None,
+    case_fact_ids: set[str] | None = None,
+    observed_case_fact_ids: set[str] | None = None,
+    panel_genes: set[str] | None = None,
+    allowed_card_ids: set[str] | None = None,
+    closed_gene_sets: dict[str, set[str]] | None = None,
+) -> str:
     issues: list[ValidationIssue] = []
     d = _doc(text, "ICC diagnosis", issues)
     _exact(d, {"diagnoses", "comparison_with_who5"}, "icc", issues)
     rows = _list(d.get("diagnoses"), "diagnoses", issues, allow_empty=False, item_hint="ICC diagnosis mappings") if "diagnoses" in d else []
+    detected_genes = set((variant_genes or {}).values())
     if rows is not None:
         for i, raw_row in enumerate(rows):
             path = f"diagnoses[{i}]"
             row = _mapping(raw_row, path, issues)
             if row is None:
                 continue
-            _exact(row, {"status", "diagnosis", "reasons"}, path, issues)
-            _enum(row.get("status"), {"established", "indeterminate"}, f"{path}.status", issues)
+            _exact(row, {"status", "diagnosis", "criteria"}, path, issues)
+            _enum(row.get("status"), {"established", "conditional", "indeterminate"}, f"{path}.status", issues)
             _text(row.get("diagnosis"), f"{path}.diagnosis", issues)
-            _reasons(row.get("reasons"), f"{path}.reasons", issues)
+            _diagnosis_criteria(
+                row.get("criteria"), f"{path}.criteria", issues,
+                valid_variants=valid_variants, case_fact_ids=case_fact_ids, observed_case_fact_ids=observed_case_fact_ids, panel_genes=panel_genes,
+                detected_genes=detected_genes, allowed_card_ids=allowed_card_ids, closed_gene_sets=closed_gene_sets,
+            )
     comp = _mapping(d.get("comparison_with_who5"), "comparison_with_who5", issues) if "comparison_with_who5" in d else None
     if comp is not None:
         _exact(comp, {"significantly_different", "explanation"}, "comparison_with_who5", issues)
@@ -624,7 +796,6 @@ def validate_icc_diagnosis(text: str) -> str:
         _text(comp.get("explanation"), "comparison_with_who5.explanation", issues)
     fail("ICC diagnosis", issues)
     return "ICC diagnosis structurally valid"
-
 
 def validate_other_diagnosis(text: str) -> str:
     issues: list[ValidationIssue] = []
@@ -730,6 +901,14 @@ def validate_statement_generation_batch(text: str, items: list[dict]) -> str:
         if _text(sentence,f"{path}.statement",issues):
             if "\n" in sentence:
                 issues.append(ValidationIssue(f"{path}.statement","statement spans multiple physical lines","reserialize the same statement on one physical line without changing its words",repair_class="serialization",received=_preview(sentence),expected="one physical-line statement"))
+            if i < len(items):
+                for locked in items[i].get("locked_terms") or []:
+                    if str(locked) not in sentence:
+                        issues.append(ValidationIssue(
+                            f"{path}.statement", f"missing locked provenance term {locked!r}",
+                            f"preserve the exact validated term {locked!r}; do not replace it with a synonym or fallback label",
+                            repair_class="content", expected=str(locked),
+                        ))
     fail("statement generation batch",issues); return "statement generation batch structurally valid"
 
 

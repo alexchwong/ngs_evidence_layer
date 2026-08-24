@@ -352,3 +352,275 @@ def test_statement_generation_prompt_does_not_expose_internal_variant_ids(monkey
 
 def test_variant_display_policy_is_configured_in_settings():
     assert step.load_settings()['reporting']['variant_display_fields']==['description','gene']
+
+def _criterion_case_fixture():
+    case={
+        'provisional_disease':'AML','bootstrap_cmcs':['AML'],
+        'variants':[
+            {'variant_id':'V1','gene':'ASXL1','description':'ASXL1 p.X'},
+            {'variant_id':'V2','gene':'SRSF2','description':'SRSF2 p.Y'},
+            {'variant_id':'V3','gene':'TET2','description':'TET2 p.Z'},
+        ],
+        'detected_variants_summary':'Variants detected.',
+        'case_facts':[{'fact_id':'C1','kind':'blast count','value':'30% marrow blasts'}],
+    }
+    reg={
+        'v01':{'variant_id':'V1','gene':'ASXL1','description':'ASXL1 p.X'},
+        'v02':{'variant_id':'V2','gene':'SRSF2','description':'SRSF2 p.Y'},
+        'v03':{'variant_id':'V3','gene':'TET2','description':'TET2 p.Z'},
+    }
+    card={'card_id':'C-DX','category':'diagnosis','genes':['ASXL1','SRSF2'],'diseases':['AML'],'evidence_tier':'guideline criterion','interpretation':'The category is defined by mutation in ASXL1 or SRSF2.'}
+    return case,reg,card
+
+
+def test_diagnosis_prompt_uses_compact_criterion_checks():
+    text=step._prompt('diagnosis_who5')
+    assert 'Diagnostic criterion-check discipline' in text
+    assert 'positive_supportive' in text
+    assert 'negative_supportive' in text
+    assert 'not_contributory' in text
+    assert 'verified_negative' in text
+    assert 'presumed_negative' in text
+    assert 'checks as short subject-ID arrays' in text
+    assert 'result_status: positive' not in text
+
+
+def test_diagnostic_result_context_does_not_materialize_panel_wide_negatives():
+    case,reg,_=_criterion_case_fixture()
+    scope='## Genes assessed\n- `ASXL1`\n- `SRSF2`\n- `TET2`\n- `TP53`\n'
+    ctx=runtime.diagnostic_result_context(case,reg,scope)
+    assert 'verified_negative_genes' not in ctx['ngs']
+    assert ctx['ngs']['panel_gene_count']==4
+    assert {r['subject'] for r in ctx['ngs']['detected_variants']}=={'v01','v02','v03'}
+    assert 'TP53' not in yaml.safe_dump(ctx,sort_keys=False)
+
+
+def test_diagnostic_prompt_context_size_is_independent_of_panel_gene_enumeration():
+    case,reg,card=_criterion_case_fixture()
+    genes=['ASXL1','SRSF2','TET2']+[f'G{i:04d}' for i in range(500)]
+    scope='## Genes assessed\n'+''.join(f'- `{g}`\n' for g in genes)
+    ctx=step._diagnosis_prompt_context(case,reg,scope,[card])
+    rendered=yaml.safe_dump(ctx,sort_keys=False)
+    assert len(rendered)<1500
+    assert 'G0499' not in rendered
+    assert ctx['finite_gene_set_membership']['C-DX']=={
+        'in_gene_set':['v01','v02'],
+        'outside_gene_set':['v03'],
+    }
+
+
+def test_closed_gene_set_bad_variant_is_pruned_locally_not_parent_diagnosis():
+    case,reg,card=_criterion_case_fixture()
+    doc={'diagnoses':[{'schema_disease':'AML','status':'established','diagnosis':'AML-MR','criteria':[{
+        'authority_card_id':'C-DX','criterion_type':'molecular_membership','criterion':'Finite molecular criterion','reason':'The molecular criterion is satisfied.',
+        'checks':{
+            'positive_supportive':['v01','v02','v03'],
+            'negative_supportive':[],'indeterminate':[],'not_contributory':[],
+        }}]}]}
+    kwargs=step._diagnosis_validation_kwargs([card],reg,case,{'ASXL1','SRSF2','TET2','TP53'})
+    assert 'valid' in schema_validation.validate_who5_diagnosis(yaml.safe_dump(doc),allowed_diseases={'AML'},**kwargs)
+    normalized,corrections=step._normalize_diagnosis_checks(doc,case,reg,[card],{'ASXL1','SRSF2','TET2','TP53'})
+    checks=normalized['diagnoses'][0]['criteria'][0]['checks']
+    assert [x['subject'] for x in checks['positive_supportive']]==['v01','v02']
+    assert [x['subject'] for x in checks['not_contributory']]==['v03']
+    assert normalized['diagnoses'][0]['diagnosis']=='AML-MR'
+    assert any(x.get('subject')=='v03' and x.get('to')=='not_contributory' for x in corrections)
+
+
+def test_molecular_membership_rejects_panel_negative_enumeration():
+    case,reg,card=_criterion_case_fixture()
+    doc={'diagnoses':[{'schema_disease':'AML','status':'established','diagnosis':'AML-MR','criteria':[{
+        'authority_card_id':'C-DX','criterion_type':'molecular_membership','criterion':'Finite molecular criterion','reason':'The criterion is satisfied.',
+        'checks':{'positive_supportive':['v01','v02'],'negative_supportive':['TP53'],'indeterminate':[],'not_contributory':['v03']},
+    }]}]}
+    kwargs=step._diagnosis_validation_kwargs([card],reg,case,{'ASXL1','SRSF2','TET2','TP53'})
+    try:
+        schema_validation.validate_who5_diagnosis(yaml.safe_dump(doc),allowed_diseases={'AML'},**kwargs)
+    except Exception as exc:
+        assert 'non-variant subjects' in str(exc)
+    else:
+        raise AssertionError('molecular_membership must reject bare panel-gene enumeration')
+
+
+def test_verified_and_presumed_negatives_are_derived_after_compact_model_output():
+    case,reg,card=_criterion_case_fixture()
+    doc={'diagnoses':[{'schema_disease':'AML','status':'established','diagnosis':'Conditional diagnosis','criteria':[{
+        'authority_card_id':'C-DX','criterion_type':'other','criterion':'Authority-backed exclusion criterion','reason':'The supplied authority makes both negative results relevant.',
+        'checks':{
+            'positive_supportive':[],
+            'negative_supportive':['TP53','cytogenetics'],
+            'indeterminate':[],'not_contributory':[],
+        }}]}]}
+    kwargs=step._diagnosis_validation_kwargs([card],reg,case,{'ASXL1','SRSF2','TET2','TP53'})
+    assert 'valid' in schema_validation.validate_who5_diagnosis(yaml.safe_dump(doc),allowed_diseases={'AML'},**kwargs)
+    normalized,_=step._normalize_diagnosis_checks(doc,case,reg,[card],{'ASXL1','SRSF2','TET2','TP53'})
+    assert normalized['diagnoses'][0]['status']=='conditional'
+    neg=normalized['diagnoses'][0]['criteria'][0]['checks']['negative_supportive']
+    assert [(x['subject'],x['result_status']) for x in neg]==[('TP53','verified_negative'),('cytogenetics','presumed_negative')]
+
+
+def test_not_contributory_checks_do_not_enter_diagnosis_reasons():
+    case,reg,card=_criterion_case_fixture()
+    compact={'diagnoses':[{'status':'established','diagnosis':'AML-MR','criteria':[{
+        'authority_card_id':'C-DX','criterion_type':'molecular_membership','criterion':'Finite molecular criterion','reason':'The criterion is satisfied.',
+        'checks':{
+            'positive_supportive':['v01','v02'],
+            'negative_supportive':[],'indeterminate':[],'not_contributory':['v03'],
+        }}]}]}
+    normalized,_=step._normalize_diagnosis_checks(compact,case,reg,[card],{'ASXL1','SRSF2','TET2','TP53'})
+    row=normalized['diagnoses'][0]
+    reasons=step._diagnosis_row_reasons(row,reg,case)
+    assert 'ASXL1' in reasons[0] and 'SRSF2' in reasons[0]
+    assert 'TET2' not in reasons[0]
+    ledger=step._diagnosis_check_ledger('who5',normalized)
+    assert len(ledger)==3
+    assert all(x['reportable'] is False for x in ledger)
+
+
+def test_non_contributory_checks_are_hidden_from_downstream_diagnosis_view():
+    doc={'who5':{'diagnoses':[{'diagnosis':'AML-MR','criteria':[{'checks':{'positive_supportive':[{'subject':'v01','result_status':'positive'}],'negative_supportive':[],'indeterminate':[],'not_contributory':[{'subject':'v03','result_status':'positive'}]}}]}]}}
+    public=step._diagnosis_public_view(doc)
+    assert public['who5']['diagnoses'][0]['criteria'][0]['checks']['not_contributory']==[]
+    assert doc['who5']['diagnoses'][0]['criteria'][0]['checks']['not_contributory'][0]['subject']=='v03'
+
+def test_explicit_pending_non_ngs_fact_is_presumed_negative_and_conditional_when_supportive():
+    case,reg,card=_criterion_case_fixture()
+    case['case_facts'].append({'fact_id':'C2','kind':'cytogenetics','value':'pending'})
+    doc={'diagnoses':[{'schema_disease':'AML','status':'established','diagnosis':'Conditional diagnosis','criteria':[{
+        'authority_card_id':'C-DX','criterion_type':'other','criterion':'Negative dependency','reason':'The authority requires this result to be negative.',
+        'checks':{'positive_supportive':[],'negative_supportive':['C2'],'indeterminate':[],'not_contributory':[]},
+    }]}]}
+    kwargs=step._diagnosis_validation_kwargs([card],reg,case,{'ASXL1','SRSF2','TET2','TP53'})
+    assert 'valid' in schema_validation.validate_who5_diagnosis(yaml.safe_dump(doc),allowed_diseases={'AML'},**kwargs)
+    normalized,_=step._normalize_diagnosis_checks(doc,case,reg,[card],{'ASXL1','SRSF2','TET2','TP53'})
+    assert normalized['diagnoses'][0]['criteria'][0]['checks']['negative_supportive'][0]['result_status']=='presumed_negative'
+    assert normalized['diagnoses'][0]['status']=='conditional'
+
+
+def test_diagnosis_preservation_audit_cannot_request_proforma_regeneration(monkeypatch,tmp_path):
+    elements=[{'schema_id':'DX-A','domain':'diagnosis','proposition':'WHO5 classification: AML-MR.','reasons':['Validated criterion supports AML-MR.'],'positive_effect':False,'locked_terms':['AML-MR']}]
+    calls=[]
+    def fake(work,**kw):
+        calls.append((kw['call_id'],kw['prompt'])); kw['output'].parent.mkdir(parents=True,exist_ok=True)
+        if 'statement-generation' in kw['call_id']:
+            doc={'statements':[{'schema_id':'DX-A','statement':'WHO5 classification: AML-MR.'}]}
+        else:
+            doc={'audits':[{'schema_id':'DX-A','statement_represents_proforma':True,'reasoning_status':'unsupported','issues':['Model attempted to re-interpret criteria.'],'negative_guidance':['Do not re-diagnose.']}]}
+        kw['output'].write_text(yaml.safe_dump(doc,sort_keys=False))
+    monkeypatch.setattr(step,'_model_call',fake)
+    out,need,guidance=step._generate_and_audit_statements(tmp_path,'dx',elements,{}, {},'self',preservation_only=True,authority_context={'audit_mode':'preservation_only'})
+    assert need is False
+    assert guidance==[]
+    assert out[0]['semantic_status']=='supported'
+    assert out[0]['statement']=='WHO5 classification: AML-MR.'
+    assert len(calls)==2
+    assert 'authoritative for preservation audit' in calls[1][1]
+
+
+def test_statement_generation_enforces_locked_diagnosis_label():
+    items=[{'schema_id':'DX-A','locked_terms':['AML-MR']}]
+    bad=yaml.safe_dump({'statements':[{'schema_id':'DX-A','statement':'WHO5 classification: AML, NOS.'}]})
+    with pytest.raises(ValidationFailure):
+        schema_validation.validate_statement_generation_batch(bad,items)
+    good=yaml.safe_dump({'statements':[{'schema_id':'DX-A','statement':'WHO5 classification: AML-MR.'}]})
+    assert 'valid' in schema_validation.validate_statement_generation_batch(good,items)
+
+
+def test_supplied_nonpending_case_fact_cannot_remain_indeterminate():
+    case,reg,card=_criterion_case_fixture()
+    doc={'diagnoses':[{'schema_disease':'AML','status':'established','diagnosis':'AML-MR','criteria':[{
+        'authority_card_id':'C-DX','criterion_type':'other','criterion':'Observed threshold','reason':'The supplied fact satisfies the criterion.',
+        'checks':{'positive_supportive':[],'negative_supportive':[],'indeterminate':['C1'],'not_contributory':[]},
+    }]}]}
+    kwargs=step._diagnosis_validation_kwargs([card],reg,case,{'ASXL1','SRSF2','TET2','TP53'})
+    with pytest.raises(ValidationFailure):
+        schema_validation.validate_who5_diagnosis(yaml.safe_dump(doc),allowed_diseases={'AML'},**kwargs)
+    doc['diagnoses'][0]['criteria'][0]['checks']['indeterminate']=[]
+    doc['diagnoses'][0]['criteria'][0]['checks']['positive_supportive']=['C1']
+    assert 'valid' in schema_validation.validate_who5_diagnosis(yaml.safe_dump(doc),allowed_diseases={'AML'},**kwargs)
+    normalized,_=step._normalize_diagnosis_checks(doc,case,reg,[card],{'ASXL1','SRSF2','TET2','TP53'})
+    assert normalized['diagnoses'][0]['criteria'][0]['checks']['positive_supportive']==[{'subject':'C1','result_status':'positive'}]
+
+
+def test_empty_biomarker_placeholder_row_is_structurally_ignored_and_removed():
+    valid={'v01'}
+    doc={
+        'suitable_mrd':[{'variants':[],'reason':''}],
+        'unsuitable_mrd':[],
+        'uncertain':[],
+        'no_effect':['v01'],
+    }
+    assert 'valid' in schema_validation.validate_biomarker(yaml.safe_dump(doc),valid)
+    cleaned=step._drop_empty_effect_rows('biomarker',doc)
+    assert cleaned['suitable_mrd']==[]
+
+
+def test_diagnosis_statement_audit_prompt_is_preservation_only():
+    text=step._prompt('statement_audit')
+    assert 'Do NOT independently re-diagnose the case' in text
+    assert 'do not replace or downgrade the diagnosis label' in text
+    assert 'unreported gene on the configured complete NGS panel is a verified negative' in text
+
+def test_diagnosis_preservation_falls_back_to_validated_proposition_if_audit_fails(monkeypatch,tmp_path):
+    elements=[{'schema_id':'DX-A','domain':'diagnosis','proposition':'WHO5 classification: AML-MR.','reasons':['Validated criterion supports AML-MR.'],'positive_effect':False,'locked_terms':['AML-MR']}]
+    def fake(work,**kw):
+        kw['output'].parent.mkdir(parents=True,exist_ok=True)
+        if 'statement-generation' in kw['call_id']:
+            kw['output'].write_text(yaml.safe_dump({'statements':[{'schema_id':'DX-A','statement':'WHO5 classification: AML-MR with unsupported added qualifier.'}]},sort_keys=False))
+            return
+        raise step.StepFailure('malformed audit output')
+    monkeypatch.setattr(step,'_model_call',fake)
+    out,need,_=step._generate_and_audit_statements(tmp_path,'dx-fallback',elements,{}, {},'self',preservation_only=True,authority_context={'audit_mode':'preservation_only'})
+    assert need is False
+    assert out[0]['statement']=='WHO5 classification: AML-MR.'
+    assert out[0]['semantic_status']=='supported'
+
+
+def test_diagnosis_preservation_dissent_is_retained_for_end_user(monkeypatch,tmp_path):
+    elements=[{'schema_id':'DX-A','domain':'diagnosis','proposition':'WHO5 classification: AML-MR.','reasons':['Validated criterion supports AML-MR.'],'positive_effect':False,'locked_terms':['AML-MR']}]
+    def fake(work,**kw):
+        kw['output'].parent.mkdir(parents=True,exist_ok=True)
+        if 'statement-generation' in kw['call_id']:
+            doc={'statements':[{'schema_id':'DX-A','statement':'WHO5 classification: AML-MR.'}]}
+        else:
+            doc={'audits':[{'schema_id':'DX-A','statement_represents_proforma':True,'reasoning_status':'unsupported','issues':['The auditor disputes the validated diagnostic reasoning.'],'negative_guidance':['The auditor would not support this diagnosis.']}]}
+        kw['output'].write_text(yaml.safe_dump(doc,sort_keys=False))
+    monkeypatch.setattr(step,'_model_call',fake)
+    out,need,_=step._generate_and_audit_statements(tmp_path,'dx-dissent',elements,{}, {},'self',preservation_only=True,authority_context={'audit_mode':'preservation_only'})
+    assert need is False
+    assert out[0]['semantic_status']=='supported'
+    assert out[0]['dissent']=={
+        'dissent':['The auditor would not support this diagnosis.'],
+        'reasoning':['The auditor disputes the validated diagnostic reasoning.'],
+    }
+
+
+def test_dissent_markdown_contains_only_statement_dissent_and_reasoning(tmp_path):
+    elements=[{
+        'schema_id':'DX-A',
+        'statement':'WHO5 classification: AML-MR.',
+        'dissent':{
+            'dissent':['Do not support this classification.'],
+            'reasoning':['A dissenting audit raised a criterion concern.'],
+        },
+    }]
+    path=step._write_dissent(tmp_path,elements)
+    assert path==tmp_path/'dissent.md'
+    text=path.read_text()
+    assert text==(
+        '## Statement\n\n'
+        'WHO5 classification: AML-MR.\n\n'
+        '## Dissent\n\n'
+        '- Do not support this classification.\n\n'
+        '## Dissent reasoning\n\n'
+        '- A dissenting audit raised a criterion concern.\n'
+    )
+    for forbidden in ('schema_id','risk','action','human_review','attempt'):
+        assert forbidden not in text
+
+
+def test_dissent_markdown_absent_when_no_retained_dissent(tmp_path):
+    stale=tmp_path/'dissent.md'
+    stale.write_text('stale')
+    assert step._write_dissent(tmp_path,[{'schema_id':'DX-A','statement':'WHO5 classification: AML-MR.'}]) is None
+    assert not stale.exists()

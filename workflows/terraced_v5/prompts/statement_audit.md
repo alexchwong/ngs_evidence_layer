@@ -1,17 +1,30 @@
 {{ include "includes/audit_general.md" }}
 
-# Statement/reason semantic audit
+# Statement/proforma preservation audit
 
-Audit EVERY generated statement against its source proforma proposition and reasons.
+Audit EVERY generated statement against the supplied validated proforma element.
 
-Assess two things:
-1. `statement_represents_proforma`: the statement contains only the conclusion actually represented by the proforma, without adding, strengthening, reversing, or generalising it.
-2. `reasoning_status`: whether the supplied reason(s) justify the statement as written.
-   - `supported`: justified directly.
-   - `supported_if`: already-supported conclusion is appropriately conditional on a genuinely unresolved discriminator/exclusion.
-   - `unsupported`: the reasoning does not justify the statement, including when a condition would have to invent missing positive defining evidence.
+The validated proforma and its supplied authority-backed criteria are authoritative for this stage. Do NOT independently re-diagnose the case, introduce classification rules from model knowledge, or require exclusions/criteria absent from the supplied validated context.
 
-When a statement is not acceptable, give concise `issues` and `negative_guidance`. Do not prescribe the replacement answer.
+Assess:
+1. `statement_represents_proforma`
+   - true only when the statement preserves the supplied conclusion, scope, status/conditionality, framework, qualifiers, and molecular relationships;
+   - false if it adds, removes, strengthens, weakens, reverses, generalises, or invents any qualifier or relationship.
+2. `reasoning_status`
+   - `supported`: the rendered reasons faithfully represent the supplied validated proforma/criteria;
+   - `supported_if`: the validated proforma itself is explicitly conditional on a supplied unresolved/presumed-negative dependency;
+   - `unsupported`: only when the rendered reasons contradict or fail to represent the supplied validated proforma/criteria.
+
+For diagnosis elements:
+- do not judge whether the validated diagnosis is medically correct or sufficient;
+- do not replace or downgrade the diagnosis label;
+- do not invent additional diagnostic prerequisites;
+- use the supplied testing-state rules and authority context exactly as given;
+- an unreported gene on the configured complete NGS panel is a verified negative;
+- an absent/pending non-NGS test is presumed negative/normal only when the validated criterion explicitly depends on it;
+- a supplied non-pending case fact is observed, not indeterminate.
+
+When a statement is not acceptable, give concise `issues` and `negative_guidance`. Negative guidance must describe only the representation mistake that must not recur; do not prescribe a new diagnosis or clinical answer.
 
 Return YAML only, preserving schema IDs and order:
 ```yaml

@@ -541,14 +541,214 @@ def stage_corpus(work):
     if not p.is_file(): _write(p,json.dumps(manifest,indent=2,ensure_ascii=False)+'\n')
     return all_cards,eligible,digest,manifest
 
+def _closed_gene_set(card):
+    """Conservatively identify diagnosis cards that explicitly define a finite gene set."""
+    if card.get('category')!='diagnosis' or not card.get('genes'):
+        return None
+    text=str(card.get('interpretation') or '').lower()
+    markers=(
+        'defined by mutation in ',
+        'defining somatic mutation in ',
+        'defining mutation in ',
+        'qualifying mutation in ',
+    )
+    if any(marker in text for marker in markers) or ('mutations in ' in text and ' define ' in text):
+        return set(card.get('genes') or [])
+    return None
+
 def _render_cards(cards):
     if not cards: return 'No candidate cards.'
     blocks=[]
     for c in cards:
-        blocks.append('\n'.join([
+        lines=[
             f'### {c.get("card_id")}',f'category: {c.get("category")}',f'genes: {", ".join(c.get("genes") or []) or "none"}',f'diseases: {", ".join(c.get("diseases") or []) or "none"}',f'evidence_tier: {c.get("evidence_tier") or "unspecified"}',f'interpretation: {c.get("interpretation") or ""}',f'source_hint: {c.get("paper_nickname") or c.get("citation_display") or ""}'
-        ]))
+        ]
+        closed=_closed_gene_set(c)
+        if closed:
+            lines.insert(4,'closed_gene_set: true')
+        blocks.append('\n'.join(lines))
     return '\n\n'.join(blocks)
+
+def _diagnosis_validation_kwargs(cards,reg,case,panel_genes):
+    closed={c['card_id']:_closed_gene_set(c) for c in cards if _closed_gene_set(c)}
+    return {
+        'valid_variants':set(reg),
+        'variant_genes':{vid:row.get('gene') for vid,row in reg.items()},
+        'case_fact_ids':{row.get('fact_id') for row in case.get('case_facts') or [] if isinstance(row,dict) and row.get('fact_id')},
+        'observed_case_fact_ids':{row.get('fact_id') for row in case.get('case_facts') or [] if isinstance(row,dict) and row.get('fact_id') and not _pending_fact(row)},
+        'panel_genes':set(panel_genes),
+        'allowed_card_ids':{c.get('card_id') for c in cards if c.get('card_id')},
+        'closed_gene_sets':closed,
+    }
+
+def _diagnosis_prompt_context(case,reg,panel_scope,cards):
+    """Compact prompt context; never enumerate panel-wide negative genes."""
+    context=runtime.diagnostic_result_context(case,reg,panel_scope)
+    memberships={}
+    for card in cards:
+        closed=_closed_gene_set(card)
+        card_id=card.get('card_id')
+        if not closed or not card_id:
+            continue
+        memberships[card_id]={
+            'in_gene_set':[vid for vid,row in reg.items() if row.get('gene') in closed],
+            'outside_gene_set':[vid for vid,row in reg.items() if row.get('gene') not in closed],
+        }
+    if memberships:
+        context['finite_gene_set_membership']=memberships
+    return context
+
+def _case_fact_map(case):
+    return {row.get('fact_id'):row for row in case.get('case_facts') or [] if isinstance(row,dict) and row.get('fact_id')}
+
+def _pending_fact(row):
+    text=' '.join(str(row.get(k) or '') for k in ('kind','value')).lower()
+    return any(token in text for token in ('pending','not done','not performed','unavailable','awaiting'))
+
+def _normalize_diagnosis_checks(doc,case,reg,cards,panel_genes):
+    """Expand compact subject lists and apply deterministic result-state rules."""
+    facts=_case_fact_map(case); detected_genes={row.get('gene') for row in reg.values()}; by_id={c.get('card_id'):c for c in cards}
+    corrections=[]
+
+    def subject_of(raw):
+        if isinstance(raw,str): return raw
+        if isinstance(raw,dict): return raw.get('subject')
+        return None
+
+    def supplied_status(raw):
+        return raw.get('result_status') if isinstance(raw,dict) else None
+
+    def result_status(subject,bucket):
+        if subject in reg:
+            return 'positive'
+        if subject in panel_genes and subject not in detected_genes:
+            return 'verified_negative'
+        if subject in facts:
+            if _pending_fact(facts[subject]):
+                return 'presumed_negative'
+            if bucket=='negative_supportive':
+                return 'verified_negative'
+            if bucket=='indeterminate':
+                return 'indeterminate'
+            return 'positive'
+        # Relevant non-NGS result absent from the case is presumed negative/normal.
+        return 'presumed_negative'
+
+    for di,diagnosis in enumerate(doc.get('diagnoses') or [],1):
+        presumed_support=False
+        for ci,criterion in enumerate(diagnosis.get('criteria') or [],1):
+            checks=criterion.get('checks') or {}; card=by_id.get(criterion.get('authority_card_id')) or {}; closed=_closed_gene_set(card) if criterion.get('criterion_type')=='molecular_membership' else None
+
+            # Work with compact subjects first.  Finite-set membership can reject
+            # one detected variant locally without invalidating the parent diagnosis.
+            compact={bucket:[subject_of(x) for x in checks.get(bucket) or [] if subject_of(x)] for bucket in ('positive_supportive','negative_supportive','indeterminate','not_contributory')}
+            raw_by_subject={subject_of(x):x for bucket in ('positive_supportive','negative_supportive','indeterminate','not_contributory') for x in checks.get(bucket) or [] if subject_of(x)}
+            if closed:
+                retained=[]
+                for subject in compact['positive_supportive']:
+                    gene=(reg.get(subject) or {}).get('gene')
+                    if subject in reg and gene not in closed:
+                        compact['not_contributory'].append(subject)
+                        corrections.append({'diagnosis_index':di,'criterion_index':ci,'subject':subject,'gene':gene,'from':'positive_supportive','to':'not_contributory','reason':'outside authority-card finite qualifying gene set'})
+                    else:
+                        retained.append(subject)
+                compact['positive_supportive']=retained
+
+            expanded={}
+            for bucket in ('positive_supportive','negative_supportive','indeterminate','not_contributory'):
+                rows=[]
+                for subject in compact[bucket]:
+                    before=supplied_status(raw_by_subject.get(subject))
+                    after=result_status(subject,bucket)
+                    rows.append({'subject':subject,'result_status':after})
+                    if before is not None and before!=after:
+                        corrections.append({'diagnosis_index':di,'criterion_index':ci,'subject':subject,'from_result_status':before,'to_result_status':after,'reason':'deterministic testing-state invariant'})
+                    if bucket in {'positive_supportive','negative_supportive'} and after=='presumed_negative':
+                        presumed_support=True
+                expanded[bucket]=rows
+            criterion['checks']=expanded
+
+        if presumed_support and diagnosis.get('status')=='established':
+            diagnosis['status']='conditional'
+            corrections.append({'diagnosis_index':di,'from_status':'established','to_status':'conditional','reason':'support depends on presumed-negative result'})
+    return doc,corrections
+
+
+def _diagnosis_public_view(doc):
+    """Remove internal non-contributory checks before downstream clinical synthesis."""
+    import copy
+    public=copy.deepcopy(doc)
+    sections=[]
+    if isinstance(public.get('who5'),dict): sections.extend(public['who5'].get('diagnoses') or [])
+    if isinstance(public.get('icc'),dict): sections.extend(public['icc'].get('diagnoses') or [])
+    sections.extend(public.get('diagnoses') or [])
+    for diagnosis in sections:
+        for criterion in diagnosis.get('criteria') or []:
+            checks=criterion.get('checks') or {}
+            if 'not_contributory' in checks:
+                checks['not_contributory']=[]
+    return public
+
+def _check_subject_display(subject,criterion,reg,case):
+    if subject in reg:
+        row=reg[subject]
+        if criterion.get('criterion_type')=='molecular_membership':
+            return row.get('gene') or subject
+        return _variant_display(reg,subject)
+    fact=_case_fact_map(case).get(subject)
+    if fact:
+        return str(fact.get('value') or fact.get('kind') or subject)
+    return str(subject)
+
+def _diagnosis_row_reasons(row,reg,case):
+    reasons=[]
+    for criterion in row.get('criteria') or []:
+        checks=criterion.get('checks') or {}
+        support=[]
+        for bucket in ('positive_supportive','negative_supportive'):
+            for check in checks.get(bucket) or []:
+                label=_check_subject_display(check.get('subject'),criterion,reg,case)
+                status=check.get('result_status')
+                if status=='verified_negative': label=f'{label} verified negative'
+                elif status=='presumed_negative': label=f'{label} presumed negative/normal'
+                support.append(label)
+        unresolved=[]
+        for check in checks.get('indeterminate') or []:
+            unresolved.append(_check_subject_display(check.get('subject'),criterion,reg,case))
+        if not support and not unresolved:
+            continue
+        if criterion.get('criterion_type')=='molecular_membership':
+            text='Authority-defined molecular membership criterion is satisfied.'
+        else:
+            text=f'{criterion.get("criterion")}: {criterion.get("reason")}'
+        if support: text+=' Supporting checks: '+', '.join(support)+'.'
+        if unresolved: text+=' Indeterminate relevant results: '+', '.join(unresolved)+'.'
+        reasons.append(text)
+    return reasons
+
+def _diagnosis_check_ledger(authority,doc):
+    rows=[]
+    for di,diagnosis in enumerate(doc.get('diagnoses') or [],1):
+        for ci,criterion in enumerate(diagnosis.get('criteria') or [],1):
+            for bucket in ('positive_supportive','negative_supportive','indeterminate','not_contributory'):
+                for qi,check in enumerate((criterion.get('checks') or {}).get(bucket) or [],1):
+                    rows.append({
+                        'check_id':f'{authority.upper()}-D{di:02d}-C{ci:02d}-{bucket[:2].upper()}{qi:02d}',
+                        'authority':authority,
+                        'diagnosis':diagnosis.get('diagnosis'),
+                        'diagnosis_status':diagnosis.get('status'),
+                        'criterion_index':ci,
+                        'authority_card_id':criterion.get('authority_card_id'),
+                        'criterion_type':criterion.get('criterion_type'),
+                        'criterion':criterion.get('criterion'),
+                        'reason':criterion.get('reason'),
+                        'contribution':bucket,
+                        'subject':check.get('subject'),
+                        'result_status':check.get('result_status'),
+                        'reportable':False,
+                    })
+    return rows
+
 def _draw_diagnosis_cards(eligible,genes,cmcs):
     hits=[]; wanted=set(genes)
     for c in eligible:
@@ -628,16 +828,27 @@ def _statement_public(elements, reg):
     rows=[]
     for e in elements:
         variants=e.get('variants',[])
-        rows.append({
+        row={
             'schema_id':e['schema_id'],
             'domain':e['domain'],
             'proposition':_render_statement_text(e['proposition'],reg),
             'reasons':[_render_statement_text(reason,reg) for reason in e['reasons']],
             'variant_display':[_variant_display(reg,variant_id) for variant_id in variants],
-        })
+        }
+        locked=[str(x).strip() for x in e.get('locked_terms') or [] if str(x).strip()]
+        if locked: row['locked_terms']=locked
+        rows.append(row)
     return rows
 
-def _generate_and_audit_statements(work,block_key,elements,case,reg,profile):
+def _merge_audit_guidance(existing,new_rows):
+    out=[]; seen=set()
+    for row in list(existing or [])+list(new_rows or []):
+        key=(row.get('schema_id'),tuple(row.get('issues') or []),tuple(row.get('negative_guidance') or []))
+        if key in seen: continue
+        seen.add(key); out.append(row)
+    return out
+
+def _generate_and_audit_statements(work,block_key,elements,case,reg,profile,*,preservation_only=False,authority_context=None):
     """Generate atomic statements, then audit proposition/reason coherence.
 
     Returns (elements_with_statement, proforma_regeneration_needed, negative_guidance).
@@ -657,41 +868,83 @@ def _generate_and_audit_statements(work,block_key,elements,case,reg,profile):
             _model_call(work,call_id=sid,role='statement_generation',prompt=prompt,output=out,validator=lambda t,it=source:schema_validation.validate_statement_generation_batch(t,it),profile=profile,fatal=False,max_attempts=_retry('statement_generation_attempts'))
             rows=yaml.safe_load(_read(out))['statements']
         except StepFailure as exc:
-            _risk(work,stage='statement_generation',risk_type='statement_generation_failure',message=str(exc),schema_element=block_key,attempts=regen+1,action='marked_semantically_unresolved',human_review='required')
             public_by_id={row['schema_id']:row for row in source}
+            if preservation_only:
+                _risk(work,stage='statement_generation',risk_type='diagnosis_statement_generation_failure',message=str(exc),schema_element=block_key,attempts=regen+1,action='fell_back_to_validated_proforma_proposition',human_review='optional')
+                fallback=[dict(e,statement=public_by_id[e['schema_id']]['proposition'],semantic_status='supported',statement_audit=None) for e in elements]
+                return fallback,False,[]
+            _risk(work,stage='statement_generation',risk_type='statement_generation_failure',message=str(exc),schema_element=block_key,attempts=regen+1,action='marked_semantically_unresolved',human_review='required')
             failed=[dict(e,statement=public_by_id[e['schema_id']]['proposition'],semantic_status='unsupported',statement_audit=None) for e in elements]
             return failed,False,[]
         amap={r['schema_id']:r['statement'] for r in rows}
         audit_items=[{**src,'statement':amap[src['schema_id']]} for src in source]
         aid=f'{block_key}-statement-audit-a{regen+1}'; apath=_artifact(work,'statement_audits',f'{aid}.yaml',new=True)
-        aprompt=_prompt('statement_audit')+'\n\n# Structured case context\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Proforma elements and generated statements\n```yaml\n'+yaml.safe_dump({'items':audit_items},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+        aprompt=_prompt('statement_audit')+'\n\n# Structured case context\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n'
+        if authority_context:
+            aprompt+='\n# Validated diagnostic authority context\nThis context is authoritative for preservation audit. Do not supplement it from model knowledge.\n```yaml\n'+yaml.safe_dump(authority_context,sort_keys=False,allow_unicode=True,width=110)+'```\n'
+        aprompt+='\n# Proforma elements and generated statements\n```yaml\n'+yaml.safe_dump({'items':audit_items},sort_keys=False,allow_unicode=True,width=110)+'```\n'
         try:
             _model_call(work,call_id=aid,role='statement_audit',prompt=aprompt,output=apath,validator=lambda t,it=audit_items:schema_validation.validate_statement_audit_batch(t,it),profile=profile,fatal=False,max_attempts=_retry('statement_audit_attempts'))
             audits=yaml.safe_load(_read(apath))['audits']
         except StepFailure as exc:
+            if preservation_only:
+                public_by_id={row['schema_id']:row for row in source}
+                _risk(work,stage='statement_audit',risk_type='diagnosis_statement_audit_failure',message=str(exc),schema_element=block_key,attempts=regen+1,action='fell_back_to_validated_proforma_proposition',human_review='optional')
+                fallback=[dict(e,statement=public_by_id[e['schema_id']]['proposition'],semantic_status='supported',statement_audit=None) for e in elements]
+                return fallback,False,[]
             _risk(work,stage='statement_audit',risk_type='statement_audit_failure',message=str(exc),schema_element=block_key,attempts=regen+1,action='marked_semantically_unresolved',human_review='required')
             failed=[dict(e,statement=amap[e['schema_id']],semantic_status='unsupported',statement_audit=None) for e in elements]
             return failed,False,[]
         audit_map={a['schema_id']:a for a in audits}
         proforma_fail=[a for a in audits if a['reasoning_status']=='unsupported']
-        if proforma_fail:
+        if proforma_fail and not preservation_only:
             return [dict(e,statement=amap[e['schema_id']],semantic_status=audit_map[e['schema_id']]['reasoning_status'],statement_audit=audit_map[e['schema_id']]) for e in elements],True,proforma_fail
         statement_fail=[a for a in audits if not a['statement_represents_proforma']]
         if not statement_fail:
-            return [dict(e,statement=amap[e['schema_id']],semantic_status=audit_map[e['schema_id']]['reasoning_status'],statement_audit=audit_map[e['schema_id']]) for e in elements],False,[]
-        negative=statement_fail
+            # Diagnosis reasoning has already been validated at criterion/proforma level.
+            # Downstream statement audit is preservation-only and cannot re-diagnose it.
+            # If that preservation audit nevertheless dissents from the validated
+            # reasoning, retain the validated diagnosis but carry the dissent forward
+            # for deterministic end-user rendering.
+            def completed_element(e):
+                audit=audit_map[e['schema_id']]
+                status='supported' if preservation_only else audit['reasoning_status']
+                extra={}
+                if preservation_only and audit['reasoning_status']=='unsupported':
+                    extra['dissent']={
+                        'dissent':list(audit.get('negative_guidance') or []),
+                        'reasoning':list(audit.get('issues') or []),
+                    }
+                return dict(e,statement=amap[e['schema_id']],semantic_status=status,statement_audit=audit,**extra)
+            return [completed_element(e) for e in elements],False,[]
+        negative=_merge_audit_guidance(negative,statement_fail)
         if regen>=max_regen:
             bad={a['schema_id'] for a in statement_fail}
+            if preservation_only:
+                public_by_id={row['schema_id']:row for row in source}
+                for a in statement_fail:
+                    _risk(work,stage='statement_audit',risk_type='diagnosis_statement_representation_unresolved',message='; '.join(a.get('issues') or a.get('negative_guidance') or ['statement did not faithfully represent validated proforma']),schema_element=a['schema_id'],attempts=regen+1,action='fell_back_to_validated_proforma_proposition',human_review='optional')
+                return [dict(e,statement=public_by_id[e['schema_id']]['proposition'] if e['schema_id'] in bad else amap[e['schema_id']],semantic_status='supported',statement_audit=audit_map[e['schema_id']]) for e in elements],False,[]
             for a in statement_fail:
                 _risk(work,stage='statement_audit',risk_type='statement_representation_unresolved',message='; '.join(a.get('issues') or a.get('negative_guidance') or ['statement did not faithfully represent proforma']),schema_element=a['schema_id'],attempts=regen+1,action='suppressed_from_automatic_reporting',human_review='required')
             return [dict(e,statement=amap[e['schema_id']],semantic_status='unsupported' if e['schema_id'] in bad else audit_map[e['schema_id']]['reasoning_status'],statement_audit=audit_map[e['schema_id']]) for e in elements],False,[]
     raise AssertionError('unreachable statement regeneration loop')
 
-def _who5_elements(who):
-    return [{'schema_id':f'DX-WHO5-{i:02d}','domain':'diagnosis','proposition':f'WHO5 classification: {row["diagnosis"]}.','reasons':row['reasons'],'evidence_domain':'diagnosis_who5','positive_effect':False} for i,row in enumerate(who['diagnoses'],1)]
+def _who5_elements(who,reg,case):
+    rows=[]
+    for i,row in enumerate(who['diagnoses'],1):
+        status=row.get('status')
+        qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
+        reasons=_diagnosis_row_reasons(row,reg,case)
+        rows.append({'schema_id':f'DX-WHO5-{i:02d}','domain':'diagnosis','proposition':f'WHO5 classification{qualifier}: {row["diagnosis"]}.','reasons':reasons,'evidence_domain':'diagnosis_who5','positive_effect':False,'locked_terms':[row['diagnosis']]})
+    return rows
 
-def _icc_elements(icc):
-    els=[{'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','proposition':f'ICC classification: {row["diagnosis"]}.','reasons':row['reasons'],'evidence_domain':'diagnosis_icc','positive_effect':False} for i,row in enumerate(icc['diagnoses'],1)]
+def _icc_elements(icc,reg,case):
+    els=[]
+    for i,row in enumerate(icc['diagnoses'],1):
+        status=row.get('status')
+        qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
+        els.append({'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','proposition':f'ICC classification{qualifier}: {row["diagnosis"]}.','reasons':_diagnosis_row_reasons(row,reg,case),'evidence_domain':'diagnosis_icc','positive_effect':False,'locked_terms':[row['diagnosis']]})
     comp=icc['comparison_with_who5']
     els.append({'schema_id':'DX-CONCORDANCE','domain':'diagnosis','proposition':'WHO5 and ICC are significantly different.' if comp['significantly_different'] else 'WHO5 and ICC are not significantly different.','reasons':[comp['explanation']],'evidence_domain':'diagnosis_icc','positive_effect':False})
     return els
@@ -700,6 +953,20 @@ def _other_elements(other):
     row=other['concurrent_second_diagnosis']; answer=row['answer']
     if answer.strip().lower() in {'none','none supported','no concurrent second diagnosis supported'}: return []
     return [{'schema_id':'DX-CONCURRENT','domain':'diagnosis','proposition':answer,'reasons':row['reasons'],'evidence_domain':'diagnosis_other','positive_effect':False}]
+
+def _drop_empty_effect_rows(domain,doc):
+    """Deterministically remove semantically empty PTBG placeholder rows."""
+    buckets={
+        'prognosis':('favorable','adverse','other','uncertain'),
+        'treatment':('drug_target','drug_resistance','other'),
+        'biomarker':('suitable_mrd','unsuitable_mrd','uncertain'),
+        'germline':('suspect','uncertain'),
+    }.get(domain,())
+    for bucket in buckets:
+        rows=doc.get(bucket)
+        if not isinstance(rows,list): continue
+        doc[bucket]=[row for row in rows if not (isinstance(row,dict) and not (row.get('variants') or []) and not str(row.get('reason') or '').strip() and not str(row.get('therapy') or '').strip())]
+    return doc
 
 def _domain_elements(domain,doc):
     cfg=_setting('ptbg','domains',domain); positive=set(cfg.get('positive_buckets') or []); els=[]
@@ -731,16 +998,34 @@ def _domain_elements(domain,doc):
 def _semantic_guidance_block(rows):
     return '\n# Negative semantic guidance from prior audit\nThe prior proforma failed semantic review. Regenerate the complete proforma de novo from the original case/evidence. Do not copy or edit the rejected proforma. Do not repeat these reasoning mistakes, and do not treat the auditor as prescribing the replacement answer.\n```yaml\n'+_negative_guidance_text(rows)+'```\n'
 
-def stage_diagnosis(work,case,eligible,profile):
+def _diagnosis_statement_audit_context(authority,doc,cards):
+    return {
+        'audit_mode':'preservation_only',
+        'authority':authority,
+        'validated_diagnoses':doc.get('diagnoses') or [],
+        'authority_cards':[
+            {k:c.get(k) for k in ('card_id','interpretation','genes','diseases','evidence_tier') if c.get(k) not in (None,[], '')}
+            for c in cards
+        ],
+        'testing_state_rules':{
+            'unreported_complete_panel_gene':'verified_negative',
+            'absent_or_pending_non_ngs':'presumed_negative_when_validated_criterion_requires_it',
+            'supplied_non_pending_case_fact':'observed_not_indeterminate',
+        },
+    }
+
+def stage_diagnosis(work,case,reg,eligible,profile):
     allowed=_allowed_diseases(work); genes=runtime.case_genes(case); bootstrap=list(case.get('bootstrap_cmcs') or [])
+    panel_scope=_read(layout.setup(work,'ngs-panel-scope.md')); panel_genes=runtime.panel_genes_from_scope(panel_scope)
+    criterion_corrections=[]
     max_cmc=int(_setting('diagnosis','who5','max_cmc_passes')); cmc_history=list(bootstrap); prior=list(bootstrap); final_who=None; who_cards=[]; authoritative_pass=1
     for pass_idx in range(1,max_cmc+1):
         who_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,cmc_history),'who5')
         path=_existing_or_new(work,f'diagnosis_who5_pass_{pass_idx}','who5.yaml')
         pass_note='WHO5 pass 1: classify from scratch.' if pass_idx==1 else f'WHO5 pass {pass_idx}: CMC changed. START FROM SCRATCH; do not anchor on earlier answers.'
-        prompt=_prompt('diagnosis_who5')+f'\n\n# Pass\n{pass_note}\n\n# Cumulative CMC recall\n```yaml\n'+yaml.safe_dump(cmc_history,sort_keys=False)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Allowed WHO5 schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# Configured WHO5 authority cards\n'+_render_cards(who_cards)
-        _model_call(work,call_id=f'diagnosis-who5-pass-{pass_idx:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed),profile=profile,proforma=True)
-        final_who=yaml.safe_load(_read(path)); cmcs=runtime.derive_cmcs(final_who); authoritative_pass=pass_idx
+        prompt=_prompt('diagnosis_who5')+f'\n\n# Pass\n{pass_note}\n\n# Cumulative CMC recall\n```yaml\n'+yaml.safe_dump(cmc_history,sort_keys=False)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Deterministic diagnostic result context\n```yaml\n'+yaml.safe_dump(_diagnosis_prompt_context(case,reg,panel_scope,who_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed WHO5 schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# Configured WHO5 authority cards\n'+_render_cards(who_cards)
+        _model_call(work,call_id=f'diagnosis-who5-pass-{pass_idx:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t,c=who_cards:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,**_diagnosis_validation_kwargs(c,reg,case,panel_genes)),profile=profile,proforma=True)
+        final_who,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,who_cards,panel_genes); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(final_who,sort_keys=False,allow_unicode=True,width=110)); cmcs=runtime.derive_cmcs(final_who); authoritative_pass=pass_idx
         if cmcs==prior: break
         for cmc in cmcs:
             if cmc not in cmc_history: cmc_history.append(cmc)
@@ -753,7 +1038,7 @@ def stage_diagnosis(work,case,eligible,profile):
     # Semantic proforma regeneration for authoritative WHO5 if its reasons do not justify its statements.
     sem_cap=_retry('semantic_proforma_regenerations'); sem_round=0
     while True:
-        who_elements,need,guidance=_generate_and_audit_statements(work,f'diagnosis-who5-proforma-{sem_round:02d}',_who5_elements(final_who),case,{},profile)
+        who_elements,need,guidance=_generate_and_audit_statements(work,f'diagnosis-who5-proforma-{sem_round:02d}',_who5_elements(final_who,reg,case),case,reg,profile,preservation_only=True,authority_context=_diagnosis_statement_audit_context('who5',final_who,who_cards))
         if not need: break
         if sem_round>=sem_cap:
             for row in guidance: _risk(work,stage='statement_audit',risk_type='who5_reasoning_unresolved',message='; '.join(row.get('issues') or row.get('negative_guidance') or ['WHO5 reason did not justify statement']),schema_element=row['schema_id'],attempts=sem_round+1,action='suppressed_from_automatic_reporting',human_review='required')
@@ -763,9 +1048,9 @@ def stage_diagnosis(work,case,eligible,profile):
             if cmc not in cmc_history: cmc_history.append(cmc)
         who_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,cmc_history),'who5')
         path=_artifact(work,'diagnosis_who5_semantic',f'who5-rewrite-{sem_round:02d}.yaml',new=True)
-        prompt=_prompt('diagnosis_who5')+'\n\n# Semantic regeneration\nRegenerate authoritative WHO5 classification from scratch.\n\n# Cumulative CMC recall\n```yaml\n'+yaml.safe_dump(cmc_history,sort_keys=False)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Allowed WHO5 schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# Configured WHO5 authority cards\n'+_render_cards(who_cards)+_semantic_guidance_block(guidance)
-        _model_call(work,call_id=f'diagnosis-who5-semantic-rewrite-{sem_round:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed),profile=profile,proforma=True)
-        final_who=yaml.safe_load(_read(path))
+        prompt=_prompt('diagnosis_who5')+'\n\n# Semantic regeneration\nRegenerate authoritative WHO5 classification from scratch.\n\n# Cumulative CMC recall\n```yaml\n'+yaml.safe_dump(cmc_history,sort_keys=False)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Deterministic diagnostic result context\n```yaml\n'+yaml.safe_dump(_diagnosis_prompt_context(case,reg,panel_scope,who_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed WHO5 schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# Configured WHO5 authority cards\n'+_render_cards(who_cards)+_semantic_guidance_block(guidance)
+        _model_call(work,call_id=f'diagnosis-who5-semantic-rewrite-{sem_round:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t,c=who_cards:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,**_diagnosis_validation_kwargs(c,reg,case,panel_genes)),profile=profile,proforma=True)
+        final_who,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,who_cards,panel_genes); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(final_who,sort_keys=False,allow_unicode=True,width=110))
     final_cmcs=runtime.derive_cmcs(final_who)
     for cmc in final_cmcs:
         if cmc not in cmc_history: cmc_history.append(cmc)
@@ -773,10 +1058,10 @@ def stage_diagnosis(work,case,eligible,profile):
     icc_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,cmc_history),'icc'); icc_sem=0; icc_guidance=[]; icc_full=None; icc_elements=[]
     while True:
         path=_artifact(work,'diagnosis_icc',f'icc-semantic-{icc_sem:02d}.yaml',new=True)
-        prompt=_prompt('diagnosis_icc')+'\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Authoritative WHO5 result — comparison only\n```yaml\n'+yaml.safe_dump(final_who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Configured ICC authority cards\n'+_render_cards(icc_cards)
+        prompt=_prompt('diagnosis_icc')+'\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Deterministic diagnostic result context\n```yaml\n'+yaml.safe_dump(_diagnosis_prompt_context(case,reg,panel_scope,icc_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Authoritative WHO5 result — comparison only\n```yaml\n'+yaml.safe_dump(_diagnosis_public_view(final_who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Configured ICC authority cards\n'+_render_cards(icc_cards)
         if icc_guidance: prompt+=_semantic_guidance_block(icc_guidance)
-        _model_call(work,call_id='diagnosis-icc' if icc_sem==0 else f'diagnosis-icc-semantic-rewrite-{icc_sem:02d}',role='diagnosis',prompt=prompt,output=path,validator=schema_validation.validate_icc_diagnosis,profile=profile,proforma=True)
-        icc_full=yaml.safe_load(_read(path)); icc_elements,need,icc_guidance=_generate_and_audit_statements(work,f'diagnosis-icc-proforma-{icc_sem:02d}',_icc_elements(icc_full),case,{},profile)
+        _model_call(work,call_id='diagnosis-icc' if icc_sem==0 else f'diagnosis-icc-semantic-rewrite-{icc_sem:02d}',role='diagnosis',prompt=prompt,output=path,validator=lambda t,c=icc_cards:schema_validation.validate_icc_diagnosis(t,**_diagnosis_validation_kwargs(c,reg,case,panel_genes)),profile=profile,proforma=True)
+        icc_full,corr=_normalize_diagnosis_checks(yaml.safe_load(_read(path)),case,reg,icc_cards,panel_genes); criterion_corrections.extend(corr); _write(path,yaml.safe_dump(icc_full,sort_keys=False,allow_unicode=True,width=110)); icc_elements,need,icc_guidance=_generate_and_audit_statements(work,f'diagnosis-icc-proforma-{icc_sem:02d}',_icc_elements(icc_full,reg,case),case,reg,profile,preservation_only=True,authority_context=_diagnosis_statement_audit_context('icc',icc_full,icc_cards))
         if not need: break
         if icc_sem>=sem_cap:
             for row in icc_guidance: _risk(work,stage='statement_audit',risk_type='icc_reasoning_unresolved',message='; '.join(row.get('issues') or row.get('negative_guidance') or ['ICC reason did not justify statement']),schema_element=row['schema_id'],attempts=icc_sem+1,action='suppressed_from_automatic_reporting',human_review='required')
@@ -802,6 +1087,8 @@ def stage_diagnosis(work,case,eligible,profile):
     _write(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'),yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110))
     routing={'bootstrap_cmcs':bootstrap,'who5_authoritative_pass':authoritative_pass,'final_cmcs':final_cmcs,'diagnostic_cmc_history':cmc_history,'who5_max_cmc_passes':max_cmc}
     _write(_existing_or_new(work,'diagnosis','routing.json'),json.dumps(routing,indent=2,ensure_ascii=False)+'\n')
+    criterion_ledger={'corrections':criterion_corrections,'checks':_diagnosis_check_ledger('who5',final_who)+_diagnosis_check_ledger('icc',icc_full)}
+    _write(_existing_or_new(work,'diagnosis','criterion-checks.yaml'),yaml.safe_dump(criterion_ledger,sort_keys=False,allow_unicode=True,width=110))
     elements=who_elements+icc_elements+other_elements
     _write(_existing_or_new(work,'statement_generation','diagnosis-elements.yaml'),yaml.safe_dump({'elements':elements},sort_keys=False,allow_unicode=True,width=110))
     return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards},elements
@@ -809,14 +1096,14 @@ def stage_diagnosis(work,case,eligible,profile):
 def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
     valid=set(reg); diseases=[r['schema_disease'] for r in diagnosis['who5']['diagnoses']]; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),diseases)
     validator={'prognosis':schema_validation.validate_prognosis,'treatment':schema_validation.validate_treatment,'biomarker':schema_validation.validate_biomarker,'germline':schema_validation.validate_germline}[domain]
-    base=_prompt(domain)+'\n# Variant registry\n```yaml\n'+_variant_context(reg)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Authoritative diagnosis\n```yaml\n'+yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate evidence cards\n'+_render_cards(cards)
+    base=_prompt(domain)+'\n# Variant registry\n```yaml\n'+_variant_context(reg)+'```\n\n# Structured case\n```json\n'+json.dumps(case,indent=2,ensure_ascii=False)+'\n```\n\n# Authoritative diagnosis\n```yaml\n'+yaml.safe_dump(_diagnosis_public_view(diagnosis),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate evidence cards\n'+_render_cards(cards)
     sem_cap=_retry('semantic_proforma_regenerations'); guidance=[]; accepted=None; elements=[]
     for sem in range(sem_cap+1):
         out=_artifact(work,f'{domain}_state',f'proforma-semantic-{sem:02d}.yaml',new=True)
         prompt=base+(_semantic_guidance_block(guidance) if guidance else '')
         call_id=domain if sem==0 else f'{domain}-semantic-rewrite-{sem:02d}'
         _model_call(work,call_id=call_id,role='ptbg',prompt=prompt,output=out,validator=lambda t:validator(t,valid),profile=profile,proforma=True)
-        accepted=yaml.safe_load(_read(out)); raw_elements=_domain_elements(domain,accepted)
+        accepted=_drop_empty_effect_rows(domain,yaml.safe_load(_read(out))); _write(out,yaml.safe_dump(accepted,sort_keys=False,allow_unicode=True,width=110)); raw_elements=_domain_elements(domain,accepted)
         elements,need,guidance=_generate_and_audit_statements(work,f'{domain}-proforma-{sem:02d}',raw_elements,case,reg,profile)
         if not need: break
         if sem==sem_cap:
@@ -1048,6 +1335,36 @@ def stage_summary(work,statements,case,profile):
     runtime.validate_canonical_summary_doc(final,statements); _write(_existing_or_new(work,'summary','summary-final.yaml'),yaml.safe_dump(final,sort_keys=False,allow_unicode=True,width=110)); return final
 
 
+def _render_dissent_markdown(elements):
+    """Render only retained statement-audit dissent intended for the end user."""
+    sections=[]
+    for element in elements:
+        dissent=element.get('dissent')
+        if not isinstance(dissent,dict):
+            continue
+        objections=[str(x).strip() for x in dissent.get('dissent') or [] if str(x).strip()]
+        reasoning=[str(x).strip() for x in dissent.get('reasoning') or [] if str(x).strip()]
+        if not objections and not reasoning:
+            continue
+        statement=str(element.get('statement') or '').strip()
+        lines=['## Statement','',statement,'','## Dissent','']
+        lines.extend(f'- {text}' for text in objections)
+        lines.extend(['','## Dissent reasoning',''])
+        lines.extend(f'- {text}' for text in reasoning)
+        sections.append('\n'.join(lines).rstrip())
+    return '\n\n---\n\n'.join(sections)+'\n' if sections else ''
+
+
+def _write_dissent(work,elements):
+    path=Path(work)/'dissent.md'
+    rendered=_render_dissent_markdown(elements)
+    if rendered:
+        _write(path,rendered)
+    elif path.exists():
+        path.unlink()
+    return path if rendered else None
+
+
 def stage_final(work,case,summary,elements,all_cards,digest,manifest):
     selected=[]; ids=[]
     for el in elements:
@@ -1059,6 +1376,7 @@ def stage_final(work,case,summary,elements,all_cards,digest,manifest):
     bpath=_existing_or_new(work,'final_evidence','bundle.json'); epath=_existing_or_new(work,'final_evidence','evidence.md'); tpath=_existing_or_new(work,'final_evidence','card-tags.json'); _write(bpath,json.dumps(bundle,indent=2,ensure_ascii=False)+'\n'); rendering.render_to_files(bpath,output=epath,card_tag_output=tpath,retrieved_only=True)
     cited=runtime.render_canonical_summary(summary); cpath=_existing_or_new(work,'summary','report-cited.md'); _write(cpath,cited)
     rendered=citations.render(cited,_read(epath),_read(tpath),require_citation_after_full_stop=False); rendered=case['detected_variants_summary']+'\n\n'+rendered.lstrip(); report=work/'report-final.md'; _write(report,rendered)
+    _write_dissent(work,elements)
     risks=_risk_doc(work); payload={'workflow':WORKFLOW_ID,'summary':summary,'risk_log':risks,'model_usage':_usage_summary(work),'report_markdown':rendered}; _write(work/'report-final.json',json.dumps(payload,indent=2,ensure_ascii=False)+'\n')
     mode=_load_run_state(work).get('mode')
     if mode in VALIDATION_MODES:
@@ -1068,7 +1386,7 @@ def run_pipeline(work,profile=None):
     _require_work(work); layout.ensure_dirs(work)
     _stage_status(work,'stage-1','Stage 1 of 9 — structure case'); case,reg=stage_structure(work,profile)
     _stage_status(work,'stage-2','Stage 2 of 9 — initialise corpus'); all_cards,eligible,digest,manifest=stage_corpus(work)
-    _stage_status(work,'stage-3','Stage 3 of 9 — diagnosis proformas + statement audits'); diagnosis,cmcs,diagnosis_cards,diagnosis_elements=stage_diagnosis(work,case,eligible,profile)
+    _stage_status(work,'stage-3','Stage 3 of 9 — diagnosis proformas + statement audits'); diagnosis,cmcs,diagnosis_cards,diagnosis_elements=stage_diagnosis(work,case,reg,eligible,profile)
     domains={}; cards_by_domain=dict(diagnosis_cards); elements=list(diagnosis_elements)
     for idx,domain in enumerate(('prognosis','treatment','biomarker','germline'),4):
         _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} proforma + statement audit'); domains[domain],cards_by_domain[domain],domain_elements=stage_domain(work,domain,case,reg,diagnosis,eligible,profile); elements.extend(domain_elements)

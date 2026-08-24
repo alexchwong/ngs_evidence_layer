@@ -154,6 +154,46 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
                 issues.append(ValidationIssue(f'{path}.{f}',f'expected non-empty string; received {_type_name(value)}','quote/reserialize the existing value as one string without changing its words' if cls=='serialization' else 'return non-empty source-faithful text',repair_class=cls,received=_preview(value),expected='non-empty string'))
     fail('structured case',issues); return 'structured case validated'
 
+
+
+def panel_genes_from_scope(text:str)->list[str]:
+    """Return the explicit gene-level NGS panel scope in source order."""
+    out=[]
+    for gene in re.findall(r"^- `([A-Z0-9]+)`\s*$", str(text), flags=re.MULTILINE):
+        if gene not in out:
+            out.append(gene)
+    return out
+
+def diagnostic_result_context(case:dict, reg:dict, panel_scope_text:str)->dict:
+    """Build compact deterministic testing-state context for diagnosis prompts.
+
+    Do not materialize the full set of unreported panel genes.  The workflow
+    invariant is supplied as a rule and core verifies any authority-relevant
+    bare-gene negative on demand.  This keeps model prompts proportional to the
+    detected findings rather than panel size.
+    """
+    # Parse the panel here so malformed/empty scope still fails through the same
+    # setup path, but intentionally do not serialize the gene list into prompts.
+    panel=panel_genes_from_scope(panel_scope_text)
+    detected=[]
+    for vid,row in reg.items():
+        detected.append({'subject':vid,'gene':row.get('gene')})
+    facts=[]
+    for row in case.get('case_facts') or []:
+        if isinstance(row,dict):
+            facts.append({'subject':row.get('fact_id'),'kind':row.get('kind'),'value':row.get('value')})
+    return {
+        'ngs':{
+            'detected_variants':detected,
+            'panel_gene_count':len(panel),
+            'negative_rule':'An unreported gene on the supplied NGS panel is verified negative within assay scope; mention one only when an authority card makes that negative result relevant.',
+        },
+        'non_ngs':{
+            'reported_case_facts':facts,
+            'absence_rule':'A relevant non-NGS test not supplied, or explicitly pending/not done, is presumed negative/normal for provisional diagnostic reasoning.',
+        },
+    }
+
 def case_genes(case:dict)->list[str]:
     out=[]
     for row in case.get('variants') or []:
@@ -161,7 +201,7 @@ def case_genes(case:dict)->list[str]:
         if isinstance(g,str) and g not in out: out.append(g)
     return out
 
-def active_who5_diagnoses(doc:dict)->list[dict]: return [r for r in doc.get('diagnoses') or [] if r.get('status') in {'established','indeterminate'}]
+def active_who5_diagnoses(doc:dict)->list[dict]: return [r for r in doc.get('diagnoses') or [] if r.get('status') in {'established','conditional','indeterminate'}]
 def derive_cmcs(doc:dict)->list[str]:
     cmcs=[]
     for row in active_who5_diagnoses(doc):
