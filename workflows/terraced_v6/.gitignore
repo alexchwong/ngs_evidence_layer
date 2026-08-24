@@ -1,0 +1,4 @@
+runs/
+settings.json
+__pycache__/
+*.pyc
