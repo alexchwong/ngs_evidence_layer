@@ -240,7 +240,7 @@ def validate_summary_plan_doc(doc:dict,statements:list[dict],*,allow_cross_domai
     if not isinstance(parts,list):
         safe=isinstance(parts,dict)
         issues.append(ValidationIssue('parts',f'expected list; received {_type_name(parts)}','wrap the existing single part mapping in a list without changing it' if safe else 'return the included/split statement parts as a list of mappings',repair_class='serialization' if safe else 'content',received=_preview(parts),expected='list')); parts=[]
-    occurrences={sid:[] for sid in smap}; group_domains={}
+    occurrences={sid:[] for sid in smap}; group_domains={}; group_roles={}
     for i,raw in enumerate(parts):
         path=f'parts[{i}]'
         if not isinstance(raw,dict):
@@ -250,9 +250,14 @@ def validate_summary_plan_doc(doc:dict,statements:list[dict],*,allow_cross_domai
         if not _nonempty(group):
             cls='serialization' if group is not None and not isinstance(group,str) else 'content'; issues.append(ValidationIssue(f'{path}.group',f'expected non-empty string; received {_type_name(group)}','quote/reserialize the existing group label as one string' if cls=='serialization' else 'return a non-empty temporary group label',repair_class=cls,received=_preview(group),expected='non-empty string'))
         else:
-            domain=smap[sid]['domain']; prior=group_domains.get(group)
+            statement=smap[sid]; domain=statement['domain']; role=statement.get('summary_role'); prior=group_domains.get(group)
             if prior is not None and prior!=domain and not allow_cross_domain_merge: issues.append(ValidationIssue(f'{path}.group',f'group {group!r} mixes domains {prior!r} and {domain!r}','use a different group label; current settings do not permit cross-domain merging',repair_class='content'))
             elif prior is None: group_domains[group]=domain
+            if group in group_roles:
+                prior_role=group_roles[group]
+                if prior_role!=role and (prior_role is not None or role is not None):
+                    issues.append(ValidationIssue(f'{path}.group',f'group {group!r} mixes summary roles {prior_role!r} and {role!r}','use separate groups for statements with different summary_role values',repair_class='content'))
+            else: group_roles[group]=role
         occurrences[sid].append(raw)
     for sid,statement in smap.items():
         dec=decisions.get(sid); rows=occurrences.get(sid) or []
@@ -287,7 +292,13 @@ def build_summary_blocks(plan:dict,statements:list[dict],*,domain_order:list[str
         clean_parts=[]
         for p in parts:
             q=dict(p); q.pop('_part_index',None); clean_parts.append(q)
-        blocks.append({'block_id':f'{domain}-{counts[domain]}','domain':domain,'source_statement_ids':ids,'source_parts':clean_parts})
+        roles=[]
+        for sid in ids:
+            role=smap[sid].get('summary_role')
+            if role is not None and role not in roles: roles.append(role)
+        block={'block_id':f'{domain}-{counts[domain]}','domain':domain,'source_statement_ids':ids,'source_parts':clean_parts}
+        if roles: block['summary_role']=roles[0] if len(roles)==1 else roles
+        blocks.append(block)
     return blocks
 
 def validate_paraphrase_batch_text(text:str,blocks:list[dict])->str:

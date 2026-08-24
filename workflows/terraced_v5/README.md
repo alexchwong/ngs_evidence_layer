@@ -60,8 +60,32 @@ For `self`, the CLI emits model handoffs to be completed by the session model. L
 - maximum WHO5 CMC passes;
 - PTBG card category and positive-bucket definitions;
 - unresolved-reportability policy;
+- domain/bucket reportability switches;
 - summary domain order and cross-domain merge policy;
 - prompt entry-point assets.
+
+Reportability is configured under `reportability.domains`. These switches control whether an internally retained conclusion becomes a reportable statement; they do not change the underlying proforma or evidence interpretation. Current defaults include:
+
+```json
+{
+  "diagnosis": {
+    "concordance_significant": true,
+    "concordance_nonsignificant": false
+  },
+  "biomarker": {
+    "suitable_mrd": true,
+    "unsuitable_mrd": false,
+    "uncertain": true
+  },
+  "prognosis": {
+    "favorable": true,
+    "adverse": true,
+    "other": true,
+    "uncertain": true,
+    "overall": true
+  }
+}
+```
 
 For example, WHO5 currently uses the configured myeloid authority publication key. A future WHO5 lymphoid authority can be added by appending its `publication_key` under `diagnosis.who5.publication_keys`; Python does not name Khoury/Alaggio or otherwise hardcode that authority choice.
 

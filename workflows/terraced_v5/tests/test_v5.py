@@ -624,3 +624,80 @@ def test_dissent_markdown_absent_when_no_retained_dissent(tmp_path):
     stale.write_text('stale')
     assert step._write_dissent(tmp_path,[{'schema_id':'DX-A','statement':'WHO5 classification: AML-MR.'}]) is None
     assert not stale.exists()
+
+
+def test_reportability_defaults_are_user_configurable():
+    s=step.load_settings()
+    domains=s['reportability']['domains']
+    assert domains['biomarker']['unsuitable_mrd'] is False
+    assert domains['diagnosis']['concordance_significant'] is True
+    assert domains['diagnosis']['concordance_nonsignificant'] is False
+    assert domains['prognosis']['overall'] is True
+
+
+def test_unsuitable_mrd_is_internal_by_default_but_can_be_enabled(monkeypatch):
+    doc={
+        'suitable_mrd':[],
+        'unsuitable_mrd':[{'variants':['v01'],'reason':'Authority-backed MRD exclusion.'}],
+        'uncertain':[],
+        'no_effect':[],
+    }
+    assert step._domain_elements('biomarker',doc)==[]
+    base=step.load_settings()
+    base['reportability']['domains']['biomarker']['unsuitable_mrd']=True
+    monkeypatch.setattr(step,'load_settings',lambda:base)
+    els=step._domain_elements('biomarker',doc)
+    assert [row['schema_id'] for row in els]==['MRD-UNSUITABLE_MRD-01']
+
+
+def test_nonsignificant_diagnosis_concordance_is_internal_by_default_and_configurable(monkeypatch):
+    doc={'diagnoses':[],'comparison_with_who5':{'significantly_different':False,'explanation':'No material classification difference.'}}
+    assert step._icc_elements(doc,{}, {})==[]
+    base=step.load_settings()
+    base['reportability']['domains']['diagnosis']['concordance_nonsignificant']=True
+    monkeypatch.setattr(step,'load_settings',lambda:base)
+    els=step._icc_elements(doc,{}, {})
+    assert len(els)==1 and els[0]['schema_id']=='DX-CONCORDANCE'
+
+
+def test_significant_diagnosis_concordance_remains_reportable_by_default():
+    doc={'diagnoses':[],'comparison_with_who5':{'significantly_different':True,'explanation':'Material classification difference.'}}
+    els=step._icc_elements(doc,{}, {})
+    assert len(els)==1 and els[0]['schema_id']=='DX-CONCORDANCE'
+
+
+def test_prognosis_elements_have_deterministic_summary_roles():
+    doc={
+        'favorable':[],
+        'adverse':[{'variants':['v01'],'reason':'Adverse proposition.'},{'variants':['v02'],'reason':'Same adverse proposition.'}],
+        'other':[{'variants':['v03'],'reason':'No distinct risk proposition.'}],
+        'uncertain':[],
+        'no_effect':[],
+        'overall':{'classification':'Overall adverse risk.','reason':'Overall classification proposition.'},
+    }
+    els=step._domain_elements('prognosis',doc)
+    roles={row['schema_id']:row['summary_role'] for row in els}
+    assert roles['PX-ADVERSE-01']=='variant_effect:adverse'
+    assert roles['PX-ADVERSE-02']=='variant_effect:adverse'
+    assert roles['PX-OTHER-01']=='variant_effect:other'
+    assert roles['PX-OVERALL']=='overall_classification'
+
+
+def test_summary_plan_rejects_mixed_summary_roles_and_allows_same_role_merge():
+    statements=[
+        {'statement_id':'S0001','schema_id':'PX-A1','domain':'prognosis','summary_role':'variant_effect:adverse','statement':'A is adverse.','reason':'r','card_tags':[]},
+        {'statement_id':'S0002','schema_id':'PX-A2','domain':'prognosis','summary_role':'variant_effect:adverse','statement':'B is adverse.','reason':'r','card_tags':[]},
+        {'statement_id':'S0003','schema_id':'PX-O','domain':'prognosis','summary_role':'overall_classification','statement':'Overall risk is adverse.','reason':'r','card_tags':[]},
+    ]
+    good={
+        'dispositions':[{'statement_id':s['statement_id'],'decision':'include','reason':None} for s in statements],
+        'parts':[
+            {'statement_id':'S0001','group':'G1','split_text':None},
+            {'statement_id':'S0002','group':'G1','split_text':None},
+            {'statement_id':'S0003','group':'G2','split_text':None},
+        ],
+    }
+    assert 'validated' in runtime.validate_summary_plan_doc(good,statements)
+    bad=json.loads(json.dumps(good))
+    bad['parts'][2]['group']='G1'
+    with pytest.raises(ValidationFailure): runtime.validate_summary_plan_doc(bad,statements)

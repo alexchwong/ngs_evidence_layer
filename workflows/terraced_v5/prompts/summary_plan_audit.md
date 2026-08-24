@@ -28,7 +28,10 @@ Check that:
 - clinically equivalent statements differing only by gene or variant identity are grouped when otherwise compatible;
 - all same-category statements were considered for merging;
 - no unnecessary parallel blocks remain;
-- merging preserves scope, polarity, framework, treatment context, qualifiers, and uncertainty.
+- merging preserves scope, polarity, framework, treatment context, qualifiers, and uncertainty;
+- statements with different `summary_role` values are never grouped together.
+
+Treat `summary_role` as a deterministic merge boundary, not a stylistic preference.
 
 ## Overall preservation
 

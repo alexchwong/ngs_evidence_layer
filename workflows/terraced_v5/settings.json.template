@@ -74,7 +74,37 @@
   },
   "reportability": {
     "semantic_unresolved": "suppress_and_log",
-    "positive_ptbg_unresolved_evidence": "suppress_and_log"
+    "positive_ptbg_unresolved_evidence": "suppress_and_log",
+    "domains": {
+      "diagnosis": {
+        "who5": true,
+        "icc": true,
+        "concurrent": true,
+        "concordance_significant": true,
+        "concordance_nonsignificant": false
+      },
+      "prognosis": {
+        "favorable": true,
+        "adverse": true,
+        "other": true,
+        "uncertain": true,
+        "overall": true
+      },
+      "treatment": {
+        "drug_target": true,
+        "drug_resistance": true,
+        "other": true
+      },
+      "biomarker": {
+        "suitable_mrd": true,
+        "unsuitable_mrd": false,
+        "uncertain": true
+      },
+      "germline": {
+        "suspect": true,
+        "uncertain": true
+      }
+    }
   },
   "summary": {
     "domain_order": [

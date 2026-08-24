@@ -58,7 +58,10 @@ Keep separate when merging would:
 - change meaning;
 - obscure a clinically meaningful distinction;
 - broaden or narrow scope;
-- combine different polarity, framework, context, qualifiers, or uncertainty.
+- combine different polarity, framework, context, qualifiers, or uncertainty;
+- combine statements with different `summary_role` values.
+
+`summary_role` is a deterministic merge boundary. Statements with different `summary_role` values MUST use different groups.
 
 Before returning:
 - compare all retained statements within each category;

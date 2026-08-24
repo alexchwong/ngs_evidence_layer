@@ -52,6 +52,47 @@ def _setting(*keys):
     return value
 
 def _retry(name): return int(_setting('retries',name))
+
+_REPORTABILITY_DEFAULTS={
+    'diagnosis':{
+        'who5':True,
+        'icc':True,
+        'concurrent':True,
+        'concordance_significant':True,
+        'concordance_nonsignificant':False,
+    },
+    'prognosis':{
+        'favorable':True,
+        'adverse':True,
+        'other':True,
+        'uncertain':True,
+        'overall':True,
+    },
+    'treatment':{
+        'drug_target':True,
+        'drug_resistance':True,
+        'other':True,
+    },
+    'biomarker':{
+        'suitable_mrd':True,
+        'unsuitable_mrd':False,
+        'uncertain':True,
+    },
+    'germline':{
+        'suspect':True,
+        'uncertain':True,
+    },
+}
+
+def _reportable(domain,key):
+    default=_REPORTABILITY_DEFAULTS.get(domain,{}).get(key,True)
+    reportability=load_settings().get('reportability') or {}
+    domains=reportability.get('domains') or {}
+    domain_cfg=domains.get(domain) or {}
+    value=domain_cfg.get(key,default)
+    if not isinstance(value,bool):
+        raise StepFailure(f'reportability.domains.{domain}.{key} must be true or false')
+    return value
 def configured_pipeline(): return str(load_settings().get('pipeline') or 'self')
 def _prompt(name):
     rel=str(_setting('prompts',name))
@@ -931,6 +972,7 @@ def _generate_and_audit_statements(work,block_key,elements,case,reg,profile,*,pr
     raise AssertionError('unreachable statement regeneration loop')
 
 def _who5_elements(who,reg,case):
+    if not _reportable('diagnosis','who5'): return []
     rows=[]
     for i,row in enumerate(who['diagnoses'],1):
         status=row.get('status')
@@ -941,15 +983,20 @@ def _who5_elements(who,reg,case):
 
 def _icc_elements(icc,reg,case):
     els=[]
-    for i,row in enumerate(icc['diagnoses'],1):
-        status=row.get('status')
-        qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
-        els.append({'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','proposition':f'ICC classification{qualifier}: {row["diagnosis"]}.','reasons':_diagnosis_row_reasons(row,reg,case),'evidence_domain':'diagnosis_icc','positive_effect':False,'locked_terms':[row['diagnosis']]})
+    if _reportable('diagnosis','icc'):
+        for i,row in enumerate(icc['diagnoses'],1):
+            status=row.get('status')
+            qualifier=f' ({status})' if status in {'conditional','indeterminate'} else ''
+            els.append({'schema_id':f'DX-ICC-{i:02d}','domain':'diagnosis','proposition':f'ICC classification{qualifier}: {row["diagnosis"]}.','reasons':_diagnosis_row_reasons(row,reg,case),'evidence_domain':'diagnosis_icc','positive_effect':False,'locked_terms':[row['diagnosis']]})
     comp=icc['comparison_with_who5']
-    els.append({'schema_id':'DX-CONCORDANCE','domain':'diagnosis','proposition':'WHO5 and ICC are significantly different.' if comp['significantly_different'] else 'WHO5 and ICC are not significantly different.','reasons':[comp['explanation']],'evidence_domain':'diagnosis_icc','positive_effect':False})
+    significant=bool(comp['significantly_different'])
+    concordance_key='concordance_significant' if significant else 'concordance_nonsignificant'
+    if _reportable('diagnosis',concordance_key):
+        els.append({'schema_id':'DX-CONCORDANCE','domain':'diagnosis','proposition':'WHO5 and ICC are significantly different.' if significant else 'WHO5 and ICC are not significantly different.','reasons':[comp['explanation']],'evidence_domain':'diagnosis_icc','positive_effect':False})
     return els
 
 def _other_elements(other):
+    if not _reportable('diagnosis','concurrent'): return []
     row=other['concurrent_second_diagnosis']; answer=row['answer']
     if answer.strip().lower() in {'none','none supported','no concurrent second diagnosis supported'}: return []
     return [{'schema_id':'DX-CONCURRENT','domain':'diagnosis','proposition':answer,'reasons':row['reasons'],'evidence_domain':'diagnosis_other','positive_effect':False}]
@@ -972,20 +1019,25 @@ def _domain_elements(domain,doc):
     cfg=_setting('ptbg','domains',domain); positive=set(cfg.get('positive_buckets') or []); els=[]
     if domain=='prognosis':
         for bucket in ('favorable','adverse','other','uncertain'):
+            if not _reportable('prognosis',bucket): continue
             for i,row in enumerate(doc[bucket],1):
-                els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','proposition':f'{bucket} prognostic contribution for {", ".join(row["variants"])}','reasons':[row['reason']],'variants':row['variants'],'evidence_domain':'prognosis','positive_effect':bucket in positive})
-        els.append({'schema_id':'PX-OVERALL','domain':'prognosis','proposition':doc['overall']['classification'],'reasons':[doc['overall']['reason']],'evidence_domain':'prognosis','positive_effect':bool(cfg.get('overall_requires_evidence',False))})
+                els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','summary_role':f'variant_effect:{bucket}','proposition':f'{bucket} prognostic contribution for {", ".join(row["variants"])}','reasons':[row['reason']],'variants':row['variants'],'evidence_domain':'prognosis','positive_effect':bucket in positive})
+        if _reportable('prognosis','overall'):
+            els.append({'schema_id':'PX-OVERALL','domain':'prognosis','summary_role':'overall_classification','proposition':doc['overall']['classification'],'reasons':[doc['overall']['reason']],'evidence_domain':'prognosis','positive_effect':bool(cfg.get('overall_requires_evidence',False))})
     elif domain=='treatment':
         for bucket in ('drug_target','drug_resistance','other'):
+            if not _reportable('treatment',bucket): continue
             for i,row in enumerate(doc[bucket],1):
                 prop=f'{bucket.replace("_"," ")} for {", ".join(row["variants"])}'+(f' — {row.get("therapy")}' if row.get('therapy') else '')
                 els.append({'schema_id':f'TX-{bucket.upper()}-{i:02d}','domain':'treatment','proposition':prop,'reasons':[row['reason']],'variants':row['variants'],'evidence_domain':'treatment','positive_effect':bucket in positive})
     elif domain=='biomarker':
         for bucket in ('suitable_mrd','unsuitable_mrd','uncertain'):
+            if not _reportable('biomarker',bucket): continue
             for i,row in enumerate(doc[bucket],1):
                 els.append({'schema_id':f'MRD-{bucket.upper()}-{i:02d}','domain':'biomarker','proposition':f'{bucket.replace("_"," ")} for {", ".join(row["variants"])}','reasons':[row['reason']],'variants':row['variants'],'evidence_domain':'biomarker','positive_effect':bucket in positive})
     elif domain=='germline':
         for bucket in ('suspect','uncertain'):
+            if not _reportable('germline',bucket): continue
             for i,row in enumerate(doc[bucket],1):
                 els.append({'schema_id':f'GL-{bucket.upper()}-{i:02d}','domain':'germline','proposition':f'{bucket} germline origin for {", ".join(row["variants"])}','reasons':[row['reason']],'variants':row['variants'],'evidence_domain':'germline','positive_effect':bucket in positive})
         for row in doc['clinical_support']:
@@ -1213,7 +1265,9 @@ def stage_reportable_sentences(work,elements):
         for ev in el.get('evidence') or []:
             tag=ev.get('card_tag')
             if tag and tag not in tags: tags.append(tag)
-        statements.append({'schema_id':el['schema_id'],'domain':el['domain'],'statement':el['statement'].strip().rstrip('.')+'.','reason':' | '.join(el['reasons']),'card_tags':tags,'semantic_status':reason_status})
+        row={'schema_id':el['schema_id'],'domain':el['domain'],'statement':el['statement'].strip().rstrip('.')+'.','reason':' | '.join(el['reasons']),'card_tags':tags,'semantic_status':reason_status}
+        if el.get('summary_role'): row['summary_role']=el['summary_role']
+        statements.append(row)
     for i,row in enumerate(statements,1): row['statement_id']=f'S{i:04d}'
     _write(_existing_or_new(work,'reportable_sentences','statements.yaml'),yaml.safe_dump({'statements':statements,'suppressed':suppressed},sort_keys=False,allow_unicode=True,width=110)); return statements
 
