@@ -1,0 +1,54 @@
+stage: prognosis
+version: 1
+type: domain_proforma
+role: ptbg
+label: prognosis
+prompt: prognosis.md
+inputs:
+  registry: canonical
+  case:
+  - provisional_disease
+  - case_facts
+  diagnosis:
+    roles:
+    - who5
+    fields:
+    - schema_disease
+    - diagnosis
+    - variants
+  cards:
+    category: prognosis
+output:
+  path: prognosis_state/proforma.yaml
+  format: yaml
+  schema: domain_classification_scored.json
+buckets:
+- favorable
+- adverse
+- neutral
+- uncertain
+extra_keys:
+- prognostic_score
+rules:
+- rule: one_row_per_id
+  field: classification
+  id_field: variant
+  source: registry
+- rule: enum
+  field: classification[].bucket
+  values_from: buckets
+  label: bucket
+- rule: prognostic_score_not_null_excuse
+transforms:
+- consolidate_parallel_variant_rows
+reportability:
+  favorable: true
+  adverse: true
+  neutral: true
+  uncertain: false
+  prognostic_score: true
+retries:
+  content: 2
+  serialization: 3
+guidance:
+- '`prognostic_score` is populated only when this workflow can actually assign the named score or risk group from the supplied information. Otherwise use null. Never state that a score is "not calculable".'

@@ -13,7 +13,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v6 import card_identity, domain_contract, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks
+from workflows.terraced_v6 import card_identity, domain_contract, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 
 WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=1; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
@@ -295,41 +295,6 @@ def _log_transforms(work,records):
         if record not in rows: rows.append(record)
     _write(path,yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
 
-def _fingerprint(text): return hashlib.sha256(str(text or '').encode('utf-8')).hexdigest()[:16]
-
-def _observe_stagnation(work,call_id,candidate,error):
-    """Count consecutive identical (artifact, error) pairs for one model task.
-
-    The in-memory RetryStagnationGuard cannot survive a self handoff, and the
-    self pipeline is exactly where a wasted turn is most expensive: it costs a
-    human round-trip. State therefore lives in the retry entry that already
-    persists across handoffs.
-    """
-    entry=_retry_entry(work,call_id); current=[_fingerprint(candidate),_fingerprint(error)]
-    repeats=int(entry.get('stagnation_repeats',0))+1 if entry.get('stagnation')==current else 0
-    entry['stagnation']=current; entry['stagnation_repeats']=repeats
-    _set_retry_entry(work,call_id,entry)
-    return repeats
-
-def _clear_stagnation(work,call_id):
-    entry=_retry_entry(work,call_id)
-    if entry.pop('stagnation',None) is not None or entry.pop('stagnation_repeats',None) is not None:
-        _set_retry_entry(work,call_id,entry)
-
-# After this many consecutive identical rejected artifacts, another unchanged
-# retry has no expected value; surface the deterministic failure instead.
-STAGNATION_ABORT_AFTER=2
-
-def _apply_stagnation(work,call_id,candidate,feedback):
-    """Escalate, then stop, when a model keeps returning the same rejected artifact."""
-    repeats=_observe_stagnation(work,call_id,candidate,feedback)
-    if repeats>=STAGNATION_ABORT_AFTER:
-        raise StepFailure(f'model operation {call_id} returned the same rejected artifact and the same deterministic error {repeats+1} times; stopping early rather than retrying unchanged. Last validation feedback:\n{feedback}')
-    if repeats>0:
-        _status(f'  {call_id}: unchanged rejected artifact ({repeats+1} identical attempts)')
-        return feedback+validated_model_task.stagnation_instruction(repeats)
-    return feedback
-
 def _log_once(work,key,msg,*,raw=False):
     """Log one diagnostic or stage message once across self-handoff resumes."""
     p=_progress_path(work); doc={'announced':[]}
@@ -431,238 +396,105 @@ def _prepare_structured(work,raw,fmt,call_id,syntax_binding,*,syntax_attempts):
     return result.text
 
 
-def _validate_candidate(work,*,candidate,fmt,call_id,syntax_binding,validator,syntax_attempts):
-    """Validate once, repairing only representation errors before content retry.
+def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
+    """Bind the shared runner to this workflow's filesystem, logging and provider.
 
-    All validators are expected to accumulate their issues.  If any issues are
-    tagged ``serialization``, the shared v3 syntax-repair machinery receives only
-    those representation defects and must preserve all lexical informational
-    content.  Once representation defects are gone, a fresh full validation is
-    run; any remaining issues are returned to the originating task together.
+    The runner performs no I/O of its own; everything environment-specific is
+    supplied here.  That is what lets the same runner drive the interactive
+    `self` pipeline and a direct provider pipeline without knowing about either.
     """
-    try:
-        msg=validator(candidate)
-        return candidate,msg
-    except validated_model_task.ValidationFailure as exc:
-        if not fmt or not _serialization_feedback(exc): raise
-    try:
-        result=syntax_repair.repair_schema_serialization(
-            candidate,
-            format_name=fmt,
-            validator=validator,
-            serialization_feedback=_serialization_feedback,
-            model_repair=_syntax_callback(work,syntax_binding,call_id,syntax_attempts),
-            model_attempts=syntax_attempts,
-        )
-        _archive_failed_syntax_attempts(work,call_id,result.model_attempts)
-    except Handoff: raise
-    except syntax_repair.SchemaSerializationRepairExhausted as exc:
-        _archive_failed_syntax_attempts(work,call_id,exc.attempts)
-        detail=(
-            f'model operation {call_id} remained mis-serialized after {syntax_attempts} syntax-only '
-            f'repair attempt(s): {exc.validation_error}'
-        )
-        raise SyntaxCycleExhausted(detail,feedback=exc.validation_error) from exc
-    repaired=result.text
-    # Re-run the complete validator.  If content/coverage defects remain they are
-    # now reported all at once to the originating clinical/model task.
-    msg=validator(repaired)
-    return repaired,msg
-
-def _standard_model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',max_attempts=None,feedback=None,system_prompt=None):
-    binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair'); root=layout.model_step_dir(work,call_id,existing=False)
-    messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
-    attempts=int(max_attempts if max_attempts is not None else _retry('fatal_model_attempts')); previous=None; last_error=feedback or ''
-    # Syntax repair has its own global cap. It must never silently inherit
-    # the larger clinical retry budget.
-    syntax_attempts=_retry('syntax_repair_attempts')
-    self_count_path=root/'self-attempt-count.json'
-    self_count=0
-    if self_count_path.is_file():
-        try: self_count=int(json.loads(_read(self_count_path)).get('attempts',0))
-        except Exception: self_count=0
-    if output.is_file():
-        try:
-            candidate=_prepare_structured(work,_read(output),fmt,call_id,syntax_binding,syntax_attempts=syntax_attempts); candidate,msg=_validate_candidate(work,candidate=candidate,fmt=fmt,call_id=call_id,syntax_binding=syntax_binding,validator=validator,syntax_attempts=syntax_attempts); _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); return candidate
-        except Handoff: raise
-        except StepFailure: raise
-        except Exception as exc:
-            previous=_read(output); last_error=_apply_stagnation(work,call_id,previous,validated_model_task.retry_instruction(exc))
-            if binding.is_self:
-                self_count += 1
-                _write(self_count_path,json.dumps({'attempts':self_count},indent=2)+'\n')
-                _write(layout.errors(work)/f'{call_id}-self-attempt-{self_count:02d}.txt',previous+'\n\nVALIDATION:\n'+last_error+'\n')
-                if self_count >= attempts:
-                    raise StepFailure(f'model operation {call_id} failed validation after {attempts} self-model attempts: {last_error}')
-            else:
-                err=layout.errors(work)/f'{call_id}-resume-invalid.txt'; _write(err,previous+'\n\nVALIDATION:\n'+last_error+'\n')
-    if binding.is_self:
-        call_messages=list(messages)
-        if previous is not None: call_messages += [{'role':'assistant','content':previous},{'role':'user','content':last_error}]
-        _write(root/'messages.json',json.dumps(call_messages,indent=2,ensure_ascii=False)+'\n'); _write(root/'prompt.md',_render_bundle(call_id,call_messages,output,last_error or None))
-        raise Handoff(call_id,root/'prompt.md',output)
-    for attempt in range(1,attempts+1):
-        _status(f'  {call_id}: answering' if attempt==1 else f'  {call_id}: retry {attempt}/{attempts}')
-        call_messages=list(messages)
-        if previous is not None: call_messages += [{'role':'assistant','content':previous},{'role':'user','content':last_error}]
-        _write(root/'messages.json',json.dumps(call_messages,indent=2,ensure_ascii=False)+'\n'); _write(root/'prompt.md',_render_bundle(call_id,call_messages,output,last_error or None))
-        try: comp=model_client.complete_messages(binding,call_messages)
+    def call_model(messages):
+        _write(root/'messages.json',json.dumps(messages,indent=2,ensure_ascii=False)+'\n')
+        _write(root/'prompt.md',_render_bundle(call_id,messages,output))
+        try: comp=model_client.complete_messages(binding,messages)
         except model_client.TruncatedCompletion as exc:
-            _record_usage(work,call_id,binding.model,attempt,exc.usage,role=role)
-            raw=exc.content; previous=raw; last_error=f'Output truncated at max_tokens={exc.max_tokens}; return the complete requested artifact.'; continue
+            _record_usage(work,call_id,binding.model,0,exc.usage,role=role)
+            return validated_model_task.Truncated(exc.content,max_tokens=exc.max_tokens)
         except RuntimeError as exc: raise StepFailure(str(exc)) from exc
-        if isinstance(comp,model_client.Completion): raw=comp.content; usage=comp.usage
-        else: raw=comp; usage=None
-        _record_usage(work,call_id,binding.model,attempt,usage,role=role)
-        try:
-            candidate=_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=syntax_attempts); candidate,msg=_validate_candidate(work,candidate=candidate,fmt=fmt,call_id=call_id,syntax_binding=syntax_binding,validator=validator,syntax_attempts=syntax_attempts)
-        except Handoff: raise
-        except StepFailure: raise
-        except Exception as exc:
-            previous=raw; last_error=_apply_stagnation(work,call_id,raw,validated_model_task.retry_instruction(exc))
-            _write(layout.errors(work)/f'{call_id}-attempt-{attempt:02d}.txt',raw.rstrip()+'\n\nVALIDATION:\n'+last_error+'\n')
-            continue
-        _clear_stagnation(work,call_id); _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); return candidate
-    raise StepFailure(f'model operation {call_id} failed validation after {attempts} attempts: {last_error}')
+        if isinstance(comp,model_client.Completion): _record_usage(work,call_id,binding.model,0,comp.usage,role=role); return comp.content
+        _record_usage(work,call_id,binding.model,0,None,role=role); return comp
 
+    def call_syntax(prompt,attempt):
+        sid=f'{call_id}-syntax-{attempt}'; sroot=layout.model_step_dir(work,sid,existing=False)
+        _write(sroot/'prompt.md',prompt)
+        if syntax_binding.is_self:
+            existing=sroot/'output.txt'
+            if existing.is_file(): return _read(existing)
+            raise Handoff(sid,sroot/'prompt.md',existing)
+        try: comp=model_client.complete_messages(syntax_binding,[{'role':'system','content':syntax_repair.SYNTAX_REPAIR_SYSTEM_PROMPT},{'role':'user','content':prompt}])
+        except model_client.TruncatedCompletion as exc: return exc.content
+        except RuntimeError as exc: raise StepFailure(str(exc)) from exc
+        return comp.content if isinstance(comp,model_client.Completion) else comp
 
-def _proforma_restart_feedback(call_id,syntax_attempts,detail):
-    return (
-        f'The previous complete {call_id} proforma could not be made structurally valid after '
-        f'{syntax_attempts} syntax-only repair attempts. Regenerate the complete proforma from scratch '
-        'from the original task and supplied context. Do not copy, patch, or troubleshoot the previous '
-        'artifact. Follow the proforma shape exactly. The structural problem that defeated syntax repair was:\n\n'
-        + str(detail).strip()
+    def record(attempt):
+        if attempt.error: _write(layout.errors(work)/f'{call_id}-attempt-{attempt.index:02d}.txt',attempt.response.rstrip()+'\n\nVALIDATION:\n'+attempt.error+'\n')
+
+    return validated_model_task.TaskIO(
+        call_model=call_model,
+        call_syntax_model=call_syntax,
+        load_state=lambda key:_retry_entry(work,key),
+        save_state=lambda key,value:_set_retry_entry(work,key,value),
+        read_output=lambda:_read(output) if output.is_file() else None,
+        write_output=lambda text:(_write(output,text),_write(root/'accepted-output.txt',text)) and None,
+        record_attempt=record,
+        status=_status,
+        is_self=binding.is_self,
     )
 
 
-def _proforma_active_id(call_id,rewrite_index):
-    return call_id if rewrite_index==0 else f'{call_id}-rewrite-{rewrite_index:02d}'
-
-
-def _proforma_status(call_id,rewrite_index,max_rewrites,mode):
-    if rewrite_index==0:
-        _status(f'  {call_id}: proforma attempt 1/{max_rewrites+1}')
-        return
-    suffix=' from scratch after syntax exhaustion' if mode=='fresh' else ' using deterministic validation feedback'
-    _status(f'  {call_id}: proforma rewrite {rewrite_index}/{max_rewrites}{suffix}')
-
-
-def _proforma_model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',feedback=None,system_prompt=None,max_rewrites=None):
-    """Run a clinical proforma with nested syntax and full-proforma retry budgets.
-
-    One proforma generation may use at most ``syntax_repair_attempts`` syntax-only
-    repairs.  If that budget is exhausted, the damaged artifact is abandoned and
-    the original proforma task is run again from scratch.  Full proforma rewrites
-    have a separate cap and never inherit the old generic 10-attempt retry budget.
-    """
-    syntax_attempts=_retry('syntax_repair_attempts'); max_rewrites=int(_retry('proforma_rewrite_attempts') if max_rewrites is None else max_rewrites)
+def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',mode='standard',max_attempts=None,max_rewrites=None,feedback=None,system_prompt=None):
+    """Run one validated model task through the shared runner."""
     binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair')
-    base_messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
-
-    # Self handoffs persist the outer rewrite state because each model response
-    # arrives on a later CLI invocation.
-    if binding.is_self:
-        state=_retry_entry(work,call_id); rewrite_index=int(state.get('rewrites',0)); mode=state.get('mode') or 'initial'; restart_feedback=state.get('feedback') or feedback or ''; previous=state.get('previous')
-        active_id=_proforma_active_id(call_id,rewrite_index); root=layout.model_step_dir(work,active_id,existing=False)
-        if output.is_file():
-            raw=_read(output)
-            try:
-                candidate=_prepare_structured(work,raw,fmt,active_id,syntax_binding,syntax_attempts=syntax_attempts)
-                candidate,msg=_validate_candidate(work,candidate=candidate,fmt=fmt,call_id=active_id,syntax_binding=syntax_binding,validator=validator,syntax_attempts=syntax_attempts)
-            except Handoff: raise
-            except SyntaxCycleExhausted as exc:
-                _write(layout.errors(work)/f'{active_id}-proforma-invalid.txt',raw.rstrip()+'\n\nSYNTAX_REPAIR_EXHAUSTED:\n'+str(exc)+'\n')
-                if rewrite_index>=max_rewrites:
-                    raise StepFailure(f'model operation {call_id} exhausted {syntax_attempts} syntax repairs on the initial proforma plus {max_rewrites} full proforma rewrite(s): {exc}') from exc
-                rewrite_index+=1; mode='fresh'; restart_feedback=_proforma_restart_feedback(call_id,syntax_attempts,exc.feedback); previous=None; output.unlink(missing_ok=True)
-                _set_retry_entry(work,call_id,{'rewrites':rewrite_index,'mode':mode,'feedback':restart_feedback,'previous':None})
-                active_id=_proforma_active_id(call_id,rewrite_index); root=layout.model_step_dir(work,active_id,existing=False)
-            except Exception as exc:
-                last_error=_apply_stagnation(work,call_id,raw,validated_model_task.retry_instruction(exc))
-                _write(layout.errors(work)/f'{active_id}-proforma-invalid.txt',raw.rstrip()+'\n\nVALIDATION:\n'+last_error+'\n')
-                if rewrite_index>=max_rewrites:
-                    raise StepFailure(f'model operation {call_id} failed after the initial proforma plus {max_rewrites} full proforma rewrite(s): {last_error}') from exc
-                rewrite_index+=1; mode='repair'; restart_feedback=last_error; previous=raw; output.unlink(missing_ok=True)
-                _set_retry_entry(work,call_id,{'rewrites':rewrite_index,'mode':mode,'feedback':restart_feedback,'previous':previous})
-                active_id=_proforma_active_id(call_id,rewrite_index); root=layout.model_step_dir(work,active_id,existing=False)
-            else:
-                _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); _set_retry_entry(work,call_id,{})
-                return candidate
-
-        call_messages=list(base_messages)
-        if rewrite_index>0 and mode=='fresh':
-            call_messages += [{'role':'user','content':restart_feedback}]
-        elif rewrite_index>0 and mode=='repair':
-            call_messages += [{'role':'assistant','content':previous or ''},{'role':'user','content':restart_feedback}]
-        elif feedback:
-            call_messages += [{'role':'user','content':feedback}]
-        _proforma_status(call_id,rewrite_index,max_rewrites,mode)
-        _write(root/'messages.json',json.dumps(call_messages,indent=2,ensure_ascii=False)+'\n'); _write(root/'prompt.md',_render_bundle(active_id,call_messages,output,restart_feedback if rewrite_index else feedback))
-        raise Handoff(active_id,root/'prompt.md',output)
-
-    previous=None; mode='initial'; restart_feedback=feedback or ''; start_index=0
-    if output.is_file():
-        raw=_read(output)
-        try:
-            candidate=_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=syntax_attempts)
-            candidate,msg=_validate_candidate(work,candidate=candidate,fmt=fmt,call_id=call_id,syntax_binding=syntax_binding,validator=validator,syntax_attempts=syntax_attempts)
-        except SyntaxCycleExhausted as exc:
-            _write(layout.errors(work)/f'{call_id}-resume-proforma-invalid.txt',raw.rstrip()+'\n\nSYNTAX_REPAIR_EXHAUSTED:\n'+str(exc)+'\n')
-            mode='fresh'; restart_feedback=_proforma_restart_feedback(call_id,syntax_attempts,exc.feedback); start_index=1
-        except Exception as exc:
-            previous=raw; mode='repair'; restart_feedback=validated_model_task.retry_instruction(exc); start_index=1
-            _write(layout.errors(work)/f'{call_id}-resume-proforma-invalid.txt',raw.rstrip()+'\n\nVALIDATION:\n'+restart_feedback+'\n')
-        else:
-            root=layout.model_step_dir(work,call_id,existing=False); _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); return candidate
-    for rewrite_index in range(start_index,max_rewrites+1):
-        active_id=_proforma_active_id(call_id,rewrite_index); root=layout.model_step_dir(work,active_id,existing=False)
-        _proforma_status(call_id,rewrite_index,max_rewrites,mode)
-        call_messages=list(base_messages)
-        if rewrite_index>0 and mode=='fresh': call_messages += [{'role':'user','content':restart_feedback}]
-        elif rewrite_index>0 and mode=='repair': call_messages += [{'role':'assistant','content':previous or ''},{'role':'user','content':restart_feedback}]
-        elif feedback: call_messages += [{'role':'user','content':feedback}]
-        _write(root/'messages.json',json.dumps(call_messages,indent=2,ensure_ascii=False)+'\n'); _write(root/'prompt.md',_render_bundle(active_id,call_messages,output,restart_feedback if rewrite_index else feedback))
-        try: comp=model_client.complete_messages(binding,call_messages)
-        except model_client.TruncatedCompletion as exc:
-            _record_usage(work,active_id,binding.model,rewrite_index+1,exc.usage,role=role); previous=None; mode='fresh'; restart_feedback=f'Previous full proforma was truncated at max_tokens={exc.max_tokens}. Regenerate the complete proforma from scratch.'
-            _write(layout.errors(work)/f'{active_id}-truncated.txt',exc.content.rstrip()+'\n\nVALIDATION:\n'+restart_feedback+'\n'); continue
-        except RuntimeError as exc: raise StepFailure(str(exc)) from exc
-        if isinstance(comp,model_client.Completion): raw=comp.content; usage=comp.usage
-        else: raw=comp; usage=None
-        _record_usage(work,active_id,binding.model,rewrite_index+1,usage,role=role)
-        try:
-            candidate=_prepare_structured(work,raw,fmt,active_id,syntax_binding,syntax_attempts=syntax_attempts)
-            candidate,msg=_validate_candidate(work,candidate=candidate,fmt=fmt,call_id=active_id,syntax_binding=syntax_binding,validator=validator,syntax_attempts=syntax_attempts)
-        except Handoff: raise
-        except SyntaxCycleExhausted as exc:
-            _write(layout.errors(work)/f'{active_id}-proforma-invalid.txt',raw.rstrip()+'\n\nSYNTAX_REPAIR_EXHAUSTED:\n'+str(exc)+'\n')
-            previous=None; mode='fresh'; restart_feedback=_proforma_restart_feedback(call_id,syntax_attempts,exc.feedback); continue
-        except Exception as exc:
-            previous=raw; mode='repair'; restart_feedback=_apply_stagnation(work,call_id,raw,validated_model_task.retry_instruction(exc))
-            _write(layout.errors(work)/f'{active_id}-proforma-invalid.txt',raw.rstrip()+'\n\nVALIDATION:\n'+restart_feedback+'\n'); continue
-        _write(output,candidate); _write(root/'accepted-output.txt',candidate); _write(root/'validated.txt',msg+'\n'); return candidate
-    raise StepFailure(f'model operation {call_id} failed after the initial proforma plus {max_rewrites} full proforma rewrite(s): {restart_feedback}')
+    root=layout.model_step_dir(work,call_id,existing=False)
+    messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
+    if feedback: messages.append({'role':'user','content':feedback})
+    request=validated_model_task.TaskRequest(
+        task_id=call_id,
+        messages=messages,
+        validate=validator,
+        fmt=fmt,
+        mode=mode,
+        prepare=(lambda raw:_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=_retry('syntax_repair_attempts'))) if fmt else None,
+        budgets=validated_model_task.Budgets(
+            content=int(max_attempts if max_attempts is not None else _retry('fatal_model_attempts')),
+            serialization=_retry('syntax_repair_attempts'),
+            rewrite=int(max_rewrites if max_rewrites is not None else _retry('proforma_rewrite_attempts')),
+        ),
+    )
+    io=_task_io(work,call_id=call_id,role=role,binding=binding,syntax_binding=syntax_binding,output=output,root=root)
+    try:
+        candidate=validated_model_task.run(request,io)
+    except validated_model_task.Suspend as suspend:
+        _write(root/'messages.json',json.dumps(suspend.messages,indent=2,ensure_ascii=False)+'\n')
+        _write(root/'prompt.md',_render_bundle(call_id,suspend.messages,output,suspend.feedback or None))
+        raise Handoff(call_id,root/'prompt.md',output) from suspend
+    except validated_model_task.TaskFailed as exc:
+        raise StepFailure(str(exc)) from exc
+    _write(root/'validated.txt','accepted\n')
+    return candidate
 
 
 def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',max_attempts=None,feedback=None,system_prompt=None,proforma=False,max_rewrites=None):
-    if proforma:
-        return _proforma_model_call(work,call_id=call_id,role=role,prompt=prompt,output=output,validator=validator,profile=profile,fmt=fmt,feedback=feedback,system_prompt=system_prompt,max_rewrites=max_rewrites)
-    return _standard_model_call(work,call_id=call_id,role=role,prompt=prompt,output=output,validator=validator,profile=profile,fmt=fmt,max_attempts=max_attempts,feedback=feedback,system_prompt=system_prompt)
+    """Run one validated model task.
+
+    Retry, repair, budget and suspension behaviour now live in the shared runner
+    (`scripts.core.validated_model_task`).  This function only binds this
+    workflow's prompts, paths and provider bindings to it.
+    """
+    return _run_model_task(
+        work,call_id=call_id,role=role,prompt=prompt,output=output,validator=validator,
+        profile=profile,fmt=fmt,mode='proforma' if proforma else 'standard',
+        max_attempts=max_attempts,max_rewrites=max_rewrites,feedback=feedback,system_prompt=system_prompt,
+    )
+
 
 def run_check_stage(args):
-    """Validate one artifact against one stage, with no model and no run directory.
-
-    Prints exactly the deterministic feedback the model would receive, so the
-    validation loop can be iterated on in seconds rather than per model round-trip.
-    """
+    """Validate one artifact against one stage, with no model and no run directory."""
     context=stage_checks.fixture_context(args.stage)
     if args.context: context=yaml.safe_load(_read(args.context)) or {}
     try:
         message=stage_checks.check(args.stage,_read(args.file),context)
-    except validated_model_task.ValidationFailure as exc:
-        print(f'STAGE={args.stage}'); print('RESULT=invalid'); print(); print(str(exc)); return EXIT_FAILURE
-    except ValueError as exc:
+    except (validated_model_task.ValidationFailure,ValueError) as exc:
         print(f'STAGE={args.stage}'); print('RESULT=invalid'); print(); print(str(exc)); return EXIT_FAILURE
     print(f'STAGE={args.stage}'); print(f'RESULT=valid ({message})'); return EXIT_OK
 
@@ -677,6 +509,15 @@ def run_show_prompt(args):
     skeleton=stage_checks.skeleton(args.stage,context)
     if skeleton: print(); print(skeleton)
     return EXIT_OK
+
+
+def run_stage_check_assets(args):
+    """Load and describe every declarative stage asset."""
+    lines=stage_spec.check_all()
+    print(f'STAGES={len(lines)}')
+    for line in lines: print(line)
+    return EXIT_OK
+
 
 def _safe_slug(text):
     s=''.join(c.lower() if c.isalnum() else '-' for c in text).strip('-')
@@ -1139,9 +980,7 @@ def main(argv=None):
         if args.command=='setup': return run_setup(args)
         if args.command=='check-stage': return run_check_stage(args)
         if args.command=='show-prompt': return run_show_prompt(args)
-        if args.command=='stages':
-            for name in stage_checks.names(): print(name)
-            return EXIT_OK
+        if args.command=='stages': return run_stage_check_assets(args)
         if args.command=='pipelines':
             for name in pipeline_registry.names(): print(f'{name}: {pipeline_registry.descriptions()[name]}')
             return EXIT_OK

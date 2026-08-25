@@ -1,15 +1,16 @@
-structured case failed validation with 4 issue(s):
-1. variants[0].variant_id
-   Problem: received 'v01'.
-   Required fix: use sequential stable ID V1.
-2. variants[0].gene
-   Problem: invalid gene 'srsf2'.
-   Required fix: use uppercase reported gene symbol.
-3. variants[0].description
-   Problem: description does not begin with gene 'srsf2'.
-   Required fix: prefix the unchanged detailed variant description with exact gene 'srsf2'.
-   Received: 'p.P95H'
-   Expected: srsf2 + complete reported variant description
-4. case_facts[0].fact_id
+structured case failed validation with 3 issue(s):
+1. case_facts[0].fact_id
    Problem: received 'F1'.
-   Required fix: use sequential C1.
+   Required fix: use the sequential stable ID C1.
+   Received: F1
+   Expected: C1
+2. variants[0].gene
+   Problem: gene symbol 'srsf2' is not uppercase.
+   Required fix: use the uppercase reported gene symbol.
+   Received: srsf2
+   Expected: SRSF2
+3. variants[0].variant_id
+   Problem: received 'v01'.
+   Required fix: use the sequential stable ID V1.
+   Received: v01
+   Expected: V1

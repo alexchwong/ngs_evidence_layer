@@ -39,6 +39,7 @@ import yaml
 
 from scripts.core.validated_model_task import ValidationIssue, fail
 from workflows.terraced_v6 import issues as iss
+from workflows.terraced_v6 import stage_spec
 
 
 @dataclass(frozen=True)
@@ -69,49 +70,31 @@ class DomainContract:
         return ("classification", *self.extra_keys)
 
 
-PROGNOSIS = DomainContract(
-    domain="prognosis",
-    label="prognosis",
-    buckets=("favorable", "adverse", "neutral", "uncertain"),
-    extra_keys=("prognostic_score",),
-    guidance=(
-        "`prognostic_score` is populated only when this workflow can actually assign the named "
-        "score or risk group from the supplied information. Otherwise use null. Never state that "
-        "a score is \"not calculable\".",
-    ),
-)
+def _from_spec(stage: str) -> DomainContract:
+    """Build a contract from the declarative stage asset (Phase 5).
 
-TREATMENT = DomainContract(
-    domain="treatment",
-    label="treatment",
-    buckets=("drug_target", "drug_sensitive", "drug_resistant", "no_drug_implication"),
-    therapy_buckets=("drug_target", "drug_sensitive", "drug_resistant"),
-    solitary_buckets=("no_drug_implication",),
-    multi_row=True,
-    guidance=(
-        "A variant may appear in more than one row when it carries genuinely distinct therapeutic "
-        "implications — for example a target and a separate sensitivity — each with its own therapy.",
-        "`no_drug_implication` is exclusive: a variant in that bucket must not appear in any other row.",
-    ),
-)
+    The bucket vocabulary, therapy/solitary buckets and guidance now live in
+    `stages/<domain>.yaml`. This keeps the same dataclass so skeleton rendering,
+    validation and the pivot are unchanged.
+    """
+    spec = stage_spec.load(stage)
+    return DomainContract(
+        domain=spec.stage,
+        label=spec.label,
+        buckets=spec.buckets,
+        therapy_buckets=spec.therapy_buckets,
+        solitary_buckets=spec.solitary_buckets,
+        multi_row=spec.multi_row,
+        extra_keys=spec.extra_keys,
+        guidance=spec.guidance,
+    )
 
-BIOMARKER = DomainContract(
-    domain="biomarker",
-    label="MRD",
-    buckets=("mrd_marker", "not_mrd_marker"),
-)
 
-GERMLINE = DomainContract(
-    domain="germline",
-    label="germline",
-    buckets=("germline_support", "germline_against", "germline_uncertain"),
-    guidance=(
-        "Every conclusion must integrate the molecular result with the supplied clinical context, "
-        "not the molecular result alone.",
-    ),
-)
-
-CONTRACTS = {c.domain: c for c in (PROGNOSIS, TREATMENT, BIOMARKER, GERMLINE)}
+CONTRACTS = {name: _from_spec(name) for name in stage_spec.domains()}
+PROGNOSIS = CONTRACTS["prognosis"]
+TREATMENT = CONTRACTS["treatment"]
+BIOMARKER = CONTRACTS["biomarker"]
+GERMLINE = CONTRACTS["germline"]
 
 
 def contract(domain: str) -> DomainContract:
@@ -174,37 +157,10 @@ def skeleton(c: DomainContract, variant_ids) -> str:
 # --- validation --------------------------------------------------------------
 
 def validate(text: str, c: DomainContract, valid_variants) -> str:
-    """Validate the flat one-row-per-variant artifact, accumulating all defects."""
-    ordered = sorted(valid_variants)
-    doc, parse_issues = iss.parse(text, fmt="yaml", context=c.label)
-    if parse_issues:
-        fail(c.label, parse_issues)
-    problems = list(iss.exact_keys(doc, set(c.top_level_keys), c.label))
-    rows = doc.get("classification")
+    """Validate via the stage asset: JSON Schema for structure, named rules for the rest."""
+    from workflows.terraced_v6 import stage_validation
 
-    if c.multi_row:
-        problems += _validate_multi_row(rows, ordered, c)
-    else:
-        problems += iss.one_row_per_id(rows, ordered, id_field="variant", path="classification")
-
-    if isinstance(rows, list):
-        for i, row in enumerate(rows):
-            if not isinstance(row, dict):
-                continue
-            path = f"classification[{i}]"
-            bucket = row.get("bucket")
-            problems += iss.enum_field(bucket, c.buckets, f"{path}.bucket", label="bucket")
-            expected_keys = set(c.row_keys_for(bucket if bucket in c.buckets else ""))
-            problems += iss.exact_keys(row, expected_keys, path)
-            problems += iss.text_field(row.get("reason"), f"{path}.reason")
-            if bucket in c.therapy_buckets:
-                problems += iss.text_field(row.get("therapy"), f"{path}.therapy")
-
-    if "prognostic_score" in c.extra_keys:
-        problems += _validate_prognostic_score(doc.get("prognostic_score"))
-
-    fail(c.label, problems)
-    return f"{c.label} proforma valid"
+    return stage_validation.validate(c.domain, text, {"variants": sorted(valid_variants)})
 
 
 def _validate_multi_row(rows, ordered, c: DomainContract) -> list[ValidationIssue]:

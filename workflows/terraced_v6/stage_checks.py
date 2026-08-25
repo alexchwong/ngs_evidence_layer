@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from workflows.terraced_v6 import domain_contract, schema_validation
+from workflows.terraced_v6 import domain_contract, stage_spec, stage_validation
 
 FIXTURES = Path(__file__).resolve().parent / "tests" / "fixtures"
 
@@ -39,13 +39,6 @@ def _blocks(context):
     return [{"block_id": b} for b in context.get("blocks") or []]
 
 
-def _domain_check(domain):
-    def check(text, context):
-        return schema_validation.validate_domain(text, domain, _variants(context))
-
-    return check
-
-
 def _domain_skeleton(domain):
     def render(context):
         return domain_contract.skeleton(domain_contract.contract(domain), sorted(_variants(context)))
@@ -53,53 +46,28 @@ def _domain_skeleton(domain):
     return render
 
 
-STAGES = {
-    "structure_case": {
-        "check": lambda text, ctx: __import__(
-            "workflows.terraced_v6.runtime", fromlist=["runtime"]
-        ).validate_case_text(text, require_gene_prefixed_description=bool(ctx.get("require_gene_prefix"))),
-        "format": "json",
-    },
-    "diagnosis_who5": {
-        "check": lambda text, ctx: schema_validation.validate_who5_diagnosis(
-            text,
-            allowed_diseases=ctx.get("allowed_diseases") or [],
-            valid_variants=_variants(ctx),
-        ),
-        "format": "yaml",
-    },
-    "diagnosis_icc": {
-        "check": lambda text, ctx: schema_validation.validate_icc_diagnosis(text, valid_variants=_variants(ctx)),
-        "format": "yaml",
-    },
-    "diagnosis_other": {
-        "check": lambda text, ctx: schema_validation.validate_second_diagnosis(text, valid_variants=_variants(ctx)),
-        "format": "yaml",
-    },
-    "evidence_match": {
-        "check": lambda text, ctx: schema_validation.validate_evidence_match_batch(text, _items(ctx)),
-        "format": "yaml",
-    },
-    "evidence_audit": {
-        "check": lambda text, ctx: schema_validation.validate_evidence_audit_batch(text, _items(ctx)),
-        "format": "yaml",
-    },
-    "report_write": {
-        "check": lambda text, ctx: schema_validation.validate_report_write(text, _blocks(ctx)),
-        "format": "yaml",
-    },
-    "report_preservation": {
-        "check": lambda text, ctx: schema_validation.validate_preservation(text, _blocks(ctx)),
-        "format": "yaml",
-    },
-}
+def _spec_check(stage):
+    def check(text, context):
+        return stage_validation.validate(stage, text, _context_for(stage, context))
 
-for _domain in ("prognosis", "treatment", "biomarker", "germline"):
-    STAGES[_domain] = {
-        "check": _domain_check(_domain),
-        "skeleton": _domain_skeleton(_domain),
-        "format": "yaml",
+    return check
+
+
+def _context_for(stage, context):
+    """Normalise a fixture/runtime context into what the named rules expect."""
+    ctx = dict(context or {})
+    ctx.setdefault("variants", sorted(_variants(ctx)))
+    return ctx
+
+
+STAGES = {
+    stage: {
+        "check": _spec_check(stage),
+        "format": stage_spec.load(stage).output_format,
+        **({"skeleton": _domain_skeleton(stage)} if stage in stage_spec.domains() else {}),
     }
+    for stage in stage_spec.names()
+}
 
 
 def names():

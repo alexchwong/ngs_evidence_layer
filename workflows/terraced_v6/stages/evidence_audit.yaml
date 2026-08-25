@@ -1,0 +1,23 @@
+stage: evidence_audit
+version: 1
+type: batch
+role: evidence_audit
+label: evidence audit
+prompt: evidence_audit.md
+output:
+  format: yaml
+  schema: evidence_audit.json
+rules:
+- rule: one_row_per_id
+  field: audits
+  id_field: evidence_id
+  source: items
+- rule: enum
+  field: audits[].risk
+  values:
+  - none
+  - warning
+  label: risk level
+retries:
+  content: 2
+  serialization: 3

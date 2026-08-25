@@ -1,0 +1,44 @@
+stage: biomarker
+version: 1
+type: domain_proforma
+role: ptbg
+label: MRD
+prompt: biomarker.md
+inputs:
+  registry: canonical
+  case:
+  - provisional_disease
+  - case_facts
+  diagnosis:
+    roles:
+    - who5
+    fields:
+    - schema_disease
+    - diagnosis
+    - variants
+  cards:
+    category: biomarker
+output:
+  path: biomarker_state/proforma.yaml
+  format: yaml
+  schema: domain_classification.json
+buckets:
+- mrd_marker
+- not_mrd_marker
+rules:
+- rule: one_row_per_id
+  field: classification
+  id_field: variant
+  source: registry
+- rule: enum
+  field: classification[].bucket
+  values_from: buckets
+  label: bucket
+transforms:
+- consolidate_parallel_variant_rows
+reportability:
+  mrd_marker: true
+  not_mrd_marker: false
+retries:
+  content: 2
+  serialization: 3

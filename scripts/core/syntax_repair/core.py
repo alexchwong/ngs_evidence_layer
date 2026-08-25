@@ -118,28 +118,45 @@ def content_fingerprint(text: str) -> PreservationFingerprint:
     )
 
 
-def preservation_error(before: str, after: str) -> str | None:
+def preservation_error(before: str, after: str, *, allow_prose_removal: bool = True) -> str | None:
+    """Report any change to informational content between two artifacts.
+
+    ``allow_prose_removal`` exists because of a failure mode that blocked runs:
+    a model returns a valid document wrapped in conversational prose ("Here is
+    the proforma: ... Let me know if you need anything else"), the document does
+    not parse, and the syntax repairer correctly returns just the document — at
+    which point a strict symmetric comparison reports the removed prose as
+    *missing lexical content* and rejects the correct repair. The budget then
+    burns out rejecting good answers.
+
+    The asymmetry is safe because it is bounded on both sides:
+
+    - nothing may be **added or changed**: any lexeme or protected token in the
+      repaired artifact that was not in the original is still a hard failure;
+    - nothing **protected** may be lost: IDs, numbers, percentages and card tags
+      must all survive, so dropping a real value is still caught;
+    - only non-protected lexemes may disappear, which is what prose is.
+
+    Set ``allow_prose_removal=False`` for a strict comparison.
+    """
     left = content_fingerprint(before)
     right = content_fingerprint(after)
-    if left.protected != right.protected:
-        missing = list((left.protected - right.protected).elements())[:12]
-        added = list((right.protected - left.protected).elements())[:12]
-        detail = []
-        if missing:
-            detail.append("missing protected token(s): " + ", ".join(repr(x) for x in missing))
-        if added:
-            detail.append("added/changed protected token(s): " + ", ".join(repr(x) for x in added))
-        return "; ".join(detail)
-    if left.lexemes != right.lexemes:
-        missing = list((left.lexemes - right.lexemes).elements())[:12]
-        added = list((right.lexemes - left.lexemes).elements())[:12]
-        detail = []
-        if missing:
-            detail.append("missing lexical content: " + ", ".join(repr(x) for x in missing))
-        if added:
-            detail.append("added/changed lexical content: " + ", ".join(repr(x) for x in added))
-        return "; ".join(detail)
-    return None
+
+    missing_protected = list((left.protected - right.protected).elements())[:12]
+    added_protected = list((right.protected - left.protected).elements())[:12]
+    added_lexemes = list((right.lexemes - left.lexemes).elements())[:12]
+    missing_lexemes = list((left.lexemes - right.lexemes).elements())[:12]
+
+    detail = []
+    if missing_protected:
+        detail.append("missing protected token(s): " + ", ".join(repr(x) for x in missing_protected))
+    if added_protected:
+        detail.append("added/changed protected token(s): " + ", ".join(repr(x) for x in added_protected))
+    if added_lexemes:
+        detail.append("added/changed lexical content: " + ", ".join(repr(x) for x in added_lexemes))
+    if missing_lexemes and not allow_prose_removal:
+        detail.append("missing lexical content: " + ", ".join(repr(x) for x in missing_lexemes))
+    return "; ".join(detail) if detail else None
 
 
 def repair_prompt(

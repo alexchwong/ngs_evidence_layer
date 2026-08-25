@@ -306,26 +306,8 @@ def test_check_stage_cli_reports_invalid_with_a_failure_exit_code():
 
 # --- Phase 3: stagnation and transform audit ---------------------------------
 
-def test_stagnation_counts_only_identical_artifact_and_error(tmp_path):
-    assert step._observe_stagnation(tmp_path,'x','artifact','error')==0
-    assert step._observe_stagnation(tmp_path,'x','artifact','error')==1
-    assert step._observe_stagnation(tmp_path,'x','changed','error')==0
-
-
-def test_stagnation_state_survives_a_simulated_self_handoff(tmp_path):
-    step._observe_stagnation(tmp_path,'x','artifact','error')
-    # A handoff means a fresh process: only the on-disk retry entry carries over.
-    assert step._retry_entry(tmp_path,'x')['stagnation_repeats']==0
-    assert step._observe_stagnation(tmp_path,'x','artifact','error')==1
-
-
-def test_repeated_identical_failure_escalates_then_stops(tmp_path):
-    first=step._apply_stagnation(tmp_path,'x','same','feedback')
-    assert first=='feedback'
-    second=step._apply_stagnation(tmp_path,'x','same','feedback')
-    assert 'same invalid artifact' in second
-    with pytest.raises(step.StepFailure):
-        step._apply_stagnation(tmp_path,'x','same','feedback')
+# Stagnation now lives in the shared runner; see tests/test_runner.py tests 7 and 8,
+# which also cover survival across a simulated self-handoff process boundary.
 
 
 def test_transform_log_is_written_and_idempotent(tmp_path):

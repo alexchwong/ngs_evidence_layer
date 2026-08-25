@@ -11,6 +11,12 @@ V6 is intentionally smaller than v5.
 - `domain_contract.py` — the four PTBG proforma contracts: bucket vocabulary, model-facing skeleton, validator, and the pivot back to the stored bucket-list artifact.
 - `issues.py` — shared `ValidationIssue` builders, so identical defects read identically whichever stage found them.
 - `stage_checks.py` — stage registry backing `check-stage`, `show-prompt` and the fixture tests.
+- `stages/*.yaml` — declarative stage assets: prompt, inputs, output schema, buckets, rules, transforms, retries, reportability.
+- `schemas/*.json` — real JSON Schema (Draft 2020-12) for each artifact's structure.
+- `stage_spec.py` — loads and validates stage assets against `stages/_stage.schema.json`.
+- `schema_engine.py` — maps `jsonschema` errors onto `ValidationIssue`.
+- `rules.py` — the named relational rules a stage asset may reference.
+- `stage_validation.py` — schema + rules, ordered by document position.
 - `settings.json.template` — retry, authority, retrieval, and reportability policy.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
 - `pipelines/` — model bindings for self, LM Studio, and OpenRouter.
@@ -129,3 +135,65 @@ spending the remaining budget on an unchanged retry.
 Every deterministic change to an accepted model artifact is recorded in
 `logs/transforms.yaml`, so a developer can always tell model output from Python
 normalisation.
+
+## Declarative stage assets
+
+**YAML declares what a stage is made of. Python declares the order stages run in.**
+
+Stage composition is repetitive and gets customised, so it lives in
+`stages/<stage>.yaml`. The clinical stage sequence is a fixed dependency chain
+read far more often than edited, so it stays as an ordered list in `step.py`.
+A YAML vocabulary that can express control flow stops being configuration and
+becomes a language with no debugger — `workflows/terraced_v3/` is this
+repository's own record of that experiment.
+
+`stages/_stage.schema.json` validates the assets themselves, and every `type`,
+`rule` and `transform` name must resolve against a registry at load time, so a
+typo fails at `step.py stages` rather than at model-call time.
+
+Adding a PTBG domain requires no Python: one `stages/<name>.yaml`, one
+`prompts/<name>.md`, one fixture directory, one entry in the stage sequence.
+A test proves this by driving a fictional domain end to end.
+
+Structure is expressed in real JSON Schema. `jsonschema>=4.0` is already a
+dependency; do not hand-roll `$ref`/`oneOf` resolution. But never surface
+`jsonschema`'s own messages — they are written for developers and, for `enum`,
+embed the whole vocabulary. `schema_engine` maps every error onto an `issues.py`
+builder instead.
+
+## The shared runner
+
+Retry, repair, budgets and suspension live in
+`scripts/core/validated_model_task.run()`. `step.py` only binds this workflow's
+prompts, paths and provider bindings to it via `TaskIO`.
+
+Three behaviours are load-bearing and must survive any future change:
+
+1. **Suspension.** On the `self` pipeline a model call does not return — the
+   process exits and a later invocation resumes. All loop state is in
+   `load_state`/`save_state`; the runner raises `Suspend`, which `step.py`
+   translates to `Handoff`.
+2. **Nested budgets.** A serialization budget sits inside a rewrite budget, with
+   two restart modes: `fresh` (regenerate from the original task) and `repair`
+   (replay the artifact with feedback).
+3. **Serialization/content routing.** Issues classed `serialization` go to the
+   syntax model; only content issues return to the originating task.
+
+`tests/test_runner.py` pins all three. Test 8 drives a three-invocation
+self-handoff, which is the only test that reaches the process boundary where
+resume bugs actually appear. Run it before trusting any change to the runner.
+
+## Syntax repair and the preservation check
+
+Two deterministic behaviours were blocking run completion and are now fixed:
+
+- `deterministic_cleanup` extracts a fenced block from surrounding prose, and
+  trims non-structural leading/trailing lines. Previously a fence was only
+  stripped when it wrapped the entire response, so the common
+  "Here is the YAML: ```...``` Let me know" shape stayed unparsable.
+- `preservation_error` allows *removal* of non-protected lexemes by default.
+  A correct repair that strips conversational prose used to be rejected as
+  content loss, so the budget burned out rejecting good answers. Additions and
+  changes are still hard failures, and every protected token — IDs, numbers,
+  percentages, card tags — must still survive, so dropping a real value is
+  still caught. Pass `allow_prose_removal=False` for a strict comparison.

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "audits"
+  ],
+  "properties": {
+    "audits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "quote_supports_statement",
+          "quote_supports_reason",
+          "risk",
+          "comments"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quote_supports_statement": {
+            "type": "boolean"
+          },
+          "quote_supports_reason": {
+            "type": "boolean"
+          },
+          "risk": {
+            "type": "string",
+            "minLength": 1
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

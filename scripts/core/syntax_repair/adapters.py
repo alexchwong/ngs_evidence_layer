@@ -32,6 +32,58 @@ class SyntaxAdapter(Protocol):
     def deterministic_cleanup(self, text: str) -> tuple[str, list[str]]: ...
 
 
+def _fenced_block(text: str) -> str | None:
+    """Return the contents of the first fenced block, if the text contains one.
+
+    The previous rule only fired when a fence wrapped the *entire* response, so
+    the very common "Here is the YAML: ```yaml ...``` Let me know if..." shape
+    was left with its prose attached — which made the artifact unparsable and,
+    worse, made a correct repair look like content loss to the preservation
+    check.
+    """
+    lines = text.splitlines()
+    opens = [i for i, line in enumerate(lines) if line.lstrip().startswith("```")]
+    if len(opens) < 2:
+        return None
+    start, end = opens[0], opens[1]
+    if end <= start + 1:
+        return None
+    return "\n".join(lines[start + 1 : end])
+
+
+# A line that plausibly belongs to a YAML/JSON document rather than to prose.
+_STRUCTURAL_RE = __import__("re").compile(
+    r"""^\s*(?:
+          [-#]                       # list item or comment
+        | [\[\]{}]                   # JSON punctuation
+        | ["']?[\w.$/-]+["']?\s*:    # a mapping key
+        | \|                         # block scalar continuation
+        | >                          #  "
+    )""",
+    __import__("re").VERBOSE,
+)
+
+
+def _strip_surrounding_prose(text: str) -> tuple[str, bool]:
+    """Trim leading/trailing non-structural lines around a structured document.
+
+    Conservative: it only trims at the ends, never in the middle, and only when
+    at least one structural line remains. Continuation lines of multi-line
+    scalars are indented, so trimming from the outside in cannot orphan them.
+    """
+    lines = text.splitlines()
+    idx = [i for i, line in enumerate(lines) if line.strip() and _STRUCTURAL_RE.match(line)]
+    if not idx:
+        return text, False
+    first, last = idx[0], idx[-1]
+    # Keep indented continuation lines that follow the last structural line.
+    while last + 1 < len(lines) and lines[last + 1].startswith((" ", "\t")) and lines[last + 1].strip():
+        last += 1
+    if first == 0 and last == len(lines) - 1:
+        return text, False
+    return "\n".join(lines[first : last + 1]), True
+
+
 def _common_cleanup(text: str) -> tuple[str, list[str]]:
     """Apply only representation-only cleanup shared by structured formats."""
     repairs: list[str] = []
@@ -52,6 +104,16 @@ def _common_cleanup(text: str) -> tuple[str, list[str]]:
         if len(lines) >= 2 and lines[-1].strip() == "```":
             candidate = "\n".join(lines[1:-1])
             repairs.append("removed surrounding Markdown code fence")
+    if "```" in candidate:
+        block = _fenced_block(candidate)
+        if block is not None:
+            candidate = block
+            repairs.append("extracted the fenced code block from surrounding prose")
+    if candidate.strip():
+        trimmed, did = _strip_surrounding_prose(candidate)
+        if did:
+            candidate = trimmed
+            repairs.append("removed prose surrounding the structured document")
 
     trailing = "\n".join(line.rstrip() for line in candidate.strip().splitlines())
     candidate = trailing + ("\n" if trailing else "")
