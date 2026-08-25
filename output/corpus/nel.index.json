@@ -1,6 +1,7 @@
 {
   "by_accepted_in_version": {
     "0.2.4": [
+      "alaggio-2022-leukemia-who5-lymphoid",
       "arber-2022-blood-140-1200",
       "barbui-2015-blood-cancer-journal-5-e369",
       "bernard-2022-nejm-evidence-1-na",
@@ -10,7 +11,8 @@
       "elena-2016-blood-128-1408",
       "guglielmelli-2017-mipss70-pmf",
       "khoury-2022-leukemia-36-1703",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "weeks-2023-nejm-evidence-2-na"
     ]
   },
   "by_category": {
@@ -173,6 +175,90 @@
       "khoury-2022-leukemia-36-1703-C0187"
     ],
     "diagnosis": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0001",
+      "alaggio-2022-leukemia-who5-lymphoid-C0002",
+      "alaggio-2022-leukemia-who5-lymphoid-C0003",
+      "alaggio-2022-leukemia-who5-lymphoid-C0004",
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0006",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0009",
+      "alaggio-2022-leukemia-who5-lymphoid-C0010",
+      "alaggio-2022-leukemia-who5-lymphoid-C0013",
+      "alaggio-2022-leukemia-who5-lymphoid-C0014",
+      "alaggio-2022-leukemia-who5-lymphoid-C0015",
+      "alaggio-2022-leukemia-who5-lymphoid-C0016",
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0020",
+      "alaggio-2022-leukemia-who5-lymphoid-C0021",
+      "alaggio-2022-leukemia-who5-lymphoid-C0022",
+      "alaggio-2022-leukemia-who5-lymphoid-C0023",
+      "alaggio-2022-leukemia-who5-lymphoid-C0024",
+      "alaggio-2022-leukemia-who5-lymphoid-C0025",
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0031",
+      "alaggio-2022-leukemia-who5-lymphoid-C0032",
+      "alaggio-2022-leukemia-who5-lymphoid-C0033",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035",
+      "alaggio-2022-leukemia-who5-lymphoid-C0036",
+      "alaggio-2022-leukemia-who5-lymphoid-C0038",
+      "alaggio-2022-leukemia-who5-lymphoid-C0039",
+      "alaggio-2022-leukemia-who5-lymphoid-C0040",
+      "alaggio-2022-leukemia-who5-lymphoid-C0041",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0045",
+      "alaggio-2022-leukemia-who5-lymphoid-C0046",
+      "alaggio-2022-leukemia-who5-lymphoid-C0047",
+      "alaggio-2022-leukemia-who5-lymphoid-C0048",
+      "alaggio-2022-leukemia-who5-lymphoid-C0049",
+      "alaggio-2022-leukemia-who5-lymphoid-C0051",
+      "alaggio-2022-leukemia-who5-lymphoid-C0052",
+      "alaggio-2022-leukemia-who5-lymphoid-C0053",
+      "alaggio-2022-leukemia-who5-lymphoid-C0054",
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056",
+      "alaggio-2022-leukemia-who5-lymphoid-C0057",
+      "alaggio-2022-leukemia-who5-lymphoid-C0058",
+      "alaggio-2022-leukemia-who5-lymphoid-C0059",
+      "alaggio-2022-leukemia-who5-lymphoid-C0060",
+      "alaggio-2022-leukemia-who5-lymphoid-C0063",
+      "alaggio-2022-leukemia-who5-lymphoid-C0064",
+      "alaggio-2022-leukemia-who5-lymphoid-C0065",
+      "alaggio-2022-leukemia-who5-lymphoid-C0069",
+      "alaggio-2022-leukemia-who5-lymphoid-C0070",
+      "alaggio-2022-leukemia-who5-lymphoid-C0072",
+      "alaggio-2022-leukemia-who5-lymphoid-C0075",
+      "alaggio-2022-leukemia-who5-lymphoid-C0076",
+      "alaggio-2022-leukemia-who5-lymphoid-C0081",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082",
+      "alaggio-2022-leukemia-who5-lymphoid-C0084",
+      "alaggio-2022-leukemia-who5-lymphoid-C0085",
+      "alaggio-2022-leukemia-who5-lymphoid-C0086",
+      "alaggio-2022-leukemia-who5-lymphoid-C0087",
+      "alaggio-2022-leukemia-who5-lymphoid-C0088",
+      "alaggio-2022-leukemia-who5-lymphoid-C0090",
+      "alaggio-2022-leukemia-who5-lymphoid-C0091",
+      "alaggio-2022-leukemia-who5-lymphoid-C0092",
+      "alaggio-2022-leukemia-who5-lymphoid-C0093",
+      "alaggio-2022-leukemia-who5-lymphoid-C0094",
+      "alaggio-2022-leukemia-who5-lymphoid-C0095",
+      "alaggio-2022-leukemia-who5-lymphoid-C0096",
+      "alaggio-2022-leukemia-who5-lymphoid-C0097",
+      "alaggio-2022-leukemia-who5-lymphoid-C0098",
+      "alaggio-2022-leukemia-who5-lymphoid-C0099",
+      "alaggio-2022-leukemia-who5-lymphoid-C0100",
+      "alaggio-2022-leukemia-who5-lymphoid-C0101",
+      "alaggio-2022-leukemia-who5-lymphoid-C0102",
+      "alaggio-2022-leukemia-who5-lymphoid-C0103",
+      "alaggio-2022-leukemia-who5-lymphoid-C0104",
+      "alaggio-2022-leukemia-who5-lymphoid-C0105",
+      "alaggio-2022-leukemia-who5-lymphoid-C0107",
+      "alaggio-2022-leukemia-who5-lymphoid-C0108",
+      "alaggio-2022-leukemia-who5-lymphoid-C0109",
+      "alaggio-2022-leukemia-who5-lymphoid-C0110",
       "arber-2022-blood-140-1200-C0001",
       "arber-2022-blood-140-1200-C0002",
       "arber-2022-blood-140-1200-C0003",
@@ -397,9 +483,18 @@
       "khoury-2022-leukemia-36-1703-C0202",
       "khoury-2022-leukemia-36-1703-C0207",
       "khoury-2022-leukemia-36-1703-C0210",
-      "khoury-2022-leukemia-36-1703-C0212"
+      "khoury-2022-leukemia-36-1703-C0212",
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0004",
+      "weeks-2023-nejm-evidence-2-na-C0005"
     ],
     "germline": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0073",
+      "alaggio-2022-leukemia-who5-lymphoid-C0074",
+      "alaggio-2022-leukemia-who5-lymphoid-C0079",
+      "alaggio-2022-leukemia-who5-lymphoid-C0080",
       "arber-2022-blood-140-1200-C0208",
       "arber-2022-blood-140-1200-C0209",
       "arber-2022-blood-140-1200-C0210",
@@ -450,6 +545,12 @@
       "khoury-2022-leukemia-36-1703-C0185"
     ],
     "prognosis": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0026",
+      "alaggio-2022-leukemia-who5-lymphoid-C0037",
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
+      "alaggio-2022-leukemia-who5-lymphoid-C0062",
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
       "arber-2022-blood-140-1200-C0145",
       "arber-2022-blood-140-1200-C0147",
       "arber-2022-blood-140-1200-C0148",
@@ -542,9 +643,20 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006",
+      "weeks-2023-nejm-evidence-2-na-C0006",
+      "weeks-2023-nejm-evidence-2-na-C0007",
+      "weeks-2023-nejm-evidence-2-na-C0008",
+      "weeks-2023-nejm-evidence-2-na-C0009",
+      "weeks-2023-nejm-evidence-2-na-C0010",
+      "weeks-2023-nejm-evidence-2-na-C0016",
+      "weeks-2023-nejm-evidence-2-na-C0017"
     ],
     "treatment": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0027",
+      "alaggio-2022-leukemia-who5-lymphoid-C0029",
+      "alaggio-2022-leukemia-who5-lymphoid-C0077",
+      "alaggio-2022-leukemia-who5-lymphoid-C0078",
       "arber-2022-blood-140-1200-C0166",
       "arber-2022-blood-140-1200-C0167",
       "arber-2022-blood-140-1200-C0168",
@@ -599,6 +711,13 @@
     ]
   },
   "by_disease": {
+    "ALK-negative anaplastic large cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
+      "alaggio-2022-leukemia-who5-lymphoid-C0081"
+    ],
+    "ALK-positive anaplastic large cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0081"
+    ],
     "AMKL": [
       "khoury-2022-leukemia-36-1703-C0122",
       "khoury-2022-leukemia-36-1703-C0123",
@@ -905,6 +1024,16 @@
       "d-hner-2022-blood-140-1345-C0113"
     ],
     "B-ALL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0001",
+      "alaggio-2022-leukemia-who5-lymphoid-C0002",
+      "alaggio-2022-leukemia-who5-lymphoid-C0003",
+      "alaggio-2022-leukemia-who5-lymphoid-C0004",
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0006",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0009",
+      "alaggio-2022-leukemia-who5-lymphoid-C0010",
       "arber-2022-blood-140-1200-C0116",
       "arber-2022-blood-140-1200-C0117",
       "arber-2022-blood-140-1200-C0118",
@@ -959,6 +1088,66 @@
       "arber-2022-blood-140-1200-C0206"
     ],
     "B-cell lymphoid neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0001",
+      "alaggio-2022-leukemia-who5-lymphoid-C0002",
+      "alaggio-2022-leukemia-who5-lymphoid-C0003",
+      "alaggio-2022-leukemia-who5-lymphoid-C0004",
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0006",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0009",
+      "alaggio-2022-leukemia-who5-lymphoid-C0010",
+      "alaggio-2022-leukemia-who5-lymphoid-C0013",
+      "alaggio-2022-leukemia-who5-lymphoid-C0014",
+      "alaggio-2022-leukemia-who5-lymphoid-C0015",
+      "alaggio-2022-leukemia-who5-lymphoid-C0016",
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0020",
+      "alaggio-2022-leukemia-who5-lymphoid-C0021",
+      "alaggio-2022-leukemia-who5-lymphoid-C0022",
+      "alaggio-2022-leukemia-who5-lymphoid-C0023",
+      "alaggio-2022-leukemia-who5-lymphoid-C0024",
+      "alaggio-2022-leukemia-who5-lymphoid-C0025",
+      "alaggio-2022-leukemia-who5-lymphoid-C0026",
+      "alaggio-2022-leukemia-who5-lymphoid-C0027",
+      "alaggio-2022-leukemia-who5-lymphoid-C0029",
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0031",
+      "alaggio-2022-leukemia-who5-lymphoid-C0032",
+      "alaggio-2022-leukemia-who5-lymphoid-C0033",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035",
+      "alaggio-2022-leukemia-who5-lymphoid-C0036",
+      "alaggio-2022-leukemia-who5-lymphoid-C0037",
+      "alaggio-2022-leukemia-who5-lymphoid-C0038",
+      "alaggio-2022-leukemia-who5-lymphoid-C0039",
+      "alaggio-2022-leukemia-who5-lymphoid-C0040",
+      "alaggio-2022-leukemia-who5-lymphoid-C0041",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0045",
+      "alaggio-2022-leukemia-who5-lymphoid-C0046",
+      "alaggio-2022-leukemia-who5-lymphoid-C0047",
+      "alaggio-2022-leukemia-who5-lymphoid-C0048",
+      "alaggio-2022-leukemia-who5-lymphoid-C0049",
+      "alaggio-2022-leukemia-who5-lymphoid-C0052",
+      "alaggio-2022-leukemia-who5-lymphoid-C0053",
+      "alaggio-2022-leukemia-who5-lymphoid-C0054",
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082",
+      "alaggio-2022-leukemia-who5-lymphoid-C0084",
+      "alaggio-2022-leukemia-who5-lymphoid-C0085",
+      "alaggio-2022-leukemia-who5-lymphoid-C0086",
+      "alaggio-2022-leukemia-who5-lymphoid-C0087",
+      "alaggio-2022-leukemia-who5-lymphoid-C0088",
+      "alaggio-2022-leukemia-who5-lymphoid-C0090",
+      "alaggio-2022-leukemia-who5-lymphoid-C0091",
+      "alaggio-2022-leukemia-who5-lymphoid-C0092",
+      "alaggio-2022-leukemia-who5-lymphoid-C0093",
+      "alaggio-2022-leukemia-who5-lymphoid-C0107",
       "arber-2022-blood-140-1200-C0116",
       "arber-2022-blood-140-1200-C0117",
       "arber-2022-blood-140-1200-C0118",
@@ -1015,6 +1204,10 @@
     "BPDCN": [
       "khoury-2022-leukemia-36-1703-C0179"
     ],
+    "Burkitt lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0048",
+      "alaggio-2022-leukemia-who5-lymphoid-C0049"
+    ],
     "CCUS": [
       "arber-2022-blood-140-1200-C0057",
       "arber-2022-blood-140-1200-C0059",
@@ -1022,7 +1215,18 @@
       "arber-2022-blood-140-1200-C0077",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
-      "khoury-2022-leukemia-36-1703-C0125"
+      "khoury-2022-leukemia-36-1703-C0125",
+      "weeks-2023-nejm-evidence-2-na-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0004",
+      "weeks-2023-nejm-evidence-2-na-C0005",
+      "weeks-2023-nejm-evidence-2-na-C0006",
+      "weeks-2023-nejm-evidence-2-na-C0007",
+      "weeks-2023-nejm-evidence-2-na-C0008",
+      "weeks-2023-nejm-evidence-2-na-C0009",
+      "weeks-2023-nejm-evidence-2-na-C0010",
+      "weeks-2023-nejm-evidence-2-na-C0016",
+      "weeks-2023-nejm-evidence-2-na-C0017"
     ],
     "CEL": [
       "arber-2022-blood-140-1200-C0018",
@@ -1032,7 +1236,21 @@
       "arber-2022-blood-140-1200-C0058",
       "arber-2022-blood-140-1200-C0077",
       "khoury-2022-leukemia-36-1703-C0001",
-      "khoury-2022-leukemia-36-1703-C0092"
+      "khoury-2022-leukemia-36-1703-C0092",
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0006",
+      "weeks-2023-nejm-evidence-2-na-C0007",
+      "weeks-2023-nejm-evidence-2-na-C0008",
+      "weeks-2023-nejm-evidence-2-na-C0009",
+      "weeks-2023-nejm-evidence-2-na-C0010",
+      "weeks-2023-nejm-evidence-2-na-C0016",
+      "weeks-2023-nejm-evidence-2-na-C0017"
+    ],
+    "CLL/SLL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0016",
+      "alaggio-2022-leukemia-who5-lymphoid-C0020",
+      "alaggio-2022-leukemia-who5-lymphoid-C0084",
+      "alaggio-2022-leukemia-who5-lymphoid-C0107"
     ],
     "CML": [
       "arber-2022-blood-140-1200-C0001",
@@ -1064,6 +1282,22 @@
       "arber-2022-blood-140-1200-C0048",
       "khoury-2022-leukemia-36-1703-C0018"
     ],
+    "DLBCL, NOS": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0039",
+      "alaggio-2022-leukemia-who5-lymphoid-C0040",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0047"
+    ],
+    "DLBCL/HGBL-MYC/BCL2": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0041"
+    ],
+    "EBV-positive T/NK-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0072",
+      "alaggio-2022-leukemia-who5-lymphoid-C0105"
+    ],
+    "EBV-positive nodal T/NK-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0072"
+    ],
     "ET": [
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0009",
@@ -1085,6 +1319,24 @@
       "arber-2022-blood-140-1200-C0144",
       "arber-2022-blood-140-1200-C0207"
     ],
+    "HCL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0022"
+    ],
+    "HGBL, NOS": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0042"
+    ],
+    "HGBL-11q": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082"
+    ],
+    "Hodgkin lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0052",
+      "alaggio-2022-leukemia-who5-lymphoid-C0053"
+    ],
+    "IgM LPL/WM": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0024"
+    ],
     "JMML": [
       "arber-2022-blood-140-1200-C0079",
       "arber-2022-blood-140-1200-C0080",
@@ -1095,6 +1347,18 @@
       "khoury-2022-leukemia-36-1703-C0133",
       "khoury-2022-leukemia-36-1703-C0184",
       "khoury-2022-leukemia-36-1703-C0194"
+    ],
+    "LPL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0024",
+      "alaggio-2022-leukemia-who5-lymphoid-C0025",
+      "alaggio-2022-leukemia-who5-lymphoid-C0026",
+      "alaggio-2022-leukemia-who5-lymphoid-C0027",
+      "alaggio-2022-leukemia-who5-lymphoid-C0086"
+    ],
+    "MBL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0013",
+      "alaggio-2022-leukemia-who5-lymphoid-C0014",
+      "alaggio-2022-leukemia-who5-lymphoid-C0015"
     ],
     "MDS": [
       "arber-2022-blood-140-1200-C0040",
@@ -1274,6 +1538,9 @@
       "arber-2022-blood-140-1200-C0056",
       "khoury-2022-leukemia-36-1703-C0202"
     ],
+    "MGRS": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0054"
+    ],
     "MPN": [
       "arber-2022-blood-140-1200-C0001",
       "arber-2022-blood-140-1200-C0002",
@@ -1418,7 +1685,16 @@
       "khoury-2022-leukemia-36-1703-C0009",
       "khoury-2022-leukemia-36-1703-C0011"
     ],
+    "SBLPN": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0021",
+      "alaggio-2022-leukemia-who5-lymphoid-C0085"
+    ],
+    "SDRPL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0023"
+    ],
     "T-ALL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0057",
+      "alaggio-2022-leukemia-who5-lymphoid-C0058",
       "arber-2022-blood-140-1200-C0139",
       "arber-2022-blood-140-1200-C0140",
       "arber-2022-blood-140-1200-C0141",
@@ -1429,13 +1705,52 @@
     "T-ALL, NOS": [
       "arber-2022-blood-140-1200-C0140"
     ],
+    "T-LGLL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
+      "alaggio-2022-leukemia-who5-lymphoid-C0062"
+    ],
+    "T-PLL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0060"
+    ],
     "T-cell/NK-cell lymphoid neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0057",
+      "alaggio-2022-leukemia-who5-lymphoid-C0058",
+      "alaggio-2022-leukemia-who5-lymphoid-C0060",
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
+      "alaggio-2022-leukemia-who5-lymphoid-C0062",
+      "alaggio-2022-leukemia-who5-lymphoid-C0063",
+      "alaggio-2022-leukemia-who5-lymphoid-C0064",
+      "alaggio-2022-leukemia-who5-lymphoid-C0065",
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
+      "alaggio-2022-leukemia-who5-lymphoid-C0069",
+      "alaggio-2022-leukemia-who5-lymphoid-C0070",
+      "alaggio-2022-leukemia-who5-lymphoid-C0072",
+      "alaggio-2022-leukemia-who5-lymphoid-C0081",
+      "alaggio-2022-leukemia-who5-lymphoid-C0094",
+      "alaggio-2022-leukemia-who5-lymphoid-C0095",
+      "alaggio-2022-leukemia-who5-lymphoid-C0096",
+      "alaggio-2022-leukemia-who5-lymphoid-C0097",
+      "alaggio-2022-leukemia-who5-lymphoid-C0098",
+      "alaggio-2022-leukemia-who5-lymphoid-C0099",
+      "alaggio-2022-leukemia-who5-lymphoid-C0100",
+      "alaggio-2022-leukemia-who5-lymphoid-C0101",
+      "alaggio-2022-leukemia-who5-lymphoid-C0102",
+      "alaggio-2022-leukemia-who5-lymphoid-C0103",
+      "alaggio-2022-leukemia-who5-lymphoid-C0104",
+      "alaggio-2022-leukemia-who5-lymphoid-C0105",
+      "alaggio-2022-leukemia-who5-lymphoid-C0108",
+      "alaggio-2022-leukemia-who5-lymphoid-C0109",
+      "alaggio-2022-leukemia-who5-lymphoid-C0110",
       "arber-2022-blood-140-1200-C0139",
       "arber-2022-blood-140-1200-C0140",
       "arber-2022-blood-140-1200-C0141",
       "arber-2022-blood-140-1200-C0143",
       "arber-2022-blood-140-1200-C0144",
       "arber-2022-blood-140-1200-C0207"
+    ],
+    "TEMPI syndrome": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056"
     ],
     "aCML": [
       "arber-2022-blood-140-1200-C0046",
@@ -1458,6 +1773,19 @@
       "khoury-2022-leukemia-36-1703-C0178"
     ],
     "acute lymphoblastic leukaemia/lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0001",
+      "alaggio-2022-leukemia-who5-lymphoid-C0002",
+      "alaggio-2022-leukemia-who5-lymphoid-C0003",
+      "alaggio-2022-leukemia-who5-lymphoid-C0004",
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0006",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0009",
+      "alaggio-2022-leukemia-who5-lymphoid-C0010",
+      "alaggio-2022-leukemia-who5-lymphoid-C0057",
+      "alaggio-2022-leukemia-who5-lymphoid-C0058",
+      "alaggio-2022-leukemia-who5-lymphoid-C0059",
       "arber-2022-blood-140-1200-C0114",
       "arber-2022-blood-140-1200-C0116",
       "arber-2022-blood-140-1200-C0117",
@@ -1518,6 +1846,33 @@
       "arber-2022-blood-140-1200-C0205",
       "arber-2022-blood-140-1200-C0206",
       "arber-2022-blood-140-1200-C0207"
+    ],
+    "anaplastic large cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
+      "alaggio-2022-leukemia-who5-lymphoid-C0081",
+      "alaggio-2022-leukemia-who5-lymphoid-C0098"
+    ],
+    "breast implant-associated anaplastic large cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0098"
+    ],
+    "classic Hodgkin lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0052"
+    ],
+    "extranodal MZL of MALT": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0029"
+    ],
+    "extranodal NK/T-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0105"
+    ],
+    "fluid overload-associated large B-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0046"
+    ],
+    "follicular lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0031",
+      "alaggio-2022-leukemia-who5-lymphoid-C0032",
+      "alaggio-2022-leukemia-who5-lymphoid-C0090",
+      "alaggio-2022-leukemia-who5-lymphoid-C0091"
     ],
     "germline predisposition syndrome": [
       "khoury-2022-leukemia-36-1703-C0135",
@@ -1533,7 +1888,135 @@
       "khoury-2022-leukemia-36-1703-C0183",
       "khoury-2022-leukemia-36-1703-C0207"
     ],
+    "in situ mantle cell neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0033"
+    ],
+    "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0064",
+      "alaggio-2022-leukemia-who5-lymphoid-C0065",
+      "alaggio-2022-leukemia-who5-lymphoid-C0097"
+    ],
+    "indolent T-cell lymphoma of the gastrointestinal tract": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0096"
+    ],
+    "intestinal T-cell/NK-cell lymphoid neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0064",
+      "alaggio-2022-leukemia-who5-lymphoid-C0065",
+      "alaggio-2022-leukemia-who5-lymphoid-C0096",
+      "alaggio-2022-leukemia-who5-lymphoid-C0097"
+    ],
+    "large B-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0039",
+      "alaggio-2022-leukemia-who5-lymphoid-C0040",
+      "alaggio-2022-leukemia-who5-lymphoid-C0041",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0045",
+      "alaggio-2022-leukemia-who5-lymphoid-C0046",
+      "alaggio-2022-leukemia-who5-lymphoid-C0047",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082",
+      "alaggio-2022-leukemia-who5-lymphoid-C0092",
+      "alaggio-2022-leukemia-who5-lymphoid-C0093"
+    ],
+    "leukaemic non-nodal mantle cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0038"
+    ],
     "lymphoid neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0001",
+      "alaggio-2022-leukemia-who5-lymphoid-C0002",
+      "alaggio-2022-leukemia-who5-lymphoid-C0003",
+      "alaggio-2022-leukemia-who5-lymphoid-C0004",
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0006",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0009",
+      "alaggio-2022-leukemia-who5-lymphoid-C0010",
+      "alaggio-2022-leukemia-who5-lymphoid-C0013",
+      "alaggio-2022-leukemia-who5-lymphoid-C0014",
+      "alaggio-2022-leukemia-who5-lymphoid-C0015",
+      "alaggio-2022-leukemia-who5-lymphoid-C0016",
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0020",
+      "alaggio-2022-leukemia-who5-lymphoid-C0021",
+      "alaggio-2022-leukemia-who5-lymphoid-C0022",
+      "alaggio-2022-leukemia-who5-lymphoid-C0023",
+      "alaggio-2022-leukemia-who5-lymphoid-C0024",
+      "alaggio-2022-leukemia-who5-lymphoid-C0025",
+      "alaggio-2022-leukemia-who5-lymphoid-C0026",
+      "alaggio-2022-leukemia-who5-lymphoid-C0027",
+      "alaggio-2022-leukemia-who5-lymphoid-C0029",
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0031",
+      "alaggio-2022-leukemia-who5-lymphoid-C0032",
+      "alaggio-2022-leukemia-who5-lymphoid-C0033",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035",
+      "alaggio-2022-leukemia-who5-lymphoid-C0036",
+      "alaggio-2022-leukemia-who5-lymphoid-C0037",
+      "alaggio-2022-leukemia-who5-lymphoid-C0038",
+      "alaggio-2022-leukemia-who5-lymphoid-C0039",
+      "alaggio-2022-leukemia-who5-lymphoid-C0040",
+      "alaggio-2022-leukemia-who5-lymphoid-C0041",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0045",
+      "alaggio-2022-leukemia-who5-lymphoid-C0046",
+      "alaggio-2022-leukemia-who5-lymphoid-C0047",
+      "alaggio-2022-leukemia-who5-lymphoid-C0048",
+      "alaggio-2022-leukemia-who5-lymphoid-C0049",
+      "alaggio-2022-leukemia-who5-lymphoid-C0051",
+      "alaggio-2022-leukemia-who5-lymphoid-C0052",
+      "alaggio-2022-leukemia-who5-lymphoid-C0053",
+      "alaggio-2022-leukemia-who5-lymphoid-C0054",
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056",
+      "alaggio-2022-leukemia-who5-lymphoid-C0057",
+      "alaggio-2022-leukemia-who5-lymphoid-C0058",
+      "alaggio-2022-leukemia-who5-lymphoid-C0059",
+      "alaggio-2022-leukemia-who5-lymphoid-C0060",
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
+      "alaggio-2022-leukemia-who5-lymphoid-C0062",
+      "alaggio-2022-leukemia-who5-lymphoid-C0063",
+      "alaggio-2022-leukemia-who5-lymphoid-C0064",
+      "alaggio-2022-leukemia-who5-lymphoid-C0065",
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
+      "alaggio-2022-leukemia-who5-lymphoid-C0069",
+      "alaggio-2022-leukemia-who5-lymphoid-C0070",
+      "alaggio-2022-leukemia-who5-lymphoid-C0072",
+      "alaggio-2022-leukemia-who5-lymphoid-C0075",
+      "alaggio-2022-leukemia-who5-lymphoid-C0076",
+      "alaggio-2022-leukemia-who5-lymphoid-C0077",
+      "alaggio-2022-leukemia-who5-lymphoid-C0078",
+      "alaggio-2022-leukemia-who5-lymphoid-C0081",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082",
+      "alaggio-2022-leukemia-who5-lymphoid-C0084",
+      "alaggio-2022-leukemia-who5-lymphoid-C0085",
+      "alaggio-2022-leukemia-who5-lymphoid-C0086",
+      "alaggio-2022-leukemia-who5-lymphoid-C0087",
+      "alaggio-2022-leukemia-who5-lymphoid-C0088",
+      "alaggio-2022-leukemia-who5-lymphoid-C0090",
+      "alaggio-2022-leukemia-who5-lymphoid-C0091",
+      "alaggio-2022-leukemia-who5-lymphoid-C0092",
+      "alaggio-2022-leukemia-who5-lymphoid-C0093",
+      "alaggio-2022-leukemia-who5-lymphoid-C0094",
+      "alaggio-2022-leukemia-who5-lymphoid-C0095",
+      "alaggio-2022-leukemia-who5-lymphoid-C0096",
+      "alaggio-2022-leukemia-who5-lymphoid-C0097",
+      "alaggio-2022-leukemia-who5-lymphoid-C0098",
+      "alaggio-2022-leukemia-who5-lymphoid-C0099",
+      "alaggio-2022-leukemia-who5-lymphoid-C0100",
+      "alaggio-2022-leukemia-who5-lymphoid-C0101",
+      "alaggio-2022-leukemia-who5-lymphoid-C0102",
+      "alaggio-2022-leukemia-who5-lymphoid-C0103",
+      "alaggio-2022-leukemia-who5-lymphoid-C0104",
+      "alaggio-2022-leukemia-who5-lymphoid-C0105",
+      "alaggio-2022-leukemia-who5-lymphoid-C0107",
+      "alaggio-2022-leukemia-who5-lymphoid-C0108",
+      "alaggio-2022-leukemia-who5-lymphoid-C0109",
+      "alaggio-2022-leukemia-who5-lymphoid-C0110",
       "arber-2022-blood-140-1200-C0114",
       "arber-2022-blood-140-1200-C0116",
       "arber-2022-blood-140-1200-C0117",
@@ -1594,6 +2077,27 @@
       "arber-2022-blood-140-1200-C0205",
       "arber-2022-blood-140-1200-C0206",
       "arber-2022-blood-140-1200-C0207"
+    ],
+    "mantle cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035",
+      "alaggio-2022-leukemia-who5-lymphoid-C0036",
+      "alaggio-2022-leukemia-who5-lymphoid-C0037"
+    ],
+    "mantle cell neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0033",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035",
+      "alaggio-2022-leukemia-who5-lymphoid-C0036",
+      "alaggio-2022-leukemia-who5-lymphoid-C0037",
+      "alaggio-2022-leukemia-who5-lymphoid-C0038"
+    ],
+    "marginal zone lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0029",
+      "alaggio-2022-leukemia-who5-lymphoid-C0087",
+      "alaggio-2022-leukemia-who5-lymphoid-C0088"
     ],
     "mastocytosis": [
       "arber-2022-blood-140-1200-C0030",
@@ -1613,6 +2117,89 @@
       "khoury-2022-leukemia-36-1703-C0033",
       "khoury-2022-leukemia-36-1703-C0034"
     ],
+    "mature B-cell neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0013",
+      "alaggio-2022-leukemia-who5-lymphoid-C0014",
+      "alaggio-2022-leukemia-who5-lymphoid-C0015",
+      "alaggio-2022-leukemia-who5-lymphoid-C0016",
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0020",
+      "alaggio-2022-leukemia-who5-lymphoid-C0021",
+      "alaggio-2022-leukemia-who5-lymphoid-C0022",
+      "alaggio-2022-leukemia-who5-lymphoid-C0023",
+      "alaggio-2022-leukemia-who5-lymphoid-C0024",
+      "alaggio-2022-leukemia-who5-lymphoid-C0025",
+      "alaggio-2022-leukemia-who5-lymphoid-C0026",
+      "alaggio-2022-leukemia-who5-lymphoid-C0027",
+      "alaggio-2022-leukemia-who5-lymphoid-C0029",
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0031",
+      "alaggio-2022-leukemia-who5-lymphoid-C0032",
+      "alaggio-2022-leukemia-who5-lymphoid-C0033",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035",
+      "alaggio-2022-leukemia-who5-lymphoid-C0036",
+      "alaggio-2022-leukemia-who5-lymphoid-C0037",
+      "alaggio-2022-leukemia-who5-lymphoid-C0038",
+      "alaggio-2022-leukemia-who5-lymphoid-C0039",
+      "alaggio-2022-leukemia-who5-lymphoid-C0040",
+      "alaggio-2022-leukemia-who5-lymphoid-C0041",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0045",
+      "alaggio-2022-leukemia-who5-lymphoid-C0046",
+      "alaggio-2022-leukemia-who5-lymphoid-C0047",
+      "alaggio-2022-leukemia-who5-lymphoid-C0048",
+      "alaggio-2022-leukemia-who5-lymphoid-C0049",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082",
+      "alaggio-2022-leukemia-who5-lymphoid-C0084",
+      "alaggio-2022-leukemia-who5-lymphoid-C0085",
+      "alaggio-2022-leukemia-who5-lymphoid-C0086",
+      "alaggio-2022-leukemia-who5-lymphoid-C0087",
+      "alaggio-2022-leukemia-who5-lymphoid-C0088",
+      "alaggio-2022-leukemia-who5-lymphoid-C0090",
+      "alaggio-2022-leukemia-who5-lymphoid-C0091",
+      "alaggio-2022-leukemia-who5-lymphoid-C0092",
+      "alaggio-2022-leukemia-who5-lymphoid-C0093",
+      "alaggio-2022-leukemia-who5-lymphoid-C0107"
+    ],
+    "mature T-cell/NK-cell leukaemia": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0060",
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
+      "alaggio-2022-leukemia-who5-lymphoid-C0062"
+    ],
+    "mature T-cell/NK-cell neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0060",
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
+      "alaggio-2022-leukemia-who5-lymphoid-C0062",
+      "alaggio-2022-leukemia-who5-lymphoid-C0063",
+      "alaggio-2022-leukemia-who5-lymphoid-C0064",
+      "alaggio-2022-leukemia-who5-lymphoid-C0065",
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
+      "alaggio-2022-leukemia-who5-lymphoid-C0069",
+      "alaggio-2022-leukemia-who5-lymphoid-C0070",
+      "alaggio-2022-leukemia-who5-lymphoid-C0072",
+      "alaggio-2022-leukemia-who5-lymphoid-C0081",
+      "alaggio-2022-leukemia-who5-lymphoid-C0094",
+      "alaggio-2022-leukemia-who5-lymphoid-C0095",
+      "alaggio-2022-leukemia-who5-lymphoid-C0096",
+      "alaggio-2022-leukemia-who5-lymphoid-C0097",
+      "alaggio-2022-leukemia-who5-lymphoid-C0098",
+      "alaggio-2022-leukemia-who5-lymphoid-C0099",
+      "alaggio-2022-leukemia-who5-lymphoid-C0100",
+      "alaggio-2022-leukemia-who5-lymphoid-C0101",
+      "alaggio-2022-leukemia-who5-lymphoid-C0102",
+      "alaggio-2022-leukemia-who5-lymphoid-C0103",
+      "alaggio-2022-leukemia-who5-lymphoid-C0104",
+      "alaggio-2022-leukemia-who5-lymphoid-C0105",
+      "alaggio-2022-leukemia-who5-lymphoid-C0108",
+      "alaggio-2022-leukemia-who5-lymphoid-C0109",
+      "alaggio-2022-leukemia-who5-lymphoid-C0110"
+    ],
+    "monoclonal gammopathy": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0054"
+    ],
     "myeloid/lymphoid neoplasm with eosinophilia and TK fusion": [
       "arber-2022-blood-140-1200-C0023",
       "arber-2022-blood-140-1200-C0024",
@@ -1631,11 +2218,63 @@
       "khoury-2022-leukemia-36-1703-C0165",
       "khoury-2022-leukemia-36-1703-C0169"
     ],
+    "nodal TFH cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0069",
+      "alaggio-2022-leukemia-who5-lymphoid-C0070",
+      "alaggio-2022-leukemia-who5-lymphoid-C0099",
+      "alaggio-2022-leukemia-who5-lymphoid-C0100",
+      "alaggio-2022-leukemia-who5-lymphoid-C0101",
+      "alaggio-2022-leukemia-who5-lymphoid-C0102",
+      "alaggio-2022-leukemia-who5-lymphoid-C0103"
+    ],
+    "nodal TFH cell lymphoma, NOS": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0101",
+      "alaggio-2022-leukemia-who5-lymphoid-C0102",
+      "alaggio-2022-leukemia-who5-lymphoid-C0103"
+    ],
+    "nodal TFH cell lymphoma, angioimmunoblastic-type": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0099"
+    ],
+    "nodal TFH cell lymphoma, follicular-type": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0100"
+    ],
+    "nodular lymphocyte predominant Hodgkin lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0053"
+    ],
+    "paediatric MZL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0087"
+    ],
+    "peripheral T-cell lymphoma, NOS": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0104"
+    ],
+    "plasma cell neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056"
+    ],
+    "plasma cell neoplasm with paraneoplastic syndrome": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056"
+    ],
+    "plasma cell neoplasm/paraprotein disorder": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0054",
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056"
+    ],
     "post-PV/post-ET MF": [
       "arber-2022-blood-140-1200-C0007",
       "arber-2022-blood-140-1200-C0010"
     ],
     "precursor B-cell neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0001",
+      "alaggio-2022-leukemia-who5-lymphoid-C0002",
+      "alaggio-2022-leukemia-who5-lymphoid-C0003",
+      "alaggio-2022-leukemia-who5-lymphoid-C0004",
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0006",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0009",
+      "alaggio-2022-leukemia-who5-lymphoid-C0010",
       "arber-2022-blood-140-1200-C0116",
       "arber-2022-blood-140-1200-C0117",
       "arber-2022-blood-140-1200-C0118",
@@ -1690,12 +2329,60 @@
       "arber-2022-blood-140-1200-C0206"
     ],
     "precursor T-cell neoplasm": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0057",
+      "alaggio-2022-leukemia-who5-lymphoid-C0058",
       "arber-2022-blood-140-1200-C0139",
       "arber-2022-blood-140-1200-C0140",
       "arber-2022-blood-140-1200-C0141",
       "arber-2022-blood-140-1200-C0143",
       "arber-2022-blood-140-1200-C0144",
       "arber-2022-blood-140-1200-C0207"
+    ],
+    "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0110"
+    ],
+    "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0108"
+    ],
+    "primary cutaneous MZL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0088"
+    ],
+    "primary cutaneous T-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0063",
+      "alaggio-2022-leukemia-who5-lymphoid-C0094",
+      "alaggio-2022-leukemia-who5-lymphoid-C0095",
+      "alaggio-2022-leukemia-who5-lymphoid-C0108",
+      "alaggio-2022-leukemia-who5-lymphoid-C0109",
+      "alaggio-2022-leukemia-who5-lymphoid-C0110"
+    ],
+    "primary cutaneous acral CD8-positive lymphoproliferative disorder": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0109"
+    ],
+    "primary cutaneous gamma/delta T-cell lymphoma": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0094"
+    ],
+    "primary cutaneous peripheral T-cell lymphoma, NOS": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0095"
+    ],
+    "primary large B-cell lymphoma of immune-privileged sites": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0045",
+      "alaggio-2022-leukemia-who5-lymphoid-C0092",
+      "alaggio-2022-leukemia-who5-lymphoid-C0093"
+    ],
+    "small lymphocytic proliferation": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0013",
+      "alaggio-2022-leukemia-who5-lymphoid-C0014",
+      "alaggio-2022-leukemia-who5-lymphoid-C0015",
+      "alaggio-2022-leukemia-who5-lymphoid-C0016",
+      "alaggio-2022-leukemia-who5-lymphoid-C0020",
+      "alaggio-2022-leukemia-who5-lymphoid-C0084",
+      "alaggio-2022-leukemia-who5-lymphoid-C0107"
+    ],
+    "splenic B-cell lymphoma/leukaemia": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0021",
+      "alaggio-2022-leukemia-who5-lymphoid-C0022",
+      "alaggio-2022-leukemia-who5-lymphoid-C0023",
+      "alaggio-2022-leukemia-who5-lymphoid-C0085"
     ]
   },
   "by_evidence_tier": {
@@ -2145,9 +2832,110 @@
       "guglielmelli-2017-mipss70-pmf-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006",
+      "weeks-2023-nejm-evidence-2-na-C0006",
+      "weeks-2023-nejm-evidence-2-na-C0008",
+      "weeks-2023-nejm-evidence-2-na-C0009"
     ],
     "restated secondary": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0001",
+      "alaggio-2022-leukemia-who5-lymphoid-C0002",
+      "alaggio-2022-leukemia-who5-lymphoid-C0003",
+      "alaggio-2022-leukemia-who5-lymphoid-C0004",
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0006",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0009",
+      "alaggio-2022-leukemia-who5-lymphoid-C0010",
+      "alaggio-2022-leukemia-who5-lymphoid-C0013",
+      "alaggio-2022-leukemia-who5-lymphoid-C0014",
+      "alaggio-2022-leukemia-who5-lymphoid-C0015",
+      "alaggio-2022-leukemia-who5-lymphoid-C0016",
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0020",
+      "alaggio-2022-leukemia-who5-lymphoid-C0021",
+      "alaggio-2022-leukemia-who5-lymphoid-C0022",
+      "alaggio-2022-leukemia-who5-lymphoid-C0023",
+      "alaggio-2022-leukemia-who5-lymphoid-C0024",
+      "alaggio-2022-leukemia-who5-lymphoid-C0025",
+      "alaggio-2022-leukemia-who5-lymphoid-C0026",
+      "alaggio-2022-leukemia-who5-lymphoid-C0027",
+      "alaggio-2022-leukemia-who5-lymphoid-C0029",
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0031",
+      "alaggio-2022-leukemia-who5-lymphoid-C0032",
+      "alaggio-2022-leukemia-who5-lymphoid-C0033",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035",
+      "alaggio-2022-leukemia-who5-lymphoid-C0036",
+      "alaggio-2022-leukemia-who5-lymphoid-C0037",
+      "alaggio-2022-leukemia-who5-lymphoid-C0038",
+      "alaggio-2022-leukemia-who5-lymphoid-C0039",
+      "alaggio-2022-leukemia-who5-lymphoid-C0040",
+      "alaggio-2022-leukemia-who5-lymphoid-C0041",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0045",
+      "alaggio-2022-leukemia-who5-lymphoid-C0046",
+      "alaggio-2022-leukemia-who5-lymphoid-C0047",
+      "alaggio-2022-leukemia-who5-lymphoid-C0048",
+      "alaggio-2022-leukemia-who5-lymphoid-C0049",
+      "alaggio-2022-leukemia-who5-lymphoid-C0051",
+      "alaggio-2022-leukemia-who5-lymphoid-C0052",
+      "alaggio-2022-leukemia-who5-lymphoid-C0053",
+      "alaggio-2022-leukemia-who5-lymphoid-C0054",
+      "alaggio-2022-leukemia-who5-lymphoid-C0055",
+      "alaggio-2022-leukemia-who5-lymphoid-C0056",
+      "alaggio-2022-leukemia-who5-lymphoid-C0057",
+      "alaggio-2022-leukemia-who5-lymphoid-C0058",
+      "alaggio-2022-leukemia-who5-lymphoid-C0059",
+      "alaggio-2022-leukemia-who5-lymphoid-C0060",
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
+      "alaggio-2022-leukemia-who5-lymphoid-C0062",
+      "alaggio-2022-leukemia-who5-lymphoid-C0063",
+      "alaggio-2022-leukemia-who5-lymphoid-C0064",
+      "alaggio-2022-leukemia-who5-lymphoid-C0065",
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
+      "alaggio-2022-leukemia-who5-lymphoid-C0069",
+      "alaggio-2022-leukemia-who5-lymphoid-C0070",
+      "alaggio-2022-leukemia-who5-lymphoid-C0072",
+      "alaggio-2022-leukemia-who5-lymphoid-C0073",
+      "alaggio-2022-leukemia-who5-lymphoid-C0074",
+      "alaggio-2022-leukemia-who5-lymphoid-C0075",
+      "alaggio-2022-leukemia-who5-lymphoid-C0076",
+      "alaggio-2022-leukemia-who5-lymphoid-C0077",
+      "alaggio-2022-leukemia-who5-lymphoid-C0078",
+      "alaggio-2022-leukemia-who5-lymphoid-C0079",
+      "alaggio-2022-leukemia-who5-lymphoid-C0080",
+      "alaggio-2022-leukemia-who5-lymphoid-C0081",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082",
+      "alaggio-2022-leukemia-who5-lymphoid-C0084",
+      "alaggio-2022-leukemia-who5-lymphoid-C0085",
+      "alaggio-2022-leukemia-who5-lymphoid-C0086",
+      "alaggio-2022-leukemia-who5-lymphoid-C0087",
+      "alaggio-2022-leukemia-who5-lymphoid-C0088",
+      "alaggio-2022-leukemia-who5-lymphoid-C0090",
+      "alaggio-2022-leukemia-who5-lymphoid-C0091",
+      "alaggio-2022-leukemia-who5-lymphoid-C0092",
+      "alaggio-2022-leukemia-who5-lymphoid-C0093",
+      "alaggio-2022-leukemia-who5-lymphoid-C0094",
+      "alaggio-2022-leukemia-who5-lymphoid-C0095",
+      "alaggio-2022-leukemia-who5-lymphoid-C0096",
+      "alaggio-2022-leukemia-who5-lymphoid-C0097",
+      "alaggio-2022-leukemia-who5-lymphoid-C0098",
+      "alaggio-2022-leukemia-who5-lymphoid-C0099",
+      "alaggio-2022-leukemia-who5-lymphoid-C0100",
+      "alaggio-2022-leukemia-who5-lymphoid-C0101",
+      "alaggio-2022-leukemia-who5-lymphoid-C0102",
+      "alaggio-2022-leukemia-who5-lymphoid-C0103",
+      "alaggio-2022-leukemia-who5-lymphoid-C0104",
+      "alaggio-2022-leukemia-who5-lymphoid-C0105",
+      "alaggio-2022-leukemia-who5-lymphoid-C0107",
+      "alaggio-2022-leukemia-who5-lymphoid-C0108",
+      "alaggio-2022-leukemia-who5-lymphoid-C0109",
+      "alaggio-2022-leukemia-who5-lymphoid-C0110",
       "arber-2022-blood-140-1200-C0145",
       "arber-2022-blood-140-1200-C0147",
       "arber-2022-blood-140-1200-C0148",
@@ -2256,7 +3044,14 @@
       "khoury-2022-leukemia-36-1703-C0187",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0001",
+      "weeks-2023-nejm-evidence-2-na-C0002",
+      "weeks-2023-nejm-evidence-2-na-C0003",
+      "weeks-2023-nejm-evidence-2-na-C0004",
+      "weeks-2023-nejm-evidence-2-na-C0005",
+      "weeks-2023-nejm-evidence-2-na-C0007",
+      "weeks-2023-nejm-evidence-2-na-C0016"
     ],
     "univariable or descriptive": [
       "barbui-2015-blood-cancer-journal-5-e369-C0003",
@@ -2278,11 +3073,14 @@
       "guglielmelli-2017-mipss70-pmf-C0004",
       "guglielmelli-2017-mipss70-pmf-C0005",
       "guglielmelli-2017-mipss70-pmf-C0006",
-      "guglielmelli-2017-mipss70-pmf-C0007"
+      "guglielmelli-2017-mipss70-pmf-C0007",
+      "weeks-2023-nejm-evidence-2-na-C0010",
+      "weeks-2023-nejm-evidence-2-na-C0017"
     ]
   },
   "by_gene": {
     "ABL1": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0011",
       "arber-2022-blood-140-1200-C0012",
@@ -2348,6 +3146,7 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "ALK": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0081",
       "arber-2022-blood-140-1200-C0080",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0180",
@@ -2396,14 +3195,30 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
     ],
+    "ATM": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0073",
+      "alaggio-2022-leukemia-who5-lymphoid-C0075",
+      "alaggio-2022-leukemia-who5-lymphoid-C0077",
+      "alaggio-2022-leukemia-who5-lymphoid-C0079"
+    ],
     "ATXN7L3": [
       "arber-2022-blood-140-1200-C0135"
+    ],
+    "B2M": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0093"
     ],
     "BCL11B": [
       "arber-2022-blood-140-1200-C0139",
       "arber-2022-blood-140-1200-C0143",
       "arber-2022-blood-140-1200-C0207",
       "khoury-2022-leukemia-36-1703-C0170"
+    ],
+    "BCL2": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0041"
+    ],
+    "BCL6": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0042"
     ],
     "BCOR": [
       "arber-2022-blood-140-1200-C0090",
@@ -2432,6 +3247,7 @@
       "d-hner-2022-blood-140-1345-C0099"
     ],
     "BCR": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
       "arber-2022-blood-140-1200-C0008",
       "arber-2022-blood-140-1200-C0011",
       "arber-2022-blood-140-1200-C0012",
@@ -2478,12 +3294,16 @@
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0170"
     ],
+    "BIRC3": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0029"
+    ],
     "BLM": [
       "arber-2022-blood-140-1200-C0226",
       "d-hner-2022-blood-140-1345-C0056",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
     "BRAF": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0022",
       "d-hner-2022-blood-140-1345-C0099",
       "khoury-2022-leukemia-36-1703-C0183"
     ],
@@ -2576,9 +3396,27 @@
     "CCDC88C": [
       "arber-2022-blood-140-1200-C0080"
     ],
+    "CCND1": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0033",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
+      "alaggio-2022-leukemia-who5-lymphoid-C0035"
+    ],
+    "CCND2": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0036"
+    ],
+    "CCND3": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0036"
+    ],
+    "CCNE": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0036"
+    ],
     "CD33": [
       "d-hner-2022-blood-140-1345-C0074",
       "d-hner-2022-blood-140-1345-C0122"
+    ],
+    "CD79B": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0045"
     ],
     "CDX2": [
       "arber-2022-blood-140-1200-C0135",
@@ -2634,6 +3472,10 @@
     "CTC1": [
       "d-hner-2022-blood-140-1345-C0051"
     ],
+    "CXCR4": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0026",
+      "alaggio-2022-leukemia-who5-lymphoid-C0027"
+    ],
     "DDX41": [
       "arber-2022-blood-140-1200-C0214",
       "bernard-2022-nejm-evidence-1-na-C0008",
@@ -2674,7 +3516,10 @@
       "cloos-2026-blood-147-1147-C0076",
       "d-hner-2022-blood-140-1345-C0029",
       "d-hner-2022-blood-140-1345-C0037",
-      "d-hner-2022-blood-140-1345-C0099"
+      "d-hner-2022-blood-140-1345-C0099",
+      "weeks-2023-nejm-evidence-2-na-C0008",
+      "weeks-2023-nejm-evidence-2-na-C0009",
+      "weeks-2023-nejm-evidence-2-na-C0010"
     ],
     "DUX4": [
       "arber-2022-blood-140-1200-C0124",
@@ -2714,6 +3559,7 @@
       "bernard-2022-nejm-evidence-1-na-C0022"
     ],
     "ETV6": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
       "arber-2022-blood-140-1200-C0023",
       "arber-2022-blood-140-1200-C0026",
       "arber-2022-blood-140-1200-C0027",
@@ -2864,7 +3710,8 @@
       "d-hner-2024-blood-144-2169-C0016",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0165",
-      "khoury-2022-leukemia-36-1703-C0169"
+      "khoury-2022-leukemia-36-1703-C0169",
+      "weeks-2023-nejm-evidence-2-na-C0017"
     ],
     "FUS": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -2906,9 +3753,14 @@
       "d-hner-2022-blood-140-1345-C0049"
     ],
     "HLF": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
       "arber-2022-blood-140-1200-C0124",
       "arber-2022-blood-140-1200-C0160",
       "arber-2022-blood-140-1200-C0196"
+    ],
+    "ID3": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0082"
     ],
     "IDH1": [
       "arber-2022-blood-140-1200-C0013",
@@ -2936,7 +3788,8 @@
       "khoury-2022-leukemia-36-1703-C0012",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "weeks-2023-nejm-evidence-2-na-C0017"
     ],
     "IDH2": [
       "arber-2022-blood-140-1200-C0013",
@@ -2962,13 +3815,24 @@
       "khoury-2022-leukemia-36-1703-C0012",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "weeks-2023-nejm-evidence-2-na-C0006"
     ],
     "IGH": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0019",
+      "alaggio-2022-leukemia-who5-lymphoid-C0030",
+      "alaggio-2022-leukemia-who5-lymphoid-C0034",
       "arber-2022-blood-140-1200-C0117",
       "arber-2022-blood-140-1200-C0126",
       "arber-2022-blood-140-1200-C0165",
       "arber-2022-blood-140-1200-C0195"
+    ],
+    "IGK": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0035"
+    ],
+    "IGL": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0035"
     ],
     "IKZF1": [
       "arber-2022-blood-140-1200-C0136",
@@ -2979,12 +3843,16 @@
       "arber-2022-blood-140-1200-C0222"
     ],
     "IL3": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
       "arber-2022-blood-140-1200-C0117"
     ],
     "IRF2BP2": [
       "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
+    ],
+    "IRF4": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0032"
     ],
     "JAK": [
       "arber-2022-blood-140-1200-C0122",
@@ -3027,7 +3895,11 @@
       "khoury-2022-leukemia-36-1703-C0059",
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0165",
-      "khoury-2022-leukemia-36-1703-C0169"
+      "khoury-2022-leukemia-36-1703-C0169",
+      "weeks-2023-nejm-evidence-2-na-C0006"
+    ],
+    "JAK3": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0064"
     ],
     "KAT6A": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -3051,6 +3923,7 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "KMT2A": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
       "arber-2022-blood-140-1200-C0091",
       "arber-2022-blood-140-1200-C0092",
       "arber-2022-blood-140-1200-C0115",
@@ -3114,6 +3987,9 @@
     ],
     "LYN": [
       "khoury-2022-leukemia-36-1703-C0146"
+    ],
+    "MALT1": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0029"
     ],
     "MAP2K1": [
       "khoury-2022-leukemia-36-1703-C0183"
@@ -3203,13 +4079,26 @@
     "MSH6": [
       "d-hner-2022-blood-140-1345-C0061"
     ],
+    "MTCP1": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0060"
+    ],
     "MYC": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0041",
+      "alaggio-2022-leukemia-who5-lymphoid-C0042",
+      "alaggio-2022-leukemia-who5-lymphoid-C0043",
+      "alaggio-2022-leukemia-who5-lymphoid-C0044",
+      "alaggio-2022-leukemia-who5-lymphoid-C0048",
       "arber-2022-blood-140-1200-C0094",
       "arber-2022-blood-140-1200-C0132",
       "arber-2022-blood-140-1200-C0155",
       "arber-2022-blood-140-1200-C0191",
       "d-hner-2022-blood-140-1345-C0004",
       "d-hner-2022-blood-140-1345-C0114"
+    ],
+    "MYD88": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0024",
+      "alaggio-2022-leukemia-who5-lymphoid-C0025",
+      "alaggio-2022-leukemia-who5-lymphoid-C0045"
     ],
     "MYH11": [
       "arber-2022-blood-140-1200-C0091",
@@ -3246,6 +4135,10 @@
       "khoury-2022-leukemia-36-1703-C0125"
     ],
     "NBN": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0074",
+      "alaggio-2022-leukemia-who5-lymphoid-C0076",
+      "alaggio-2022-leukemia-who5-lymphoid-C0078",
+      "alaggio-2022-leukemia-who5-lymphoid-C0080",
       "d-hner-2022-blood-140-1345-C0062"
     ],
     "NF1": [
@@ -3416,6 +4309,7 @@
       "arber-2022-blood-140-1200-C0222"
     ],
     "PBX1": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
       "arber-2022-blood-140-1200-C0117"
     ],
     "PCM1": [
@@ -3578,6 +4472,7 @@
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "RUNX1": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
       "arber-2022-blood-140-1200-C0062",
       "arber-2022-blood-140-1200-C0084",
       "arber-2022-blood-140-1200-C0091",
@@ -3636,7 +4531,8 @@
       "khoury-2022-leukemia-36-1703-C0078",
       "khoury-2022-leukemia-36-1703-C0095",
       "khoury-2022-leukemia-36-1703-C0125",
-      "khoury-2022-leukemia-36-1703-C0135"
+      "khoury-2022-leukemia-36-1703-C0135",
+      "weeks-2023-nejm-evidence-2-na-C0006"
     ],
     "RUNX1T1": [
       "arber-2022-blood-140-1200-C0091",
@@ -3723,7 +4619,11 @@
       "khoury-2022-leukemia-36-1703-C0036",
       "khoury-2022-leukemia-36-1703-C0037",
       "khoury-2022-leukemia-36-1703-C0073",
-      "khoury-2022-leukemia-36-1703-C0096"
+      "khoury-2022-leukemia-36-1703-C0096",
+      "weeks-2023-nejm-evidence-2-na-C0006"
+    ],
+    "SOX11": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0038"
     ],
     "SRP54": [
       "d-hner-2022-blood-140-1345-C0050"
@@ -3753,7 +4653,8 @@
       "khoury-2022-leukemia-36-1703-C0096",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "weeks-2023-nejm-evidence-2-na-C0006"
     ],
     "STAG2": [
       "arber-2022-blood-140-1200-C0099",
@@ -3771,11 +4672,13 @@
       "khoury-2022-leukemia-36-1703-C0096"
     ],
     "STAT3": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0061",
       "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "STAT5B": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0062",
       "arber-2022-blood-140-1200-C0090",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0114"
@@ -3786,8 +4689,15 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "TCF3": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0005",
+      "alaggio-2022-leukemia-who5-lymphoid-C0007",
+      "alaggio-2022-leukemia-who5-lymphoid-C0008",
+      "alaggio-2022-leukemia-who5-lymphoid-C0082",
       "arber-2022-blood-140-1200-C0117",
       "arber-2022-blood-140-1200-C0158"
+    ],
+    "TCL1A": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0060"
     ],
     "TERC": [
       "d-hner-2022-blood-140-1345-C0051"
@@ -3811,6 +4721,8 @@
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "TP53": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0037",
+      "alaggio-2022-leukemia-who5-lymphoid-C0066",
       "arber-2022-blood-140-1200-C0062",
       "arber-2022-blood-140-1200-C0065",
       "arber-2022-blood-140-1200-C0066",
@@ -3868,7 +4780,12 @@
       "khoury-2022-leukemia-36-1703-C0047",
       "khoury-2022-leukemia-36-1703-C0049",
       "khoury-2022-leukemia-36-1703-C0131",
-      "khoury-2022-leukemia-36-1703-C0135"
+      "khoury-2022-leukemia-36-1703-C0135",
+      "weeks-2023-nejm-evidence-2-na-C0007",
+      "weeks-2023-nejm-evidence-2-na-C0016"
+    ],
+    "TP63": [
+      "alaggio-2022-leukemia-who5-lymphoid-C0066"
     ],
     "U2AF1": [
       "arber-2022-blood-140-1200-C0099",
@@ -3944,11 +4861,13 @@
       "d-hner-2022-blood-140-1345-C0007",
       "d-hner-2022-blood-140-1345-C0025",
       "d-hner-2022-blood-140-1345-C0097",
-      "khoury-2022-leukemia-36-1703-C0096"
+      "khoury-2022-leukemia-36-1703-C0096",
+      "weeks-2023-nejm-evidence-2-na-C0006"
     ]
   },
   "by_publication_type": {
     "consensus statement": [
+      "alaggio-2022-leukemia-who5-lymphoid",
       "arber-2022-blood-140-1200",
       "d-hner-2022-blood-140-1345",
       "d-hner-2024-blood-144-2169",
@@ -3962,7 +4881,8 @@
       "bernard-2022-nejm-evidence-1-na",
       "elena-2016-blood-128-1408",
       "guglielmelli-2017-mipss70-pmf",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "weeks-2023-nejm-evidence-2-na"
     ]
   },
   "by_year": {
@@ -3977,10 +4897,14 @@
       "tefferi-2018-journal-of-clinical-oncology-36-1769"
     ],
     "2022": [
+      "alaggio-2022-leukemia-who5-lymphoid",
       "arber-2022-blood-140-1200",
       "bernard-2022-nejm-evidence-1-na",
       "d-hner-2022-blood-140-1345",
       "khoury-2022-leukemia-36-1703"
+    ],
+    "2023": [
+      "weeks-2023-nejm-evidence-2-na"
     ],
     "2024": [
       "d-hner-2024-blood-144-2169"
@@ -3990,6 +4914,1609 @@
     ]
   },
   "cards": {
+    "alaggio-2022-leukemia-who5-lymphoid-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0003": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0004": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0005": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ABL1",
+        "BCR",
+        "ETV6",
+        "IGH",
+        "IL3",
+        "KMT2A",
+        "PBX1",
+        "RUNX1",
+        "TCF3"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0006": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0007": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "HLF",
+        "TCF3"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0008": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "HLF",
+        "TCF3"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0009": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0010": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "B-cell lymphoid neoplasm",
+        "precursor B-cell neoplasm"
+      ],
+      "diseases": [
+        "B-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0013": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "small lymphocytic proliferation"
+      ],
+      "diseases": [
+        "MBL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0014": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "small lymphocytic proliferation"
+      ],
+      "diseases": [
+        "MBL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0015": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "small lymphocytic proliferation"
+      ],
+      "diseases": [
+        "MBL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0016": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "small lymphocytic proliferation"
+      ],
+      "diseases": [
+        "CLL/SLL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0019": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "mantle cell neoplasm"
+      ],
+      "diseases": [
+        "mantle cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CCND1",
+        "IGH"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0020": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "small lymphocytic proliferation"
+      ],
+      "diseases": [
+        "CLL/SLL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0021": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "splenic B-cell lymphoma/leukaemia"
+      ],
+      "diseases": [
+        "SBLPN"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0022": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "splenic B-cell lymphoma/leukaemia"
+      ],
+      "diseases": [
+        "HCL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRAF"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0023": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "splenic B-cell lymphoma/leukaemia"
+      ],
+      "diseases": [
+        "SDRPL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0024": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "LPL"
+      ],
+      "diseases": [
+        "IgM LPL/WM"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MYD88"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0025": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "LPL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MYD88"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0026": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "LPL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CXCR4"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0027": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "LPL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CXCR4"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0029": {
+      "category": "treatment",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "marginal zone lymphoma"
+      ],
+      "diseases": [
+        "extranodal MZL of MALT"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BIRC3",
+        "MALT1"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0030": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "follicular lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BCL2",
+        "IGH"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0031": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "follicular lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0032": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "follicular lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "IRF4"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0033": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "mantle cell neoplasm"
+      ],
+      "diseases": [
+        "in situ mantle cell neoplasm"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CCND1"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0034": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "mantle cell neoplasm"
+      ],
+      "diseases": [
+        "mantle cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CCND1",
+        "IGH"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0035": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "mantle cell neoplasm"
+      ],
+      "diseases": [
+        "mantle cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CCND1",
+        "IGK",
+        "IGL"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0036": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "mantle cell neoplasm"
+      ],
+      "diseases": [
+        "mantle cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CCND2",
+        "CCND3",
+        "CCNE"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0037": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "mantle cell neoplasm"
+      ],
+      "diseases": [
+        "mantle cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0038": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "mantle cell neoplasm"
+      ],
+      "diseases": [
+        "leukaemic non-nodal mantle cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SOX11"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0039": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "DLBCL, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0040": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "DLBCL, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0041": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "DLBCL/HGBL-MYC/BCL2"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BCL2",
+        "MYC"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0042": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "DLBCL, NOS",
+        "HGBL, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BCL6",
+        "MYC"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0043": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "HGBL-11q"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MYC"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0044": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "HGBL-11q"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MYC"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0045": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "primary large B-cell lymphoma of immune-privileged sites"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CD79B",
+        "MYD88"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0046": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "fluid overload-associated large B-cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0047": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "DLBCL, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0048": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "Burkitt lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MYC"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0049": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "Burkitt lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0051": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "lymphoid neoplasm"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0052": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "Hodgkin lymphoma"
+      ],
+      "diseases": [
+        "classic Hodgkin lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0053": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "Hodgkin lymphoma"
+      ],
+      "diseases": [
+        "nodular lymphocyte predominant Hodgkin lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0054": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "plasma cell neoplasm/paraprotein disorder",
+        "monoclonal gammopathy"
+      ],
+      "diseases": [
+        "MGRS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0055": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "plasma cell neoplasm/paraprotein disorder",
+        "plasma cell neoplasm",
+        "plasma cell neoplasm with paraneoplastic syndrome"
+      ],
+      "diseases": [
+        "TEMPI syndrome"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0056": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "plasma cell neoplasm/paraprotein disorder",
+        "plasma cell neoplasm",
+        "plasma cell neoplasm with paraneoplastic syndrome"
+      ],
+      "diseases": [
+        "TEMPI syndrome"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0057": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm"
+      ],
+      "diseases": [
+        "T-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0058": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "precursor T-cell neoplasm"
+      ],
+      "diseases": [
+        "T-ALL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0059": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm"
+      ],
+      "diseases": [
+        "acute lymphoblastic leukaemia/lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0060": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "mature T-cell/NK-cell leukaemia"
+      ],
+      "diseases": [
+        "T-PLL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MTCP1",
+        "TCL1A"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0061": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "mature T-cell/NK-cell leukaemia"
+      ],
+      "diseases": [
+        "T-LGLL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "STAT3"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0062": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "mature T-cell/NK-cell leukaemia"
+      ],
+      "diseases": [
+        "T-LGLL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "STAT5B"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0063": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm"
+      ],
+      "diseases": [
+        "primary cutaneous T-cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0064": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ],
+      "diseases": [
+        "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "JAK3"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0065": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ],
+      "diseases": [
+        "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0066": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "anaplastic large cell lymphoma"
+      ],
+      "diseases": [
+        "ALK-negative anaplastic large cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53",
+        "TP63"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0069": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm"
+      ],
+      "diseases": [
+        "nodal TFH cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0070": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm"
+      ],
+      "diseases": [
+        "nodal TFH cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0072": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "EBV-positive T/NK-cell lymphoma"
+      ],
+      "diseases": [
+        "EBV-positive nodal T/NK-cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0073": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ATM"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0074": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NBN"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0075": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "lymphoid neoplasm"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ATM"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0076": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "lymphoid neoplasm"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NBN"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0077": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "lymphoid neoplasm"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ATM"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0078": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "lymphoid neoplasm"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NBN"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0079": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ATM"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0080": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "NBN"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0081": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "anaplastic large cell lymphoma"
+      ],
+      "diseases": [
+        "ALK-negative anaplastic large cell lymphoma",
+        "ALK-positive anaplastic large cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ALK"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0082": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "HGBL-11q"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ID3",
+        "TCF3"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0084": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "small lymphocytic proliferation"
+      ],
+      "diseases": [
+        "CLL/SLL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0085": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "splenic B-cell lymphoma/leukaemia"
+      ],
+      "diseases": [
+        "SBLPN"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0086": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "LPL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0087": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "marginal zone lymphoma"
+      ],
+      "diseases": [
+        "paediatric MZL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0088": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "marginal zone lymphoma"
+      ],
+      "diseases": [
+        "primary cutaneous MZL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0090": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "follicular lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0091": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm"
+      ],
+      "diseases": [
+        "follicular lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0092": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "primary large B-cell lymphoma of immune-privileged sites"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0093": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "large B-cell lymphoma"
+      ],
+      "diseases": [
+        "primary large B-cell lymphoma of immune-privileged sites"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "B2M"
+      ],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0094": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "primary cutaneous T-cell lymphoma"
+      ],
+      "diseases": [
+        "primary cutaneous gamma/delta T-cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0095": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "primary cutaneous T-cell lymphoma"
+      ],
+      "diseases": [
+        "primary cutaneous peripheral T-cell lymphoma, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0096": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ],
+      "diseases": [
+        "indolent T-cell lymphoma of the gastrointestinal tract"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0097": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "intestinal T-cell/NK-cell lymphoid neoplasm"
+      ],
+      "diseases": [
+        "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0098": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "anaplastic large cell lymphoma"
+      ],
+      "diseases": [
+        "breast implant-associated anaplastic large cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0099": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "nodal TFH cell lymphoma"
+      ],
+      "diseases": [
+        "nodal TFH cell lymphoma, angioimmunoblastic-type"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0100": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "nodal TFH cell lymphoma"
+      ],
+      "diseases": [
+        "nodal TFH cell lymphoma, follicular-type"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0101": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "nodal TFH cell lymphoma"
+      ],
+      "diseases": [
+        "nodal TFH cell lymphoma, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0102": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "nodal TFH cell lymphoma"
+      ],
+      "diseases": [
+        "nodal TFH cell lymphoma, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0103": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm"
+      ],
+      "diseases": [
+        "nodal TFH cell lymphoma",
+        "nodal TFH cell lymphoma, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0104": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm"
+      ],
+      "diseases": [
+        "peripheral T-cell lymphoma, NOS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0105": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "EBV-positive T/NK-cell lymphoma"
+      ],
+      "diseases": [
+        "extranodal NK/T-cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0107": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "B-cell lymphoid neoplasm",
+        "mature B-cell neoplasm",
+        "small lymphocytic proliferation"
+      ],
+      "diseases": [
+        "CLL/SLL"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0108": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "primary cutaneous T-cell lymphoma"
+      ],
+      "diseases": [
+        "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0109": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "primary cutaneous T-cell lymphoma"
+      ],
+      "diseases": [
+        "primary cutaneous acral CD8-positive lymphoproliferative disorder"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
+    "alaggio-2022-leukemia-who5-lymphoid-C0110": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "lymphoid neoplasm",
+        "T-cell/NK-cell lymphoid neoplasm",
+        "mature T-cell/NK-cell neoplasm",
+        "primary cutaneous T-cell lymphoma"
+      ],
+      "diseases": [
+        "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid"
+    },
     "arber-2022-blood-140-1200-C0001": {
       "category": "diagnosis",
       "disease_ancestors": [
@@ -12697,18 +15224,382 @@
       ],
       "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
       "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CHIP"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0003": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0004": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0005": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0006": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "IDH2",
+        "JAK2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "ZRSR2"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0007": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0008": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0009": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0010": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DNMT3A"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0016": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
+    },
+    "weeks-2023-nejm-evidence-2-na-C0017": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "FLT3",
+        "IDH1"
+      ],
+      "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+      "publication_key": "weeks-2023-nejm-evidence-2-na"
     }
   },
-  "corpus_sha256": "b8efccd42c315f59ef50965ef29045ddf77aa89f59eae3f562c4855afb0a5fd3",
+  "corpus_sha256": "2f6a987e06434ab3396cefff323ba7dfdad0119210ca1b19727401ef513d0119",
   "counts": {
-    "cards": 573,
-    "census_entries": 1251,
-    "completed_papers": 10,
+    "cards": 683,
+    "census_entries": 1409,
+    "completed_papers": 12,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-21T12:36:30.256659+00:00",
+  "generated_at": "2026-08-25T10:40:13.809558+00:00",
   "index_version": "1.4",
   "papers": {
+    "alaggio-2022-leukemia-who5-lymphoid": {
+      "acceptance_version_history": [
+        "0.2.4"
+      ],
+      "accepted_in_version": "0.2.4",
+      "card_ids": [
+        "alaggio-2022-leukemia-who5-lymphoid-C0001",
+        "alaggio-2022-leukemia-who5-lymphoid-C0002",
+        "alaggio-2022-leukemia-who5-lymphoid-C0003",
+        "alaggio-2022-leukemia-who5-lymphoid-C0004",
+        "alaggio-2022-leukemia-who5-lymphoid-C0005",
+        "alaggio-2022-leukemia-who5-lymphoid-C0006",
+        "alaggio-2022-leukemia-who5-lymphoid-C0007",
+        "alaggio-2022-leukemia-who5-lymphoid-C0008",
+        "alaggio-2022-leukemia-who5-lymphoid-C0009",
+        "alaggio-2022-leukemia-who5-lymphoid-C0010",
+        "alaggio-2022-leukemia-who5-lymphoid-C0013",
+        "alaggio-2022-leukemia-who5-lymphoid-C0014",
+        "alaggio-2022-leukemia-who5-lymphoid-C0015",
+        "alaggio-2022-leukemia-who5-lymphoid-C0016",
+        "alaggio-2022-leukemia-who5-lymphoid-C0019",
+        "alaggio-2022-leukemia-who5-lymphoid-C0020",
+        "alaggio-2022-leukemia-who5-lymphoid-C0021",
+        "alaggio-2022-leukemia-who5-lymphoid-C0022",
+        "alaggio-2022-leukemia-who5-lymphoid-C0023",
+        "alaggio-2022-leukemia-who5-lymphoid-C0024",
+        "alaggio-2022-leukemia-who5-lymphoid-C0025",
+        "alaggio-2022-leukemia-who5-lymphoid-C0026",
+        "alaggio-2022-leukemia-who5-lymphoid-C0027",
+        "alaggio-2022-leukemia-who5-lymphoid-C0029",
+        "alaggio-2022-leukemia-who5-lymphoid-C0030",
+        "alaggio-2022-leukemia-who5-lymphoid-C0031",
+        "alaggio-2022-leukemia-who5-lymphoid-C0032",
+        "alaggio-2022-leukemia-who5-lymphoid-C0033",
+        "alaggio-2022-leukemia-who5-lymphoid-C0034",
+        "alaggio-2022-leukemia-who5-lymphoid-C0035",
+        "alaggio-2022-leukemia-who5-lymphoid-C0036",
+        "alaggio-2022-leukemia-who5-lymphoid-C0037",
+        "alaggio-2022-leukemia-who5-lymphoid-C0038",
+        "alaggio-2022-leukemia-who5-lymphoid-C0039",
+        "alaggio-2022-leukemia-who5-lymphoid-C0040",
+        "alaggio-2022-leukemia-who5-lymphoid-C0041",
+        "alaggio-2022-leukemia-who5-lymphoid-C0042",
+        "alaggio-2022-leukemia-who5-lymphoid-C0043",
+        "alaggio-2022-leukemia-who5-lymphoid-C0044",
+        "alaggio-2022-leukemia-who5-lymphoid-C0045",
+        "alaggio-2022-leukemia-who5-lymphoid-C0046",
+        "alaggio-2022-leukemia-who5-lymphoid-C0047",
+        "alaggio-2022-leukemia-who5-lymphoid-C0048",
+        "alaggio-2022-leukemia-who5-lymphoid-C0049",
+        "alaggio-2022-leukemia-who5-lymphoid-C0051",
+        "alaggio-2022-leukemia-who5-lymphoid-C0052",
+        "alaggio-2022-leukemia-who5-lymphoid-C0053",
+        "alaggio-2022-leukemia-who5-lymphoid-C0054",
+        "alaggio-2022-leukemia-who5-lymphoid-C0055",
+        "alaggio-2022-leukemia-who5-lymphoid-C0056",
+        "alaggio-2022-leukemia-who5-lymphoid-C0057",
+        "alaggio-2022-leukemia-who5-lymphoid-C0058",
+        "alaggio-2022-leukemia-who5-lymphoid-C0059",
+        "alaggio-2022-leukemia-who5-lymphoid-C0060",
+        "alaggio-2022-leukemia-who5-lymphoid-C0061",
+        "alaggio-2022-leukemia-who5-lymphoid-C0062",
+        "alaggio-2022-leukemia-who5-lymphoid-C0063",
+        "alaggio-2022-leukemia-who5-lymphoid-C0064",
+        "alaggio-2022-leukemia-who5-lymphoid-C0065",
+        "alaggio-2022-leukemia-who5-lymphoid-C0066",
+        "alaggio-2022-leukemia-who5-lymphoid-C0069",
+        "alaggio-2022-leukemia-who5-lymphoid-C0070",
+        "alaggio-2022-leukemia-who5-lymphoid-C0072",
+        "alaggio-2022-leukemia-who5-lymphoid-C0073",
+        "alaggio-2022-leukemia-who5-lymphoid-C0074",
+        "alaggio-2022-leukemia-who5-lymphoid-C0075",
+        "alaggio-2022-leukemia-who5-lymphoid-C0076",
+        "alaggio-2022-leukemia-who5-lymphoid-C0077",
+        "alaggio-2022-leukemia-who5-lymphoid-C0078",
+        "alaggio-2022-leukemia-who5-lymphoid-C0079",
+        "alaggio-2022-leukemia-who5-lymphoid-C0080",
+        "alaggio-2022-leukemia-who5-lymphoid-C0081",
+        "alaggio-2022-leukemia-who5-lymphoid-C0082",
+        "alaggio-2022-leukemia-who5-lymphoid-C0084",
+        "alaggio-2022-leukemia-who5-lymphoid-C0085",
+        "alaggio-2022-leukemia-who5-lymphoid-C0086",
+        "alaggio-2022-leukemia-who5-lymphoid-C0087",
+        "alaggio-2022-leukemia-who5-lymphoid-C0088",
+        "alaggio-2022-leukemia-who5-lymphoid-C0090",
+        "alaggio-2022-leukemia-who5-lymphoid-C0091",
+        "alaggio-2022-leukemia-who5-lymphoid-C0092",
+        "alaggio-2022-leukemia-who5-lymphoid-C0093",
+        "alaggio-2022-leukemia-who5-lymphoid-C0094",
+        "alaggio-2022-leukemia-who5-lymphoid-C0095",
+        "alaggio-2022-leukemia-who5-lymphoid-C0096",
+        "alaggio-2022-leukemia-who5-lymphoid-C0097",
+        "alaggio-2022-leukemia-who5-lymphoid-C0098",
+        "alaggio-2022-leukemia-who5-lymphoid-C0099",
+        "alaggio-2022-leukemia-who5-lymphoid-C0100",
+        "alaggio-2022-leukemia-who5-lymphoid-C0101",
+        "alaggio-2022-leukemia-who5-lymphoid-C0102",
+        "alaggio-2022-leukemia-who5-lymphoid-C0103",
+        "alaggio-2022-leukemia-who5-lymphoid-C0104",
+        "alaggio-2022-leukemia-who5-lymphoid-C0105",
+        "alaggio-2022-leukemia-who5-lymphoid-C0107",
+        "alaggio-2022-leukemia-who5-lymphoid-C0108",
+        "alaggio-2022-leukemia-who5-lymphoid-C0109",
+        "alaggio-2022-leukemia-who5-lymphoid-C0110"
+      ],
+      "cards": 98,
+      "census_entries": 134,
+      "citation_display": "Alaggio R, Amador C, Anagnostopoulos I, Attygalle AD, Araujo IBdO, Berti E, et al. The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Lymphoid Neoplasms. Leukemia. 2022;36(7):1720-1748.",
+      "diseases": [
+        "ALK-negative anaplastic large cell lymphoma",
+        "ALK-positive anaplastic large cell lymphoma",
+        "B-ALL",
+        "Burkitt lymphoma",
+        "CLL/SLL",
+        "DLBCL, NOS",
+        "DLBCL/HGBL-MYC/BCL2",
+        "EBV-positive nodal T/NK-cell lymphoma",
+        "HCL",
+        "HGBL, NOS",
+        "HGBL-11q",
+        "IgM LPL/WM",
+        "LPL",
+        "MBL",
+        "MGRS",
+        "SBLPN",
+        "SDRPL",
+        "T-ALL",
+        "T-LGLL",
+        "T-PLL",
+        "TEMPI syndrome",
+        "acute lymphoblastic leukaemia/lymphoma",
+        "breast implant-associated anaplastic large cell lymphoma",
+        "classic Hodgkin lymphoma",
+        "extranodal MZL of MALT",
+        "extranodal NK/T-cell lymphoma",
+        "fluid overload-associated large B-cell lymphoma",
+        "follicular lymphoma",
+        "in situ mantle cell neoplasm",
+        "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+        "indolent T-cell lymphoma of the gastrointestinal tract",
+        "leukaemic non-nodal mantle cell lymphoma",
+        "lymphoid neoplasm",
+        "mantle cell lymphoma",
+        "nodal TFH cell lymphoma",
+        "nodal TFH cell lymphoma, NOS",
+        "nodal TFH cell lymphoma, angioimmunoblastic-type",
+        "nodal TFH cell lymphoma, follicular-type",
+        "nodular lymphocyte predominant Hodgkin lymphoma",
+        "paediatric MZL",
+        "peripheral T-cell lymphoma, NOS",
+        "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
+        "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma",
+        "primary cutaneous MZL",
+        "primary cutaneous T-cell lymphoma",
+        "primary cutaneous acral CD8-positive lymphoproliferative disorder",
+        "primary cutaneous gamma/delta T-cell lymphoma",
+        "primary cutaneous peripheral T-cell lymphoma, NOS",
+        "primary large B-cell lymphoma of immune-privileged sites"
+      ],
+      "genes": [
+        "ABL1",
+        "ALK",
+        "ATM",
+        "B2M",
+        "BCL2",
+        "BCL6",
+        "BCR",
+        "BIRC3",
+        "BRAF",
+        "CCND1",
+        "CCND2",
+        "CCND3",
+        "CCNE",
+        "CD79B",
+        "CXCR4",
+        "ETV6",
+        "HLF",
+        "ID3",
+        "IGH",
+        "IGK",
+        "IGL",
+        "IL3",
+        "IRF4",
+        "JAK3",
+        "KMT2A",
+        "MALT1",
+        "MTCP1",
+        "MYC",
+        "MYD88",
+        "NBN",
+        "PBX1",
+        "RUNX1",
+        "SOX11",
+        "STAT3",
+        "STAT5B",
+        "TCF3",
+        "TCL1A",
+        "TP53",
+        "TP63"
+      ],
+      "latest_accepted_in_version": "0.2.4",
+      "paper_nickname": "WHO5 Lymphoid Classification 2022",
+      "publication_key": "alaggio-2022-leukemia-who5-lymphoid",
+      "status": "completed"
+    },
     "arber-2022-blood-140-1200": {
       "acceptance_version_history": [
         "0.2.4"
@@ -13918,6 +16809,49 @@
       "latest_accepted_in_version": "0.2.4",
       "paper_nickname": "MIPSS70+ Version 2.0 (Tefferi 2018)",
       "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "status": "completed"
+    },
+    "weeks-2023-nejm-evidence-2-na": {
+      "acceptance_version_history": [
+        "0.2.4"
+      ],
+      "accepted_in_version": "0.2.4",
+      "card_ids": [
+        "weeks-2023-nejm-evidence-2-na-C0001",
+        "weeks-2023-nejm-evidence-2-na-C0002",
+        "weeks-2023-nejm-evidence-2-na-C0003",
+        "weeks-2023-nejm-evidence-2-na-C0004",
+        "weeks-2023-nejm-evidence-2-na-C0005",
+        "weeks-2023-nejm-evidence-2-na-C0006",
+        "weeks-2023-nejm-evidence-2-na-C0007",
+        "weeks-2023-nejm-evidence-2-na-C0008",
+        "weeks-2023-nejm-evidence-2-na-C0009",
+        "weeks-2023-nejm-evidence-2-na-C0010",
+        "weeks-2023-nejm-evidence-2-na-C0016",
+        "weeks-2023-nejm-evidence-2-na-C0017"
+      ],
+      "cards": 12,
+      "census_entries": 24,
+      "citation_display": "Weeks LD, Niroula A, Neuberg D, Wong W, Lindsley RC, Luskin MR, et al. Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis. NEJM Evidence. 2023 May;2(5):10.1056/EVIDoa2200310.",
+      "diseases": [
+        "CCUS",
+        "CHIP"
+      ],
+      "genes": [
+        "DNMT3A",
+        "FLT3",
+        "IDH1",
+        "IDH2",
+        "JAK2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "TP53",
+        "ZRSR2"
+      ],
+      "latest_accepted_in_version": "0.2.4",
+      "paper_nickname": "CHRS for CHIP/CCUS 2023",
+      "publication_key": "weeks-2023-nejm-evidence-2-na",
       "status": "completed"
     }
   },

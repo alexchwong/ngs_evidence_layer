@@ -1,13 +1,343 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 573,
-    "census_entries": 1251,
-    "completed_papers": 10,
+    "cards": 683,
+    "census_entries": 1409,
+    "completed_papers": 12,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-21T12:36:30.256659+00:00",
+  "generated_at": "2026-08-25T10:40:13.809558+00:00",
   "publications": [
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0001",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "Clonal hematopoiesis of indeterminate potential (CHIP) is defined as clonal hematopoiesis with somatic mutations detectable at a variant allele fraction (VAF) of 2% or greater in the absence of a diagnosed blood disorder or cytopenia.",
+            "locator": "Introduction",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0002",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CCUS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "Clonal cytopenia of undetermined significance (CCUS) is defined as clonal hematopoiesis with somatic mutations at a variant allele fraction (VAF) of 2% or greater in the presence of unexplained, persistent cytopenia.",
+            "locator": "Introduction; CHIP AND CCUS DESIGNATIONS",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CCUS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For the WHO-based cytopenia criteria applied to clonal cytopenia of undetermined significance (CCUS) in this study, anemia is defined as hemoglobin below 13.0 g/dL in males or below 12.0 g/dL in females.",
+            "locator": "CHIP AND CCUS DESIGNATIONS",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0004",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CCUS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For the WHO-based cytopenia criteria applied to clonal cytopenia of undetermined significance (CCUS) in this study, thrombocytopenia is defined as a platelet count below 150 × 10^9/L.",
+            "locator": "CHIP AND CCUS DESIGNATIONS",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0005",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CCUS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For the WHO-based cytopenia criteria applied to clonal cytopenia of undetermined significance (CCUS) in this study, neutropenia is defined as an absolute neutrophil count below 1.8 × 10^9/L.",
+            "locator": "CHIP AND CCUS DESIGNATIONS",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0006",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SRSF2",
+              "SF3B1",
+              "ZRSR2",
+              "JAK2",
+              "RUNX1",
+              "IDH2"
+            ],
+            "interpretation": "According to the CHRS framework, mutations in SRSF2, SF3B1, ZRSR2, JAK2, RUNX1, and IDH2 are high-risk mutations for progression of CHIP or CCUS to myeloid neoplasm.",
+            "locator": "GENOTYPE-SPECIFIC RISK OF INCIDENT MN; Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0007",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Although the TP53-related mutation group was not associated with incident myeloid neoplasm in this cohort, the CHRS empirically treats TP53 mutation as high risk in CHIP/CCUS based on prior evidence and concern about underestimating risk.",
+            "locator": "GENOTYPE-SPECIFIC RISK OF INCIDENT MN; Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0008",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "DNMT3A"
+            ],
+            "interpretation": "In CHIP/CCUS, DNMT3A-mutant genotypes are associated with lower risk of progression to myeloid neoplasm than other CHIP/CCUS genotypes.",
+            "locator": "GENOTYPE-SPECIFIC RISK OF INCIDENT MN",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0009",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "DNMT3A"
+            ],
+            "interpretation": "In CHIP/CCUS, a single DNMT3A mutation identifies a particularly low-risk genotype for progression to myeloid neoplasm compared with other CHIP/CCUS genotypes.",
+            "locator": "Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0010",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DNMT3A"
+            ],
+            "interpretation": "DNMT3A-mutant CHIP/CCUS is associated with higher risk of myeloid neoplasm than individuals without CHIP/CCUS.",
+            "locator": "GENOTYPE-SPECIFIC RISK OF INCIDENT MN",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0016",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In TP53-mutant CHIP/CCUS, myeloid-neoplasm risk is probably heterogeneous and may be influenced by clonal selection pressures such as chemotherapy, clone size, allelic state, and clonal complexity.",
+            "locator": "Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "weeks-2023-nejm-evidence-2-na-C0017",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CHIP",
+              "CCUS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "IDH1",
+              "FLT3"
+            ],
+            "interpretation": "According to the CHRS framework, IDH1 and FLT3 mutations are classified as high-risk mutations for progression of CHIP or CCUS to myeloid neoplasm as members of the AML-like mutation group.",
+            "locator": "GENOTYPE-SPECIFIC RISK OF INCIDENT MN; Discussion",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 24,
+        "citation": {
+          "authors": [
+            "Weeks LD",
+            "Niroula A",
+            "Neuberg D",
+            "Wong W",
+            "Lindsley RC",
+            "Luskin MR",
+            "Berliner N",
+            "Stone RM",
+            "DeAngelo DJ",
+            "Soiffer RJ",
+            "Uddin MM",
+            "Griffin G",
+            "Vlasschaert C",
+            "Gibson CJ",
+            "Jaiswal S",
+            "Bick AG",
+            "Malcovati L",
+            "Natarajan P",
+            "Ebert BL"
+          ],
+          "citation_incomplete": [],
+          "display": "Weeks LD, Niroula A, Neuberg D, Wong W, Lindsley RC, Luskin MR, et al. Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis. NEJM Evidence. 2023 May;2(5):10.1056/EVIDoa2200310.",
+          "doi": "10.1056/evidoa2200310",
+          "issue": "5",
+          "journal": "NEJM Evidence",
+          "month": "May",
+          "pages": "10.1056/EVIDoa2200310",
+          "title": "Prediction of Risk for Myeloid Malignancy in Clonal Hematopoiesis",
+          "volume": "2",
+          "year": 2023
+        },
+        "diseases_covered": [
+          "CCUS",
+          "CHIP"
+        ],
+        "extraction_date": "2026-08-21",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "DNMT3A",
+          "FLT3",
+          "IDH1",
+          "IDH2",
+          "JAK2",
+          "RUNX1",
+          "SF3B1",
+          "SRSF2",
+          "TP53",
+          "ZRSR2"
+        ],
+        "paper_nickname": "CHRS for CHIP/CCUS 2023",
+        "publication_key": "weeks-2023-nejm-evidence-2-na",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 2,
+          "audit_date": "2026-08-23",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0001",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0003",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0004",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0005",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0006",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0017",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0007",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0008",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0009",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0010",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "weeks-2023-nejm-evidence-2-na-C0016",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 12,
+          "census_claims": 24,
+          "census_entries": 24,
+          "ratio": 0.5
+        },
+        "input_id": "16d1d904-c915-5f9c-a330-bc75905d7b7b",
+        "markdown_sha256": "00eaa5c497775f2d9530a0ff7e97131d0300ff8250afd7f894d4db73b77fb24e",
+        "source_filename": "Weeks_2023_CHRS_clonal_haematopoiesis_risk.pdf",
+        "source_sha256": "e858964daf12c3d8f13978f426d80b3ee6e453b604bb7e849f29503e60d4886c",
+        "warnings": []
+      }
+    },
     {
       "document": {
         "cards": [
@@ -2979,6 +3309,2521 @@
         "markdown_sha256": "3ac9bfdc5626dcf6a1afdb04799d87354ca2e3560c46d18a84fa4404c23be23e",
         "source_filename": "Barbui_2015_revised_IPSET_thrombosis_ET.pdf",
         "source_sha256": "3dbdecfbb3be1294c8ae6098adfef4182d63697f6073dbaf8ac82f3bab6779d0",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0001",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, B-ALL can be diagnosed at the family/class level as B-ALL, not further classified, using morphology and immunophenotype alone.",
+            "locator": "B-ALL section, line 79",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0002",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, B-ALL, NOS is reserved for B-ALL cases that remain unclassifiable after comprehensive testing.",
+            "locator": "B-ALL section, line 79",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, B-ALL with high hyperdiploidy is a recognized B-ALL entity.",
+            "locator": "B-ALL section and Table 1, lines 79 and 94",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0004",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, B-ALL with hypodiploidy is a recognized B-ALL entity.",
+            "locator": "B-ALL section and Table 1, lines 79 and 94",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0005",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BCR",
+              "ABL1",
+              "KMT2A",
+              "ETV6",
+              "RUNX1",
+              "TCF3",
+              "PBX1",
+              "IGH",
+              "IL3"
+            ],
+            "interpretation": "According to WHO-HAEM5, B-ALL with BCR::ABL1 fusion, KMT2A rearrangement, ETV6::RUNX1 fusion, TCF3::PBX1 fusion, and IGH::IL3 fusion are genetically defined B-ALL entities.",
+            "locator": "B-ALL section and Table 1, lines 79 and 94–96; B-ALL section and Table 1, lines 79 and 98–100; B-ALL section and Table 1, lines 79 and 102–104; B-ALL section and Table 1, lines 79 and 110",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0006",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, B-ALL with iAMP21 is a recognized genetically defined B-ALL entity.",
+            "locator": "B-ALL section and Table 1, lines 79 and 94",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0007",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TCF3",
+              "HLF"
+            ],
+            "interpretation": "According to WHO-HAEM5, B-ALL with TCF3::HLF fusion is a distinct B-ALL entity from B-ALL with TCF3::PBX1 fusion.",
+            "locator": "B-ALL section, line 79",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0008",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TCF3",
+              "HLF"
+            ],
+            "interpretation": "B-ALL with TCF3::HLF fusion is characterized by particularly aggressive behaviour.",
+            "locator": "B-ALL section, line 79",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0009",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, B-ALL with BCR::ABL1-like features is a B-ALL entity, upgraded from provisional status, defined by gene-expression and phenotypic similarity to B-ALL with BCR::ABL1 fusion.",
+            "locator": "B-ALL section, line 79",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0010",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "B-cell lymphoid neoplasm",
+              "precursor B-cell neoplasm"
+            ],
+            "diseases": [
+              "B-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, B-ALL with ETV6::RUNX1-like features is a new B-ALL entity.",
+            "locator": "B-ALL section, line 79",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0013",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "small lymphocytic proliferation"
+            ],
+            "diseases": [
+              "MBL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, low-count MBL is defined by a clonal CLL/SLL-phenotype B-cell count below 0.5 × 10^9/L with no other features diagnostic of a B-lymphoproliferative disorder.",
+            "locator": "MBL section, lines 201–203",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0014",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "small lymphocytic proliferation"
+            ],
+            "diseases": [
+              "MBL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, CLL/SLL-type MBL is defined by a monoclonal CLL/SLL-phenotype B-cell count at least 0.5 × 10^9/L and a total B-cell count below 5 × 10^9/L, with no other features diagnostic of CLL/SLL.",
+            "locator": "MBL section, lines 204–207",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0015",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "small lymphocytic proliferation"
+            ],
+            "diseases": [
+              "MBL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, non-CLL/SLL-type MBL is any monoclonal non-CLL/SLL-phenotype B-cell expansion without symptoms or features diagnostic of another mature B-cell neoplasm.",
+            "locator": "MBL section, line 209",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0016",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "small lymphocytic proliferation"
+            ],
+            "diseases": [
+              "CLL/SLL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For CLL/SLL diagnosis, WHO-HAEM5 regards CD5, CD19, CD20, CD23, and surface or cytoplasmic kappa and lambda light chains as essential markers.",
+            "locator": "CLL/SLL section, line 211",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0019",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "mantle cell neoplasm"
+            ],
+            "diseases": [
+              "mantle cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IGH",
+              "CCND1"
+            ],
+            "interpretation": "According to WHO-HAEM5, cases formerly labelled B-prolymphocytic leukaemia that carry IGH::CCND1 are classified as a mantle cell lymphoma variant rather than B-PLL.",
+            "locator": "B-prolymphocytic leukaemia section, line 257",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0020",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "small lymphocytic proliferation"
+            ],
+            "diseases": [
+              "CLL/SLL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, CLL/SLL with at least 15% prolymphocytes is classified as prolymphocytic progression of CLL/SLL, whereas CLL/SLL with less than 15% prolymphocytes remains CLL/SLL.",
+            "locator": "B-prolymphocytic leukaemia section and Fig. 1, lines 257 and 275",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0021",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "splenic B-cell lymphoma/leukaemia"
+            ],
+            "diseases": [
+              "SBLPN"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, former B-prolymphocytic leukaemia cases not reclassified as mantle cell lymphoma or CLL/SLL progression are incorporated into splenic B-cell lymphoma/leukaemia with prominent nucleoli (SBLPN).",
+            "locator": "B-prolymphocytic leukaemia section, lines 257–263",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0022",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "splenic B-cell lymphoma/leukaemia"
+            ],
+            "diseases": [
+              "HCL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BRAF"
+            ],
+            "interpretation": "In hairy cell leukaemia, BRAF p.V600E is a hallmark somatic mutation, whereas other members of the splenic B-cell lymphoma/leukaemia family usually lack BRAF mutations, supporting diagnostic distinction.",
+            "locator": "Splenic B-cell lymphoma section, line 261",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0023",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "splenic B-cell lymphoma/leukaemia"
+            ],
+            "diseases": [
+              "SDRPL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "A CD200 mean fluorescence intensity/CD180 mean fluorescence intensity ratio below 0.5 on flow cytometry favours splenic diffuse red pulp small B-cell lymphoma (SDRPL) over hairy cell leukaemia (HCL), splenic marginal zone lymphoma (SMZL), and splenic B-cell lymphoma/leukaemia with prominent nucleoli (SBLPN).",
+            "locator": "SDRPL section, line 267",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0024",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "LPL"
+            ],
+            "diseases": [
+              "IgM LPL/WM"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYD88"
+            ],
+            "interpretation": "According to WHO-HAEM5, IgM LPL/WM has two molecular subsets based on the presence or absence of MYD88 p.L265P.",
+            "locator": "Lymphoplasmacytic lymphoma section, line 273",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0025",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "LPL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYD88"
+            ],
+            "interpretation": "In lymphoplasmacytic lymphoma (LPL), demonstration of MYD88 p.L265P may aid differential diagnosis from nodal marginal zone lymphoma, extranodal MZL of MALT with plasmacytoid differentiation, and plasma cell myeloma.",
+            "locator": "Lymphoplasmacytic lymphoma section, line 273",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0026",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "LPL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CXCR4"
+            ],
+            "interpretation": "In lymphoplasmacytic lymphoma (LPL), CXCR4-mutated disease is associated with shorter time to treatment.",
+            "locator": "Lymphoplasmacytic lymphoma section, line 277",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0027",
+            "category": "treatment",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "LPL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CXCR4"
+            ],
+            "interpretation": "In lymphoplasmacytic lymphoma (LPL), CXCR4 mutation is associated particularly with resistance to ibrutinib therapy.",
+            "locator": "Lymphoplasmacytic lymphoma section, line 277",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0029",
+            "category": "treatment",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "marginal zone lymphoma"
+            ],
+            "diseases": [
+              "extranodal MZL of MALT"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BIRC3",
+              "MALT1"
+            ],
+            "interpretation": "In gastric extranodal MZL of MALT, BIRC3::MALT1 identifies disease that does not respond to Helicobacter pylori eradication.",
+            "locator": "Extranodal marginal zone lymphoma Fig. 2 legend, line 317",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0030",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "follicular lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IGH",
+              "BCL2"
+            ],
+            "interpretation": "According to WHO-HAEM5, classic follicular lymphoma encompasses the usual follicular-pattern follicular lymphomas composed of centrocytes and centroblasts that commonly harbour t(14;18)/IGH::BCL2, and is distinguished from follicular large B-cell lymphoma and follicular lymphoma with uncommon features.",
+            "locator": "Follicular lymphoma section, line 289",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0031",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "follicular lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, histological grading is optional rather than mandatory for classic follicular lymphoma.",
+            "locator": "Follicular lymphoma section, lines 291–319",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0032",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "follicular lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IRF4"
+            ],
+            "interpretation": "Follicular lymphoma with blastoid or large-centrocyte cytology should be distinguished from large B-cell lymphoma with IRF4 rearrangement.",
+            "locator": "Follicular lymphoma section, line 325",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0033",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "mantle cell neoplasm"
+            ],
+            "diseases": [
+              "in situ mantle cell neoplasm"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CCND1"
+            ],
+            "interpretation": "According to WHO-HAEM5, in situ mantle cell neoplasm represents mantle-zone colonization by B cells carrying an IG::CCND1 fusion with cyclin D1 overexpression.",
+            "locator": "Mantle cell lymphoma section, line 329",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0034",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "mantle cell neoplasm"
+            ],
+            "diseases": [
+              "mantle cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IGH",
+              "CCND1"
+            ],
+            "interpretation": "In mantle cell lymphoma, IGH::CCND1 fusion associated with t(11;14) is the genetic hallmark and is present in at least 95% of cases.",
+            "locator": "Mantle cell lymphoma section, line 331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0035",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "mantle cell neoplasm"
+            ],
+            "diseases": [
+              "mantle cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "IGK",
+              "IGL",
+              "CCND1"
+            ],
+            "interpretation": "In cyclin D1-positive mantle cell lymphoma with no detectable CCND1 rearrangement by FISH, cryptic rearrangements of IGK or IGL enhancers with CCND1 can account for cyclin D1 overexpression.",
+            "locator": "Mantle cell lymphoma section, line 331",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0036",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "mantle cell neoplasm"
+            ],
+            "diseases": [
+              "mantle cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CCND2",
+              "CCND3",
+              "CCNE"
+            ],
+            "interpretation": "In cyclin D1-negative, CCND1-rearrangement-negative mantle cell lymphoma, rearrangements of CCND2, CCND3, or CCNE are alternative cell-cycle lesions.",
+            "locator": "Mantle cell lymphoma section, line 335",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0037",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "mantle cell neoplasm"
+            ],
+            "diseases": [
+              "mantle cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53 mutation is a best-established biomarker of high-risk mantle cell lymphoma.",
+            "locator": "Mantle cell lymphoma section, line 335",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0038",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "mantle cell neoplasm"
+            ],
+            "diseases": [
+              "leukaemic non-nodal mantle cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SOX11"
+            ],
+            "interpretation": "Leukaemic non-nodal mantle cell lymphoma is characteristically SOX11-negative, with a low Ki67 index and frequent lack of CD5 expression.",
+            "locator": "Mantle cell lymphoma section, line 337",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0039",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "DLBCL, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, DLBCL, NOS continues to include germinal-centre B-cell-like and activated B-cell-like subtypes.",
+            "locator": "DLBCL, NOS section, lines 347–353",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0040",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "DLBCL, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, proposed NGS-based molecular classifications are not incorporated into DLBCL, NOS because no unified genetic framework is established and their outcome and targeted-treatment implications remain unclear.",
+            "locator": "DLBCL, NOS section, lines 349–353",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0041",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "DLBCL/HGBL-MYC/BCL2"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYC",
+              "BCL2"
+            ],
+            "interpretation": "According to WHO-HAEM5, DLBCL/HGBL-MYC/BCL2 is defined by dual MYC and BCL2 rearrangements and can have large-cell, intermediate-cell, or blastoid morphology.",
+            "locator": "Large B-cell lymphoma section, line 357",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0042",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "DLBCL, NOS",
+              "HGBL, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYC",
+              "BCL6"
+            ],
+            "interpretation": "According to WHO-HAEM5, lymphoid neoplasms with dual MYC and BCL6 rearrangements are excluded from DLBCL/HGBL-MYC/BCL2 and are classified as DLBCL, NOS or HGBL, NOS according to cytomorphology.",
+            "locator": "Large B-cell lymphoma section, line 357",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0043",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "HGBL-11q"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYC"
+            ],
+            "interpretation": "According to WHO-HAEM5, HGBL-11q is a MYC-rearrangement-negative mature B-cell lymphoma with Burkitt-like, intermediate, or blastoid morphology and a characteristic 11q gain/loss pattern.",
+            "locator": "HGBL-11q section, lines 359–361",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0044",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "HGBL-11q"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYC"
+            ],
+            "interpretation": "B-cell lymphomas with a Burkitt-like appearance that lack MYC rearrangement should be tested for the characteristic 11q gain/loss pattern of HGBL-11q.",
+            "locator": "HGBL-11q section, line 361",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0045",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "primary large B-cell lymphoma of immune-privileged sites"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYD88",
+              "CD79B"
+            ],
+            "interpretation": "In primary large B-cell lymphoma of immune-privileged sites, concomitant MYD88 and CD79B mutations are a distinctive shared mutational profile across primary CNS, vitreoretinal, and testicular large B-cell lymphomas.",
+            "locator": "Table 4, lines 367–381",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0046",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "fluid overload-associated large B-cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, fluid overload-associated large B-cell lymphoma is distinct from primary effusion lymphoma; fluid overload-associated large B-cell lymphoma is KSHV/HHV8-negative and usually presents as an isolated body-cavity effusion in adults without underlying immunodeficiency.",
+            "locator": "Fluid overload-associated large B-cell lymphoma section, lines 365 and 383",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0047",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "DLBCL, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, cases resembling mediastinal grey zone lymphoma but occurring outside and without mediastinal involvement are better classified as DLBCL, NOS.",
+            "locator": "Mediastinal grey zone lymphoma section, line 385",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0048",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "Burkitt lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MYC"
+            ],
+            "interpretation": "According to WHO-HAEM5, Burkitt lymphoma is an aggressive mature B-cell neoplasm with germinal-centre phenotype, very high Ki67, and an IG::MYC juxtaposition.",
+            "locator": "Burkitt lymphoma section, line 391",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0049",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "Burkitt lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, Burkitt lymphoma should be classified into EBV-positive and EBV-negative subtypes rather than the traditional endemic, sporadic, and immunodeficiency-associated epidemiological variants.",
+            "locator": "Burkitt lymphoma section, lines 391–393",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0051",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "lymphoid neoplasm"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For a lymphoid neoplasm arising in immune deficiency/dysregulation, WHO-HAEM5 uses a three-part nomenclature comprising histological diagnosis, oncogenic-virus status, and the immune-deficiency/dysregulation setting.",
+            "locator": "Immune deficiency/dysregulation section and Table 5, lines 401–451",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0052",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "Hodgkin lymphoma"
+            ],
+            "diseases": [
+              "classic Hodgkin lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For classic Hodgkin lymphoma, WHO-HAEM5 advises caution in immune-deficiency/dysregulation settings and in purely extranodal CHL-like proliferations because EBV-positive HRS-like cells can occur in mimics.",
+            "locator": "Classic Hodgkin lymphoma section, line 461",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0053",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "Hodgkin lymphoma"
+            ],
+            "diseases": [
+              "nodular lymphocyte predominant Hodgkin lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, nodular lymphocyte predominant Hodgkin lymphoma remains the formal terminology, while “nodular lymphocyte predominant B-cell lymphoma” is an acceptable alternative name in preparation for possible future adoption.",
+            "locator": "NLPHL section, line 463",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0054",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "plasma cell neoplasm/paraprotein disorder",
+              "monoclonal gammopathy"
+            ],
+            "diseases": [
+              "MGRS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, monoclonal gammopathy of renal significance (MGRS) is a plasma-cell or B-cell proliferation below accepted malignancy criteria that secretes a monoclonal immunoglobulin or fragment causing kidney injury.",
+            "locator": "Plasma cell neoplasms section, line 471",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0055",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "plasma cell neoplasm/paraprotein disorder",
+              "plasma cell neoplasm",
+              "plasma cell neoplasm with paraneoplastic syndrome"
+            ],
+            "diseases": [
+              "TEMPI syndrome"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, TEMPI syndrome is included among plasma-cell-neoplasm-associated paraneoplastic syndromes.",
+            "locator": "Plasma cell neoplasms section, lines 467–469",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0056",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "plasma cell neoplasm/paraprotein disorder",
+              "plasma cell neoplasm",
+              "plasma cell neoplasm with paraneoplastic syndrome"
+            ],
+            "diseases": [
+              "TEMPI syndrome"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, TEMPI syndrome is diagnosed primarily using clinical and imaging investigations.",
+            "locator": "Plasma cell neoplasms section, line 473",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0057",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "precursor T-cell neoplasm"
+            ],
+            "diseases": [
+              "T-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "Indolent T-lymphoblastic proliferation may mimic T-ALL because of TdT expression, but typically lacks architectural destruction, marked cytologic atypia, and monoclonal TCR gene rearrangement.",
+            "locator": "Tumour-like T-cell lesions section, line 485",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0058",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "acute lymphoblastic leukaemia/lymphoma",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "precursor T-cell neoplasm"
+            ],
+            "diseases": [
+              "T-ALL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, genetically defined T-ALL types are not recognized because current genetic evidence is insufficient to establish clinically relevant genetic subtypes.",
+            "locator": "Precursor T-cell neoplasms section, lines 487–489",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0059",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm"
+            ],
+            "diseases": [
+              "acute lymphoblastic leukaemia/lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "Within acute lymphoblastic leukaemia/lymphoma classification, WHO-HAEM5 does not separately list NK-lymphoblastic leukaemia/lymphoma because reliable diagnostic criteria are lacking and there is substantial overlap with other CD56-positive acute neoplasms.",
+            "locator": "Precursor T-cell neoplasms section, line 489",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0060",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "mature T-cell/NK-cell leukaemia"
+            ],
+            "diseases": [
+              "T-PLL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TCL1A",
+              "MTCP1"
+            ],
+            "interpretation": "Unified diagnostic criteria for T-PLL include T-lymphocytosis above 5 × 10^9/L with appropriate phenotype and T-cell monoclonality plus genetic aberrations with breakpoints affecting TCL1A or MTCP1, or TCL1 expression.",
+            "locator": "T-prolymphocytic leukaemia section, line 497",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0061",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "mature T-cell/NK-cell leukaemia"
+            ],
+            "diseases": [
+              "T-LGLL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "STAT3"
+            ],
+            "interpretation": "In T-LGLL, STAT3 mutation is associated with poorer overall survival.",
+            "locator": "T-LGLL section, line 497",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0062",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "mature T-cell/NK-cell leukaemia"
+            ],
+            "diseases": [
+              "T-LGLL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "STAT5B"
+            ],
+            "interpretation": "In T-LGLL, STAT5B mutation is associated with poor prognosis in CD8-positive disease but has no prognostic impact in CD4-positive or gamma/delta T-LGLL.",
+            "locator": "T-LGLL section, line 497",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0063",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm"
+            ],
+            "diseases": [
+              "primary cutaneous T-cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "Because forms of primary cutaneous T-cell lymphoma overlap morphologically and immunophenotypically, WHO-HAEM5 regards clinical correlation, dermatological examination, and photographic documentation as indispensable to correct diagnosis.",
+            "locator": "Primary cutaneous T-cell lymphoma section, lines 503–507",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0064",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "intestinal T-cell/NK-cell lymphoid neoplasm"
+            ],
+            "diseases": [
+              "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "JAK3"
+            ],
+            "interpretation": "In indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract, recurrent somatic JAK3 mutations support its neoplastic classification rather than a reactive process.",
+            "locator": "Intestinal T/NK-cell section, line 511",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0065",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "intestinal T-cell/NK-cell lymphoid neoplasm"
+            ],
+            "diseases": [
+              "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "Indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract should not be misdiagnosed as extranodal NK/T-cell lymphoma; lack of EBV is a crucial differential feature supporting the indolent NK-cell lymphoproliferative disorder diagnosis.",
+            "locator": "Intestinal T/NK-cell section, line 511",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0066",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "anaplastic large cell lymphoma"
+            ],
+            "diseases": [
+              "ALK-negative anaplastic large cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP63",
+              "TP53"
+            ],
+            "interpretation": "In ALK-negative anaplastic large cell lymphoma, TP63 rearrangement and loss of TP53 are associated with poor outcome.",
+            "locator": "ALK-negative ALCL section, line 637",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0069",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm"
+            ],
+            "diseases": [
+              "nodal TFH cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, the TFH phenotype in nodal TFH cell lymphoma is defined by at least two TFH markers in addition to CD4.",
+            "locator": "Nodal TFH lymphoma section, line 651",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0070",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm"
+            ],
+            "diseases": [
+              "nodal TFH cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For difficult nodal TFH cell lymphoma diagnoses, WHO-HAEM5 recommends an integrated approach using clinical, morphologic, and immunophenotypic features, with genomic input for clonality and mutational profiles.",
+            "locator": "Nodal TFH lymphoma section, line 651",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0072",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "EBV-positive T/NK-cell lymphoma"
+            ],
+            "diseases": [
+              "EBV-positive nodal T/NK-cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, EBV-positive nodal T/NK-cell lymphoma is a distinct entity rather than a peripheral T-cell lymphoma, NOS subtype, and EBV positivity is required by definition.",
+            "locator": "Nodal EBV-positive T/NK-cell lymphoma section, lines 657–661",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0073",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ATM"
+            ],
+            "interpretation": "Ataxia telangiectasia is a lymphoid-neoplasm-relevant inherited predisposition syndrome linked to germline ATM mutations.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0074",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NBN"
+            ],
+            "interpretation": "Nijmegen breakage syndrome is a lymphoid-neoplasm-relevant inherited predisposition syndrome linked to germline NBN mutations.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0075",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "lymphoid neoplasm"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ATM"
+            ],
+            "interpretation": "In a lymphoid neoplasm arising in a patient with ataxia telangiectasia due to germline ATM predisposition, leukaemias and lymphomas should be diagnosed by conventional criteria and designated “AT-related”.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0076",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "lymphoid neoplasm"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NBN"
+            ],
+            "interpretation": "In a lymphoid neoplasm arising in a patient with Nijmegen breakage syndrome due to germline NBN predisposition, leukaemias and lymphomas should be diagnosed by conventional criteria and designated “NBS-related”.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0077",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "lymphoid neoplasm"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ATM"
+            ],
+            "interpretation": "In a lymphoid neoplasm associated with germline ATM predisposition causing ataxia telangiectasia, recognition of the syndrome is clinically important for treatment planning because of increased toxicities.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0078",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "lymphoid neoplasm"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NBN"
+            ],
+            "interpretation": "In a lymphoid neoplasm associated with germline NBN predisposition causing Nijmegen breakage syndrome, recognition of the syndrome is clinically important for treatment planning because of increased toxicities.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0079",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ATM"
+            ],
+            "interpretation": "Recognition of germline ATM predisposition causing ataxia telangiectasia is clinically important for surveillance of carriers and counselling of relatives.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0080",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "NBN"
+            ],
+            "interpretation": "Recognition of germline NBN predisposition causing Nijmegen breakage syndrome is clinically important for surveillance of carriers and counselling of relatives.",
+            "locator": "Genetic predisposition syndromes section, line 677",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0081",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "anaplastic large cell lymphoma"
+            ],
+            "diseases": [
+              "ALK-positive anaplastic large cell lymphoma",
+              "ALK-negative anaplastic large cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ALK"
+            ],
+            "interpretation": "According to WHO-HAEM5, ALK-positive anaplastic large cell lymphoma and ALK-negative anaplastic large cell lymphoma are distinct entities based on their distinct pathogenesis and clinical course.",
+            "locator": "Anaplastic large cell lymphoma section, line 637",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0082",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "HGBL-11q"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ID3",
+              "TCF3"
+            ],
+            "interpretation": "Genomic alterations affecting the ID3-TCF3 complex, a molecular hallmark of Burkitt lymphoma, are rare or absent in HGBL-11q, supporting molecular distinction between HGBL-11q and Burkitt lymphoma.",
+            "locator": "HGBL-11q section, line 361",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0084",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "small lymphocytic proliferation"
+            ],
+            "diseases": [
+              "CLL/SLL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For CLL/SLL transformation, WHO-HAEM5 recommends the term “Richter transformation” rather than “Richter Syndrome”.",
+            "locator": "CLL/SLL section, line 255",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0085",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "splenic B-cell lymphoma/leukaemia"
+            ],
+            "diseases": [
+              "SBLPN"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, splenic B-cell lymphoma/leukaemia with prominent nucleoli (SBLPN) replaces and absorbs cases formerly classified as hairy cell leukaemia variant.",
+            "locator": "SBLPN section and Fig. 1, lines 259–265 and 275",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0086",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "LPL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, lymphoplasmacytic lymphoma (LPL) has two subtypes: IgM LPL/Waldenström macroglobulinaemia type and non-WM type LPL; non-WM type LPL includes cases with IgG or IgA monoclonal proteins, non-secretory LPL, and IgM LPL without bone marrow involvement.",
+            "locator": "Lymphoplasmacytic lymphoma section, line 271",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0087",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "marginal zone lymphoma"
+            ],
+            "diseases": [
+              "paediatric MZL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, paediatric marginal zone lymphoma is a separate entity rather than a subtype of nodal marginal zone lymphoma.",
+            "locator": "Marginal zone lymphoma section, line 279",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0088",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "marginal zone lymphoma"
+            ],
+            "diseases": [
+              "primary cutaneous MZL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, primary cutaneous marginal zone lymphoma is a separate entity.",
+            "locator": "Marginal zone lymphoma section, line 279",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0090",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "follicular lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, follicular large B-cell lymphoma largely corresponds to WHO-HAEM4R follicular lymphoma grade 3B.",
+            "locator": "Follicular lymphoma section, line 323",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0091",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm"
+            ],
+            "diseases": [
+              "follicular lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, follicular lymphoma with uncommon features comprises two subsets: blastoid or large-centrocyte cytology, and predominantly diffuse growth pattern.",
+            "locator": "Follicular lymphoma section, line 325",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0092",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "primary large B-cell lymphoma of immune-privileged sites"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, primary large B-cell lymphoma of immune-privileged sites is an umbrella entity combining primary large B-cell lymphomas of the CNS, vitreoretina, and testis in immunocompetent patients.",
+            "locator": "Large B-cell lymphoma section, line 363",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0093",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "large B-cell lymphoma"
+            ],
+            "diseases": [
+              "primary large B-cell lymphoma of immune-privileged sites"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "B2M"
+            ],
+            "interpretation": "In primary large B-cell lymphoma of immune-privileged sites, genetic inactivation of B2M, together with MHC class I/II inactivation and subsequent loss of protein expression, is a distinctive immune-evasion molecular feature.",
+            "locator": "Table 4, lines 367–381",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0094",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "primary cutaneous T-cell lymphoma"
+            ],
+            "diseases": [
+              "primary cutaneous gamma/delta T-cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, primary cutaneous gamma/delta T-cell lymphoma is listed as a separate entity rather than within the WHO-HAEM4R group “cutaneous peripheral T-cell lymphoma, rare subtypes”.",
+            "locator": "Primary cutaneous T-cell lymphoma section, lines 501–505",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0095",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "primary cutaneous T-cell lymphoma"
+            ],
+            "diseases": [
+              "primary cutaneous peripheral T-cell lymphoma, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, primary cutaneous peripheral T-cell lymphoma, NOS is a new entity for rare primary cutaneous T-cell lymphoma cases that do not fit other recognized cutaneous T-cell lymphoma entities.",
+            "locator": "Primary cutaneous T-cell lymphoma section, lines 503–505",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0096",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "intestinal T-cell/NK-cell lymphoid neoplasm"
+            ],
+            "diseases": [
+              "indolent T-cell lymphoma of the gastrointestinal tract"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, indolent T-cell lymphoproliferative disorder of the gastrointestinal tract is renamed indolent T-cell lymphoma of the gastrointestinal tract.",
+            "locator": "Intestinal T/NK-cell section, line 511",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0097",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "intestinal T-cell/NK-cell lymphoid neoplasm"
+            ],
+            "diseases": [
+              "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract is a new entity.",
+            "locator": "Intestinal T/NK-cell section, line 511",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0098",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "anaplastic large cell lymphoma"
+            ],
+            "diseases": [
+              "breast implant-associated anaplastic large cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, breast implant-associated anaplastic large cell lymphoma is an entity distinct from other ALK-negative anaplastic large cell lymphoma.",
+            "locator": "Anaplastic large cell lymphoma section, line 637",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0099",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "nodal TFH cell lymphoma"
+            ],
+            "diseases": [
+              "nodal TFH cell lymphoma, angioimmunoblastic-type"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, angioimmunoblastic T-cell lymphoma is renamed nodal TFH cell lymphoma, angioimmunoblastic-type.",
+            "locator": "Nodal TFH lymphoma section, line 645",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0100",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "nodal TFH cell lymphoma"
+            ],
+            "diseases": [
+              "nodal TFH cell lymphoma, follicular-type"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, follicular T-cell lymphoma is renamed nodal TFH cell lymphoma, follicular-type.",
+            "locator": "Nodal TFH lymphoma section, line 645",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0101",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "nodal TFH cell lymphoma"
+            ],
+            "diseases": [
+              "nodal TFH cell lymphoma, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, peripheral T-cell lymphoma with TFH phenotype is renamed nodal TFH cell lymphoma, NOS.",
+            "locator": "Nodal TFH lymphoma section, line 645",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0102",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "nodal TFH cell lymphoma"
+            ],
+            "diseases": [
+              "nodal TFH cell lymphoma, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, nodal TFH cell lymphoma, NOS is recommended for CD4-positive lymphomas with a TFH phenotype that do not meet criteria for nodal TFH cell lymphoma, angioimmunoblastic-type or follicular-type.",
+            "locator": "Nodal TFH lymphoma section, line 651",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0103",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm"
+            ],
+            "diseases": [
+              "nodal TFH cell lymphoma",
+              "nodal TFH cell lymphoma, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "On core biopsies, WHO-HAEM5 recommends the generic term nodal TFH cell lymphoma rather than nodal TFH cell lymphoma, NOS to reduce misclassification from inadequate sampling.",
+            "locator": "Nodal TFH lymphoma section, line 651",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0104",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm"
+            ],
+            "diseases": [
+              "peripheral T-cell lymphoma, NOS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, peripheral T-cell lymphoma, NOS remains a diagnosis of exclusion, with nodal TFH cell lymphoma among the important differential diagnoses.",
+            "locator": "Peripheral T-cell lymphoma section, line 655",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0105",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "EBV-positive T/NK-cell lymphoma"
+            ],
+            "diseases": [
+              "extranodal NK/T-cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, extranodal NK/T-cell lymphoma drops the former “nasal-type” qualifier because the disease can present at multiple extranodal sites.",
+            "locator": "Extranodal NK/T-cell lymphoma section, line 655",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0107",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "B-cell lymphoid neoplasm",
+              "mature B-cell neoplasm",
+              "small lymphocytic proliferation"
+            ],
+            "diseases": [
+              "CLL/SLL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "For differential diagnosis of CLL/SLL from other small B-cell lymphomas/leukaemias, WHO-HAEM5 identifies CD10, CD43, CD79b, CD81, CD200, and ROR1 as useful additional targets.",
+            "locator": "CLL/SLL section, line 211",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0108",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "primary cutaneous T-cell lymphoma"
+            ],
+            "diseases": [
+              "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma is listed as a separate entity rather than within the WHO-HAEM4R group “cutaneous peripheral T-cell lymphoma, rare subtypes”.",
+            "locator": "Primary cutaneous T-cell lymphoma section, line 503",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0109",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "primary cutaneous T-cell lymphoma"
+            ],
+            "diseases": [
+              "primary cutaneous acral CD8-positive lymphoproliferative disorder"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, primary cutaneous acral CD8-positive lymphoproliferative disorder is listed as a separate entity rather than within the WHO-HAEM4R group “cutaneous peripheral T-cell lymphoma, rare subtypes”.",
+            "locator": "Primary cutaneous T-cell lymphoma section, line 503",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0110",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "lymphoid neoplasm",
+              "T-cell/NK-cell lymphoid neoplasm",
+              "mature T-cell/NK-cell neoplasm",
+              "primary cutaneous T-cell lymphoma"
+            ],
+            "diseases": [
+              "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "According to WHO-HAEM5, primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder is listed as a separate entity rather than within the WHO-HAEM4R group “cutaneous peripheral T-cell lymphoma, rare subtypes”.",
+            "locator": "Primary cutaneous T-cell lymphoma section, line 503",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 134,
+        "citation": {
+          "authors": [
+            "Alaggio R",
+            "Amador C",
+            "Anagnostopoulos I",
+            "Attygalle AD",
+            "Araujo IBdO",
+            "Berti E",
+            "Bhagat G",
+            "Borges AM",
+            "Boyer D",
+            "Calaminici M",
+            "Chadburn A",
+            "Chan JKC",
+            "Cheuk W",
+            "Chng W",
+            "Choi JK",
+            "Chuang S",
+            "Coupland SE",
+            "Czader M",
+            "Dave SS",
+            "de Jong D",
+            "Du M",
+            "Elenitoba-Johnson KS",
+            "Ferry J",
+            "Geyer J",
+            "Gratzinger D",
+            "Guitart J",
+            "Gujral S",
+            "Harris M",
+            "Harrison CJ",
+            "Hartmann S",
+            "Hochhaus A",
+            "Jansen PM",
+            "Karube K",
+            "Kempf W",
+            "Khoury J",
+            "Kimura H",
+            "Klapper W",
+            "Kovach AE",
+            "Kumar S",
+            "Lazar AJ",
+            "Lazzi S",
+            "Leoncini L",
+            "Leung N",
+            "Leventaki V",
+            "Li X",
+            "Lim MS",
+            "Liu W",
+            "Louissaint A",
+            "Marcogliese A",
+            "Medeiros LJ",
+            "Michal M",
+            "Miranda RN",
+            "Mitteldorf C",
+            "Montes-Moreno S",
+            "Morice W",
+            "Nardi V",
+            "Naresh KN",
+            "Natkunam Y",
+            "Ng S",
+            "Oschlies I",
+            "Ott G",
+            "Parrens M",
+            "Pulitzer M",
+            "Rajkumar SV",
+            "Rawstron AC",
+            "Rech K",
+            "Rosenwald A",
+            "Said J",
+            "Sarkozy C",
+            "Sayed S",
+            "Saygin C",
+            "Schuh A",
+            "Sewell W",
+            "Siebert R",
+            "Sohani AR",
+            "Tooze R",
+            "Traverse-Glehen A",
+            "Vega F",
+            "Vergier B",
+            "Wechalekar AD",
+            "Wood B",
+            "Xerri L",
+            "Xiao W"
+          ],
+          "citation_incomplete": [],
+          "display": "Alaggio R, Amador C, Anagnostopoulos I, Attygalle AD, Araujo IBdO, Berti E, et al. The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Lymphoid Neoplasms. Leukemia. 2022;36(7):1720-1748.",
+          "doi": "10.1038/s41375-022-01620-2",
+          "issue": "7",
+          "journal": "Leukemia",
+          "pages": "1720-1748",
+          "title": "The 5th edition of the World Health Organization Classification of Haematolymphoid Tumours: Lymphoid Neoplasms",
+          "volume": "36",
+          "year": 2022
+        },
+        "diseases_covered": [
+          "ALK-negative anaplastic large cell lymphoma",
+          "ALK-positive anaplastic large cell lymphoma",
+          "B-ALL",
+          "Burkitt lymphoma",
+          "CLL/SLL",
+          "DLBCL, NOS",
+          "DLBCL/HGBL-MYC/BCL2",
+          "EBV-positive nodal T/NK-cell lymphoma",
+          "HCL",
+          "HGBL, NOS",
+          "HGBL-11q",
+          "IgM LPL/WM",
+          "LPL",
+          "MBL",
+          "MGRS",
+          "SBLPN",
+          "SDRPL",
+          "T-ALL",
+          "T-LGLL",
+          "T-PLL",
+          "TEMPI syndrome",
+          "acute lymphoblastic leukaemia/lymphoma",
+          "breast implant-associated anaplastic large cell lymphoma",
+          "classic Hodgkin lymphoma",
+          "extranodal MZL of MALT",
+          "extranodal NK/T-cell lymphoma",
+          "fluid overload-associated large B-cell lymphoma",
+          "follicular lymphoma",
+          "in situ mantle cell neoplasm",
+          "indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+          "indolent T-cell lymphoma of the gastrointestinal tract",
+          "leukaemic non-nodal mantle cell lymphoma",
+          "lymphoid neoplasm",
+          "mantle cell lymphoma",
+          "nodal TFH cell lymphoma",
+          "nodal TFH cell lymphoma, NOS",
+          "nodal TFH cell lymphoma, angioimmunoblastic-type",
+          "nodal TFH cell lymphoma, follicular-type",
+          "nodular lymphocyte predominant Hodgkin lymphoma",
+          "paediatric MZL",
+          "peripheral T-cell lymphoma, NOS",
+          "primary cutaneous CD4-positive small/medium T-cell lymphoproliferative disorder",
+          "primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma",
+          "primary cutaneous MZL",
+          "primary cutaneous T-cell lymphoma",
+          "primary cutaneous acral CD8-positive lymphoproliferative disorder",
+          "primary cutaneous gamma/delta T-cell lymphoma",
+          "primary cutaneous peripheral T-cell lymphoma, NOS",
+          "primary large B-cell lymphoma of immune-privileged sites"
+        ],
+        "extraction_date": "2026-08-24",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ABL1",
+          "ALK",
+          "ATM",
+          "B2M",
+          "BCL2",
+          "BCL6",
+          "BCR",
+          "BIRC3",
+          "BRAF",
+          "CCND1",
+          "CCND2",
+          "CCND3",
+          "CCNE",
+          "CD79B",
+          "CXCR4",
+          "ETV6",
+          "HLF",
+          "ID3",
+          "IGH",
+          "IGK",
+          "IGL",
+          "IL3",
+          "IRF4",
+          "JAK3",
+          "KMT2A",
+          "MALT1",
+          "MTCP1",
+          "MYC",
+          "MYD88",
+          "NBN",
+          "PBX1",
+          "RUNX1",
+          "SOX11",
+          "STAT3",
+          "STAT5B",
+          "TCF3",
+          "TCL1A",
+          "TP53",
+          "TP63"
+        ],
+        "paper_nickname": "WHO5 Lymphoid Classification 2022",
+        "publication_key": "alaggio-2022-leukemia-who5-lymphoid",
+        "publication_type": "consensus statement"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-24",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0001",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0003",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0004",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0005",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0006",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0007",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0008",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0009",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0010",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0013",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0014",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0015",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0016",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0019",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0020",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0021",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0022",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0023",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0024",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0025",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0026",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0027",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0029",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0030",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0031",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0032",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0033",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0034",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0035",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0036",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0037",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0038",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0039",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0040",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0041",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0042",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0043",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0044",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0045",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0046",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0047",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0048",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0049",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0051",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0052",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0053",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0054",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0055",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0056",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0057",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0058",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0059",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0060",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0061",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0062",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0063",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0064",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0065",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0066",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0069",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0070",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0072",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0073",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0074",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0075",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0076",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0077",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0078",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0079",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0080",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0081",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0082",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0084",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0085",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0086",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0087",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0088",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0090",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0091",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0092",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0093",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0094",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0095",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0096",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0097",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0098",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0099",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0100",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0101",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0102",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0103",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0104",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0105",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0107",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0108",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0109",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "alaggio-2022-leukemia-who5-lymphoid-C0110",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 98,
+          "census_claims": 134,
+          "census_entries": 134,
+          "ratio": 0.73
+        },
+        "input_id": "7723720e-4888-52d0-af34-ca8f7d60043d",
+        "markdown_sha256": "9fccd246533cc292d58b8ed609057a30064fe8d30596c4b07ac2badf4b6378a8",
+        "source_filename": "Alaggio-2022-Leukemia-WHO5-Lymphoid.pdf",
+        "source_sha256": "7b2dd8bbfa57480a119fc038977f41de53861543474649528bba40b6b99c0a2c",
         "warnings": []
       }
     },
