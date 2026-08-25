@@ -1,5 +1,15 @@
 # NEWS
 
+## 0.2.4
+- Made `terraced-v6` the default reporting workflow, with native session-model execution and retained staged provider pipelines.
+- Added independent WHO5, ICC, and second-WHO5 diagnosis passes before downstream prognosis, treatment, MRD, and germline reasoning.
+- Deferred card assignment until shared evidence resolution, followed by independent audit and cropped disagreement adjudication.
+- Added deterministic dissent rendering for evidence disagreements and adjudication outcomes.
+- Native-self runs now default to system temporary storage; `->project` retains runs under repository `temp/`.
+- Rebuilt the active corpus to 12 publications accepted under version 0.2.4.
+- Added the consolidated ten-case `nel-validate-brief` end-to-end regression suite.
+- Owner proformas now strip premature card tags and allow multiple supporting cards per reason after evidence resolution.
+
 ## 0.2.3
 - Strengthened `terraced-v1` negative-statement gating with an exhaustive per-fact reportability classification contract and deterministic quarantine derivation. Resuming an older work directory without `synthesis/reportability-classification.yaml` reruns the reportability stage before synthesis.
 - Added `WORKFLOW.md` documenting workflow isolation, cloning, modification, validation, and promotion.

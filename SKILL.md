@@ -19,7 +19,7 @@ This file routes the request only. The selected workflow's `SKILL.md` is authori
 
 Read `workflows/registry.json` and resolve exactly one workflow before reading case-specific inputs.
 
-- No workflow selector: use `default_workflow` from the registry (`terraced_v6`).
+- No workflow selector: use `default_workflow` from the registry (`terraced-v6`).
 - `--diagnosis-first`: resolve the registry alias `diagnosis-first` (`diagnosis-first-v1`).
 - `--diagnosis-first-v1`: select `diagnosis-first-v1` explicitly.
 - `--terraced`: resolve the registry alias `terraced` (`terraced-v6`).

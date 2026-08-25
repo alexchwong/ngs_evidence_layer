@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "default_workflow": "terraced_v6",
+  "default_workflow": "terraced-v6",
   "aliases": {
     "legacy": "legacy-v1",
     "diagnosis-first": "diagnosis-first-v1",

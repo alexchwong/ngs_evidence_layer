@@ -84,10 +84,8 @@ class TerracedWorkflowTests(unittest.TestCase):
             ):
                 self.assertEqual(step.load_settings()["structural_attempts"], 10)
 
-    def test_terraced_alias_is_registered_without_changing_default(self):
+    def test_terraced_v1_remains_registered(self):
         registry = load_registry()
-        self.assertEqual(normalise_selector(None, registry), "categorical-v1")
-        self.assertEqual(normalise_selector("--terraced", registry), "terraced-v1")
         self.assertEqual(normalise_selector("--terraced-v1", registry), "terraced-v1")
 
     def test_question_profiles_preserve_every_question_once_in_order(self):

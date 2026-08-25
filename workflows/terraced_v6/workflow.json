@@ -2,7 +2,10 @@
   "schema_version": 1,
   "workflow_id": "terraced-v6",
   "python_package": "workflows.terraced_v6",
-  "entrypoints": {"runtime": "runtime"},
+  "entrypoints": {
+    "rendering": "rendering",
+    "runtime": "runtime"
+  },
   "skill": "workflows/terraced_v6/SKILL.md",
   "pipeline": "workflows/terraced_v6/pipelines/self.yaml",
   "supported_modes": ["ngs-report", "nel-demo", "nel-validate", "nel-validate-function", "nel-validate-brief"],

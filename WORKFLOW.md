@@ -83,20 +83,26 @@ copies of these CLIs.
 
 | Workflow | Status | Purpose |
 |---|---|---|
-| `categorical-v1` | accepted/default | Uses diagnosis-first evidence retrieval, integrates diagnosis early, then drafts final diagnosis/prognosis/treatment/MRD/germline categories independently. |
+| `terraced-v6` | experimental/default | Current default; isolated WHO5/ICC/WHO5 reasoning, combined downstream domains, audited evidence resolution, and final synthesis. |
+| `terraced-v5` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
+| `terraced-v4` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
+| `terraced-v3` | experimental | Scheduler-based terraced workflow retained for explicit comparison and regression. |
+| `terraced-v2` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
+| `terraced-v1` | experimental | First terraced workflow derived from categorical-v1. |
+| `categorical-v1` | accepted | Diagnosis-first evidence retrieval with independently drafted diagnosis/prognosis/treatment/MRD/germline categories. |
 | `diagnosis-first-v1` | accepted | Previous diagnosis-first summarisation workflow; available through `--diagnosis-first` or its explicit workflow ID. |
-| `legacy-v1` | legacy | Uses the previous adjudication-first/evidence-block pipeline and remains available through explicit legacy selectors. |
+| `legacy-v1` | legacy | Previous adjudication-first/evidence-block pipeline; available only through explicit legacy selectors. |
 
 The top-level `SKILL.md` accepts an explicit registered selector such as
 `--my-workflow-v1`. The selected workflow's own `SKILL.md` then controls execution.
 
 ## Clone the current workflow
 
-Create a new workflow from the current accepted workflow from the repository root:
+Create a new workflow from the current default workflow from the repository root:
 
 ```bash
 python scripts/devel_workflow.py new \
-  --from categorical-v1 \
+  --from terraced-v6 \
   --name <new-workflow-id>
 ```
 

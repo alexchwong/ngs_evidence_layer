@@ -38,8 +38,9 @@ CURRENT_RULE_PROMPTS = {"diagnosis_context.md", "diagnosis_rule_view.md", "remai
 def test_root_skill_routes_default_and_legacy_through_registry():
     skill = ROOT_SKILL.read_text(encoding="utf-8")
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
-    assert registry["default_workflow"] == "categorical-v1"
+    assert registry["default_workflow"] == "terraced-v6"
     assert registry["aliases"]["diagnosis-first"] == "diagnosis-first-v1"
+    assert registry["aliases"]["terraced"] == "terraced-v6"
     assert registry["aliases"]["legacy"] == "legacy-v1"
     assert "workflows/registry.json" in skill
     assert "--diagnosis-first" in skill

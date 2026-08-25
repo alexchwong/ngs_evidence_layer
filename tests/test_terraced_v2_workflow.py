@@ -13,10 +13,9 @@ V2 = ROOT / "workflows" / "terraced_v2"
 
 
 class TerracedV2WorkflowTests(unittest.TestCase):
-    def test_terraced_v2_is_registered_without_repointing_terraced_alias(self):
+    def test_terraced_v2_is_registered(self):
         registry = load_registry()
         self.assertEqual(registry["workflows"]["terraced-v2"]["path"], "workflows/terraced_v2")
-        self.assertEqual(normalise_selector("terraced", registry), "terraced-v1")
         self.assertEqual(normalise_selector("terraced-v2", registry), "terraced-v2")
         self.assertEqual(load_workflow_metadata("terraced-v2")["python_package"], "workflows.terraced_v2")
 
