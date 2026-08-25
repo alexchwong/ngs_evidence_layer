@@ -1,16 +1,16 @@
 evidence audit failed validation with 3 issue(s):
-1. audits[0].comments
-   Problem: expected array; received string.
-   Required fix: reserialize the existing value with the correct structure, without changing its content.
-   Received: fine
-   Expected: array
-2. audits[0].quote_supports_statement
+1. audits[0].card_audits[0].card_is_element_of_reason
    Problem: expected true or false; received string.
    Required fix: reserialize the existing value as an unquoted boolean.
    Received: yes
    Expected: true | false
-3. audits[0].risk
-   Problem: 'severe' is not an allowed risk level.
-   Required fix: use one exact risk level from ['none', 'warning'].
+2. audits[0].card_audits[0].comments
+   Problem: expected array; received string.
+   Required fix: reserialize the existing value with the correct structure, without changing its content.
+   Received: fine
+   Expected: array
+3. audits[0].card_audits[0].risk
+   Problem: 'severe' is not an allowed value.
+   Required fix: use one exact value from ['none', 'warning'].
    Received: severe
    Expected: ['none', 'warning']

@@ -12,11 +12,7 @@ rules:
   field: matches
   id_field: evidence_id
   source: items
-- rule: references_exist
-  field: matches
-  value_field: card_tag
-  source: candidate_card_tags
-- rule: null_evidence_match_contract
+- rule: evidence_match_tags_exist
 retries:
   content: 2
   serialization: 3

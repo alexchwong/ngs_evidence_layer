@@ -1,31 +1,24 @@
-# Batched semantic evidence-card match
+# Batched reason-to-card evidence match
 
-For EVERY supplied evidence item, select the SINGLE candidate card that most directly and affirmatively supports the clinical `statement`. Use `reason` only to understand why the statement is being made and what aspect requires support.
+For EVERY supplied evidence item, decide which candidate cards are genuine elements of the clinical `reason`.
 
-Priorities:
-1. same clinical claim/function, gene/variant, disease and context;
-2. affirmative support for the statement rather than mere absence of contradiction;
-3. when several cards are suitable, prefer wording closest to the statement/reason.
+A card is an element of a reason only when the clinical proposition expressed by the card is actually present in that reason. Topical relevance, a shared gene/disease, or absence of contradiction is insufficient.
 
-On a retry, an item may include `prior_failed_matches`. Treat every listed card tag as rejected. Read ALL prior audit feedback, not only the latest failure, and use it to avoid repeating the same semantic mismatch. Rejected cards are also removed from `candidate_card_tags`.
+Select ALL candidate cards that independently match an element of the reason. More than one card may be selected for one reason. Do not require one card to support the whole reason: different cards may support different elements.
 
-If none of the remaining candidate cards directly supports the proposition, declare no citation support instead of choosing a merely related card:
+On a retry, an item may include `prior_failed_matches`. Treat every listed card tag as rejected. Read ALL prior audit feedback and use it to avoid repeating the same semantic mismatch. Rejected cards are removed from `candidate_card_tags`.
 
-```yaml
-card_tag: null
-source: null
-quote: null
-```
+If none of the remaining candidate cards is an element of the reason, return an empty `card_tags` list. Do not choose a merely related card.
 
-`source` is a concise human-readable authority/framework/study inferred from the selected card. `quote` should reproduce the most relevant wording faithfully enough to preserve polarity and meaning.
-
-Do not rewrite the statement or reason to fit a card. Previous auditor feedback is useful but non-authoritative.
+Do not rewrite or reinterpret the reason to fit a card. Previous auditor feedback is useful but non-authoritative.
 
 Return YAML only, preserving evidence IDs and order:
 ```yaml
 matches:
   - evidence_id: E0001
-    card_tag: "exact supplied [card:0123456789ab] tag or null"
-    source: "human-readable source or null"
-    quote: "closest relevant wording or null"
+    card_tags:
+      - "exact supplied [card:0123456789ab] tag"
+      - "exact supplied [card:abcdef012345] tag"
+  - evidence_id: E0002
+    card_tags: []
 ```

@@ -129,66 +129,81 @@ def id_subset(doc, context, params):
     return found
 
 
-def references_exist(doc, context, params):
-    """Each row's value must be one of that row's own supplied candidates."""
-    rows = _field(doc, params["field"])
+def evidence_match_tags_exist(doc, context, params):
+    """Every selected tag must come from that evidence item's candidates."""
     by_id = {row["evidence_id"]: row for row in context.get("items") or []}
     out = []
-    for i, row in enumerate(rows if isinstance(rows, list) else []):
+    for i, row in enumerate(doc.get("matches") or []):
         if not isinstance(row, dict):
             continue
         item = by_id.get(row.get("evidence_id"))
-        if item is None or row.get(params["value_field"]) is None:
+        if item is None:
             continue
-        out += iss.enum_field(
-            row.get(params["value_field"]),
-            item.get(params["source"]) or [],
-            f"{params['field']}[{i}].{params['value_field']}",
-            label="candidate card tag" if params["value_field"] == "card_tag" else "candidate card",
-        )
-    return out
-
-
-
-def null_evidence_match_contract(doc, context, params):
-    """A no-support match must leave card/source/quote all null."""
-    out = []
-    for i, row in enumerate(doc.get("matches") or []):
-        if not isinstance(row, dict) or row.get("card_tag") is not None:
-            continue
-        if row.get("source") is not None or row.get("quote") is not None:
-            out.append(
-                ValidationIssue(
-                    f"matches[{i}]",
-                    "card_tag is null but source/quote are populated",
-                    "when declaring no citation support, return card_tag: null, source: null and quote: null",
-                    repair_class="content",
-                    received=f"source={iss.preview(row.get('source'))} quote={iss.preview(row.get('quote'))}",
-                    expected="card_tag/source/quote all null",
-                )
+        for j, tag in enumerate(row.get("card_tags") or []):
+            out += iss.enum_field(
+                tag, item.get("candidate_card_tags") or [],
+                f"matches[{i}].card_tags[{j}]", label="candidate card tag",
             )
     return out
 
 
-def audit_feedback_when_needed(doc, context, params):
-    """Failed/warning audits must explain why, because matcher retries consume it."""
+def evidence_audit_cards_exact(doc, context, params):
+    """Audit exactly the selected card tags once for each evidence item."""
+    by_id = {row["evidence_id"]: row for row in context.get("items") or []}
     out = []
     for i, row in enumerate(doc.get("audits") or []):
         if not isinstance(row, dict):
             continue
-        needs = row.get("quote_supports_statement") is False or row.get("quote_supports_reason") is False or row.get("risk") == "warning"
-        comments = row.get("comments")
-        if needs and isinstance(comments, list) and not any(isinstance(x, str) and x.strip() for x in comments):
+        item = by_id.get(row.get("evidence_id"))
+        if item is None:
+            continue
+        expected = list(item.get("selected_card_tags") or [])
+        audits = row.get("card_audits")
+        if not isinstance(audits, list):
+            continue
+        seen = [x.get("card_tag") for x in audits if isinstance(x, dict)]
+        missing = [x for x in expected if x not in seen]
+        unexpected = [x for x in seen if x not in expected]
+        duplicates = sorted({x for x in seen if x is not None and seen.count(x) > 1})
+        if missing or unexpected or duplicates:
+            parts = []
+            if missing: parts.append(f"missing {missing}")
+            if unexpected: parts.append(f"unexpected {unexpected}")
+            if duplicates: parts.append(f"duplicate {duplicates}")
             out.append(
                 ValidationIssue(
-                    f"audits[{i}].comments",
-                    "support failed or a warning was raised without explanatory feedback",
-                    "state concisely why the selected card is inappropriate or what the warning is, so the next matcher can choose better evidence",
+                    f"audits[{i}].card_audits",
+                    "; ".join(parts),
+                    "return exactly one card audit for every selected card tag and no others",
                     repair_class="content",
-                    received=iss.preview(comments),
-                    expected="one or more actionable audit comments",
+                    received=f"card tags {seen}",
+                    expected=f"card tags {expected}",
                 )
             )
+    return out
+
+def audit_feedback_when_needed(doc, context, params):
+    """Failed/warning card audits must explain why for matcher retries."""
+    out = []
+    for i, row in enumerate(doc.get("audits") or []):
+        if not isinstance(row, dict):
+            continue
+        for j, audit in enumerate(row.get("card_audits") or []):
+            if not isinstance(audit, dict):
+                continue
+            needs = audit.get("card_is_element_of_reason") is False or audit.get("risk") == "warning"
+            comments = audit.get("comments")
+            if needs and isinstance(comments, list) and not any(isinstance(x, str) and x.strip() for x in comments):
+                out.append(
+                    ValidationIssue(
+                        f"audits[{i}].card_audits[{j}].comments",
+                        "card/reason membership failed or a warning was raised without explanatory feedback",
+                        "state concisely why the card is not an element of the reason or what the warning is, so the next matcher can choose better evidence",
+                        repair_class="content",
+                        received=iss.preview(comments),
+                        expected="one or more actionable audit comments",
+                    )
+                )
     return out
 
 def exclusive_with(doc, context, params):
@@ -377,8 +392,8 @@ REGISTRY = {
     "rows_per_id": rows_per_id,
     "enum": enum,
     "id_subset": id_subset,
-    "references_exist": references_exist,
-    "null_evidence_match_contract": null_evidence_match_contract,
+    "evidence_match_tags_exist": evidence_match_tags_exist,
+    "evidence_audit_cards_exact": evidence_audit_cards_exact,
     "audit_feedback_when_needed": audit_feedback_when_needed,
     "exclusive_with": exclusive_with,
     "prognostic_score_not_null_excuse": prognostic_score_not_null_excuse,

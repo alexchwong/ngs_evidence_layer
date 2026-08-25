@@ -1,6 +1,12 @@
 audits:
   - evidence_id: E0001
-    quote_supports_statement: true
-    quote_supports_reason: true
-    risk: none
-    comments: []
+    card_audits:
+      - card_tag: "[card:000000000001]"
+        card_is_element_of_reason: true
+        risk: none
+        comments: []
+      - card_tag: "[card:000000000002]"
+        card_is_element_of_reason: true
+        risk: warning
+        comments:
+          - "Context is narrower than the reason."

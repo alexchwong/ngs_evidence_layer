@@ -43,7 +43,6 @@ def public_match_item(item, tag_by_id):
     out = {
         "evidence_id": item["evidence_id"],
         "schema_id": item["schema_id"],
-        "statement": item["statement"],
         "reason": item["reason"],
         "candidate_card_tags": [f"[card:{tag_by_id[cid]}]" for cid in remaining_candidate_ids(item)],
     }

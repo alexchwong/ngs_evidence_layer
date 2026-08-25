@@ -113,28 +113,37 @@ def validate_evidence_match_batch(text, items):
             if not isinstance(row, dict):
                 continue
             path = f"matches[{i}]"
-            problems += iss.exact_keys(row, {"evidence_id", "card_tag", "source", "quote"}, path)
-            item = by_id.get(row.get("evidence_id"))
-            card_tag = row.get("card_tag")
-            if card_tag is None:
-                if row.get("source") is not None or row.get("quote") is not None:
-                    problems.append(
-                        ValidationIssue(
-                            path,
-                            "card_tag is null but source/quote are populated",
-                            "when declaring no citation support, return card_tag: null, source: null and quote: null",
-                            repair_class="content",
-                            received=f"source={iss.preview(row.get('source'))} quote={iss.preview(row.get('quote'))}",
-                            expected="card_tag/source/quote all null",
-                        )
+            problems += iss.exact_keys(row, {"evidence_id", "card_tags"}, path)
+            tags = row.get("card_tags")
+            if not isinstance(tags, list):
+                problems.append(
+                    ValidationIssue(
+                        f"{path}.card_tags",
+                        f"expected a list; received {iss.type_name(tags)}",
+                        "return card_tags as a list, using [] when no candidate card is an element of the reason",
+                        repair_class="serialization" if isinstance(tags, str) else "content",
+                        received=iss.preview(tags),
+                        expected="list of candidate card tags",
                     )
-            else:
+                )
+                continue
+            if len(tags) != len(set(x for x in tags if isinstance(x, str))):
+                problems.append(
+                    ValidationIssue(
+                        f"{path}.card_tags",
+                        "contains duplicate card tags",
+                        "list each selected card tag once",
+                        repair_class="content",
+                        received=iss.preview(tags),
+                        expected="unique candidate card tags",
+                    )
+                )
+            item = by_id.get(row.get("evidence_id"))
+            for j, tag in enumerate(tags):
                 if item is not None:
                     problems += iss.enum_field(
-                        card_tag, item["candidate_card_tags"], f"{path}.card_tag", label="candidate card tag"
+                        tag, item["candidate_card_tags"], f"{path}.card_tags[{j}]", label="candidate card tag"
                     )
-                problems += iss.text_field(row.get("source"), f"{path}.source")
-                problems += iss.text_field(row.get("quote"), f"{path}.quote")
     fail(ctx, problems)
     return "evidence matches valid"
 
@@ -145,42 +154,77 @@ def validate_evidence_audit_batch(text, items):
     rows = doc.get("audits")
     expected = [x["evidence_id"] for x in items]
     problems += iss.one_row_per_id(rows, expected, id_field="evidence_id", path="audits")
+    by_id = {x["evidence_id"]: x for x in items}
     if isinstance(rows, list):
         for i, row in enumerate(rows):
             if not isinstance(row, dict):
                 continue
             path = f"audits[{i}]"
-            problems += iss.exact_keys(
-                row,
-                {"evidence_id", "quote_supports_statement", "quote_supports_reason", "risk", "comments"},
-                path,
-            )
-            problems += iss.bool_field(row.get("quote_supports_statement"), f"{path}.quote_supports_statement")
-            problems += iss.bool_field(row.get("quote_supports_reason"), f"{path}.quote_supports_reason")
-            problems += iss.enum_field(row.get("risk"), ("none", "warning"), f"{path}.risk", label="risk level")
-            comments = row.get("comments")
-            if not isinstance(comments, list) or any(not isinstance(x, str) for x in comments):
+            problems += iss.exact_keys(row, {"evidence_id", "card_audits"}, path)
+            card_audits = row.get("card_audits")
+            if not isinstance(card_audits, list):
                 problems.append(
                     ValidationIssue(
-                        f"{path}.comments",
-                        f"expected a list of strings; received {iss.type_name(comments)}",
-                        "return comments as a list of strings, using [] when there is nothing to note",
-                        repair_class="serialization" if isinstance(comments, str) else "content",
-                        received=iss.preview(comments),
-                        expected="list of strings",
+                        f"{path}.card_audits",
+                        f"expected a list; received {iss.type_name(card_audits)}",
+                        "return one card_audits list containing one audit for every selected card tag",
+                        repair_class="serialization" if isinstance(card_audits, str) else "content",
+                        received=iss.preview(card_audits),
+                        expected="list of card audit mappings",
                     )
                 )
-            elif (row.get("quote_supports_statement") is False or row.get("quote_supports_reason") is False or row.get("risk") == "warning") and not any(x.strip() for x in comments):
+                continue
+            item = by_id.get(row.get("evidence_id")) or {}
+            selected = list(item.get("selected_card_tags") or [])
+            seen = [x.get("card_tag") for x in card_audits if isinstance(x, dict)]
+            missing = [x for x in selected if x not in seen]
+            unexpected = [x for x in seen if x not in selected]
+            duplicates = sorted({x for x in seen if x is not None and seen.count(x) > 1})
+            if missing or unexpected or duplicates:
+                parts = []
+                if missing: parts.append(f"missing {missing}")
+                if unexpected: parts.append(f"unexpected {unexpected}")
+                if duplicates: parts.append(f"duplicate {duplicates}")
                 problems.append(
                     ValidationIssue(
-                        f"{path}.comments",
-                        "support failed or a warning was raised without explanatory feedback",
-                        "state concisely why the selected card is inappropriate or what the warning is, so the next matcher can choose better evidence",
+                        f"{path}.card_audits",
+                        "; ".join(parts),
+                        "return exactly one card audit for every selected card tag and no others",
                         repair_class="content",
-                        received=iss.preview(comments),
-                        expected="one or more actionable audit comments",
+                        received=f"card tags {seen}",
+                        expected=f"card tags {selected}",
                     )
                 )
+            for j, audit in enumerate(card_audits):
+                if not isinstance(audit, dict):
+                    continue
+                apath = f"{path}.card_audits[{j}]"
+                problems += iss.exact_keys(audit, {"card_tag", "card_is_element_of_reason", "risk", "comments"}, apath)
+                problems += iss.bool_field(audit.get("card_is_element_of_reason"), f"{apath}.card_is_element_of_reason")
+                problems += iss.enum_field(audit.get("risk"), ("none", "warning"), f"{apath}.risk", label="risk level")
+                comments = audit.get("comments")
+                if not isinstance(comments, list) or any(not isinstance(x, str) for x in comments):
+                    problems.append(
+                        ValidationIssue(
+                            f"{apath}.comments",
+                            f"expected a list of strings; received {iss.type_name(comments)}",
+                            "return comments as a list of strings, using [] when there is nothing to note",
+                            repair_class="serialization" if isinstance(comments, str) else "content",
+                            received=iss.preview(comments),
+                            expected="list of strings",
+                        )
+                    )
+                elif (audit.get("card_is_element_of_reason") is False or audit.get("risk") == "warning") and not any(x.strip() for x in comments):
+                    problems.append(
+                        ValidationIssue(
+                            f"{apath}.comments",
+                            "card/reason membership failed or a warning was raised without explanatory feedback",
+                            "state concisely why the card is not an element of the reason or what the warning is, so the next matcher can choose better evidence",
+                            repair_class="content",
+                            received=iss.preview(comments),
+                            expected="one or more actionable audit comments",
+                        )
+                    )
     fail(ctx, problems)
     return "evidence audits valid"
 

@@ -4,7 +4,7 @@ evidence match failed validation with 2 issue(s):
    Required fix: return exactly one row for every supplied evidence_id and no other rows.
    Received: 2 row(s): ['E0001', 'E0099']
    Expected: 2 row(s): ['E0001', 'E0002']
-2. matches[0].card_tag
+2. matches[0].card_tags[0]
    Problem: '[card:000000000009]' is not an allowed candidate card tag.
    Required fix: use one exact candidate card tag from ['[card:000000000001]', '[card:000000000002]'].
    Received: [card:000000000009]

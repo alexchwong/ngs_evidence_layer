@@ -401,6 +401,49 @@ def _prepare_structured(work,raw,fmt,call_id,syntax_binding,*,syntax_attempts):
     return result.text
 
 
+_RUNTIME_CARD_TAG_RE=re.compile(r"\[card:[0-9a-f]{12}\]")
+
+
+def _sanitize_proforma_text(work,call_id,text):
+    """Silently remove evidence-card assignment leaked into an owner pro-forma.
+
+    Card identity belongs to evidence resolution, never to diagnosis/PTBG owner
+    reasoning.  This runs after syntax repair but before deterministic validation,
+    so a harmless leaked tag does not consume a model repair turn.
+    """
+    try:
+        doc=yaml.safe_load(text)
+    except yaml.YAMLError:
+        return text
+    records=[]
+
+    def walk(value,path=''):
+        if isinstance(value,dict):
+            out={}
+            for key,item in value.items():
+                child=f'{path}.{key}' if path else str(key)
+                if key in {'card_tag','card_tags'}:
+                    records.append({'stage':call_id,'transform':'strip_proforma_card_assignment','path':child})
+                    continue
+                if key=='reason' and isinstance(item,str):
+                    cleaned=' '.join(_RUNTIME_CARD_TAG_RE.sub(' ',item).split()).strip()
+                    if cleaned!=item:
+                        records.append({'stage':call_id,'transform':'strip_runtime_card_tag_from_reason','path':child})
+                    out[key]=cleaned
+                else:
+                    out[key]=walk(item,child)
+            return out
+        if isinstance(value,list):
+            return [walk(item,f'{path}[{i}]') for i,item in enumerate(value)]
+        return value
+
+    cleaned=walk(doc)
+    if not records:
+        return text
+    _log_transforms(work,records)
+    return yaml.safe_dump(cleaned,sort_keys=False,allow_unicode=True,width=110)
+
+
 def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
     """Bind the shared runner to this workflow's filesystem, logging and provider.
 
@@ -453,13 +496,16 @@ def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt
     root=layout.model_step_dir(work,call_id,existing=False)
     messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
     if feedback: messages.append({'role':'user','content':feedback})
+    def prepare(raw):
+        text=_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=_retry('syntax_repair_attempts')) if fmt else model_client.strip_code_fence(raw)
+        return _sanitize_proforma_text(work,call_id,text) if mode=='proforma' and fmt=='yaml' else text
     request=validated_model_task.TaskRequest(
         task_id=call_id,
         messages=messages,
         validate=validator,
         fmt=fmt,
         mode=mode,
-        prepare=(lambda raw:_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=_retry('syntax_repair_attempts'))) if fmt else None,
+        prepare=prepare,
         budgets=validated_model_task.Budgets(
             content=int(max_attempts if max_attempts is not None else _retry('fatal_model_attempts')),
             serialization=_retry('syntax_repair_attempts'),
@@ -844,16 +890,36 @@ def _resolve_no_citation_support(work,el,*,attempt,reason):
     )
     return None
 
-def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
-    """Resolve reportable propositions through cumulative semantic match/audit attempts.
+def _card_evidence_source(card):
+    for key in ('source_hint','paper_nickname','citation_display','publication_key'):
+        value=str(card.get(key) or '').strip()
+        if value: return value
+    return 'unspecified source'
 
-    Per-model syntax/content retries remain inside ``_model_call``.  This loop is
-    deliberately separate: one semantic attempt means a completed evidence match
-    followed by its evidence audit.  Failed cards are excluded from later attempts
-    and every prior audit comment is carried forward.
+
+def _accepted_evidence(card,card_tag,audit,semantic_attempt):
+    """Deterministic evidence record for one independently audited card."""
+    return {
+        'status':'matched',
+        'card_id':card['card_id'],
+        'card_tag':card_tag,
+        'source':_card_evidence_source(card),
+        'quote':str(card.get('interpretation') or '').strip(),
+        'audit':audit,
+        'semantic_attempt':semantic_attempt,
+    }
+
+
+def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
+    """Resolve each reason to zero or more independently audited evidence cards.
+
+    The matcher only selects cards whose proposition is an element of the reason.
+    The auditor independently applies that same membership test per selected card.
+    A semantic retry is needed only when none of the selected cards survives audit;
+    mixed batches retain passing cards and drop failed cards individually.
     """
     tag_by_id=card_identity.tag_by_id(manifest); catalog={}; pending=[]; keep=[]
-    enriched=[dict(el,evidence=None) for el in elements]
+    enriched=[dict(el,evidence=[]) for el in elements]
     for idx,el in enumerate(enriched,1):
         candidates=_candidate_cards(el,cards_by_domain,reg)
         if not candidates:
@@ -870,13 +936,12 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
         for c in candidates: catalog[c['card_id']]=c
         pending.append({'evidence_id':eid,'element_index':idx-1,'schema_id':el['schema_id'],'statement':el['statement'],'reason':el['reason'],'candidate_card_ids':[c['card_id'] for c in candidates],'failures':[]})
     max_attempts=max(1,_retry('evidence_resolution_attempts'))
+    id_by_tag={f'[card:{tag}]':cid for cid,tag in tag_by_id.items()}
     for semantic_attempt in range(1,max_attempts+1):
         if not pending: break
-        active=[]
-        exhausted=[]
+        active=[]; exhausted=[]
         for item in pending:
-            if evidence_resolution.remaining_candidate_ids(item): active.append(item)
-            else: exhausted.append(item)
+            (active if evidence_resolution.remaining_candidate_ids(item) else exhausted).append(item)
         for item in exhausted:
             el=enriched[item['element_index']]
             resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='All candidate evidence cards were rejected by prior semantic audits.')
@@ -900,25 +965,25 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
             validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=profile,
             max_attempts=_retry('evidence_match_model_attempts'),
         )
-        matches=yaml.safe_load(_read(mpath))['matches']; id_by_tag={f'[card:{tag}]':cid for cid,tag in tag_by_id.items()}
-        for match in matches:
-            tag=match.get('card_tag'); match['card_id']=id_by_tag[tag] if tag is not None else None
-        mmap={m['evidence_id']:m for m in matches}
+        matches=yaml.safe_load(_read(mpath))['matches']; mmap={m['evidence_id']:m for m in matches}
         audit_items=[]
         for item in pending:
-            m=mmap[item['evidence_id']]
-            if m.get('card_id') is None: continue
-            audit_items.append(item)
+            tags=list(mmap[item['evidence_id']].get('card_tags') or [])
+            if tags: audit_items.append({'evidence_id':item['evidence_id'],'selected_card_tags':tags})
         audited={}
         if audit_items:
             audit_rows=[]
-            for item in audit_items:
-                m=mmap[item['evidence_id']]
-                audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'statement':item['statement'],'reason':item['reason'],'source':m['source'],'quote':m['quote'],'selected_card_tag':m['card_tag']})
+            selected_ids=[]
+            for item in pending:
+                tags=list(mmap[item['evidence_id']].get('card_tags') or [])
+                if not tags: continue
+                audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'reason':item['reason'],'selected_card_tags':tags})
+                for tag in tags:
+                    cid=id_by_tag[tag]
+                    if cid not in selected_ids: selected_ids.append(cid)
             apath=_existing_or_new(work,'evidence_audits',f'attempt-{semantic_attempt:02d}.yaml')
-            selected_ids=list(dict.fromkeys(mmap[item['evidence_id']]['card_id'] for item in audit_items))
             selected_cards=[catalog[cid] for cid in selected_ids]
-            aprompt=(_prompt('evidence_audit')+'\n\n# Selected evidence pairs\n```yaml\n'
+            aprompt=(_prompt('evidence_audit')+'\n\n# Selected reason/card sets\n```yaml\n'
                 +yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
                 +'\n# Selected card catalog\n'+_render_cards(selected_cards,tag_by_id)+'\n')
             _model_call(
@@ -926,50 +991,56 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
                 validator=lambda t,ai=audit_items:schema_validation.validate_evidence_audit_batch(t,ai),profile=profile,
                 max_attempts=_retry('evidence_audit_model_attempts'),
             )
-            audits=yaml.safe_load(_read(apath))['audits']; audited={a['evidence_id']:a for a in audits}
+            audits=yaml.safe_load(_read(apath))['audits']
+            audited={a['evidence_id']:{x['card_tag']:x for x in a.get('card_audits') or []} for a in audits}
         next_pending=[]
         for item in pending:
-            el=enriched[item['element_index']]; m=mmap[item['evidence_id']]
-            if m.get('card_id') is None:
+            el=enriched[item['element_index']]; tags=list(mmap[item['evidence_id']].get('card_tags') or [])
+            if not tags:
                 issue=f'evidence:{el["schema_id"]}'
                 _semantic_dissent(
                     work,issue_key=issue,stage=f'evidence matching attempt {semantic_attempt}',reviewed_text=_evidence_reviewed_text(el),
-                    dissent_reason='Evidence matcher declared that no remaining candidate card directly supports the proposition.',
+                    dissent_reason='Evidence matcher declared that no remaining candidate card is an element of the reason.',
                     action_recommended='Do not force a merely related citation; apply the proposition-specific no-support policy.',
                 )
-                resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='Evidence matcher declared no direct citation support.')
+                resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='Evidence matcher declared no card to be an element of the reason.')
                 if resolved is not None: keep.append(resolved)
                 continue
-            a=audited[item['evidence_id']]; ok=bool(a['quote_supports_statement'] and a['quote_supports_reason'])
-            if ok:
+            passed=[]
+            for tag in tags:
+                cid=id_by_tag[tag]; audit=audited[item['evidence_id']][tag]
+                if audit['card_is_element_of_reason']:
+                    passed.append(_accepted_evidence(catalog[cid],tag,audit,semantic_attempt))
+                    if audit.get('risk')=='warning':
+                        warning=f'evidence-warning:{el["schema_id"]}:{tag}'
+                        _semantic_dissent(work,issue_key=warning,stage=f'evidence audit attempt {semantic_attempt}',reviewed_text=el['reason'],dissent_reason=audit.get('comments') or ['Evidence fidelity/context warning.'],action_recommended='Retain this card/reason match with dissent visible for review.')
+                        _semantic_dissent_address(work,issue_key=warning,stage='evidence resolution',action='Retain supported card/reason match.',outcome='Membership passed; warning remains visible.',status='retained_with_dissent')
+                    continue
+                comments=audit.get('comments') or ['Selected card is not an element of the reason.']
+                item['failures'].append({'attempt':semantic_attempt,'card_id':cid,'comments':list(comments)})
+                issue=f'evidence:{el["schema_id"]}'
+                _semantic_dissent(
+                    work,issue_key=issue,stage=f'evidence audit attempt {semantic_attempt}',reviewed_text=_evidence_reviewed_text(el),
+                    dissent_reason=[f'Card {cid} rejected: {comment}' for comment in comments],
+                    action_recommended='Exclude this card from later attempts; retain any independently passing cards; retry only if no selected card passed.',
+                )
+            if passed:
+                el['evidence']=passed
                 issue=f'evidence:{el["schema_id"]}'
                 if item['failures']:
                     _semantic_dissent_address(
                         work,issue_key=issue,stage='evidence resolution',
-                        action=f'Accept replacement evidence after semantic attempt {semantic_attempt}.',
-                        outcome=f'Card {m["card_id"]} passed evidence audit; prior failed attempts remain recorded.',status='resolved',
+                        action=f'Retain independently audited card/reason matches from semantic attempt {semantic_attempt}.',
+                        outcome=f'{len(passed)} card(s) passed; rejected card attempts remain recorded.',status='resolved',
                     )
-                if a.get('risk')=='warning':
-                    warning=f'evidence-warning:{el["schema_id"]}'
-                    _semantic_dissent(work,issue_key=warning,stage=f'evidence audit attempt {semantic_attempt}',reviewed_text=el['statement'],dissent_reason=a.get('comments') or ['Evidence fidelity/context warning.'],action_recommended='Retain the supported proposition with dissent visible for review.')
-                    _semantic_dissent_address(work,issue_key=warning,stage='evidence resolution',action='Retain supported proposition.',outcome='Support passed; warning remains visible.',status='retained_with_dissent')
-                el['evidence']={'status':'matched','card_id':m['card_id'],'card_tag':f'[card:{tag_by_id[m["card_id"]]}]','source':m['source'],'quote':m['quote'],'audit':a,'semantic_attempt':semantic_attempt}
-                keep.append(el); continue
-            comments=a.get('comments') or ['Selected evidence did not support the proposition and reason.']
-            item['failures'].append({'attempt':semantic_attempt,'card_id':m['card_id'],'comments':list(comments)})
-            issue=f'evidence:{el["schema_id"]}'
-            _semantic_dissent(
-                work,issue_key=issue,stage=f'evidence audit attempt {semantic_attempt}',reviewed_text=_evidence_reviewed_text(el),
-                dissent_reason=[f'Card {m["card_id"]} rejected: {comment}' for comment in comments],
-                action_recommended='Exclude this card from later attempts; pass all audit feedback to the matcher; select a better direct-support card or declare no citation support.',
-            )
+                keep.append(el)
+                continue
             if semantic_attempt<max_attempts and evidence_resolution.remaining_candidate_ids(item):
                 next_pending.append(item)
             else:
-                resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='Semantic evidence-resolution attempts were exhausted without direct support.')
+                resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='Semantic evidence-resolution attempts were exhausted without a card that is an element of the reason.')
                 if resolved is not None: keep.append(resolved)
         pending=next_pending
-    # Preserve original report order regardless of which semantic attempt resolved an item.
     order={el['schema_id']:i for i,el in enumerate(enriched)}
     keep.sort(key=lambda el:order.get(el['schema_id'],len(order)))
     _write(_existing_or_new(work,'evidence_enriched','reportable-elements.yaml'),yaml.safe_dump({'elements':keep},sort_keys=False,allow_unicode=True,width=110))
@@ -1001,14 +1072,14 @@ def stage_blocks(work,diagnosis,elements,reg):
     for sid,role in (('DX-WHO5','who5'),('DX-ICC','icc'),('DX-SECOND','second_diagnosis')):
         el=by_id.get(sid)
         if not el: continue
-        src=el['source']; dx.append({'role':role,'diagnosis':src.get('diagnosis'),'reason':src.get('reason'),'variants':src.get('variants') or [],'genes':_genes(reg,src.get('variants') or []),'card_tags':[el['evidence']['card_tag']] if el.get('evidence') else []})
+        src=el['source']; dx.append({'role':role,'diagnosis':src.get('diagnosis'),'reason':src.get('reason'),'variants':src.get('variants') or [],'genes':_genes(reg,src.get('variants') or []),'card_tags':[ev['card_tag'] for ev in (el.get('evidence') or [])]})
     if dx:
         who=next((x for x in dx if x['role']=='who5'),None); icc=next((x for x in dx if x['role']=='icc'),None)
         relationship=('same' if who and icc and runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different' if who and icc else 'partial')
         blocks.append({'block_id':'DX','domain':'diagnosis','relationship':relationship,'components':dx})
     order={'prognosis':1,'treatment':2,'biomarker':3,'germline':4}
     for el in sorted((e for e in elements if e['domain']!='diagnosis'),key=lambda e:(order[e['domain']],e['schema_id'])):
-        src=dict(el['source']); blocks.append({'block_id':el['schema_id'],'domain':el['domain'],'components':[{'role':el['bucket'],'reason':el['reason'],'variants':el.get('variants') or [],'genes':_genes(reg,el.get('variants') or []),'source':src,'card_tags':[el['evidence']['card_tag']] if el.get('evidence') else []}]})
+        src=dict(el['source']); blocks.append({'block_id':el['schema_id'],'domain':el['domain'],'components':[{'role':el['bucket'],'reason':el['reason'],'variants':el.get('variants') or [],'genes':_genes(reg,el.get('variants') or []),'source':src,'card_tags':[ev['card_tag'] for ev in (el.get('evidence') or [])]}]})
     _write(_existing_or_new(work,'report_blocks','report-blocks.yaml'),yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110))
     return blocks
 
@@ -1061,8 +1132,9 @@ def _write_dissent(work):
 def stage_final(work,case,final_blocks,elements,all_cards,digest,manifest):
     ids=[]
     for el in elements:
-        ev=el.get('evidence') or {}; cid=ev.get('card_id')
-        if cid and cid not in ids: ids.append(cid)
+        for ev in el.get('evidence') or []:
+            cid=ev.get('card_id')
+            if cid and cid not in ids: ids.append(cid)
     by_id={c['card_id']:c for c in all_cards}; selected=[by_id[cid] for cid in ids if cid in by_id]
     bundle={'workflow_profile':WORKFLOW_ID,'terraced_domain':'all','genes':runtime.case_genes(case),'retrieved':selected,'runtime_card_tags':card_identity.runtime_tag_map(manifest),'provenance':{'corpus_sha256':digest,'retrieved_at':datetime.now(timezone.utc).isoformat()}}
     bpath=_existing_or_new(work,'final_evidence','bundle.json'); epath=_existing_or_new(work,'final_evidence','evidence.md'); tpath=_existing_or_new(work,'final_evidence','card-tags.json'); _write(bpath,json.dumps(bundle,indent=2,ensure_ascii=False)+'\n'); rendering.render_to_files(bpath,output=epath,card_tag_output=tpath,retrieved_only=True)

@@ -1,23 +1,31 @@
-# Statement/reason versus evidence audit
+# Reason-to-card evidence audit
 
-Audit EVERY selected quote/card against BOTH the clinical statement and the reason used to justify it.
+Audit EVERY selected card independently against the clinical `reason`.
 
-For each item decide:
-- `quote_supports_statement`: does the quote affirmatively support the actual statement being made?
-- `quote_supports_reason`: does the quote support the stated reason?
+For each selected card answer one question:
 
-A card about a different clinical use of the same gene is not support for this claim. Absence of contrary evidence is not affirmative support.
+- `card_is_element_of_reason`: is the clinical proposition expressed by this card actually an element of the reason?
 
-When an item fails, make `comments` operational for the next evidence-match attempt: state concisely WHY the selected card is inappropriate (for example wrong clinical function, wrong disease, wrong gene/variant, wrong framework, wrong polarity, or only indirect/related evidence). Do not prescribe a replacement clinical answer or invent a card.
+A card about a different clinical use of the same gene is not an element of the reason. Topical relevance, a shared gene/disease, absence of contrary evidence, or merely compatible wording is insufficient.
 
-Use `risk: warning` for non-gating fidelity/strength/context concerns when both support checks still pass. Give concise comments explaining any failure or warning.
+A card does NOT need to support the whole reason. Different cards may support different elements of the same reason.
 
-Return YAML only, preserving evidence IDs and order:
+When a card fails, make `comments` operational for the next evidence-match attempt: state concisely WHY it is not an element of the reason (for example wrong clinical function, wrong disease, wrong gene/variant, wrong framework, wrong polarity, or only indirect/related evidence). Do not prescribe a replacement clinical answer or invent a card.
+
+Use `risk: warning` for non-gating fidelity/strength/context concerns when `card_is_element_of_reason` is still true. Give concise comments explaining any failure or warning.
+
+Return YAML only, preserving evidence IDs, card tags and order:
 ```yaml
 audits:
   - evidence_id: E0001
-    quote_supports_statement: true
-    quote_supports_reason: true
-    risk: none
-    comments: []
+    card_audits:
+      - card_tag: "[card:0123456789ab]"
+        card_is_element_of_reason: true
+        risk: none
+        comments: []
+      - card_tag: "[card:abcdef012345]"
+        card_is_element_of_reason: false
+        risk: none
+        comments:
+          - "The card addresses treatment response, not the prognostic element stated in the reason."
 ```

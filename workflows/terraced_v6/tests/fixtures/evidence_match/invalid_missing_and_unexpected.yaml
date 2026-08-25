@@ -1,9 +1,7 @@
 matches:
   - evidence_id: E0001
-    card_tag: "[card:000000000009]"
-    source: Khoury 2022
-    quote: "Adverse prognosis."
+    card_tags:
+      - "[card:000000000009]"
   - evidence_id: E0099
-    card_tag: "[card:000000000003]"
-    source: Arber 2022
-    quote: "Diagnostic."
+    card_tags:
+      - "[card:000000000003]"
