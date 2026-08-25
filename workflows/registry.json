@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "default_workflow": "categorical-v1",
+  "default_workflow": "terraced_v6",
   "aliases": {
     "legacy": "legacy-v1",
     "diagnosis-first": "diagnosis-first-v1",
-    "terraced": "terraced-v1"
+    "terraced": "terraced-v6"
   },
   "workflows": {
     "categorical-v1": {
