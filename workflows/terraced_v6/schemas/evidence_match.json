@@ -13,7 +13,7 @@
         "additionalProperties": false,
         "required": [
           "evidence_id",
-          "card_id",
+          "card_tag",
           "source",
           "quote"
         ],
@@ -22,12 +22,12 @@
             "type": "string",
             "minLength": 1
           },
-          "card_id": {
+          "card_tag": {
             "type": [
               "string",
               "null"
             ],
-            "minLength": 1
+            "pattern": "^\\[card:[0-9a-f]{12}\\]$"
           },
           "source": {
             "type": [

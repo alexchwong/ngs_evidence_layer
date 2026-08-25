@@ -144,7 +144,7 @@ def references_exist(doc, context, params):
             row.get(params["value_field"]),
             item.get(params["source"]) or [],
             f"{params['field']}[{i}].{params['value_field']}",
-            label="candidate card",
+            label="candidate card tag" if params["value_field"] == "card_tag" else "candidate card",
         )
     return out
 
@@ -154,17 +154,17 @@ def null_evidence_match_contract(doc, context, params):
     """A no-support match must leave card/source/quote all null."""
     out = []
     for i, row in enumerate(doc.get("matches") or []):
-        if not isinstance(row, dict) or row.get("card_id") is not None:
+        if not isinstance(row, dict) or row.get("card_tag") is not None:
             continue
         if row.get("source") is not None or row.get("quote") is not None:
             out.append(
                 ValidationIssue(
                     f"matches[{i}]",
-                    "card_id is null but source/quote are populated",
-                    "when declaring no citation support, return card_id: null, source: null and quote: null",
+                    "card_tag is null but source/quote are populated",
+                    "when declaring no citation support, return card_tag: null, source: null and quote: null",
                     repair_class="content",
                     received=f"source={iss.preview(row.get('source'))} quote={iss.preview(row.get('quote'))}",
-                    expected="card_id/source/quote all null",
+                    expected="card_tag/source/quote all null",
                 )
             )
     return out

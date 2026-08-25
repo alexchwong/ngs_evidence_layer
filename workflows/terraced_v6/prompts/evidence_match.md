@@ -7,12 +7,12 @@ Priorities:
 2. affirmative support for the statement rather than mere absence of contradiction;
 3. when several cards are suitable, prefer wording closest to the statement/reason.
 
-On a retry, an item may include `prior_failed_matches`. Treat every listed card as rejected. Read ALL prior audit feedback, not only the latest failure, and use it to avoid repeating the same semantic mismatch. Rejected cards are also removed from `candidate_card_ids`.
+On a retry, an item may include `prior_failed_matches`. Treat every listed card tag as rejected. Read ALL prior audit feedback, not only the latest failure, and use it to avoid repeating the same semantic mismatch. Rejected cards are also removed from `candidate_card_tags`.
 
 If none of the remaining candidate cards directly supports the proposition, declare no citation support instead of choosing a merely related card:
 
 ```yaml
-card_id: null
+card_tag: null
 source: null
 quote: null
 ```
@@ -25,7 +25,7 @@ Return YAML only, preserving evidence IDs and order:
 ```yaml
 matches:
   - evidence_id: E0001
-    card_id: "exact supplied card_id or null"
+    card_tag: "exact supplied [card:0123456789ab] tag or null"
     source: "human-readable source or null"
     quote: "closest relevant wording or null"
 ```

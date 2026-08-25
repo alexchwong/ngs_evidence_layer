@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 import pytest
 from scripts.core.validated_model_task import ValidationFailure
-from workflows.terraced_v6 import domain_contract, pipeline_registry, runtime, schema_validation, stage_checks, step
+from workflows.terraced_v6 import card_identity, domain_contract, pipeline_registry, rendering, runtime, schema_validation, stage_checks, step
 
 ROOT=Path(__file__).resolve().parents[3]
 HERE=Path(__file__).resolve().parents[1]
@@ -24,6 +24,7 @@ def test_settings_are_lean():
     old={'statement_generation_attempts','statement_audit_attempts','summary_plan_attempts','paraphrase_attempts','semantic_proforma_regenerations'}
     assert not old & set(d['retries'])
     assert set(d['prompts'])=={'structure_case','diagnosis_who5','diagnosis_icc','diagnosis_other','prognosis','treatment','biomarker','germline','evidence_match','evidence_audit','report_write','report_preservation'}
+    assert d['rendering']['cards']=='compact'
 
 def test_removed_prompt_assets_absent():
     for name in ('statement_generation.md','statement_audit.md','summary_plan.md','summary_plan_audit.md','paraphrase.md','paraphrase_audit.md'):
@@ -96,8 +97,8 @@ def test_germline_integrated_buckets_cover_variants():
 def test_finite_membership_context_only_detected_variants():
     reg={'v01':{'gene':'ASXL1'},'v02':{'gene':'TET2'}}
     card={'card_id':'C1','category':'diagnosis','genes':['ASXL1'],'interpretation':'defined by mutation in ASXL1'}
-    ctx=step._finite_membership_context(reg,[card])
-    assert ctx['finite_gene_set_membership']['C1']=={'qualifying':['v01'],'not_qualifying':['v02']}
+    ctx=step._finite_membership_context(reg,[card],{'C1':'aaaaaaaaaaaa'})
+    assert ctx['finite_gene_set_membership']['[card:aaaaaaaaaaaa]']=={'qualifying':['v01'],'not_qualifying':['v02']}
 
 def test_parallel_rows_consolidate_only_same_normalized_proposition():
     reg={'v01':{'gene':'ASXL1','description':'ASXL1 p.X'},'v02':{'gene':'SRSF2','description':'SRSF2 p.Y'}}
@@ -371,6 +372,102 @@ def test_domain_prompts_no_longer_carry_their_own_output_shape():
         assert 'Return YAML only' not in text
         assert '```yaml' not in text
 
+# --- Diagnosis retrieval and shared card rendering -----------------------------
+
+def test_diagnosis_retrieval_is_cmc_or_gene():
+    cards=[
+        {'card_id':'CMC','category':'diagnosis','genes':['OTHER'],'diseases':['AML']},
+        {'card_id':'GENE','category':'diagnosis','genes':['BCR'],'diseases':['unrelated disease']},
+        {'card_id':'NOPE','category':'diagnosis','genes':['OTHER'],'diseases':['unrelated disease']},
+    ]
+    found=step._draw_diagnosis_cards(cards,['BCR'],['AML'])
+    assert [c['card_id'] for c in found]==['CMC','GENE']
+
+
+def test_diagnosis_authority_filter_is_preserved(monkeypatch):
+    cards=[
+        {'card_id':'WHO','publication_key':'who5'},
+        {'card_id':'ICC','publication_key':'icc'},
+    ]
+    monkeypatch.setattr(step,'_diagnosis_authority_publications',lambda authority:{'who5'} if authority=='who5' else {'icc'})
+    assert [c['card_id'] for c in step._filter_diagnosis_authority(cards,'who5')]==['WHO']
+    assert [c['card_id'] for c in step._filter_diagnosis_authority(cards,'icc')]==['ICC']
+
+
+def test_stage8_diagnosis_candidates_do_not_refilter_by_proposition_gene():
+    cards=[
+        _test_card('BCR-CARD',gene='BCR',category='diagnosis'),
+        _test_card('ANKRD26-CARD',gene='ANKRD26',category='diagnosis'),
+    ]
+    el={'domain':'diagnosis','evidence_domain':'diagnosis_who5','variants':['v01']}
+    reg={'v01':{'gene':'ANKRD26'}}
+    assert [c['card_id'] for c in step._candidate_cards(el,{'diagnosis_who5':cards},reg)]==['BCR-CARD','ANKRD26-CARD']
+
+
+def test_ptbg_candidates_keep_existing_proposition_gene_filter():
+    cards=[
+        _test_card('FLT3',gene='FLT3'),
+        _test_card('NPM1',gene='NPM1'),
+        _test_card('GENELESS',gene=None),
+    ]
+    el={'domain':'prognosis','evidence_domain':'prognosis','variants':['v01']}
+    reg={'v01':{'gene':'FLT3'}}
+    assert [c['card_id'] for c in step._candidate_cards(el,{'prognosis':cards},reg)]==['FLT3','GENELESS']
+
+
+def test_compact_prompt_cards_group_metadata_and_use_only_12hex_tags():
+    cards=[
+        {'card_id':'LONG-CARD-1','category':'diagnosis','genes':['BCR','ABL1'],'diseases':['AML'],
+         'evidence_tier':'guideline criterion','interpretation':'AML with BCR::ABL1 is defined here.',
+         'paper_nickname':'WHO5 2022 Myeloid Classification'},
+        {'card_id':'LONG-CARD-2','category':'diagnosis','genes':['NPM1'],'diseases':['AML'],
+         'evidence_tier':'guideline criterion','interpretation':'AML with NPM1 is defined here.',
+         'paper_nickname':'WHO5 2022 Myeloid Classification'},
+    ]
+    tags={'LONG-CARD-1':'111111111111','LONG-CARD-2':'222222222222'}
+    text=rendering.render_prompt_cards(cards,tags,mode='compact')
+    assert text.count('## WHO5 2022 Myeloid Classification')==1
+    assert text.count('### diagnosis')==1
+    assert text.count('#### AML')==1
+    assert '[card:111111111111] AML with BCR::ABL1 is defined here. (evidence_tier: guideline criterion)' in text
+    assert '[card:222222222222] AML with NPM1 is defined here. (evidence_tier: guideline criterion)' in text
+    assert 'genes:' not in text and 'LONG-CARD-' not in text
+    assert all(line.count('[card:')<=1 for line in text.splitlines())
+
+
+def test_verbose_prompt_cards_use_tags_but_preserve_metadata():
+    card={'card_id':'LONG-CARD','category':'diagnosis','genes':['BCR'],'diseases':['AML'],
+          'evidence_tier':'guideline criterion','interpretation':'Interpretation.',
+          'paper_nickname':'WHO5'}
+    text=rendering.render_prompt_cards([card],{'LONG-CARD':'abcdef123456'},mode='verbose')
+    assert '### [card:abcdef123456]' in text
+    assert 'genes: BCR' in text
+    assert 'source_hint: WHO5' in text
+    assert 'LONG-CARD' not in text
+
+
+def test_runtime_card_tags_are_unique_12hex_and_resolve_to_canonical_ids():
+    cards=[{'card_id':'A'},{'card_id':'B'},{'card_id':'C'}]
+    manifest=card_identity.build_manifest(cards)
+    tags=card_identity.tag_by_id(manifest)
+    assert set(tags)=={'A','B','C'}
+    assert len(set(tags.values()))==3
+    assert all(len(tag)==12 and all(ch in '0123456789abcdef' for ch in tag) for tag in tags.values())
+    reverse={tag:cid for cid,tag in tags.items()}
+    assert all(reverse[tag]==cid for cid,tag in tags.items())
+
+
+def test_card_render_setting_accepts_compact_and_verbose(monkeypatch):
+    monkeypatch.setattr(step,'load_settings',lambda:{'rendering':{'cards':'compact'}})
+    assert step._card_render_mode()=='compact'
+    monkeypatch.setattr(step,'load_settings',lambda:{'rendering':{'cards':'verbose'}})
+    assert step._card_render_mode()=='verbose'
+    monkeypatch.setattr(step,'load_settings',lambda:{})
+    assert step._card_render_mode()=='compact'
+    monkeypatch.setattr(step,'load_settings',lambda:{'rendering':{'cards':'yaml'}})
+    with pytest.raises(step.StepFailure): step._card_render_mode()
+
+
 # --- Semantic evidence-resolution retries ------------------------------------
 
 def _test_card(card_id, *, gene='FLT3', category='prognosis'):
@@ -398,13 +495,13 @@ def _scripted_model_call(script, prompt_checks=None):
 
 
 def test_evidence_match_allows_explicit_no_citation_support():
-    items=[{'evidence_id':'E0001','candidate_card_ids':['C1']}]
+    items=[{'evidence_id':'E0001','candidate_card_tags':['[card:aaaaaaaaaaa1]']}]
     schema_validation.validate_evidence_match_batch(
-        'matches:\n  - evidence_id: E0001\n    card_id: null\n    source: null\n    quote: null\n', items
+        'matches:\n  - evidence_id: E0001\n    card_tag: null\n    source: null\n    quote: null\n', items
     )
     with pytest.raises(ValidationFailure):
         schema_validation.validate_evidence_match_batch(
-            'matches:\n  - evidence_id: E0001\n    card_id: null\n    source: study\n    quote: null\n', items
+            'matches:\n  - evidence_id: E0001\n    card_tag: null\n    source: study\n    quote: null\n', items
         )
 
 
@@ -416,25 +513,25 @@ def test_semantic_retry_carries_all_prior_audit_feedback_and_resolves_dissent(tm
         'evidence_domain':'prognosis','required':False,'source':{'variants':['v01']}}
     reg={'v01':{'gene':'FLT3'}}
     script={
-        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_id: C1\n    source: one\n    quote: quote one\n',
+        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_tag: "[card:aaaaaaaaaaa1]"\n    source: one\n    quote: quote one\n',
         'evidence-audit-batch-01':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["wrong disease context"]\n',
-        'evidence-match-batch-02':'matches:\n  - evidence_id: E0001\n    card_id: C2\n    source: two\n    quote: quote two\n',
+        'evidence-match-batch-02':'matches:\n  - evidence_id: E0001\n    card_tag: "[card:aaaaaaaaaaa2]"\n    source: two\n    quote: quote two\n',
         'evidence-audit-batch-02':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["wrong clinical function"]\n',
-        'evidence-match-batch-03':'matches:\n  - evidence_id: E0001\n    card_id: C3\n    source: three\n    quote: quote three\n',
+        'evidence-match-batch-03':'matches:\n  - evidence_id: E0001\n    card_tag: "[card:aaaaaaaaaaa3]"\n    source: three\n    quote: quote three\n',
         'evidence-audit-batch-03':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: true\n    quote_supports_reason: true\n    risk: none\n    comments: []\n',
     }
     def check2(prompt):
-        assert 'rejected_card_id: C1' in prompt
+        assert "rejected_card_tag: '[card:aaaaaaaaaaa1]'" in prompt
         assert 'wrong disease context' in prompt
-        assert 'candidate_card_ids:\n  - C2\n  - C3' in prompt
+        assert "candidate_card_tags:\n  - '[card:aaaaaaaaaaa2]'\n  - '[card:aaaaaaaaaaa3]'" in prompt
     def check3(prompt):
-        assert 'rejected_card_id: C1' in prompt and 'rejected_card_id: C2' in prompt
+        assert "rejected_card_tag: '[card:aaaaaaaaaaa1]'" in prompt and "rejected_card_tag: '[card:aaaaaaaaaaa2]'" in prompt
         assert 'wrong disease context' in prompt and 'wrong clinical function' in prompt
-        assert 'candidate_card_ids:\n  - C3' in prompt
+        assert "candidate_card_tags:\n  - '[card:aaaaaaaaaaa3]'" in prompt
     monkeypatch.setattr(step,'_model_call',_scripted_model_call(script,{
         'evidence-match-batch-02':check2,'evidence-match-batch-03':check3}))
     monkeypatch.setattr(step,'_retry',lambda name: 3 if name=='evidence_resolution_attempts' else 2)
-    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'T1','C2':'T2','C3':'T3'})
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'aaaaaaaaaaa1','C2':'aaaaaaaaaaa2','C3':'aaaaaaaaaaa3'})
     out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
     assert len(out)==1 and out[0]['evidence']['card_id']=='C3'
     assert out[0]['evidence']['semantic_attempt']==3
@@ -452,14 +549,14 @@ def test_ptbg_semantic_exhaustion_suppresses_statement_but_keeps_failed_audits(t
         'variants':['v01'],'evidence_domain':'prognosis','required':False,'source':{'variants':['v01']}}
     reg={'v01':{'gene':'FLT3'}}
     script={
-        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_id: C1\n    source: one\n    quote: q1\n',
+        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_tag: "[card:aaaaaaaaaaa1]"\n    source: one\n    quote: q1\n',
         'evidence-audit-batch-01':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["first mismatch"]\n',
-        'evidence-match-batch-02':'matches:\n  - evidence_id: E0001\n    card_id: C2\n    source: two\n    quote: q2\n',
+        'evidence-match-batch-02':'matches:\n  - evidence_id: E0001\n    card_tag: "[card:aaaaaaaaaaa2]"\n    source: two\n    quote: q2\n',
         'evidence-audit-batch-02':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["second mismatch"]\n',
     }
     monkeypatch.setattr(step,'_model_call',_scripted_model_call(script))
     monkeypatch.setattr(step,'_retry',lambda name: 2)
-    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'T1','C2':'T2'})
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'aaaaaaaaaaa1','C2':'aaaaaaaaaaa2'})
     out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
     assert out==[]
     issue=step._semantic_dissent_issue(tmp_path,'evidence:PX-ADVERSE-01')
@@ -476,12 +573,12 @@ def test_supplied_morphology_is_fallback_when_diagnosis_evidence_exhausts(tmp_pa
         'source':{'schema_disease':'AML','diagnosis':'AML with subtype X','diagnostic_effect':'refined','variants':['v01'],'reason':'FLT3 refines the diagnosis.'},
         'morphologic_diagnosis_origin':'supplied','starting_morphologic_diagnosis':'AML'}
     script={
-        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_id: D1\n    source: dx\n    quote: q\n',
+        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_tag: "[card:ddddddddddd1]"\n    source: dx\n    quote: q\n',
         'evidence-audit-batch-01':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["does not support subtype X"]\n',
     }
     monkeypatch.setattr(step,'_model_call',_scripted_model_call(script))
     monkeypatch.setattr(step,'_retry',lambda name: 3 if name=='evidence_resolution_attempts' else 2)
-    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'D1':'TD1'})
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'D1':'ddddddddddd1'})
     out=step.stage_evidence(tmp_path,[el],{'diagnosis_who5':[card]}, {'v01':{'gene':'FLT3'}},{},None)
     assert len(out)==1
     assert out[0]['source']['diagnosis']=='AML'

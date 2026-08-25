@@ -18,11 +18,15 @@ V6 is intentionally smaller than v5.
 - `schema_engine.py` — maps `jsonschema` errors onto `ValidationIssue`.
 - `rules.py` — the named relational rules a stage asset may reference.
 - `stage_validation.py` — schema + rules, ordered by document position.
-- `settings.json.template` — retry, authority, retrieval, and reportability policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
+- `settings.json.template` — retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
 - `pipelines/` — model bindings for self, LM Studio, and OpenRouter.
 
 Clinical interpretation belongs to the owner call. Downstream code must not re-diagnose or repair owner clinical reasoning.
+
+## Model-facing card rendering
+
+Every prompt that shows evidence cards must call `rendering.render_prompt_cards()`. Compact mode is the default and groups `source_hint -> category -> diseases`, with exactly one card per line. The model sees only `[card:<12-hex-tag>]`; canonical corpus `card_id` values remain internal/persisted provenance. Evidence matching therefore returns `card_tag`, which Python resolves back to the canonical ID before audit and report construction. Diagnosis retrieval is `diagnosis AND (CMC OR gene)` plus the framework authority filter, and Stage 8 must not apply a second diagnosis gene filter.
 
 ## Model-facing identifier rule
 

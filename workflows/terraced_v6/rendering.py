@@ -10,6 +10,92 @@ from scripts.core import card_tags
 from scripts.core import rendering as core
 
 
+
+
+def _prompt_source_hint(card: dict) -> str:
+    return core.inline_text(
+        card.get("source_hint") or card.get("paper_nickname") or card.get("citation_display") or card.get("publication_key"),
+        "unspecified source",
+    )
+
+
+def _prompt_diseases(card: dict) -> tuple[str, ...]:
+    values = [core.inline_text(x) for x in (card.get("diseases") or []) if str(x).strip()]
+    return tuple(sorted(dict.fromkeys(values), key=str.casefold))
+
+
+def render_prompt_cards(cards: list[dict], tag_by_id: dict[str, str], *, mode: str = "compact") -> str:
+    """Render evidence cards for model prompts using runtime 12-hex tags only.
+
+    Compact mode groups repeated metadata once as source -> category -> diseases and
+    emits one evidence card per line. Verbose mode preserves the older per-card
+    metadata layout for debugging, but still hides canonical stable card IDs from
+    the model.
+    """
+    if mode not in {"compact", "verbose"}:
+        raise ValueError("card rendering mode must be 'compact' or 'verbose'")
+    if not cards:
+        return "No candidate cards."
+
+    def tag(card: dict) -> str:
+        card_id = card.get("card_id")
+        value = tag_by_id.get(card_id)
+        if not value:
+            raise ValueError(f"card {card_id!r} has no runtime tag")
+        return value
+
+    ordered = sorted(
+        cards,
+        key=lambda card: (
+            _prompt_source_hint(card).casefold(),
+            core.inline_text(card.get("category")).casefold(),
+            tuple(x.casefold() for x in _prompt_diseases(card)),
+            str(card.get("card_id") or ""),
+        ),
+    )
+
+    if mode == "verbose":
+        blocks = []
+        for card in ordered:
+            lines = [
+                f"### [card:{tag(card)}]",
+                f"category: {core.inline_text(card.get('category'))}",
+                f"genes: {', '.join(card.get('genes') or []) or 'none'}",
+                f"diseases: {', '.join(card.get('diseases') or []) or 'none'}",
+                f"evidence_tier: {core.inline_text(card.get('evidence_tier'), 'unspecified')}",
+                f"interpretation: {core.inline_text(card.get('interpretation'), '')}",
+                f"source_hint: {_prompt_source_hint(card)}",
+            ]
+            blocks.append("\n".join(lines))
+        return "\n\n".join(blocks)
+
+    out: list[str] = []
+    last_source = last_category = None
+    last_diseases: tuple[str, ...] | None = None
+    for card in ordered:
+        source = _prompt_source_hint(card)
+        category = core.inline_text(card.get("category"))
+        diseases = _prompt_diseases(card)
+        if source != last_source:
+            if out:
+                out.append("")
+            out.append(f"## {source}")
+            last_source = source
+            last_category = None
+            last_diseases = None
+        if category != last_category:
+            out.extend(["", f"### {category}"])
+            last_category = category
+            last_diseases = None
+        if diseases != last_diseases:
+            out.extend(["", f"#### {' | '.join(diseases) if diseases else 'none'}"])
+            last_diseases = diseases
+        interpretation = core.inline_text(card.get("interpretation"), "")
+        tier = core.inline_text(card.get("evidence_tier"), "unspecified")
+        out.append(f"[card:{tag(card)}] {interpretation} (evidence_tier: {tier})")
+    return "\n".join(out).strip()
+
+
 def render_header(bundle):
     provenance = bundle.get("provenance", {})
     out = [

@@ -15,7 +15,7 @@ from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
 from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 
-WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=1; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
+WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=2; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
 EXIT_OK=0; EXIT_FAILURE=1; EXIT_HANDOFF=10
 VALIDATION_MODES={'nel-validate','nel-validate-function','nel-validate-brief'}
@@ -52,6 +52,11 @@ def _setting(*keys):
     return value
 
 def _retry(name): return int(_setting('retries',name))
+
+def _card_render_mode():
+    mode=str(((load_settings().get('rendering') or {}).get('cards') or 'compact')).strip().lower()
+    if mode not in {'compact','verbose'}: raise StepFailure("rendering.cards must be 'compact' or 'verbose'")
+    return mode
 
 _REPORTABILITY_DEFAULTS={
     'diagnosis':{'who5':True,'icc':True,'second_diagnosis':True},
@@ -541,7 +546,7 @@ def run_setup(args):
     elif args.mode=='nel-demo' and demo_case: shutil.copyfile(demo_case,case_path)
     if not case_path.is_file() or not _read(case_path).strip(): raise StepFailure(f'case.md missing or empty: {case_path}')
     if demo_expected: shutil.copyfile(demo_expected,_artifact(work,'setup','demo-expected.md',new=True))
-    _save_run_state(work,{'schema_version':1,'workflow_id':WORKFLOW_ID,'mode':args.mode,'validation_case':args.case_id,'pipeline':plan.pipeline_id,'created_at':datetime.now(timezone.utc).isoformat()})
+    _save_run_state(work,{'schema_version':RUN_STATE_SCHEMA_VERSION,'workflow_id':WORKFLOW_ID,'mode':args.mode,'validation_case':args.case_id,'pipeline':plan.pipeline_id,'created_at':datetime.now(timezone.utc).isoformat()})
     with _cli_logging(work): print(work); print(f'PIPELINE={plan.pipeline_id}')
     return EXIT_OK
 
@@ -596,21 +601,17 @@ def _closed_gene_set(card):
     if any(m in text for m in markers) or ('mutations in ' in text and ' define ' in text): return set(card.get('genes') or [])
     return None
 
-def _render_cards(cards):
-    if not cards: return 'No candidate cards.'
-    blocks=[]
-    for c in cards:
-        lines=[f'### {c.get("card_id")}',f'category: {c.get("category")}',f'genes: {", ".join(c.get("genes") or []) or "none"}',f'diseases: {", ".join(c.get("diseases") or []) or "none"}',f'evidence_tier: {c.get("evidence_tier") or "unspecified"}',f'interpretation: {c.get("interpretation") or ""}',f'source_hint: {c.get("paper_nickname") or c.get("citation_display") or ""}']
-        if _closed_gene_set(c): lines.insert(4,'closed_gene_set: true')
-        blocks.append('\n'.join(lines))
-    return '\n\n'.join(blocks)
+def _render_cards(cards,tag_by_id):
+    return rendering.render_prompt_cards(cards,tag_by_id,mode=_card_render_mode())
 
-def _finite_membership_context(reg,cards):
+def _finite_membership_context(reg,cards,tag_by_id):
     out={}
     for card in cards:
         closed=_closed_gene_set(card); cid=card.get('card_id')
         if closed and cid:
-            out[cid]={'qualifying':[vid for vid,row in reg.items() if row.get('gene') in closed],'not_qualifying':[vid for vid,row in reg.items() if row.get('gene') not in closed]}
+            tag=tag_by_id.get(cid)
+            if not tag: raise StepFailure(f'card {cid!r} has no runtime tag')
+            out[f'[card:{tag}]']={'qualifying':[vid for vid,row in reg.items() if row.get('gene') in closed],'not_qualifying':[vid for vid,row in reg.items() if row.get('gene') not in closed]}
     return {'finite_gene_set_membership':out} if out else {}
 
 def _draw_diagnosis_cards(eligible,genes,cmcs):
@@ -705,13 +706,13 @@ def _consolidate_rows(domain,doc,reg):
         doc[bucket]=groups
     return doc,merges
 
-def stage_diagnosis(work,case,reg,eligible,profile):
-    allowed=_allowed_diseases(work); genes=runtime.case_genes(case); bootstrap=list(case.get('bootstrap_cmcs') or [])
+def stage_diagnosis(work,case,reg,eligible,manifest,profile):
+    allowed=_allowed_diseases(work); genes=runtime.case_genes(case); bootstrap=list(case.get('bootstrap_cmcs') or []); tag_by_id=card_identity.tag_by_id(manifest)
     max_passes=int(_setting('diagnosis','who5','max_cmc_passes')); prior=list(bootstrap); history=list(bootstrap); who=None; who_cards=[]; authoritative=1
     for idx in range(1,max_passes+1):
         who_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'who5')
         out=_artifact(work,f'diagnosis_who5_pass_{idx}','who5.yaml',new=True)
-        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_cards(who_cards)
+        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_cards(who_cards,tag_by_id)
         model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
         _model_call(work,call_id=f'diagnosis-who5-pass-{idx:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
         who=yaml.safe_load(_read(out)); cmcs=runtime.derive_cmcs(who); authoritative=idx
@@ -724,13 +725,13 @@ def stage_diagnosis(work,case,reg,eligible,profile):
         if cmc not in history: history.append(cmc)
 
     icc_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
-    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_cards(icc_cards)
+    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_cards(icc_cards,tag_by_id)
     model_context.assert_canonical(iprompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=iprompt,output=icc_out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
     icc=yaml.safe_load(_read(icc_out))
 
     other_cards=_draw_diagnosis_cards(eligible,genes,history); other_out=_existing_or_new(work,'diagnosis_other','other.yaml')
-    oprompt=_prompt('diagnosis_other')+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Primary framework diagnoses\n```yaml\n'+yaml.safe_dump({'who5':who,'icc':icc},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate diagnosis cards\n'+_render_cards(other_cards)
+    oprompt=_prompt('diagnosis_other')+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Primary framework diagnoses\n```yaml\n'+yaml.safe_dump({'who5':who,'icc':icc},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate diagnosis cards\n'+_render_cards(other_cards,tag_by_id)
     model_context.assert_canonical(oprompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-other',role='diagnosis',prompt=oprompt,output=other_out,validator=lambda t:schema_validation.validate_second_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
     other=yaml.safe_load(_read(other_out))
@@ -740,8 +741,8 @@ def stage_diagnosis(work,case,reg,eligible,profile):
     _write(_existing_or_new(work,'diagnosis','routing.json'),json.dumps({'bootstrap_cmcs':bootstrap,'who5_authoritative_pass':authoritative,'final_cmcs':final_cmcs,'diagnostic_cmc_history':history},indent=2)+'\n')
     return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards}
 
-def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
-    valid=set(reg); disease=diagnosis['who5']['schema_disease']; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),[disease])
+def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
+    valid=set(reg); disease=diagnosis['who5']['schema_disease']; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),[disease]); tag_by_id=card_identity.tag_by_id(manifest)
     contract=domain_contract.contract(domain)
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml')
     # The output contract is the final block of the prompt: recency matters
@@ -750,7 +751,7 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
         +'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```'
         +'\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DOMAIN_CASE_FIELDS)+'\n```'
         +'\n\n# Authoritative framework diagnoses\n```yaml\n'+model_context.diagnosis_context(diagnosis)+'```'
-        +'\n\n# Candidate evidence cards\n'+_render_cards(cards)
+        +'\n\n# Candidate evidence cards\n'+_render_cards(cards,tag_by_id)
         +'\n\n'+domain_contract.skeleton(contract,sorted(reg)))
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_domain(t,domain,valid),profile=profile,proforma=True)
@@ -797,13 +798,16 @@ def _elements(diagnosis,domains,case):
     return els
 
 def _candidate_cards(el,cards_by_domain,reg):
-    cards=list(cards_by_domain.get(el['evidence_domain']) or []); genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
+    cards=list(cards_by_domain.get(el['evidence_domain']) or [])
+    # Diagnosis pools already implement category AND (CMC OR gene), followed by
+    # the WHO5/ICC authority filter. Do not destroy that OR retrieval semantics
+    # by applying a second proposition-gene filter here.
+    if el.get('domain')=='diagnosis': return cards
+    genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
     if genes:
         subset=[c for c in cards if not c.get('genes') or genes & set(c.get('genes') or [])]
         if subset: cards=subset
     return cards
-
-def _card_view(card): return {'card_id':card.get('card_id'),'category':card.get('category'),'genes':card.get('genes') or [],'diseases':card.get('diseases') or [],'evidence_tier':card.get('evidence_tier'),'interpretation':card.get('interpretation') or '','source_hint':card.get('paper_nickname') or card.get('citation_display') or ''}
 
 def _evidence_reviewed_text(el):
     return 'Statement: '+el['statement']+'\nReason: '+el['reason']
@@ -880,23 +884,26 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
         pending=active
         if not pending: break
         _status(f'  evidence resolution semantic attempt {semantic_attempt}/{max_attempts}: {len(pending)} item(s)')
-        public=[evidence_resolution.public_match_item(item) for item in pending]
-        candidate_ids=list(dict.fromkeys(cid for item in public for cid in item['candidate_card_ids']))
-        cards=[_card_view(catalog[cid]) for cid in candidate_ids]
+        public=[evidence_resolution.public_match_item(item,tag_by_id) for item in pending]
+        candidate_ids=list(dict.fromkeys(cid for item in pending for cid in evidence_resolution.remaining_candidate_ids(item)))
+        cards=[catalog[cid] for cid in candidate_ids]
         mpath=_existing_or_new(work,'evidence_matches',f'attempt-{semantic_attempt:02d}.yaml')
         mprompt=(
             _prompt('evidence_match')+'\n\n# Evidence items\n```yaml\n'
             +yaml.safe_dump({'items':public},sort_keys=False,allow_unicode=True,width=110)
-            +'```\n\n# Candidate card catalog\n```yaml\n'
-            +yaml.safe_dump({'cards':cards},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+            +'```\n\n# Candidate card catalog\n'
+            +_render_cards(cards,tag_by_id)+'\n'
         )
-        validation_items=[{'evidence_id':x['evidence_id'],'candidate_card_ids':x['candidate_card_ids']} for x in public]
+        validation_items=[{'evidence_id':x['evidence_id'],'candidate_card_tags':x['candidate_card_tags']} for x in public]
         _model_call(
             work,call_id=f'evidence-match-batch-{semantic_attempt:02d}',role='evidence_match',prompt=mprompt,output=mpath,
             validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=profile,
             max_attempts=_retry('evidence_match_model_attempts'),
         )
-        matches=yaml.safe_load(_read(mpath))['matches']; mmap={m['evidence_id']:m for m in matches}
+        matches=yaml.safe_load(_read(mpath))['matches']; id_by_tag={f'[card:{tag}]':cid for cid,tag in tag_by_id.items()}
+        for match in matches:
+            tag=match.get('card_tag'); match['card_id']=id_by_tag[tag] if tag is not None else None
+        mmap={m['evidence_id']:m for m in matches}
         audit_items=[]
         for item in pending:
             m=mmap[item['evidence_id']]
@@ -907,9 +914,13 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
             audit_rows=[]
             for item in audit_items:
                 m=mmap[item['evidence_id']]
-                audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'statement':item['statement'],'reason':item['reason'],'source':m['source'],'quote':m['quote'],'selected_card':_card_view(catalog[m['card_id']])})
+                audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'statement':item['statement'],'reason':item['reason'],'source':m['source'],'quote':m['quote'],'selected_card_tag':m['card_tag']})
             apath=_existing_or_new(work,'evidence_audits',f'attempt-{semantic_attempt:02d}.yaml')
-            aprompt=_prompt('evidence_audit')+'\n\n# Selected evidence pairs\n```yaml\n'+yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+            selected_ids=list(dict.fromkeys(mmap[item['evidence_id']]['card_id'] for item in audit_items))
+            selected_cards=[catalog[cid] for cid in selected_ids]
+            aprompt=(_prompt('evidence_audit')+'\n\n# Selected evidence pairs\n```yaml\n'
+                +yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+                +'\n# Selected card catalog\n'+_render_cards(selected_cards,tag_by_id)+'\n')
             _model_call(
                 work,call_id=f'evidence-audit-batch-{semantic_attempt:02d}',role='evidence_audit',prompt=aprompt,output=apath,
                 validator=lambda t,ai=audit_items:schema_validation.validate_evidence_audit_batch(t,ai),profile=profile,
@@ -1074,10 +1085,10 @@ def run_pipeline(work,profile=None):
     _require_work(work); layout.ensure_dirs(work)
     _stage_status(work,'stage-1','Stage 1 of 9 — structure case'); case,reg=stage_structure(work,profile)
     _stage_status(work,'stage-2','Stage 2 of 9 — initialise corpus'); all_cards,eligible,digest,manifest=stage_corpus(work)
-    _stage_status(work,'stage-3','Stage 3 of 9 — WHO5 / ICC / independent concurrent diagnosis'); diagnosis,cmcs,diagnosis_cards=stage_diagnosis(work,case,reg,eligible,profile)
+    _stage_status(work,'stage-3','Stage 3 of 9 — WHO5 / ICC / independent concurrent diagnosis'); diagnosis,cmcs,diagnosis_cards=stage_diagnosis(work,case,reg,eligible,manifest,profile)
     domains={}; cards_by_domain=dict(diagnosis_cards)
     for idx,domain in enumerate(('prognosis','treatment','biomarker','germline'),4):
-        _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} owner proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,profile)
+        _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} owner proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile)
     _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains,case); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile); blocks=stage_blocks(work,diagnosis,supported,reg)
     _stage_status(work,'stage-9','Stage 9 of 9 — one report-writing call + preservation check'); final_blocks=stage_report_write(work,blocks,case,reg,profile); stage_final(work,case,final_blocks,supported,all_cards,digest,manifest); _print_usage(work); _stage_status(work,'complete','terraced-v6 complete'); return EXIT_OK
 

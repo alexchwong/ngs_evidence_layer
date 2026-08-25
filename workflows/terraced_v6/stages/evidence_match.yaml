@@ -14,8 +14,8 @@ rules:
   source: items
 - rule: references_exist
   field: matches
-  value_field: card_id
-  source: candidate_card_ids
+  value_field: card_tag
+  source: candidate_card_tags
 - rule: null_evidence_match_contract
 retries:
   content: 2

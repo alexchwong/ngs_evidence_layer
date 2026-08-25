@@ -1,5 +1,5 @@
 items:
   - evidence_id: E0001
-    candidate_card_ids: [C001, C002]
+    candidate_card_tags: ["[card:000000000001]", "[card:000000000002]"]
   - evidence_id: E0002
-    candidate_card_ids: [C003]
+    candidate_card_tags: ["[card:000000000003]"]

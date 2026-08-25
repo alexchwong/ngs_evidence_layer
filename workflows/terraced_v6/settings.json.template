@@ -87,5 +87,8 @@
     "evidence_audit": "evidence_audit.md",
     "report_write": "report_write.md",
     "report_preservation": "report_preservation.md"
+  },
+  "rendering": {
+    "cards": "compact"
   }
 }

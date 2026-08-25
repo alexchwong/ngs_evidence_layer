@@ -46,10 +46,10 @@ With `self`, each required model call returns `HANDOFF`, `PROMPT`, and `OUTPUT`;
 ## Architecture
 
 1. Structure `case.md`, preserve detailed variants, and record whether the morphologic diagnosis was supplied or inferred.
-2. Deterministically initialise/filter the evidence corpus.
+2. Deterministically initialise/filter the evidence corpus. Diagnosis retrieval is `category=diagnosis AND (CMC/disease OR gene)`, followed by the WHO5/ICC authority subfilter.
 3. WHO5 and ICC each label the molecular/cytogenetic effect as unchanged, refined, or superseded relative to the starting morphologic diagnosis; an independent concurrent diagnosis is considered separately.
 4. Prognosis, treatment, MRD, and germline each produce one compact owner proforma.
-5. Reportable owner propositions enter a shared semantic evidence-resolution loop. Failed audit cards are excluded, cumulative audit feedback is passed to the next matcher, and the matcher may explicitly declare no citation support.
+5. Reportable owner propositions enter a shared semantic evidence-resolution loop. Diagnosis keeps the full already-retrieved framework pool; Stage 8 does not re-filter it by proposition gene. Failed audit cards are excluded, cumulative audit feedback is passed to the next matcher, and the matcher may explicitly declare no citation support.
 6. `settings.json` deterministically filters reportability.
 7. Python assembles deterministic report blocks.
 8. One model call writes the prose.
@@ -68,6 +68,10 @@ No statement-generation/audit stage, summary planner, fragmentation repair, or p
 Variant IDs (`v01`, `v02`, ...) link owner reasoning to the structured variant registry, and are the only variant identifiers any model sees.
 
 Owner models return one row per variant (`variant`, `bucket`, `reason`), filling in a pre-supplied skeleton. Rows sharing one proposition are merged deterministically afterwards and recorded in `logs/transforms.yaml`; the stored proforma keeps the familiar bucket-list shape.
+
+## Card rendering
+
+All evidence cards shown to models use one shared renderer and 12-character runtime card tags. `rendering.cards` in `settings.json` may be `compact` (default) or `verbose`. Compact mode groups cards by source hint, category, then diseases and emits one card per line as `[card:<tag>] Interpretation (evidence_tier: ...)`; gene metadata and canonical corpus card IDs are not repeated model-side.
 
 ## Reportability
 

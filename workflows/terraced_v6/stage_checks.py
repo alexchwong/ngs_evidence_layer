@@ -30,7 +30,7 @@ def _variants(context):
 def _items(context):
     """Evidence items as the batch validators expect them."""
     return [
-        {"evidence_id": row["evidence_id"], "candidate_card_ids": list(row.get("candidate_card_ids") or [])}
+        {"evidence_id": row["evidence_id"], "candidate_card_tags": list(row.get("candidate_card_tags") or [])}
         for row in context.get("items") or []
     ]
 

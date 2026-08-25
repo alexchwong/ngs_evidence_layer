@@ -28,14 +28,15 @@ def remaining_candidate_ids(item):
     return [cid for cid in item.get("candidate_card_ids") or [] if cid not in rejected]
 
 
-def public_match_item(item):
-    """Model-facing evidence item with cumulative audit feedback."""
+def public_match_item(item, tag_by_id):
+    """Model-facing evidence item with cumulative audit feedback using tags only."""
     prior = []
     for row in item.get("failures") or []:
+        card_id = row.get("card_id")
         prior.append(
             {
                 "attempt": row.get("attempt"),
-                "rejected_card_id": row.get("card_id"),
+                "rejected_card_tag": f"[card:{tag_by_id[card_id]}]" if card_id else None,
                 "audit_feedback": list(row.get("comments") or []),
             }
         )
@@ -44,7 +45,7 @@ def public_match_item(item):
         "schema_id": item["schema_id"],
         "statement": item["statement"],
         "reason": item["reason"],
-        "candidate_card_ids": remaining_candidate_ids(item),
+        "candidate_card_tags": [f"[card:{tag_by_id[cid]}]" for cid in remaining_candidate_ids(item)],
     }
     if prior:
         out["prior_failed_matches"] = prior

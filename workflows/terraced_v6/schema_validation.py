@@ -113,25 +113,25 @@ def validate_evidence_match_batch(text, items):
             if not isinstance(row, dict):
                 continue
             path = f"matches[{i}]"
-            problems += iss.exact_keys(row, {"evidence_id", "card_id", "source", "quote"}, path)
+            problems += iss.exact_keys(row, {"evidence_id", "card_tag", "source", "quote"}, path)
             item = by_id.get(row.get("evidence_id"))
-            card_id = row.get("card_id")
-            if card_id is None:
+            card_tag = row.get("card_tag")
+            if card_tag is None:
                 if row.get("source") is not None or row.get("quote") is not None:
                     problems.append(
                         ValidationIssue(
                             path,
-                            "card_id is null but source/quote are populated",
-                            "when declaring no citation support, return card_id: null, source: null and quote: null",
+                            "card_tag is null but source/quote are populated",
+                            "when declaring no citation support, return card_tag: null, source: null and quote: null",
                             repair_class="content",
                             received=f"source={iss.preview(row.get('source'))} quote={iss.preview(row.get('quote'))}",
-                            expected="card_id/source/quote all null",
+                            expected="card_tag/source/quote all null",
                         )
                     )
             else:
                 if item is not None:
                     problems += iss.enum_field(
-                        card_id, item["candidate_card_ids"], f"{path}.card_id", label="candidate card"
+                        card_tag, item["candidate_card_tags"], f"{path}.card_tag", label="candidate card tag"
                     )
                 problems += iss.text_field(row.get("source"), f"{path}.source")
                 problems += iss.text_field(row.get("quote"), f"{path}.quote")
