@@ -106,3 +106,47 @@ class NativeSelfDeliveryTests(unittest.TestCase):
             self.assertEqual(found["MARKING_ZIP"], work / "nel-validation-brief-7.zip")
             self.assertEqual(found["DEBUG_ZIP"], work / "ngs-report-debug.zip")
             self.assertIsNone(found["DISSENT"])
+
+class NativeSelfSetupTests(unittest.TestCase):
+    def test_setup_parser_supports_project_and_keeps_it_exclusive_with_work_dir(self):
+        from workflows.terraced_v6 import self as self_cli
+
+        parser = self_cli.build_parser()
+        args = parser.parse_args(["setup", "--mode", "ngs-report", "--project"])
+        self.assertTrue(args.project)
+        self.assertIsNone(args.work_dir)
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["setup", "--mode", "ngs-report", "--project", "--work-dir", "/tmp/x"])
+
+    def test_setup_delegates_work_location_only_from_self(self):
+        import contextlib
+        from argparse import Namespace
+        from unittest.mock import patch
+        from workflows.terraced_v6 import self as self_cli
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source = root / "case-source.md"
+            source.write_text("case\n", encoding="utf-8")
+            work = root / "resolved-work"
+            work.mkdir()
+            captured = {}
+
+            def fake_setup_workflow(**kwargs):
+                captured.update(kwargs)
+                # Minimal common setup assets expected by layout.
+                (work / "case-major-categories.json").write_text("{}\n", encoding="utf-8")
+                (work / "ngs-panel-scope.md").write_text("scope\n", encoding="utf-8")
+                return work, None, None
+
+            args = Namespace(
+                mode="ngs-report", case_file=source, example=None, case_id=None,
+                work_dir=None, project=True,
+            )
+            with patch.object(self_cli, "setup_workflow", side_effect=fake_setup_workflow), \
+                 patch.object(self_cli, "write_workflow_state"), \
+                 patch.object(self_cli.staged, "_save_run_state"), \
+                 patch.object(self_cli.staged, "_cli_logging", return_value=contextlib.nullcontext()):
+                self.assertEqual(self_cli.cmd_setup(args), self_cli.EXIT_OK)
+            self.assertIsNone(captured["work_dir"])
+            self.assertTrue(captured["project"])

@@ -12,32 +12,32 @@ models:
   structure:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 65536
   diagnosis:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 65536
   ptbg:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 65536
   evidence_match:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 16384
   evidence_audit:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 16384
   report_write:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 16384
   preservation_check:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 16384
   syntax_repair:
     model: qwen/qwen3-coder-next
     temperature: 0.0
-    max_tokens: 131072
+    max_tokens: 16384

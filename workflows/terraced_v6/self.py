@@ -10,14 +10,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
-from types import SimpleNamespace
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts.setup_workflow import setup_workflow
+from scripts.workflow_registry import write_workflow_state
 from workflows.terraced_v6 import layout
 from workflows.terraced_v6 import self_runtime as sr
 from workflows.terraced_v6 import step as staged
@@ -39,16 +42,42 @@ def _print_manifest(data):
 
 
 def cmd_setup(args):
-    ns = SimpleNamespace(
+    # Native-self owns the established work-location policy independently of
+    # the legacy staged executor: default -> system temp; --project ->
+    # <repo-root>/temp; explicit --work-dir -> that directory.
+    plan = staged.pipeline_registry.load("self")
+    work, demo_case, demo_expected = setup_workflow(
+        workflow=staged.WORKFLOW_ID,
         mode=args.mode,
-        case_file=args.case_file,
+        work_dir=args.work_dir,
+        project=bool(args.project),
         example=args.example,
         case_id=args.case_id,
-        work_dir=args.work_dir,
-        project=args.project,
-        pipeline="self",
     )
-    return staged.run_setup(ns)
+    write_workflow_state(work, staged.WORKFLOW_ID, args.mode, model_profile=plan.pipeline_id)
+
+    case_path = layout.input(work, "case.md", existing=False)
+    if args.case_file:
+        shutil.copyfile(args.case_file.expanduser().resolve(), case_path)
+    elif args.mode == "nel-demo" and demo_case:
+        shutil.copyfile(demo_case, case_path)
+    if not case_path.is_file() or not staged._read(case_path).strip():
+        raise staged.StepFailure(f"case.md missing or empty: {case_path}")
+    if demo_expected:
+        shutil.copyfile(demo_expected, staged._artifact(work, "setup", "demo-expected.md", new=True))
+
+    staged._save_run_state(work, {
+        "schema_version": staged.RUN_STATE_SCHEMA_VERSION,
+        "workflow_id": staged.WORKFLOW_ID,
+        "mode": args.mode,
+        "validation_case": args.case_id,
+        "pipeline": plan.pipeline_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    with staged._cli_logging(work):
+        print(work)
+        print(f"PIPELINE={plan.pipeline_id}")
+    return EXIT_OK
 
 
 def cmd_structure(args):

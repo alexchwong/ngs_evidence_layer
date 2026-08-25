@@ -13,7 +13,7 @@ python workflows/terraced_v6/self.py setup \
   --mode nel-validate-brief --case-id 1
 ```
 
-By default setup creates a unique system temporary directory. Add `--project` (the CLI form of exact `->project`) to create it under `<repo-root>/temp/`, or use `--work-dir <path>` for an explicit directory. These rules apply to both native-self and staged v6.
+For native self, setup creates a unique system temporary directory by default. Add `--project` (the CLI form of exact `->project`) to create it under `<repo-root>/temp/`, or use `--work-dir <path>` for an explicit directory. The existing staged `step.py` work-directory behaviour is unchanged.
 
 Use the printed work directory with the sequence documented in `SKILL.md`:
 

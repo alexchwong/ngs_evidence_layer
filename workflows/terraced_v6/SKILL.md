@@ -43,7 +43,7 @@ Choose the setup work-location argument once:
 - exact `->project` modifier: `--project`, which writes under `<repo-root>/temp/`;
 - otherwise omit both, which writes to a unique system temporary directory.
 
-These work-location rules apply to both native-self and staged terraced-v6 setup. Always use the exact directory printed by setup for every later command.
+These work-location rules apply only to native `self.py`. The existing staged `step.py` work-directory behaviour is unchanged. Always use the exact directory printed by self setup for every later self command.
 
 Then follow this deterministic/model interleave. `<work-dir>` is the directory printed by setup.
 
@@ -84,7 +84,7 @@ python workflows/terraced_v6/self.py finalize-report --work-dir <work-dir>
 # DISSENT=none when there is no semantic dissent.
 ```
 
-For non-self providers, use the same setup work-location rules with `workflows/terraced_v6/step.py setup`, then pass the printed directory explicitly to `step.py run --work-dir <work-dir>`.
+For non-self providers, continue to use `workflows/terraced_v6/step.py` with its existing work-directory behaviour unchanged.
 
 ## Deterministic boundaries retained for self
 
