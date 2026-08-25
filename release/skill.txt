@@ -78,3 +78,6 @@ workflows/terraced_v3/schedulers/common/prompts/*
 workflows/terraced_v3/schedulers/*/*/scheduler.yaml
 workflows/terraced_v3/schedulers/*/*/prompts/*
 workflows/terraced_v3/tests/*
+workflows/terraced_v4/*
+workflows/terraced_v5/*
+workflows/terraced_v6/*
