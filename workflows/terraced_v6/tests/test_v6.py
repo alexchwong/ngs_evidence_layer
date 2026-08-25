@@ -670,3 +670,38 @@ def test_failed_evidence_audit_requires_actionable_feedback():
     with pytest.raises(ValidationFailure) as exc:
         schema_validation.validate_evidence_audit_batch(bad,items)
     assert 'without explanatory feedback' in str(exc.value)
+
+
+def test_setup_parser_supports_project_and_keeps_it_exclusive_with_work_dir():
+    parser = step.build_parser()
+    args = parser.parse_args(['setup', '--mode', 'ngs-report', '--project'])
+    assert args.project is True and args.work_dir is None
+    with pytest.raises(SystemExit):
+        parser.parse_args(['setup', '--mode', 'ngs-report', '--project', '--work-dir', '/tmp/x'])
+
+
+def test_run_setup_delegates_work_location_to_shared_setup(tmp_path, monkeypatch):
+    import contextlib
+    from types import SimpleNamespace
+
+    case_file = tmp_path / 'case-source.md'
+    case_file.write_text('case\n', encoding='utf-8')
+    work = tmp_path / 'resolved-work'
+    work.mkdir()
+    captured = {}
+
+    def fake_setup_workflow(**kwargs):
+        captured.update(kwargs)
+        return work, None, None
+
+    monkeypatch.setattr(step, 'setup_workflow', fake_setup_workflow)
+    monkeypatch.setattr(step, 'write_workflow_state', lambda *a, **k: None)
+    monkeypatch.setattr(step, '_save_run_state', lambda *a, **k: None)
+    monkeypatch.setattr(step, '_cli_logging', lambda *a, **k: contextlib.nullcontext())
+    args = SimpleNamespace(
+        pipeline='self', mode='ngs-report', case_file=case_file, example=None,
+        case_id=None, work_dir=None, project=True,
+    )
+    assert step.run_setup(args) == step.EXIT_OK
+    assert captured['work_dir'] is None
+    assert captured['project'] is True

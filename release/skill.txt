@@ -81,3 +81,7 @@ workflows/terraced_v3/tests/*
 workflows/terraced_v4/*
 workflows/terraced_v5/*
 workflows/terraced_v6/*
+workflows/terraced_v6/pipelines/*
+workflows/terraced_v6/prompts/*
+workflows/terraced_v6/schemas/*
+workflows/terraced_v6/stages/*

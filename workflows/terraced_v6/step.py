@@ -570,22 +570,16 @@ def run_stage_check_assets(args):
     return EXIT_OK
 
 
-def _safe_slug(text):
-    s=''.join(c.lower() if c.isalnum() else '-' for c in text).strip('-')
-    while '--' in s:s=s.replace('--','-')
-    return s or 'case'
-def _timestamped_work_dir(root,label):
-    stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'); base=root/f'{_safe_slug(label)}-{stamp}'; p=base; n=2
-    while p.exists(): p=Path(f'{base}-{n}'); n+=1
-    return p
-
 def run_setup(args):
-    plan=pipeline_registry.load(args.pipeline or configured_pipeline()); label=args.mode
-    if args.mode=='ngs-report' and args.case_file: label+='-'+args.case_file.stem
-    elif args.mode=='nel-demo': label+=f'-{args.example}'
-    elif args.case_id: label+='-'+args.case_id
-    work_arg=args.work_dir or _timestamped_work_dir(HERE/'runs',label); work_arg.parent.mkdir(parents=True,exist_ok=True)
-    work,demo_case,demo_expected=setup_workflow(workflow=WORKFLOW_ID,mode=args.mode,work_dir=work_arg,project=False,example=args.example,case_id=args.case_id)
+    plan=pipeline_registry.load(args.pipeline or configured_pipeline())
+    work,demo_case,demo_expected=setup_workflow(
+        workflow=WORKFLOW_ID,
+        mode=args.mode,
+        work_dir=args.work_dir,
+        project=bool(getattr(args,'project',False)),
+        example=args.example,
+        case_id=args.case_id,
+    )
     write_workflow_state(work,WORKFLOW_ID,args.mode,model_profile=plan.pipeline_id)
     case_path=layout.input(work,'case.md',existing=False)
     if args.case_file: shutil.copyfile(args.case_file.expanduser().resolve(),case_path)
@@ -1186,7 +1180,7 @@ def _resolve_run_work_dir(work_dir):
 
 def build_parser():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='command',required=True)
-    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=['ngs-report','nel-demo','nel-validate','nel-validate-function','nel-validate-brief']); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names())
+    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=['ngs-report','nel-demo','nel-validate','nel-validate-function','nel-validate-brief']); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); sw=s.add_mutually_exclusive_group(); sw.add_argument('--work-dir',type=Path); sw.add_argument('--project',action='store_true'); s.add_argument('--pipeline',choices=pipeline_registry.names())
     cs=sub.add_parser('check-stage'); cs.add_argument('--stage',required=True,choices=stage_checks.names()); cs.add_argument('--file',type=Path,required=True); cs.add_argument('--context',type=Path)
     sp=sub.add_parser('show-prompt'); sp.add_argument('--stage',required=True,choices=stage_checks.names()); sp.add_argument('--context',type=Path)
     sub.add_parser('stages')

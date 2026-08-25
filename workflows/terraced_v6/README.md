@@ -4,58 +4,64 @@ Terraced v6 is the simplified prototype derived from v5. It deliberately removes
 
 ## Quick start
 
-List available pipelines:
+### Default `self` execution
+
+`self` is the default session-model path. It uses the new additive native executor and the same shared proformas/contracts as staged v6:
+
+```bash
+python workflows/terraced_v6/self.py setup \
+  --mode nel-validate-brief --case-id 1
+```
+
+By default setup creates a unique system temporary directory. Add `--project` (the CLI form of exact `->project`) to create it under `<repo-root>/temp/`, or use `--work-dir <path>` for an explicit directory. These rules apply to both native-self and staged v6.
+
+Use the printed work directory with the sequence documented in `SKILL.md`:
+
+```text
+structure + WHO1 (one continuous model pass)
+ICC
+WHO2 (authoritative WHO)
+PTBG (one pass, four existing proformas)
+evidence resolution
+evidence audit
+conditional cropped evidence adjudication
+final report synthesis with original case context
+```
+
+The self executor never calls an LLM. It prints bounded file inputs/contracts/output paths for the current session model to read and write directly. There is no routine syntax-repair or report-preservation model pass.
+
+### Existing staged providers
+
+The existing `step.py` engine remains unchanged for non-self pipelines:
 
 ```bash
 python workflows/terraced_v6/step.py pipelines
+python workflows/terraced_v6/step.py pipeline-check --pipeline lmstudio
+python workflows/terraced_v6/step.py setup --mode nel-validate-brief --case-id 1 --pipeline lmstudio
+python workflows/terraced_v6/step.py run --work-dir <printed-work-dir>
 ```
 
-Validate/inspect the selected pipeline:
-
-```bash
-python workflows/terraced_v6/step.py pipeline-check --pipeline self
-```
-
-Set up validation brief 1:
-
-```bash
-python workflows/terraced_v6/step.py setup \
-  --mode nel-validate-brief \
-  --case-id 1 \
-  --pipeline self
-```
-
-Check one stage's validator against a candidate artifact, with no model call:
-
-```bash
-python workflows/terraced_v6/step.py stages
-python workflows/terraced_v6/step.py check-stage --stage prognosis --file candidate.yaml
-python workflows/terraced_v6/step.py show-prompt --stage prognosis
-```
-
-Run or resume the run created by the immediately preceding `setup`:
-
-```bash
-python workflows/terraced_v6/step.py run
-```
-
-As in terraced v5, bare `run` selects the most recently created directory under `workflows/terraced_v6/runs/`. Use `--work-dir <run-directory>` only when you intentionally want a different existing run.
-
-With `self`, each required model call returns `HANDOFF`, `PROMPT`, and `OUTPUT`; place the requested model response at `OUTPUT` and run the same command again. `lmstudio` and `openrouter` call their configured OpenAI-compatible endpoints directly.
+Its existing `self` pipeline remains available as the legacy staged/handoff implementation, but `SKILL.md` routes normal session-model execution through `self.py`.
 
 ## Architecture
 
-1. Structure `case.md`, preserve detailed variants, and record whether the morphologic diagnosis was supplied or inferred.
-2. Deterministically initialise/filter the evidence corpus. Diagnosis retrieval is `category=diagnosis AND (CMC/disease OR gene)`, followed by the WHO5/ICC authority subfilter.
-3. WHO5 and ICC each label the molecular/cytogenetic effect as unchanged, refined, or superseded relative to the starting morphologic diagnosis; an independent concurrent diagnosis is considered separately.
-4. Prognosis, treatment, MRD, and germline each produce one compact owner proforma.
-5. Reportable owner propositions enter a shared semantic evidence-resolution loop. Diagnosis keeps the full already-retrieved framework pool; Stage 8 does not re-filter it by proposition gene. Failed audit cards are excluded, cumulative audit feedback is passed to the next matcher, and the matcher may explicitly declare no citation support.
-6. `settings.json` deterministically filters reportability.
-7. Python assembles deterministic report blocks.
-8. One model call writes the prose.
-9. One preservation-only audit checks the prose. Failed blocks fall back deterministically rather than entering a semantic rewrite loop.
+The clinical contracts/proformas under `prompts/`, `stages/`, and `schemas/` are shared by both execution engines. Only execution grouping differs.
 
-No statement-generation/audit stage, summary planner, fragmentation repair, or paraphrase regeneration exists in v6.
+### Native self path
+
+1. In one continuous WHO1 reasoning pass, structure `case.md`, let Python assign canonical `vNN` identities/retrieve WHO evidence, then complete the existing WHO5 proforma.
+2. Run isolated ICC. WHO1 may influence deterministic CMC retrieval but its diagnosis is not exposed to ICC.
+3. Run isolated WHO2 with the existing WHO5 contract and any CMC-triggered WHO card redraw. WHO2 is authoritative downstream.
+4. Complete prognosis, treatment, MRD and germline in one model pass, still writing each existing proforma independently.
+5. Deterministically construct candidate evidence pools, then run one evidence-resolution pass. No reason has assigned cards before this stage.
+6. Run one independent evidence audit. Selected cards are audited; zero-card decisions receive a full candidate check.
+7. Python accepts agreements and crops only disagreements. A short adjudication pass runs only when the resolver and auditor disagree.
+8. Python applies evidence/no-support policy and builds deterministic report blocks.
+9. One final synthesis pass receives the original case context plus audited blocks. Python then renders citations, evidence provenance, `dissent.md`, final JSON and validation packages.
+
+### Existing staged path
+
+`step.py` retains its previous WHO/ICC/second-diagnosis, per-domain PTBG, retrying evidence, report-write and preservation topology for non-self providers. No staged-path dependency is changed by the native-self implementation.
 
 ## Minimal proformas
 
@@ -88,8 +94,10 @@ Edit `settings.json` (copied from `settings.json.template` when desired). Defaul
 Pay attention to:
 
 - `report-final.md` — final clinical report.
-- `dissent.md` — semantic dissent history, if any.
 - `report-final.json` — final blocks, report, risks, and usage.
+- `ngs-report-debug.zip` — native-self debug bundle of run artifacts (ZIP outputs excluded to avoid recursive packaging).
+- `nel-validation*.zip` — external-marking bundle in validation modes.
+- `dissent.md` — semantic dissent history, only when dissent exists.
 - `intermediates/*diagnosis*` and `*_state/proforma.yaml` — owner-model conclusions.
 - `intermediates/report_blocks/report-blocks.yaml` — deterministic composition contract sent to the final writer.
 - `logs/workflow.log` — run trace.
