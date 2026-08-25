@@ -40,11 +40,11 @@ def test_reportability_defaults():
     assert step._reportable('germline','germline_against') is False
 
 def test_who5_validator():
-    text='''schema_disease: AML\ndiagnosis: AML with X\nvariants: [v01]\nreason: Molecular findings refine the supplied diagnosis.\n'''
+    text='''schema_disease: AML\ndiagnosis: AML with X\ndiagnostic_effect: refined\nvariants: [v01]\nreason: Molecular findings refine the supplied diagnosis.\n'''
     schema_validation.validate_who5_diagnosis(text,allowed_diseases={'AML'},valid_variants={'v01'})
 
 def test_icc_validator():
-    schema_validation.validate_icc_diagnosis('diagnosis: AML\nvariants: []\nreason: Molecular findings do not alter the supplied diagnosis.\n',valid_variants={'v01'})
+    schema_validation.validate_icc_diagnosis('diagnosis: AML\ndiagnostic_effect: unchanged\nvariants: []\nreason: Molecular findings do not alter the supplied diagnosis.\n',valid_variants={'v01'})
 
 def test_second_diagnosis_null_contract():
     schema_validation.validate_second_diagnosis('diagnosis: null\nvariants: []\nreason: null\n',valid_variants={'v01'})
@@ -159,7 +159,7 @@ from workflows.terraced_v6 import model_context
 
 _REG={'v01':{'variant_id':'V1','gene':'SRSF2','description':'SRSF2 p.P95H'},
       'v02':{'variant_id':'V2','gene':'ASXL1','description':'ASXL1 p.G646fs'}}
-_CASE={'provisional_disease':'MDS','bootstrap_cmcs':['MDS'],
+_CASE={'provisional_disease':'MDS','morphologic_diagnosis_origin':'supplied','bootstrap_cmcs':['MDS'],
        'variants':[{'variant_id':'V1','gene':'SRSF2','description':'SRSF2 p.P95H'}],
        'detected_variants_summary':'Two variants detected.',
        'case_facts':[{'fact_id':'C1','kind':'blast percentage','value':'4%'}]}
@@ -370,3 +370,145 @@ def test_domain_prompts_no_longer_carry_their_own_output_shape():
         text=(HERE/'prompts'/f'{name}.md').read_text()
         assert 'Return YAML only' not in text
         assert '```yaml' not in text
+
+# --- Semantic evidence-resolution retries ------------------------------------
+
+def _test_card(card_id, *, gene='FLT3', category='prognosis'):
+    return {
+        'card_id': card_id,
+        'category': category,
+        'genes': [gene] if gene else [],
+        'diseases': ['AML'],
+        'evidence_tier': 'tier-1',
+        'interpretation': f'{card_id} interpretation',
+        'paper_nickname': card_id,
+    }
+
+
+def _scripted_model_call(script, prompt_checks=None):
+    prompt_checks = prompt_checks or {}
+    def call(work, *, call_id, prompt, output, validator, **kwargs):
+        if call_id in prompt_checks:
+            prompt_checks[call_id](prompt)
+        text = script[call_id]
+        step._write(output, text)
+        validator(text)
+        return text
+    return call
+
+
+def test_evidence_match_allows_explicit_no_citation_support():
+    items=[{'evidence_id':'E0001','candidate_card_ids':['C1']}]
+    schema_validation.validate_evidence_match_batch(
+        'matches:\n  - evidence_id: E0001\n    card_id: null\n    source: null\n    quote: null\n', items
+    )
+    with pytest.raises(ValidationFailure):
+        schema_validation.validate_evidence_match_batch(
+            'matches:\n  - evidence_id: E0001\n    card_id: null\n    source: study\n    quote: null\n', items
+        )
+
+
+def test_semantic_retry_carries_all_prior_audit_feedback_and_resolves_dissent(tmp_path,monkeypatch):
+    cards=[_test_card('C1'),_test_card('C2'),_test_card('C3')]
+    el={'schema_id':'PX-ADVERSE-01','domain':'prognosis','bucket':'adverse',
+        'statement':'FLT3-ITD confers adverse prognosis in AML.',
+        'reason':'FLT3-ITD confers adverse prognosis in AML.','variants':['v01'],
+        'evidence_domain':'prognosis','required':False,'source':{'variants':['v01']}}
+    reg={'v01':{'gene':'FLT3'}}
+    script={
+        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_id: C1\n    source: one\n    quote: quote one\n',
+        'evidence-audit-batch-01':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["wrong disease context"]\n',
+        'evidence-match-batch-02':'matches:\n  - evidence_id: E0001\n    card_id: C2\n    source: two\n    quote: quote two\n',
+        'evidence-audit-batch-02':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["wrong clinical function"]\n',
+        'evidence-match-batch-03':'matches:\n  - evidence_id: E0001\n    card_id: C3\n    source: three\n    quote: quote three\n',
+        'evidence-audit-batch-03':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: true\n    quote_supports_reason: true\n    risk: none\n    comments: []\n',
+    }
+    def check2(prompt):
+        assert 'rejected_card_id: C1' in prompt
+        assert 'wrong disease context' in prompt
+        assert 'candidate_card_ids:\n  - C2\n  - C3' in prompt
+    def check3(prompt):
+        assert 'rejected_card_id: C1' in prompt and 'rejected_card_id: C2' in prompt
+        assert 'wrong disease context' in prompt and 'wrong clinical function' in prompt
+        assert 'candidate_card_ids:\n  - C3' in prompt
+    monkeypatch.setattr(step,'_model_call',_scripted_model_call(script,{
+        'evidence-match-batch-02':check2,'evidence-match-batch-03':check3}))
+    monkeypatch.setattr(step,'_retry',lambda name: 3 if name=='evidence_resolution_attempts' else 2)
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'T1','C2':'T2','C3':'T3'})
+    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
+    assert len(out)==1 and out[0]['evidence']['card_id']=='C3'
+    assert out[0]['evidence']['semantic_attempt']==3
+    issue=step._semantic_dissent_issue(tmp_path,'evidence:PX-ADVERSE-01')
+    assert issue['status']=='resolved'
+    raised=[h for h in issue['history'] if h['event']=='raised']
+    assert [h['stage'] for h in raised]==['evidence audit attempt 1','evidence audit attempt 2']
+    dissent=(tmp_path/'dissent.md').read_text()
+    assert 'wrong disease context' in dissent and 'wrong clinical function' in dissent
+
+
+def test_ptbg_semantic_exhaustion_suppresses_statement_but_keeps_failed_audits(tmp_path,monkeypatch):
+    cards=[_test_card('C1'),_test_card('C2')]
+    el={'schema_id':'PX-ADVERSE-01','domain':'prognosis','bucket':'adverse','statement':'claim','reason':'reason',
+        'variants':['v01'],'evidence_domain':'prognosis','required':False,'source':{'variants':['v01']}}
+    reg={'v01':{'gene':'FLT3'}}
+    script={
+        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_id: C1\n    source: one\n    quote: q1\n',
+        'evidence-audit-batch-01':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["first mismatch"]\n',
+        'evidence-match-batch-02':'matches:\n  - evidence_id: E0001\n    card_id: C2\n    source: two\n    quote: q2\n',
+        'evidence-audit-batch-02':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["second mismatch"]\n',
+    }
+    monkeypatch.setattr(step,'_model_call',_scripted_model_call(script))
+    monkeypatch.setattr(step,'_retry',lambda name: 2)
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'T1','C2':'T2'})
+    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
+    assert out==[]
+    issue=step._semantic_dissent_issue(tmp_path,'evidence:PX-ADVERSE-01')
+    assert issue['status']=='resolved'
+    raised=[h for h in issue['history'] if h['event']=='raised']
+    assert [h['stage'] for h in raised]==['evidence audit attempt 1','evidence audit attempt 2']
+
+
+def test_supplied_morphology_is_fallback_when_diagnosis_evidence_exhausts(tmp_path,monkeypatch):
+    card=_test_card('D1',category='diagnosis')
+    el={'schema_id':'DX-WHO5','domain':'diagnosis','bucket':'who5','framework_label':'WHO5',
+        'statement':'WHO5 classification: AML with subtype X.','reason':'FLT3 refines the diagnosis.',
+        'variants':['v01'],'evidence_domain':'diagnosis_who5','required':True,
+        'source':{'schema_disease':'AML','diagnosis':'AML with subtype X','diagnostic_effect':'refined','variants':['v01'],'reason':'FLT3 refines the diagnosis.'},
+        'morphologic_diagnosis_origin':'supplied','starting_morphologic_diagnosis':'AML'}
+    script={
+        'evidence-match-batch-01':'matches:\n  - evidence_id: E0001\n    card_id: D1\n    source: dx\n    quote: q\n',
+        'evidence-audit-batch-01':'audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: false\n    risk: none\n    comments: ["does not support subtype X"]\n',
+    }
+    monkeypatch.setattr(step,'_model_call',_scripted_model_call(script))
+    monkeypatch.setattr(step,'_retry',lambda name: 3 if name=='evidence_resolution_attempts' else 2)
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'D1':'TD1'})
+    out=step.stage_evidence(tmp_path,[el],{'diagnosis_who5':[card]}, {'v01':{'gene':'FLT3'}},{},None)
+    assert len(out)==1
+    assert out[0]['source']['diagnosis']=='AML'
+    assert out[0]['source']['diagnostic_effect']=='unchanged'
+    assert out[0]['evidence'] is None
+    issue=step._semantic_dissent_issue(tmp_path,'evidence:DX-WHO5')
+    assert issue['status']=='resolved'
+    assert any('Retained supplied morphology: AML.' in x for h in issue['history'] for x in h.get('outcome',[]))
+
+
+def test_inferred_primary_diagnosis_without_candidate_support_is_omitted_and_open_dissent(tmp_path,monkeypatch):
+    el={'schema_id':'DX-WHO5','domain':'diagnosis','bucket':'who5','framework_label':'WHO5',
+        'statement':'WHO5 classification: AML.','reason':'Case facts suggest AML.','variants':[],
+        'evidence_domain':'diagnosis_who5','required':True,
+        'source':{'schema_disease':'AML','diagnosis':'AML','diagnostic_effect':'unchanged','variants':[],'reason':'Case facts suggest AML.'},
+        'morphologic_diagnosis_origin':'inferred','starting_morphologic_diagnosis':'AML'}
+    monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{})
+    out=step.stage_evidence(tmp_path,[el],{'diagnosis_who5':[]},{},{},None)
+    assert out==[]
+    issue=step._semantic_dissent_issue(tmp_path,'evidence:DX-WHO5')
+    assert issue['status']=='open'
+    assert 'remains unresolved' in (tmp_path/'dissent.md').read_text()
+
+
+def test_failed_evidence_audit_requires_actionable_feedback():
+    items=[{'evidence_id':'E0001'}]
+    bad='''audits:\n  - evidence_id: E0001\n    quote_supports_statement: false\n    quote_supports_reason: true\n    risk: none\n    comments: []\n'''
+    with pytest.raises(ValidationFailure) as exc:
+        schema_validation.validate_evidence_audit_batch(bad,items)
+    assert 'without explanatory feedback' in str(exc.value)

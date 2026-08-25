@@ -18,6 +18,7 @@ rules:
   - none
   - warning
   label: risk level
+- rule: audit_feedback_when_needed
 retries:
   content: 2
   serialization: 3

@@ -1,3 +1,4 @@
 diagnosis: MDS/AML
 variants: [v01]
+diagnostic_effect: refined
 reason: The molecular findings do not alter the supplied diagnosis.

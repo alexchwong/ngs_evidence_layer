@@ -1,4 +1,3 @@
-
 # Statement/reason versus evidence audit
 
 Audit EVERY selected quote/card against BOTH the clinical statement and the reason used to justify it.
@@ -9,7 +8,9 @@ For each item decide:
 
 A card about a different clinical use of the same gene is not support for this claim. Absence of contrary evidence is not affirmative support.
 
-Use `risk: warning` for non-gating fidelity/strength/context concerns when both support checks still pass. Give concise comments explaining any failure or warning. Do not prescribe a replacement clinical answer.
+When an item fails, make `comments` operational for the next evidence-match attempt: state concisely WHY the selected card is inappropriate (for example wrong clinical function, wrong disease, wrong gene/variant, wrong framework, wrong polarity, or only indirect/related evidence). Do not prescribe a replacement clinical answer or invent a card.
+
+Use `risk: warning` for non-gating fidelity/strength/context concerns when both support checks still pass. Give concise comments explaining any failure or warning.
 
 Return YAML only, preserving evidence IDs and order:
 ```yaml

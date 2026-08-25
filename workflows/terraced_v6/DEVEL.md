@@ -4,7 +4,8 @@ V6 is intentionally smaller than v5.
 
 ## Core assets
 
-- `step.py` — orchestration, evidence flow, reportability, deterministic block assembly, dissent.
+- `step.py` — orchestration, evidence model calls, reportability, deterministic block assembly, dissent.
+- `evidence_resolution.py` — pure shared policy for cumulative semantic evidence retries, rejected-card exclusion, and diagnosis/PTBG exhaustion behavior.
 - `model_context.py` — canonical downstream model context. Owns the rule that model prompts expose only `v01`-style IDs, and the per-stage projections that decide how much of the case/diagnosis each stage reads.
 - `runtime.py` — case/setup validation and small deterministic helpers.
 - `schema_validation.py` — accumulating validators for diagnosis, evidence and writer artifacts.
@@ -17,7 +18,7 @@ V6 is intentionally smaller than v5.
 - `schema_engine.py` — maps `jsonschema` errors onto `ValidationIssue`.
 - `rules.py` — the named relational rules a stage asset may reference.
 - `stage_validation.py` — schema + rules, ordered by document position.
-- `settings.json.template` — retry, authority, retrieval, and reportability policy.
+- `settings.json.template` — retry, authority, retrieval, and reportability policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
 - `pipelines/` — model bindings for self, LM Studio, and OpenRouter.
 

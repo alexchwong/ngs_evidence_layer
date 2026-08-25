@@ -19,6 +19,13 @@ ROOT_NAMES = (
 )
 
 
+def active_root_names(args):
+    """Return the root names to process, excluding 'pdf' unless --include-pdf is set."""
+    if getattr(args, "include_pdf", False):
+        return ROOT_NAMES
+    return tuple(name for name in ROOT_NAMES if name != "pdf")
+
+
 def sha256(path):
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
@@ -28,11 +35,19 @@ def sha256(path):
 
 
 def root_paths(args):
-    return {name: Path(getattr(args, f"{name}_dir")) for name in ROOT_NAMES}
+    return {name: Path(getattr(args, f"{name}_dir")) for name in active_root_names(args)}
 
 
 def archive_path(root_name, relative):
     return PurePosixPath("state", root_name, *relative.parts).as_posix()
+
+
+def _archive_root_name(path_str):
+    """Return the root name from an archive path like 'state/<root>/...', or None."""
+    parts = PurePosixPath(path_str).parts
+    if len(parts) >= 2 and parts[0] == "state":
+        return parts[1]
+    return None
 
 
 def collect_files(roots):
@@ -69,7 +84,7 @@ def export_state(args):
         "format": FORMAT,
         "version": FORMAT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "roots": list(ROOT_NAMES),
+        "roots": list(active_root_names(args)),
         "files": [
             {key: entry[key] for key in ("path", "size", "sha256", "mtime_ns")}
             for entry in files
@@ -142,7 +157,7 @@ def inspect_archive(archive):
     if created_at_value.tzinfo is None:
         raise ValueError("manifest created_at must include a timezone")
     roots = manifest.get("roots")
-    if roots != list(ROOT_NAMES):
+    if not isinstance(roots, list) or not all(r in ROOT_NAMES for r in roots):
         raise ValueError("manifest roots do not identify the complete private state")
     entries = manifest.get("files")
     if not isinstance(entries, list):
@@ -345,11 +360,14 @@ def install_staged(staging, expected, roots, created_at_ns, dry_run, overwrite):
 def import_state(args):
     archive_path_value = Path(args.archive)
     roots = root_paths(args)
+    active = set(active_root_names(args))
     with tempfile.TemporaryDirectory(prefix="nel-transport-") as temporary:
         staging = Path(temporary)
         try:
             with tarfile.open(archive_path_value, "r:gz") as archive:
                 members, expected, created_at_ns = inspect_archive(archive)
+                members = {k: v for k, v in members.items() if _archive_root_name(k) in active}
+                expected = {k: v for k, v in expected.items() if _archive_root_name(k) in active}
                 stage_archive(archive, members, expected, staging)
         except (OSError, tarfile.TarError) as exc:
             raise ValueError(f"could not read archive: {exc}") from exc
@@ -369,6 +387,11 @@ def main():
 
     export_parser = commands.add_parser("export", help="create a compressed private-state archive")
     export_parser.add_argument("--output", type=Path, required=True)
+    export_parser.add_argument(
+        "--include-pdf",
+        action="store_true",
+        help="include PDF files in the archive (excluded by default)",
+    )
     add_root_arguments(export_parser)
     export_parser.set_defaults(function=export_state)
 
@@ -379,6 +402,11 @@ def main():
         "--overwrite",
         action="store_true",
         help="reproduce the archive state by replacing and deleting older local files",
+    )
+    import_parser.add_argument(
+        "--include-pdf",
+        action="store_true",
+        help="import PDF files from the archive (skipped by default)",
     )
     add_root_arguments(import_parser)
     import_parser.set_defaults(function=import_state)

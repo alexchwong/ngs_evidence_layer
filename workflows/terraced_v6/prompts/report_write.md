@@ -12,6 +12,7 @@ Rules:
 - Use gene-level wording by default. Retain mutation class/subtype/allele only when the block requires that specificity. Do not gratuitously expand to transcript/HGVS notation.
 - For a diagnosis block with `relationship: same`, express WHO5 and ICC together.
 - For `relationship: different`, explicitly contrast WHO5 and ICC; do not create a separate sentence merely saying they differ.
+- For `relationship: partial`, report only the supplied framework component(s); do not infer or reconstruct a missing framework diagnosis.
 - Keep independent concurrent diagnoses explicitly separate from the primary framework diagnoses.
 - Do not merge separate supplied blocks.
 

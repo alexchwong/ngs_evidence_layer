@@ -27,11 +27,12 @@ def _parsed(text, context, keys):
 
 def validate_who5_diagnosis(text, *, allowed_diseases, valid_variants):
     ctx = "WHO5 diagnosis"
-    doc, problems = _parsed(text, ctx, {"schema_disease", "diagnosis", "variants", "reason"})
+    doc, problems = _parsed(text, ctx, {"schema_disease", "diagnosis", "diagnostic_effect", "variants", "reason"})
     problems += iss.enum_field(
         doc.get("schema_disease"), allowed_diseases, "schema_disease", label="schema disease"
     )
     problems += iss.text_field(doc.get("diagnosis"), "diagnosis")
+    problems += iss.enum_field(doc.get("diagnostic_effect"), ("unchanged", "refined", "superseded"), "diagnostic_effect", label="diagnostic effect")
     _, variant_issues = iss.id_list(doc.get("variants"), "variants", valid_variants, allow_empty=True)
     problems += variant_issues
     problems += iss.text_field(doc.get("reason"), "reason")
@@ -41,8 +42,9 @@ def validate_who5_diagnosis(text, *, allowed_diseases, valid_variants):
 
 def validate_icc_diagnosis(text, *, valid_variants):
     ctx = "ICC diagnosis"
-    doc, problems = _parsed(text, ctx, {"diagnosis", "variants", "reason"})
+    doc, problems = _parsed(text, ctx, {"diagnosis", "diagnostic_effect", "variants", "reason"})
     problems += iss.text_field(doc.get("diagnosis"), "diagnosis")
+    problems += iss.enum_field(doc.get("diagnostic_effect"), ("unchanged", "refined", "superseded"), "diagnostic_effect", label="diagnostic effect")
     _, variant_issues = iss.id_list(doc.get("variants"), "variants", valid_variants, allow_empty=True)
     problems += variant_issues
     problems += iss.text_field(doc.get("reason"), "reason")
@@ -113,12 +115,26 @@ def validate_evidence_match_batch(text, items):
             path = f"matches[{i}]"
             problems += iss.exact_keys(row, {"evidence_id", "card_id", "source", "quote"}, path)
             item = by_id.get(row.get("evidence_id"))
-            if item is not None:
-                problems += iss.enum_field(
-                    row.get("card_id"), item["candidate_card_ids"], f"{path}.card_id", label="candidate card"
-                )
-            problems += iss.text_field(row.get("source"), f"{path}.source")
-            problems += iss.text_field(row.get("quote"), f"{path}.quote")
+            card_id = row.get("card_id")
+            if card_id is None:
+                if row.get("source") is not None or row.get("quote") is not None:
+                    problems.append(
+                        ValidationIssue(
+                            path,
+                            "card_id is null but source/quote are populated",
+                            "when declaring no citation support, return card_id: null, source: null and quote: null",
+                            repair_class="content",
+                            received=f"source={iss.preview(row.get('source'))} quote={iss.preview(row.get('quote'))}",
+                            expected="card_id/source/quote all null",
+                        )
+                    )
+            else:
+                if item is not None:
+                    problems += iss.enum_field(
+                        card_id, item["candidate_card_ids"], f"{path}.card_id", label="candidate card"
+                    )
+                problems += iss.text_field(row.get("source"), f"{path}.source")
+                problems += iss.text_field(row.get("quote"), f"{path}.quote")
     fail(ctx, problems)
     return "evidence matches valid"
 
@@ -152,6 +168,17 @@ def validate_evidence_audit_batch(text, items):
                         repair_class="serialization" if isinstance(comments, str) else "content",
                         received=iss.preview(comments),
                         expected="list of strings",
+                    )
+                )
+            elif (row.get("quote_supports_statement") is False or row.get("quote_supports_reason") is False or row.get("risk") == "warning") and not any(x.strip() for x in comments):
+                problems.append(
+                    ValidationIssue(
+                        f"{path}.comments",
+                        "support failed or a warning was raised without explanatory feedback",
+                        "state concisely why the selected card is inappropriate or what the warning is, so the next matcher can choose better evidence",
+                        repair_class="content",
+                        received=iss.preview(comments),
+                        expected="one or more actionable audit comments",
                     )
                 )
     fail(ctx, problems)

@@ -5,6 +5,7 @@
   "required": [
     "diagnosis",
     "variants",
+    "diagnostic_effect",
     "reason"
   ],
   "properties": {
@@ -22,6 +23,14 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "diagnostic_effect": {
+      "type": "string",
+      "enum": [
+        "unchanged",
+        "refined",
+        "superseded"
+      ]
     }
   }
 }

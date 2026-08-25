@@ -138,7 +138,7 @@ def references_exist(doc, context, params):
         if not isinstance(row, dict):
             continue
         item = by_id.get(row.get("evidence_id"))
-        if item is None:
+        if item is None or row.get(params["value_field"]) is None:
             continue
         out += iss.enum_field(
             row.get(params["value_field"]),
@@ -148,6 +148,48 @@ def references_exist(doc, context, params):
         )
     return out
 
+
+
+def null_evidence_match_contract(doc, context, params):
+    """A no-support match must leave card/source/quote all null."""
+    out = []
+    for i, row in enumerate(doc.get("matches") or []):
+        if not isinstance(row, dict) or row.get("card_id") is not None:
+            continue
+        if row.get("source") is not None or row.get("quote") is not None:
+            out.append(
+                ValidationIssue(
+                    f"matches[{i}]",
+                    "card_id is null but source/quote are populated",
+                    "when declaring no citation support, return card_id: null, source: null and quote: null",
+                    repair_class="content",
+                    received=f"source={iss.preview(row.get('source'))} quote={iss.preview(row.get('quote'))}",
+                    expected="card_id/source/quote all null",
+                )
+            )
+    return out
+
+
+def audit_feedback_when_needed(doc, context, params):
+    """Failed/warning audits must explain why, because matcher retries consume it."""
+    out = []
+    for i, row in enumerate(doc.get("audits") or []):
+        if not isinstance(row, dict):
+            continue
+        needs = row.get("quote_supports_statement") is False or row.get("quote_supports_reason") is False or row.get("risk") == "warning"
+        comments = row.get("comments")
+        if needs and isinstance(comments, list) and not any(isinstance(x, str) and x.strip() for x in comments):
+            out.append(
+                ValidationIssue(
+                    f"audits[{i}].comments",
+                    "support failed or a warning was raised without explanatory feedback",
+                    "state concisely why the selected card is inappropriate or what the warning is, so the next matcher can choose better evidence",
+                    repair_class="content",
+                    received=iss.preview(comments),
+                    expected="one or more actionable audit comments",
+                )
+            )
+    return out
 
 def exclusive_with(doc, context, params):
     """A variant in a solitary bucket must not appear in any other bucket."""
@@ -336,6 +378,8 @@ REGISTRY = {
     "enum": enum,
     "id_subset": id_subset,
     "references_exist": references_exist,
+    "null_evidence_match_contract": null_evidence_match_contract,
+    "audit_feedback_when_needed": audit_feedback_when_needed,
     "exclusive_with": exclusive_with,
     "prognostic_score_not_null_excuse": prognostic_score_not_null_excuse,
     "issue_null_when_preserved": issue_null_when_preserved,

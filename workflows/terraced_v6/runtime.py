@@ -95,12 +95,15 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
         safe=_single_mapping_list(d)
         issues.append(ValidationIssue('structured case',f'expected object; received {_type_name(d)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required top-level object from the case-structure proforma',repair_class='serialization' if safe else 'content',received=_preview(d),expected='object'))
         d={}
-    _exact(issues,d,{'provisional_disease','bootstrap_cmcs','variants','detected_variants_summary','case_facts'})
+    _exact(issues,d,{'provisional_disease','morphologic_diagnosis_origin','bootstrap_cmcs','variants','detected_variants_summary','case_facts'})
     provisional=d.get('provisional_disease')
     if not _nonempty(provisional):
         cls='serialization' if _scalar_string_repairable(provisional) else 'content'
         fix='quote/reserialize the existing value as one string without changing its words' if cls=='serialization' else 'return a source-faithful provisional disease description'
         issues.append(ValidationIssue('provisional_disease',f'expected non-empty string; received {_type_name(provisional)}',fix,repair_class=cls,received=_preview(provisional),expected='non-empty string'))
+    origin=d.get('morphologic_diagnosis_origin')
+    if origin not in {'supplied','inferred'}:
+        issues.append(ValidationIssue('morphologic_diagnosis_origin',f'expected supplied or inferred; received {_preview(origin)}','use supplied only when the case explicitly states the morphologic/pathologic diagnosis; otherwise use inferred',repair_class='content',received=_preview(origin),expected="'supplied' or 'inferred'"))
     cmcs=d.get('bootstrap_cmcs')
     if not isinstance(cmcs,list):
         safe=isinstance(cmcs,str)

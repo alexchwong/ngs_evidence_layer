@@ -45,11 +45,11 @@ With `self`, each required model call returns `HANDOFF`, `PROMPT`, and `OUTPUT`;
 
 ## Architecture
 
-1. Structure `case.md` and preserve detailed variants.
+1. Structure `case.md`, preserve detailed variants, and record whether the morphologic diagnosis was supplied or inferred.
 2. Deterministically initialise/filter the evidence corpus.
-3. WHO5 and ICC each decide whether NGS/cytogenetics alter the supplied morphologic diagnosis; an independent concurrent diagnosis is considered separately.
+3. WHO5 and ICC each label the molecular/cytogenetic effect as unchanged, refined, or superseded relative to the starting morphologic diagnosis; an independent concurrent diagnosis is considered separately.
 4. Prognosis, treatment, MRD, and germline each produce one compact owner proforma.
-5. Reportable owner propositions undergo one evidence match and one evidence audit.
+5. Reportable owner propositions enter a shared semantic evidence-resolution loop. Failed audit cards are excluded, cumulative audit feedback is passed to the next matcher, and the matcher may explicitly declare no citation support.
 6. `settings.json` deterministically filters reportability.
 7. Python assembles deterministic report blocks.
 8. One model call writes the prose.
@@ -93,4 +93,4 @@ Pay attention to:
 
 ## Failure policy
 
-Primary WHO5/ICC propositions fail closed if evidence support cannot be established. Unsupported optional PTBG propositions are suppressed and recorded in `dissent.md`. The final prose writer never gets permission to change clinical conclusions.
+Every failed semantic evidence audit is retained in `dissent.md`, even if a later card passes. PTBG propositions are suppressed when semantic evidence resolution is exhausted. For primary WHO5/ICC diagnoses, unsupported molecular/cytogenetic refinements fall back to explicitly supplied morphology; unsupported inferred morphology remains unresolved and is omitted. The final prose writer never gets permission to change clinical conclusions.

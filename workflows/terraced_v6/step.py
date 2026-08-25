@@ -13,7 +13,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v6 import card_identity, domain_contract, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
+from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 
 WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=1; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
@@ -762,12 +762,26 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,profile):
     _write(_artifact(work,f'{domain}_state','model-classification.yaml',new=False),yaml.safe_dump(flat,sort_keys=False,allow_unicode=True,width=110))
     return doc,cards
 
-def _elements(diagnosis,domains):
+def _elements(diagnosis,domains,case):
     els=[]
+    origin=case.get('morphologic_diagnosis_origin')
+    starting=case.get('provisional_disease')
     if _reportable('diagnosis','who5'):
-        w=diagnosis['who5']; els.append({'schema_id':'DX-WHO5','domain':'diagnosis','bucket':'who5','statement':f'WHO5 classification: {w["diagnosis"]}.','reason':w['reason'],'variants':w['variants'],'evidence_domain':'diagnosis_who5','required':True,'source':w})
+        w=diagnosis['who5']; effect=w.get('diagnostic_effect')
+        statement=(
+            f'WHO5 molecular/cytogenetic update: the supplied morphologic diagnosis {starting} remains unchanged.'
+            if origin=='supplied' and effect=='unchanged'
+            else f'WHO5 classification: {w["diagnosis"]}.'
+        )
+        els.append({'schema_id':'DX-WHO5','domain':'diagnosis','bucket':'who5','framework_label':'WHO5','statement':statement,'reason':w['reason'],'variants':w['variants'],'evidence_domain':'diagnosis_who5','required':True,'source':w,'morphologic_diagnosis_origin':origin,'starting_morphologic_diagnosis':starting})
     if _reportable('diagnosis','icc'):
-        r=diagnosis['icc']; els.append({'schema_id':'DX-ICC','domain':'diagnosis','bucket':'icc','statement':f'ICC classification: {r["diagnosis"]}.','reason':r['reason'],'variants':r['variants'],'evidence_domain':'diagnosis_icc','required':True,'source':r})
+        r=diagnosis['icc']; effect=r.get('diagnostic_effect')
+        statement=(
+            f'ICC molecular/cytogenetic update: the supplied morphologic diagnosis {starting} remains unchanged.'
+            if origin=='supplied' and effect=='unchanged'
+            else f'ICC classification: {r["diagnosis"]}.'
+        )
+        els.append({'schema_id':'DX-ICC','domain':'diagnosis','bucket':'icc','framework_label':'ICC','statement':statement,'reason':r['reason'],'variants':r['variants'],'evidence_domain':'diagnosis_icc','required':True,'source':r,'morphologic_diagnosis_origin':origin,'starting_morphologic_diagnosis':starting})
     sec=diagnosis['second_diagnosis']
     if _reportable('diagnosis','second_diagnosis') and sec.get('diagnosis'):
         els.append({'schema_id':'DX-SECOND','domain':'diagnosis','bucket':'second_diagnosis','statement':sec['diagnosis'],'reason':sec['reason'],'variants':sec['variants'],'evidence_domain':'diagnosis_other','required':False,'source':sec})
@@ -791,46 +805,162 @@ def _candidate_cards(el,cards_by_domain,reg):
 
 def _card_view(card): return {'card_id':card.get('card_id'),'category':card.get('category'),'genes':card.get('genes') or [],'diseases':card.get('diseases') or [],'evidence_tier':card.get('evidence_tier'),'interpretation':card.get('interpretation') or '','source_hint':card.get('paper_nickname') or card.get('citation_display') or ''}
 
+def _evidence_reviewed_text(el):
+    return 'Statement: '+el['statement']+'\nReason: '+el['reason']
+
+def _resolve_no_citation_support(work,el,*,attempt,reason):
+    """Apply the domain-specific policy after semantic evidence resolution stops."""
+    issue=f'evidence:{el["schema_id"]}'
+    if _semantic_dissent_issue(work,issue) is None:
+        _semantic_dissent(
+            work,issue_key=issue,stage=f'evidence matching attempt {attempt}',
+            reviewed_text=_evidence_reviewed_text(el),dissent_reason=reason,
+            action_recommended='Use supplied morphology for a primary diagnosis when available; otherwise omit the unsupported proposition.',
+        )
+    policy=evidence_resolution.exhaustion_policy(el)
+    if policy=='fallback_supplied':
+        fallback=evidence_resolution.retain_supplied_morphology(el)
+        _semantic_dissent_address(
+            work,issue_key=issue,stage='evidence resolution',
+            action='Discard the unsupported molecular/cytogenetic diagnosis update and retain the supplied morphologic diagnosis without a literature citation.',
+            outcome=f'Retained supplied morphology: {fallback["source"]["diagnosis"]}.',status='resolved',
+        )
+        return fallback
+    if policy=='unresolved':
+        _semantic_dissent_address(
+            work,issue_key=issue,stage='evidence resolution',
+            action='Do not report this inferred primary diagnosis because direct citation support was not resolved.',
+            outcome='Primary framework diagnosis remains unresolved and is omitted from report construction.',
+        )
+        return None
+    _semantic_dissent_address(
+        work,issue_key=issue,stage='evidence resolution',
+        action='Suppress this unsupported optional proposition from report construction.',
+        outcome='The optional proposition was excluded from the report.',status='resolved',
+    )
+    return None
+
 def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
-    tag_by_id=card_identity.tag_by_id(manifest); catalog={}; items=[]; enriched=[dict(el,evidence=None) for el in elements]
-    for idx,el in enumerate(elements,1):
+    """Resolve reportable propositions through cumulative semantic match/audit attempts.
+
+    Per-model syntax/content retries remain inside ``_model_call``.  This loop is
+    deliberately separate: one semantic attempt means a completed evidence match
+    followed by its evidence audit.  Failed cards are excluded from later attempts
+    and every prior audit comment is carried forward.
+    """
+    tag_by_id=card_identity.tag_by_id(manifest); catalog={}; pending=[]; keep=[]
+    enriched=[dict(el,evidence=None) for el in elements]
+    for idx,el in enumerate(enriched,1):
         candidates=_candidate_cards(el,cards_by_domain,reg)
         if not candidates:
             issue=f'evidence:{el["schema_id"]}'
-            _semantic_dissent(work,issue_key=issue,stage='evidence selection',reviewed_text=el['statement'],dissent_reason='No candidate evidence card was available for this reportable proposition.',action_recommended='Suppress optional proposition; fail closed for a primary framework diagnosis.')
-            if el['required']:
-                _semantic_dissent_address(work,issue_key=issue,stage='evidence resolution',action='Fail closed because a primary diagnosis lacks candidate evidence.',outcome='Final report generation stopped.',status='retained_with_dissent')
-                raise StepFailure(f'{el["schema_id"]}: primary diagnosis has no candidate evidence cards')
+            _semantic_dissent(
+                work,issue_key=issue,stage='evidence selection',reviewed_text=_evidence_reviewed_text(el),
+                dissent_reason='No candidate evidence card was available for this reportable proposition.',
+                action_recommended='Use supplied morphology for a primary diagnosis when available; otherwise omit the unsupported proposition.',
+            )
+            resolved=_resolve_no_citation_support(work,el,attempt=0,reason='No candidate evidence card was available for this reportable proposition.')
+            if resolved is not None: keep.append(resolved)
             continue
-        eid=f'E{len(items)+1:04d}'
+        eid=f'E{len(pending)+1:04d}'
         for c in candidates: catalog[c['card_id']]=c
-        items.append({'evidence_id':eid,'element_index':idx-1,'schema_id':el['schema_id'],'statement':el['statement'],'reason':el['reason'],'candidate_card_ids':[c['card_id'] for c in candidates]})
-    if not items:
-        return [x for x in enriched if x['required']]
-    public=[{k:item[k] for k in ('evidence_id','schema_id','statement','reason','candidate_card_ids')} for item in items]
-    cards=[_card_view(catalog[cid]) for cid in dict.fromkeys(cid for item in items for cid in item['candidate_card_ids'])]
-    mpath=_existing_or_new(work,'evidence_matches','batch-match.yaml'); mprompt=_prompt('evidence_match')+'\n\n# Evidence items\n```yaml\n'+yaml.safe_dump({'items':public},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate card catalog\n```yaml\n'+yaml.safe_dump({'cards':cards},sort_keys=False,allow_unicode=True,width=110)+'```\n'
-    _model_call(work,call_id='evidence-match-batch',role='evidence_match',prompt=mprompt,output=mpath,validator=lambda t:schema_validation.validate_evidence_match_batch(t,items),profile=profile,max_attempts=_retry('evidence_match_model_attempts'))
-    matches=yaml.safe_load(_read(mpath))['matches']; mmap={m['evidence_id']:m for m in matches}
-    audit_rows=[]
-    for item in items:
-        m=mmap[item['evidence_id']]; audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'statement':item['statement'],'reason':item['reason'],'source':m['source'],'quote':m['quote'],'selected_card':_card_view(catalog[m['card_id']])})
-    apath=_existing_or_new(work,'evidence_audits','batch-audit.yaml'); aprompt=_prompt('evidence_audit')+'\n\n# Selected evidence pairs\n```yaml\n'+yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
-    _model_call(work,call_id='evidence-audit-batch',role='evidence_audit',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_evidence_audit_batch(t,items),profile=profile,max_attempts=_retry('evidence_audit_model_attempts'))
-    audits=yaml.safe_load(_read(apath))['audits']; amap={a['evidence_id']:a for a in audits}; keep=[]
-    for item in items:
-        el=enriched[item['element_index']]; m=mmap[item['evidence_id']]; a=amap[item['evidence_id']]; ok=bool(a['quote_supports_statement'] and a['quote_supports_reason'])
-        if not ok:
-            issue=f'evidence:{el["schema_id"]}'; comments=a.get('comments') or ['Selected evidence did not support the proposition and reason.']
-            _semantic_dissent(work,issue_key=issue,stage='evidence audit',reviewed_text='Statement: '+el['statement']+'\nReason: '+el['reason'],dissent_reason=comments,action_recommended='Suppress optional proposition; fail closed for a primary framework diagnosis.')
-            if el['required']:
-                _semantic_dissent_address(work,issue_key=issue,stage='evidence resolution',action='Fail closed because primary diagnosis evidence did not pass.',outcome='Final report generation stopped.',status='retained_with_dissent')
-                raise StepFailure(f'{el["schema_id"]}: primary diagnosis evidence unsupported: {"; ".join(comments)}')
-            _semantic_dissent_address(work,issue_key=issue,stage='evidence resolution',action='Suppress this optional proposition from report construction.',outcome='The optional proposition was excluded from the report.',status='resolved')
-            continue
-        if a.get('risk')=='warning':
-            issue=f'evidence-warning:{el["schema_id"]}'; _semantic_dissent(work,issue_key=issue,stage='evidence audit',reviewed_text=el['statement'],dissent_reason=a.get('comments') or ['Evidence fidelity/context warning.'],action_recommended='Retain the supported proposition with dissent visible for review.'); _semantic_dissent_address(work,issue_key=issue,stage='evidence resolution',action='Retain supported proposition.',outcome='Support passed; warning remains visible.',status='retained_with_dissent')
-        el['evidence']={'status':'matched','card_id':m['card_id'],'card_tag':f'[card:{tag_by_id[m["card_id"]]}]','source':m['source'],'quote':m['quote'],'audit':a}; keep.append(el)
+        pending.append({'evidence_id':eid,'element_index':idx-1,'schema_id':el['schema_id'],'statement':el['statement'],'reason':el['reason'],'candidate_card_ids':[c['card_id'] for c in candidates],'failures':[]})
+    max_attempts=max(1,_retry('evidence_resolution_attempts'))
+    for semantic_attempt in range(1,max_attempts+1):
+        if not pending: break
+        active=[]
+        exhausted=[]
+        for item in pending:
+            if evidence_resolution.remaining_candidate_ids(item): active.append(item)
+            else: exhausted.append(item)
+        for item in exhausted:
+            el=enriched[item['element_index']]
+            resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='All candidate evidence cards were rejected by prior semantic audits.')
+            if resolved is not None: keep.append(resolved)
+        pending=active
+        if not pending: break
+        _status(f'  evidence resolution semantic attempt {semantic_attempt}/{max_attempts}: {len(pending)} item(s)')
+        public=[evidence_resolution.public_match_item(item) for item in pending]
+        candidate_ids=list(dict.fromkeys(cid for item in public for cid in item['candidate_card_ids']))
+        cards=[_card_view(catalog[cid]) for cid in candidate_ids]
+        mpath=_existing_or_new(work,'evidence_matches',f'attempt-{semantic_attempt:02d}.yaml')
+        mprompt=(
+            _prompt('evidence_match')+'\n\n# Evidence items\n```yaml\n'
+            +yaml.safe_dump({'items':public},sort_keys=False,allow_unicode=True,width=110)
+            +'```\n\n# Candidate card catalog\n```yaml\n'
+            +yaml.safe_dump({'cards':cards},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+        )
+        validation_items=[{'evidence_id':x['evidence_id'],'candidate_card_ids':x['candidate_card_ids']} for x in public]
+        _model_call(
+            work,call_id=f'evidence-match-batch-{semantic_attempt:02d}',role='evidence_match',prompt=mprompt,output=mpath,
+            validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=profile,
+            max_attempts=_retry('evidence_match_model_attempts'),
+        )
+        matches=yaml.safe_load(_read(mpath))['matches']; mmap={m['evidence_id']:m for m in matches}
+        audit_items=[]
+        for item in pending:
+            m=mmap[item['evidence_id']]
+            if m.get('card_id') is None: continue
+            audit_items.append(item)
+        audited={}
+        if audit_items:
+            audit_rows=[]
+            for item in audit_items:
+                m=mmap[item['evidence_id']]
+                audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'statement':item['statement'],'reason':item['reason'],'source':m['source'],'quote':m['quote'],'selected_card':_card_view(catalog[m['card_id']])})
+            apath=_existing_or_new(work,'evidence_audits',f'attempt-{semantic_attempt:02d}.yaml')
+            aprompt=_prompt('evidence_audit')+'\n\n# Selected evidence pairs\n```yaml\n'+yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+            _model_call(
+                work,call_id=f'evidence-audit-batch-{semantic_attempt:02d}',role='evidence_audit',prompt=aprompt,output=apath,
+                validator=lambda t,ai=audit_items:schema_validation.validate_evidence_audit_batch(t,ai),profile=profile,
+                max_attempts=_retry('evidence_audit_model_attempts'),
+            )
+            audits=yaml.safe_load(_read(apath))['audits']; audited={a['evidence_id']:a for a in audits}
+        next_pending=[]
+        for item in pending:
+            el=enriched[item['element_index']]; m=mmap[item['evidence_id']]
+            if m.get('card_id') is None:
+                issue=f'evidence:{el["schema_id"]}'
+                _semantic_dissent(
+                    work,issue_key=issue,stage=f'evidence matching attempt {semantic_attempt}',reviewed_text=_evidence_reviewed_text(el),
+                    dissent_reason='Evidence matcher declared that no remaining candidate card directly supports the proposition.',
+                    action_recommended='Do not force a merely related citation; apply the proposition-specific no-support policy.',
+                )
+                resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='Evidence matcher declared no direct citation support.')
+                if resolved is not None: keep.append(resolved)
+                continue
+            a=audited[item['evidence_id']]; ok=bool(a['quote_supports_statement'] and a['quote_supports_reason'])
+            if ok:
+                issue=f'evidence:{el["schema_id"]}'
+                if item['failures']:
+                    _semantic_dissent_address(
+                        work,issue_key=issue,stage='evidence resolution',
+                        action=f'Accept replacement evidence after semantic attempt {semantic_attempt}.',
+                        outcome=f'Card {m["card_id"]} passed evidence audit; prior failed attempts remain recorded.',status='resolved',
+                    )
+                if a.get('risk')=='warning':
+                    warning=f'evidence-warning:{el["schema_id"]}'
+                    _semantic_dissent(work,issue_key=warning,stage=f'evidence audit attempt {semantic_attempt}',reviewed_text=el['statement'],dissent_reason=a.get('comments') or ['Evidence fidelity/context warning.'],action_recommended='Retain the supported proposition with dissent visible for review.')
+                    _semantic_dissent_address(work,issue_key=warning,stage='evidence resolution',action='Retain supported proposition.',outcome='Support passed; warning remains visible.',status='retained_with_dissent')
+                el['evidence']={'status':'matched','card_id':m['card_id'],'card_tag':f'[card:{tag_by_id[m["card_id"]]}]','source':m['source'],'quote':m['quote'],'audit':a,'semantic_attempt':semantic_attempt}
+                keep.append(el); continue
+            comments=a.get('comments') or ['Selected evidence did not support the proposition and reason.']
+            item['failures'].append({'attempt':semantic_attempt,'card_id':m['card_id'],'comments':list(comments)})
+            issue=f'evidence:{el["schema_id"]}'
+            _semantic_dissent(
+                work,issue_key=issue,stage=f'evidence audit attempt {semantic_attempt}',reviewed_text=_evidence_reviewed_text(el),
+                dissent_reason=[f'Card {m["card_id"]} rejected: {comment}' for comment in comments],
+                action_recommended='Exclude this card from later attempts; pass all audit feedback to the matcher; select a better direct-support card or declare no citation support.',
+            )
+            if semantic_attempt<max_attempts and evidence_resolution.remaining_candidate_ids(item):
+                next_pending.append(item)
+            else:
+                resolved=_resolve_no_citation_support(work,el,attempt=semantic_attempt,reason='Semantic evidence-resolution attempts were exhausted without direct support.')
+                if resolved is not None: keep.append(resolved)
+        pending=next_pending
+    # Preserve original report order regardless of which semantic attempt resolved an item.
+    order={el['schema_id']:i for i,el in enumerate(enriched)}
+    keep.sort(key=lambda el:order.get(el['schema_id'],len(order)))
     _write(_existing_or_new(work,'evidence_enriched','reportable-elements.yaml'),yaml.safe_dump({'elements':keep},sort_keys=False,allow_unicode=True,width=110))
     return keep
 
@@ -843,11 +973,14 @@ def _genes(reg,variants):
 
 def _fallback_block_text(block):
     if block['domain']=='diagnosis':
-        comps=block['components']; who=next(x for x in comps if x['role']=='who5'); icc=next(x for x in comps if x['role']=='icc')
-        if block.get('relationship')=='same': text=f'The diagnosis is {who["diagnosis"]} under both WHO5 and ICC classifications.'
-        else: text=f'Under WHO5, the diagnosis is {who["diagnosis"]}. In contrast, under ICC, the diagnosis is {icc["diagnosis"]}.'
+        comps=block['components']; who=next((x for x in comps if x['role']=='who5'),None); icc=next((x for x in comps if x['role']=='icc'),None)
+        if who and icc and block.get('relationship')=='same': text=f'The diagnosis is {who["diagnosis"]} under both WHO5 and ICC classifications.'
+        elif who and icc: text=f'Under WHO5, the diagnosis is {who["diagnosis"]}. In contrast, under ICC, the diagnosis is {icc["diagnosis"]}.'
+        elif who: text=f'Under WHO5, the diagnosis is {who["diagnosis"]}.'
+        elif icc: text=f'Under ICC, the diagnosis is {icc["diagnosis"]}.'
+        else: text=''
         second=next((x for x in comps if x['role']=='second_diagnosis'),None)
-        if second: text+=' An independent concurrent diagnosis of '+second['diagnosis']+' is also supported.'
+        if second: text+=((' ' if text else '')+'An independent concurrent diagnosis of '+second['diagnosis']+' is also supported.')
         return text
     return runtime.ensure_sentence(block['components'][0]['reason'])
 
@@ -858,7 +991,10 @@ def stage_blocks(work,diagnosis,elements,reg):
         el=by_id.get(sid)
         if not el: continue
         src=el['source']; dx.append({'role':role,'diagnosis':src.get('diagnosis'),'reason':src.get('reason'),'variants':src.get('variants') or [],'genes':_genes(reg,src.get('variants') or []),'card_tags':[el['evidence']['card_tag']] if el.get('evidence') else []})
-    if dx: blocks.append({'block_id':'DX','domain':'diagnosis','relationship':diagnosis['relationship'],'components':dx})
+    if dx:
+        who=next((x for x in dx if x['role']=='who5'),None); icc=next((x for x in dx if x['role']=='icc'),None)
+        relationship=('same' if who and icc and runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different' if who and icc else 'partial')
+        blocks.append({'block_id':'DX','domain':'diagnosis','relationship':relationship,'components':dx})
     order={'prognosis':1,'treatment':2,'biomarker':3,'germline':4}
     for el in sorted((e for e in elements if e['domain']!='diagnosis'),key=lambda e:(order[e['domain']],e['schema_id'])):
         src=dict(el['source']); blocks.append({'block_id':el['schema_id'],'domain':el['domain'],'components':[{'role':el['bucket'],'reason':el['reason'],'variants':el.get('variants') or [],'genes':_genes(reg,el.get('variants') or []),'source':src,'card_tags':[el['evidence']['card_tag']] if el.get('evidence') else []}]})
@@ -942,7 +1078,7 @@ def run_pipeline(work,profile=None):
     domains={}; cards_by_domain=dict(diagnosis_cards)
     for idx,domain in enumerate(('prognosis','treatment','biomarker','germline'),4):
         _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} owner proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,profile)
-    _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile); blocks=stage_blocks(work,diagnosis,supported,reg)
+    _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains,case); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile); blocks=stage_blocks(work,diagnosis,supported,reg)
     _stage_status(work,'stage-9','Stage 9 of 9 — one report-writing call + preservation check'); final_blocks=stage_report_write(work,blocks,case,reg,profile); stage_final(work,case,final_blocks,supported,all_cards,digest,manifest); _print_usage(work); _stage_status(work,'complete','terraced-v6 complete'); return EXIT_OK
 
 def run_pipeline_setting(pid):

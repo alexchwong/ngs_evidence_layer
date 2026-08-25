@@ -16,6 +16,7 @@ rules:
   field: matches
   value_field: card_id
   source: candidate_card_ids
+- rule: null_evidence_match_contract
 retries:
   content: 2
   serialization: 3

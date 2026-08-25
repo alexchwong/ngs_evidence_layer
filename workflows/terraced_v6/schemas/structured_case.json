@@ -4,6 +4,7 @@
   "additionalProperties": false,
   "required": [
     "provisional_disease",
+    "morphologic_diagnosis_origin",
     "bootstrap_cmcs",
     "variants",
     "detected_variants_summary",
@@ -77,6 +78,13 @@
           }
         }
       }
+    },
+    "morphologic_diagnosis_origin": {
+      "type": "string",
+      "enum": [
+        "supplied",
+        "inferred"
+      ]
     }
   }
 }

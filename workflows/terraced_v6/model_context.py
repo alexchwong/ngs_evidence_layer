@@ -28,11 +28,11 @@ import yaml
 # Fields of the structured case that a downstream stage may ask for.  ``variants``
 # is deliberately absent: the canonical registry is the only variant view a
 # downstream model is given.
-CASE_FIELDS = ("provisional_disease", "case_facts", "detected_variants_summary")
+CASE_FIELDS = ("provisional_disease", "morphologic_diagnosis_origin", "case_facts", "detected_variants_summary")
 
 # Default projections per stage family.  These are the reviewable trim decisions;
 # widening one is a one-line change here rather than an edit to step.py.
-DIAGNOSIS_CASE_FIELDS = ("provisional_disease", "case_facts")
+DIAGNOSIS_CASE_FIELDS = ("provisional_disease", "morphologic_diagnosis_origin", "case_facts")
 DOMAIN_CASE_FIELDS = ("provisional_disease", "case_facts")
 
 # Domain (PTBG) stages classify variants.  They need to know *what* the disease
