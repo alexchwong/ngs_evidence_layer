@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "structural_attempts": 10,
+  "max_who5_passes": 7,
+  "scheduler": "domain",
+  "token_budget": 120000,
+  "model_profile": "openrouter"
+}

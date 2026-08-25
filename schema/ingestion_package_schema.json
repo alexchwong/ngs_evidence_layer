@@ -95,6 +95,13 @@
         "$ref": "#/$defs/evidence"
       }
     },
+    "human_decisions": {
+      "type": "array",
+      "description": "Effective human rulings made at the normal Phase 2 semantic-group review gate. This is provenance/authority for the approved candidate state, not source evidence or a conversational history; superseded rulings are consolidated away.",
+      "items": {
+        "$ref": "#/$defs/human_decision"
+      }
+    },
     "audit": {
       "anyOf": [
         {
@@ -607,6 +614,190 @@
           }
         }
       }
+    },
+    "human_decision": {
+      "type": "object",
+      "required": [
+        "decision_id",
+        "action",
+        "before_card_ids",
+        "after_card_ids",
+        "claim_ids",
+        "human_instruction",
+        "human_reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "pattern": "^H[0-9]{3,}$"
+        },
+        "action": {
+          "enum": [
+            "retain",
+            "modify",
+            "delete",
+            "add",
+            "split",
+            "merge"
+          ]
+        },
+        "before_card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "after_card_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "human_instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "delete"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "add"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "maxItems": 0
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "retain",
+                  "modify"
+                ]
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "split"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 1
+              },
+              "after_card_ids": {
+                "minItems": 2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "merge"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "before_card_ids": {
+                "minItems": 2
+              },
+              "after_card_ids": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

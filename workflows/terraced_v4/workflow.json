@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "workflow_id": "terraced-v4",
+  "python_package": "workflows.terraced_v4",
+  "entrypoints": {
+    "runtime": "runtime"
+  },
+  "skill": "workflows/terraced_v4/SKILL.md",
+  "pipeline": "workflows/terraced_v4/pipelines/self.yaml",
+  "supported_modes": [
+    "ngs-report",
+    "nel-demo",
+    "nel-validate",
+    "nel-validate-function",
+    "nel-validate-brief"
+  ],
+  "status": "experimental",
+  "cloned_from": "terraced-v3",
+  "architecture": "who5-cmc-icc-other-ptbg-batched-evidence-block-summary"
+}

@@ -21,6 +21,8 @@ from scripts.workflow_registry import (  # noqa: E402
 )
 from workflows.common import demo_paths, resolve_work_dir, write_case_major_categories  # noqa: E402
 
+VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
+
 
 def setup_workflow(
     *,
@@ -44,9 +46,9 @@ def setup_workflow(
         raise ValueError("nel-demo requires --example")
     if mode != "nel-demo" and example is not None:
         raise ValueError("--example is valid only for nel-demo")
-    if mode in {"nel-validate", "nel-validate-function"} and not case_id:
+    if mode in VALIDATION_MODES and not case_id:
         raise ValueError(f"{mode} requires --case-id")
-    if mode not in {"nel-validate", "nel-validate-function"} and case_id is not None:
+    if mode not in VALIDATION_MODES and case_id is not None:
         raise ValueError("--case-id is valid only for validation modes")
 
     work = resolve_work_dir(work_dir, project=project)
@@ -95,6 +97,7 @@ def main() -> int:
             "nel-demo",
             "nel-validate",
             "nel-validate-function",
+            "nel-validate-brief",
         ),
     )
     group = parser.add_mutually_exclusive_group()

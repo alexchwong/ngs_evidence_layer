@@ -90,3 +90,24 @@ def test_skill_declares_functional_validation_as_parallel_and_manifest_hidden():
     assert "--case-file validation/case_functional.md" in skill
     assert "nel-validation-function-<validation-case>.zip" in skill
     assert "case_functional_manifest.md` is never a runtime model input" in skill
+
+
+def test_brief_package_uses_selected_case_file():
+    case_file = ROOT / "validation" / "validation_brief.md"
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        report = tmp / "report-final.md"
+        report.write_text("# Report\n\nCandidate brief report.\n", encoding="utf-8")
+        output = tmp / "nel-validation-brief-8.zip"
+
+        package_marking_bundle("8", report, output, case_file=case_file)
+
+        with zipfile.ZipFile(output) as zf:
+            names = zf.namelist()
+            prompt = zf.read("marking-prompt.md").decode("utf-8")
+            case = zf.read("validation-case.md").decode("utf-8")
+
+        assert names == ["marking-prompt.md", "validation-case.md", "report-final.md"]
+        assert "BCR::ABL1" in case
+        assert "ANKRD26" in case
+        assert "suspected/possible germline ANKRD26 predisposition" in prompt

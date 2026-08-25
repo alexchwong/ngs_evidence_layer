@@ -36,6 +36,10 @@ UMBRELLA = {
     for term in TERMS
     if term.get("parents")
 }
+DISEASE_TEXT_FORMS = {
+    term["name"]: [term["name"], *term.get("aliases", [])]
+    for term in TERMS
+}
 
 
 def bind_disease_vocabulary(schema):
@@ -101,6 +105,45 @@ def normalise(text, markdown=False):
             lines.append(line.replace("|", " "))
         text = "\n".join(lines)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _contains_explicit_term(text, term):
+    """Case-insensitive whole-term match with flexible internal whitespace."""
+    pattern = re.escape(str(term).casefold()).replace(r"\ ", r"\s+")
+    return re.search(rf"(?<![a-z0-9]){pattern}(?![a-z0-9])", str(text).casefold()) is not None
+
+
+def interpretation_surfacing_errors(package, card_ids=None):
+    """Require schema-5.1 cards in scope to surface tagged genes and diseases."""
+    if package.get("schema_version") != "5.1":
+        return []
+    selected = None if card_ids is None else set(card_ids)
+    errors = []
+    for card in package.get("cards", []):
+        card_id = card.get("card_id", "<unknown card>")
+        if selected is not None and card_id not in selected:
+            continue
+        interpretation = card.get("interpretation", "")
+        missing_genes = [
+            gene for gene in card.get("genes", [])
+            if not _contains_explicit_term(interpretation, gene)
+        ]
+        missing_diseases = []
+        for disease in card.get("diseases", []):
+            forms = DISEASE_TEXT_FORMS.get(disease, [disease])
+            if not any(_contains_explicit_term(interpretation, form) for form in forms):
+                missing_diseases.append(disease)
+        if missing_genes:
+            errors.append(
+                f"{card_id}: interpretation must explicitly name every tagged gene; "
+                f"missing: {', '.join(missing_genes)}"
+            )
+        if missing_diseases:
+            errors.append(
+                f"{card_id}: interpretation must explicitly identify every tagged disease "
+                f"by canonical name or accepted source alias; missing: {', '.join(missing_diseases)}"
+            )
+    return errors
 
 
 def schema_errors(document, schema, label):
@@ -234,11 +277,58 @@ def validate_review(review, provisional, phase2r_ledger=None, phase4_ledger=None
     return errors
 
 
+def human_decision_errors(package, census):
+    """Validate Phase 2 human-decision provenance against the current package/census."""
+    decisions = package.get("human_decisions")
+    if decisions is None:
+        return []
+    errors = []
+    known_claim_ids = {
+        entry.get("claim_id") for entry in census.get("entries", [])
+        if isinstance(entry, dict)
+    }
+    seen_decision_ids = set()
+    seen_after_card_ids = set()
+    for index, decision in enumerate(decisions, start=1):
+        decision_id = decision.get("decision_id")
+        label = decision_id or f"human_decisions[{index - 1}]"
+        if decision_id in seen_decision_ids:
+            errors.append(f"{label}: duplicate human decision_id")
+        seen_decision_ids.add(decision_id)
+
+        unknown_claims = sorted(set(decision.get("claim_ids", [])) - known_claim_ids)
+        if unknown_claims:
+            errors.append(
+                f"{label}: human decision references unknown census claim_ids: "
+                + ", ".join(unknown_claims)
+            )
+
+        after_ids = decision.get("after_card_ids", [])
+        overlapping = sorted(set(after_ids) & seen_after_card_ids)
+        if overlapping:
+            errors.append(
+                f"{label}: an approved card may be governed by only one effective human decision: "
+                + ", ".join(overlapping)
+            )
+        seen_after_card_ids.update(after_ids)
+
+        action = decision.get("action")
+        before_ids = decision.get("before_card_ids", [])
+        if action in {"retain", "modify"} and set(before_ids) != set(after_ids):
+            errors.append(
+                f"{label}: {action} must preserve the same card IDs before and after; "
+                "use split/merge/add/delete when card identity changes"
+            )
+    return errors
+
+
 def validate_package(package, metadata, census, source_text=None, require_final=False):
     errors = schema_errors(package, PACKAGE_SCHEMA, "package")
     warnings = []
     if errors:
         return errors, warnings, None
+
+    errors.extend(human_decision_errors(package, census))
 
     if package["paper_id"] != metadata["paper_id"]:
         errors.append("package paper_id does not match metadata")
@@ -297,7 +387,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
                     + ", ".join(overlap)
                 )
 
-    bundle_texts = {}
     source = normalise(source_text, markdown=True) if source_text is not None else None
     for evidence in package["evidence"]:
         card_id = evidence["card_id"]
@@ -348,7 +437,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             if dangling_relations:
                 errors.append(f"{card_id}: table relations reference unknown fragments: " + ", ".join(dangling_relations))
 
-        normalized_fragments = []
         for fragment in fragments:
             fragment_label = f"{card_id}/{fragment['fragment_id']}"
             quote_text = fragment["quote"]
@@ -357,12 +445,6 @@ def validate_package(package, metadata, census, source_text=None, require_final=
             normalized = normalise(quote_text, markdown=True)
             if source is not None and normalized not in source:
                 errors.append(f"{fragment_label}: fragment not found verbatim in paper.md")
-            normalized_fragments.append(normalized)
-        normalized_bundle = " || ".join(normalized_fragments)
-        duplicate = bundle_texts.get(normalized_bundle)
-        if duplicate:
-            warnings.append(f"{card_id}: evidence is identical to {duplicate}; review independent utility")
-        bundle_texts[normalized_bundle] = card_id
 
     covered_genes = sorted({gene for card in package["cards"] for gene in card["genes"]})
     covered_diseases = sorted({disease for card in package["cards"] for disease in card["diseases"]})
@@ -416,6 +498,10 @@ def validate_final_against_provisional(final, provisional):
         errors.append("final and approved provisional paper_id values differ")
     if final.get("extraction_model") != provisional.get("extraction_model"):
         errors.append("final and approved provisional extraction_model values differ")
+    if ("human_decisions" in final) != ("human_decisions" in provisional) or final.get("human_decisions") != provisional.get("human_decisions"):
+        errors.append(
+            "final must preserve Phase 2 human_decisions provenance exactly from the approved provisional"
+        )
     return errors
 
 
@@ -530,6 +616,11 @@ def validate_phase_files(
     if review.get("reviewer_model") == provisional.get("extraction_model"):
         errors.append("Phase 3 reviewer model must differ from Phase 2 extraction model")
 
+    surfacing_scope = {
+        item.get("card_id")
+        for item in review.get("card_results", [])
+        if item.get("review_basis", "phase3") == "phase3"
+    }
     if decisions_path is None:
         if final.get("schema_version") == "5.1":
             errors.append("Phase 4 schema 5.1 requires --decisions so every final card delta is user-authorized")
@@ -543,6 +634,12 @@ def validate_phase_files(
                 final_filename=Path(final_path).name,
             )
         )
+        surfacing_scope.update(card_deltas.changed_card_ids(ledger))
+
+    errors.extend(
+        f"final: {error}"
+        for error in interpretation_surfacing_errors(final, surfacing_scope)
+    )
 
     source_text = Path(source_path).read_text(encoding="utf-8")
     final_errors, warnings, report = validate_package(

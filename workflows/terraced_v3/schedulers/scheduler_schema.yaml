@@ -1,0 +1,96 @@
+schema_version: 2
+purpose: Declarative terraced-v3 scheduler asset format.
+
+# This document describes scheduler YAML itself. Clinical/data shapes live in
+# Markdown contract assets referenced by interface.*.contract and step outputs.
+required_top_level: [scheduler, interface, steps, outputs]
+scheduler_required: [id, phase, version, description]
+phases: [diagnosis, ptbg, summarization]
+
+interface:
+  required: [inputs, outputs]
+  entry:
+    required: [contract]
+    contract_reference_examples:
+      - core.case.structured
+      - local.who5-output
+      - ../common/contracts/prognosis-output.md
+  rule: >-
+    Scheduler input/output names and exact representations are scheduler-local.
+    Pipeline setup validates each connected producer contract against the
+    consumer contract before any model call is made.
+
+step:
+  required: [id, kind]
+  kinds:
+    model:
+      required: [prompt, output]
+      optional: [foreach, depends_on, inputs, retain_item_metadata, role, evidence_resolution]
+    operation:
+      required: [operation]
+      optional: [depends_on, inputs]
+    diagnosis_loop:
+      phase: diagnosis
+      required: [prompt, loop, output]
+      optional: [evidence_resolution]
+
+
+evidence_resolution:
+  phase: diagnosis
+  required: [authority, question]
+  authorities: [icc, who5]
+  rule: >-
+    Runs bounded diagnosis evidence resolution: two-pass local CARD-ID selection (second pass over remaining cards, zero selections allowed),
+    deterministic original-block extraction, statement/local-card pairing, deterministic local-label to runtime-tag resolution, and
+    reasonable-support audit without whole-artifact semantic retry.
+
+prompt_injection:
+  supported:
+    - input
+    - prompt
+    - prompt_select
+    - contract
+    - contract_select
+    - literal
+  rule: Every template slot must be declared exactly once; unresolved or extra slots are fatal.
+
+output:
+  supported_contract_declarations:
+    - contract
+    - contract_select
+  rule: >-
+    Structured output expectations belong in the referenced Markdown contract,
+    not as duplicated YAML/JSON skeletons in Python or prompt templates.
+
+foreach_sources:
+  - domains
+  - variants
+  - steps.<step-id>
+
+runtime_sources:
+  note: >-
+    core.* names available inside a scheduler are registered by the scheduler
+    engine/phase context and documented in DEVEL.md and their contract assets.
+  examples:
+    - core.case.structured
+    - core.diagnosis.who5.active
+    - core.diagnosis.routing.final-cmcs
+    - core.ptbg.task-scope
+    - core.evidence.domain-current
+    - core.statements.cited
+    - steps.<step-id>
+
+model_validators:
+  diagnosis: [icc, who5]
+  ptbg: [domain, normalized_evidence, variant_cross_domain, germline_clinical_picture, global_ledger, global_patch, adaptive_cell_review]
+  summarization: [summary_plan, paraphrase_sentence]
+
+operations:
+  diagnosis: [publish_minimal_diagnosis]
+  ptbg: [assemble_variant_outputs, apply_domain_patch, select_high_impact, apply_cell_reviews, publish_domains]
+  summarization: [prepare_paraphrase_items, publish_summary]
+
+safety:
+  - Scheduler YAML may declare information flow but may not execute arbitrary Python or expressions.
+  - Runtime-dependent invariants remain registered Python operations/validators.
+  - Incompatible pipeline representations require an explicit adapter module.

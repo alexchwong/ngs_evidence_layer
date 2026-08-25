@@ -1,0 +1,7 @@
+classification:
+  - variant: v01
+    bucket: germline_uncertain
+    reason: "Molecular finding plus supplied clinical context are insufficient."
+  - variant: v02
+    bucket: germline_against
+    reason: "Integrated molecular and clinical picture argues against a syndrome."

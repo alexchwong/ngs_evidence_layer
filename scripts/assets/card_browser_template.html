@@ -47,11 +47,43 @@
 
   /* ---------- shell ---------- */
   .shell{display:grid;grid-template-columns:288px minmax(0,1fr);gap:0;align-items:start}
+  body.full-mode.detail-open .shell{grid-template-columns:1fr 3fr 1fr}
+  body.full-mode.detail-open .rail{grid-column:1}
+  body.full-mode.detail-open .detail{grid-column:2;grid-row:1}
+  body.full-mode.detail-open .main{grid-column:3;grid-row:1;padding-left:20px;padding-right:20px}
   .rail{
     border-right:1px solid var(--rule);padding:20px 20px 60px;
     position:sticky;top:0;max-height:100vh;overflow-y:auto;background:var(--panel);
   }
   .main{padding:20px 28px 90px;min-width:0}
+
+  /* ---------- full detail pane ---------- */
+  .detail{display:none}
+  body.full-mode.detail-open .detail{
+    display:block;border-left:1px solid var(--rule);border-right:1px solid var(--rule);
+    background:#fff;padding:18px 24px 60px;position:sticky;top:0;max-height:100vh;
+    overflow-y:auto;min-width:0;
+  }
+  .detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .detail-id{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+  .detail-close{border:1px solid var(--rule);background:#fff;border-radius:2px;cursor:pointer;padding:3px 8px;font-family:var(--mono);font-size:12px}
+  .detail-close:hover{border-color:var(--eosin);color:var(--eosin)}
+  .detail-section{border-top:1px solid var(--rule);padding-top:14px;margin-top:16px}
+  .detail-section:first-of-type{border-top:0;padding-top:0;margin-top:0}
+  .detail-section h2{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .detail-interpretation{font-family:var(--display);font-size:20px;line-height:1.45;margin:0}
+  .meta-grid{display:grid;grid-template-columns:minmax(100px,130px) minmax(0,1fr);gap:6px 12px;margin:0;font-size:13px}
+  .meta-grid dt{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0}
+  .meta-grid dd{margin:0;overflow-wrap:anywhere}
+  .evidence-fragment{margin:12px 0 0;padding:10px 12px;background:var(--panel);border-left:3px solid var(--azure)}
+  .fragment-label{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:6px}
+  .evidence-fragment blockquote{margin:0;font-size:13.5px;line-height:1.55}
+  .support-list{margin:0;padding-left:18px;font-size:13px}
+  .support-list code{font-family:var(--mono);font-size:11px}
+  .detail-citation{font-size:13px;line-height:1.55;margin:0}
+  details.raw{margin-top:16px;border-top:1px solid var(--rule);padding-top:12px}
+  details.raw summary{cursor:pointer;font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  pre.raw-json{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);font-size:10px;line-height:1.45;background:var(--panel);padding:10px;margin:10px 0 0;border:1px solid var(--rule)}
 
   /* ---------- filters ---------- */
   .facet{margin-bottom:26px}
@@ -114,6 +146,12 @@
     padding:15px 0 15px 13px;border-bottom:1px solid var(--rule);
     border-left:3px solid var(--spine,var(--rule));
   }
+  body.full-mode li.card{cursor:pointer}
+  body.full-mode li.card:hover{background:#f7f4fa}
+  body.full-mode li.card.selected{background:#fff;border-left-width:5px;padding-left:11px}
+  body.full-mode.detail-open li.card{display:block;padding-top:13px;padding-bottom:13px}
+  body.full-mode.detail-open li.card .cid{display:block;margin-bottom:5px}
+  body.full-mode.detail-open li.card p{font-size:14px;line-height:1.5}
   li.card .cid{
     font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);
     letter-spacing:-.01em;overflow-wrap:anywhere;padding-top:2px;
@@ -126,8 +164,19 @@
 
   .railtoggle{display:none}
 
+  @media (max-width:1150px){
+    body.full-mode.detail-open .rail{padding-left:14px;padding-right:14px}
+    body.full-mode.detail-open .detail{padding-left:18px;padding-right:18px}
+    body.full-mode.detail-open .main{padding-left:14px;padding-right:14px}
+  }
+
   @media (max-width:900px){
-    .shell{grid-template-columns:1fr}
+    .shell, body.full-mode.detail-open .shell{grid-template-columns:1fr}
+    body.full-mode.detail-open .rail{grid-column:1;grid-row:1}
+    body.full-mode.detail-open .detail{
+      grid-column:1;grid-row:2;position:static;max-height:none;border-right:0;
+    }
+    body.full-mode.detail-open .main{grid-column:1;grid-row:3;padding:16px 20px 70px}
     .rail{
       position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule);
       padding-bottom:24px;
@@ -163,6 +212,7 @@
     </div>
     <ol class="cards" id="cards"></ol>
   </main>
+  <aside class="detail" id="detail" aria-label="Card details"></aside>
 </div>
 
 <script>
@@ -175,9 +225,11 @@ const CATEGORY_COLOURS = {
 };
 
 const paperName = {};
-DATA.papers.forEach(p => { paperName[p.key] = p.nickname; });
+const paperByKey = {};
+DATA.papers.forEach(p => { paperName[p.key] = p.nickname; paperByKey[p.key] = p; });
+if (DATA.full) document.body.classList.add("full-mode");
 
-const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"" };
+const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"", selected:null };
 const facetSearch = { paper:"", disease:"", gene:"", category:"" };
 
 const FACETS = [
@@ -339,6 +391,126 @@ function highlight(text, needle){
   return fragment;
 }
 
+function textOrDash(value){
+  if (value === null || value === undefined || value === "") return "—";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function addMeta(grid, label, value){
+  const dt = document.createElement("dt");
+  dt.textContent = label;
+  const dd = document.createElement("dd");
+  dd.textContent = textOrDash(value);
+  grid.append(dt, dd);
+}
+
+function detailSection(title){
+  const section = document.createElement("section");
+  section.className = "detail-section";
+  const head = document.createElement("h2");
+  head.textContent = title;
+  section.appendChild(head);
+  return section;
+}
+
+function closeDetail(){
+  state.selected = null;
+  document.body.classList.remove("detail-open");
+  document.getElementById("detail").innerHTML = "";
+  document.querySelectorAll("li.card.selected").forEach(el => el.classList.remove("selected"));
+}
+
+function buildDetail(card){
+  if (!DATA.full || !card || !card.details) return;
+  state.selected = card.id;
+  document.body.classList.add("detail-open");
+  const pane = document.getElementById("detail");
+  pane.innerHTML = "";
+
+  const paper = paperByKey[card.paper];
+  const exact = card.details.card || {};
+  const evidence = card.details.evidence || {};
+  const paperDetails = (paper && paper.details) || {};
+
+  const head = document.createElement("div");
+  head.className = "detail-head";
+  const id = document.createElement("div");
+  id.className = "detail-id";
+  id.textContent = card.id;
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "detail-close";
+  close.textContent = "Close";
+  close.setAttribute("aria-label", "Close card details");
+  close.addEventListener("click", closeDetail);
+  head.append(id, close);
+  pane.appendChild(head);
+
+  // Repeat the interpretation at the top, then show only the metadata useful
+  // for reviewing/classifying the selected card. Arrays are rendered as
+  // human-readable joined values rather than indexed parameter paths.
+  const interpretation = detailSection("Interpretation");
+  const text = document.createElement("p");
+  text.className = "detail-interpretation";
+  text.textContent = exact.interpretation || card.text;
+  interpretation.appendChild(text);
+  pane.appendChild(interpretation);
+
+  const classification = detailSection("Classification");
+  const classificationGrid = document.createElement("dl");
+  classificationGrid.className = "meta-grid";
+  addMeta(classificationGrid, "Genes", exact.genes || card.genes);
+  addMeta(classificationGrid, "Category", exact.category || card.category);
+  addMeta(classificationGrid, "Disease", exact.diseases || card.diseases);
+  classification.appendChild(classificationGrid);
+  pane.appendChild(classification);
+
+  const evidenceMeta = detailSection("Evidence");
+  const evidenceGrid = document.createElement("dl");
+  evidenceGrid.className = "meta-grid";
+  addMeta(evidenceGrid, "Evidence tier", exact.evidence_tier || card.tier);
+  addMeta(
+    evidenceGrid,
+    "Secondary citation",
+    exact.secondary_citation && exact.secondary_citation.display
+  );
+  evidenceMeta.appendChild(evidenceGrid);
+  for (const fragment of (evidence.fragments || [])){
+    const box = document.createElement("div");
+    box.className = "evidence-fragment";
+    const label = document.createElement("div");
+    label.className = "fragment-label";
+    label.textContent = [fragment.fragment_id, fragment.role, fragment.locator]
+      .filter(Boolean)
+      .join(" · ");
+    const quote = document.createElement("blockquote");
+    quote.textContent = fragment.quote || "";
+    box.append(label, quote);
+    evidenceMeta.appendChild(box);
+  }
+  pane.appendChild(evidenceMeta);
+
+  const acceptance = paperDetails.accepted_package || {};
+  const acceptanceMeta = detailSection("Acceptance");
+  const acceptanceGrid = document.createElement("dl");
+  acceptanceGrid.className = "meta-grid";
+  addMeta(acceptanceGrid, "Acceptance path", acceptance.acceptance_path);
+  addMeta(acceptanceGrid, "Accepted at", acceptance.accepted_at);
+  addMeta(acceptanceGrid, "Accepted at source", acceptance.accepted_at_source);
+  addMeta(acceptanceGrid, "Accepted in version", acceptance.accepted_in_version);
+  addMeta(acceptanceGrid, "Latest version", acceptance.latest_version || acceptance.accepted_in_version);
+  addMeta(acceptanceGrid, "Version history", acceptance.version_history);
+  acceptanceMeta.appendChild(acceptanceGrid);
+  pane.appendChild(acceptanceMeta);
+
+  pane.scrollTop = 0;
+  document.querySelectorAll("li.card").forEach(el => {
+    el.classList.toggle("selected", el.dataset.cardId === card.id);
+  });
+}
+
 function buildCards(){
   const list = document.getElementById("cards");
   const rows = visibleCards();
@@ -359,8 +531,21 @@ function buildCards(){
   const chunk = document.createDocumentFragment();
   for (const card of rows){
     const item = document.createElement("li");
-    item.className = "card";
+    item.className = "card" + (state.selected === card.id ? " selected" : "");
+    item.dataset.cardId = card.id;
     item.style.setProperty("--spine", CATEGORY_COLOURS[card.category] || "var(--rule)");
+    if (DATA.full){
+      item.tabIndex = 0;
+      item.setAttribute("role", "button");
+      item.setAttribute("aria-label", "Open full details for " + card.id);
+      item.addEventListener("click", () => buildDetail(card));
+      item.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " "){
+          event.preventDefault();
+          buildDetail(card);
+        }
+      });
+    }
 
     const cid = document.createElement("span");
     cid.className = "cid";
@@ -374,6 +559,7 @@ function buildCards(){
     chunk.appendChild(item);
   }
   list.appendChild(chunk);
+  if (DATA.full && state.selected && !rows.some(card => card.id === state.selected)) closeDetail();
 }
 
 function render(options){
@@ -392,7 +578,7 @@ function render(options){
 
 document.getElementById("provenance").textContent =
   "corpus " + DATA.corpusVersion + " \u00b7 " + DATA.cards.length + " cards \u00b7 " +
-  DATA.papers.length + " papers";
+  DATA.papers.length + " papers" + (DATA.full ? " · full evidence view" : "");
 
 document.getElementById("textsearch").addEventListener("input", event => {
   state.query = event.target.value.trim().toLowerCase();

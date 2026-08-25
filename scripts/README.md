@@ -47,6 +47,7 @@ Workflow-specific retrieval, rendering, adjudication, audit and report policy be
   - `__init__.py`
   - `phase1.py`
   - `phase2.py`
+  - `phase2_state.py` — validate/resume Phase 2 semantic-gate or authoring checkpoints, deterministically diff repaired censuses, and report the exact semantic recheck claim set.
   - `phase4.py`
 
 ## Development

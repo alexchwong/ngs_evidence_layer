@@ -1,0 +1,104 @@
+scheduler:
+  id: minimal-diagnosis
+  phase: diagnosis
+  version: 1
+  order: 90
+  description: 'Minimal developer example: blind ICC plus one WHO5 pass, with CMCs derived deterministically by
+    core.'
+steps:
+- id: icc
+  kind: model
+  inputs:
+    case: core.case.structured
+    panel_scope: core.setup.panel-scope
+    evidence: core.diagnosis.bootstrap-evidence
+  prompt:
+    template: prompts/icc.md
+    inject:
+      case:
+        input: case
+        render: json
+      panel_scope:
+        input: panel_scope
+        render: text
+      evidence:
+        input: evidence
+        render: text
+      output_contract:
+        contract: core.diagnosis.icc-pairing-output
+  output:
+    format: yaml
+    validator: icc
+    contract: local.icc-output
+  evidence_resolution:
+    authority: icc
+    question: Determine the independent ICC diagnosis or concurrent diagnoses from the supplied patient case.
+- id: who5
+  kind: model
+  depends_on:
+  - icc
+  inputs:
+    case: core.case.structured
+    panel_scope: core.setup.panel-scope
+    allowed_who5_diseases: core.setup.allowed-who5-diseases
+    evidence: core.diagnosis.who5-bootstrap-evidence
+    prior_state:
+      literal: null
+    phase_instruction:
+      literal: Single minimal WHO5 pass. Return the best complete WHO5 state from the supplied case and evidence.
+  prompt:
+    template: prompts/who5.md
+    inject:
+      case:
+        input: case
+        render: json
+      allowed_who5_diseases:
+        input: allowed_who5_diseases
+        render: json
+      panel_scope:
+        input: panel_scope
+        render: text
+      evidence:
+        input: evidence
+        render: text
+      prior_state:
+        input: prior_state
+        render: yaml
+      phase_instruction:
+        input: phase_instruction
+        render: text
+      output_contract:
+        contract: core.diagnosis.who5-pairing-output
+  output:
+    format: yaml
+    validator: who5
+    contract: local.who5-output
+  evidence_resolution:
+    authority: who5
+    question: Determine the WHO 5th Edition diagnosis or concurrent diagnoses from the supplied patient case.
+- id: publish
+  kind: operation
+  operation: publish_minimal_diagnosis
+  inputs:
+    who5: steps.who5
+outputs:
+  icc: steps.icc
+  who5: steps.publish.who5
+  routing: steps.publish.routing
+interface:
+  inputs:
+    case:
+      contract: core.case.structured
+    panel_scope:
+      contract: core.setup.panel-scope
+    allowed_who5_diseases:
+      contract: core.setup.allowed-who5-diseases
+    card_identity:
+      contract: core.cards.identity
+  outputs:
+    icc:
+      contract: local.icc-output
+    who5:
+      contract: local.who5-output
+    routing:
+      contract: local.routing-output

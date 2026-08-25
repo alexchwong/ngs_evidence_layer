@@ -1,0 +1,10 @@
+module:
+  id: core.structure-case
+  handler: structure_case
+  description: Structure the immutable case and assign stable variant IDs.
+inputs:
+  case: {contract: core.input.case-md}
+  panel_scope: {contract: core.setup.panel-scope}
+  allowed_bootstrap_cmcs: {contract: core.setup.allowed-bootstrap-cmcs}
+outputs:
+  case: {contract: core.case.structured}

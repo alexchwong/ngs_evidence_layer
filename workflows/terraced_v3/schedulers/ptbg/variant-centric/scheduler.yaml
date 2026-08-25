@@ -1,0 +1,104 @@
+scheduler:
+  id: variant-centric
+  phase: ptbg
+  version: 1
+  order: 30
+  description: One cross-domain task per detected variant, plus a case-level germline phenotype task.
+steps:
+- id: variant_review
+  kind: model
+  foreach: variants
+  inputs:
+    variant: $item
+    case: core.case.structured
+    diagnoses: core.diagnosis.who5.active
+    evidence: core.evidence.all-domains
+    include_treatment: core.ptbg.treatment-owner-current
+    variant_id: $item.variant_id
+  prompt:
+    template: prompts/variant_review.md
+    inject:
+      variant:
+        input: variant
+        render: yaml
+      include_treatment:
+        input: include_treatment
+        render: text
+      case:
+        input: case
+        render: json
+      diagnoses:
+        input: diagnoses
+        render: yaml
+      evidence:
+        input: evidence
+        render: evidence_by_domain
+      prognosis_contract:
+        contract: ../common/contracts/prognosis-output.md
+      treatment_contract:
+        contract: ../common/contracts/treatment-output.md
+      biomarker_contract:
+        contract: ../common/contracts/biomarker-output.md
+      germline_contract:
+        contract: ../common/contracts/germline-output.md
+      output_contract:
+        contract: local.variant-review
+  output:
+    format: yaml
+    validator: variant_cross_domain
+    contract: local.variant-review
+- id: germline_clinical_picture
+  kind: model
+  inputs:
+    case: core.case.structured
+    evidence: core.evidence.germline
+  prompt:
+    template: prompts/germline_clinical_picture.md
+    inject:
+      case:
+        input: case
+        render: json
+      evidence:
+        input: evidence
+        render: germline_evidence
+      output_contract:
+        contract: local.germline-clinical-picture
+  output:
+    format: yaml
+    validator: germline_clinical_picture
+    contract: local.germline-clinical-picture
+- id: assemble
+  kind: operation
+  operation: assemble_variant_outputs
+  inputs:
+    variants: steps.variant_review
+    clinical_picture: steps.germline_clinical_picture
+- id: publish
+  kind: operation
+  operation: publish_domains
+  inputs:
+    states: steps.assemble
+outputs:
+  prognosis: steps.publish.prognosis
+  treatment: steps.publish.treatment
+  biomarker: steps.publish.biomarker
+  germline: steps.publish.germline
+interface:
+  inputs:
+    case:
+      contract: core.case.structured
+    who5:
+      contract: core.requirements.diagnosis-who5
+    routing:
+      contract: core.requirements.diagnosis-routing
+    card_identity:
+      contract: core.cards.identity
+  outputs:
+    prognosis:
+      contract: ../common/contracts/prognosis-output.md
+    treatment:
+      contract: ../common/contracts/treatment-output.md
+    biomarker:
+      contract: ../common/contracts/biomarker-output.md
+    germline:
+      contract: ../common/contracts/germline-output.md

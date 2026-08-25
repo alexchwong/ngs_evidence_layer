@@ -1,0 +1,11 @@
+classification:
+  - variant: v01
+    bucket: drug_target
+    therapy: "IDH1 inhibitor"
+    reason: "Targetable."
+  - variant: v01
+    bucket: no_drug_implication
+    reason: "No implication."
+  - variant: v02
+    bucket: no_drug_implication
+    reason: "No implication."

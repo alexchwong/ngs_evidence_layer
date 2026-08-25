@@ -3,7 +3,7 @@ import re
 import tempfile
 import unittest
 
-from validation.cases import retrieve_case, retrieve_MC
+from validation.cases import case_file_for_mode, retrieve_case, retrieve_MC
 
 
 SYNTHETIC_CASES = """\
@@ -252,3 +252,44 @@ class FunctionalValidationCaseTests(unittest.TestCase):
                     retrieve_MC(case_id, case_file=str(self.functional)),
                     retrieve_MC(case_id, case_file=str(self.legacy)),
                 )
+
+
+class BriefValidationCaseTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).resolve().parents[1]
+        self.brief = root / "validation" / "validation_brief.md"
+
+    def test_brief_case_ids_are_exactly_ten_cases(self):
+        text = self.brief.read_text(encoding="utf-8")
+        actual = re.findall(r"^# Case (\d+)\b", text, flags=re.MULTILINE)
+        self.assertEqual(actual, [str(n) for n in range(1, 11)])
+        self.assertNotRegex(text, r"^## Case \d+[A-Z]\b")
+
+    def test_every_brief_case_retrieves_clinical_and_marking_content_separately(self):
+        for case_id in [str(n) for n in range(1, 11)]:
+            with self.subTest(case_id=case_id):
+                clinical = retrieve_case(case_id, case_file=str(self.brief))
+                criteria = retrieve_MC(case_id, case_file=str(self.brief))
+                self.assertTrue(clinical)
+                self.assertTrue(criteria)
+                self.assertNotIn("### NEL task", clinical)
+                self.assertNotIn("### Marking criteria", clinical)
+
+    def test_brief_mode_maps_to_brief_case_file(self):
+        self.assertEqual(case_file_for_mode("nel-validate-brief"), "validation_brief.md")
+
+    def test_brief_cases_do_not_accept_variant_suffixes(self):
+        with self.assertRaises(KeyError):
+            retrieve_case("1A", case_file=str(self.brief))
+
+    def test_case_8_contains_bcr_abl1_ankrd26_and_subtle_family_history(self):
+        clinical = retrieve_case("8", case_file=str(self.brief))
+        self.assertIn("BCR::ABL1", clinical)
+        self.assertIn("ANKRD26", clinical)
+        self.assertIn("father", clinical.lower())
+        self.assertIn("myelodysplastic neoplasm", clinical.lower())
+
+    def test_case_9_contains_proliferative_ras_pathway_panel(self):
+        clinical = retrieve_case("9", case_file=str(self.brief))
+        for gene in ("NRAS", "CBL", "PTPN11", "NF1", "SRSF2", "TET2"):
+            self.assertIn(gene, clinical)

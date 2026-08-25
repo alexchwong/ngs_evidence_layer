@@ -1,0 +1,47 @@
+pipeline:
+  id: self
+  version: 1
+  description: Terraced-v4 self prototype pipeline.
+provider:
+  type: self
+models:
+  structure:
+    model: self
+    temperature: 0.0
+    max_tokens: 32768
+  diagnosis:
+    model: self
+    temperature: 0.0
+    max_tokens: 32768
+  ptbg:
+    model: self
+    temperature: 0.0
+    max_tokens: 32768
+  evidence_match:
+    model: self
+    temperature: 0.0
+    max_tokens: 16384
+  evidence_audit:
+    model: self
+    temperature: 0.0
+    max_tokens: 16384
+  reportable_sentences:
+    model: self
+    temperature: 0.0
+    max_tokens: 16384
+  summarization:
+    model: self
+    temperature: 0.0
+    max_tokens: 16384
+  paraphrasing:
+    model: self
+    temperature: 0.0
+    max_tokens: 16384
+  semantic_preservation_check:
+    model: self
+    temperature: 0.0
+    max_tokens: 16384
+  syntax_repair:
+    model: self
+    temperature: 0.0
+    max_tokens: 8192

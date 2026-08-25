@@ -15,6 +15,13 @@
     }
   },
   "papers": {
+    "d-hner-2022-blood-140-1345": {
+      "categories": {
+        "exclude": [
+          "biomarker"
+        ]
+      }
+    },
     "khoury-2022-leukemia-36-1703": {
       "categories": {
         "include": [

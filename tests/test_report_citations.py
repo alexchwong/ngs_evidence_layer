@@ -173,7 +173,7 @@ class RenderTests(unittest.TestCase):
     def test_assigns_numbers_in_first_appearance_order_and_reuses_them(self):
         report = "Second then first. [card:b1c2d3][card:a1b2c3]\n\nSecond again. [card:b1c2d3]\n"
         result = report_citations.render(report, EVIDENCE, CARD_TAGS)
-        self.assertIn("Second then first [1,2].", result)
+        self.assertIn("Second then first [1-2].", result)
         self.assertIn("Second again [1].", result)
         self.assertIn("1. Beta B. Second paper.", result)
         self.assertIn("2. Alpha A. First paper.", result)
@@ -208,8 +208,19 @@ class RenderTests(unittest.TestCase):
             EVIDENCE,
             CARD_TAGS,
         )
-        self.assertIn("Finding [1,2].", result)
-        self.assertNotIn("Finding. [1,2]", result)
+        self.assertIn("Finding [1-2].", result)
+        self.assertNotIn("Finding. [1-2]", result)
+
+    def test_formats_citation_numbers_in_sorted_deduplicated_ranges(self):
+        self.assertEqual(
+            report_citations.format_citation_numbers([3, 1, 7, 2, 3]),
+            "1-3,7",
+        )
+        self.assertEqual(
+            report_citations.format_citation_numbers([8, 5, 3, 4, 1]),
+            "1,3-5,8",
+        )
+        self.assertEqual(report_citations.format_citation_numbers([2, 1]), "1-2")
 
     def test_render_removes_model_no_citation_disposition(self):
         result = report_citations.render(

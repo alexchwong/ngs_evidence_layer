@@ -33,41 +33,35 @@ Require matching `paper_id`, round, extraction identity, card IDs, and card coun
 
 ## Shared semantic principles
 
-### Clinical reporting gate
+### Clinical assertion policy
 
-{{CLINICAL_REPORTING_GATE}}
+{{CLINICAL_ASSERTION_POLICY}}
 
-### Source-bounded reasoning
+### Clinical card policy
 
-{{SOURCE_BOUNDED_REASONING}}
+{{CLINICAL_CARD_POLICY}}
 
-### Category semantics
+### Source fidelity policy
 
-{{CATEGORY_SEMANTICS}}
-
-### Atomicity principles
-
-{{ATOMICITY_PRINCIPLES}}
+{{SOURCE_FIDELITY_POLICY}}
 
 ### Geneless claim policy
 
 {{GENELESS_CLAIM_POLICY}}
 
-### Interpretation principles
-
-{{INTERPRETATION_PRINCIPLES}}
-
-### Source support principles
-
-{{SOURCE_SUPPORT_PRINCIPLES}}
-
-### Card construction rules
-
-{{CARD_CONTENT_RULES}}
-
 ### Evidence bundle construction rules
 
 {{EVIDENCE_BUNDLE_RULES}}
+
+### Phase 4 use of current card standards
+
+Apply the current clinical-card and source-fidelity standards when evaluating or constructing an **authorised repair of a Phase 3-failed card**. Do not use newer wording standards as permission to modernise, normalize, or otherwise rewrite unrelated cards that Phase 3 passed. Passed-card changes remain Phase 2R work.
+
+### Normal-Phase-2 human-decision provenance
+
+The active provisional may contain top-level `human_decisions` from the normal Phase 2 semantic human gate. These decisions are provenance describing how the approved Phase 2 candidate set was changed. They are **not automatic Phase 3 passes**: every card that survived into a normal Phase 2 provisional, including a human-added, human-edited, merged/split, retained, or category-changed card, was eligible for ordinary Phase 3 review. A human-deleted card is absent from the provisional by design and must not be resurrected merely because its deletion appears in the provenance ledger.
+
+If Phase 3 failed a surviving card that was previously touched by a Phase 2 human decision, adjudicate that failure normally in Phase 4 just like any other Phase 3 failure. Do not treat the old Phase 2 instruction as a new Phase 4 authorization. Preserve `human_decisions` **byte-for-structure unchanged** from the active provisional into `paper.final.json`; Phase 4's own user decisions continue to live only in the separate Phase 4 decision ledger.
 
 ## Step 2 — human adjudication and interactivity
 
@@ -140,7 +134,7 @@ The ledger is the machine-readable authorization boundary. Any provisional→fin
 
 ## Final package construction
 
-Start from the complete active provisional package and preserve its `schema_version` (new workflow packages are 5.1). Apply only the direct Phase 4 decisions in the finalized ledger. A passed card with no Phase 4 decision must remain unchanged. A carried-forward card from Phase 2R must also remain unchanged unless it failed the current Phase 3 review and the user explicitly adjudicated it.
+Start from the complete active provisional package and preserve its `schema_version` (new workflow packages are 5.1), including top-level `human_decisions` exactly unchanged. Apply only the direct Phase 4 decisions in the finalized ledger. A passed card with no Phase 4 decision must remain unchanged. A carried-forward card from Phase 2R must also remain unchanged unless it failed the current Phase 3 review and the user explicitly adjudicated it.
 
 Apply source disease aliases when retaining/amending disease scope:
 
@@ -169,7 +163,8 @@ Construct the requested output only from the current validated inputs and the us
 - every direct Phase 4 card decision concerns a Phase 3-failed card, except replacement `add` operations that resolve such a failure;
 - no Phase 3-passed card is directly changed in Phase 4; requested changes to passed cards/new unrelated cards appear only as Phase 2R requests;
 - every direct add/modify decision contains the complete revised card/evidence alongside the explicit user decision/instruction;
-- no final card/evidence difference exists without an authorized ledger decision; and
+- no final card/evidence difference exists without an authorized ledger decision;
+- top-level `human_decisions` exactly equals the approved provisional's value; and
 - every final audit result uses the correct `review_basis`.
 
 The deterministic bundle includes package/review/decision schemas, disease vocabulary, card-delta validation, and the Phase 4 validator.

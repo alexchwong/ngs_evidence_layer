@@ -108,6 +108,16 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
             expected = retrieve_case("1A", "case_functional.md").rstrip() + "\n"
             self.assertEqual(case, expected)
 
+    def test_setup_brief_validation_uses_brief_case_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "brief-work"
+            setup_workflow(
+                workflow="diagnosis-first-v1", mode="nel-validate-brief", work_dir=work, case_id="8"
+            )
+            case = (work / "case.md").read_text(encoding="utf-8")
+            expected = retrieve_case("8", "validation_brief.md").rstrip() + "\n"
+            self.assertEqual(case, expected)
+
     def test_rule_slices_are_canonical_subsets(self):
         source = RULES.read_text(encoding="utf-8")
         dx = diagnosis_first.slice_rules_text(source, {0, 1})

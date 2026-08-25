@@ -14,6 +14,7 @@ REVIEW_NEW_RE = re.compile(
     r"^paper\.review(?:-rev(?P<revision>[0-9]{3}))?-v(?P<attempt>[0-9]{3})\.json$"
 )
 REVIEW_LEGACY_RE = re.compile(r"^paper\.review-(?P<attempt>[0-9]{3})\.json$")
+PHASE2_STATE_RE = re.compile(r"^paper\.phase2-state-v(?P<attempt>[0-9]{3})\.json$")
 PHASE2R_DECISION_RE = re.compile(
     r"^paper\.phase2r-decisions(?:-rev(?P<revision>[0-9]{3}))?-v(?P<attempt>[0-9]{3})\.json$"
 )
@@ -31,6 +32,24 @@ def _read_json(path):
 
 def census_name(attempt):
     return f"paper.census-v{attempt:03d}.json"
+
+
+def phase2_state_name(census_attempt_number):
+    return f"paper.phase2-state-v{census_attempt_number:03d}.json"
+
+
+def phase2_state_attempt(path):
+    match = PHASE2_STATE_RE.fullmatch(Path(path).name)
+    return int(match.group("attempt")) if match else None
+
+
+def resolve_phase2_state_for_census(folder, census_path):
+    """Resolve the checkpoint tied exactly to a census attempt, if present."""
+    attempt = census_attempt(census_path)
+    if attempt is None:
+        return None
+    path = Path(folder) / phase2_state_name(attempt)
+    return path if path.is_file() else None
 
 
 def provisional_name(attempt, revision=None):

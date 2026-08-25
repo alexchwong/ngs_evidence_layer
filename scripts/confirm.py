@@ -14,7 +14,7 @@ from pathlib import Path
 import final_validation
 import ingest_artifacts
 import package_validation as validation
-from phase_validation import card_deltas
+from phase_validation import card_deltas, phase2
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = ROOT / "release" / "VERSION"
@@ -115,12 +115,12 @@ def _validate_original_history(paths, working, final, metadata, census, revision
     )
     errors.extend(f"phase 1: {error}" for error in phase_1_errors)
     warnings.extend(f"phase 1: {warning}" for warning in phase_1_warnings)
-    provisional_errors, provisional_warnings, _ = validation.validate_package(
-        provisional,
-        metadata,
-        census,
-        source_text=None,
-        require_final=False,
+    provisional_errors, provisional_warnings = _validate_active_provisional(
+        provisional=provisional,
+        metadata=metadata,
+        census=census,
+        working=working,
+        provisional_path=provisional_path,
     )
     errors.extend(f"provisional: {error}" for error in provisional_errors)
     warnings.extend(f"provisional: {warning}" for warning in provisional_warnings)
@@ -233,6 +233,44 @@ def _validate_phase2r_delta_history(
         )
     )
     return errors
+
+
+def _validate_active_provisional(
+    *, provisional, metadata, census, working, provisional_path
+):
+    """Replay current Phase 2 package policy without rechecking superseded quotes.
+
+    Confirmation deliberately validates source quotes on the final package only: Phase 4
+    may correct a bad provisional quote. All other package policy is owned by the current
+    Phase 2 validator, including schema-5.1 interpretation surfacing. In Phase 2R, that
+    newer policy applies only to cards authorized as changed by the matching ledger.
+    """
+    errors, warnings, _ = validation.validate_package(
+        provisional,
+        metadata,
+        census,
+        source_text=None,
+        require_final=False,
+    )
+    identity = ingest_artifacts.phase_identity(provisional_path, "provisional")
+    revision, attempt = identity if identity is not None else (None, None)
+    decisions_path = (
+        ingest_artifacts.resolve_decision_for_attempt(
+            working, "phase2r", attempt, revision=revision
+        )
+        if attempt is not None
+        else None
+    )
+    if decisions_path is None:
+        surfacing_scope = None
+    else:
+        ledger = validation.read_json(decisions_path, "Phase 2R decision ledger")
+        surfacing_scope = card_deltas.changed_card_ids(ledger)
+    errors.extend(
+        phase2.interpretation_surfacing_errors(provisional, surfacing_scope)
+    )
+    return errors, warnings
+
 
 def _copy_directory_contents(source, destination, excluded=()):
     excluded = set(excluded)

@@ -1,0 +1,11 @@
+module:
+  id: core.finalise-report
+  handler: finalise_report
+  description: Create deterministic sentence/card provenance, render citations and package outputs.
+inputs:
+  case: {contract: core.case.structured}
+  summary: {contract: core.requirements.report-summary}
+  card_identity: {contract: core.cards.identity}
+outputs:
+  sentence_card_interpretations: {contract: core.provenance.sentence-card-interpretations}
+  report: {contract: core.report.final}

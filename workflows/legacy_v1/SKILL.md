@@ -14,6 +14,7 @@ Perform only the mode explicitly requested by the user:
 - `nel-demo example <N>` — resolve one numbered repository example and run the same automatic Steps 0–6 as `ngs-report`; Step 7 displays the case, generated report, and matching expected behaviour. Do not read the expected file before `report-final.md` is complete.
 - `nel-validate <case-id>` — retrieve one legacy validation case from `validation/case_summary.md` without its marking criteria, run the same automatic Steps 0–6 as `ngs-report`, then in Step 7 deterministically package both an external-marking ZIP and a separate full-run debug ZIP. No marking model runs in the report-generation session.
 - `nel-validate-function <case-id>` — retrieve one function-targeted validation case from `validation/case_functional.md` without its marking criteria, run the same automatic Steps 0–6 as `ngs-report`, then package `nel-validation-function-<case-id>.zip` plus the separate debug ZIP. `validation/case_functional_manifest.md` is evaluator/developer-only and is never a model input.
+- `nel-validate-brief <case-id>` — retrieve one consolidated validation case from `validation/validation_brief.md` without its marking criteria, run the same automatic Steps 0–6 as `ngs-report`, then package `nel-validation-brief-<case-id>.zip` plus the separate debug ZIP.
 
 Do not infer the mode from available files. The skill does not create, edit, audit, or incorporate evidence cards.
 
@@ -30,7 +31,7 @@ Do not infer the mode from available files. The skill does not create, edit, aud
 - Step 6A — model via `workflows/legacy_v1/prompts/analyse_report.md` + workflow-local `workflows/legacy_v1/prompts/reporting_rule_policy.md` + `workflows/legacy_v1/prompts/citation_rules.md` + deterministic validation: classify every reporting-rule answer as `REPORT:` or `OMIT:` in strict `report-draft.md` Markdown with a compulsory terminal citation disposition on every line.
 - Step 6B — model via `workflows/legacy_v1/prompts/format_report.md` + `workflows/legacy_v1/prompts/citation_rules.md` plus `<format-prompt>` + deterministic validation: render only `REPORT:` content from `report-draft.md` into `report-final.md`, preserving exact runtime card-tag markers, then validate them.
 - Step 6C — deterministic: deconvolve card tags, replace markers with Vancouver-style citations, and render the bibliography.
-- Step 7 — post-report delivery and deterministic packaging; full `ngs-report`-equivalent runs get a debug ZIP containing every workflow artifact, while `nel-validate` and `nel-validate-function` additionally get separate external-marking ZIPs containing only the report, selected validation case, and self-contained marking prompt.
+- Step 7 — post-report delivery and deterministic packaging; full `ngs-report`-equivalent runs get a debug ZIP containing every workflow artifact, while `nel-validate`, `nel-validate-function`, and `nel-validate-brief` additionally get separate external-marking ZIPs containing only the report, selected validation case, and self-contained marking prompt.
 
 `evidence-to-report` skips Steps 1A–5 after Step 0 verifies `<work-dir>/case.md`,
 `<work-dir>/evidence.md` and `<work-dir>/card-tags.json` exist. Do not
@@ -45,7 +46,7 @@ The workflow may define these global variables:
 - `<work-dir>` — the fixed working directory;
 - `<format-prompt>` — the selected file under `prompts/formatting/` when reporting is requested;
 - `<demo-case>` and `<demo-expected>` — resolved demo paths for `nel-demo`;
-- `<validation-case>` — the requested validation case identifier for `nel-validate` or `nel-validate-function`.
+- `<validation-case>` — the requested validation case identifier for `nel-validate`, `nel-validate-function`, or `nel-validate-brief`.
 
 Paths may be recorded without permission to read their contents. Model-readable access is controlled only by the declarations in each step.
 
@@ -67,6 +68,7 @@ File access is **deny by default**.
 - If a required input is missing, unreadable, malformed, or inconsistent with its contract, stop and report the error. Do not infer or replace it.
 - For `nel-validate`, do not model-read `validation/case_summary.md`, `validation/mark_validation_report.md`, or marking criteria at any point. Step 7 may read them only through the declared deterministic packaging command.
 - For `nel-validate-function`, do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, `validation/mark_validation_report.md`, or marking criteria at any point. `case_functional_manifest.md` is never a runtime model input. Step 7 may read `case_functional.md` only through the declared deterministic packaging command.
+- For `nel-validate-brief`, do not model-read `validation/validation_brief.md`, `validation/mark_validation_report.md`, or marking criteria at any point. Step 7 may read `validation_brief.md` only through the declared deterministic packaging command.
 
 
 ## Model-task policy
@@ -134,11 +136,14 @@ This additional assay-scope rule applies to Steps 3A, 3B and 6A. For these steps
 
    # nel-validate-function <case-id>
    python scripts/setup_workflow.py --workflow legacy-v1 --mode nel-validate-function --case-id <case-id> <setup-work-arg>
+
+   # nel-validate-brief <case-id>
+   python scripts/setup_workflow.py --workflow legacy-v1 --mode nel-validate-brief --case-id <case-id> <setup-work-arg>
    ```
 
 4. Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`. For `nel-demo`, record output line 2 as `<demo-case>` and line 3 as `<demo-expected>` without reading either file yet. For validation modes record `<validation-case>` as the supplied case ID.
 5. Setup writes `<work-dir>/workflow.json`, binds the work directory to `legacy-v1`, and copies the canonical assay definition to `<work-dir>/ngs-panel-scope.md`. It also writes `<work-dir>/case-major-categories.json` for modes that run Step 1. Do not infer workflow identity from other files.
-6. For `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`, record `<format-prompt>`:
+6. For `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, record `<format-prompt>`:
    - default: `prompts/formatting/default.md`;
    - if the user explicitly specifies another file from `prompts/formatting/`, record that path;
    - do not list or search `prompts/formatting/`;
@@ -177,6 +182,15 @@ python validation/retrieve_cli.py case <validation-case> \
 ```
 
 The command must succeed. Do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, or any marking criteria. Proceed directly to Step 1B.
+
+For `nel-validate-brief`, run exactly:
+
+```bash
+python validation/retrieve_cli.py case <validation-case> \
+  --file validation/validation_brief.md > <work-dir>/case.md
+```
+
+The command must succeed. Do not model-read `validation/validation_brief.md` or any marking criteria. Proceed directly to Step 1B.
 
 For all other modes, use a fresh bounded model session.
 
@@ -263,7 +277,7 @@ Read only:
 
 Follow `workflows/legacy_v1/prompts/adjudicate_diagnosis.md` exactly, using `diagnostic_evidence.md` as the complete patient-fact and diagnosis-evidence boundary and `ngs-panel-scope.md` as the complete gene-level NGS assay-scope boundary.
 
-For `evidence-block`, `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`:
+For `evidence-block`, `ngs-report`, `nel-demo`, `nel-validate`, `nel-validate-function`, and `nel-validate-brief`:
 - set `user_review` to `"automatic"`;
 - keep `downstream_filter_disease` equal to `refined_disease`;
 - do not ask for user confirmation;
@@ -349,9 +363,9 @@ Do not model-read or modify `diagnostic_evidence.md`, `adjudication.json`, `bund
 
 ## Step 6 — Write the NGS report
 
-Run only for `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, or `nel-validate-function`.
+Run only for `ngs-report`, `evidence-to-report`, `nel-demo`, `nel-validate`, `nel-validate-function`, or `nel-validate-brief`.
 
-For `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
+For `ngs-report`, `nel-demo`, `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, begin Step 6A immediately after Step 5 succeeds. Do not stop for user input.
 
 For `evidence-to-report`, Step 0 already verified `<work-dir>/case.md`, `<work-dir>/evidence.md` and `<work-dir>/card-tags.json`; do not rerun Steps 1A–5.
 
@@ -453,7 +467,7 @@ Run after Step 6C has completed `report-final.md`.
 
 ### Step 7A — Package full-run debug artifacts
 
-For `ngs-report`, `nel-demo`, `nel-validate`, and `nel-validate-function`, run exactly:
+For `ngs-report`, `nel-demo`, `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, run exactly:
 
 ```bash
 python scripts/package_run.py \
@@ -512,6 +526,16 @@ Do not run this step for `evidence-to-report`, because that mode does not genera
   - `report-final.md` — the completed candidate report.
 
   `validation/case_functional_manifest.md` must not be read or packaged by this workflow. `evidence.md`, `card-tags.json`, `bundle.json`, and other generation artefacts must not be included in the **marking** ZIP. They are available only in the separate `<work-dir>/ngs-report-debug.zip`.
+- For `nel-validate-brief`, do **not** start another model session and do not model-read `validation/validation_brief.md`, marking criteria, or the marking prompt. Run exactly:
+
+  ```bash
+  python validation/package_marking.py <validation-case> \
+    --case-file validation/validation_brief.md \
+    --report <work-dir>/report-final.md \
+    --output <work-dir>/nel-validation-brief-<validation-case>.zip
+  ```
+
+  The command must succeed. It creates the same three-file external-marking bundle using the selected case and marking criteria from `validation/validation_brief.md`.
 
 ## Final delivery contract
 
@@ -540,6 +564,8 @@ Do not return `evidence.md` separately unless explicitly requested.
 For `nel-validate`, Step 7 returns two separate artifacts: `<work-dir>/nel-validation-<validation-case>.zip` for external marking and `<work-dir>/ngs-report-debug.zip` for debugging. Do not run a marking model in the same session. Do not model-read the embedded marking criteria or marking prompt.
 
 For `nel-validate-function`, Step 7 returns two separate artifacts: `<work-dir>/nel-validation-function-<validation-case>.zip` for external marking and `<work-dir>/ngs-report-debug.zip` for debugging. Do not run a marking model in the same session. Do not model-read `validation/case_functional_manifest.md`, the embedded marking criteria, or the marking prompt.
+
+For `nel-validate-brief`, Step 7 returns two separate artifacts: `<work-dir>/nel-validation-brief-<validation-case>.zip` for external marking and `<work-dir>/ngs-report-debug.zip` for debugging. Do not run a marking model in the same session. Do not model-read `validation/validation_brief.md`, the embedded marking criteria, or the marking prompt.
 
 Do not additionally return `evidence.md` separately unless explicitly requested.
 

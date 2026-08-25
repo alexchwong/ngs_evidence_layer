@@ -7,9 +7,11 @@ ROOT_SKILL = ROOT / "SKILL.md"
 REGISTRY = ROOT / "workflows" / "registry.json"
 LEGACY_SKILL = ROOT / "workflows" / "legacy_v1" / "SKILL.md"
 CURRENT_SKILL = ROOT / "workflows" / "diagnosis_first_v1" / "SKILL.md"
+CATEGORICAL_SKILL = ROOT / "workflows" / "categorical_v1" / "SKILL.md"
 SHARED_PROMPT_DIR = ROOT / "prompts" / "workflow"
 LEGACY_PROMPT_DIR = ROOT / "workflows" / "legacy_v1" / "prompts"
 CURRENT_PROMPT_DIR = ROOT / "workflows" / "diagnosis_first_v1" / "prompts"
+CATEGORICAL_PROMPT_DIR = ROOT / "workflows" / "categorical_v1" / "prompts"
 CURRENT_RULE_DIR = CURRENT_PROMPT_DIR / "rule_views"
 RELEASE_MANIFEST = ROOT / "release" / "skill.txt"
 
@@ -36,9 +38,12 @@ CURRENT_RULE_PROMPTS = {"diagnosis_context.md", "diagnosis_rule_view.md", "remai
 def test_root_skill_routes_default_and_legacy_through_registry():
     skill = ROOT_SKILL.read_text(encoding="utf-8")
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
-    assert registry["default_workflow"] == "diagnosis-first-v1"
+    assert registry["default_workflow"] == "terraced-v6"
+    assert registry["aliases"]["diagnosis-first"] == "diagnosis-first-v1"
+    assert registry["aliases"]["terraced"] == "terraced-v6"
     assert registry["aliases"]["legacy"] == "legacy-v1"
     assert "workflows/registry.json" in skill
+    assert "--diagnosis-first" in skill
     assert "--legacy" in skill
     assert "--legacy-v1" in skill
     assert "diagnosis-first-v1" in skill
@@ -48,8 +53,10 @@ def test_root_skill_routes_default_and_legacy_through_registry():
 
 
 def test_workflow_metadata_marks_accepted_and_legacy_status():
+    categorical = json.loads((ROOT / "workflows" / "categorical_v1" / "workflow.json").read_text(encoding="utf-8"))
     current = json.loads((ROOT / "workflows" / "diagnosis_first_v1" / "workflow.json").read_text(encoding="utf-8"))
     legacy = json.loads((ROOT / "workflows" / "legacy_v1" / "workflow.json").read_text(encoding="utf-8"))
+    assert categorical["status"] == "accepted"
     assert current["status"] == "accepted"
     assert legacy["status"] == "legacy"
     assert (ROOT / "scripts" / "devel_workflow.py").is_file()
@@ -67,9 +74,9 @@ def test_workflow_owned_and_shared_prompts_are_separated():
 
 def test_every_prompt_referenced_by_authoritative_workflow_specs_exists():
     pattern = re.compile(
-        r"(?:prompts/workflow|validation|workflows/(?:legacy_v1|diagnosis_first_v1)/prompts(?:/(?:rule_views|formatting))?)/[A-Za-z0-9_.-]+\.md"
+        r"(?:prompts/workflow|validation|workflows/(?:legacy_v1|diagnosis_first_v1|categorical_v1)/prompts(?:/(?:rule_views|formatting))?)/[A-Za-z0-9_.-]+\.md"
     )
-    for skill_path in (LEGACY_SKILL, CURRENT_SKILL):
+    for skill_path in (LEGACY_SKILL, CURRENT_SKILL, CATEGORICAL_SKILL):
         references = set(pattern.findall(skill_path.read_text(encoding="utf-8")))
         assert references
         for reference in references:
@@ -126,6 +133,20 @@ def test_current_skill_uses_state_driven_shared_clis():
     assert "prototype" not in skill.lower()
 
 
+
+def test_categorical_skill_uses_isolated_summary_steps_and_limits():
+    skill = CATEGORICAL_SKILL.read_text(encoding="utf-8")
+    assert "setup_workflow.py --workflow categorical-v1" in skill
+    assert "prepare-dx-summary --work-dir <work-dir>" in skill
+    assert "validate-dx-summary --work-dir <work-dir>" in skill
+    assert "prepare-categories --work-dir <work-dir>" in skill
+    assert "assemble-summary --work-dir <work-dir>" in skill
+    assert "report-summary-manifest.yaml" in skill
+    assert "maximum 70 words" in skill.lower()
+    assert "maximum 50 words" in skill.lower()
+    assert "no model call is permitted" in skill
+    assert "only when CMC is unchanged" in skill
+
 def test_legacy_skill_uses_same_state_driven_case_clis():
     skill = LEGACY_SKILL.read_text(encoding="utf-8")
     assert "setup_workflow.py --workflow legacy-v1" in skill
@@ -145,6 +166,7 @@ def test_release_manifest_contains_new_runtime_and_no_phase1_shims():
         "workflows/common.py",
         "workflows/legacy_v1/*",
         "workflows/diagnosis_first_v1/*",
+        "workflows/categorical_v1/*",
         "scripts/setup_workflow.py",
         "scripts/workflow_registry.py",
         "scripts/workflow_runtime.py",
@@ -156,6 +178,9 @@ def test_release_manifest_contains_new_runtime_and_no_phase1_shims():
         "scripts/core/provenance.py",
         "requirements.txt",
         "workflows/diagnosis_first_v1/prompts/formatting/*",
+        "workflows/categorical_v1/prompts/*",
+        "workflows/categorical_v1/prompts/formatting/*",
+        "workflows/categorical_v1/prompts/rule_views/*",
         "validation/mark_validation_report.md",
     ):
         assert required in manifest

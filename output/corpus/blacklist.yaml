@@ -29,6 +29,10 @@ global:
     exclude: []
 
 papers:
+  d-hner-2022-blood-140-1345:
+    categories:
+      exclude: [biomarker]
+
   # EXAMPLE: WHO 5th edition — retain diagnosis cards only.
   khoury-2022-leukemia-36-1703:
     categories:

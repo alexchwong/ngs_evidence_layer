@@ -6,19 +6,57 @@
 
 **Category:** prognosis
 
+**Genes:** ASXL1, SRSF2, EZH2, IDH1, IDH2
+
+**Diseases:** PMF
+
+**Evidence tier:** restated secondary
+
+**Locator:** Opening paragraph, MIPSS70/MIPSS70+ model description
+
+**Secondary citation:** Guglielmelli P, Lasho TL, Rotunno G, et al. MIPSS70: Mutation-enhanced international prognostic score system for transplantation-age patients with primary myelofibrosis. J Clin Oncol. 2018;36:310-318.
+
+### Interpretation
+
+According to the original MIPSS70 and MIPSS70+ frameworks, ASXL1, SRSF2, EZH2, IDH1, and IDH2 mutations are high molecular risk mutations in primary myelofibrosis in transplant-age patients (≤70 years).
+
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0002
+
+**Category:** prognosis
+
+**Genes:** CALR
+
+**Diseases:** PMF
+
+**Evidence tier:** restated secondary
+
+**Locator:** Opening paragraph, MIPSS70/MIPSS70+ model description
+
+**Secondary citation:** Guglielmelli P, Lasho TL, Rotunno G, et al. MIPSS70: Mutation-enhanced international prognostic score system for transplantation-age patients with primary myelofibrosis. J Clin Oncol. 2018;36:310-318.
+
+### Interpretation
+
+According to the original MIPSS70 and MIPSS70+ frameworks, CALR type 1/like mutation is a favorable prognostic mutation in primary myelofibrosis in transplant-age patients (≤70 years).
+
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0003
+
+**Category:** prognosis
+
 **Genes:** U2AF1
 
 **Diseases:** PMF
 
 **Evidence tier:** restated secondary
 
-**Locator:** Main text, paragraph 2
+**Locator:** Second paragraph, rationale for MIPSS70+ Version 2.0
+
+**Secondary citation:** Tefferi A, Finke CM, Lasho TL, et al. U2AF1 mutation types in primary myelofibrosis: Phenotypic and prognostic distinctions. Leukemia. 2018.
 
 ### Interpretation
 
-In primary myelofibrosis, U2AF1 Q157 is an additional high-molecular-risk mutation incorporated into MIPSS70+ version 2.0.
+According to MIPSS70+ Version 2.0, U2AF1 Q157 is an additional high molecular risk mutation in primary myelofibrosis.
 
-## tefferi-2018-journal-of-clinical-oncology-36-1769-C0002
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0004
 
 **Category:** prognosis
 
@@ -28,13 +66,29 @@ In primary myelofibrosis, U2AF1 Q157 is an additional high-molecular-risk mutati
 
 **Evidence tier:** multivariable-adjusted
 
-**Locator:** Main text, multivariable analysis and score construction
+**Locator:** Multivariable analysis paragraph, patients age ≤70 years
 
 ### Interpretation
 
-For patients with primary myelofibrosis aged 70 years or younger, MIPSS70+ version 2.0 assigns 2 points for one high-molecular-risk mutation and 3 points for two or more; the high-molecular-risk set comprises ASXL1, SRSF2, EZH2, IDH1, IDH2, and U2AF1 Q157.
+According to MIPSS70+ Version 2.0, in patients aged ≤70 years with primary myelofibrosis, the presence of one high molecular risk mutation among ASXL1, SRSF2, EZH2, IDH1, IDH2, or U2AF1 Q157 is associated with inferior overall survival.
 
-## tefferi-2018-journal-of-clinical-oncology-36-1769-C0003
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0005
+
+**Category:** prognosis
+
+**Genes:** ASXL1, SRSF2, EZH2, IDH1, IDH2, U2AF1
+
+**Diseases:** PMF
+
+**Evidence tier:** multivariable-adjusted
+
+**Locator:** Multivariable analysis paragraph, patients age ≤70 years
+
+### Interpretation
+
+According to MIPSS70+ Version 2.0, in patients aged ≤70 years with primary myelofibrosis, the presence of two or more high molecular risk mutations among ASXL1, SRSF2, EZH2, IDH1, IDH2, or U2AF1 Q157 is associated with inferior overall survival.
+
+## tefferi-2018-journal-of-clinical-oncology-36-1769-C0006
 
 **Category:** prognosis
 
@@ -44,24 +98,8 @@ For patients with primary myelofibrosis aged 70 years or younger, MIPSS70+ versi
 
 **Evidence tier:** multivariable-adjusted
 
-**Locator:** Main text, multivariable analysis and score construction
+**Locator:** Multivariable analysis paragraph, patients age ≤70 years
 
 ### Interpretation
 
-For patients with primary myelofibrosis aged 70 years or younger, absence of a type 1/like CALR mutation is independently adverse (HR 2.1, 95% CI 1.5-3.0) and contributes 2 points to MIPSS70+ version 2.0.
-
-## tefferi-2018-journal-of-clinical-oncology-36-1769-C0004
-
-**Category:** prognosis
-
-**Genes:** ASXL1, SRSF2, EZH2, IDH1, IDH2, U2AF1, CALR
-
-**Diseases:** PMF
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Main text, score construction; Fig 1 legend
-
-### Interpretation
-
-MIPSS70+ version 2.0 incorporates ASXL1, SRSF2, EZH2, IDH1, IDH2, U2AF1 Q157, and CALR type 1/like status and stratifies patients with primary myelofibrosis aged 70 years or younger into very low (0 points), low (1-2), intermediate (3-4), high (5-8), and very high (9 or more) risk groups with progressively worse overall survival.
+According to MIPSS70+ Version 2.0, in patients aged ≤70 years with primary myelofibrosis, absence of a CALR type 1/like mutation is associated with inferior overall survival.

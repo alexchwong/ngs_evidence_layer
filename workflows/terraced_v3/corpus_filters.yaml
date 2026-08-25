@@ -1,0 +1,13 @@
+schema_version: 1
+
+diagnosis:
+  icc:
+    publication_keys:
+      - arber-2022-blood-140-1200
+  who5:
+    publication_keys:
+      - khoury-2022-leukemia-36-1703
+
+evidence_resolution:
+  max_relevant_cards: 10
+  unsupported_repair_attempts: 1

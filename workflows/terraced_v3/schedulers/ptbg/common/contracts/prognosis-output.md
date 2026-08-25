@@ -1,0 +1,31 @@
+---
+id: ptbg.common.prognosis-output
+semantic_type: ptbg.prognosis.state
+format: yaml
+provides: ["decisions[].variant_id", "decisions[].diagnosis_id", "decisions[].effect", "decisions[].scoring_system", "decisions[].surface", "decisions[].statement", "decisions[].reason", "decisions[].case_refs", "decisions[].card_tags"]
+requires: []
+validator: domain
+runtime_invariants: [exact_variant_x_diagnosis_scope, supplied_case_refs, supplied_card_tags]
+---
+# Prognosis output
+
+For every required detected variant × settled WHO5 diagnosis pair, return exactly:
+
+```yaml
+decisions:
+  - variant_id: "<supplied variant ID>"
+    diagnosis_id: "<supplied diagnosis ID>"
+    effect: "<favorable, adverse, or neither>"
+    scoring_system: "<applicable named scoring system, or null>"
+    surface: "<true or false>"
+    statement: "<concise reportable prognostic statement, or null>"
+    reason: "<short auditable justification>"
+    case_refs: []
+    card_tags: []
+```
+
+Angle-bracketed text describes the required content only. It is not case information and must never be copied as a clinical conclusion.
+
+Allowed `effect`: `favorable`, `adverse`, `neither`. `scoring_system` is a non-empty named system when applicable, otherwise null.
+
+`case_refs` fields contain exact supplied C#/V# patient-source IDs used by surfaced statements. `card_tags` fields are populated by the downstream evidence-resolution step; clinical reasoning passes return them empty.

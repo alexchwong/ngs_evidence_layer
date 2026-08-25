@@ -1,0 +1,92 @@
+schema_version: 2
+execution_profiles:
+  frontier:
+    terrace_groups: [[DX1, DX2, DX3], [DX4]]
+  balanced:
+    terrace_groups: [[DX1], [DX2, DX3], [DX4]]
+  deliberate:
+    terrace_groups: [[DX1], [DX2], [DX3], [DX4]]
+questions:
+  - id: DX1
+    kind: terrace
+    question: >-
+      What diagnosis does WHO5 assign, and what diagnosis does ICC assign?
+    guidance:
+      - For each disease process, derive WHO5 and ICC independently and record both outcomes in the same diagnosis row.
+      - Integrate clinical, morphological, cytogenetic and molecular findings rather than reasoning outward from one gene or VAF.
+      - Use established, indeterminate, not_established or not_applicable to distinguish a candidate label from an accepted diagnosis.
+      - Do not transfer a criterion, threshold, exclusion or precedence rule from one classification system to the other.
+      - WHO5 alone controls schema_disease and downstream routing; ICC is a paired comparator.
+      - Do not diagnose a myeloid neoplasm from mutation number, mutation identity or VAF alone.
+      - An explicitly negative NGS result is a valid case state; do not invent a molecular abnormality when no variants were reported.
+  - id: DX2
+    kind: terrace
+    question: >-
+      Is there evidence for a different diagnosis or a concurrent second pathology?
+    guidance:
+      - Actively challenge the current state and distinguish a competing classification from true concurrent pathology.
+      - Different WHO5 and ICC labels for the same disease process belong in one paired diagnosis row, not separate pathology rows.
+      - If a credible second disease family is seriously entertained, add its canonical CMC to provisional_cmcs so later groups can retrieve its diagnostic evidence.
+      - Do not assume a disease-defining molecular alteration excludes dual pathology.
+      - If there is no material diagnostic consequence, leave the state unchanged rather than adding a negative fact.
+  - id: DX3
+    kind: terrace
+    question: >-
+      Is this overt disease, a precursor clonal state, germline predisposition, or a combination?
+    guidance:
+      - Reconsider whether all molecular findings belong to the same overt neoplastic process.
+      - CHIP, CCUS, germline predisposition and overt neoplasia are not mutually exclusive.
+      - Do not infer somatic or constitutional origin from tumour-only sequencing, bulk VAF, absent family history, age, morphology, normal cytogenetics or co-mutation pattern alone.
+      - Do not raise germline predisposition as a diagnostic consideration or uncertainty unless there is positive clinical evidence of germline predisposition (e.g., young age at onset, family history of related malignancies, known germline syndrome). Germline cards in the evidence corpus are informational and do not by themselves warrant germline consideration.
+      - A negative NGS result does not establish absence of pathology.
+      - If this does not materially change or qualify the diagnostic interpretation, leave the state unchanged.
+  - id: DX4
+    kind: terrace
+    question: >-
+      What could make the current diagnoses wrong or uncertain?
+    guidance:
+      - Adversarial review does not mean automatic downgrade. A diagnosis that meets all required criteria should remain established unless a genuine blocking uncertainty is identified.
+      - Before challenging the current diagnosis, first confirm which required criteria and exclusions are satisfied by the supplied data.
+      - Distinguish genuine blocking uncertainties (a required criterion or exclusion cannot be confirmed from the supplied data) from caveats (concerns about criteria not required for this diagnosis, alternative diagnoses not supported by the data, or additional testing that is not required for the current diagnosis).
+      - To downgrade from established to indeterminate, identify the specific required criterion that is unresolved and explain why the supplied data cannot confirm it.
+      - Do not record uncertainties that do not block the diagnosis. If an uncertainty is a caveat rather than a blocking concern, do not include it in the uncertainties list.
+      - Do not record uncertainties about additional testing that was not performed unless that testing is required to confirm a required criterion.
+      - Accept reported clinical findings as sufficient. If the case notes report a finding (e.g., "dysplasia in two lineages"), do not query whether it meets a specific threshold or percentage.
+      - Do not generate uncertainties about data that is not present in the clinical stem. Only raise uncertainties when the case data contains information that contradicts or fails to support a required criterion.
+      - Follow the diagnostic hierarchy and precedence rules from the evidence cards. If a diagnosis is established based on criteria that supersede another diagnosis, do not evaluate the superseded diagnosis as concurrent pathology or generate uncertainties about its criteria.
+      - Continue to consider genuine concurrent pathologies when they are not mutually exclusive with the current diagnosis per the classification hierarchy.
+      - Review every WHO5 and ICC outcome adversarially and separately.
+      - Check exact supplied blast, morphology, cytogenetic, alteration-class, VAF, required-criterion, exclusion and precedence rules.
+      - Check for missing results, unsupported assumptions about origin or clonality, numerical inconsistency, contradiction and classifier blending.
+      - Preserve genuine uncertainty rather than resolving it by assumption; use indeterminate when a required criterion or exclusion is unresolved.
+      - Delete unsupported or superseded support, modify changed interpretations and merge overlap before adding anything.
+      - If the whole case supports no WHO5-defined pathology, use schema_disease no_haematological_malignancy with WHO5 status established and diagnosis No pathology identified rather than forcing a disease label.
+      - Do not use no_haematological_malignancy when CHIP, CCUS, germline predisposition syndrome or another supported diagnostic state is itself the accepted diagnosis.
+      - A negative NGS result may be a supporting fact when explicitly supplied, but is never sufficient by itself to establish no pathology.
+      - Remove facts whose only conclusion is that a finding does not alter the diagnosis.
+      - This is an adversarial reasoning review, not a presentation pass.
+  - id: DX-final
+    kind: final
+    question: >-
+      What is the final diagnostic state?
+    guidance:
+      - This is a card-free synthesis pass, not a diagnostic reasoning pass.
+      - Use only the original case notes and the protected pre-final state supplied for this call.
+      - Preserve provisional_cmcs and the paired WHO5/ICC diagnoses exactly from the pre-final state.
+      - Do not introduce a new diagnosis, criterion, exclusion, evidence claim, numerical comparison, molecular interpretation or uncertainty.
+      - Each final supporting fact must cite one or more pre-final source fact IDs supplied in the prompt.
+      - Each final uncertainty must cite one or more pre-final source fact or uncertainty IDs supplied in the prompt.
+      - Prefer selection and merging over free paraphrase. Preserve technical and numerical wording when it matters to meaning.
+      - Never silently drop a material pre-final uncertainty.
+      - A negative NGS result and no pathology are independent conclusions; do not infer the latter from the former.
+    context:
+      include_case_notes: true
+      include_previous_state: true
+      include_evidence_cards: false
+      include_prior_transcript: false
+    output:
+      keys: [provisional_cmcs, diagnoses, supporting_facts, uncertainties]
+    invariants:
+      preserve_fields: [provisional_cmcs, diagnoses]
+      require_all_prior_uncertainties: true
+      prohibit_new_numeric_tokens: true

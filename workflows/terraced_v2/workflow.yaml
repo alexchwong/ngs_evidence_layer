@@ -1,0 +1,80 @@
+schema_version: 1
+workflow_id: terraced-v2
+pipeline:
+  - id: structure
+    module: structure_case
+    description: Structure immutable case state
+    inputs: [input/case.md]
+    outputs: [input/case.json]
+  - id: corpus
+    module: initialise_corpus
+    description: Initialise deterministic whole-corpus card identity
+    inputs: [input/case.json]
+    outputs: [evidence/card-identity-manifest.json]
+  - id: diagnosis
+    module: diagnosis_terraces
+    description: Run evolving diagnosis terraces
+    domain: diagnosis
+    case_input: input/case.json
+    evidence_category: diagnosis
+    outputs: [diagnosis/FINAL_OUTPUT.yaml]
+  - id: diagnosis_report
+    module: diagnosis_report
+    description: Ground and align diagnosis report facts
+    domain: diagnosis
+    inputs: [diagnosis/FINAL_OUTPUT.yaml]
+    outputs: [diagnosis/FINAL_REPORT.md, diagnosis/FINAL_ALIGNED.yaml]
+  - id: germline
+    module: downstream_terraces
+    description: Run germline terraces
+    domain: germline
+    evidence_category: germline
+    context:
+      diagnosis: [cmc, who5_diagnosis, facts]
+    outputs: [germline/FINAL_STATE.yaml, germline/FINAL_ALIGNED.yaml, germline/FINAL_REPORT.md]
+  - id: prognosis
+    module: downstream_terraces
+    description: Run prognosis terraces
+    domain: prognosis
+    evidence_category: prognosis
+    context:
+      diagnosis: [cmc, who5_diagnosis, facts]
+    outputs: [prognosis/FINAL_STATE.yaml, prognosis/FINAL_ALIGNED.yaml, prognosis/FINAL_REPORT.md]
+  - id: biomarker
+    module: downstream_terraces
+    description: Run biomarker/MRD terraces
+    domain: biomarker
+    evidence_category: biomarker
+    context:
+      diagnosis: [cmc, who5_diagnosis, facts]
+    outputs: [biomarker/FINAL_STATE.yaml, biomarker/FINAL_ALIGNED.yaml, biomarker/FINAL_REPORT.md]
+  - id: treatment
+    module: downstream_terraces
+    description: Run treatment terraces after prognostic and biomarker interpretation
+    domain: treatment
+    evidence_category: treatment
+    context:
+      diagnosis: [cmc, who5_diagnosis, facts]
+      germline: [facts]
+      prognosis: [facts]
+      biomarker: [facts]
+    outputs: [treatment/FINAL_STATE.yaml, treatment/FINAL_ALIGNED.yaml, treatment/FINAL_REPORT.md]
+  - id: finalise
+    module: finalise_report
+    description: Combine sections, resolve citations, and package outputs
+    report_order: [diagnosis, prognosis, treatment, biomarker, germline]
+    outputs: [report-final.md]
+
+invariants:
+  raw_case_source: input/case.md
+  canonical_case_state: input/case.json
+  case_md_after_structure: audit_only
+  diagnosis_authority: WHO5
+  icc_role: comparator_only
+  downstream_diagnosis_context: [cmc, who5_diagnosis, facts]
+  propagate_uncertainty_between_domains: false
+  allow_downstream_diagnosis_mutation: false
+  provider_specific_pipeline_branches: false
+  deterministic_card_identity_at_initialisation: true
+  card_draw_inputs: [fixed_case_genes, current_cmc, evidence_category]
+  marking: package_only

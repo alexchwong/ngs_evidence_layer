@@ -6,35 +6,37 @@
 
 **Category:** prognosis
 
+**Genes:** JAK2
+
+**Diseases:** ET
+
+**Evidence tier:** restated secondary
+
+**Locator:** Opening paragraph, sentence beginning 'In the recent International Prognostic Score for Thrombosis in ET'
+
+**Secondary citation:** Barbui T, Finazzi G, Carobbio A, Thiele J, Passamonti F, Rumi E et al. Development and validation of an International Prognostic Score of thrombosis in World Health Organization–essential thrombocythemia (IPSET-thrombosis). Blood 2012; 120: 5128–5133.
+
+### Interpretation
+
+In essential thrombocythemia, JAK2 (JAK2V617F) mutation is an independent risk factor for future thrombosis in the original IPSET-thrombosis model.
+
+## barbui-2015-blood-cancer-journal-5-e369-C0002
+
+**Category:** prognosis
+
 **Genes:** CALR
 
 **Diseases:** ET
 
 **Evidence tier:** restated secondary
 
-**Locator:** Opening paragraph
+**Locator:** Opening paragraph, sentence ending 'was not further affected by the recently discovered CALR mutation'
 
-**Secondary citation:** Finazzi G, Carobbio A, Guglielmelli P. Calreticulin mutation does not modify the IPSET score for predicting the risk of thrombosis among 1150 patients with essential thrombocythemia. Blood. 2014;124:2611–2612.
-
-### Interpretation
-
-In ET, CALR mutation was reported not to further modify prediction of future vascular events by IPSET-thrombosis.
-
-## barbui-2015-blood-cancer-journal-5-e369-C0002
-
-**Category:** prognosis
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Conventionally assigned low-risk group; Table 1
+**Secondary citation:** Finazzi G, Carobbio A, Guglielmelli P. Calreticulin mutation does not modify the IPSET score for predicting the risk of thrombosis among 1150 patients with essential thrombocythemia. Blood 2014; 124: 2611–2612.
 
 ### Interpretation
 
-In conventionally assigned low-risk ET, JAK2 mutation without cardiovascular risk factors was associated with a higher annual thrombosis rate than absence of both JAK2 mutation and cardiovascular risk factors (1.59% vs 0.44% patients/year; P=0.001).
+In essential thrombocythemia, CALR mutation does not modify thrombosis-risk prediction by the IPSET-thrombosis model.
 
 ## barbui-2015-blood-cancer-journal-5-e369-C0003
 
@@ -46,11 +48,11 @@ In conventionally assigned low-risk ET, JAK2 mutation without cardiovascular ris
 
 **Evidence tier:** univariable or descriptive
 
-**Locator:** Conventionally assigned low-risk group; Table 1
+**Locator:** Opening paragraph conventional-risk definition; discussion paragraph beginning 'The current study quantifies'
 
 ### Interpretation
 
-In conventionally assigned low-risk JAK2-unmutated ET, cardiovascular risk factors alone did not significantly increase thrombosis compared with absence of both factors (1.05% vs 0.44% patients/year; P=NS).
+Among patients with essential thrombocythemia who are conventionally low risk, defined as age ≤60 years with no history of thrombosis, JAK2 (JAK2V617F)-unmutated patients have lower thrombosis risk than JAK2 (JAK2V617F)-mutated patients, whether or not cardiovascular risk factors are present.
 
 ## barbui-2015-blood-cancer-journal-5-e369-C0004
 
@@ -62,27 +64,11 @@ In conventionally assigned low-risk JAK2-unmutated ET, cardiovascular risk facto
 
 **Evidence tier:** univariable or descriptive
 
-**Locator:** Conventionally assigned low-risk group; Table 1
+**Locator:** Opening paragraph conventional-risk definition; results subsection '(ii) Conventionally assigned high-risk group'
 
 ### Interpretation
 
-In conventionally assigned low-risk JAK2-mutated ET, concomitant cardiovascular risk factors did not significantly increase thrombosis compared with JAK2 mutation alone (P=0.217).
-
-## barbui-2015-blood-cancer-journal-5-e369-C0005
-
-**Category:** prognosis
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Conventionally assigned high-risk group; Table 1
-
-### Interpretation
-
-In conventionally assigned high-risk ET, patients with both JAK2 mutation and cardiovascular risk factors had higher thrombosis risk than patients with neither factor (4.17% vs 1.44% patients/year; P=0.011).
+Among patients with essential thrombocythemia who are conventionally high risk, defined by age >60 years and/or a history of thrombosis, the combination of JAK2 (JAK2V617F) mutation and cardiovascular risk factors is associated with higher thrombosis risk than the absence of both additional risk factors.
 
 ## barbui-2015-blood-cancer-journal-5-e369-C0006
 
@@ -94,11 +80,11 @@ In conventionally assigned high-risk ET, patients with both JAK2 mutation and ca
 
 **Evidence tier:** univariable or descriptive
 
-**Locator:** Additional analysis after high-risk group results
+**Locator:** Results paragraph beginning 'Additional analysis revealed limited enhancement'
 
 ### Interpretation
 
-In conventionally high-risk ET defined by a history of thrombosis, JAK2 mutation and/or cardiovascular risk factors provided only limited, non-significant additional thrombosis-risk enhancement, regardless of age.
+Among patients with essential thrombocythemia whose conventional high-risk status is defined by a history of thrombosis, regardless of age, JAK2 (JAK2V617F) mutation and/or cardiovascular risk factors provide only limited additional thrombosis-risk information.
 
 ## barbui-2015-blood-cancer-journal-5-e369-C0007
 
@@ -110,11 +96,11 @@ In conventionally high-risk ET defined by a history of thrombosis, JAK2 mutation
 
 **Evidence tier:** univariable or descriptive
 
-**Locator:** Additional analysis after high-risk group results
+**Locator:** Figure 1c legend and revised four-category risk scheme
 
 ### Interpretation
 
-In conventionally high-risk ET defined by age alone, JAK2 mutation with or without cardiovascular risk factors might increase thrombosis risk (P=0.05).
+The proposed 2015 revision of IPSET-thrombosis classifies essential thrombocythemia with no thrombosis history, age ≤60 years, and JAK2 (JAK2V617F)-unmutated status as very low risk.
 
 ## barbui-2015-blood-cancer-journal-5-e369-C0008
 
@@ -126,11 +112,11 @@ In conventionally high-risk ET defined by age alone, JAK2 mutation with or witho
 
 **Evidence tier:** univariable or descriptive
 
-**Locator:** Discussion of revised low-risk stratification; Figure 1c
+**Locator:** Figure 1c legend and revised four-category risk scheme
 
 ### Interpretation
 
-In the revised ET thrombosis classification, very-low-risk disease is defined by no thrombosis history, age ≤60 years, and unmutated JAK2.
+The proposed 2015 revision of IPSET-thrombosis classifies essential thrombocythemia with no thrombosis history, age ≤60 years, and JAK2 (JAK2V617F) mutation as low risk.
 
 ## barbui-2015-blood-cancer-journal-5-e369-C0009
 
@@ -142,11 +128,11 @@ In the revised ET thrombosis classification, very-low-risk disease is defined by
 
 **Evidence tier:** univariable or descriptive
 
-**Locator:** Discussion of revised low-risk stratification; revised four-category scheme
+**Locator:** Figure 1d legend and revised four-category risk scheme
 
 ### Interpretation
 
-In the revised ET thrombosis classification, low-risk disease is defined by no thrombosis history, age ≤60 years, and mutated JAK2.
+The proposed 2015 revision of IPSET-thrombosis classifies essential thrombocythemia with no thrombosis history, age >60 years, and JAK2 (JAK2V617F)-unmutated status as intermediate risk.
 
 ## barbui-2015-blood-cancer-journal-5-e369-C0010
 
@@ -158,104 +144,8 @@ In the revised ET thrombosis classification, low-risk disease is defined by no t
 
 **Evidence tier:** univariable or descriptive
 
-**Locator:** Discussion of revised high-risk stratification; Figure 1d
+**Locator:** Figure 1d legend and revised four-category risk scheme
 
 ### Interpretation
 
-In the revised ET thrombosis classification, intermediate-risk disease is defined by no thrombosis history, age >60 years, and unmutated JAK2.
-
-## barbui-2015-blood-cancer-journal-5-e369-C0011
-
-**Category:** prognosis
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Discussion of revised high-risk stratification; revised four-category scheme
-
-### Interpretation
-
-In the revised ET thrombosis classification, high-risk disease is defined by a history of thrombosis or by age >60 years together with JAK2 mutation.
-
-## barbui-2015-blood-cancer-journal-5-e369-C0012
-
-**Category:** treatment
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Final treatment-recommendation paragraph
-
-### Interpretation
-
-For revised very-low-risk ET (no thrombosis history, age ≤60 years, JAK2-unmutated) without cardiovascular risk factors, the authors would not insist on aspirin; they state that these treatment recommendations require prospective controlled-study evaluation.
-
-## barbui-2015-blood-cancer-journal-5-e369-C0013
-
-**Category:** treatment
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Final treatment-recommendation paragraph
-
-### Interpretation
-
-For revised very-low-risk ET (no thrombosis history, age ≤60 years, JAK2-unmutated) with cardiovascular risk factors, the authors advise once-daily aspirin; they state that these treatment recommendations require prospective controlled-study evaluation.
-
-## barbui-2015-blood-cancer-journal-5-e369-C0014
-
-**Category:** treatment
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Final treatment-recommendation paragraph
-
-### Interpretation
-
-For revised low-risk JAK2-mutated ET, twice-daily aspirin is considered reasonable but not mandated, especially when cardiovascular risk factors are present; the recommendation is pending prospective controlled-study evaluation.
-
-## barbui-2015-blood-cancer-journal-5-e369-C0015
-
-**Category:** treatment
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Final treatment-recommendation paragraph
-
-### Interpretation
-
-For revised intermediate-risk ET (no thrombosis history, age >60 years, JAK2-unmutated), the authors encourage cytoreductive therapy but would not insist on it; twice-daily aspirin may be used instead, pending prospective controlled-study evaluation.
-
-## barbui-2015-blood-cancer-journal-5-e369-C0016
-
-**Category:** treatment
-
-**Genes:** JAK2
-
-**Diseases:** ET
-
-**Evidence tier:** univariable or descriptive
-
-**Locator:** Final treatment-recommendation paragraph
-
-### Interpretation
-
-For revised high-risk ET (history of thrombosis, or age >60 years with JAK2 mutation), the authors encourage cytoreductive therapy, pending prospective controlled-study evaluation.
+The proposed 2015 revision of IPSET-thrombosis classifies essential thrombocythemia as high risk when there is a history of thrombosis regardless of age, or when age is >60 years with JAK2 (JAK2V617F) mutation.

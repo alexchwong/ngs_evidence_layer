@@ -1,0 +1,97 @@
+pipeline:
+  id: lmstudio
+  version: 2
+  order: 20
+  description: LM Studio OpenAI-compatible pipeline using qwen3-coder-next placeholders for all roles.
+provider:
+  type: openai-compatible
+  base_url: http://localhost:1234/v1
+  base_url_env: NEL_LMSTUDIO_BASE_URL
+  api_key_env: NEL_LMSTUDIO_API_KEY
+  timeout_s: 900
+models:
+  structure:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  diagnosis:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 65536
+  ptbg:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 65536
+  statement_evidence_check:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  summarization:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  paraphrasing:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  semantic_preservation_check:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 32768
+  syntax_repair:
+    model: qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 16384
+inputs:
+  case:
+    contract: core.input.case-md
+  panel_scope:
+    contract: core.setup.panel-scope
+  allowed_bootstrap_cmcs:
+    contract: core.setup.allowed-bootstrap-cmcs
+  allowed_who5_diseases:
+    contract: core.setup.allowed-who5-diseases
+modules:
+- id: structure
+  uses: core.structure-case
+  inputs:
+    case: inputs.case
+    panel_scope: inputs.panel_scope
+    allowed_bootstrap_cmcs: inputs.allowed_bootstrap_cmcs
+- id: corpus
+  uses: core.initialise-corpus
+  inputs:
+    case: structure.case
+- id: diagnosis
+  uses: scheduler.diagnosis.default-diagnosis
+  inputs:
+    case: structure.case
+    panel_scope: inputs.panel_scope
+    allowed_who5_diseases: inputs.allowed_who5_diseases
+    card_identity: corpus.card_identity
+- id: ptbg
+  uses: scheduler.ptbg.domain
+  inputs:
+    case: structure.case
+    who5: diagnosis.who5
+    routing: diagnosis.routing
+    card_identity: corpus.card_identity
+- id: statements
+  uses: core.collect-statement-ledger
+  inputs:
+    diagnosis_who5: diagnosis.who5
+    diagnosis_icc: diagnosis.icc
+    prognosis: ptbg.prognosis
+    treatment: ptbg.treatment
+    biomarker: ptbg.biomarker
+    germline: ptbg.germline
+- id: summarization
+  uses: scheduler.summarization.default-summarization
+  inputs:
+    cited_statements: statements.cited_statements
+- id: finalise
+  uses: core.finalise-report
+  inputs:
+    case: structure.case
+    summary: summarization.summary
+    card_identity: corpus.card_identity

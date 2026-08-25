@@ -17,7 +17,7 @@ For a fresh Phase 1, normalize the user's invocation to a positive category allo
 
 On the first turn of a **fresh Phase 1 only**, do not extract or write a file. In 50 words or fewer, provide a source-faithful summary of what the paper is about. Separately state the normalized effective scope. You may also state a suggested scope with a brief paper-purpose-based rationale, clearly labelled as advisory and distinct from the effective scope. A suggestion must not alter the effective scope without explicit user instruction. If the effective scope is restricted, state that categories outside it will be intentionally excluded from the census; if all five categories are effective, state that no categories will be intentionally excluded. In either case, ask the user to reply exactly `CONFIRM`. If the request is ambiguous, state the normalization you propose, defaulting to all five categories unless the user clearly requested a restriction, and ask for `CONFIRM`; do not start extraction. After the user replies `CONFIRM`, the confirmed effective scope is fixed for that Phase 1 run.
 
-For a **Phase 1 retry/redo**, do **not** repeat the paper summary, scope recommendation, scope-normalization dialogue, or `CONFIRM` step. Read the prior census first. Its `category_scope` is the already-confirmed scope; if that field is absent, the already-confirmed scope is all five categories. If the user explicitly changes scope in the retry/redo instruction, use that explicit scope change directly; do not ask for another `CONFIRM`. When a matching census critique is present, read the complete critique and repair the criticised census. Then audit the complete revised census, not only the named defects. A prepared accepted-paper census redo may provide the prior accepted census plus `redo.json`; use the prior census to inherit scope and `redo.json` to determine the required next filename.
+For a **Phase 1 retry/redo**, do **not** repeat the paper summary, scope recommendation, scope-normalization dialogue, or `CONFIRM` step. Read the prior census first. Its `category_scope` is the already-confirmed scope; if that field is absent, the already-confirmed scope is all five categories. If the user explicitly changes scope in the retry/redo instruction, use that explicit scope change directly; do not ask for another `CONFIRM`. When a matching census critique is present, read the complete critique and repair the criticised census. Then audit the complete revised census, not only the named defects. The incoming critique is a minimum repair list, not the boundary of the audit. The prior census is the working candidate, not merely a reference: preserve every existing entry unchanged unless the incoming critique or the independent whole-paper semantic audit identifies a specific reason to add, modify, split, merge, or delete it. Preserve the existing `claim_id`, wording, genes, category, and locator for unaffected entries. Do not regenerate the census wholesale. A prepared accepted-paper census redo may provide the prior accepted census plus `redo.json`; use the prior census to inherit scope and `redo.json` to determine the required next filename.
 
 After fresh confirmation, or immediately on retry/redo, the only allowed output is exactly one versioned census file. For a fresh ingestion use `paper.census-v001.json`. On retry, increment the highest prior census or census-critique attempt. If `redo.json` supplies `next_outputs.census`, use that exact filename unless a later retry artefact in the current conversation requires the next attempt. Never overwrite an earlier attempt. Do not create a provisional package, review, final package, or any other file.
 ## Step 1 — core census work
@@ -26,7 +26,9 @@ You are the census model for exactly one publication. Use only `paper.md`,
 `metadata.json`, and this prompt. Do not author evidence cards and do not use model
 knowledge to add facts absent from the paper.
 Walk the complete paper sequentially, including intact tables and footnotes, even
-when the confirmed scope contains only one category. Census only claims whose
+when the confirmed scope contains only one category. On retry/redo, this whole-paper
+walk is a complete reassessment of census completeness and correctness; it does not
+authorize rewriting otherwise valid prior-census entries. Census only claims whose
 semantic category is inside the confirmed scope; reading remains whole-paper so that
 in-scope claims are not missed merely because they appear in unexpected sections.
 Disregard any advisory scope suggestion during extraction and census according only to
@@ -35,10 +37,14 @@ category, inspect and retain claims from every category in the confirmed scope.
 Treat each census entry as one independently adjudicable Phase 2 review boundary: the
 smallest source-supported assertion that Phase 2 could retain or omit as a unit. For
 every claim, record its participating genes, category, locator, and a concise
-source-faithful summary of that assertion only, sufficient to distinguish its Phase 2
-review boundary from other entries. Use `genes: []` only for geneless `diagnosis` or
-`treatment` claims. Do not merge distinct claims merely because they share a gene,
-category, paragraph, or table. Record missing supplementary values. Do not refuse because a supplement is unavailable.
+source-faithful summary of that assertion only. The summary must preserve every
+qualifier needed to understand the exact assertion and its applicability, including
+disease, population, molecular context, treatment/comparator, threshold, analysis or
+subgroup, exception, and uncertainty where material. Concision must not remove a
+meaning-critical qualifier. The summary must remain sufficient to distinguish its
+Phase 2 review boundary from other entries. Use `genes: []` only for geneless
+`diagnosis` or `treatment` claims. Do not merge distinct claims merely because they share a gene,
+category, paragraph, or table. Related contextual statements are separate census assertions when they can be retained or rejected independently; do not attach them as qualifiers to another assertion merely because they occur in the same source sentence, paragraph, table, or framework. Record missing supplementary values. Do not refuse because a supplement is unavailable.
 Assign `publication_type` from the paper's front matter and structure using exactly
 one schema enum value. Record a concise one-line `publication_type_basis` explaining
 that judgement. Phase 1 assigns this provisional value but does not independently
@@ -57,27 +63,25 @@ categories.
 
 ## Shared semantic principles
 
-### Clinical relevance scope
+### Clinical assertion policy
 
-{{CLINICAL_REPORTING_GATE}}
+{{CLINICAL_ASSERTION_POLICY}}
 
-### Source-bounded reasoning
+### Source fidelity policy
 
-{{SOURCE_BOUNDED_REASONING}}
-
-### Category semantics
-
-{{CATEGORY_SEMANTICS}}
-
-### Atomicity principles
-
-{{ATOMICITY_PRINCIPLES}}
+{{SOURCE_FIDELITY_POLICY}}
 
 ### Geneless claim policy
 
 {{GENELESS_CLAIM_POLICY}}
 
-For Phase 1, use these only to identify and delimit potentially relevant source assertions. Phase 1 determines review boundaries, not card eligibility. Do not decide whether a claim deserves a card; that decision belongs to Phase 2. Record all distinct paper-supported claims that satisfy both this clinical relevance scope and the confirmed `category_scope`. Geneless claims are in scope only as permitted by `GENELESS_CLAIM_POLICY`; geneless treatment claims that fail that policy are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
+### Phase 1 use of the clinical-utility standard
+
+Phase 1 is **sensitivity-first and source-faithful**. Use the clinical assertion policy only to identify and delimit potentially relevant source assertions and to avoid fragmenting one clinical finding into separate census entries for its supporting statistics or study mechanics. Do not polish census summaries into final card interpretations and do not reject a potentially useful source assertion merely because Phase 2 will later need to abstract or rewrite it. Phase 1 determines review boundaries, not card eligibility. Final card eligibility belongs to Phase 2.
+
+Related contextual statements are separate census assertions when they can be retained or rejected independently; do not attach them as qualifiers to another assertion merely because they occur in the same source sentence, paragraph, table, guideline, or framework. Preserve true meaning-critical qualifiers with the proposition they govern.
+
+Record all distinct paper-supported claims that satisfy both the clinical assertion policy and the confirmed `category_scope`. Geneless claims are in scope only as permitted by `GENELESS_CLAIM_POLICY`; geneless treatment claims that fail that policy are out of scope and should not be censused. Do not create placeholder entries or `validation_unresolved` items merely because intentionally excluded categories contain clinically relevant material.
 
 ## Output schema
 
@@ -86,7 +90,7 @@ For Phase 1, use these only to identify and delimit potentially relevant source 
 ```
 ## Step 2 — independent semantic audit
 
-After Step 1 has produced a complete candidate census, stop drafting and perform a separate independent semantic audit of the **entire candidate census** against the paper using the gate below. Do not audit and repair simultaneously: first identify every material semantic defect as one internal critique.
+After Step 1 has produced a complete candidate census, stop drafting and perform a separate independent semantic audit of the **entire candidate census** against the paper using the gate below. Do not begin by rereading the candidate census entry-by-entry. First reconstruct the expected in-scope source assertions directly from the paper, then compare that independently reconstructed set with the candidate census. Do not audit and repair simultaneously: first identify every material semantic defect as one internal critique.
 
 {{CENSUS_SEMANTIC_GATE}}
 

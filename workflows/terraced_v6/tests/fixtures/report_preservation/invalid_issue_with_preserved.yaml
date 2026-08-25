@@ -1,0 +1,4 @@
+audits:
+  - block_id: DX
+    preserved: true
+    issue: minor drift

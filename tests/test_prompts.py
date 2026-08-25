@@ -100,6 +100,83 @@ class PromptIntegrationTests(unittest.TestCase):
             "every `claim` fragment contributes to the same source assertion", prompt
         )
 
+    def test_semantic_assets_are_consolidated_into_three_canonical_policies(self):
+        for marker in ("CLINICAL_ASSERTION_POLICY", "CLINICAL_CARD_POLICY", "SOURCE_FIDELITY_POLICY"):
+            self.assertIn(marker, self.manifest)
+            self.assertEqual(self.manifest[marker]["type"], "file")
+        for obsolete in (
+            "CLINICAL_REPORTING_GATE", "SOURCE_BOUNDED_REASONING",
+            "CATEGORY_SEMANTICS", "ATOMICITY_PRINCIPLES",
+            "INTERPRETATION_PRINCIPLES", "SOURCE_SUPPORT_PRINCIPLES",
+            "CARD_CONTENT_RULES",
+        ):
+            self.assertNotIn(obsolete, self.manifest)
+
+    def test_clinical_assertion_policy_enforces_atomicity_and_nonfragmentation(self):
+        policy = BUILD_PROMPTS.asset_content("CLINICAL_ASSERTION_POLICY")
+        self.assertIn("one independently retainable/rejectable clinical proposition", policy)
+        self.assertIn("deletion / independent-retention test", policy)
+        self.assertIn("is **not** a qualifier merely because it provides context", policy)
+        self.assertIn("A clinical endpoint is **not** by itself a clinical interpretation", policy)
+        self.assertIn("not separate ingestion units", policy)
+
+    def test_clinical_card_policy_targets_patient_level_meaning(self):
+        policy = BUILD_PROMPTS.asset_content("CLINICAL_CARD_POLICY")
+        self.assertIn("patient-level clinical meaning", policy)
+        self.assertIn("Study-result packaging versus clinically operative information", policy)
+        self.assertIn("prognostic-model internals", policy)
+        self.assertIn("Do not convert absence of evidence into evidence of no effect", policy)
+        self.assertIn("Parallel-gene consolidation exception", policy)
+
+    def test_phase1_is_sensitive_and_does_not_receive_full_card_policy(self):
+        template = (ROOT / "prompts" / "templates" / "phase1_prompt.md").read_text(encoding="utf-8")
+        prompt = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertNotIn("{{CLINICAL_CARD_POLICY}}", template)
+        self.assertIn("sensitivity-first and source-faithful", prompt)
+        self.assertIn("Do not polish census summaries into final card interpretations", prompt)
+        self.assertIn("avoid fragmenting one clinical finding", prompt)
+
+    def test_phase2_enforces_single_proposition_and_clinical_abstraction(self):
+        prompt = " ".join(BUILD_PROMPTS.render(2).split())
+        self.assertIn("single-proposition test", prompt)
+        self.assertIn("there must be exactly one", prompt)
+        self.assertIn("Do not rescue compound interpretations by relabelling the second proposition as a qualifier", prompt)
+        self.assertIn("remove study name, cohort size, analysis method, statistical values", prompt)
+        self.assertIn("Preserve clinically operative thresholds and values", prompt)
+
+    def test_phase2_has_mandatory_all_card_human_semantic_gate(self):
+        prompt = " ".join(BUILD_PROMPTS.render(2).split())
+        self.assertIn("mandatory human semantic review gate", prompt)
+        self.assertIn("Category-first semantic grouping rule", prompt)
+        self.assertIn("Semantic grouping is conceptual, not syntactic", prompt)
+        self.assertIn("category is the outer grouping axis", prompt)
+        self.assertIn("current `evidence_tier`", prompt)
+        self.assertIn("do not infer or invent a new evidence-quality score", prompt)
+        self.assertIn("Adverse prognostic significance in acute myeloid leukemia", prompt)
+        self.assertNotIn("normalized assertion template", prompt)
+        self.assertNotIn("`<GENE> mutation is adverse in acute myeloid leukemia.`", prompt)
+        self.assertIn("every candidate `card_id` appears **exactly once**", prompt)
+        self.assertIn("current `category`", prompt)
+        self.assertIn("complete interpretation", prompt)
+        self.assertIn("group-wise and/or card-wise amendments", prompt)
+        self.assertIn("change a card's category", prompt)
+        self.assertIn("show **all current cards again**", prompt)
+        self.assertIn("reply exactly `APPROVE`", prompt)
+        self.assertIn("Approval is invalidated by any later change to the card set, category, or interpretation", prompt)
+
+    def test_phase3_uses_card_policy_as_pass_fail_not_style_rewrite(self):
+        prompt = " ".join(BUILD_PROMPTS.render(3).split())
+        self.assertIn("pass/fail standard here, not an invitation to rewrite acceptable cards", prompt)
+        self.assertIn("Single-proposition atomicity", prompt)
+        self.assertIn("Clinical-utility abstraction", prompt)
+        self.assertIn("recommend `split_card`", prompt)
+        self.assertIn("recommend `rewrite_interpretation`", prompt)
+
+    def test_phase4_applies_current_policy_only_to_authorised_repairs(self):
+        prompt = " ".join(BUILD_PROMPTS.render(4).split())
+        self.assertIn("authorised repair of a Phase 3-failed card", prompt)
+        self.assertIn("Do not use newer wording standards as permission to modernise", prompt)
+
     def test_source_disease_alias_prompt_view_is_derived_from_terms(self):
         vocabulary = json.loads(
             (ROOT / "schema" / "disease_vocabulary.json").read_text(encoding="utf-8")
@@ -173,7 +250,7 @@ class PromptIntegrationTests(unittest.TestCase):
 
     def test_validation_occurs_at_phase2_exit_and_phase4_entry(self):
         phase2 = BUILD_PROMPTS.render(2)
-        self.assertIn("## Step 6 — deterministic output gate", phase2)
+        self.assertIn("## Step 7 — deterministic output gate", phase2)
         self.assertIn(
             "python validation_bundle/scripts/phase_validation/phase2.py",
             phase2,
@@ -207,7 +284,7 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn("Phase 1 determines review boundaries, not card eligibility", rendered[1])
         self.assertIn("Phase 2 could reasonably retain one part while rejecting another", rendered[1])
         self.assertIn("freeze the complete candidate evidence bundle before drafting the interpretation", rendered[2])
-        self.assertIn("Include methodological detail only when it changes the clinical meaning or strength of the claim", rendered[2])
+        self.assertIn("Methodological detail belongs in the evidence unless it changes the patient-level meaning of the proposition", rendered[2])
         self.assertIn("sentence immediately before and after", rendered[2])
         self.assertIn("Do not author a finished replacement card", rendered[3])
         self.assertIn("Do not fail a card merely because another wording would also be defensible", rendered[3])
@@ -232,12 +309,33 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertIn("For a **Phase 1 retry/redo**, do **not** repeat", prompt)
         self.assertIn("do not ask for another `CONFIRM`", prompt)
         self.assertIn("Its `category_scope` is the already-confirmed scope", prompt)
+        self.assertIn("The incoming critique is a minimum repair list, not the boundary of the audit", prompt)
+        self.assertIn("The prior census is the working candidate, not merely a reference", prompt)
+        self.assertIn("Preserve the existing `claim_id`, wording, genes, category, and locator for unaffected entries", prompt)
+        self.assertIn("Do not regenerate the census wholesale", prompt)
+        self.assertIn("does not authorize rewriting otherwise valid prior-census entries", prompt)
         self.assertIn("independent audit must reassess the whole census", prompt)
 
     def test_phase1_and_phase2_share_identical_census_semantic_gate(self):
         gate = (ROOT / "prompts" / "assets" / "census_semantic_gate.md").read_text(encoding="utf-8").rstrip()
         self.assertIn(gate, BUILD_PROMPTS.render(1))
         self.assertIn(gate, BUILD_PROMPTS.render(2))
+
+    def test_census_semantic_gate_is_source_first_and_card_agnostic(self):
+        gate = (ROOT / "prompts" / "assets" / "census_semantic_gate.md").read_text(encoding="utf-8")
+        self.assertIn("source-first census audit", gate)
+        self.assertIn("temporarily ignoring the candidate census", gate)
+        self.assertIn("Independently reconstruct the expected set", gate)
+        self.assertIn("collect **all** material defects before repairing anything", gate)
+        self.assertIn("census quality only", gate)
+        self.assertIn("not a finished evidence-card interpretation", gate)
+        self.assertIn("Do not apply evidence-card eligibility", gate)
+
+    def test_phase1_drafting_preserves_meaning_critical_qualifiers(self):
+        phase1 = " ".join(BUILD_PROMPTS.render(1).split())
+        self.assertIn("The summary must preserve every qualifier needed to understand the exact assertion", phase1)
+        self.assertIn("Concision must not remove a meaning-critical qualifier", phase1)
+        self.assertIn("First reconstruct the expected in-scope source assertions directly from the paper", phase1)
 
     def test_phase3_output_contract_matches_phase4_review_schema_names(self):
         prompt = BUILD_PROMPTS.render(3)
@@ -275,8 +373,9 @@ class PromptIntegrationTests(unittest.TestCase):
             "### Step 2 — census semantic input gate",
             "### Step 3 — Phase 2 card/evidence work",
             "## Step 4 — independent semantic output audit",
-            "## Step 5 — model formatting gate",
-            "## Step 6 — deterministic output gate",
+            "## Step 5 — mandatory human semantic review gate",
+            "## Step 6 — model formatting gate",
+            "## Step 7 — deterministic output gate",
         )]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("exact same deterministic Phase 1 validator used on Phase 1 output", phase2)
@@ -308,7 +407,7 @@ class PromptIntegrationTests(unittest.TestCase):
         phase1 = BUILD_PROMPTS.render(1)
         self.assertGreater(phase1.index("## Step 4 — deterministic formatting/structure gate"), phase1.index("## Step 3 — model formatting gate"))
         phase2 = BUILD_PROMPTS.render(2)
-        self.assertGreater(phase2.index("## Step 6 — deterministic output gate"), phase2.index("## Step 5 — model formatting gate"))
+        self.assertGreater(phase2.index("## Step 7 — deterministic output gate"), phase2.index("## Step 6 — model formatting gate"))
         phase4 = BUILD_PROMPTS.render(4)
         self.assertNotIn("Mandatory pre-output gate", phase4)
         self.assertIn("Do not edit `paper.final.json` after the successful run", phase4)

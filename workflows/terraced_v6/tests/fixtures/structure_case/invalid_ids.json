@@ -1,0 +1,22 @@
+{
+  "provisional_disease": "Myelodysplastic neoplasm",
+  "morphologic_diagnosis_origin": "supplied",
+  "bootstrap_cmcs": [
+    "MDS"
+  ],
+  "variants": [
+    {
+      "variant_id": "v01",
+      "gene": "srsf2",
+      "description": "p.P95H"
+    }
+  ],
+  "detected_variants_summary": "One variant was detected in SRSF2.",
+  "case_facts": [
+    {
+      "fact_id": "F1",
+      "kind": "blast percentage",
+      "value": "4%"
+    }
+  ]
+}

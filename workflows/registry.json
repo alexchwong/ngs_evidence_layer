@@ -1,16 +1,46 @@
 {
   "schema_version": 1,
-  "default_workflow": "diagnosis-first-v1",
+  "default_workflow": "terraced-v6",
   "aliases": {
-    "legacy": "legacy-v1"
+    "legacy": "legacy-v1",
+    "diagnosis-first": "diagnosis-first-v1",
+    "terraced": "terraced-v6"
   },
   "workflows": {
+    "categorical-v1": {
+      "path": "workflows/categorical_v1",
+      "enabled": true
+    },
     "diagnosis-first-v1": {
       "path": "workflows/diagnosis_first_v1",
       "enabled": true
     },
     "legacy-v1": {
       "path": "workflows/legacy_v1",
+      "enabled": true
+    },
+    "terraced-v1": {
+      "path": "workflows/terraced_v1",
+      "enabled": true
+    },
+    "terraced-v2": {
+      "path": "workflows/terraced_v2",
+      "enabled": true
+    },
+    "terraced-v3": {
+      "path": "workflows/terraced_v3",
+      "enabled": true
+    },
+    "terraced-v4": {
+      "path": "workflows/terraced_v4",
+      "enabled": true
+    },
+    "terraced-v5": {
+      "path": "workflows/terraced_v5",
+      "enabled": true
+    },
+    "terraced-v6": {
+      "path": "workflows/terraced_v6",
       "enabled": true
     }
   }

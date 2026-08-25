@@ -62,28 +62,38 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
 
 
     def test_shared_semantic_injection_matrix(self):
-        shared_all = {
-            "CLINICAL_REPORTING_GATE",
-            "SOURCE_BOUNDED_REASONING",
-            "CATEGORY_SEMANTICS",
-            "ATOMICITY_PRINCIPLES",
-            "GENELESS_CLAIM_POLICY",
-        }
-        shared_card = {
-            "INTERPRETATION_PRINCIPLES",
-            "SOURCE_SUPPORT_PRINCIPLES",
-        }
         expected = {
-            1: shared_all,
-            2: shared_all | shared_card,
-            3: shared_all | shared_card,
-            4: shared_all | shared_card,
+            1: {
+                "CLINICAL_ASSERTION_POLICY",
+                "SOURCE_FIDELITY_POLICY",
+                "GENELESS_CLAIM_POLICY",
+            },
+            2: {
+                "CLINICAL_ASSERTION_POLICY",
+                "CLINICAL_CARD_POLICY",
+                "SOURCE_FIDELITY_POLICY",
+                "GENELESS_CLAIM_POLICY",
+            },
+            3: {
+                "CLINICAL_ASSERTION_POLICY",
+                "CLINICAL_CARD_POLICY",
+                "SOURCE_FIDELITY_POLICY",
+                "GENELESS_CLAIM_POLICY",
+            },
+            4: {
+                "CLINICAL_ASSERTION_POLICY",
+                "CLINICAL_CARD_POLICY",
+                "SOURCE_FIDELITY_POLICY",
+                "GENELESS_CLAIM_POLICY",
+            },
         }
         for phase, required in expected.items():
             path = ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
             with self.subTest(phase=phase):
                 markers = self.template_markers(path)
                 self.assertTrue(required <= markers, sorted(required - markers))
+        phase1 = self.template_markers(ROOT / "prompts" / "templates" / "phase1_prompt.md")
+        self.assertNotIn("CLINICAL_CARD_POLICY", phase1)
 
     def test_census_semantic_gate_is_shared_only_by_phase1_and_phase2(self):
         for phase in (1, 2, 3, 4):
@@ -96,7 +106,9 @@ class PhaseTemplateMarkerTests(unittest.TestCase):
 
     def test_card_handling_prompts_use_phase_appropriate_shared_assets(self):
         common = {
-            "CLINICAL_REPORTING_GATE",
+            "CLINICAL_ASSERTION_POLICY",
+            "CLINICAL_CARD_POLICY",
+            "SOURCE_FIDELITY_POLICY",
             "SOURCE_DISEASE_ALIAS_POLICY",
             "SOURCE_DISEASE_ALIASES",
         }

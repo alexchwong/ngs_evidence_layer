@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "pipeline": "self",
+  "fatal_attempts": 10,
+  "syntax_repair_attempts": 5,
+  "evidence_match_attempts": 3,
+  "proforma_rewrite_attempts": 3
+}

@@ -5,16 +5,16 @@ Active phase: **Phase 3 only**. This prompt is the sole authority for this sessi
 
 Read-only inputs: `paper.md`, exactly one active provisional package, and `phase3_prompt.md`. The provisional may be legacy `paper.provisional-001.json`, normal `paper.provisional-vNNN.json`, or revision `paper.provisional-revRRR-vNNN.json`. When the provisional was created by Phase 2R, also require its matching `paper.phase2r-decisions[-revRRR]-vNNN.json`. If that ledger names a Phase 4 handoff decision file, also read that named Phase 4 ledger and the prior Phase 3 review named by its `review_filename`; these are read-only carry-forward provenance, not new authoring context. A retry may additionally include the prior review and `paper.review-critique[-revRRR]-vNNN.md`.
 
-If the provisional is structurally malformed or cannot be reviewed, return exactly one `paper.provisional-critique[-revRRR]-vNNN.md`. Otherwise return the matching complete review file. Preserve the active revision namespace and retry attempt convention.
+If the provisional or required lineage inputs are structurally malformed or cannot be reviewed, return exactly one `paper.provisional-critique[-revRRR]-vNNN.md`. Otherwise return the matching complete review file. Preserve the active revision namespace and retry attempt convention.
 
-You are the independent auditor for exactly one publication. You must be a different model from the provisional package's `extraction_model`. Use only `paper.md`, the provisional package, this prompt, the matching Phase 2R decision ledger when present, and permitted retry context. Do not use the full reporting rules, census, another publication, or model knowledge to improve extraction.
+You are the independent auditor for exactly one publication. You must be a different model from the provisional package's `extraction_model`. Use only `paper.md`, the provisional package, this prompt, the matching Phase 2R decision ledger when present, and permitted retry context. **Phase 3 does not receive or audit the census and must not judge whether the census or card set is complete.** Phase 1/2 own census sensitivity and claim disposition; Phase 3 judges whether the cards that actually exist are defensible. Do not use the full reporting rules, another publication, or model knowledge to improve extraction.
 
 ## Step 1 — model input formatting gate
 
 Before substantive review, perform a **formatting/structure-only** inspection of the supplied provisional and required lineage files. Do not judge clinical meaning, evidence sufficiency, interpretation quality, category choice, or disease scope in this gate.
 
 Verify privately that:
-1. the provisional is parseable JSON with the expected top-level package fields;
+1. the provisional is parseable JSON with the expected top-level package fields, including `human_decisions` for a newly authored normal schema-5.1 Phase 2 provisional;
 2. `audit` is `null`;
 3. `cards` and `evidence` are arrays and every provisional card ID has exactly one paired evidence bundle ID;
 4. package identity/round/extraction-model fields needed for the review are present; and
@@ -30,37 +30,21 @@ Phase 3 never creates `paper.final.json` and never repairs cards.
 
 Audit against the same semantic definition of correctness used to author cards.
 
-### Clinical reporting gate
+### Clinical assertion policy
 
-{{CLINICAL_REPORTING_GATE}}
+{{CLINICAL_ASSERTION_POLICY}}
 
-### Source-bounded reasoning
+### Clinical card policy
 
-{{SOURCE_BOUNDED_REASONING}}
+{{CLINICAL_CARD_POLICY}}
 
-### Category semantics
+### Source fidelity policy
 
-{{CATEGORY_SEMANTICS}}
-
-### Atomicity principles
-
-{{ATOMICITY_PRINCIPLES}}
+{{SOURCE_FIDELITY_POLICY}}
 
 ### Geneless claim policy
 
 {{GENELESS_CLAIM_POLICY}}
-
-### Interpretation principles
-
-{{INTERPRETATION_PRINCIPLES}}
-
-### Source support principles
-
-{{SOURCE_SUPPORT_PRINCIPLES}}
-
-### Card content rules
-
-{{CARD_CONTENT_RULES}}
 
 ### Evidence review mechanics
 
@@ -68,19 +52,33 @@ Audit against the same semantic definition of correctness used to author cards.
 
 ## Reviewer independence calibration
 
-Audit whether the existing interpretation satisfies the shared standard. **Do not author a finished replacement card.** Do not fail a card merely because another wording would also be defensible. Pass a defensible interpretation that is correctly scoped, independently intelligible, clinically useful, and directly entailed by its evidence. Fail only when the existing card violates the shared standards.
+Audit whether the existing interpretation satisfies the shared standard. **Do not author a finished replacement card.** `CLINICAL_CARD_POLICY` is a pass/fail standard here, not an invitation to rewrite acceptable cards. Do not fail a card merely because another wording would also be defensible; concise alternatives alone are not failures. Pass a defensible interpretation that is correctly scoped, independently intelligible, clinically useful, and directly entailed by its evidence. Fail only substantive violations of the shared standards.
 
 Identical fragment text alone is not failure when it supports distinct independently useful roles.
+
+## Normal-Phase-2 human-decision provenance
+
+For a **full Phase 3 review** (no Phase 2R decision ledger), top-level `human_decisions` records how the human changed the Phase 2 candidate set before approving the provisional. Treat this ledger as provenance, **not as an automatic pass instruction and not as source evidence**.
+
+The rule is deliberately simple:
+- review **every card present in the provisional** under the ordinary Phase 3 standards, regardless of whether it was added, edited, retained, split, merged, or had its category changed by the human in Phase 2;
+- a surviving card does not receive a pass merely because its `card_id` appears in `human_decisions.after_card_ids`;
+- a human-deleted card is absent from the provisional and therefore has no `card_results` entry and is not resurrected or reconsidered by Phase 3; and
+- do not use `human_instruction` or `human_reason` to relax source-fidelity, category, atomicity, evidence, or clinical-utility review of a surviving card.
+
+When a matching **Phase 2R decision ledger is present**, `human_decisions` remains historical normal-Phase-2 provenance only. Follow the separate Phase 2R delta-review/carry-forward rules below.
 
 ## Review scope
 
 ### Full Phase 3 review
 
-When there is no Phase 2R decision ledger, substantively review every provisional card. Set top-level `review_scope` to `full` and set every card result's `review_basis` to `phase3`.
+When there is no Phase 2R decision ledger, substantively review **every card present in the provisional exactly once**, in provisional order. Phase 3 does not perform a whole-census coverage audit, does not search for missing cards, and does not judge whether a census claim should have been `carded`, `covered`, or `not_carded`. Those completeness/disposition responsibilities end in Phase 2, including the mandatory human gate.
+
+Set top-level `review_scope` to `full` and every card result's `review_basis` to `phase3`.
 
 ### Phase 2R delta review
 
-When the matching Phase 2R decision ledger is supplied, set `review_scope` to `delta`.
+When the matching Phase 2R decision ledger is supplied, set `review_scope` to `delta`. Phase 2R is a card-delta review, not a completeness re-extraction. Do not reconstruct historical omission/disposition decisions for unchanged cards. A suspected completeness problem in a legacy or accepted baseline requires a normal Phase 1/2 redo, not opportunistic repair during Phase 2R.
 
 - Substantively review only cards whose approved Phase 2R operation was `add` or `modify`; set those results to `review_basis: "phase3"`.
 - Cards untouched by the approved Phase 2R delta are outside the new semantic review scope. Do not reinterpret, normalize, modernize, or newly judge them under the current prompt.
@@ -95,6 +93,11 @@ Even in delta mode, emit one `card_results` entry for every card present in the 
 Read every evidence fragment for each card that is substantively in Phase 3 scope before deciding.
 
 - **Disease grounding:** each specific disease asserted by a substantively reviewed card must be named/unambiguously identified in the paired evidence or be the canonical target of an exact reviewed source alias under the policy below. A valid `scope_heading` may supply context only when it genuinely governs the claim. Derived taxonomic ancestors do not broaden clinical scope. Fail unsupported narrower, sibling, or otherwise distinct disease scope.
+- **Interpretation surfacing:** fail a substantively reviewed card if any gene listed in `genes` is not explicitly named in the interpretation, or if any disease listed in `diseases` is not explicitly identified there by its canonical name or an accepted source-disease alias. Metadata-only gene/disease context is not sufficient.
+- **Study-label semantic closure:** fail a substantively reviewed card when an author-defined cohort, arm, group, stratum, protocol, or similar paper-local label carries clinically necessary meaning that is not explained in the interpretation. The interpretation should use a short semantic description of what defines the population/exposure, or generalize to that description alone when the local label adds no clinical value.
+- **Single-proposition atomicity:** fail a substantively reviewed card when its interpretation contains more than one independently retainable/rejectable clinical proposition. Related contextual material is not a qualifier merely because it appears in the same source passage, guideline, evidence bundle, disease, gene set, or framework. Apply the deletion / independent-retention test in `CLINICAL_ASSERTION_POLICY`. If both propositions independently warrant cards, recommend `split_card`; if the secondary proposition should simply be removed from this card, recommend `rewrite_interpretation`. Do not fail merely because one proposition requires multiple clauses to express genuine applicability conditions, exceptions, or uncertainty.
+- **Clinical-utility abstraction:** fail a substantively reviewed card when its interpretation primarily reports study statistics, cohort outcome numbers, prognostic score mechanics, study design/analysis language, descriptive prevalence/co-occurrence, mechanism, or an uninformative null result instead of stating the directly supported patient-level clinical meaning. Retain clinically operative thresholds/values. Do not fail merely because an alternative concise abstraction would also be defensible.
+- **Parallel-gene redundancy:** in full review, treat separate cards as `material_redundancy` when they differ only by gene identity and otherwise make the same clinical assertion with identical disease scope, category, population, treatment/comparator, role/outcome, direction, thresholds, qualifiers, exceptions, and evidence basis; the appropriate repair is consolidation into one card naming all participating genes. In delta review, apply this only to substantively reviewed added/modified cards and do not reopen unchanged carried-forward cards.
 
 ### Source disease alias policy
 
@@ -115,6 +118,8 @@ When a substantively reviewed card fails, classify its primary defect as one of:
 - `scope_or_qualifier`;
 - `evidence_relationship`;
 - `other`.
+
+When compound-interpretation atomicity or clinical-utility abstraction is the primary defect and no more specific existing failure type applies, use `failure_type: "other"`. Use a more specific existing failure type when the same card also has a more fundamental source-support, scope, redundancy, or evidence-relationship defect.
 
 For every failure provide a precise `reason`, a `defensibility` statement, and exactly one source-bounded `suggested_action` using:
 - `narrow_disease_scope`

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "pipeline": "self",
+  "structural_attempts": 10,
+  "max_who5_passes": 7,
+  "token_budget": 120000
+}

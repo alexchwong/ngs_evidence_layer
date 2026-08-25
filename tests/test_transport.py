@@ -73,19 +73,21 @@ class TransportTests(unittest.TestCase):
 
     def test_round_trip_and_identical_files_are_idempotent(self):
         output = self.export()
-        self.assertIn("Exported 7 files", output)
+        self.assertIn("Exported 6 files", output)
         self.assertTrue(self.bundle.is_file())
         with tarfile.open(self.bundle, "r:gz") as archive:
             manifest = json.load(archive.extractfile("manifest.json"))
         self.assertEqual(manifest["version"], 2)
-        self.assertEqual(manifest["roots"], list(ROOT_NAMES))
+        self.assertEqual(manifest["roots"], [n for n in ROOT_NAMES if n != "pdf"])
         self.assertTrue(all("mtime_ns" in entry for entry in manifest["files"]))
 
         output = self.run_transport(
             "import", self.bundle, *self.root_arguments(self.destination)
         )
-        self.assertIn("Imported 7 additions, 0 overwrites, 0 deletions", output)
+        self.assertIn("Imported 6 additions, 0 overwrites, 0 deletions", output)
         for name in ROOT_NAMES:
+            if name == "pdf":
+                continue  # PDF is excluded by default
             source_files = sorted(path.relative_to(self.source / name) for path in (self.source / name).rglob("*") if path.is_file())
             destination_files = sorted(path.relative_to(self.destination / name) for path in (self.destination / name).rglob("*") if path.is_file())
             self.assertEqual(destination_files, source_files)
@@ -99,14 +101,14 @@ class TransportTests(unittest.TestCase):
             "import", self.bundle, *self.root_arguments(self.destination)
         )
         self.assertIn("Imported 0 additions, 0 overwrites, 0 deletions", output)
-        self.assertIn("7 identical files skipped", output)
+        self.assertIn("6 identical files skipped", output)
 
     def test_dry_run_does_not_write(self):
         self.export()
         output = self.run_transport(
             "import", self.bundle, "--dry-run", *self.root_arguments(self.destination)
         )
-        self.assertIn("Would import 7 additions", output)
+        self.assertIn("Would import 6 additions", output)
         self.assertFalse(self.destination.exists())
 
     def test_conflict_aborts_without_partial_import(self):
@@ -141,7 +143,7 @@ class TransportTests(unittest.TestCase):
             "--overwrite",
             *self.root_arguments(self.destination),
         )
-        self.assertIn("7 additions, 0 overwrites, 1 deletions", output)
+        self.assertIn("6 additions, 0 overwrites, 1 deletions", output)
         self.assertFalse(extra.exists())
 
     def test_overwrite_replaces_older_file_and_dry_run_does_not_mutate(self):
@@ -158,7 +160,7 @@ class TransportTests(unittest.TestCase):
             "--dry-run",
             *self.root_arguments(self.destination),
         )
-        self.assertIn("Would import 6 additions, 1 overwrites", output)
+        self.assertIn("Would import 5 additions, 1 overwrites", output)
         self.assertEqual(conflict.read_text(encoding="utf-8"), "older different\n")
 
         output = self.run_transport(
@@ -167,7 +169,7 @@ class TransportTests(unittest.TestCase):
             "--overwrite",
             *self.root_arguments(self.destination),
         )
-        self.assertIn("Imported 6 additions, 1 overwrites", output)
+        self.assertIn("Imported 5 additions, 1 overwrites", output)
         self.assertEqual(conflict.read_text(encoding="utf-8"), "# Evidence\n")
 
     def test_overwrite_refuses_newer_differing_file(self):
@@ -258,6 +260,66 @@ class TransportTests(unittest.TestCase):
         )
         self.assertIn("unsafe archive path", output)
         self.assertFalse((self.base / "escape").exists())
+
+    def test_export_excludes_pdf_by_default(self):
+        """Verify that PDF files are excluded from export by default."""
+        output = self.export()
+        self.assertIn("Exported 6 files", output)
+        
+        # Verify the archive doesn't contain PDF files
+        with tarfile.open(self.bundle, "r:gz") as archive:
+            manifest = json.load(archive.extractfile("manifest.json"))
+            pdf_files = [f for f in manifest["files"] if f["path"].startswith("state/pdf/")]
+            self.assertEqual(len(pdf_files), 0, "PDF files should not be in archive by default")
+            self.assertNotIn("pdf", manifest["roots"])
+
+    def test_export_includes_pdf_with_flag(self):
+        """Verify that --include-pdf flag includes PDF files in export."""
+        output = self.run_transport(
+            "export", "--output", self.bundle, "--include-pdf", *self.root_arguments(self.source)
+        )
+        self.assertIn("Exported 7 files", output)
+        
+        # Verify the archive contains PDF files
+        with tarfile.open(self.bundle, "r:gz") as archive:
+            manifest = json.load(archive.extractfile("manifest.json"))
+            pdf_files = [f for f in manifest["files"] if f["path"].startswith("state/pdf/")]
+            self.assertEqual(len(pdf_files), 1, "PDF file should be in archive with --include-pdf")
+            self.assertIn("pdf", manifest["roots"])
+
+    def test_import_ignores_pdf_by_default(self):
+        """Verify that PDF files in archive are ignored during import by default."""
+        # Export with PDF included
+        self.run_transport(
+            "export", "--output", self.bundle, "--include-pdf", *self.root_arguments(self.source)
+        )
+        
+        # Import without --include-pdf
+        output = self.run_transport(
+            "import", self.bundle, *self.root_arguments(self.destination)
+        )
+        self.assertIn("Imported 6 additions", output)
+        
+        # Verify PDF directory was not created
+        self.assertFalse((self.destination / "pdf").exists())
+
+    def test_import_includes_pdf_with_flag(self):
+        """Verify that --include-pdf flag imports PDF files from archive."""
+        # Export with PDF included
+        self.run_transport(
+            "export", "--output", self.bundle, "--include-pdf", *self.root_arguments(self.source)
+        )
+        
+        # Import with --include-pdf
+        output = self.run_transport(
+            "import", self.bundle, "--include-pdf", *self.root_arguments(self.destination)
+        )
+        self.assertIn("Imported 7 additions", output)
+        
+        # Verify PDF file was imported
+        pdf_file = self.destination / "pdf" / "archive" / "fixture" / "paper.pdf"
+        self.assertTrue(pdf_file.exists())
+        self.assertEqual(pdf_file.read_bytes(), b"%PDF fixture\n")
 
 
 if __name__ == "__main__":

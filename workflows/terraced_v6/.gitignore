@@ -1,0 +1,6 @@
+runs/
+settings.json
+__pycache__/
+*.pyc
+pipelines/openrouter_*
+pipelines/lmstudio_*

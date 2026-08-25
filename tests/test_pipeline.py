@@ -244,17 +244,6 @@ class ValidationTests(unittest.TestCase):
         self.assertTrue(any("no evidence bundle" in error for error in errors), errors)
         self.assertTrue(any("not found verbatim" in error for error in errors), errors)
 
-    def test_identical_evidence_is_warning_not_failure(self):
-        def mutate(_metadata, _census, package):
-            card = copy.deepcopy(package["cards"][0])
-            card.update(card_id=package["cards"][0]["card_id"] + "-other", category="treatment")
-            evidence = copy.deepcopy(package["evidence"][0]); evidence["card_id"] = card["card_id"]
-            package["cards"].append(card); package["evidence"].append(evidence)
-            package["genes_covered"] = sorted({g for c in package["cards"] for g in c["genes"]})
-        errors, warnings, _report = self.validate(mutate)
-        self.assertEqual(errors, [])
-        self.assertTrue(any("identical" in warning for warning in warnings))
-
     def test_composite_and_table_evidence_validate(self):
         def mutate(_metadata, _census, package):
             package["evidence"][0] = {

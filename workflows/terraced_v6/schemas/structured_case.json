@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "provisional_disease",
+    "morphologic_diagnosis_origin",
+    "bootstrap_cmcs",
+    "variants",
+    "detected_variants_summary",
+    "case_facts"
+  ],
+  "properties": {
+    "provisional_disease": {
+      "type": "string",
+      "minLength": 1
+    },
+    "detected_variants_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bootstrap_cmcs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant_id",
+          "gene",
+          "description"
+        ],
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gene": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "case_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fact_id",
+          "kind",
+          "value"
+        ],
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "morphologic_diagnosis_origin": {
+      "type": "string",
+      "enum": [
+        "supplied",
+        "inferred"
+      ]
+    }
+  }
+}

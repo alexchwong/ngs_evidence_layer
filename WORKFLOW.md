@@ -83,19 +83,26 @@ copies of these CLIs.
 
 | Workflow | Status | Purpose |
 |---|---|---|
-| `diagnosis-first-v1` | accepted/default | Answers diagnostic rules first, then evaluates the remaining reporting rules using the refined diagnosis. |
-| `legacy-v1` | legacy | Uses the previous adjudication-first/evidence-block pipeline and remains available through explicit legacy selectors. |
+| `terraced-v6` | experimental/default | Current default; isolated WHO5/ICC/WHO5 reasoning, combined downstream domains, audited evidence resolution, and final synthesis. |
+| `terraced-v5` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
+| `terraced-v4` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
+| `terraced-v3` | experimental | Scheduler-based terraced workflow retained for explicit comparison and regression. |
+| `terraced-v2` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
+| `terraced-v1` | experimental | First terraced workflow derived from categorical-v1. |
+| `categorical-v1` | accepted | Diagnosis-first evidence retrieval with independently drafted diagnosis/prognosis/treatment/MRD/germline categories. |
+| `diagnosis-first-v1` | accepted | Previous diagnosis-first summarisation workflow; available through `--diagnosis-first` or its explicit workflow ID. |
+| `legacy-v1` | legacy | Previous adjudication-first/evidence-block pipeline; available only through explicit legacy selectors. |
 
 The top-level `SKILL.md` accepts an explicit registered selector such as
 `--my-workflow-v1`. The selected workflow's own `SKILL.md` then controls execution.
 
 ## Clone the current workflow
 
-Create a new workflow from the current accepted workflow from the repository root:
+Create a new workflow from the current default workflow from the repository root:
 
 ```bash
 python scripts/devel_workflow.py new \
-  --from diagnosis-first-v1 \
+  --from terraced-v6 \
   --name <new-workflow-id>
 ```
 
@@ -108,18 +115,15 @@ experimental-summary-v1
 
 The helper performs the mechanical clone. It:
 
-1. copies only `workflows/diagnosis_first_v1/` into a new workflow package;
+1. copies only the selected source workflow package into a new workflow package;
 2. rewrites the cloned workflow ID, package imports, paths, and local references;
-3. sets `cloned_from` to `diagnosis-first-v1` and `status` to `development`;
+3. sets `cloned_from` to the selected source workflow ID and `status` to `development`;
 4. registers the new workflow as enabled in `workflows/registry.json`;
 5. leaves `default_workflow` unchanged;
 6. runs the structural workflow check before returning success.
 
 It does **not** copy shared repository contracts such as `scripts/core/`, the shared
-case prompts under `prompts/workflow/`, the corpus, schemas, or assay scope. Diagnosis-first
-reporting policy, citation rules, formatting rules, and canonical reporting rules are already
-workflow-owned under `workflows/diagnosis_first_v1/prompts/`, so they are copied with the
-workflow and can diverge without changing legacy behaviour.
+case prompts under `prompts/workflow/`, the corpus, schemas, or assay scope. Reporting policy, citation rules, formatting rules, and canonical reporting rules are workflow-owned inside each reporting workflow package, including `categorical_v1` and `diagnosis_first_v1`, so clones can diverge without changing other workflows.
 
 Immediately verify the clone explicitly:
 
@@ -139,7 +143,7 @@ nel-validate 1A --<new-workflow-id>
 Make experimental behaviour changes inside `workflows/<new-workflow-package>/` whenever
 possible. The package directory uses underscores while the workflow ID uses hyphens.
 
-For a clone of `diagnosis-first-v1`, the main ownership boundaries are:
+For diagnosis-first-derived workflows such as `categorical-v1` and `diagnosis-first-v1`, the main ownership boundaries are:
 
 | File/path | Change it when you want to change... |
 |---|---|
@@ -150,7 +154,7 @@ For a clone of `diagnosis-first-v1`, the main ownership boundaries are:
 | `rendering.py` | Workflow-specific evidence presentation while reusing shared rendering primitives. |
 | `audit_policy.py` | Workflow-specific report-draft structural or semantic validation policy. |
 | `runtime.py` | Optional workflow-specific setup assets and deterministic runtime commands. |
-| `report_yaml.py` | Diagnosis-first YAML templates, validation, assembly, and deterministic final rendering. |
+| `report_yaml.py` | Workflow-specific YAML templates, validation, assembly, and deterministic final rendering. |
 | `workflow.json` | Entrypoints, supported modes, packaged debug artifacts, and workflow status. |
 
 ### Keep shared code shared

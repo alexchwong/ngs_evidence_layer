@@ -52,7 +52,9 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 See [`WORKFLOW.md`](WORKFLOW.md) for the full workflow-separation contract, cloning
 procedure, modification boundaries, validation, and promotion/removal steps.
 
-**Default workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
+**Default workflow:** `terraced-v6` — Uses isolated WHO5/ICC/WHO5 diagnostic passes, combined downstream domain reasoning, and audited evidence resolution before final synthesis.
+
+**Diagnosis-first compatibility workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
 the integrated diagnosis, then passes that diagnosis into a second pass over the remaining
 agreed reporting rules.
 
@@ -64,7 +66,7 @@ agreed reporting rules.
 Create an isolated experimental workflow with:
 
 ```bash
-python scripts/devel_workflow.py new --from diagnosis-first-v1 --name <new-workflow-id>
+python scripts/devel_workflow.py new --from terraced-v6 --name <new-workflow-id>
 python scripts/devel_workflow.py check <new-workflow-id>
 ```
 
@@ -114,8 +116,24 @@ Phase-specific online validators live under `scripts/phase_validation/`: the pro
 manifest injects the relevant Phase 1, 2, or 4 validator, while Phase 3 has no
 executable prompt validator and is checked by Phase 4 on entry. Phase 2R and Phase 4
 share `scripts/phase_validation/card_deltas.py` plus `schema/card_decision_schema.json`
-to enforce user-authorized card/evidence deltas. New workflow packages use schema 5.1;
-legacy schema-5.0 packages remain valid without decision ledgers.
+to enforce user-authorized card/evidence deltas. New workflow packages use schema 5.1. Normal Phase 2 schema-5.1 provisionals also carry
+top-level `human_decisions`: the effective, approved human semantic-gate rulings with affected
+card/claim IDs and human-supplied reasons. Human deletions define which cards are absent; surviving
+human-added/edited/category-changed cards are still independently reviewable in Phase 3. Phase 3 receives
+no census and does not audit census/card-set completeness. Normal Phase 2 now checkpoints **both**
+completed semantic-census audits that return a Phase 1 critique and already-audited card candidates
+that encounter a later census defect. Both use `paper.phase2-state-vNNN.json`;
+`checkpoint_stage: "census_semantic_gate"` stores per-claim semantic pass/defect/out-of-scope state
+without cards, while `checkpoint_stage: "authoring"` additionally stores candidate cards/evidence,
+dispositions, human decisions, and card-ID allocation state. `schema/phase2_state_schema.json` owns
+this transient contract and `scripts/phase_validation/phase2_state.py` validates checkpoint lineage,
+deterministically diffs the source/repaired census, and returns the exact claim IDs requiring semantic
+recheck. The complete repaired census still passes the Phase 1 deterministic validator every time;
+unchanged previously-passed claims are not semantically re-reviewed. A still-defective repair reuses
+the last valid checkpoint baseline rather than replacing it with partial state. Authoring checkpoints
+preserve unaffected card state, while final package consistency and fresh human approval remain required. Phase 2R preserves `human_decisions` as historical provenance and continues to use
+its separate decision ledger. Phase 4 must preserve them unchanged into the final package. Legacy
+schema-5.0 and older schema-5.1 packages remain readable without this field.
 `scripts/final_validation.py` remains the local compatibility CLI for Phases 1–4 and
 dispatches to the canonical phase validators. File assets are injected in full; bundle
 members are embedded verbatim in full. Read `prompts/meta_prompt.md` before changing
@@ -134,8 +152,9 @@ Do not edit generated phase prompts directly. Edit the corresponding template or
 canonical source, regenerate the prompt, inspect the diff, and commit the generated
 prompt with its source change.
 
-Any edit to `prompts/assets/interpretation_principles.md` is behaviour-affecting. In
-addition to the unit tests, rerun the maintained accepted-paper semantic regression set
+Any edit to `prompts/assets/clinical_assertion_policy.md`,
+`prompts/assets/clinical_card_policy.md`, or `prompts/assets/source_fidelity_policy.md` is
+behaviour-affecting. In addition to the unit tests, rerun the maintained accepted-paper semantic regression set
 before promotion and compare card yield/changes by publication type and category. Build
 that regression set deliberately against live-corpus publication-type/category coverage
 and record any unrepresented strata. After promotion, manually review the Phase 2

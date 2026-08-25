@@ -1,0 +1,5 @@
+schema_disease: MDS
+diagnosis: MDS with increased blasts
+diagnostic_effect: refined
+variants: [v01]
+reason: The molecular findings refine the supplied morphologic diagnosis.

@@ -1,0 +1,108 @@
+scheduler:
+  id: global-ledger
+  phase: ptbg
+  version: 1
+  order: 40
+  description: Fill the complete downstream ledger globally, then apply a validated adversarial domain patch.
+steps:
+- id: initial
+  kind: model
+  inputs:
+    case: core.case.structured
+    diagnoses: core.diagnosis.context
+    scopes: core.ptbg.task-scopes
+    evidence: core.evidence.all-domains
+  prompt:
+    template: prompts/initial_ledger.md
+    inject:
+      case:
+        input: case
+        render: json
+      diagnoses:
+        input: diagnoses
+        render: yaml
+      scopes:
+        input: scopes
+        render: yaml
+      evidence:
+        input: evidence
+        render: evidence_by_domain
+      output_contract:
+        contract: local.global-ledger
+      prognosis_contract:
+        contract: ../common/contracts/prognosis-output.md
+      treatment_contract:
+        contract: ../common/contracts/treatment-output.md
+      biomarker_contract:
+        contract: ../common/contracts/biomarker-output.md
+      germline_contract:
+        contract: ../common/contracts/germline-output.md
+  output:
+    format: yaml
+    validator: global_ledger
+    contract: local.global-ledger
+- id: review
+  kind: model
+  depends_on:
+  - initial
+  inputs:
+    initial: steps.initial
+    case: core.case.structured
+    diagnoses: core.diagnosis.context
+    evidence: core.evidence.all-domains
+  prompt:
+    template: prompts/adversarial_review.md
+    inject:
+      initial:
+        input: initial
+        render: yaml
+      case:
+        input: case
+        render: json
+      diagnoses:
+        input: diagnoses
+        render: yaml
+      evidence:
+        input: evidence
+        render: evidence_by_domain
+      output_contract:
+        contract: local.global-patch
+  output:
+    format: yaml
+    validator: global_patch
+    contract: local.global-patch
+- id: apply_patch
+  kind: operation
+  operation: apply_domain_patch
+  inputs:
+    initial: steps.initial
+    patch: steps.review
+- id: publish
+  kind: operation
+  operation: publish_domains
+  inputs:
+    states: steps.apply_patch
+outputs:
+  prognosis: steps.publish.prognosis
+  treatment: steps.publish.treatment
+  biomarker: steps.publish.biomarker
+  germline: steps.publish.germline
+interface:
+  inputs:
+    case:
+      contract: core.case.structured
+    who5:
+      contract: core.requirements.diagnosis-who5
+    routing:
+      contract: core.requirements.diagnosis-routing
+    card_identity:
+      contract: core.cards.identity
+  outputs:
+    prognosis:
+      contract: ../common/contracts/prognosis-output.md
+    treatment:
+      contract: ../common/contracts/treatment-output.md
+    biomarker:
+      contract: ../common/contracts/biomarker-output.md
+    germline:
+      contract: ../common/contracts/germline-output.md
