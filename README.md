@@ -26,7 +26,7 @@ The remaining examples assume the environment is activated and commands are run 
 ### LM Studio
 
 1. Install and open LM Studio.
-2. Download and load the model configured in `config/pipelines/lmstudio.yaml`. The bundled configuration uses `qwen3-coder-next` for every model role.
+2. Download and load the model configured in `config/pipelines/lmstudio.yaml`. The bundled configuration defines `qwen3-coder-next` once under `model_aliases` and assigns every model role to that alias.
 3. Start LM Studio's local OpenAI-compatible server. NEL connects to `http://localhost:1234/v1` by default.
 4. Check the NEL configuration and connection settings:
 
@@ -34,7 +34,7 @@ The remaining examples assume the environment is activated and commands are run 
    python nel.py config-check --pipeline lmstudio
    ```
 
-To use another model, edit the model IDs in `config/pipelines/lmstudio.yaml`. To use a different server URL, either edit `base_url` in that file or set `NEL_LMSTUDIO_BASE_URL`:
+To use another model, edit or add an entry under `model_aliases`, then point the desired entries under `model_roles` at that alias. To use a different server URL, either edit `base_url` in that file or set `NEL_LMSTUDIO_BASE_URL`:
 
 ```bash
 export NEL_LMSTUDIO_BASE_URL='http://localhost:1234/v1'
@@ -57,7 +57,29 @@ LM Studio does not require an API key by default. If your server does, set the e
    python nel.py config-check --pipeline openrouter
    ```
 
-The bundled configuration uses `qwen/qwen3-coder-next`. Model IDs and request limits can be changed in `config/pipelines/openrouter.yaml`. The default endpoint is `https://openrouter.ai/api/v1`; set `NEL_OPENROUTER_BASE_URL` only if you need to override it.
+The bundled configuration uses `qwen/qwen3-coder-next`. Define models once under `model_aliases`, then assign each entry under `model_roles` to an alias. An alias may be a plain model ID or an object with OpenRouter provider routing, for example:
+
+```yaml
+model_aliases:
+  fast: qwen/qwen3-coder-next
+  reasoning:
+    model: openai/gpt-oss-20b
+    provider:
+      order: [groq]
+      allow_fallbacks: false
+
+model_roles:
+  structure:
+    model: fast
+    temperature: 0.0
+    max_tokens: 16384
+  diagnosis:
+    model: reasoning
+    temperature: 0.0
+    max_tokens: 65536
+```
+
+The provider-routing block is passed through as OpenRouter's request-body `provider` object. Supported routing fields are `order`, `only`, `ignore`, `allow_fallbacks`, and `require_parameters`. The default endpoint is `https://openrouter.ai/api/v1`; set `NEL_OPENROUTER_BASE_URL` only if you need to override it.
 
 Environment variables apply only to the current shell unless added to your shell profile. Never commit an API key to `config/pipelines/openrouter.yaml`, `config/settings.json`, or any other repository file.
 
@@ -75,8 +97,8 @@ Review these user-editable files before running a case:
 
 - `config/settings.json` — workflow behavior and default pipeline name;
 - `config/ngs-panel-scope.md` — genes assayed by the NGS panel;
-- `config/pipelines/lmstudio.yaml` — local LM Studio endpoint, model bindings, and token caps;
-- `config/pipelines/openrouter.yaml` — OpenRouter endpoint, model bindings, and token caps.
+- `config/pipelines/lmstudio.yaml` — local LM Studio endpoint, model aliases, role assignments, and token caps;
+- `config/pipelines/openrouter.yaml` — OpenRouter endpoint, model aliases, role assignments, provider routing, and token caps.
 
 A pipeline's name is its YAML filename without `.yaml`; there is no separate `pipeline.id`. To keep several configurations for the same provider, copy a default YAML to a new filename and edit that copy, for example:
 

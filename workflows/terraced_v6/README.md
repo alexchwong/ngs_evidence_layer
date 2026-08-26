@@ -43,6 +43,8 @@ python workflows/terraced_v6/step.py run --work-dir <printed-work-dir>
 
 Its existing `self` pipeline remains available as the legacy staged/handoff implementation, but `SKILL.md` routes normal session-model execution through `self.py`.
 
+Non-self pipeline YAMLs may define reusable `model_aliases` and assign each runtime role under `model_roles`. Alias values may be plain model IDs, or mappings with `model` plus an optional OpenRouter-style `provider` routing object. The shipped LM Studio/OpenRouter defaults use this form. Legacy non-self `models:` mappings remain accepted for existing custom pipeline files.
+
 ## Architecture
 
 The clinical contracts/proformas under `prompts/`, `stages/`, and `schemas/` are shared by both execution engines. Only execution grouping differs.

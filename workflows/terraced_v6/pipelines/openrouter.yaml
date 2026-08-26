@@ -8,36 +8,45 @@ provider:
   api_key_env: OPENROUTER_API_KEY
   timeout_s: 900
   api_key_required: true
-models:
+model_aliases:
+  default: qwen/qwen3-coder-next
+
+  # Example: pin a model to a specific OpenRouter provider with no fallback:
+  # groq_only:
+  #   model: openai/gpt-oss-20b
+  #   provider:
+  #     order: [groq]
+  #     allow_fallbacks: false
+model_roles:
   structure:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 65536
   diagnosis:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 65536
   ptbg:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 65536
   evidence_match:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 16384
   evidence_audit:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 16384
   report_write:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 16384
   preservation_check:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 16384
   syntax_repair:
-    model: qwen/qwen3-coder-next
+    model: default
     temperature: 0.0
     max_tokens: 16384

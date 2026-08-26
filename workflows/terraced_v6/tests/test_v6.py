@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 import yaml
 from scripts.core.validated_model_task import ValidationFailure
-from workflows.terraced_v6 import card_identity, domain_contract, pipeline_registry, rendering, runtime, schema_validation, stage_checks, step
+from workflows.terraced_v6 import card_identity, domain_contract, model_client, pipeline_registry, rendering, runtime, schema_validation, stage_checks, step
 
 ROOT=Path(__file__).resolve().parents[3]
 HERE=Path(__file__).resolve().parents[1]
@@ -87,6 +87,84 @@ def test_public_defaults_are_synced_from_terraced_v6():
     source={p.name:p.read_bytes() for p in (HERE/'pipelines').glob('*.yaml')}
     public={p.name:p.read_bytes() for p in (ROOT/'config/pipelines').glob('*.yaml')}
     assert source==public
+
+def test_non_self_defaults_use_model_aliases():
+    for name in ('lmstudio','openrouter'):
+        plan=pipeline_registry.load(name)
+        assert 'models' not in plan.doc
+        assert set(plan.doc['model_roles'])==set(pipeline_registry.ROLES)
+        for role in pipeline_registry.ROLES:
+            assert plan.doc['model_roles'][role]['model'] in plan.doc['model_aliases']
+
+def test_alias_binding_resolves_model_and_openrouter_provider_routing():
+    with tempfile.TemporaryDirectory() as tmp:
+        target=Path(tmp)/'custom.yaml'
+        doc=yaml.safe_load((HERE/'pipelines/openrouter.yaml').read_text())
+        doc['model_aliases']={
+            'fast':'qwen/qwen3-coder-next',
+            'reasoning':{
+                'model':'openai/gpt-oss-20b',
+                'provider':{'order':['groq'],'allow_fallbacks':False},
+            },
+        }
+        for role,row in doc['model_roles'].items(): row['model']='fast'
+        doc['model_roles']['diagnosis']['model']='reasoning'
+        target.write_text(yaml.safe_dump(doc,sort_keys=False))
+        plan=pipeline_registry.load_yaml(target)
+        structure=pipeline_registry.binding(plan,'structure')
+        diagnosis=pipeline_registry.binding(plan,'diagnosis')
+        assert structure.model=='qwen/qwen3-coder-next'
+        assert structure.provider_routing is None
+        assert diagnosis.model=='openai/gpt-oss-20b'
+        assert diagnosis.provider_routing=={'order':['groq'],'allow_fallbacks':False}
+
+def test_alias_pipeline_rejects_unknown_role_alias():
+    with tempfile.TemporaryDirectory() as tmp:
+        target=Path(tmp)/'custom.yaml'
+        doc=yaml.safe_load((HERE/'pipelines/lmstudio.yaml').read_text())
+        doc['model_roles']['diagnosis']['model']='missing'
+        target.write_text(yaml.safe_dump(doc,sort_keys=False))
+        with _assert_raises(ValueError): pipeline_registry.load_yaml(target)
+
+def test_alias_pipeline_rejects_unsupported_provider_routing_field():
+    with tempfile.TemporaryDirectory() as tmp:
+        target=Path(tmp)/'custom.yaml'
+        doc=yaml.safe_load((HERE/'pipelines/openrouter.yaml').read_text())
+        doc['model_aliases']['default']={
+            'model':'qwen/qwen3-coder-next',
+            'provider':{'order':['groq'],'made_up':True},
+        }
+        target.write_text(yaml.safe_dump(doc,sort_keys=False))
+        with _assert_raises(ValueError): pipeline_registry.load_yaml(target)
+
+def test_legacy_non_self_models_remain_supported():
+    with tempfile.TemporaryDirectory() as tmp:
+        target=Path(tmp)/'legacy.yaml'
+        doc=yaml.safe_load((HERE/'pipelines/lmstudio.yaml').read_text())
+        aliases=doc.pop('model_aliases')
+        roles=doc.pop('model_roles')
+        model=aliases['default']
+        doc['models']={role:{**row,'model':model} for role,row in roles.items()}
+        target.write_text(yaml.safe_dump(doc,sort_keys=False))
+        plan=pipeline_registry.load_yaml(target)
+        assert pipeline_registry.binding(plan,'diagnosis').model=='qwen3-coder-next'
+
+def test_model_client_adds_provider_routing_to_request_payload():
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self,*args): return False
+        def read(self): return b'{"choices":[{"message":{"content":"ok"},"finish_reason":"stop"}]}'
+    captured={}
+    def fake_urlopen(request,timeout):
+        captured['payload']=json.loads(request.data.decode('utf-8'))
+        captured['timeout']=timeout
+        return Response()
+    binding=pipeline_registry.binding(pipeline_registry.load('openrouter'),'structure')
+    binding=type(binding)(**{**binding.__dict__,'provider_routing':{'order':['groq'],'allow_fallbacks':False}})
+    with patch.object(model_client.urllib.request,'urlopen',fake_urlopen):
+        completion=model_client.complete_messages(binding,[{'role':'user','content':'Hello'}])
+    assert completion.content=='ok'
+    assert captured['payload']['provider']=={'order':['groq'],'allow_fallbacks':False}
 
 def test_reportability_defaults():
     assert step._reportable('prognosis','uncertain') is False

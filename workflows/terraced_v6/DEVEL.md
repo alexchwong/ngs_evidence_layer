@@ -21,6 +21,7 @@ V6 is intentionally smaller than v5.
 - `settings.json.template` — canonical default retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
 - `pipelines/` — canonical shipped model/provider defaults for self, LM Studio, and OpenRouter. Pipeline identity is the YAML filename stem; `pipeline.id` is intentionally absent.
+  Non-self defaults use `model_aliases` plus `model_roles`: roles own invocation settings such as `temperature`/`max_tokens`, while aliases resolve to model IDs and may carry an optional request-body `provider` routing mapping. `pipeline_registry.binding()` is the resolution boundary; downstream stage code sees only the resolved `Binding`. Legacy non-self `models:` files are still accepted for compatibility.
 - `devel_sync.py` — copies the canonical settings template and shipped pipeline YAMLs into root `config/` without touching `config/settings.json` or deleting user-added pipeline files.
 
 Clinical interpretation belongs to the owner call. Downstream code must not re-diagnose or repair owner clinical reasoning.

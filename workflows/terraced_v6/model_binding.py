@@ -1,6 +1,7 @@
 """Provider/model binding value object for terraced-v6 pipeline roles."""
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,7 @@ class Binding:
     api_key_env: str = ""
     api_key: str = ""
     timeout_s: float = 900.0
+    provider_routing: dict[str, Any] | None = None
 
     @property
     def profile(self) -> str:
