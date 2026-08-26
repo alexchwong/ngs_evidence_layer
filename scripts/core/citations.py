@@ -66,6 +66,9 @@ def split_references(text, *, source):
     bibliography_lines = lines[heading + 1:]
     while bibliography_lines and not bibliography_lines[0].strip():
         bibliography_lines.pop(0)
+    zero_card_bibliography = bibliography_lines == ["None; no cards were retrieved."]
+    if zero_card_bibliography:
+        bibliography_lines = []
 
     references = {}
     current_number = None
@@ -95,7 +98,7 @@ def split_references(text, *, source):
         else:
             raise ValueError(f"{source} has malformed bibliography line: {line!r}")
     store_current()
-    if not references:
+    if not references and not zero_card_bibliography:
         raise ValueError(f"{source} bibliography contains no numbered references")
     expected = list(range(1, len(references) + 1))
     if list(references) != expected:
@@ -149,9 +152,10 @@ def parse_card_references(evidence_text, source_references):
     )
     mapping = {}
     used_references = set()
-    for line in lines[start:end]:
-        if not line.strip():
-            continue
+    reference_lines = [line for line in lines[start:end] if line.strip()]
+    if reference_lines == ["None; no cards were rendered."]:
+        reference_lines = []
+    for line in reference_lines:
         match = REFS_MAPPING.fullmatch(line)
         if not match:
             raise ValueError(f"evidence has malformed Refs line: {line!r}")

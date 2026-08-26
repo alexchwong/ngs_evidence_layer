@@ -1,6 +1,10 @@
 import unittest
+from pathlib import Path
 
 from scripts.build_skill_zip import DEFAULT_MANIFEST, read_patterns, resolve_manifest
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
 
 class ReleaseManifestTests(unittest.TestCase):
@@ -20,6 +24,21 @@ class ReleaseManifestTests(unittest.TestCase):
             rf"^Release manifest pattern matched no tracked files: {pattern}$",
         ):
             resolve_manifest([pattern])
+
+    def test_ingestion_dependency_is_excluded_from_skill_requirements(self):
+        runtime_requirements = (
+            REPOSITORY_ROOT / "requirements.txt"
+        ).read_text(encoding="utf-8")
+        ingestion_requirements = (
+            REPOSITORY_ROOT / "requirements-ingest.txt"
+        ).read_text(encoding="utf-8")
+        release_patterns = read_patterns(DEFAULT_MANIFEST)
+
+        self.assertNotIn("opendataloader-pdf", runtime_requirements.lower())
+        self.assertIn("-r requirements.txt", ingestion_requirements)
+        self.assertIn("opendataloader-pdf", ingestion_requirements.lower())
+        self.assertIn("requirements.txt", release_patterns)
+        self.assertNotIn("requirements-ingest.txt", release_patterns)
 
 
 if __name__ == "__main__":

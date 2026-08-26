@@ -742,21 +742,72 @@ def _diagnostic_cards(eligible,genes,cmcs,authority):
     """Build one authority pool; exclusions take precedence over inclusions."""
     return _filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,cmcs),authority)
 
-def _disease_match(card,diseases,category):
-    for disease in diseases:
-        allowed={disease,*runtime.vocab.retrieval_related_diseases(disease,category)}
-        if set(card.get('diseases') or []) & allowed: return True
-    return False
+def _ptbg_card_applicable(card,domain,genes,disease):
+    """Return whether one PTBG card is in scope for the authoritative WHO5 disease.
+
+    Downstream PTBG must not inherit evidence from ``retrieval_related`` diseases.
+    Multi-disease applicability is expressed explicitly by the card's own ``diseases``
+    list. Germline is the exception: disease-neutral cards are allowed because the
+    constitutional proposition can legitimately be independent of the current neoplasm.
+    """
+    category=str(_setting('ptbg','domains',domain,'card_category'))
+    if card.get('category')!=category: return False
+    card_diseases=set(card.get('diseases') or [])
+    exact_disease=disease in card_diseases
+    gene_match=bool(core_retrieval.match_genes(card,set(genes)))
+    if domain=='prognosis':
+        return exact_disease and (gene_match or not card.get('genes'))
+    if domain in {'treatment','biomarker'}:
+        return exact_disease and gene_match
+    if domain=='germline':
+        return gene_match and (not card_diseases or exact_disease)
+    raise StepFailure(f'unsupported PTBG domain {domain!r}')
 
 def _draw_domain_cards(eligible,domain,genes,diseases):
-    category=str(_setting('ptbg','domains',domain,'card_category')); wanted=set(genes); hits=[]
+    """Draw PTBG cards using exact authoritative-disease scope, never related-disease expansion."""
+    hits=[]
     for c in eligible:
-        if c.get('category')!=category: continue
-        mg=core_retrieval.match_genes(c,wanted)
-        if domain=='germline':
-            if mg: hits.append(c)
-        elif _disease_match(c,diseases,category) and (mg or not c.get('genes')): hits.append(c)
+        if any(_ptbg_card_applicable(c,domain,genes,disease) for disease in diseases): hits.append(c)
     return sorted(hits,key=lambda x:x.get('card_id') or '')
+
+def _log_ptbg_retrieval(work,eligible,domain,genes,disease,cards):
+    """Emit one concise, deterministic PTBG retrieval summary per run/domain."""
+    category=str(_setting('ptbg','domains',domain,'card_category'))
+    category_cards=[c for c in eligible if c.get('category')==category]
+    wanted=set(genes)
+    selected_ids={c.get('card_id') for c in cards}
+    disease_mismatched=0; gene_mismatched=0
+    for card in category_cards:
+        if card.get('card_id') in selected_ids: continue
+        card_diseases=set(card.get('diseases') or [])
+        exact=disease in card_diseases
+        gene_match=bool(core_retrieval.match_genes(card,wanted))
+        disease_ok=(not card_diseases or exact) if domain=='germline' else exact
+        if gene_match and not disease_ok: disease_mismatched+=1
+        elif disease_ok and not gene_match and not (domain=='prognosis' and not card.get('genes')): gene_mismatched+=1
+    variant_cards=sum(1 for c in cards if c.get('genes'))
+    disease_level=sum(1 for c in cards if not c.get('genes'))
+    neutral_germline=sum(1 for c in cards if domain=='germline' and not c.get('diseases'))
+    detail=f'selected: {variant_cards} variant card(s)'
+    if domain=='prognosis': detail+=f', {disease_level} disease-level card(s)'
+    if domain=='germline': detail+=f', {neutral_germline} disease-neutral card(s)'
+    _log_once(
+        work,f'ptbg-retrieval-{domain}',
+        f'{domain} retrieval: exact disease={disease}; genes={",".join(genes) if genes else "none"}; '
+        f'{detail}; suppressed: {disease_mismatched} disease-mismatched, {gene_mismatched} gene-mismatched card(s)',
+    )
+
+def _assert_ptbg_audit_card_applicable(card,el,reg,authoritative_disease):
+    """Fail closed before semantic audit if a selected PTBG card is out of deterministic scope."""
+    if el.get('domain')=='diagnosis': return
+    domain=el.get('domain')
+    genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
+    if domain=='prognosis' and el.get('bucket')=='prognostic_score': genes=set()
+    if not _ptbg_card_applicable(card,domain,genes,authoritative_disease):
+        raise StepFailure(
+            f'evidence audit refused out-of-scope card {card.get("card_id")!r} for {el.get("schema_id")}: '
+            f'domain={domain}, authoritative disease={authoritative_disease!r}, element genes={sorted(genes)}'
+        )
 
 def _allowed_diseases(work):
     return set(runtime.read_json(layout.setup(work,'allowed-schema-diseases.json'))['allowed_schema_diseases'])
@@ -856,7 +907,7 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards}
 
 def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
-    valid=set(reg); disease=diagnosis['who5']['schema_disease']; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),[disease]); tag_by_id=card_identity.tag_by_id(manifest)
+    valid=set(reg); disease=diagnosis['who5']['schema_disease']; genes=runtime.case_genes(case); cards=_draw_domain_cards(eligible,domain,genes,[disease]); _log_ptbg_retrieval(work,eligible,domain,genes,disease,cards); tag_by_id=card_identity.tag_by_id(manifest)
     contract=domain_contract.contract(domain)
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml')
     # The output contract is the final block of the prompt: recency matters
@@ -917,6 +968,8 @@ def _candidate_cards(el,cards_by_domain,reg):
     # the WHO5/ICC authority filter. Do not destroy that OR retrieval semantics
     # by applying a second proposition-gene filter here.
     if el.get('domain')=='diagnosis': return cards
+    if el.get('domain')=='prognosis' and el.get('bucket')=='prognostic_score':
+        return [c for c in cards if not c.get('genes')]
     genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
     if genes:
         subset=[c for c in cards if not c.get('genes') or genes & set(c.get('genes') or [])]
@@ -978,7 +1031,7 @@ def _accepted_evidence(card,card_tag,audit,semantic_attempt):
     }
 
 
-def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
+def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authoritative_disease=None):
     """Resolve each reason to zero or more independently audited evidence cards.
 
     The matcher only selects cards whose proposition is an element of the reason.
@@ -1045,9 +1098,14 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
             for item in pending:
                 tags=list(mmap[item['evidence_id']].get('card_tags') or [])
                 if not tags: continue
+                el=enriched[item['element_index']]
                 audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'reason':item['reason'],'selected_card_tags':tags})
                 for tag in tags:
                     cid=id_by_tag[tag]
+                    if el.get('domain')!='diagnosis':
+                        if not authoritative_disease:
+                            raise StepFailure('authoritative WHO5 disease is required for PTBG evidence audit')
+                        _assert_ptbg_audit_card_applicable(catalog[cid],el,reg,authoritative_disease)
                     if cid not in selected_ids: selected_ids.append(cid)
             apath=_existing_or_new(work,'evidence_audits',f'attempt-{semantic_attempt:02d}.yaml')
             selected_cards=[catalog[cid] for cid in selected_ids]
@@ -1229,7 +1287,7 @@ def run_pipeline(work,profile=None):
     domains={}; cards_by_domain=dict(diagnosis_cards)
     for idx,domain in enumerate(('prognosis','treatment','biomarker','germline'),4):
         _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} owner proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile)
-    _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains,case); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile); blocks=stage_blocks(work,diagnosis,supported,reg)
+    _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains,case); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,authoritative_disease=diagnosis['who5']['schema_disease']); blocks=stage_blocks(work,diagnosis,supported,reg)
     _stage_status(work,'stage-9','Stage 9 of 9 — one report-writing call + preservation check'); final_blocks=stage_report_write(work,blocks,case,reg,profile); stage_final(work,case,final_blocks,supported,all_cards,digest,manifest); _print_usage(work); _stage_status(work,'complete','terraced-v6 complete'); return EXIT_OK
 
 def run_pipeline_setting(pid):

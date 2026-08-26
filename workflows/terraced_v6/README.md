@@ -43,8 +43,6 @@ python workflows/terraced_v6/step.py run --work-dir <printed-work-dir>
 
 Its existing `self` pipeline remains available as the legacy staged/handoff implementation, but `SKILL.md` routes normal session-model execution through `self.py`.
 
-Non-self pipeline YAMLs may define reusable `model_aliases` and assign each runtime role under `model_roles`. Alias values may be plain model IDs, or mappings with `model` plus an optional OpenRouter-style `provider` routing object. The shipped LM Studio/OpenRouter defaults use this form. Legacy non-self `models:` mappings remain accepted for existing custom pipeline files.
-
 ## Architecture
 
 The clinical contracts/proformas under `prompts/`, `stages/`, and `schemas/` are shared by both execution engines. Only execution grouping differs.
@@ -85,6 +83,8 @@ Owner models return one row per variant (`variant`, `bucket`, `reason`), filling
 All evidence cards shown to models use one shared renderer and 12-character runtime card tags. `rendering.cards` in root `config/settings.json` may be `compact` (default) or `verbose`. Compact mode groups cards by source hint, category, then diseases and emits one card per line as `[card:<tag>] Interpretation (evidence_tier: ...)`; gene metadata and canonical corpus card IDs are not repeated model-side.
 
 WHO5 and ICC diagnostic pools are configured independently under `diagnosis.who5` and `diagnosis.icc`. Each has an `included_publication_keys` allowlist and an `excluded_publication_keys` denylist. An empty inclusion list includes all retrieved publications. Python then removes excluded publications, so exclusion takes precedence when a publication is present in both lists. The resulting pool is shared by diagnostic prompt rendering, finite-set context, and downstream evidence resolution.
+
+Downstream PTBG retrieval is scoped to the authoritative WHO5 `schema_disease`; it does not expand through disease-vocabulary `retrieval_related` links. Prognosis retrieves exact-disease cards matching a case gene plus exact-disease gene-less cards for disease-level prognostic frameworks/scores. Treatment and MRD require exact disease plus a case-gene match. Germline requires a case-gene match and accepts either disease-neutral cards or cards explicitly tagged to the exact authoritative disease. Explicitly multi-disease cards remain valid because exact membership is tested against the card's own `diseases` list. The evidence-audit boundary deterministically re-checks this applicability before asking the auditor whether a card is an element of a reason.
 
 ## Reportability
 

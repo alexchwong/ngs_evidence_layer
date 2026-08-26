@@ -13,6 +13,14 @@ python3 -m venv .env
 python -m pip install -r requirements.txt
 ```
 
+The runtime-only `requirements.txt` is also shipped to end users. Developers who
+ingest publications must instead install `requirements-ingest.txt`; it includes
+the runtime dependencies and the ingestion-only `opendataloader-pdf` package:
+
+```bash
+python -m pip install -r requirements-ingest.txt
+```
+
 Activate it in each new shell, then use the relevant maintenance commands:
 
 ```bash

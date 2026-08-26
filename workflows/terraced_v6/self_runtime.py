@@ -273,8 +273,10 @@ def prepare_ptbg(work: Path) -> dict:
     disease = diagnosis["who5"]["schema_disease"]
     tag_by_id = card_identity.tag_by_id(manifest)
     outputs = {}
+    genes = runtime.case_genes(case)
     for domain in ("prognosis", "treatment", "biomarker", "germline"):
-        cards = staged._draw_domain_cards(eligible, domain, runtime.case_genes(case), [disease])
+        cards = staged._draw_domain_cards(eligible, domain, genes, [disease])
+        staged._log_ptbg_retrieval(work, eligible, domain, genes, disease, cards)
         group = f"self_ptbg_{domain}_input"
         cards_md, _ = _write_pool(work, group, cards, manifest)
         skeleton = output_path(work, group, "output-contract.md")
@@ -344,6 +346,7 @@ def prepare_evidence_resolution(work: Path) -> dict:
     disease = diagnosis["who5"]["schema_disease"]
     for domain in ("prognosis", "treatment", "biomarker", "germline"):
         cards_by_domain[domain] = staged._draw_domain_cards(eligible, domain, genes, [disease])
+        staged._log_ptbg_retrieval(work, eligible, domain, genes, disease, cards_by_domain[domain])
     elements = staged._elements(diagnosis, domains, case)
     tag_by_id = card_identity.tag_by_id(manifest)
     catalog = {}
@@ -370,6 +373,7 @@ def prepare_evidence_resolution(work: Path) -> dict:
         "items": items,
         "no_candidate_schema_ids": no_candidates,
         "catalog_card_ids": list(catalog),
+        "authoritative_disease": disease,
         "corpus_sha256": digest,
     }
     write_yaml(_evidence_state_path(work), state)
@@ -423,10 +427,31 @@ def audit_targets(items: list[dict], matches: dict) -> list[dict]:
     return out
 
 
+def _assert_audit_targets_applicable(work: Path, state: dict, targets: list[dict]) -> None:
+    """Re-check PTBG disease/domain scope immediately before semantic audit."""
+    _case, reg = load_case_registry(work)
+    disease = state.get("authoritative_disease") or finalize_diagnosis(work)["who5"]["schema_disease"]
+    elements = {el["schema_id"]: el for el in state.get("elements") or []}
+    all_cards, _eligible, _digest, manifest = corpus_state(work)
+    by_id = {c["card_id"]: c for c in all_cards}
+    id_by_tag = {f"[card:{tag}]": cid for cid, tag in card_identity.tag_by_id(manifest).items()}
+    for target in targets:
+        el = elements.get(target["schema_id"])
+        if not el or el.get("domain") == "diagnosis":
+            continue
+        for tag in target.get("selected_card_tags") or []:
+            cid = id_by_tag.get(tag)
+            card = by_id.get(cid)
+            if card is None:
+                raise ValueError(f"evidence audit references unknown runtime card tag {tag}")
+            staged._assert_ptbg_audit_card_applicable(card, el, reg, disease)
+
+
 def prepare_evidence_audit(work: Path) -> dict:
     state = _load_evidence_state(work)
     matches = accept_evidence_resolution(work)
     targets = audit_targets(state["items"], matches)
+    _assert_audit_targets_applicable(work, state, targets)
     group = "self_evidence_audit_input"
     item_path = output_path(work, group, "items.yaml")
     write_yaml(item_path, {"items": targets})
@@ -460,6 +485,7 @@ def accept_evidence_audit(work: Path) -> tuple[dict, list[dict]]:
     path = output_path(work, "evidence_audits", "self-audit.yaml")
     if not path.is_file():
         raise ValueError(f"evidence-audit output missing: {path}")
+    _assert_audit_targets_applicable(work, state, targets)
     validation_items = [{"evidence_id": x["evidence_id"], "selected_card_tags": x["selected_card_tags"]} for x in targets]
     schema_validation.validate_evidence_audit_batch(path.read_text(encoding="utf-8"), validation_items)
     return read_yaml(path), targets
