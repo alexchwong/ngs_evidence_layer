@@ -5,6 +5,8 @@ description: Runs the supported terraced-v6 NGS Evidence Layer product through t
 
 # NGS Evidence Layer
 
+The **repository root** is the directory containing this `SKILL.md` file and `nel.py`. Before running any command, use that directory as the working directory. All relative paths below are relative to the repository root.
+
 The supported workflow is `terraced-v6`. Every other directory under `workflows/` is legacy/development code. Do not invoke workflow-internal CLIs and do not ask the user to edit anything under `workflows/`.
 
 ## Model-step execution
@@ -15,7 +17,7 @@ Do not delegate a self handoff to another model or LLM API. Do not infer missing
 
 ## Public interface
 
-Use only the root CLI:
+From the repository root, use only the public `nel.py` CLI:
 
 ```bash
 python nel.py init
