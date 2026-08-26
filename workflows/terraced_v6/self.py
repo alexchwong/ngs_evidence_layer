@@ -92,7 +92,6 @@ def cmd_structure(args):
         "inputs": {
             "case": layout.input(work, "case.md"),
             "allowed_bootstrap_cmcs": layout.setup(work, "case-major-categories.json"),
-            "assay_scope": layout.setup(work, "ngs-panel-scope.md"),
         },
         "output": sr.case_path(work),
         "next": f"{Path(__file__).resolve()} who1 --work-dir {work}",

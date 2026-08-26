@@ -9,6 +9,7 @@ Buckets:
 - `no_drug_implication`: no supported therapeutic implication in the supplied evidence/context.
 
 Rules:
+- `ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
 - A variant may appear in more than one positive bucket when the propositions are genuinely distinct.
 - Give variants sharing one proposition the same `reason` wording; they are merged deterministically afterwards.
 - A variant with any positive treatment implication must not appear in `no_drug_implication`.

@@ -23,6 +23,12 @@ rules:
   label: CMC
 - rule: single_physical_line
   field: detected_variants_summary
+- rule: enum
+  field: ngs_result_completeness
+  values:
+  - complete
+  - incomplete
+  label: NGS result completeness
 retries:
   content: 2
   serialization: 3

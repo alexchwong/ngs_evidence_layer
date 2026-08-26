@@ -60,6 +60,13 @@ one-line change to the tuples at the top of that module:
 `case_projection()` never emits `variants`; variant identity always comes from
 the canonical registry block instead.
 
+`structure_case` also records `ngs_result_completeness`. The model always leaves
+`ngs_no_variants_detected` empty; core deterministically materializes that list
+from `config/ngs-panel-scope.md` minus the detected variant genes when the result
+is complete. Diagnosis and PTBG projections expose both fields. The negative list
+is assay-scope evidence only, not whole-gene biological wild type and not evidence
+against copy-number, rearrangement, structural, or other unassayed variant classes.
+
 ## Validation feedback
 
 Validators accumulate: they collect every deterministic defect and raise once, so

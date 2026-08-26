@@ -32,7 +32,7 @@ The self executor never calls an LLM. It prints bounded file inputs/contracts/ou
 
 ### Existing staged providers
 
-The existing `step.py` engine remains unchanged for non-self pipelines:
+The existing `step.py` engine remains available for non-self pipelines:
 
 ```bash
 python workflows/terraced_v6/step.py pipelines
@@ -61,7 +61,7 @@ The clinical contracts/proformas under `prompts/`, `stages/`, and `schemas/` are
 
 ### Existing staged path
 
-`step.py` retains its previous WHO/ICC/second-diagnosis, per-domain PTBG, retrying evidence, report-write and preservation topology for non-self providers. No staged-path dependency is changed by the native-self implementation.
+`step.py` retains its previous WHO/ICC/second-diagnosis, per-domain PTBG, retrying evidence, report-write and preservation topology for non-self providers. Both staged and native-self execution now normalize structured NGS state the same way: `structure_case` identifies detected variants and whether the result is complete, then Python materializes `ngs_no_variants_detected` from the configured panel scope for downstream clinical reasoning.
 
 ## Minimal proformas
 
@@ -72,6 +72,8 @@ The clinical contracts/proformas under `prompts/`, `stages/`, and `schemas/` are
 - Germline: support, against, uncertain; every conclusion must integrate the NGS result with supplied clinical context.
 
 Variant IDs (`v01`, `v02`, ...) link owner reasoning to the structured variant registry, and are the only variant identifiers any model sees.
+
+For a complete NGS result, `case.json` also contains `ngs_no_variants_detected`: every configured panel gene without a detected NGS variant, generated deterministically rather than copied by the model. If the case explicitly says the NGS result is partial, selected, limited, abbreviated, pending, or otherwise incomplete, the list is empty. These negatives apply only to the variant classes defined by `config/ngs-panel-scope.md`.
 
 Owner models return one row per variant (`variant`, `bucket`, `reason`), filling in a pre-supplied skeleton. Rows sharing one proposition are merged deterministically afterwards and recorded in `logs/transforms.yaml`; the stored proforma keeps the familiar bucket-list shape.
 

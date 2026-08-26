@@ -615,9 +615,10 @@ def _load_corpus():
 def _manifest_path(work): return _existing_or_new(work,'card_identity','card-identity-manifest.json')
 def stage_structure(work,profile):
     out=_case_json(work)
-    prompt=_prompt('structure_case')+'\n\n# Authoritative case\n'+_read(layout.input(work,'case.md'))+'\n\n# Allowed bootstrap CMCs\n'+_read(layout.setup(work,'case-major-categories.json'))+'\n\n# Assay scope\n'+_read(layout.setup(work,'ngs-panel-scope.md'))
+    prompt=_prompt('structure_case')+'\n\n# Authoritative case\n'+_read(layout.input(work,'case.md'))+'\n\n# Allowed bootstrap CMCs\n'+_read(layout.setup(work,'case-major-categories.json'))
     _model_call(work,call_id='structure-case',role='structure',prompt=prompt,output=out,validator=runtime.validate_case_text,profile=profile,fmt='json')
     case=runtime.normalize_case_variant_descriptions(runtime.read_json(out))
+    case=runtime.materialize_ngs_no_variants_detected(case,_read(layout.setup(work,'ngs-panel-scope.md')))
     _write(out,json.dumps(case,indent=2,ensure_ascii=False)+'\n')
     runtime.validate_case_text(_read(out),require_gene_prefixed_description=True)
     reg={f'v{i:02d}':{'variant_id':row['variant_id'],'gene':row['gene'],'description':row['description']} for i,row in enumerate(case.get('variants') or [],1)}

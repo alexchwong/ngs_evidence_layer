@@ -10,7 +10,7 @@ model, a corpus, or a real run directory.
 """
 from __future__ import annotations
 
-import pytest
+import unittest
 
 from scripts.core import validated_model_task as vmt
 from scripts.core.validated_model_task import Budgets, Suspend, TaskFailed, TaskIO, TaskRequest
@@ -183,14 +183,14 @@ def test_content_failure_inside_a_proforma_triggers_a_repair_restart():
 # 5 -------------------------------------------------------------------------
 def test_rewrite_budget_exhaustion_raises_with_the_last_feedback():
     fake = FakeIO(["a: bad\n", "a: bad2\n"])
-    with pytest.raises(TaskFailed) as exc:
+    with unittest.TestCase().assertRaises(TaskFailed) as exc:
         vmt.run(_request(_ok, mode="proforma", rewrite=1), fake.io())
-    assert "is bad" in str(exc.value)
+    assert "is bad" in str(exc.exception)
 
 
 def test_content_budget_exhaustion_raises():
     fake = FakeIO(["a: bad\n", "a: bad2\n", "a: bad3\n"])
-    with pytest.raises(TaskFailed):
+    with unittest.TestCase().assertRaises(TaskFailed):
         vmt.run(_request(_ok, content=3), fake.io())
 
 
@@ -206,9 +206,9 @@ def test_truncation_asks_for_a_complete_regeneration_not_a_patch():
 # 7 -------------------------------------------------------------------------
 def test_identical_repeats_escalate_then_stop_early():
     fake = FakeIO(["a: bad\n", "a: bad\n", "a: bad\n", "a: bad\n", "a: bad\n"])
-    with pytest.raises(TaskFailed) as exc:
+    with unittest.TestCase().assertRaises(TaskFailed) as exc:
         vmt.run(_request(_ok, content=5), fake.io())
-    assert "same rejected artifact" in str(exc.value)
+    assert "same rejected artifact" in str(exc.exception)
     # Stopped early rather than spending the whole budget.
     assert len(fake.calls) < 5
 
@@ -238,17 +238,17 @@ def test_self_handoff_resumes_correctly_across_three_invocations():
                 output["text"] = fake.output
 
     # Invocation 1: nothing on disk, so the runner suspends asking for a response.
-    with pytest.raises(Suspend) as first:
+    with unittest.TestCase().assertRaises(Suspend) as first:
         invoke()
-    assert first.value.task_id == "t1"
+    assert first.exception.task_id == "t1"
 
     # A human writes an invalid response.
     output["text"] = "a: bad\n"
 
     # Invocation 2: finds it, rejects it, suspends again carrying the feedback.
-    with pytest.raises(Suspend) as second:
+    with unittest.TestCase().assertRaises(Suspend) as second:
         invoke()
-    assert "is bad" in second.value.feedback
+    assert "is bad" in second.exception.feedback
     assert shared_state["t1"]["rewrites"] == 1, "rewrite index must survive the process boundary"
 
     # A human writes a valid response.
@@ -270,10 +270,10 @@ def test_self_handoff_stagnation_counter_survives_the_process_boundary():
         fake.output = output["text"]
         return vmt.run(_request(_ok, mode="proforma", rewrite=5), fake.io())
 
-    with pytest.raises(Suspend):
+    with unittest.TestCase().assertRaises(Suspend):
         invoke()
     first = shared_state["t1"].get("stagnation_repeats")
-    with pytest.raises(Suspend):
+    with unittest.TestCase().assertRaises(Suspend):
         invoke()
     assert shared_state["t1"]["stagnation_repeats"] > first
 
@@ -284,7 +284,7 @@ def test_self_handoff_with_exhausted_budget_fails_rather_than_looping():
     fake = FakeIO([], self_pipeline=True)
     fake.state = shared_state
     fake.output = "a: bad\n"
-    with pytest.raises(TaskFailed):
+    with unittest.TestCase().assertRaises(TaskFailed):
         vmt.run(_request(_ok, mode="proforma", rewrite=1), fake.io())
 
 
@@ -312,3 +312,16 @@ def test_runner_performs_no_filesystem_access():
         if isinstance(node, ast.Call)
     }
     assert not (used & banned), f"runner touched the filesystem directly: {sorted(used & banned)}"
+
+
+def load_tests(loader, tests, pattern):
+    """Expose the characterisation functions to standard-library unittest."""
+    suite = unittest.TestSuite()
+    for name, value in sorted(globals().items()):
+        if name.startswith("test_") and callable(value):
+            suite.addTest(unittest.FunctionTestCase(value, description=name))
+    return suite
+
+
+if __name__ == "__main__":
+    unittest.main()

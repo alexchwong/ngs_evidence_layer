@@ -8,6 +8,8 @@ Do not return:
 - a diagnosis that supersedes either primary diagnosis;
 - a restatement of a molecular criterion already used by WHO5 or ICC.
 
+- `ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
+
 If none is supported, return null without explanation.
 
 Return YAML only:

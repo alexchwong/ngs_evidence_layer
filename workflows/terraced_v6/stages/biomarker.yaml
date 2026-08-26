@@ -9,6 +9,8 @@ inputs:
   case:
   - provisional_disease
   - case_facts
+  - ngs_result_completeness
+  - ngs_no_variants_detected
   diagnosis:
     roles:
     - who5

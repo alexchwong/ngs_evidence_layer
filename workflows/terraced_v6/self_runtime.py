@@ -83,6 +83,9 @@ def accept_structured_case(work: Path) -> tuple[dict, dict]:
     text = path.read_text(encoding="utf-8")
     runtime.validate_case_text(text)
     case = runtime.normalize_case_variant_descriptions(runtime.read_json(path))
+    case = runtime.materialize_ngs_no_variants_detected(
+        case, layout.setup(work, "ngs-panel-scope.md").read_text(encoding="utf-8")
+    )
     path.write_text(json.dumps(case, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     runtime.validate_case_text(path.read_text(encoding="utf-8"), require_gene_prefixed_description=True)
     reg = {

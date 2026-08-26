@@ -12,6 +12,8 @@
     }
   ],
   "detected_variants_summary": "One variant was detected in SRSF2.",
+  "ngs_result_completeness": "complete",
+  "ngs_no_variants_detected": [],
   "case_facts": [
     {
       "fact_id": "C1",

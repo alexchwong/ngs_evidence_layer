@@ -1,13 +1,31 @@
 from __future__ import annotations
+from contextlib import ExitStack
+import inspect
 import json
 from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
 import yaml
-import pytest
 from scripts.core.validated_model_task import ValidationFailure
 from workflows.terraced_v6 import card_identity, domain_contract, pipeline_registry, rendering, runtime, schema_validation, stage_checks, step
 
 ROOT=Path(__file__).resolve().parents[3]
 HERE=Path(__file__).resolve().parents[1]
+
+
+def _assert_raises(exception):
+    return unittest.TestCase().assertRaises(exception)
+
+
+class _MonkeyPatch:
+    """Minimal standard-library replacement for the setattr fixture used here."""
+
+    def __init__(self, stack):
+        self._stack = stack
+
+    def setattr(self, target, name, value):
+        self._stack.enter_context(patch.object(target, name, value))
 
 def test_registered():
     d=json.loads((ROOT/'workflows/registry.json').read_text())
@@ -53,7 +71,7 @@ def test_icc_validator():
 
 def test_second_diagnosis_null_contract():
     schema_validation.validate_second_diagnosis('diagnosis: null\nvariants: []\nreason: null\n',valid_variants={'v01'})
-    with pytest.raises(ValueError): schema_validation.validate_second_diagnosis('diagnosis: null\nvariants: [v01]\nreason: null\n',valid_variants={'v01'})
+    with _assert_raises(ValueError): schema_validation.validate_second_diagnosis('diagnosis: null\nvariants: [v01]\nreason: null\n',valid_variants={'v01'})
 
 def test_prognosis_flat_contract_requires_one_row_per_variant():
     text=("classification:\n  - variant: v01\n    bucket: favorable\n    reason: favorable\n"
@@ -63,16 +81,16 @@ def test_prognosis_flat_contract_requires_one_row_per_variant():
 
 def test_prognosis_reports_missing_and_bad_bucket_together():
     text=("classification:\n  - variant: v01\n    bucket: nonsense\n    reason: x\nprognostic_score: null\n")
-    with pytest.raises(ValidationFailure) as exc:
+    with _assert_raises(ValidationFailure) as exc:
         schema_validation.validate_prognosis(text,{'v01','v02'})
-    paths={i.path for i in exc.value.issues}
+    paths={i.path for i in exc.exception.issues}
     assert 'classification' in paths and 'classification[0].bucket' in paths
 
 
 def test_prognosis_no_not_calculable():
     text=("classification:\n  - variant: v01\n    bucket: favorable\n    reason: favorable\n"
           "prognostic_score:\n  name: score\n  result: not calculable\n  reason: missing data\n")
-    with pytest.raises(ValidationFailure): schema_validation.validate_prognosis(text,{'v01'})
+    with _assert_raises(ValidationFailure): schema_validation.validate_prognosis(text,{'v01'})
 
 
 def test_treatment_allows_multiple_rows_but_not_alongside_no_drug_implication():
@@ -83,7 +101,7 @@ def test_treatment_allows_multiple_rows_but_not_alongside_no_drug_implication():
     bad=("classification:\n  - variant: v01\n    bucket: drug_target\n    therapy: drug A\n    reason: target\n"
          "  - variant: v01\n    bucket: no_drug_implication\n    reason: none\n"
          "  - variant: v02\n    bucket: no_drug_implication\n    reason: none\n")
-    with pytest.raises(ValidationFailure): schema_validation.validate_treatment(bad,{'v01','v02'})
+    with _assert_raises(ValidationFailure): schema_validation.validate_treatment(bad,{'v01','v02'})
 
 
 def test_mrd_binary_coverage():
@@ -142,6 +160,36 @@ def test_case_gene_prefix_normalization():
     assert case['variants'][0]['description'].startswith('SRSF2 ')
 
 
+
+def test_ngs_panel_negatives_are_materialized_deterministically():
+    scope = "# Genes assessed\n\n- `ASXL1`\n- `DNMT3A`\n- `TP53`\n"
+    case = {
+        'ngs_result_completeness': 'complete',
+        'ngs_no_variants_detected': [],
+        'variants': [{'gene': 'DNMT3A'}],
+    }
+    runtime.materialize_ngs_no_variants_detected(case, scope)
+    assert case['ngs_no_variants_detected'] == ['ASXL1', 'TP53']
+
+
+def test_incomplete_ngs_result_has_no_panel_wide_negatives():
+    scope = "# Genes assessed\n\n- `ASXL1`\n- `DNMT3A`\n- `TP53`\n"
+    case = {
+        'ngs_result_completeness': 'incomplete',
+        'ngs_no_variants_detected': ['ASXL1'],
+        'variants': [{'gene': 'DNMT3A'}],
+    }
+    runtime.materialize_ngs_no_variants_detected(case, scope)
+    assert case['ngs_no_variants_detected'] == []
+
+
+def test_configured_ngs_panel_has_52_unique_genes():
+    scope = (HERE.parents[1] / 'config' / 'ngs-panel-scope.md').read_text()
+    genes = runtime.parse_ngs_panel_genes(scope)
+    assert len(genes) == 52
+    assert len(set(genes)) == 52
+    assert 'TP53' in genes and 'NPM1' in genes
+
 def test_bare_run_resolves_most_recent_v6_run(tmp_path,monkeypatch):
     runs=tmp_path/'runs'; older=runs/'older'; newer=runs/'newer'
     older.mkdir(parents=True); newer.mkdir()
@@ -167,6 +215,8 @@ _REG={'v01':{'variant_id':'V1','gene':'SRSF2','description':'SRSF2 p.P95H'},
 _CASE={'provisional_disease':'MDS','morphologic_diagnosis_origin':'supplied','bootstrap_cmcs':['MDS'],
        'variants':[{'variant_id':'V1','gene':'SRSF2','description':'SRSF2 p.P95H'}],
        'detected_variants_summary':'Two variants detected.',
+       'ngs_result_completeness':'complete',
+       'ngs_no_variants_detected':['TP53'],
        'case_facts':[{'fact_id':'C1','kind':'blast percentage','value':'4%'}]}
 _DX={'who5':{'schema_disease':'MDS','diagnosis':'MDS with SF3B1','variants':['v01'],'reason':'long paragraph'},
      'icc':{'diagnosis':'MDS-SF3B1','variants':['v01'],'reason':'another long paragraph'},
@@ -186,10 +236,12 @@ def test_case_projection_never_emits_variants():
     assert 'variants' not in doc
     assert doc['provisional_disease']=='MDS'
     assert doc['case_facts'][0]['fact_id']=='C1'
+    assert doc['ngs_result_completeness']=='complete'
+    assert doc['ngs_no_variants_detected']==['TP53']
 
 
 def test_case_projection_rejects_unknown_field():
-    with pytest.raises(ValueError): model_context.case_projection(_CASE,fields=('variants',))
+    with _assert_raises(ValueError): model_context.case_projection(_CASE,fields=('variants',))
 
 
 def test_diagnosis_projection_drops_reason_but_keeps_relationship():
@@ -203,7 +255,7 @@ def test_assert_canonical_detects_a_leak():
     ids=model_context.source_ids(_REG)
     assert ids==['V1','V2']
     model_context.assert_canonical('variants: [v01, v02]',source_ids=ids)
-    with pytest.raises(AssertionError):
+    with _assert_raises(AssertionError):
         model_context.assert_canonical('variant_id: V1',source_ids=ids)
 
 
@@ -269,10 +321,10 @@ def test_one_row_per_id_names_missing_duplicate_and_unexpected():
 
 
 def test_every_validator_accumulates_rather_than_stopping_at_the_first_defect():
-    with pytest.raises(ValidationFailure) as exc:
+    with _assert_raises(ValidationFailure) as exc:
         schema_validation.validate_report_write('blocks:\n  - block_id: WRONG\n    text: ""\n',
                                                 [{'block_id':'DX'}])
-    assert len(exc.value.issues)>=2
+    assert len(exc.exception.issues)>=2
 
 
 # --- Phase 2: fixtures and standalone stage checking -------------------------
@@ -288,19 +340,23 @@ def test_every_registered_stage_has_a_fixture_directory():
         assert list((FIXTURES/stage).glob('valid.*')), f'stage {stage} has no valid fixture'
 
 
-@pytest.mark.parametrize('stage,path',[(s,f) for s,f in _FIXTURE_CASES],ids=lambda x:getattr(x,'name',x))
-def test_invalid_fixture_produces_exactly_the_recorded_feedback(stage,path):
-    expected=path.with_suffix(path.suffix+'.expected.txt')
-    assert expected.is_file(), f'{path.name} has no recorded feedback'
-    with pytest.raises(ValidationFailure) as exc:
-        stage_checks.check(stage,path.read_text(),stage_checks.fixture_context(stage))
-    assert str(exc.value)+'\n'==expected.read_text()
+def test_invalid_fixture_produces_exactly_the_recorded_feedback():
+    case=unittest.TestCase()
+    for stage,path in _FIXTURE_CASES:
+        with case.subTest(stage=stage,path=path.name):
+            expected=path.with_suffix(path.suffix+'.expected.txt')
+            assert expected.is_file(), f'{path.name} has no recorded feedback'
+            with _assert_raises(ValidationFailure) as exc:
+                stage_checks.check(stage,path.read_text(),stage_checks.fixture_context(stage))
+            assert str(exc.exception)+'\n'==expected.read_text()
 
 
-@pytest.mark.parametrize('stage',sorted(stage_checks.names()))
-def test_valid_fixture_passes(stage):
-    for f in (FIXTURES/stage).glob('valid.*'):
-        stage_checks.check(stage,f.read_text(),stage_checks.fixture_context(stage))
+def test_valid_fixture_passes():
+    case=unittest.TestCase()
+    for stage in sorted(stage_checks.names()):
+        for f in (FIXTURES/stage).glob('valid.*'):
+            with case.subTest(stage=stage,path=f.name):
+                stage_checks.check(stage,f.read_text(),stage_checks.fixture_context(stage))
 
 
 def test_check_stage_cli_reports_invalid_with_a_failure_exit_code():
@@ -480,7 +536,7 @@ def test_card_render_setting_accepts_compact_and_verbose(monkeypatch):
     monkeypatch.setattr(step,'load_settings',lambda:{})
     assert step._card_render_mode()=='compact'
     monkeypatch.setattr(step,'load_settings',lambda:{'rendering':{'cards':'yaml'}})
-    with pytest.raises(step.StepFailure): step._card_render_mode()
+    with _assert_raises(step.StepFailure): step._card_render_mode()
 
 
 # --- Semantic evidence-resolution retries ------------------------------------
@@ -517,7 +573,7 @@ def test_evidence_match_allows_zero_or_multiple_cards_per_reason():
     schema_validation.validate_evidence_match_batch(
         'matches:\n  - evidence_id: E0001\n    card_tags: ["[card:aaaaaaaaaaa1]", "[card:aaaaaaaaaaa2]"]\n', items
     )
-    with pytest.raises(ValidationFailure):
+    with _assert_raises(ValidationFailure):
         schema_validation.validate_evidence_match_batch(
             'matches:\n  - evidence_id: E0001\n    card_tags: ["[card:aaaaaaaaaaa9]"]\n', items
         )
@@ -682,20 +738,18 @@ def test_failed_evidence_audit_requires_actionable_feedback():
         risk: none
         comments: []
 '''
-    with pytest.raises(ValidationFailure) as exc:
+    with _assert_raises(ValidationFailure) as exc:
         schema_validation.validate_evidence_audit_batch(bad,items)
-    assert 'without explanatory feedback' in str(exc.value)
+    assert 'without explanatory feedback' in str(exc.exception)
 
 
-def test_setup_parser_supports_project_and_keeps_it_exclusive_with_work_dir():
+def test_staged_setup_parser_supports_explicit_work_dir():
     parser = step.build_parser()
-    args = parser.parse_args(['setup', '--mode', 'ngs-report', '--project'])
-    assert args.project is True and args.work_dir is None
-    with pytest.raises(SystemExit):
-        parser.parse_args(['setup', '--mode', 'ngs-report', '--project', '--work-dir', '/tmp/x'])
+    args = parser.parse_args(['setup', '--mode', 'ngs-report', '--work-dir', '/tmp/x'])
+    assert args.work_dir == Path('/tmp/x')
 
 
-def test_run_setup_delegates_work_location_to_shared_setup(tmp_path, monkeypatch):
+def test_staged_run_setup_passes_explicit_work_dir_to_shared_setup(tmp_path, monkeypatch):
     import contextlib
     from types import SimpleNamespace
 
@@ -715,8 +769,36 @@ def test_run_setup_delegates_work_location_to_shared_setup(tmp_path, monkeypatch
     monkeypatch.setattr(step, '_cli_logging', lambda *a, **k: contextlib.nullcontext())
     args = SimpleNamespace(
         pipeline='self', mode='ngs-report', case_file=case_file, example=None,
-        case_id=None, work_dir=None, project=True,
+        case_id=None, work_dir=work,
     )
     assert step.run_setup(args) == step.EXIT_OK
-    assert captured['work_dir'] is None
-    assert captured['project'] is True
+    assert captured['work_dir'] == work
+    assert captured['project'] is False
+
+
+def _run_function_test(function):
+    """Supply the temporary-path and patch fixtures using only the stdlib."""
+    parameters=inspect.signature(function).parameters
+    with ExitStack() as stack:
+        kwargs={}
+        if 'tmp_path' in parameters:
+            kwargs['tmp_path']=Path(stack.enter_context(tempfile.TemporaryDirectory()))
+        if 'monkeypatch' in parameters:
+            kwargs['monkeypatch']=_MonkeyPatch(stack)
+        function(**kwargs)
+
+
+def load_tests(loader, tests, pattern):
+    """Expose all workflow test functions to standard-library unittest."""
+    suite=unittest.TestSuite()
+    for name,value in sorted(globals().items()):
+        if name.startswith('test_') and callable(value):
+            suite.addTest(unittest.FunctionTestCase(
+                lambda function=value: _run_function_test(function),
+                description=name,
+            ))
+    return suite
+
+
+if __name__ == '__main__':
+    unittest.main()
