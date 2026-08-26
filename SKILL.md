@@ -18,6 +18,7 @@ Do not delegate a self handoff to another model or LLM API. Do not infer missing
 Use only the root CLI:
 
 ```bash
+python nel.py init
 python nel.py config-check
 python nel.py setup ...
 python nel.py run ...
@@ -25,7 +26,8 @@ python nel.py status ...
 python nel.py runs ...
 ```
 
-Root user configuration is in `config/` and `pipelines/`. Run artefacts are always under `runs/<run-id>/`.
+Root user configuration is in `config/`, including `config/pipelines/`. Run artefacts are always under `runs/<run-id>/`.
+`nel.py` is only the public facade: internally it delegates native self progression to `workflows/terraced_v6/self.py` and non-self execution to `workflows/terraced_v6/step.py`. Do not reproduce either executor's stage logic in the root skill.
 
 ## NGS report
 

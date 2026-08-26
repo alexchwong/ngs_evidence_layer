@@ -56,6 +56,38 @@ def test_pipeline_roles_are_minimal():
     assert pipeline_registry.ROLES==('structure','diagnosis','ptbg','evidence_match','evidence_audit','report_write','preservation_check','syntax_repair')
     for name in pipeline_registry.names(): pipeline_registry.load(name)
 
+def test_pipeline_filename_is_identity_and_pipeline_id_field_is_absent():
+    for name in pipeline_registry.names():
+        plan=pipeline_registry.load(name)
+        assert plan.pipeline_id==name
+        assert plan.path.stem==name
+        assert 'id' not in plan.doc['pipeline']
+
+def test_custom_pipeline_name_comes_from_filename():
+    with tempfile.TemporaryDirectory() as tmp:
+        target=Path(tmp)/'lmstudio-macpro.yaml'
+        target.write_bytes((HERE/'pipelines/lmstudio.yaml').read_bytes())
+        try:
+            pipeline_registry.configure(tmp)
+            assert pipeline_registry.names()==('lmstudio-macpro',)
+            assert pipeline_registry.load('lmstudio-macpro').pipeline_id=='lmstudio-macpro'
+        finally:
+            pipeline_registry.configure(HERE/'pipelines')
+
+def test_obsolete_pipeline_id_is_rejected():
+    with tempfile.TemporaryDirectory() as tmp:
+        target=Path(tmp)/'custom.yaml'
+        text=(HERE/'pipelines/lmstudio.yaml').read_text()
+        target.write_text(text.replace('pipeline:\n', 'pipeline:\n  id: wrong\n', 1))
+        with _assert_raises(ValueError):
+            pipeline_registry.load_yaml(target)
+
+def test_public_defaults_are_synced_from_terraced_v6():
+    assert (HERE/'settings.json.template').read_bytes()==(ROOT/'config/settings.json.template').read_bytes()
+    source={p.name:p.read_bytes() for p in (HERE/'pipelines').glob('*.yaml')}
+    public={p.name:p.read_bytes() for p in (ROOT/'config/pipelines').glob('*.yaml')}
+    assert source==public
+
 def test_reportability_defaults():
     assert step._reportable('prognosis','uncertain') is False
     assert step._reportable('treatment','no_drug_implication') is False

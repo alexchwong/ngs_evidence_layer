@@ -15,10 +15,24 @@ from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
 from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 
-WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=2; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
+WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=2; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
+
+def configure_runtime(*,settings_path=None,pipelines_dir=None):
+    """Bind workflow-local defaults or explicit public/frozen runtime inputs."""
+    global SETTINGS_PATH, SETTINGS_TEMPLATE_PATH
+    SETTINGS_PATH=Path(settings_path).expanduser().resolve() if settings_path is not None else HERE/'settings.json'
+    SETTINGS_TEMPLATE_PATH=SETTINGS_PATH.with_name('settings.json.template') if settings_path is not None else HERE/'settings.json.template'
+    pipeline_registry.configure(pipelines_dir)
+    return SETTINGS_PATH,pipeline_registry.ROOT
 EXIT_OK=0; EXIT_FAILURE=1; EXIT_HANDOFF=10
-VALIDATION_MODES={'nel-validate','nel-validate-function','nel-validate-brief'}
+def supported_modes():
+    doc=json.loads(WORKFLOW_PATH.read_text(encoding='utf-8'))
+    modes=doc.get('supported_modes') or []
+    if not isinstance(modes,list) or not modes or any(not isinstance(x,str) or not x for x in modes):
+        raise ValueError(f'invalid supported_modes in {WORKFLOW_PATH}')
+    return tuple(modes)
+VALIDATION_MODES={m for m in supported_modes() if m.startswith('nel-validate')}
 MARKING_PREFIX={'nel-validate':'nel-validation','nel-validate-function':'nel-validation-function','nel-validate-brief':'nel-validation-brief'}
 _EXECUTION_STARTED_AT=None
 
@@ -110,6 +124,8 @@ def _cli_logging(work):
 
 def _artifact(work,group,name,new=False):
     d=layout.intermediate_dir(work,group,existing=not new); return d/name
+def artifact_path(work,group,name,*,create=False): return _artifact(work,group,name,new=create)
+def has_artifact(work,group,name): return artifact_path(work,group,name).is_file()
 def _existing_or_new(work,group,name):
     p=_artifact(work,group,name)
     return p if p.exists() else _artifact(work,group,name,new=True)
@@ -600,6 +616,37 @@ def _require_work(work):
     state=read_workflow_state(work)
     if state.get('workflow_id')!=WORKFLOW_ID: raise StepFailure(f'work directory is bound to {state.get("workflow_id")!r}, not {WORKFLOW_ID!r}')
     _load_run_state(work)
+
+def run_metadata(work):
+    state=_load_run_state(Path(work))
+    return {'pipeline':state.get('pipeline'),'mode':state.get('mode')}
+
+def inspect_run(work):
+    """Return canonical staged-provider progress without exposing artifact names to callers."""
+    work=Path(work)
+    try: meta=run_metadata(work)
+    except Exception: meta={'pipeline':None,'mode':None}
+    if (work/'report-final.md').is_file():
+        label,stage,nxt,complete='Complete','complete',None,True
+    elif has_artifact(work,'report_write','report-write.yaml') or has_artifact(work,'report_blocks','report-blocks.yaml') or has_artifact(work,'evidence_enriched','reportable-elements.yaml'):
+        label,stage,nxt,complete='At report synthesis','report_synthesis','complete report',False
+    elif has_artifact(work,'germline_state','proforma.yaml'):
+        label,stage,nxt,complete='At evidence review','evidence_review','resolve evidence',False
+    elif has_artifact(work,'biomarker_state','proforma.yaml'):
+        label,stage,nxt,complete='At germline','germline','complete germline',False
+    elif has_artifact(work,'treatment_state','proforma.yaml'):
+        label,stage,nxt,complete='At biomarker','biomarker','complete biomarker',False
+    elif has_artifact(work,'prognosis_state','proforma.yaml'):
+        label,stage,nxt,complete='At treatment','treatment','complete treatment',False
+    elif has_artifact(work,'diagnosis','diagnosis-final.yaml'):
+        label,stage,nxt,complete='At prognosis','prognosis','complete prognosis',False
+    elif has_artifact(work,'structured_case','case.json'):
+        label,stage,nxt,complete='At diagnosis','diagnosis','complete diagnosis',False
+    elif (work/'workflow.json').is_file() and (work/'case.md').is_file():
+        label,stage,nxt,complete='Setup only','setup','structure case',False
+    else:
+        label,stage,nxt,complete='Unrecognized','unknown','inspect run',False
+    return {'label':label,'stage':stage,'next':nxt,'complete':complete,**meta}
 
 def _load_corpus():
     corpus_doc,_index,digest=corpus.load_corpus(corpus.DEFAULT_CORPUS,corpus.DEFAULT_INDEX); all_cards=corpus.flatten(corpus_doc)
@@ -1207,7 +1254,7 @@ def _resolve_run_work_dir(work_dir):
 
 def build_parser():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='command',required=True)
-    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=['ngs-report','nel-demo','nel-validate','nel-validate-function','nel-validate-brief']); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names())
+    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=supported_modes()); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names())
     cs=sub.add_parser('check-stage'); cs.add_argument('--stage',required=True,choices=stage_checks.names()); cs.add_argument('--file',type=Path,required=True); cs.add_argument('--context',type=Path)
     sp=sub.add_parser('show-prompt'); sp.add_argument('--stage',required=True,choices=stage_checks.names()); sp.add_argument('--context',type=Path)
     sub.add_parser('stages')

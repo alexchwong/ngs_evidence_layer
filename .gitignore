@@ -15,6 +15,7 @@ venv/
 /curation/
 /temp/
 /evidence/
+/runs/
 
 # Working files from a retrieval session. The rendered block is the deliverable;
 # the intermediate JSON is not worth keeping.
@@ -30,3 +31,11 @@ block.md
 /workflows/terraced_v1/questions.yaml
 /workflows/terraced_v1/settings.json
 
+
+# User-owned public runtime configuration. Shipped pipeline defaults remain tracked;
+# copy one to another filename for machine/provider-specific model choices.
+/config/settings.json
+/config/pipelines/*.yaml
+!/config/pipelines/self.yaml
+!/config/pipelines/lmstudio.yaml
+!/config/pipelines/openrouter.yaml

@@ -2,9 +2,28 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import nel
 
+
+
+
+class ConfigBootstrapTests(unittest.TestCase):
+    def test_initialize_user_settings_copies_template_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = root / "config"
+            config.mkdir()
+            template = config / "settings.json.template"
+            settings = config / "settings.json"
+            template.write_text('{"schema_version": 1, "pipeline": "self"}\n', encoding="utf-8")
+            with patch.object(nel, "CONFIG_DIR", config), patch.object(nel, "SETTINGS_TEMPLATE_PATH", template), patch.object(nel, "SETTINGS_PATH", settings):
+                self.assertTrue(nel._initialize_user_settings())
+                self.assertEqual(settings.read_bytes(), template.read_bytes())
+                settings.write_text('{"custom": true}\n', encoding="utf-8")
+                self.assertFalse(nel._initialize_user_settings())
+                self.assertEqual(settings.read_text(encoding="utf-8"), '{"custom": true}\n')
 
 class RunInventoryTests(unittest.TestCase):
     def _run(self, root: Path, pipeline: str) -> Path:
@@ -42,6 +61,14 @@ class RunInventoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run = self._run(Path(tmp), "self")
             self._artifact(run, 4, "diagnosis", "diagnosis-final.yaml")
+            status = nel.inspect_run(run)
+            self.assertEqual(status["label"], "At PTBG")
+            self.assertEqual(status["stage"], "ptbg")
+
+    def test_self_who2_canonical_group_advances_to_ptbg(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = self._run(Path(tmp), "self")
+            self._artifact(run, 4, "diagnosis_who5_pass_2", "who5.yaml")
             status = nel.inspect_run(run)
             self.assertEqual(status["label"], "At PTBG")
             self.assertEqual(status["stage"], "ptbg")

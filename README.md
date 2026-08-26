@@ -26,7 +26,7 @@ The remaining examples assume the environment is activated and commands are run 
 ### LM Studio
 
 1. Install and open LM Studio.
-2. Download and load the model configured in `pipelines/lmstudio.yaml`. The bundled configuration uses `qwen3-coder-next` for every model role.
+2. Download and load the model configured in `config/pipelines/lmstudio.yaml`. The bundled configuration uses `qwen3-coder-next` for every model role.
 3. Start LM Studio's local OpenAI-compatible server. NEL connects to `http://localhost:1234/v1` by default.
 4. Check the NEL configuration and connection settings:
 
@@ -34,13 +34,13 @@ The remaining examples assume the environment is activated and commands are run 
    python nel.py config-check --pipeline lmstudio
    ```
 
-To use another model, edit the model IDs in `pipelines/lmstudio.yaml`. To use a different server URL, either edit `base_url` in that file or set `NEL_LMSTUDIO_BASE_URL`:
+To use another model, edit the model IDs in `config/pipelines/lmstudio.yaml`. To use a different server URL, either edit `base_url` in that file or set `NEL_LMSTUDIO_BASE_URL`:
 
 ```bash
 export NEL_LMSTUDIO_BASE_URL='http://localhost:1234/v1'
 ```
 
-LM Studio does not require an API key by default. If your server does, set the environment variable named by `api_key_env` in `pipelines/lmstudio.yaml`.
+LM Studio does not require an API key by default. If your server does, set the environment variable named by `api_key_env` in `config/pipelines/lmstudio.yaml`.
 
 ### OpenRouter
 
@@ -57,20 +57,38 @@ LM Studio does not require an API key by default. If your server does, set the e
    python nel.py config-check --pipeline openrouter
    ```
 
-The bundled configuration uses `qwen/qwen3-coder-next`. Model IDs and request limits can be changed in `pipelines/openrouter.yaml`. The default endpoint is `https://openrouter.ai/api/v1`; set `NEL_OPENROUTER_BASE_URL` only if you need to override it.
+The bundled configuration uses `qwen/qwen3-coder-next`. Model IDs and request limits can be changed in `config/pipelines/openrouter.yaml`. The default endpoint is `https://openrouter.ai/api/v1`; set `NEL_OPENROUTER_BASE_URL` only if you need to override it.
 
-Environment variables apply only to the current shell unless added to your shell profile. Never commit an API key to `pipelines/openrouter.yaml`, `config/settings.json`, or any other repository file.
+Environment variables apply only to the current shell unless added to your shell profile. Never commit an API key to `config/pipelines/openrouter.yaml`, `config/settings.json`, or any other repository file.
 
 ## Configure NEL
 
+Create the working settings file once:
+
+```bash
+python nel.py init
+```
+
+`nel.py setup` and `nel.py config-check` also perform this initialization automatically if `config/settings.json` is missing. The working file is copied from `config/settings.json.template` and is never silently overwritten.
+
 Review these user-editable files before running a case:
 
-- `config/settings.json` — workflow behavior and default pipeline;
+- `config/settings.json` — workflow behavior and default pipeline name;
 - `config/ngs-panel-scope.md` — genes assayed by the NGS panel;
-- `pipelines/lmstudio.yaml` — local LM Studio endpoint and model bindings;
-- `pipelines/openrouter.yaml` — OpenRouter endpoint and model bindings.
+- `config/pipelines/lmstudio.yaml` — local LM Studio endpoint, model bindings, and token caps;
+- `config/pipelines/openrouter.yaml` — OpenRouter endpoint, model bindings, and token caps.
 
-The bundled settings may name `self` as the default pipeline because that pipeline is used when the release is operated as a `SKILL.md` skill. `self` is not an end-user CLI provider. CLI users should pass `--pipeline lmstudio` or `--pipeline openrouter`, or change the `pipeline` value in `config/settings.json` to one of those two values.
+A pipeline's name is its YAML filename without `.yaml`; there is no separate `pipeline.id`. To keep several configurations for the same provider, copy a default YAML to a new filename and edit that copy, for example:
+
+```bash
+cp config/pipelines/lmstudio.yaml config/pipelines/lmstudio-macpro.yaml
+cp config/pipelines/openrouter.yaml config/pipelines/openrouter-cheap.yaml
+python nel.py config-check --pipeline lmstudio-macpro
+```
+
+Set `pipeline` in `config/settings.json` to the filename stem you want as the default, or select any configuration for one run with `--pipeline <name>`.
+
+The bundled settings may name `self` as the default pipeline because that pipeline is used when the release is operated as a `SKILL.md` skill. Human CLI users will usually select an LM Studio or OpenRouter configuration.
 
 Validate the selected configuration before setup:
 
@@ -174,6 +192,7 @@ Display the available commands and command-specific options:
 
 ```bash
 python nel.py --help
+python nel.py init --help
 python nel.py setup --help
 python nel.py run --help
 ```

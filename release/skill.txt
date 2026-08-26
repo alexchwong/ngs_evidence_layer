@@ -4,10 +4,9 @@ NEWS.md
 nel.py
 requirements.txt
 release/VERSION
-config/settings.json
 config/settings.json.template
+config/pipelines/*.yaml
 config/ngs-panel-scope.md
-pipelines/*.yaml
 docs/corpus.md
 docs/validation.md
 scripts/setup_workflow.py
@@ -35,6 +34,7 @@ workflows/registry.json
 workflows/terraced_v6/*.py
 workflows/terraced_v6/workflow.json
 workflows/terraced_v6/settings.json.template
+workflows/terraced_v6/pipelines/*.yaml
 workflows/terraced_v6/prompts/*.md
 workflows/terraced_v6/schemas/*.json
 workflows/terraced_v6/stages/*.json

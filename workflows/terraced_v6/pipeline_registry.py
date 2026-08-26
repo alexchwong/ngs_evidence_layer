@@ -1,4 +1,4 @@
-"""Small provider/model pipeline registry for terraced-v6."""
+"""Small provider/model pipeline registry for terraced-v6; YAML filename stem is pipeline identity."""
 from __future__ import annotations
 import os
 from dataclasses import dataclass
@@ -8,14 +8,18 @@ import yaml
 from workflows.terraced_v6.model_binding import Binding
 HERE=Path(__file__).resolve().parent; ROOT=HERE/'pipelines'
 ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','report_write','preservation_check','syntax_repair')
+def configure(root:Path|str|None=None):
+    global ROOT
+    ROOT=Path(root).expanduser().resolve() if root is not None else HERE/'pipelines'
+    return ROOT
 @dataclass(frozen=True)
 class PipelinePlan:
     pipeline_id:str; description:str; path:Path; doc:dict[str,Any]
 def load_yaml(path:Path)->PipelinePlan:
-    doc=yaml.safe_load(path.read_text(encoding='utf-8'))
+    path=Path(path); doc=yaml.safe_load(path.read_text(encoding='utf-8'))
     if not isinstance(doc,dict) or not isinstance(doc.get('pipeline'),dict): raise ValueError(f'invalid pipeline YAML: {path}')
-    meta=doc['pipeline']; pid=meta.get('id')
-    if not isinstance(pid,str) or not pid: raise ValueError('pipeline.id must be non-empty')
+    meta=doc['pipeline']
+    if 'id' in meta: raise ValueError(f'pipeline.id is obsolete; rename the YAML file instead: {path}')
     if meta.get('version')!=1: raise ValueError('pipeline.version must be 1')
     provider=doc.get('provider'); models=doc.get('models')
     if not isinstance(provider,dict) or provider.get('type') not in {'self','openai-compatible'}: raise ValueError('provider.type must be self or openai-compatible')
@@ -23,13 +27,11 @@ def load_yaml(path:Path)->PipelinePlan:
     for role,row in models.items():
         if not isinstance(row,dict) or not isinstance(row.get('model'),str) or not row['model']: raise ValueError(f'pipeline.models.{role}.model must be non-empty')
         if not isinstance(row.get('max_tokens'),int) or row['max_tokens']<=0: raise ValueError(f'pipeline.models.{role}.max_tokens must be positive')
-    return PipelinePlan(pid,str(meta.get('description') or ''),path,doc)
+    return PipelinePlan(path.stem,str(meta.get('description') or ''),path,doc)
 def _paths():
     out={}
     for p in sorted(ROOT.glob('*.yaml')):
-        plan=load_yaml(p)
-        if plan.pipeline_id in out: raise ValueError(f'duplicate pipeline id {plan.pipeline_id!r}')
-        out[plan.pipeline_id]=p
+        plan=load_yaml(p); out[plan.pipeline_id]=p
     return out
 def names(): return tuple(_paths())
 def load(name:str):

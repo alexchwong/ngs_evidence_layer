@@ -27,6 +27,9 @@ python scripts/build_blacklist.py
 # Run the full test suite.
 python -m unittest discover -s tests -v 2>&1
 
+# Sync terraced-v6 developer defaults into root config and verify no drift.
+python workflows/terraced_v6/devel_sync.py --check
+
 # Build and verify a provisional skill ZIP.
 python scripts/build_skill_zip.py
 ```

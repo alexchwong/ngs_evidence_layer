@@ -11,7 +11,7 @@ from workflows.terraced_v6 import step
 
 class DiagnosticCardPolicyTests(unittest.TestCase):
     def test_shipped_who_and_icc_settings_have_included_and_excluded_publications(self):
-        path = Path(__file__).resolve().parents[1] / "settings.json.template"
+        path = Path(__file__).resolve().parents[3] / "config" / "settings.json.template"
         settings = json.loads(path.read_text(encoding="utf-8"))
         for authority in ("who5", "icc"):
             config = settings["diagnosis"][authority]

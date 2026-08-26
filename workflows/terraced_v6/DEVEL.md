@@ -18,11 +18,29 @@ V6 is intentionally smaller than v5.
 - `schema_engine.py` — maps `jsonschema` errors onto `ValidationIssue`.
 - `rules.py` — the named relational rules a stage asset may reference.
 - `stage_validation.py` — schema + rules, ordered by document position.
-- `settings.json.template` — retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
+- `settings.json.template` — canonical default retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
-- `pipelines/` — model bindings for self, LM Studio, and OpenRouter.
+- `pipelines/` — canonical shipped model/provider defaults for self, LM Studio, and OpenRouter. Pipeline identity is the YAML filename stem; `pipeline.id` is intentionally absent.
+- `devel_sync.py` — copies the canonical settings template and shipped pipeline YAMLs into root `config/` without touching `config/settings.json` or deleting user-added pipeline files.
 
 Clinical interpretation belongs to the owner call. Downstream code must not re-diagnose or repair owner clinical reasoning.
+
+## Sync public defaults
+
+After changing `settings.json.template` or a shipped file under `pipelines/`, update the root user-facing defaults:
+
+```bash
+python workflows/terraced_v6/devel_sync.py
+```
+
+Before PR/release preparation, verify there is no drift:
+
+```bash
+python workflows/terraced_v6/devel_sync.py --check
+```
+
+The sync owns only `config/settings.json.template` and filenames present in `workflows/terraced_v6/pipelines/`. It never writes the user-owned `config/settings.json` and never deletes extra files under `config/pipelines/`.
+
 
 ## Model-facing card rendering
 
