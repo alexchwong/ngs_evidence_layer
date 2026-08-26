@@ -116,11 +116,5 @@ class TerracedV2WorkflowTests(unittest.TestCase):
             }))
             self.assertEqual(runtime.validate_case_json(path), "case.json validated")
 
-    def test_release_manifest_includes_terraced_v2_runtime_and_prompts(self):
-        manifest = (ROOT / "release" / "skill.txt").read_text(encoding="utf-8").splitlines()
-        self.assertIn("workflows/terraced_v2/*", manifest)
-        self.assertIn("workflows/terraced_v2/prompts/*", manifest)
-
-
 if __name__ == "__main__":
     unittest.main()

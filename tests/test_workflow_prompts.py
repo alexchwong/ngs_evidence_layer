@@ -35,18 +35,18 @@ CURRENT_PROMPTS = {
 CURRENT_RULE_PROMPTS = {"diagnosis_context.md", "diagnosis_rule_view.md", "remainder_rule_view.md", "full_rule_view.md"}
 
 
-def test_root_skill_routes_default_and_legacy_through_registry():
+def test_root_skill_exposes_only_terraced_v6_product_facade():
     skill = ROOT_SKILL.read_text(encoding="utf-8")
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
     assert registry["default_workflow"] == "terraced-v6"
-    assert registry["aliases"]["diagnosis-first"] == "diagnosis-first-v1"
-    assert registry["aliases"]["terraced"] == "terraced-v6"
-    assert registry["aliases"]["legacy"] == "legacy-v1"
-    assert "workflows/registry.json" in skill
-    assert "--diagnosis-first" in skill
-    assert "--legacy" in skill
-    assert "--legacy-v1" in skill
-    assert "diagnosis-first-v1" in skill
+    assert "python nel.py setup" in skill
+    assert "python nel.py run" in skill
+    assert "python nel.py runs" in skill
+    assert "terraced-v6" in skill
+    assert "--legacy" not in skill
+    assert "--diagnosis-first" not in skill
+    assert "->project" in skill  # explicitly prohibited, not exposed as a supported path
+    assert "workflow-internal CLIs" in skill
     assert "python3 -m venv .env" not in skill
     assert ".env/bin/python -m pip install -r requirements.txt" not in skill
 
@@ -159,37 +159,48 @@ def test_legacy_skill_uses_same_state_driven_case_clis():
     assert "pip install -r requirements.txt" not in skill
 
 
-def test_release_manifest_contains_new_runtime_and_no_phase1_shims():
+def test_release_manifest_contains_root_product_and_only_terraced_v6():
     manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
     for required in (
+        "README.md",
+        "SKILL.md",
+        "NEWS.md",
+        "nel.py",
+        "config/settings.json",
+        "config/ngs-panel-scope.md",
+        "pipelines/*.yaml",
+        "docs/corpus.md",
+        "docs/validation.md",
         "workflows/registry.json",
         "workflows/common.py",
-        "workflows/legacy_v1/*",
-        "workflows/diagnosis_first_v1/*",
-        "workflows/categorical_v1/*",
+        "workflows/terraced_v6/*.py",
+        "workflows/terraced_v6/prompts/*.md",
+        "workflows/terraced_v6/schemas/*.json",
+        "workflows/terraced_v6/stages/*.yaml",
         "scripts/setup_workflow.py",
         "scripts/workflow_registry.py",
-        "scripts/workflow_runtime.py",
-        "scripts/core/retrieval.py",
-        "scripts/core/corpus.py",
-        "scripts/core/rendering.py",
-        "scripts/core/card_tags.py",
-        "scripts/core/citations.py",
-        "scripts/core/provenance.py",
-        "requirements.txt",
-        "workflows/diagnosis_first_v1/prompts/formatting/*",
-        "workflows/categorical_v1/prompts/*",
-        "workflows/categorical_v1/prompts/formatting/*",
-        "workflows/categorical_v1/prompts/rule_views/*",
+        "scripts/core/*.py",
         "validation/mark_validation_report.md",
     ):
         assert required in manifest
-    assert "0.2.2_prototype_skill.md" not in manifest
-    assert "scripts/prototype_workflow.py" not in manifest
-    assert "scripts/create_work_dir.py" not in manifest
-    assert "scripts/case_major_categories.py" not in manifest
-    assert "scripts/resolve_demo.py" not in manifest
-    assert "output/corpus/prompts/modify_blacklist.md" not in manifest
+    assert not any(
+        line.startswith("workflows/")
+        and line.split("/", 2)[1] not in {"terraced_v6", "__init__.py", "common.py", "registry.json"}
+        for line in manifest
+    )
+    for obsolete in (
+        "workflows/legacy_v1/*",
+        "workflows/diagnosis_first_v1/*",
+        "workflows/categorical_v1/*",
+        "workflows/terraced_v1/*",
+        "workflows/terraced_v2/*",
+        "workflows/terraced_v3/*",
+        "workflows/terraced_v4/*",
+        "workflows/terraced_v5/*",
+        "scripts/workflow_runtime.py",
+    ):
+        assert obsolete not in manifest
+
 
 
 def test_obsolete_phase1_files_are_removed():

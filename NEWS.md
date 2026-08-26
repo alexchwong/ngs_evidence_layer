@@ -1,5 +1,13 @@
 # NEWS
 
+## 0.2.5
+- Added root `nel.py` setup, run, status, configuration checks, and run inventory for the supported terraced-v6 product.
+- Moved user-editable settings and provider pipelines to root configuration while leaving terraced-v6 implementation files unchanged.
+- New runs now live under gitignored root `runs/<run-id>/` with frozen per-run configuration and corpus provenance.
+- Added artifact-derived incomplete-run grouping, including diagnosis, PTBG, evidence review, report synthesis, and completion states.
+- Simplified root README and SKILL documentation to the terraced-v6 product interface; legacy workflow guidance moved to developer documentation.
+- Release payloads now ship only terraced-v6 and smoke-test root setup in an isolated extracted archive.
+
 ## 0.2.4
 - Made `terraced-v6` the default reporting workflow, with native session-model execution and retained staged provider pipelines.
 - Added independent WHO5, ICC, and second-WHO5 diagnosis passes before downstream prognosis, treatment, MRD, and germline reasoning.

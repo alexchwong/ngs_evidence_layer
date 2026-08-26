@@ -1,7 +1,7 @@
 # Developer guide
 
-This file is for repository maintenance. End-user reporting is documented in `README.md`;
-paper ingestion is documented in `INGEST.md`.
+This file is for repository maintenance. End-user reporting is documented in `../README.md`;
+paper ingestion is documented in `docs/ingest.md`.
 
 ## Quick start
 
@@ -31,7 +31,7 @@ python -m unittest discover -s tests -v 2>&1
 python scripts/build_skill_zip.py
 ```
 
-Before release, update `NEWS.md`, synchronize the `README.md` current-corpus section,
+Before release, update `NEWS.md`, synchronize `docs/corpus.md`,
 set `release/VERSION`, review `release/skill.txt`, and confirm that no private ingestion
 files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 
@@ -49,7 +49,7 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 
 ## Reporting workflow architecture
 
-See [`WORKFLOW.md`](WORKFLOW.md) for the full workflow-separation contract, cloning
+See [`workflows.md`](workflows.md) for the full workflow-separation contract, cloning
 procedure, modification boundaries, validation, and promotion/removal steps.
 
 **Default workflow:** `terraced-v6` — Uses isolated WHO5/ICC/WHO5 diagnostic passes, combined downstream domain reasoning, and audited evidence resolution before final synthesis.
@@ -268,9 +268,9 @@ Add user-visible changes under the intended version heading in `NEWS.md`. Every 
 bullet point must contain no more than 20 words. Use one concise change per bullet and
 avoid implementation detail unless it affects users or operators.
 
-### README current-corpus listing
+### Corpus documentation
 
-The `README.md` `Current corpus` section must use this structure:
+`docs/corpus.md` must use this structure:
 
 1. Open with the current release version and total number of active publications.
 2. State that publications are grouped by `latest_accepted_in_version` from
@@ -298,8 +298,8 @@ Before merging a release to `master`:
 2. Inspect generated prompt diffs for unintended changes.
 3. Run the full unittest suite.
 4. Update `NEWS.md` with user-visible changes, keeping every new bullet to 20 words or fewer.
-5. Synchronize the `README.md` current-corpus summary and listing with `output/corpus/nel.index.json`.
-6. Check `README.md`, `INGEST.md`, and `DEVEL.md` still match current user/developer commands.
+5. Synchronize `docs/corpus.md` with `output/corpus/nel.index.json`.
+6. Check `README.md`, `docs/ingest.md`, and `docs/DEVEL.md` still match current user/developer commands.
 7. Set `release/VERSION` to the intended release version.
 8. Review `release/skill.txt` and ensure every file required by `SKILL.md` is included.
 9. Optionally build and verify the skill ZIP with `python scripts/build_skill_zip.py`.
@@ -321,10 +321,12 @@ After the release action completes:
 
 Keep documentation separated by audience:
 
-- `README.md` — end-user NGS reporting and current corpus contents;
-- `INGEST.md` — corpus-curation workflow;
-- `WORKFLOW.md` — reporting-workflow architecture, cloning, modification, and promotion;
-- `DEVEL.md` — developer and release maintenance;
+- `README.md` — end-user installation, configuration, run management, and reporting;
+- `docs/corpus.md` — current corpus contents;
+- `docs/ingest.md` — corpus-curation workflow;
+- `docs/workflows.md` — reporting-workflow architecture, cloning, modification, and legacy context;
+- `docs/DEVEL.md` — developer and release maintenance;
+- `docs/validation.md` — validation-suite reference;
 - `NEWS.md` — changelog.
 
 Do not move implementation-level retrieval or schema commentary back into `README.md`
