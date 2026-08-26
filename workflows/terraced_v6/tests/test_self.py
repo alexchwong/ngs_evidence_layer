@@ -1,8 +1,97 @@
 from pathlib import Path
+import json
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from workflows.terraced_v6 import self_runtime as sr
+from workflows.terraced_v6 import rendering
+from workflows.terraced_v6 import step
+
+
+class DiagnosticCardPolicyTests(unittest.TestCase):
+    def test_shipped_who_and_icc_settings_have_included_and_excluded_publications(self):
+        path = Path(__file__).resolve().parents[1] / "settings.json.template"
+        settings = json.loads(path.read_text(encoding="utf-8"))
+        for authority in ("who5", "icc"):
+            config = settings["diagnosis"][authority]
+            self.assertIsInstance(config["included_publication_keys"], list)
+            self.assertIsInstance(config["excluded_publication_keys"], list)
+            self.assertNotIn("publication_keys", config)
+
+    def test_excluded_publications_take_precedence_over_included_publications(self):
+        cards = [
+            {"card_id": "KEEP", "publication_key": "included"},
+            {"card_id": "OVERLAP", "publication_key": "both"},
+            {"card_id": "OTHER", "publication_key": "other"},
+        ]
+        settings = {
+            "diagnosis": {
+                "who5": {
+                    "included_publication_keys": ["included", "both"],
+                    "excluded_publication_keys": ["both"],
+                }
+            }
+        }
+        with patch.object(step, "load_settings", return_value=settings):
+            found = step._filter_diagnosis_authority(cards, "who5")
+        self.assertEqual([card["card_id"] for card in found], ["KEEP"])
+
+    def test_empty_included_publications_allows_all_except_excluded(self):
+        cards = [
+            {"card_id": "FIRST", "publication_key": "first"},
+            {"card_id": "SECOND", "publication_key": "second"},
+            {"card_id": "EXCLUDED", "publication_key": "excluded"},
+        ]
+        settings = {
+            "diagnosis": {
+                "who5": {
+                    "included_publication_keys": [],
+                    "excluded_publication_keys": ["excluded"],
+                }
+            }
+        }
+        with patch.object(step, "load_settings", return_value=settings):
+            found = step._filter_diagnosis_authority(cards, "who5")
+        self.assertEqual([card["card_id"] for card in found], ["FIRST", "SECOND"])
+
+    def test_diagnostic_pool_combines_retrieval_and_authority_policy(self):
+        cards = [
+            {"card_id": "KEEP", "category": "diagnosis", "genes": ["BCR"], "diseases": [], "publication_key": "who"},
+            {"card_id": "EXCLUDED", "category": "diagnosis", "genes": ["BCR"], "diseases": [], "publication_key": "excluded"},
+            {"card_id": "UNRETRIEVED", "category": "diagnosis", "genes": ["OTHER"], "diseases": [], "publication_key": "who"},
+        ]
+        settings = {
+            "diagnosis": {
+                "who5": {
+                    "included_publication_keys": ["who", "excluded"],
+                    "excluded_publication_keys": ["excluded"],
+                }
+            }
+        }
+        with patch.object(step, "load_settings", return_value=settings):
+            found = step._diagnostic_cards(cards, ["BCR"], [], "who5")
+        self.assertEqual([card["card_id"] for card in found], ["KEEP"])
+
+    def test_diagnostic_renderer_rejects_non_diagnosis_cards(self):
+        cards = [{"card_id": "P1", "category": "prognosis"}]
+        with self.assertRaisesRegex(ValueError, "non-diagnosis cards"):
+            rendering.render_diagnostic_prompt_cards(cards, {"P1": "111111111111"}, authority="who5")
+
+    def test_diagnostic_renderer_delegates_shared_compact_layout(self):
+        card = {
+            "card_id": "D1",
+            "category": "diagnosis",
+            "diseases": ["AML"],
+            "interpretation": "Diagnostic interpretation.",
+            "evidence_tier": "guideline criterion",
+            "paper_nickname": "WHO5",
+        }
+        text = rendering.render_diagnostic_prompt_cards(
+            [card], {"D1": "111111111111"}, authority="who5", mode="compact"
+        )
+        self.assertIn("## WHO5", text)
+        self.assertIn("[card:111111111111] Diagnostic interpretation.", text)
 
 
 class NativeSelfEvidenceTests(unittest.TestCase):

@@ -25,6 +25,10 @@ def test_settings_are_lean():
     assert not old & set(d['retries'])
     assert set(d['prompts'])=={'structure_case','diagnosis_who5','diagnosis_icc','diagnosis_other','prognosis','treatment','biomarker','germline','evidence_match','evidence_audit','report_write','report_preservation'}
     assert d['rendering']['cards']=='compact'
+    for authority in ('who5','icc'):
+        assert isinstance(d['diagnosis'][authority]['included_publication_keys'],list)
+        assert isinstance(d['diagnosis'][authority]['excluded_publication_keys'],list)
+        assert 'publication_keys' not in d['diagnosis'][authority]
 
 def test_removed_prompt_assets_absent():
     for name in ('statement_generation.md','statement_audit.md','summary_plan.md','summary_plan_audit.md','paraphrase.md','paraphrase_audit.md'):
@@ -390,8 +394,19 @@ def test_diagnosis_authority_filter_is_preserved(monkeypatch):
         {'card_id':'ICC','publication_key':'icc'},
     ]
     monkeypatch.setattr(step,'_diagnosis_authority_publications',lambda authority:{'who5'} if authority=='who5' else {'icc'})
+    monkeypatch.setattr(step,'_diagnosis_authority_excluded_publications',lambda authority:set())
     assert [c['card_id'] for c in step._filter_diagnosis_authority(cards,'who5')]==['WHO']
     assert [c['card_id'] for c in step._filter_diagnosis_authority(cards,'icc')]==['ICC']
+
+
+def test_diagnosis_authority_exclusion_takes_precedence(monkeypatch):
+    cards=[
+        {'card_id':'KEEP','publication_key':'keep'},
+        {'card_id':'DROP','publication_key':'overlap'},
+    ]
+    monkeypatch.setattr(step,'_diagnosis_authority_publications',lambda authority:{'keep','overlap'})
+    monkeypatch.setattr(step,'_diagnosis_authority_excluded_publications',lambda authority:{'overlap'})
+    assert [c['card_id'] for c in step._filter_diagnosis_authority(cards,'who5')]==['KEEP']
 
 
 def test_stage8_diagnosis_candidates_do_not_refilter_by_proposition_gene():

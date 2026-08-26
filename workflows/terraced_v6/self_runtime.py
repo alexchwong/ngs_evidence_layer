@@ -111,10 +111,22 @@ def corpus_state(work: Path):
     return all_cards, eligible, digest, manifest
 
 
-def _write_pool(work: Path, group: str, cards: list[dict], manifest: dict) -> tuple[Path, Path]:
+def _write_pool(
+    work: Path,
+    group: str,
+    cards: list[dict],
+    manifest: dict,
+    *,
+    diagnosis_authority: str | None = None,
+) -> tuple[Path, Path]:
     tag_by_id = card_identity.tag_by_id(manifest)
     md = output_path(work, group, "cards.md")
-    md.write_text(staged._render_cards(cards, tag_by_id), encoding="utf-8")
+    rendered = (
+        staged._render_diagnostic_cards(cards, tag_by_id, diagnosis_authority)
+        if diagnosis_authority
+        else staged._render_cards(cards, tag_by_id)
+    )
+    md.write_text(rendered, encoding="utf-8")
     js = output_path(work, group, "cards.json")
     write_json(js, {"card_ids": [c["card_id"] for c in cards], "runtime_tags": {c["card_id"]: tag_by_id[c["card_id"]] for c in cards}})
     return md, js
@@ -145,8 +157,8 @@ def prepare_who(work: Path, *, pass_number: int) -> dict:
         out = output_path(work, "diagnosis_who5_pass_2", "who5.yaml")
     else:
         raise ValueError("WHO pass_number must be 1 or 2")
-    cards = staged._filter_diagnosis_authority(staged._draw_diagnosis_cards(eligible, genes, history), "who5")
-    cards_md, _ = _write_pool(work, group, cards, manifest)
+    cards = staged._diagnostic_cards(eligible, genes, history, "who5")
+    cards_md, _ = _write_pool(work, group, cards, manifest, diagnosis_authority="who5")
     finite = output_path(work, group, "finite-membership.yaml")
     write_yaml(finite, staged._finite_membership_context(reg, cards, card_identity.tag_by_id(manifest)))
     context = output_path(work, group, "context.yaml")
@@ -191,11 +203,9 @@ def prepare_icc(work: Path) -> dict:
     for cmc in runtime.derive_cmcs(who1):
         if cmc not in history:
             history.append(cmc)
-    cards = staged._filter_diagnosis_authority(
-        staged._draw_diagnosis_cards(eligible, runtime.case_genes(case), history), "icc"
-    )
+    cards = staged._diagnostic_cards(eligible, runtime.case_genes(case), history, "icc")
     group = "self_icc_input"
-    cards_md, _ = _write_pool(work, group, cards, manifest)
+    cards_md, _ = _write_pool(work, group, cards, manifest, diagnosis_authority="icc")
     finite = output_path(work, group, "finite-membership.yaml")
     write_yaml(finite, staged._finite_membership_context(reg, cards, card_identity.tag_by_id(manifest)))
     context = output_path(work, group, "context.yaml")
@@ -325,8 +335,8 @@ def prepare_evidence_resolution(work: Path) -> dict:
         if cmc not in cmcs:
             cmcs.append(cmc)
     cards_by_domain = {
-        "diagnosis_who5": staged._filter_diagnosis_authority(staged._draw_diagnosis_cards(eligible, genes, cmcs), "who5"),
-        "diagnosis_icc": staged._filter_diagnosis_authority(staged._draw_diagnosis_cards(eligible, genes, cmcs), "icc"),
+        "diagnosis_who5": staged._diagnostic_cards(eligible, genes, cmcs, "who5"),
+        "diagnosis_icc": staged._diagnostic_cards(eligible, genes, cmcs, "icc"),
     }
     disease = diagnosis["who5"]["schema_disease"]
     for domain in ("prognosis", "treatment", "biomarker", "germline"):

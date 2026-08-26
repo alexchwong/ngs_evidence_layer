@@ -650,6 +650,9 @@ def _closed_gene_set(card):
 def _render_cards(cards,tag_by_id):
     return rendering.render_prompt_cards(cards,tag_by_id,mode=_card_render_mode())
 
+def _render_diagnostic_cards(cards,tag_by_id,authority):
+    return rendering.render_diagnostic_prompt_cards(cards,tag_by_id,authority=authority,mode=_card_render_mode())
+
 def _finite_membership_context(reg,cards,tag_by_id):
     out={}
     for card in cards:
@@ -667,12 +670,29 @@ def _draw_diagnosis_cards(eligible,genes,cmcs):
         if core_retrieval.match_genes(c,wanted) or core_retrieval._matches_case_major_category(c,cmcs): hits.append(c)
     return sorted(hits,key=lambda x:x.get('card_id') or '')
 
+def _diagnosis_publication_keys(authority,setting,*,required):
+    cfg=_setting('diagnosis',authority); values=cfg.get(setting)
+    if not isinstance(values,list) or any(not isinstance(value,str) or not value.strip() for value in values):
+        raise StepFailure(f'diagnosis.{authority}.{setting} must be a string list')
+    keys={value.strip() for value in values}
+    if required and not keys:
+        raise StepFailure(f'diagnosis.{authority}.{setting} must not be empty')
+    return keys
+
 def _diagnosis_authority_publications(authority):
-    return set((_setting('diagnosis',authority).get('publication_keys') or []))
+    return _diagnosis_publication_keys(authority,'included_publication_keys',required=False)
+
+def _diagnosis_authority_excluded_publications(authority):
+    return _diagnosis_publication_keys(authority,'excluded_publication_keys',required=False)
 
 def _filter_diagnosis_authority(cards,authority):
-    keys=_diagnosis_authority_publications(authority)
-    return [c for c in cards if c.get('publication_key') in keys] if keys else list(cards)
+    included=_diagnosis_authority_publications(authority)
+    excluded=_diagnosis_authority_excluded_publications(authority)
+    return [c for c in cards if (not included or c.get('publication_key') in included) and c.get('publication_key') not in excluded]
+
+def _diagnostic_cards(eligible,genes,cmcs,authority):
+    """Build one authority pool; exclusions take precedence over inclusions."""
+    return _filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,cmcs),authority)
 
 def _disease_match(card,diseases,category):
     for disease in diseases:
@@ -756,9 +776,9 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     allowed=_allowed_diseases(work); genes=runtime.case_genes(case); bootstrap=list(case.get('bootstrap_cmcs') or []); tag_by_id=card_identity.tag_by_id(manifest)
     max_passes=int(_setting('diagnosis','who5','max_cmc_passes')); prior=list(bootstrap); history=list(bootstrap); who=None; who_cards=[]; authoritative=1
     for idx in range(1,max_passes+1):
-        who_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'who5')
+        who_cards=_diagnostic_cards(eligible,genes,history,'who5')
         out=_artifact(work,f'diagnosis_who5_pass_{idx}','who5.yaml',new=True)
-        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_cards(who_cards,tag_by_id)
+        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_diagnostic_cards(who_cards,tag_by_id,'who5')
         model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
         _model_call(work,call_id=f'diagnosis-who5-pass-{idx:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
         who=yaml.safe_load(_read(out)); cmcs=runtime.derive_cmcs(who); authoritative=idx
@@ -770,8 +790,8 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     for cmc in final_cmcs:
         if cmc not in history: history.append(cmc)
 
-    icc_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
-    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_cards(icc_cards,tag_by_id)
+    icc_cards=_diagnostic_cards(eligible,genes,history,'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
+    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(icc_cards,tag_by_id,'icc')
     model_context.assert_canonical(iprompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=iprompt,output=icc_out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
     icc=yaml.safe_load(_read(icc_out))

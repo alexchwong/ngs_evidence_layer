@@ -96,6 +96,33 @@ def render_prompt_cards(cards: list[dict], tag_by_id: dict[str, str], *, mode: s
     return "\n".join(out).strip()
 
 
+def render_diagnostic_prompt_cards(
+    cards: list[dict],
+    tag_by_id: dict[str, str],
+    *,
+    authority: str,
+    mode: str = "compact",
+) -> str:
+    """Render one framework's already-filtered diagnostic card pool.
+
+    Publication inclusion/exclusion belongs to pool construction, not formatting.
+    Keeping this boundary diagnosis-specific makes it difficult for WHO5 or ICC
+    prompts to accidentally render an unfiltered retrieval result while preserving
+    the shared compact/verbose card layout.
+    """
+    if authority not in {"who5", "icc"}:
+        raise ValueError(f"unsupported diagnosis authority: {authority!r}")
+    non_diagnostic = [card.get("card_id") for card in cards if card.get("category") != "diagnosis"]
+    if non_diagnostic:
+        raise ValueError(
+            f"{authority} diagnostic card pool contains non-diagnosis cards: "
+            + ", ".join(str(card_id) for card_id in non_diagnostic)
+        )
+    if not cards:
+        return f"No candidate {authority.upper()} diagnosis cards."
+    return render_prompt_cards(cards, tag_by_id, mode=mode)
+
+
 def render_header(bundle):
     provenance = bundle.get("provenance", {})
     out = [

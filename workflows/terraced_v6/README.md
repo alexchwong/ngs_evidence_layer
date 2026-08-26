@@ -79,6 +79,8 @@ Owner models return one row per variant (`variant`, `bucket`, `reason`), filling
 
 All evidence cards shown to models use one shared renderer and 12-character runtime card tags. `rendering.cards` in `settings.json` may be `compact` (default) or `verbose`. Compact mode groups cards by source hint, category, then diseases and emits one card per line as `[card:<tag>] Interpretation (evidence_tier: ...)`; gene metadata and canonical corpus card IDs are not repeated model-side.
 
+WHO5 and ICC diagnostic pools are configured independently under `diagnosis.who5` and `diagnosis.icc`. Each has an `included_publication_keys` allowlist and an `excluded_publication_keys` denylist. An empty inclusion list includes all retrieved publications. Python then removes excluded publications, so exclusion takes precedence when a publication is present in both lists. The resulting pool is shared by diagnostic prompt rendering, finite-set context, and downstream evidence resolution.
+
 ## Reportability
 
 Edit `settings.json` (copied from `settings.json.template` when desired). Defaults suppress routine negative/uncertain prose while retaining it in owner proformas:

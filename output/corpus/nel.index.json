@@ -13,6 +13,15 @@
       "khoury-2022-leukemia-36-1703",
       "tefferi-2018-journal-of-clinical-oncology-36-1769",
       "weeks-2023-nejm-evidence-2-na"
+    ],
+    "0.2.5": [
+      "baliakas-2019-operational-germline-testing",
+      "bernard-2020-tp53-mds",
+      "kraft-godley-2020-germline-guide",
+      "malcovati-2017-ccus-foundation",
+      "passamonti-2017-mysec-pm-secondary",
+      "tefferi-2020-mipss-et-pv",
+      "urrutia-2025-tp53-myeloid"
     ]
   },
   "by_category": {
@@ -398,6 +407,7 @@
       "arber-2022-blood-140-1200-C0142",
       "arber-2022-blood-140-1200-C0143",
       "arber-2022-blood-140-1200-C0144",
+      "bernard-2020-tp53-mds-C0001",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0002",
       "d-hner-2022-blood-140-1345-C0003",
@@ -484,6 +494,20 @@
       "khoury-2022-leukemia-36-1703-C0207",
       "khoury-2022-leukemia-36-1703-C0210",
       "khoury-2022-leukemia-36-1703-C0212",
+      "malcovati-2017-ccus-foundation-C0002",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0007",
+      "malcovati-2017-ccus-foundation-C0008",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0010",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0012",
+      "urrutia-2025-tp53-myeloid-C0002",
+      "urrutia-2025-tp53-myeloid-C0003",
+      "urrutia-2025-tp53-myeloid-C0007",
       "weeks-2023-nejm-evidence-2-na-C0001",
       "weeks-2023-nejm-evidence-2-na-C0002",
       "weeks-2023-nejm-evidence-2-na-C0003",
@@ -515,6 +539,52 @@
       "arber-2022-blood-140-1200-C0225",
       "arber-2022-blood-140-1200-C0226",
       "arber-2022-blood-140-1200-C0227",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0007",
+      "baliakas-2019-operational-germline-testing-C0010",
+      "baliakas-2019-operational-germline-testing-C0014",
+      "baliakas-2019-operational-germline-testing-C0016",
+      "baliakas-2019-operational-germline-testing-C0021",
+      "baliakas-2019-operational-germline-testing-C0022",
+      "baliakas-2019-operational-germline-testing-C0023",
+      "baliakas-2019-operational-germline-testing-C0025",
+      "baliakas-2019-operational-germline-testing-C0027",
+      "baliakas-2019-operational-germline-testing-C0028",
+      "baliakas-2019-operational-germline-testing-C0029",
+      "baliakas-2019-operational-germline-testing-C0031",
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034",
+      "baliakas-2019-operational-germline-testing-C0036",
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0039",
+      "baliakas-2019-operational-germline-testing-C0040",
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043",
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
+      "baliakas-2019-operational-germline-testing-C0049",
+      "baliakas-2019-operational-germline-testing-C0050",
+      "baliakas-2019-operational-germline-testing-C0051",
+      "baliakas-2019-operational-germline-testing-C0053",
+      "baliakas-2019-operational-germline-testing-C0054",
+      "baliakas-2019-operational-germline-testing-C0057",
+      "baliakas-2019-operational-germline-testing-C0058",
+      "baliakas-2019-operational-germline-testing-C0059",
+      "baliakas-2019-operational-germline-testing-C0061",
+      "baliakas-2019-operational-germline-testing-C0064",
+      "baliakas-2019-operational-germline-testing-C0065",
+      "baliakas-2019-operational-germline-testing-C0067",
+      "baliakas-2019-operational-germline-testing-C0069",
+      "baliakas-2019-operational-germline-testing-C0070",
+      "baliakas-2019-operational-germline-testing-C0072",
+      "baliakas-2019-operational-germline-testing-C0073",
+      "baliakas-2019-operational-germline-testing-C0075",
+      "baliakas-2019-operational-germline-testing-C0078",
+      "baliakas-2019-operational-germline-testing-C0079",
+      "baliakas-2019-operational-germline-testing-C0080",
+      "baliakas-2019-operational-germline-testing-C0081",
       "bernard-2022-nejm-evidence-1-na-C0014",
       "d-hner-2022-blood-140-1345-C0042",
       "d-hner-2022-blood-140-1345-C0044",
@@ -542,7 +612,18 @@
       "khoury-2022-leukemia-36-1703-C0132",
       "khoury-2022-leukemia-36-1703-C0133",
       "khoury-2022-leukemia-36-1703-C0135",
-      "khoury-2022-leukemia-36-1703-C0185"
+      "khoury-2022-leukemia-36-1703-C0185",
+      "kraft-godley-2020-germline-guide-C0001",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0003",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0007",
+      "kraft-godley-2020-germline-guide-C0008",
+      "kraft-godley-2020-germline-guide-C0009",
+      "kraft-godley-2020-germline-guide-C0031",
+      "kraft-godley-2020-germline-guide-C0032",
+      "kraft-godley-2020-germline-guide-C0033"
     ],
     "prognosis": [
       "alaggio-2022-leukemia-who5-lymphoid-C0008",
@@ -578,6 +659,19 @@
       "barbui-2015-blood-cancer-journal-5-e369-C0008",
       "barbui-2015-blood-cancer-journal-5-e369-C0009",
       "barbui-2015-blood-cancer-journal-5-e369-C0010",
+      "bernard-2020-tp53-mds-C0002",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0006",
+      "bernard-2020-tp53-mds-C0011",
+      "bernard-2020-tp53-mds-C0012",
+      "bernard-2020-tp53-mds-C0013",
+      "bernard-2020-tp53-mds-C0014",
+      "bernard-2020-tp53-mds-C0015",
+      "bernard-2020-tp53-mds-C0016",
+      "bernard-2020-tp53-mds-C0018",
+      "bernard-2020-tp53-mds-C0019",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -638,12 +732,28 @@
       "khoury-2022-leukemia-36-1703-C0092",
       "khoury-2022-leukemia-36-1703-C0094",
       "khoury-2022-leukemia-36-1703-C0131",
+      "malcovati-2017-ccus-foundation-C0013",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0014",
+      "tefferi-2020-mipss-et-pv-C0018",
+      "tefferi-2020-mipss-et-pv-C0020",
+      "tefferi-2020-mipss-et-pv-C0021",
+      "tefferi-2020-mipss-et-pv-C0022",
+      "tefferi-2020-mipss-et-pv-C0023",
+      "urrutia-2025-tp53-myeloid-C0016",
+      "urrutia-2025-tp53-myeloid-C0022",
       "weeks-2023-nejm-evidence-2-na-C0006",
       "weeks-2023-nejm-evidence-2-na-C0007",
       "weeks-2023-nejm-evidence-2-na-C0008",
@@ -663,6 +773,11 @@
       "arber-2022-blood-140-1200-C0170",
       "arber-2022-blood-140-1200-C0172",
       "arber-2022-blood-140-1200-C0173",
+      "bernard-2020-tp53-mds-C0023",
+      "bernard-2020-tp53-mds-C0027",
+      "bernard-2020-tp53-mds-C0028",
+      "bernard-2020-tp53-mds-C0029",
+      "bernard-2020-tp53-mds-C0030",
       "bernard-2022-nejm-evidence-1-na-C0015",
       "bernard-2022-nejm-evidence-1-na-C0016",
       "bernard-2022-nejm-evidence-1-na-C0017",
@@ -985,7 +1100,15 @@
       "khoury-2022-leukemia-36-1703-C0125",
       "khoury-2022-leukemia-36-1703-C0131",
       "khoury-2022-leukemia-36-1703-C0187",
-      "khoury-2022-leukemia-36-1703-C0212"
+      "khoury-2022-leukemia-36-1703-C0212",
+      "malcovati-2017-ccus-foundation-C0007",
+      "malcovati-2017-ccus-foundation-C0008",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0010",
+      "urrutia-2025-tp53-myeloid-C0002",
+      "urrutia-2025-tp53-myeloid-C0003",
+      "urrutia-2025-tp53-myeloid-C0016",
+      "urrutia-2025-tp53-myeloid-C0022"
     ],
     "AML with maturation": [
       "khoury-2022-leukemia-36-1703-C0116"
@@ -1216,6 +1339,8 @@
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
       "khoury-2022-leukemia-36-1703-C0125",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
       "weeks-2023-nejm-evidence-2-na-C0002",
       "weeks-2023-nejm-evidence-2-na-C0003",
       "weeks-2023-nejm-evidence-2-na-C0004",
@@ -1311,7 +1436,14 @@
       "barbui-2015-blood-cancer-journal-5-e369-C0008",
       "barbui-2015-blood-cancer-journal-5-e369-C0009",
       "barbui-2015-blood-cancer-journal-5-e369-C0010",
-      "khoury-2022-leukemia-36-1703-C0011"
+      "khoury-2022-leukemia-36-1703-C0011",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0014",
+      "tefferi-2020-mipss-et-pv-C0018",
+      "tefferi-2020-mipss-et-pv-C0020",
+      "tefferi-2020-mipss-et-pv-C0023"
     ],
     "ETP-ALL": [
       "arber-2022-blood-140-1200-C0139",
@@ -1413,6 +1545,25 @@
       "arber-2022-blood-140-1200-C0149",
       "arber-2022-blood-140-1200-C0150",
       "arber-2022-blood-140-1200-C0172",
+      "bernard-2020-tp53-mds-C0001",
+      "bernard-2020-tp53-mds-C0002",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0006",
+      "bernard-2020-tp53-mds-C0011",
+      "bernard-2020-tp53-mds-C0012",
+      "bernard-2020-tp53-mds-C0013",
+      "bernard-2020-tp53-mds-C0014",
+      "bernard-2020-tp53-mds-C0015",
+      "bernard-2020-tp53-mds-C0016",
+      "bernard-2020-tp53-mds-C0018",
+      "bernard-2020-tp53-mds-C0019",
+      "bernard-2020-tp53-mds-C0023",
+      "bernard-2020-tp53-mds-C0027",
+      "bernard-2020-tp53-mds-C0028",
+      "bernard-2020-tp53-mds-C0029",
+      "bernard-2020-tp53-mds-C0030",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -1473,7 +1624,16 @@
       "khoury-2022-leukemia-36-1703-C0198",
       "khoury-2022-leukemia-36-1703-C0200",
       "khoury-2022-leukemia-36-1703-C0201",
-      "khoury-2022-leukemia-36-1703-C0202"
+      "khoury-2022-leukemia-36-1703-C0202",
+      "malcovati-2017-ccus-foundation-C0007",
+      "malcovati-2017-ccus-foundation-C0008",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0010",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0012",
+      "urrutia-2025-tp53-myeloid-C0002",
+      "urrutia-2025-tp53-myeloid-C0003",
+      "urrutia-2025-tp53-myeloid-C0007"
     ],
     "MDS/AML": [
       "arber-2022-blood-140-1200-C0070",
@@ -1523,7 +1683,11 @@
       "khoury-2022-leukemia-36-1703-C0091",
       "khoury-2022-leukemia-36-1703-C0096",
       "khoury-2022-leukemia-36-1703-C0125",
-      "khoury-2022-leukemia-36-1703-C0202"
+      "khoury-2022-leukemia-36-1703-C0202",
+      "malcovati-2017-ccus-foundation-C0007",
+      "malcovati-2017-ccus-foundation-C0008",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0010"
     ],
     "MDS/MPN-SF3B1-T": [
       "arber-2022-blood-140-1200-C0049",
@@ -1637,12 +1801,29 @@
       "khoury-2022-leukemia-36-1703-C0184",
       "khoury-2022-leukemia-36-1703-C0194",
       "khoury-2022-leukemia-36-1703-C0202",
+      "malcovati-2017-ccus-foundation-C0007",
+      "malcovati-2017-ccus-foundation-C0008",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0010",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0014",
+      "tefferi-2020-mipss-et-pv-C0018",
+      "tefferi-2020-mipss-et-pv-C0020",
+      "tefferi-2020-mipss-et-pv-C0021",
+      "tefferi-2020-mipss-et-pv-C0022",
+      "tefferi-2020-mipss-et-pv-C0023"
     ],
     "MPN blast phase": [
       "d-hner-2022-blood-140-1345-C0110"
@@ -1669,12 +1850,15 @@
       "guglielmelli-2017-mipss70-pmf-C0007",
       "khoury-2022-leukemia-36-1703-C0011",
       "khoury-2022-leukemia-36-1703-C0012",
+      "malcovati-2017-ccus-foundation-C0010",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006",
+      "tefferi-2020-mipss-et-pv-C0021",
+      "tefferi-2020-mipss-et-pv-C0022"
     ],
     "PV": [
       "arber-2022-blood-140-1200-C0004",
@@ -1683,7 +1867,10 @@
       "arber-2022-blood-140-1200-C0145",
       "arber-2022-blood-140-1200-C0178",
       "khoury-2022-leukemia-36-1703-C0009",
-      "khoury-2022-leukemia-36-1703-C0011"
+      "khoury-2022-leukemia-36-1703-C0011",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0018"
     ],
     "SBLPN": [
       "alaggio-2022-leukemia-who5-lymphoid-C0021",
@@ -2200,6 +2387,13 @@
     "monoclonal gammopathy": [
       "alaggio-2022-leukemia-who5-lymphoid-C0054"
     ],
+    "myeloid neoplasm, unspecified": [
+      "malcovati-2017-ccus-foundation-C0002",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
+      "malcovati-2017-ccus-foundation-C0006"
+    ],
     "myeloid/lymphoid neoplasm with eosinophilia and TK fusion": [
       "arber-2022-blood-140-1200-C0023",
       "arber-2022-blood-140-1200-C0024",
@@ -2262,7 +2456,9 @@
     ],
     "post-PV/post-ET MF": [
       "arber-2022-blood-140-1200-C0007",
-      "arber-2022-blood-140-1200-C0010"
+      "arber-2022-blood-140-1200-C0010",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003"
     ],
     "precursor B-cell neoplasm": [
       "alaggio-2022-leukemia-who5-lymphoid-C0001",
@@ -2538,6 +2734,11 @@
       "arber-2022-blood-140-1200-C0203",
       "arber-2022-blood-140-1200-C0205",
       "arber-2022-blood-140-1200-C0206",
+      "baliakas-2019-operational-germline-testing-C0072",
+      "baliakas-2019-operational-germline-testing-C0073",
+      "baliakas-2019-operational-germline-testing-C0075",
+      "baliakas-2019-operational-germline-testing-C0079",
+      "baliakas-2019-operational-germline-testing-C0080",
       "cloos-2026-blood-147-1147-C0001",
       "cloos-2026-blood-147-1147-C0002",
       "cloos-2026-blood-147-1147-C0003",
@@ -2814,6 +3015,11 @@
       "khoury-2022-leukemia-36-1703-C0212"
     ],
     "multivariable-adjusted": [
+      "bernard-2020-tp53-mds-C0002",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0015",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0004",
       "bernard-2022-nejm-evidence-1-na-C0005",
@@ -2830,9 +3036,16 @@
       "guglielmelli-2017-mipss70-pmf-C0001",
       "guglielmelli-2017-mipss70-pmf-C0002",
       "guglielmelli-2017-mipss70-pmf-C0003",
+      "malcovati-2017-ccus-foundation-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0014",
       "weeks-2023-nejm-evidence-2-na-C0006",
       "weeks-2023-nejm-evidence-2-na-C0008",
       "weeks-2023-nejm-evidence-2-na-C0009"
@@ -2996,8 +3209,55 @@
       "arber-2022-blood-140-1200-C0225",
       "arber-2022-blood-140-1200-C0226",
       "arber-2022-blood-140-1200-C0227",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0007",
+      "baliakas-2019-operational-germline-testing-C0010",
+      "baliakas-2019-operational-germline-testing-C0014",
+      "baliakas-2019-operational-germline-testing-C0016",
+      "baliakas-2019-operational-germline-testing-C0021",
+      "baliakas-2019-operational-germline-testing-C0022",
+      "baliakas-2019-operational-germline-testing-C0023",
+      "baliakas-2019-operational-germline-testing-C0025",
+      "baliakas-2019-operational-germline-testing-C0027",
+      "baliakas-2019-operational-germline-testing-C0028",
+      "baliakas-2019-operational-germline-testing-C0029",
+      "baliakas-2019-operational-germline-testing-C0031",
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034",
+      "baliakas-2019-operational-germline-testing-C0036",
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0039",
+      "baliakas-2019-operational-germline-testing-C0040",
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043",
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
+      "baliakas-2019-operational-germline-testing-C0049",
+      "baliakas-2019-operational-germline-testing-C0050",
+      "baliakas-2019-operational-germline-testing-C0051",
+      "baliakas-2019-operational-germline-testing-C0053",
+      "baliakas-2019-operational-germline-testing-C0054",
+      "baliakas-2019-operational-germline-testing-C0057",
+      "baliakas-2019-operational-germline-testing-C0058",
+      "baliakas-2019-operational-germline-testing-C0059",
+      "baliakas-2019-operational-germline-testing-C0061",
+      "baliakas-2019-operational-germline-testing-C0064",
+      "baliakas-2019-operational-germline-testing-C0065",
+      "baliakas-2019-operational-germline-testing-C0067",
+      "baliakas-2019-operational-germline-testing-C0069",
+      "baliakas-2019-operational-germline-testing-C0070",
+      "baliakas-2019-operational-germline-testing-C0078",
+      "baliakas-2019-operational-germline-testing-C0081",
       "barbui-2015-blood-cancer-journal-5-e369-C0001",
       "barbui-2015-blood-cancer-journal-5-e369-C0002",
+      "bernard-2020-tp53-mds-C0018",
+      "bernard-2020-tp53-mds-C0019",
+      "bernard-2020-tp53-mds-C0027",
+      "bernard-2020-tp53-mds-C0028",
+      "bernard-2020-tp53-mds-C0029",
+      "bernard-2020-tp53-mds-C0030",
       "bernard-2022-nejm-evidence-1-na-C0019",
       "d-hner-2022-blood-140-1345-C0075",
       "d-hner-2022-blood-140-1345-C0076",
@@ -3042,9 +3302,27 @@
       "khoury-2022-leukemia-36-1703-C0181",
       "khoury-2022-leukemia-36-1703-C0183",
       "khoury-2022-leukemia-36-1703-C0187",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0003",
+      "kraft-godley-2020-germline-guide-C0005",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0031",
+      "kraft-godley-2020-germline-guide-C0032",
+      "kraft-godley-2020-germline-guide-C0033",
+      "malcovati-2017-ccus-foundation-C0012",
+      "passamonti-2017-mysec-pm-secondary-C0002",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
+      "tefferi-2020-mipss-et-pv-C0020",
+      "tefferi-2020-mipss-et-pv-C0021",
+      "tefferi-2020-mipss-et-pv-C0022",
+      "tefferi-2020-mipss-et-pv-C0023",
+      "urrutia-2025-tp53-myeloid-C0002",
+      "urrutia-2025-tp53-myeloid-C0003",
+      "urrutia-2025-tp53-myeloid-C0007",
+      "urrutia-2025-tp53-myeloid-C0016",
+      "urrutia-2025-tp53-myeloid-C0022",
       "weeks-2023-nejm-evidence-2-na-C0001",
       "weeks-2023-nejm-evidence-2-na-C0002",
       "weeks-2023-nejm-evidence-2-na-C0003",
@@ -3061,6 +3339,14 @@
       "barbui-2015-blood-cancer-journal-5-e369-C0008",
       "barbui-2015-blood-cancer-journal-5-e369-C0009",
       "barbui-2015-blood-cancer-journal-5-e369-C0010",
+      "bernard-2020-tp53-mds-C0001",
+      "bernard-2020-tp53-mds-C0006",
+      "bernard-2020-tp53-mds-C0011",
+      "bernard-2020-tp53-mds-C0012",
+      "bernard-2020-tp53-mds-C0013",
+      "bernard-2020-tp53-mds-C0014",
+      "bernard-2020-tp53-mds-C0016",
+      "bernard-2020-tp53-mds-C0023",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
       "bernard-2022-nejm-evidence-1-na-C0010",
@@ -3074,6 +3360,22 @@
       "guglielmelli-2017-mipss70-pmf-C0005",
       "guglielmelli-2017-mipss70-pmf-C0006",
       "guglielmelli-2017-mipss70-pmf-C0007",
+      "kraft-godley-2020-germline-guide-C0001",
+      "kraft-godley-2020-germline-guide-C0007",
+      "kraft-godley-2020-germline-guide-C0008",
+      "kraft-godley-2020-germline-guide-C0009",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0007",
+      "malcovati-2017-ccus-foundation-C0008",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0010",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0018",
       "weeks-2023-nejm-evidence-2-na-C0010",
       "weeks-2023-nejm-evidence-2-na-C0017"
     ]
@@ -3133,6 +3435,8 @@
       "khoury-2022-leukemia-36-1703-C0170"
     ],
     "ACD": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "AFDN": [
@@ -3156,6 +3460,10 @@
     "ANKRD26": [
       "arber-2022-blood-140-1200-C0084",
       "arber-2022-blood-140-1200-C0217",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0014",
+      "baliakas-2019-operational-germline-testing-C0080",
+      "baliakas-2019-operational-germline-testing-C0081",
       "cloos-2026-blood-147-1147-C0074",
       "d-hner-2022-blood-140-1345-C0047",
       "d-hner-2022-blood-140-1345-C0099",
@@ -3191,9 +3499,16 @@
       "guglielmelli-2017-mipss70-pmf-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0096",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "tefferi-2020-mipss-et-pv-C0022"
     ],
     "ATM": [
       "alaggio-2022-leukemia-who5-lymphoid-C0073",
@@ -3236,7 +3551,9 @@
       "d-hner-2022-blood-140-1345-C0025",
       "d-hner-2022-blood-140-1345-C0097",
       "d-hner-2022-blood-140-1345-C0114",
-      "khoury-2022-leukemia-36-1703-C0096"
+      "khoury-2022-leukemia-36-1703-C0096",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011"
     ],
     "BCORL1": [
       "bernard-2022-nejm-evidence-1-na-C0001",
@@ -3299,6 +3616,9 @@
     ],
     "BLM": [
       "arber-2022-blood-140-1200-C0226",
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0057",
+      "baliakas-2019-operational-germline-testing-C0058",
       "d-hner-2022-blood-140-1345-C0056",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
@@ -3308,10 +3628,19 @@
       "khoury-2022-leukemia-36-1703-C0183"
     ],
     "BRCA1": [
-      "d-hner-2022-blood-140-1345-C0060"
+      "d-hner-2022-blood-140-1345-C0060",
+      "kraft-godley-2020-germline-guide-C0003",
+      "kraft-godley-2020-germline-guide-C0008",
+      "kraft-godley-2020-germline-guide-C0031"
     ],
     "BRCA2": [
-      "d-hner-2022-blood-140-1345-C0060"
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034",
+      "baliakas-2019-operational-germline-testing-C0073",
+      "d-hner-2022-blood-140-1345-C0060",
+      "kraft-godley-2020-germline-guide-C0003",
+      "kraft-godley-2020-germline-guide-C0008",
+      "kraft-godley-2020-germline-guide-C0031"
     ],
     "CALR": [
       "arber-2022-blood-140-1200-C0008",
@@ -3334,8 +3663,11 @@
       "guglielmelli-2017-mipss70-pmf-C0006",
       "guglielmelli-2017-mipss70-pmf-C0007",
       "khoury-2022-leukemia-36-1703-C0059",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0002",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0006",
+      "tefferi-2020-mipss-et-pv-C0021"
     ],
     "CBFA2T3": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -3382,6 +3714,9 @@
       "arber-2022-blood-140-1200-C0080",
       "arber-2022-blood-140-1200-C0209",
       "arber-2022-blood-140-1200-C0225",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0049",
+      "baliakas-2019-operational-germline-testing-C0050",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -3391,7 +3726,10 @@
       "khoury-2022-leukemia-36-1703-C0029",
       "khoury-2022-leukemia-36-1703-C0133",
       "khoury-2022-leukemia-36-1703-C0184",
-      "khoury-2022-leukemia-36-1703-C0185"
+      "khoury-2022-leukemia-36-1703-C0185",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011"
     ],
     "CCDC88C": [
       "arber-2022-blood-140-1200-C0080"
@@ -3428,6 +3766,9 @@
       "arber-2022-blood-140-1200-C0098",
       "arber-2022-blood-140-1200-C0151",
       "arber-2022-blood-140-1200-C0213",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0003",
+      "baliakas-2019-operational-germline-testing-C0075",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -3467,10 +3808,18 @@
     "CSF3R": [
       "arber-2022-blood-140-1200-C0015",
       "arber-2022-blood-140-1200-C0048",
+      "baliakas-2019-operational-germline-testing-C0036",
       "d-hner-2022-blood-140-1345-C0099"
     ],
     "CTC1": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
+    ],
+    "CUX1": [
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011"
     ],
     "CXCR4": [
       "alaggio-2022-leukemia-who5-lymphoid-C0026",
@@ -3478,6 +3827,10 @@
     ],
     "DDX41": [
       "arber-2022-blood-140-1200-C0214",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0004",
+      "baliakas-2019-operational-germline-testing-C0007",
+      "baliakas-2019-operational-germline-testing-C0078",
       "bernard-2022-nejm-evidence-1-na-C0008",
       "bernard-2022-nejm-evidence-1-na-C0009",
       "bernard-2022-nejm-evidence-1-na-C0014",
@@ -3491,7 +3844,10 @@
       "d-hner-2024-blood-144-2169-C0017",
       "d-hner-2024-blood-144-2169-C0021",
       "khoury-2022-leukemia-36-1703-C0051",
-      "khoury-2022-leukemia-36-1703-C0135"
+      "khoury-2022-leukemia-36-1703-C0135",
+      "kraft-godley-2020-germline-guide-C0001",
+      "kraft-godley-2020-germline-guide-C0002",
+      "kraft-godley-2020-germline-guide-C0005"
     ],
     "DEK": [
       "arber-2022-blood-140-1200-C0091",
@@ -3502,6 +3858,8 @@
       "khoury-2022-leukemia-36-1703-C0078"
     ],
     "DKC1": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "DNAJC21": [
@@ -3517,6 +3875,11 @@
       "d-hner-2022-blood-140-1345-C0029",
       "d-hner-2022-blood-140-1345-C0037",
       "d-hner-2022-blood-140-1345-C0099",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
       "weeks-2023-nejm-evidence-2-na-C0008",
       "weeks-2023-nejm-evidence-2-na-C0009",
       "weeks-2023-nejm-evidence-2-na-C0010"
@@ -3532,6 +3895,7 @@
       "d-hner-2022-blood-140-1345-C0050"
     ],
     "ELANE": [
+      "baliakas-2019-operational-germline-testing-C0036",
       "d-hner-2022-blood-140-1345-C0049"
     ],
     "ELL": [
@@ -3542,11 +3906,19 @@
     "EP300": [
       "arber-2022-blood-140-1200-C0158"
     ],
+    "EPCAM": [
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0051",
+      "baliakas-2019-operational-germline-testing-C0053",
+      "baliakas-2019-operational-germline-testing-C0054"
+    ],
     "EPOR": [
       "arber-2022-blood-140-1200-C0131"
     ],
     "ERCC6L2": [
-      "arber-2022-blood-140-1200-C0227"
+      "arber-2022-blood-140-1200-C0227",
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0070"
     ],
     "ERG": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -3571,6 +3943,10 @@
       "arber-2022-blood-140-1200-C0170",
       "arber-2022-blood-140-1200-C0186",
       "arber-2022-blood-140-1200-C0218",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0016",
+      "baliakas-2019-operational-germline-testing-C0075",
+      "baliakas-2019-operational-germline-testing-C0081",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -3609,9 +3985,49 @@
       "guglielmelli-2017-mipss70-pmf-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0096",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "tefferi-2020-mipss-et-pv-C0022"
+    ],
+    "FANCA": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCB": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCC": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCD2": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCE": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCF": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCG": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCI": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
+    "FANCM": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
     ],
     "FGFR1": [
       "arber-2022-blood-140-1200-C0018",
@@ -3717,13 +4133,24 @@
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0114"
     ],
+    "G6PC3": [
+      "baliakas-2019-operational-germline-testing-C0036"
+    ],
     "GATA1": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043",
       "khoury-2022-leukemia-36-1703-C0145"
     ],
     "GATA2": [
       "arber-2022-blood-140-1200-C0093",
       "arber-2022-blood-140-1200-C0212",
       "arber-2022-blood-140-1200-C0219",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0021",
+      "baliakas-2019-operational-germline-testing-C0022",
+      "baliakas-2019-operational-germline-testing-C0075",
+      "baliakas-2019-operational-germline-testing-C0079",
+      "baliakas-2019-operational-germline-testing-C0080",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -3735,7 +4162,11 @@
       "d-hner-2022-blood-140-1345-C0099",
       "d-hner-2022-blood-140-1345-C0114",
       "khoury-2022-leukemia-36-1703-C0051",
-      "khoury-2022-leukemia-36-1703-C0135"
+      "khoury-2022-leukemia-36-1703-C0135",
+      "kraft-godley-2020-germline-guide-C0003"
+    ],
+    "GFI1": [
+      "baliakas-2019-operational-germline-testing-C0036"
     ],
     "GLIS2": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -3750,6 +4181,7 @@
       "bernard-2022-nejm-evidence-1-na-C0022"
     ],
     "HAX1": [
+      "baliakas-2019-operational-germline-testing-C0036",
       "d-hner-2022-blood-140-1345-C0049"
     ],
     "HLF": [
@@ -3786,9 +4218,12 @@
       "guglielmelli-2017-mipss70-pmf-C0006",
       "guglielmelli-2017-mipss70-pmf-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "tefferi-2020-mipss-et-pv-C0022",
       "weeks-2023-nejm-evidence-2-na-C0017"
     ],
     "IDH2": [
@@ -3813,9 +4248,13 @@
       "guglielmelli-2017-mipss70-pmf-C0006",
       "guglielmelli-2017-mipss70-pmf-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "tefferi-2020-mipss-et-pv-C0022",
       "weeks-2023-nejm-evidence-2-na-C0006"
     ],
     "IGH": [
@@ -3853,6 +4292,9 @@
     ],
     "IRF4": [
       "alaggio-2022-leukemia-who5-lymphoid-C0032"
+    ],
+    "JAGN1": [
+      "baliakas-2019-operational-germline-testing-C0036"
     ],
     "JAK": [
       "arber-2022-blood-140-1200-C0122",
@@ -3896,6 +4338,12 @@
       "khoury-2022-leukemia-36-1703-C0146",
       "khoury-2022-leukemia-36-1703-C0165",
       "khoury-2022-leukemia-36-1703-C0169",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0010",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
+      "tefferi-2020-mipss-et-pv-C0018",
+      "tefferi-2020-mipss-et-pv-C0023",
       "weeks-2023-nejm-evidence-2-na-C0006"
     ],
     "JAK3": [
@@ -3968,6 +4416,9 @@
       "arber-2022-blood-140-1200-C0080",
       "arber-2022-blood-140-1200-C0210",
       "arber-2022-blood-140-1200-C0211",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0049",
+      "baliakas-2019-operational-germline-testing-C0050",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -3985,6 +4436,11 @@
       "khoury-2022-leukemia-36-1703-C0184",
       "khoury-2022-leukemia-36-1703-C0185"
     ],
+    "LIG4": [
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0059",
+      "baliakas-2019-operational-germline-testing-C0061"
+    ],
     "LYN": [
       "khoury-2022-leukemia-36-1703-C0146"
     ],
@@ -4000,6 +4456,9 @@
     "MECOM": [
       "arber-2022-blood-140-1200-C0093",
       "arber-2022-blood-140-1200-C0094",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0067",
+      "baliakas-2019-operational-germline-testing-C0069",
       "cloos-2026-blood-147-1147-C0002",
       "d-hner-2022-blood-140-1345-C0001",
       "d-hner-2022-blood-140-1345-C0004",
@@ -4021,7 +4480,12 @@
       "d-hner-2022-blood-140-1345-C0114"
     ],
     "MLH1": [
-      "d-hner-2022-blood-140-1345-C0061"
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0051",
+      "baliakas-2019-operational-germline-testing-C0053",
+      "baliakas-2019-operational-germline-testing-C0054",
+      "d-hner-2022-blood-140-1345-C0061",
+      "kraft-godley-2020-germline-guide-C0033"
     ],
     "MLLT1": [
       "arber-2022-blood-140-1200-C0092",
@@ -4066,7 +4530,10 @@
       "arber-2022-blood-140-1200-C0181",
       "arber-2022-blood-140-1200-C0182",
       "d-hner-2022-blood-140-1345-C0058",
-      "khoury-2022-leukemia-36-1703-C0059"
+      "khoury-2022-leukemia-36-1703-C0059",
+      "passamonti-2017-mysec-pm-secondary-C0002",
+      "passamonti-2017-mysec-pm-secondary-C0003",
+      "tefferi-2020-mipss-et-pv-C0020"
     ],
     "MRTFA": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -4074,10 +4541,20 @@
       "khoury-2022-leukemia-36-1703-C0078"
     ],
     "MSH2": [
-      "d-hner-2022-blood-140-1345-C0061"
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0051",
+      "baliakas-2019-operational-germline-testing-C0053",
+      "baliakas-2019-operational-germline-testing-C0054",
+      "d-hner-2022-blood-140-1345-C0061",
+      "kraft-godley-2020-germline-guide-C0033"
     ],
     "MSH6": [
-      "d-hner-2022-blood-140-1345-C0061"
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0051",
+      "baliakas-2019-operational-germline-testing-C0053",
+      "baliakas-2019-operational-germline-testing-C0054",
+      "d-hner-2022-blood-140-1345-C0061",
+      "kraft-godley-2020-germline-guide-C0033"
     ],
     "MTCP1": [
       "alaggio-2022-leukemia-who5-lymphoid-C0060"
@@ -4146,6 +4623,9 @@
       "arber-2022-blood-140-1200-C0080",
       "arber-2022-blood-140-1200-C0208",
       "arber-2022-blood-140-1200-C0223",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0049",
+      "baliakas-2019-operational-germline-testing-C0050",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -4158,9 +4638,13 @@
       "khoury-2022-leukemia-36-1703-C0185"
     ],
     "NHP2": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "NOP10": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "NPM1": [
@@ -4263,7 +4747,8 @@
       "elena-2016-blood-128-1408-C0005",
       "khoury-2022-leukemia-36-1703-C0183",
       "khoury-2022-leukemia-36-1703-C0184",
-      "khoury-2022-leukemia-36-1703-C0185"
+      "khoury-2022-leukemia-36-1703-C0185",
+      "malcovati-2017-ccus-foundation-C0006"
     ],
     "NSD1": [
       "d-hner-2022-blood-140-1345-C0005",
@@ -4293,7 +4778,13 @@
       "arber-2022-blood-140-1200-C0201",
       "arber-2022-blood-140-1200-C0202"
     ],
+    "PALB2": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
+    ],
     "PARN": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "PARP1": [
@@ -4370,7 +4861,12 @@
       "khoury-2022-leukemia-36-1703-C0078"
     ],
     "PMS2": [
-      "d-hner-2022-blood-140-1345-C0061"
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0051",
+      "baliakas-2019-operational-germline-testing-C0053",
+      "baliakas-2019-operational-germline-testing-C0054",
+      "d-hner-2022-blood-140-1345-C0061",
+      "kraft-godley-2020-germline-guide-C0033"
     ],
     "PPM1D": [
       "bernard-2022-nejm-evidence-1-na-C0001",
@@ -4396,6 +4892,9 @@
       "arber-2022-blood-140-1200-C0210",
       "arber-2022-blood-140-1200-C0211",
       "arber-2022-blood-140-1200-C0224",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0049",
+      "baliakas-2019-operational-germline-testing-C0050",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -4408,6 +4907,10 @@
     ],
     "RAD21": [
       "d-hner-2022-blood-140-1345-C0099"
+    ],
+    "RAD51C": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
     ],
     "RANBP2": [
       "khoury-2022-leukemia-36-1703-C0146"
@@ -4460,15 +4963,65 @@
     "RPA1": [
       "d-hner-2022-blood-140-1345-C0051"
     ],
+    "RPL11": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPL15": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPL26": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPL35A": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPL5": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
     "RPN1": [
       "d-hner-2022-blood-140-1345-C0005",
       "d-hner-2022-blood-140-1345-C0114"
+    ],
+    "RPS10": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPS17": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPS19": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPS24": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPS26": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPS29": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
+    ],
+    "RPS7": [
+      "baliakas-2019-operational-germline-testing-C0042",
+      "baliakas-2019-operational-germline-testing-C0043"
     ],
     "RRAS": [
       "arber-2022-blood-140-1200-C0079",
       "arber-2022-blood-140-1200-C0080"
     ],
     "RTEL1": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "RUNX1": [
@@ -4483,6 +5036,11 @@
       "arber-2022-blood-140-1200-C0125",
       "arber-2022-blood-140-1200-C0153",
       "arber-2022-blood-140-1200-C0216",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0010",
+      "baliakas-2019-operational-germline-testing-C0072",
+      "baliakas-2019-operational-germline-testing-C0075",
+      "baliakas-2019-operational-germline-testing-C0081",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -4532,6 +5090,11 @@
       "khoury-2022-leukemia-36-1703-C0095",
       "khoury-2022-leukemia-36-1703-C0125",
       "khoury-2022-leukemia-36-1703-C0135",
+      "kraft-godley-2020-germline-guide-C0006",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
       "weeks-2023-nejm-evidence-2-na-C0006"
     ],
     "RUNX1T1": [
@@ -4571,16 +5134,29 @@
     "SAMD9": [
       "arber-2022-blood-140-1200-C0212",
       "arber-2022-blood-140-1200-C0220",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0023",
+      "baliakas-2019-operational-germline-testing-C0025",
+      "baliakas-2019-operational-germline-testing-C0027",
+      "baliakas-2019-operational-germline-testing-C0079",
       "d-hner-2022-blood-140-1345-C0055",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
     "SAMD9L": [
       "arber-2022-blood-140-1200-C0212",
       "arber-2022-blood-140-1200-C0220",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0023",
+      "baliakas-2019-operational-germline-testing-C0025",
+      "baliakas-2019-operational-germline-testing-C0028",
+      "baliakas-2019-operational-germline-testing-C0079",
       "d-hner-2022-blood-140-1345-C0055",
       "khoury-2022-leukemia-36-1703-C0135"
     ],
     "SBDS": [
+      "baliakas-2019-operational-germline-testing-C0038",
+      "baliakas-2019-operational-germline-testing-C0039",
+      "baliakas-2019-operational-germline-testing-C0040",
       "d-hner-2022-blood-140-1345-C0050"
     ],
     "SETBP1": [
@@ -4620,13 +5196,30 @@
       "khoury-2022-leukemia-36-1703-C0037",
       "khoury-2022-leukemia-36-1703-C0073",
       "khoury-2022-leukemia-36-1703-C0096",
+      "malcovati-2017-ccus-foundation-C0002",
+      "malcovati-2017-ccus-foundation-C0007",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0014",
       "weeks-2023-nejm-evidence-2-na-C0006"
+    ],
+    "SLX4": [
+      "baliakas-2019-operational-germline-testing-C0033",
+      "baliakas-2019-operational-germline-testing-C0034"
     ],
     "SOX11": [
       "alaggio-2022-leukemia-who5-lymphoid-C0038"
     ],
     "SRP54": [
+      "baliakas-2019-operational-germline-testing-C0036",
       "d-hner-2022-blood-140-1345-C0050"
+    ],
+    "SRP72": [
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0029",
+      "baliakas-2019-operational-germline-testing-C0031"
     ],
     "SRSF2": [
       "arber-2022-blood-140-1200-C0013",
@@ -4651,9 +5244,18 @@
       "guglielmelli-2017-mipss70-pmf-C0007",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0096",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0010",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "tefferi-2020-mipss-et-pv-C0001",
+      "tefferi-2020-mipss-et-pv-C0004",
+      "tefferi-2020-mipss-et-pv-C0005",
+      "tefferi-2020-mipss-et-pv-C0014",
+      "tefferi-2020-mipss-et-pv-C0022",
       "weeks-2023-nejm-evidence-2-na-C0006"
     ],
     "STAG2": [
@@ -4700,9 +5302,14 @@
       "alaggio-2022-leukemia-who5-lymphoid-C0060"
     ],
     "TERC": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
+      "baliakas-2019-operational-germline-testing-C0072",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "TERT": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "TET1": [
@@ -4715,9 +5322,17 @@
       "arber-2022-blood-140-1200-C0022",
       "cloos-2026-blood-147-1147-C0076",
       "d-hner-2022-blood-140-1345-C0037",
-      "d-hner-2022-blood-140-1345-C0099"
+      "d-hner-2022-blood-140-1345-C0099",
+      "malcovati-2017-ccus-foundation-C0004",
+      "malcovati-2017-ccus-foundation-C0005",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013"
     ],
     "TINF2": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "TP53": [
@@ -4748,6 +5363,29 @@
       "arber-2022-blood-140-1200-C0154",
       "arber-2022-blood-140-1200-C0172",
       "arber-2022-blood-140-1200-C0215",
+      "baliakas-2019-operational-germline-testing-C0002",
+      "baliakas-2019-operational-germline-testing-C0064",
+      "baliakas-2019-operational-germline-testing-C0065",
+      "baliakas-2019-operational-germline-testing-C0075",
+      "bernard-2020-tp53-mds-C0001",
+      "bernard-2020-tp53-mds-C0002",
+      "bernard-2020-tp53-mds-C0003",
+      "bernard-2020-tp53-mds-C0004",
+      "bernard-2020-tp53-mds-C0005",
+      "bernard-2020-tp53-mds-C0006",
+      "bernard-2020-tp53-mds-C0011",
+      "bernard-2020-tp53-mds-C0012",
+      "bernard-2020-tp53-mds-C0013",
+      "bernard-2020-tp53-mds-C0014",
+      "bernard-2020-tp53-mds-C0015",
+      "bernard-2020-tp53-mds-C0016",
+      "bernard-2020-tp53-mds-C0018",
+      "bernard-2020-tp53-mds-C0019",
+      "bernard-2020-tp53-mds-C0023",
+      "bernard-2020-tp53-mds-C0027",
+      "bernard-2020-tp53-mds-C0028",
+      "bernard-2020-tp53-mds-C0029",
+      "bernard-2020-tp53-mds-C0030",
       "bernard-2022-nejm-evidence-1-na-C0001",
       "bernard-2022-nejm-evidence-1-na-C0002",
       "bernard-2022-nejm-evidence-1-na-C0003",
@@ -4781,6 +5419,21 @@
       "khoury-2022-leukemia-36-1703-C0049",
       "khoury-2022-leukemia-36-1703-C0131",
       "khoury-2022-leukemia-36-1703-C0135",
+      "kraft-godley-2020-germline-guide-C0006",
+      "kraft-godley-2020-germline-guide-C0007",
+      "kraft-godley-2020-germline-guide-C0009",
+      "kraft-godley-2020-germline-guide-C0032",
+      "malcovati-2017-ccus-foundation-C0005",
+      "malcovati-2017-ccus-foundation-C0006",
+      "malcovati-2017-ccus-foundation-C0009",
+      "malcovati-2017-ccus-foundation-C0011",
+      "tefferi-2020-mipss-et-pv-C0003",
+      "tefferi-2020-mipss-et-pv-C0014",
+      "urrutia-2025-tp53-myeloid-C0002",
+      "urrutia-2025-tp53-myeloid-C0003",
+      "urrutia-2025-tp53-myeloid-C0007",
+      "urrutia-2025-tp53-myeloid-C0016",
+      "urrutia-2025-tp53-myeloid-C0022",
       "weeks-2023-nejm-evidence-2-na-C0007",
       "weeks-2023-nejm-evidence-2-na-C0016"
     ],
@@ -4801,9 +5454,16 @@
       "d-hner-2022-blood-140-1345-C0097",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0096",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0010",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0003",
       "tefferi-2018-journal-of-clinical-oncology-36-1769-C0004",
-      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005"
+      "tefferi-2018-journal-of-clinical-oncology-36-1769-C0005",
+      "tefferi-2020-mipss-et-pv-C0002",
+      "tefferi-2020-mipss-et-pv-C0014",
+      "tefferi-2020-mipss-et-pv-C0022"
     ],
     "UBA1": [
       "arber-2022-blood-140-1200-C0060"
@@ -4813,10 +5473,16 @@
       "arber-2022-blood-140-1200-C0203",
       "arber-2022-blood-140-1200-C0204"
     ],
+    "VPS45": [
+      "baliakas-2019-operational-germline-testing-C0036"
+    ],
     "WAS": [
+      "baliakas-2019-operational-germline-testing-C0036",
       "d-hner-2022-blood-140-1345-C0063"
     ],
     "WRAP53": [
+      "baliakas-2019-operational-germline-testing-C0045",
+      "baliakas-2019-operational-germline-testing-C0046",
       "d-hner-2022-blood-140-1345-C0051"
     ],
     "WT1": [
@@ -4862,6 +5528,10 @@
       "d-hner-2022-blood-140-1345-C0025",
       "d-hner-2022-blood-140-1345-C0097",
       "khoury-2022-leukemia-36-1703-C0096",
+      "malcovati-2017-ccus-foundation-C0003",
+      "malcovati-2017-ccus-foundation-C0008",
+      "malcovati-2017-ccus-foundation-C0011",
+      "malcovati-2017-ccus-foundation-C0013",
       "weeks-2023-nejm-evidence-2-na-C0006"
     ]
   },
@@ -4869,6 +5539,7 @@
     "consensus statement": [
       "alaggio-2022-leukemia-who5-lymphoid",
       "arber-2022-blood-140-1200",
+      "baliakas-2019-operational-germline-testing",
       "d-hner-2022-blood-140-1345",
       "d-hner-2024-blood-144-2169",
       "khoury-2022-leukemia-36-1703"
@@ -4876,12 +5547,20 @@
     "guideline": [
       "cloos-2026-blood-147-1147"
     ],
+    "narrative review": [
+      "kraft-godley-2020-germline-guide",
+      "urrutia-2025-tp53-myeloid"
+    ],
     "primary study": [
       "barbui-2015-blood-cancer-journal-5-e369",
+      "bernard-2020-tp53-mds",
       "bernard-2022-nejm-evidence-1-na",
       "elena-2016-blood-128-1408",
       "guglielmelli-2017-mipss70-pmf",
+      "malcovati-2017-ccus-foundation",
+      "passamonti-2017-mysec-pm-secondary",
       "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "tefferi-2020-mipss-et-pv",
       "weeks-2023-nejm-evidence-2-na"
     ]
   },
@@ -4892,9 +5571,21 @@
     "2016": [
       "elena-2016-blood-128-1408"
     ],
+    "2017": [
+      "malcovati-2017-ccus-foundation",
+      "passamonti-2017-mysec-pm-secondary"
+    ],
     "2018": [
       "guglielmelli-2017-mipss70-pmf",
       "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    ],
+    "2019": [
+      "baliakas-2019-operational-germline-testing"
+    ],
+    "2020": [
+      "bernard-2020-tp53-mds",
+      "kraft-godley-2020-germline-guide",
+      "tefferi-2020-mipss-et-pv"
     ],
     "2022": [
       "alaggio-2022-leukemia-who5-lymphoid",
@@ -4908,6 +5599,9 @@
     ],
     "2024": [
       "d-hner-2024-blood-144-2169"
+    ],
+    "2025": [
+      "urrutia-2025-tp53-myeloid"
     ],
     "2026": [
       "cloos-2026-blood-147-1147"
@@ -9806,6 +10500,640 @@
       "input_id": "b1332b23-5eea-5e02-a8e1-48e04d89b96a",
       "publication_key": "arber-2022-blood-140-1200"
     },
+    "baliakas-2019-operational-germline-testing-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ANKRD26",
+        "CBL",
+        "CEBPA",
+        "DDX41",
+        "ETV6",
+        "GATA2",
+        "KRAS",
+        "MECOM",
+        "NF1",
+        "PTPN11",
+        "RUNX1",
+        "SAMD9",
+        "SAMD9L",
+        "SRP72",
+        "TP53"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CEBPA"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0004": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0007": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0010": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "RUNX1"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0014": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ANKRD26"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0016": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ETV6"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0021": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0022": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0023": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0025": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0027": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0028": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SAMD9L"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0029": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SRP72"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0031": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SRP72"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0033": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRCA2",
+        "FANCA",
+        "FANCB",
+        "FANCC",
+        "FANCD2",
+        "FANCE",
+        "FANCF",
+        "FANCG",
+        "FANCI",
+        "FANCM",
+        "PALB2",
+        "RAD51C",
+        "SLX4"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0034": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRCA2",
+        "FANCA",
+        "FANCB",
+        "FANCC",
+        "FANCD2",
+        "FANCE",
+        "FANCF",
+        "FANCG",
+        "FANCI",
+        "FANCM",
+        "PALB2",
+        "RAD51C",
+        "SLX4"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0036": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CSF3R",
+        "ELANE",
+        "G6PC3",
+        "GFI1",
+        "HAX1",
+        "JAGN1",
+        "SRP54",
+        "VPS45",
+        "WAS"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0038": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BLM",
+        "EPCAM",
+        "ERCC6L2",
+        "LIG4",
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "PMS2",
+        "SBDS"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0039": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SBDS"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0040": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "SBDS"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0042": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA1",
+        "RPL11",
+        "RPL15",
+        "RPL26",
+        "RPL35A",
+        "RPL5",
+        "RPS10",
+        "RPS17",
+        "RPS19",
+        "RPS24",
+        "RPS26",
+        "RPS29",
+        "RPS7"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0043": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "GATA1",
+        "RPL11",
+        "RPL15",
+        "RPL26",
+        "RPL35A",
+        "RPL5",
+        "RPS10",
+        "RPS17",
+        "RPS19",
+        "RPS24",
+        "RPS26",
+        "RPS29",
+        "RPS7"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0045": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ACD",
+        "CTC1",
+        "DKC1",
+        "NHP2",
+        "NOP10",
+        "PARN",
+        "RTEL1",
+        "TERC",
+        "TERT",
+        "TINF2",
+        "WRAP53"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0046": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ACD",
+        "CTC1",
+        "DKC1",
+        "NHP2",
+        "NOP10",
+        "PARN",
+        "RTEL1",
+        "TERC",
+        "TERT",
+        "TINF2",
+        "WRAP53"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0049": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CBL",
+        "KRAS",
+        "NF1",
+        "PTPN11"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0050": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CBL",
+        "KRAS",
+        "NF1",
+        "PTPN11"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0051": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "EPCAM",
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "PMS2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0053": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "EPCAM",
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "PMS2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0054": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "EPCAM",
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "PMS2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0057": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BLM"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0058": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BLM"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0059": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "LIG4"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0061": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "LIG4"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0064": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0065": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0067": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MECOM"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0069": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MECOM"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0070": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ERCC6L2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0072": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "RUNX1",
+        "TERC"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0073": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "BRCA2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0075": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "CEBPA",
+        "ETV6",
+        "GATA2",
+        "RUNX1",
+        "TP53"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0078": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0079": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "GATA2",
+        "SAMD9",
+        "SAMD9L"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0080": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "ANKRD26",
+        "GATA2"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
+    "baliakas-2019-operational-germline-testing-C0081": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ANKRD26",
+        "ETV6",
+        "RUNX1"
+      ],
+      "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+      "publication_key": "baliakas-2019-operational-germline-testing"
+    },
     "barbui-2015-blood-cancer-journal-5-e369-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -9940,6 +11268,253 @@
       ],
       "input_id": "6082b534-d956-5f2e-a303-1952d4fa262b",
       "publication_key": "barbui-2015-blood-cancer-journal-5-e369"
+    },
+    "bernard-2020-tp53-mds-C0001": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0006": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0011": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0012": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0013": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0014": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0015": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0016": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0018": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0019": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0023": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0027": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0028": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0029": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
+    },
+    "bernard-2020-tp53-mds-C0030": {
+      "category": "treatment",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+      "publication_key": "bernard-2020-tp53-mds"
     },
     "bernard-2022-nejm-evidence-1-na-C0001": {
       "category": "prognosis",
@@ -15121,6 +16696,390 @@
       "input_id": "b0610ed3-bd88-5cb2-8a59-5afa6d8e973c",
       "publication_key": "khoury-2022-leukemia-36-1703"
     },
+    "kraft-godley-2020-germline-guide-C0001": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0003": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRCA1",
+        "BRCA2",
+        "GATA2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0005": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "DDX41"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0006": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "RUNX1",
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0007": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0008": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "BRCA1",
+        "BRCA2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0009": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0031": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "BRCA1",
+        "BRCA2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0032": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "kraft-godley-2020-germline-guide-C0033": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "PMS2"
+      ],
+      "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+      "publication_key": "kraft-godley-2020-germline-guide"
+    },
+    "malcovati-2017-ccus-foundation-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid neoplasm, unspecified"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0003": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid neoplasm, unspecified"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2",
+        "RUNX1",
+        "SRSF2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0004": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid neoplasm, unspecified"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "TET2"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0005": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid neoplasm, unspecified"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "TET2",
+        "TP53"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0006": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "myeloid neoplasm, unspecified"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "CBL",
+        "CUX1",
+        "DNMT3A",
+        "EZH2",
+        "IDH2",
+        "NRAS",
+        "RUNX1",
+        "TET2",
+        "TP53"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0007": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "AML",
+        "MDS",
+        "MDS/MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "SF3B1"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0008": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "AML",
+        "MDS",
+        "MDS/MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ZRSR2"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0009": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "AML",
+        "MDS",
+        "MDS/MPN"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "DNMT3A",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "RUNX1",
+        "TET2",
+        "TP53"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0010": {
+      "category": "diagnosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "AML",
+        "MDS",
+        "MDS/MPN",
+        "PMF"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0011": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "DNMT3A",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "TET2",
+        "TP53",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0012": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "malcovati-2017-ccus-foundation-C0013": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "CCUS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "ASXL1",
+        "DNMT3A",
+        "SF3B1",
+        "SRSF2",
+        "TET2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+      "publication_key": "malcovati-2017-ccus-foundation"
+    },
+    "passamonti-2017-mysec-pm-secondary-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "c2657466-3239-56b6-8632-218dcb727a4c",
+      "publication_key": "passamonti-2017-mysec-pm-secondary"
+    },
+    "passamonti-2017-mysec-pm-secondary-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "input_id": "c2657466-3239-56b6-8632-218dcb727a4c",
+      "publication_key": "passamonti-2017-mysec-pm-secondary"
+    },
     "tefferi-2018-journal-of-clinical-oncology-36-1769-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -15224,6 +17183,249 @@
       ],
       "input_id": "af66804e-444b-58e8-8001-94e482e7d613",
       "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769"
+    },
+    "tefferi-2020-mipss-et-pv-C0001": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1",
+        "SRSF2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0002": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1",
+        "U2AF1"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0003": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0004": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SRSF2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0005": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PV"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "SRSF2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0014": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "multivariable-adjusted",
+      "genes": [
+        "SF3B1",
+        "SRSF2",
+        "TP53",
+        "U2AF1"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0018": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET",
+        "PV"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0020": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "MPL"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0021": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "CALR"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0022": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "PMF"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "ASXL1",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "SRSF2",
+        "U2AF1"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "tefferi-2020-mipss-et-pv-C0023": {
+      "category": "prognosis",
+      "disease_ancestors": [
+        "MPN"
+      ],
+      "diseases": [
+        "ET"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "JAK2"
+      ],
+      "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+      "publication_key": "tefferi-2020-mipss-et-pv"
+    },
+    "urrutia-2025-tp53-myeloid-C0002": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b8125973-ee07-5ca1-a4b9-ae960a27b4a3",
+      "publication_key": "urrutia-2025-tp53-myeloid"
+    },
+    "urrutia-2025-tp53-myeloid-C0003": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b8125973-ee07-5ca1-a4b9-ae960a27b4a3",
+      "publication_key": "urrutia-2025-tp53-myeloid"
+    },
+    "urrutia-2025-tp53-myeloid-C0007": {
+      "category": "diagnosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b8125973-ee07-5ca1-a4b9-ae960a27b4a3",
+      "publication_key": "urrutia-2025-tp53-myeloid"
+    },
+    "urrutia-2025-tp53-myeloid-C0016": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b8125973-ee07-5ca1-a4b9-ae960a27b4a3",
+      "publication_key": "urrutia-2025-tp53-myeloid"
+    },
+    "urrutia-2025-tp53-myeloid-C0022": {
+      "category": "prognosis",
+      "disease_ancestors": [],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "b8125973-ee07-5ca1-a4b9-ae960a27b4a3",
+      "publication_key": "urrutia-2025-tp53-myeloid"
     },
     "weeks-2023-nejm-evidence-2-na-C0001": {
       "category": "diagnosis",
@@ -15385,14 +17587,14 @@
       "publication_key": "weeks-2023-nejm-evidence-2-na"
     }
   },
-  "corpus_sha256": "2f6a987e06434ab3396cefff323ba7dfdad0119210ca1b19727401ef513d0119",
+  "corpus_sha256": "e5964a834a953317e4f91e99d54d97d7541985d3fdd000652289b6a85364bc62",
   "counts": {
-    "cards": 683,
-    "census_entries": 1409,
-    "completed_papers": 12,
+    "cards": 789,
+    "census_entries": 1753,
+    "completed_papers": 19,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-25T10:40:13.809558+00:00",
+  "generated_at": "2026-08-26T03:06:18.160522+00:00",
   "index_version": "1.4",
   "papers": {
     "alaggio-2022-leukemia-who5-lymphoid": {
@@ -15954,6 +18156,140 @@
       "publication_key": "arber-2022-blood-140-1200",
       "status": "completed"
     },
+    "baliakas-2019-operational-germline-testing": {
+      "acceptance_version_history": [
+        "0.2.5"
+      ],
+      "accepted_in_version": "0.2.5",
+      "card_ids": [
+        "baliakas-2019-operational-germline-testing-C0002",
+        "baliakas-2019-operational-germline-testing-C0003",
+        "baliakas-2019-operational-germline-testing-C0004",
+        "baliakas-2019-operational-germline-testing-C0007",
+        "baliakas-2019-operational-germline-testing-C0010",
+        "baliakas-2019-operational-germline-testing-C0014",
+        "baliakas-2019-operational-germline-testing-C0016",
+        "baliakas-2019-operational-germline-testing-C0021",
+        "baliakas-2019-operational-germline-testing-C0022",
+        "baliakas-2019-operational-germline-testing-C0023",
+        "baliakas-2019-operational-germline-testing-C0025",
+        "baliakas-2019-operational-germline-testing-C0027",
+        "baliakas-2019-operational-germline-testing-C0028",
+        "baliakas-2019-operational-germline-testing-C0029",
+        "baliakas-2019-operational-germline-testing-C0031",
+        "baliakas-2019-operational-germline-testing-C0033",
+        "baliakas-2019-operational-germline-testing-C0034",
+        "baliakas-2019-operational-germline-testing-C0036",
+        "baliakas-2019-operational-germline-testing-C0038",
+        "baliakas-2019-operational-germline-testing-C0039",
+        "baliakas-2019-operational-germline-testing-C0040",
+        "baliakas-2019-operational-germline-testing-C0042",
+        "baliakas-2019-operational-germline-testing-C0043",
+        "baliakas-2019-operational-germline-testing-C0045",
+        "baliakas-2019-operational-germline-testing-C0046",
+        "baliakas-2019-operational-germline-testing-C0049",
+        "baliakas-2019-operational-germline-testing-C0050",
+        "baliakas-2019-operational-germline-testing-C0051",
+        "baliakas-2019-operational-germline-testing-C0053",
+        "baliakas-2019-operational-germline-testing-C0054",
+        "baliakas-2019-operational-germline-testing-C0057",
+        "baliakas-2019-operational-germline-testing-C0058",
+        "baliakas-2019-operational-germline-testing-C0059",
+        "baliakas-2019-operational-germline-testing-C0061",
+        "baliakas-2019-operational-germline-testing-C0064",
+        "baliakas-2019-operational-germline-testing-C0065",
+        "baliakas-2019-operational-germline-testing-C0067",
+        "baliakas-2019-operational-germline-testing-C0069",
+        "baliakas-2019-operational-germline-testing-C0070",
+        "baliakas-2019-operational-germline-testing-C0072",
+        "baliakas-2019-operational-germline-testing-C0073",
+        "baliakas-2019-operational-germline-testing-C0075",
+        "baliakas-2019-operational-germline-testing-C0078",
+        "baliakas-2019-operational-germline-testing-C0079",
+        "baliakas-2019-operational-germline-testing-C0080",
+        "baliakas-2019-operational-germline-testing-C0081"
+      ],
+      "cards": 46,
+      "census_entries": 96,
+      "citation_display": "Baliakas P, Tesi B, Wartiovaara-Kautto U, Stray-Pedersen A, Friis LS, Dybedal I, et al. Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up. HemaSphere. 2019;3(6):e321.",
+      "diseases": [],
+      "genes": [
+        "ACD",
+        "ANKRD26",
+        "BLM",
+        "BRCA2",
+        "CBL",
+        "CEBPA",
+        "CSF3R",
+        "CTC1",
+        "DDX41",
+        "DKC1",
+        "ELANE",
+        "EPCAM",
+        "ERCC6L2",
+        "ETV6",
+        "FANCA",
+        "FANCB",
+        "FANCC",
+        "FANCD2",
+        "FANCE",
+        "FANCF",
+        "FANCG",
+        "FANCI",
+        "FANCM",
+        "G6PC3",
+        "GATA1",
+        "GATA2",
+        "GFI1",
+        "HAX1",
+        "JAGN1",
+        "KRAS",
+        "LIG4",
+        "MECOM",
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "NF1",
+        "NHP2",
+        "NOP10",
+        "PALB2",
+        "PARN",
+        "PMS2",
+        "PTPN11",
+        "RAD51C",
+        "RPL11",
+        "RPL15",
+        "RPL26",
+        "RPL35A",
+        "RPL5",
+        "RPS10",
+        "RPS17",
+        "RPS19",
+        "RPS24",
+        "RPS26",
+        "RPS29",
+        "RPS7",
+        "RTEL1",
+        "RUNX1",
+        "SAMD9",
+        "SAMD9L",
+        "SBDS",
+        "SLX4",
+        "SRP54",
+        "SRP72",
+        "TERC",
+        "TERT",
+        "TINF2",
+        "TP53",
+        "VPS45",
+        "WAS",
+        "WRAP53"
+      ],
+      "latest_accepted_in_version": "0.2.5",
+      "paper_nickname": "Nordic Germline Predisposition Guidelines 2019",
+      "publication_key": "baliakas-2019-operational-germline-testing",
+      "status": "completed"
+    },
     "barbui-2015-blood-cancer-journal-5-e369": {
       "acceptance_version_history": [
         "0.1.5",
@@ -15985,6 +18321,46 @@
       "latest_accepted_in_version": "0.2.4",
       "paper_nickname": "Revised IPSET-thrombosis for ET (Barbui 2015)",
       "publication_key": "barbui-2015-blood-cancer-journal-5-e369",
+      "status": "completed"
+    },
+    "bernard-2020-tp53-mds": {
+      "acceptance_version_history": [
+        "0.2.5"
+      ],
+      "accepted_in_version": "0.2.5",
+      "card_ids": [
+        "bernard-2020-tp53-mds-C0001",
+        "bernard-2020-tp53-mds-C0002",
+        "bernard-2020-tp53-mds-C0003",
+        "bernard-2020-tp53-mds-C0004",
+        "bernard-2020-tp53-mds-C0005",
+        "bernard-2020-tp53-mds-C0006",
+        "bernard-2020-tp53-mds-C0011",
+        "bernard-2020-tp53-mds-C0012",
+        "bernard-2020-tp53-mds-C0013",
+        "bernard-2020-tp53-mds-C0014",
+        "bernard-2020-tp53-mds-C0015",
+        "bernard-2020-tp53-mds-C0016",
+        "bernard-2020-tp53-mds-C0018",
+        "bernard-2020-tp53-mds-C0019",
+        "bernard-2020-tp53-mds-C0023",
+        "bernard-2020-tp53-mds-C0027",
+        "bernard-2020-tp53-mds-C0028",
+        "bernard-2020-tp53-mds-C0029",
+        "bernard-2020-tp53-mds-C0030"
+      ],
+      "cards": 19,
+      "census_entries": 36,
+      "citation_display": "Bernard E, Nannya Y, Hasserjian RP, Devlin SM, Tuechler H, Medina-Martinez JS, et al. Implications of TP53 allelic state for genome stability, clinical presentation and outcomes in myelodysplastic syndromes. Nature Medicine. 2020;26(10):1549-1556.",
+      "diseases": [
+        "MDS"
+      ],
+      "genes": [
+        "TP53"
+      ],
+      "latest_accepted_in_version": "0.2.5",
+      "paper_nickname": "Bernard TP53 Allelic State in MDS 2020",
+      "publication_key": "bernard-2020-tp53-mds",
       "status": "completed"
     },
     "bernard-2022-nejm-evidence-1-na": {
@@ -16776,6 +19152,124 @@
       "publication_key": "khoury-2022-leukemia-36-1703",
       "status": "completed"
     },
+    "kraft-godley-2020-germline-guide": {
+      "acceptance_version_history": [
+        "0.2.5"
+      ],
+      "accepted_in_version": "0.2.5",
+      "card_ids": [
+        "kraft-godley-2020-germline-guide-C0001",
+        "kraft-godley-2020-germline-guide-C0002",
+        "kraft-godley-2020-germline-guide-C0003",
+        "kraft-godley-2020-germline-guide-C0005",
+        "kraft-godley-2020-germline-guide-C0006",
+        "kraft-godley-2020-germline-guide-C0007",
+        "kraft-godley-2020-germline-guide-C0008",
+        "kraft-godley-2020-germline-guide-C0009",
+        "kraft-godley-2020-germline-guide-C0031",
+        "kraft-godley-2020-germline-guide-C0032",
+        "kraft-godley-2020-germline-guide-C0033"
+      ],
+      "cards": 11,
+      "census_entries": 96,
+      "citation_display": "Kraft IL, Godley LA. Identifying potential germline variants from sequencing hematopoietic malignancies. Blood. 2020;136(22):2498-2506.",
+      "diseases": [],
+      "genes": [
+        "BRCA1",
+        "BRCA2",
+        "DDX41",
+        "GATA2",
+        "MLH1",
+        "MSH2",
+        "MSH6",
+        "PMS2",
+        "RUNX1",
+        "TP53"
+      ],
+      "latest_accepted_in_version": "0.2.5",
+      "paper_nickname": "Kraft–Godley Germline NGS Guide 2020",
+      "publication_key": "kraft-godley-2020-germline-guide",
+      "status": "completed"
+    },
+    "malcovati-2017-ccus-foundation": {
+      "acceptance_version_history": [
+        "0.2.5"
+      ],
+      "accepted_in_version": "0.2.5",
+      "card_ids": [
+        "malcovati-2017-ccus-foundation-C0002",
+        "malcovati-2017-ccus-foundation-C0003",
+        "malcovati-2017-ccus-foundation-C0004",
+        "malcovati-2017-ccus-foundation-C0005",
+        "malcovati-2017-ccus-foundation-C0006",
+        "malcovati-2017-ccus-foundation-C0007",
+        "malcovati-2017-ccus-foundation-C0008",
+        "malcovati-2017-ccus-foundation-C0009",
+        "malcovati-2017-ccus-foundation-C0010",
+        "malcovati-2017-ccus-foundation-C0011",
+        "malcovati-2017-ccus-foundation-C0012",
+        "malcovati-2017-ccus-foundation-C0013"
+      ],
+      "cards": 12,
+      "census_entries": 42,
+      "citation_display": "Malcovati L, Gallì A, Travaglino E, Ambaglio I, Rizzo E, Molteni E, et al. Clinical significance of somatic mutation in unexplained blood cytopenia. Blood. 2017;129(25):3371-3378.",
+      "diseases": [
+        "AML",
+        "CCUS",
+        "MDS",
+        "MDS/MPN",
+        "PMF",
+        "myeloid neoplasm, unspecified"
+      ],
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "CBL",
+        "CUX1",
+        "DNMT3A",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "JAK2",
+        "NRAS",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "TET2",
+        "TP53",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "latest_accepted_in_version": "0.2.5",
+      "paper_nickname": "Malcovati CCUS 2017",
+      "publication_key": "malcovati-2017-ccus-foundation",
+      "status": "completed"
+    },
+    "passamonti-2017-mysec-pm-secondary": {
+      "acceptance_version_history": [
+        "0.2.5"
+      ],
+      "accepted_in_version": "0.2.5",
+      "card_ids": [
+        "passamonti-2017-mysec-pm-secondary-C0002",
+        "passamonti-2017-mysec-pm-secondary-C0003"
+      ],
+      "cards": 2,
+      "census_entries": 6,
+      "citation_display": "Passamonti F, Giorgino T, Mora B, Guglielmelli P, Rumi E, Maffioli M, et al. A clinical-molecular prognostic model to predict survival in patients with post polycythemia vera and post essential thrombocythemia myelofibrosis. Leukemia. 2017;31(12):2726-2731.",
+      "diseases": [
+        "post-PV/post-ET MF"
+      ],
+      "genes": [
+        "CALR",
+        "JAK2",
+        "MPL"
+      ],
+      "latest_accepted_in_version": "0.2.5",
+      "paper_nickname": "MYSEC-PM Secondary Myelofibrosis Prognostic Model 2017",
+      "publication_key": "passamonti-2017-mysec-pm-secondary",
+      "status": "completed"
+    },
     "tefferi-2018-journal-of-clinical-oncology-36-1769": {
       "acceptance_version_history": [
         "0.1.5",
@@ -16809,6 +19303,77 @@
       "latest_accepted_in_version": "0.2.4",
       "paper_nickname": "MIPSS70+ Version 2.0 (Tefferi 2018)",
       "publication_key": "tefferi-2018-journal-of-clinical-oncology-36-1769",
+      "status": "completed"
+    },
+    "tefferi-2020-mipss-et-pv": {
+      "acceptance_version_history": [
+        "0.2.5"
+      ],
+      "accepted_in_version": "0.2.5",
+      "card_ids": [
+        "tefferi-2020-mipss-et-pv-C0001",
+        "tefferi-2020-mipss-et-pv-C0002",
+        "tefferi-2020-mipss-et-pv-C0003",
+        "tefferi-2020-mipss-et-pv-C0004",
+        "tefferi-2020-mipss-et-pv-C0005",
+        "tefferi-2020-mipss-et-pv-C0014",
+        "tefferi-2020-mipss-et-pv-C0018",
+        "tefferi-2020-mipss-et-pv-C0020",
+        "tefferi-2020-mipss-et-pv-C0021",
+        "tefferi-2020-mipss-et-pv-C0022",
+        "tefferi-2020-mipss-et-pv-C0023"
+      ],
+      "cards": 11,
+      "census_entries": 29,
+      "citation_display": "Tefferi A, Guglielmelli P, Lasho TL, Coltro G, Finke CM, Loscocco GG, et al. Mutation‐enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera. British Journal of Haematology. 2020;189(2):291-302.",
+      "diseases": [
+        "ET",
+        "PMF",
+        "PV"
+      ],
+      "genes": [
+        "ASXL1",
+        "CALR",
+        "EZH2",
+        "IDH1",
+        "IDH2",
+        "JAK2",
+        "MPL",
+        "SF3B1",
+        "SRSF2",
+        "TP53",
+        "U2AF1"
+      ],
+      "latest_accepted_in_version": "0.2.5",
+      "paper_nickname": "MIPSS-ET/PV 2020",
+      "publication_key": "tefferi-2020-mipss-et-pv",
+      "status": "completed"
+    },
+    "urrutia-2025-tp53-myeloid": {
+      "acceptance_version_history": [
+        "0.2.5"
+      ],
+      "accepted_in_version": "0.2.5",
+      "card_ids": [
+        "urrutia-2025-tp53-myeloid-C0002",
+        "urrutia-2025-tp53-myeloid-C0003",
+        "urrutia-2025-tp53-myeloid-C0007",
+        "urrutia-2025-tp53-myeloid-C0016",
+        "urrutia-2025-tp53-myeloid-C0022"
+      ],
+      "cards": 5,
+      "census_entries": 39,
+      "citation_display": "Urrutia S, Wong TN, Link DC. A clinical guide to\n                    <i>TP53</i>\n                    mutations in myeloid neoplasms. Blood. 2025;146(18):2157-2167.",
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "genes": [
+        "TP53"
+      ],
+      "latest_accepted_in_version": "0.2.5",
+      "paper_nickname": "Urrutia TP53 Myeloid Guide 2025",
+      "publication_key": "urrutia-2025-tp53-myeloid",
       "status": "completed"
     },
     "weeks-2023-nejm-evidence-2-na": {

@@ -1,12 +1,12 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 683,
-    "census_entries": 1409,
-    "completed_papers": 12,
+    "cards": 789,
+    "census_entries": 1753,
+    "completed_papers": 19,
     "rejected_papers": 0
   },
-  "generated_at": "2026-08-25T10:40:13.809558+00:00",
+  "generated_at": "2026-08-26T03:06:18.160522+00:00",
   "publications": [
     {
       "document": {
@@ -600,6 +600,955 @@
         "markdown_sha256": "3fbe26cd1cd255d7ddb186d0b071f05aeee940433ecdee36b773b0fed935adf9",
         "source_filename": "guglielmelli-2017-mipss70-pmf.pdf",
         "source_sha256": "aac313997ca8b5e0530e64689794deab02d3b6cfa15cc0c7bb72e33939131955",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0001",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SF3B1",
+              "SRSF2"
+            ],
+            "interpretation": "In essential thrombocythaemia, SF3B1 or SRSF2 mutation is associated with inferior overall survival.",
+            "locator": "Summary; Results, 'Prognostic interaction between adverse mutations, karyotype and clinical risk factors'",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SF3B1",
+              "U2AF1"
+            ],
+            "interpretation": "In essential thrombocythaemia, SF3B1 or U2AF1 mutation is associated with increased risk of fibrotic progression.",
+            "locator": "Summary; Results, 'Prognostic interaction between adverse mutations, karyotype and clinical risk factors'",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In essential thrombocythaemia, TP53 mutation predicts leukaemic transformation.",
+            "locator": "Summary; Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PV"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SRSF2"
+            ],
+            "interpretation": "In polycythaemia vera, SRSF2 mutation is associated with inferior overall survival.",
+            "locator": "Summary; Results, 'Prognostic interaction between adverse mutations, karyotype and clinical risk factors'",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PV"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SRSF2"
+            ],
+            "interpretation": "In polycythaemia vera, SRSF2 mutation is associated with inferior leukaemia-free survival.",
+            "locator": "Results, 'Prognostic interaction between adverse mutations, karyotype and clinical risk factors'",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0014",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SRSF2",
+              "SF3B1",
+              "U2AF1",
+              "TP53"
+            ],
+            "interpretation": "In essential thrombocythaemia, the study-defined adverse-mutation group comprising SRSF2, SF3B1, U2AF1 and TP53 independently identifies patients with inferior overall survival.",
+            "locator": "Results, 'Prognostic interaction between adverse mutations, karyotype and clinical risk factors'; merged analysis",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0018",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET",
+              "PV"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "JAK2 mutation is associated with venous thrombosis in both essential thrombocythaemia and polycythaemia vera.",
+            "locator": "Results, 'Mutations and prognosis', thrombosis analysis",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0020",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MPL"
+            ],
+            "interpretation": "In essential thrombocythaemia, MPL mutation has been associated with increased risk of fibrotic transformation.",
+            "locator": "Discussion, paragraph beginning 'In contrast to what has been the case in PMF'",
+            "secondary_citation": {
+              "authors": [
+                "Elala YC",
+                "Lasho TL",
+                "Gangat N",
+                "Finke C",
+                "Barraco D",
+                "Haider M",
+                "Abou Hussein AK",
+                "Hanson CA",
+                "Ketterling RP",
+                "Pardanani A",
+                "Tefferi A"
+              ],
+              "display": "Elala YC, Lasho TL, Gangat N, et al. Calreticulin variant stratiﬁed driver mutational status and prognosis in essential thrombocythemia. American Journal of Hematology. 2016;91:503–506.",
+              "journal": "American Journal of Hematology",
+              "pages": "503–506",
+              "title": "Calreticulin variant stratiﬁed driver mutational status and prognosis in essential thrombocythemia.",
+              "volume": "91",
+              "year": 2016
+            }
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0021",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CALR"
+            ],
+            "interpretation": "In primary myelofibrosis, type 1-like CALR mutation is associated with favourable survival.",
+            "locator": "Introduction, paragraph beginning 'Recent publications have highlighted the prognostic contribution of genetic information in MPN'",
+            "secondary_citation": {
+              "authors": [
+                "Vannucchi AM",
+                "Lasho TL",
+                "Guglielmelli P",
+                "Biamonte F",
+                "Pardanani A",
+                "Pereira A",
+                "Finke C",
+                "Score J",
+                "Gangat N",
+                "Mannarelli C",
+                "Ketterling RP",
+                "Rotunno G",
+                "Knudson RA",
+                "Susini MC",
+                "Laborde RR",
+                "Spolverini A",
+                "Pancrazzi A",
+                "Pieri L",
+                "Manfredini R",
+                "Tagliaﬁco E",
+                "Zini R",
+                "Jones A",
+                "Zoi K",
+                "Reiter A",
+                "Duncombe A",
+                "Pietra D",
+                "Rumi E",
+                "Cervantes F",
+                "Barosi G",
+                "Cazzola M",
+                "Cross NC",
+                "Tefferi A"
+              ],
+              "display": "Vannucchi AM, Lasho TL, Guglielmelli P, et al. Mutations and prognosis in primary myeloﬁbrosis. Leukemia. 2013;27:1861–1869.",
+              "journal": "Leukemia",
+              "pages": "1861–1869",
+              "title": "Mutations and prognosis in primary myeloﬁbrosis.",
+              "volume": "27",
+              "year": 2013
+            }
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0022",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "PMF"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ASXL1",
+              "SRSF2",
+              "U2AF1",
+              "EZH2",
+              "IDH1",
+              "IDH2"
+            ],
+            "interpretation": "In primary myelofibrosis, high-molecular-risk mutations involving ASXL1, SRSF2, U2AF1 Q157, EZH2, IDH1 or IDH2 are associated with adverse survival.",
+            "locator": "Introduction, paragraph beginning 'Recent publications have highlighted the prognostic contribution of genetic information in MPN'",
+            "secondary_citation": {
+              "display": "Vannucchi et al. (2013); Tefferi et al. (2018a)."
+            }
+          },
+          {
+            "card_id": "tefferi-2020-mipss-et-pv-C0023",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "ET"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "JAK2"
+            ],
+            "interpretation": "In essential thrombocythaemia, JAK2 mutation has been associated with increased thrombosis risk.",
+            "locator": "Discussion, paragraph beginning 'In contrast to what has been the case in PMF'",
+            "secondary_citation": {
+              "authors": [
+                "Elala YC",
+                "Lasho TL",
+                "Gangat N",
+                "Finke C",
+                "Barraco D",
+                "Haider M",
+                "Abou Hussein AK",
+                "Hanson CA",
+                "Ketterling RP",
+                "Pardanani A",
+                "Tefferi A"
+              ],
+              "display": "Elala YC, Lasho TL, Gangat N, et al. Calreticulin variant stratiﬁed driver mutational status and prognosis in essential thrombocythemia. American Journal of Hematology. 2016;91:503–506.",
+              "journal": "American Journal of Hematology",
+              "pages": "503–506",
+              "title": "Calreticulin variant stratiﬁed driver mutational status and prognosis in essential thrombocythemia.",
+              "volume": "91",
+              "year": 2016
+            }
+          }
+        ],
+        "census_entries": 29,
+        "citation": {
+          "authors": [
+            "Tefferi A",
+            "Guglielmelli P",
+            "Lasho TL",
+            "Coltro G",
+            "Finke CM",
+            "Loscocco GG",
+            "Sordi B",
+            "Szuber N",
+            "Rotunno G",
+            "Pacilli A",
+            "Hanson CA",
+            "Ketterling RP",
+            "Pardanani A",
+            "Gangat N",
+            "Vannucchi AM"
+          ],
+          "citation_incomplete": [],
+          "display": "Tefferi A, Guglielmelli P, Lasho TL, Coltro G, Finke CM, Loscocco GG, et al. Mutation‐enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera. British Journal of Haematology. 2020;189(2):291-302.",
+          "doi": "10.1111/bjh.16380",
+          "issue": "2",
+          "journal": "British Journal of Haematology",
+          "pages": "291-302",
+          "title": "Mutation‐enhanced international prognostic systems for essential thrombocythaemia and polycythaemia vera",
+          "volume": "189",
+          "year": 2020
+        },
+        "diseases_covered": [
+          "ET",
+          "PMF",
+          "PV"
+        ],
+        "extraction_date": "2026-08-26",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ASXL1",
+          "CALR",
+          "EZH2",
+          "IDH1",
+          "IDH2",
+          "JAK2",
+          "MPL",
+          "SF3B1",
+          "SRSF2",
+          "TP53",
+          "U2AF1"
+        ],
+        "paper_nickname": "MIPSS-ET/PV 2020",
+        "publication_key": "tefferi-2020-mipss-et-pv",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-26",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0001",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0003",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0004",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0005",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0014",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0018",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0020",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0021",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0022",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "tefferi-2020-mipss-et-pv-C0023",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 11,
+          "census_claims": 29,
+          "census_entries": 29,
+          "ratio": 0.38
+        },
+        "input_id": "2604e4a0-896c-5b81-b399-3932f8ffdff8",
+        "markdown_sha256": "1eaadee3c65bf0781598bd0c6197a6c4d59b47136a1b1e800dc4c74124b4c422",
+        "source_filename": "Tefferi_2020_MIPSS_ET_PV.pdf",
+        "source_sha256": "5f4b6ce4a81d504dfec7d6854263d56e627f63f98b032d7052815e489ad244ae",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "bernard-2020-tp53-mds-C0001",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "For TP53-mutated MDS, a single TP53 mutation with a retained wild-type copy represents a monoallelic state, whereas multiple TP53 mutations or TP53 mutation(s) with TP53 deletion or copy-neutral loss of heterozygosity represent multi-hit TP53, consistent with biallelic targeting.",
+            "locator": "Main text and Fig. 1 legend defining TP53 allelic-state subgroups and monoallelic versus multi-hit states",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, multi-hit TP53 is associated with inferior overall survival and independently identifies adverse-risk disease across IPSS-R strata; poor survival persists irrespective of TP53 VAF and the number of co-occurring driver mutations.",
+            "locator": "Main text outcome, co-mutation and VAF analyses; Fig. 3; Extended Data Fig. 7",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, monoallelic TP53 is not independently associated with worse overall survival than TP53-wild-type disease.",
+            "locator": "Main text multivariable outcome analysis; Fig. 3g",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0004",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, multi-hit TP53 independently predicts increased risk of transformation to acute myeloid leukemia; this adverse risk persists even when the TP53-mutated clone has a low VAF.",
+            "locator": "Main text multivariable AML-transformation and VAF analyses; Fig. 3h; Extended Data Fig. 7d",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0005",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, monoallelic TP53 is not independently associated with greater risk of transformation to acute myeloid leukemia than TP53-wild-type disease.",
+            "locator": "Main text multivariable AML-transformation analysis; Fig. 3h",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0006",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In monoallelic TP53 MDS, survival worsens as the number of co-occurring driver mutations increases.",
+            "locator": "Main text, paragraph beginning 'Outcomes of monoallelic patients significantly differed with the number of co-occurring driver mutations'",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0011",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Within multi-hit TP53 MDS, poor outcomes are similar across missense, truncating, and hotspot TP53 mutation types.",
+            "locator": "Main text mutation-type analysis; Extended Data Fig. 8 and Supplementary Fig. 17a,b",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0012",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In monoallelic TP53 MDS, a TP53 R248 hotspot mutation is associated with increased risk of death compared with TP53-wild-type disease.",
+            "locator": "Main text monoallelic hotspot analysis; Supplementary Fig. 17c,d",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0013",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In monoallelic TP53 MDS, a TP53 R175 hotspot mutation, but not R273, was reported to be associated with increased risk of death compared with TP53-wild-type disease; the evidence for the R175 association was less certain than for R248.",
+            "locator": "Main text monoallelic hotspot analysis; Supplementary Fig. 17c,d",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0014",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In TP53-mutated therapy-related MDS, monoallelic TP53 is associated with lower risk of death than multi-hit TP53.",
+            "locator": "Main text therapy-related MDS analysis; Fig. 4a",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0015",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, multi-hit TP53 and complex karyotype are independent predictors of adverse outcome.",
+            "locator": "Main text outcome paragraph; Supplementary Fig. 14",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0016",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Within multi-hit TP53 MDS, multiple TP53 mutations, TP53 mutation plus deletion, and TP53 mutation plus copy-neutral loss of heterozygosity have similarly dismal outcomes.",
+            "locator": "Main text outcome paragraph; Extended Data Fig. 7a,b",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0018",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53 mutation in therapy-related MDS has been associated with a high risk of progression to acute myeloid leukemia.",
+            "locator": "Main text, paragraph beginning 'Beyond primary MDS'",
+            "secondary_citation": {
+              "display": "Kitagawa M, Yoshida S, Kuwata T, Tanizawa T, Kamiyama R. p53 expression in myeloid cells of myelodysplastic syndromes. Association with evolution of overt leukemia. Am. J. Pathol. 145, 338–344 (1994)."
+            }
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0019",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53-mutated therapy-related MDS and disease at progression have been described as an extremely adverse prognostic group with very poor long-term survival.",
+            "locator": "Main text, paragraph beginning 'Beyond primary MDS'",
+            "secondary_citation": {
+              "display": "Rucker FG et al. TP53 alterations in acute myeloid leukemia with complex karyotype correlate with specific copy number alterations, monosomal karyotype, and dismal outcome. Blood 119, 2114–2121 (2012)."
+            }
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0023",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, treatment resistance is associated with multi-hit TP53 rather than TP53 mutation alone; monoallelic TP53 cases had overall therapy responses similar to TP53-wild-type disease.",
+            "locator": "Main text, summary paragraph beginning 'We have demonstrated that the multi-hit TP53 state in MDS'",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0027",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53-mutated therapy-related MDS and disease at progression have been described as chemorefractory.",
+            "locator": "Main text, paragraph beginning 'Beyond primary MDS'",
+            "secondary_citation": {
+              "display": "Rucker FG et al. TP53 alterations in acute myeloid leukemia with complex karyotype correlate with specific copy number alterations, monosomal karyotype, and dismal outcome. Blood 119, 2114–2121 (2012)."
+            }
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0028",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, TP53-mutated patients have been reported to respond poorly to lenalidomide.",
+            "locator": "Main text, treatment paragraph beginning 'Last, we evaluated the implication of TP53 allelic state in response to therapy'",
+            "secondary_citation": {
+              "display": "Jädersten M et al. TP53 mutations in low-risk myelodysplastic syndromes with del(5q) predict disease progression. J. Clin. Oncol. 29, 1971–1979 (2011)."
+            }
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0029",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, TP53-mutated patients have been reported to respond poorly to hematopoietic stem cell transplantation.",
+            "locator": "Main text, treatment paragraph beginning 'Last, we evaluated the implication of TP53 allelic state in response to therapy'",
+            "secondary_citation": {
+              "display": "Lindsley RC et al. Prognostic mutations in myelodysplastic syndrome after stem-cell transplantation. N. Engl. J. Med. 376, 536–547 (2017)."
+            }
+          },
+          {
+            "card_id": "bernard-2020-tp53-mds-C0030",
+            "category": "treatment",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In MDS, TP53-mutated patients have been reported to have marked but transient responses to hypomethylating agents.",
+            "locator": "Main text, treatment paragraph beginning 'Last, we evaluated the implication of TP53 allelic state in response to therapy'",
+            "secondary_citation": {
+              "display": "Welch JS et al. TP53 and decitabine in acute myeloid leukemia and myelodysplastic syndromes. N. Engl. J. Med. 375, 2023–2036 (2016)."
+            }
+          }
+        ],
+        "census_entries": 36,
+        "citation": {
+          "authors": [
+            "Bernard E",
+            "Nannya Y",
+            "Hasserjian RP",
+            "Devlin SM",
+            "Tuechler H",
+            "Medina-Martinez JS",
+            "Yoshizato T",
+            "Shiozawa Y",
+            "Saiki R",
+            "Malcovati L",
+            "Levine MF",
+            "Arango JE",
+            "Zhou Y",
+            "Solé F",
+            "Cargo CA",
+            "Haase D",
+            "Creignou M",
+            "Germing U",
+            "Zhang Y",
+            "Gundem G",
+            "Sarian A",
+            "van de Loosdrecht AA",
+            "Jädersten M",
+            "Tobiasson M",
+            "Kosmider O",
+            "Follo MY",
+            "Thol F",
+            "Pinheiro RF",
+            "Santini V",
+            "Kotsianidis I",
+            "Boultwood J",
+            "Santos FPS",
+            "Schanz J",
+            "Kasahara S",
+            "Ishikawa T",
+            "Tsurumi H",
+            "Takaori-Kondo A",
+            "Kiguchi T",
+            "Polprasert C",
+            "Bennett JM",
+            "Klimek VM",
+            "Savona MR",
+            "Belickova M",
+            "Ganster C",
+            "Palomo L",
+            "Sanz G",
+            "Ades L",
+            "Della Porta MG",
+            "Elias HK",
+            "Smith AG",
+            "Werner Y",
+            "Patel M",
+            "Viale A",
+            "Vanness K",
+            "Neuberg DS",
+            "Stevenson KE",
+            "Menghrajani K",
+            "Bolton KL",
+            "Fenaux P",
+            "Pellagatti A",
+            "Platzbecker U",
+            "Heuser M",
+            "Valent P",
+            "Chiba S",
+            "Miyazaki Y",
+            "Finelli C",
+            "Voso MT",
+            "Shih L",
+            "Fontenay M",
+            "Jansen JH",
+            "Cervera J",
+            "Atsuta Y",
+            "Gattermann N",
+            "Ebert BL",
+            "Bejar R",
+            "Greenberg PL",
+            "Cazzola M",
+            "Hellström-Lindberg E",
+            "Ogawa S",
+            "Papaemmanuil E"
+          ],
+          "citation_incomplete": [],
+          "display": "Bernard E, Nannya Y, Hasserjian RP, Devlin SM, Tuechler H, Medina-Martinez JS, et al. Implications of TP53 allelic state for genome stability, clinical presentation and outcomes in myelodysplastic syndromes. Nature Medicine. 2020;26(10):1549-1556.",
+          "doi": "10.1038/s41591-020-1008-z",
+          "issue": "10",
+          "journal": "Nature Medicine",
+          "pages": "1549-1556",
+          "title": "Implications of TP53 allelic state for genome stability, clinical presentation and outcomes in myelodysplastic syndromes",
+          "volume": "26",
+          "year": 2020
+        },
+        "diseases_covered": [
+          "MDS"
+        ],
+        "extraction_date": "2026-08-26",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "TP53"
+        ],
+        "paper_nickname": "Bernard TP53 Allelic State in MDS 2020",
+        "publication_key": "bernard-2020-tp53-mds",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-26",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "bernard-2020-tp53-mds-C0001",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0003",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0004",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0005",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0006",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0011",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0012",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0013",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0014",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0015",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0016",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0018",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0019",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0023",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0027",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0028",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0029",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2020-tp53-mds-C0030",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 19,
+          "census_claims": 36,
+          "census_entries": 36,
+          "ratio": 0.53
+        },
+        "input_id": "2f1608de-7dff-5df5-b38b-3e04c18c7289",
+        "markdown_sha256": "9e29a527717a5e6dc9219ed7b226c06348c271036f4597f4f1ed242ba5d81f13",
+        "source_filename": "Bernard_2020_TP53_MDS.pdf",
+        "source_sha256": "9e90f66108a2531b382544583e10be8c333e124845f61583687f4c872cbb12d7",
         "warnings": []
       }
     },
@@ -3309,6 +4258,1104 @@
         "markdown_sha256": "3ac9bfdc5626dcf6a1afdb04799d87354ca2e3560c46d18a84fa4404c23be23e",
         "source_filename": "Barbui_2015_revised_IPSET_thrombosis_ET.pdf",
         "source_sha256": "3dbdecfbb3be1294c8ae6098adfef4182d63697f6073dbaf8ac82f3bab6779d0",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0002",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA",
+              "DDX41",
+              "RUNX1",
+              "ANKRD26",
+              "ETV6",
+              "GATA2",
+              "SAMD9",
+              "SAMD9L",
+              "SRP72",
+              "CBL",
+              "KRAS",
+              "NF1",
+              "PTPN11",
+              "TP53",
+              "MECOM"
+            ],
+            "interpretation": "The Nordic 2019 guidelines list germline predisposition involving CEBPA, DDX41, RUNX1, ANKRD26, ETV6, GATA2, SAMD9, SAMD9L, SRP72, CBL, KRAS, NF1, PTPN11, TP53, and MECOM as autosomal dominant.",
+            "locator": "Table 1, lines 95-137, 189, 205-211",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0003",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CEBPA"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline CEBPA predisposition is associated with AML and has a reported lifetime myeloid-malignancy risk >80%.",
+            "locator": "Table 1, lines 95-97",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0004",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "The Nordic 2019 guidelines list germline DDX41 predisposition as associated with MDS and AML.",
+            "locator": "Table 1, lines 99-103",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0007",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "For germline DDX41 predisposition, CML, CMML and lymphomas have also been reported in addition to MDS and AML.",
+            "locator": "Table 1, lines 99-103",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0010",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline RUNX1 predisposition is associated with MDS and AML, with ALL also listed, and has a reported lifetime myeloid-malignancy risk of approximately 45%.",
+            "locator": "Table 1, lines 111-113",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0014",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ANKRD26"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline ANKRD26 predisposition is associated with AML, MDS and CML and has a reported lifetime myeloid-malignancy risk of approximately 8%.",
+            "locator": "Table 1, lines 115-117",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0016",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ETV6"
+            ],
+            "interpretation": "The Nordic 2019 guidelines list germline ETV6 predisposition as associated with ALL, AML and MDS.",
+            "locator": "Table 1, lines 119-123",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0021",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline GATA2 deficiency predisposes to MDS and AML and has a reported lifetime myeloid-malignancy risk >80%.",
+            "locator": "Table 1, lines 123-125",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0022",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2"
+            ],
+            "interpretation": "GATA2 deficiency syndrome can include B-cell, NK-cell and CD4-cell lymphocytopenia, monocytopenia, viral susceptibility, warts, disseminated nontuberculous mycobacterial infection, lymphedema, sensorineural hearing loss and pulmonary alveolar proteinosis.",
+            "locator": "Table 1, lines 123-125",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0023",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SAMD9",
+              "SAMD9L"
+            ],
+            "interpretation": "The Nordic 2019 guidelines list germline SAMD9-related MIRAGE syndrome and SAMD9L-related ataxia-pancytopenia syndrome as predisposing to MDS or AML with monosomy 7.",
+            "locator": "Table 1, lines 127-133",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0025",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SAMD9",
+              "SAMD9L"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, both SAMD9-related MIRAGE syndrome and SAMD9L-related ataxia-pancytopenia syndrome have a high lifetime risk of myeloid malignancy.",
+            "locator": "Table 1, lines 127-133",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0027",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SAMD9"
+            ],
+            "interpretation": "SAMD9-related MIRAGE syndrome can include cytopenias and marrow failure, growth restriction, infection susceptibility, adrenal hypoplasia, genital phenotypes and enteropathy.",
+            "locator": "Table 1, lines 127-129",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0028",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SAMD9L"
+            ],
+            "interpretation": "SAMD9L-related ataxia-pancytopenia syndrome can include cytopenias and marrow failure, gait disturbance, nystagmus, cerebellar atrophy, white-matter hyperintensities and immunodeficiency.",
+            "locator": "Table 1, lines 131-133",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0029",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SRP72"
+            ],
+            "interpretation": "Germline SRP72 bone marrow failure syndrome is listed as associated with MDS.",
+            "locator": "Table 1, lines 135-137",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0031",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SRP72"
+            ],
+            "interpretation": "Germline SRP72 bone marrow failure syndrome can include congenital sensorineural deafness.",
+            "locator": "Table 1, lines 135-137",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0033",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "FANCA",
+              "FANCB",
+              "FANCC",
+              "BRCA2",
+              "FANCD2",
+              "FANCE",
+              "FANCF",
+              "FANCG",
+              "FANCI",
+              "FANCM",
+              "PALB2",
+              "RAD51C",
+              "SLX4"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, Fanconi anaemia associated with FANCA, FANCB, FANCC, BRCA2, FANCD2, FANCE, FANCF, FANCG, FANCI, FANCM, PALB2, RAD51C, or SLX4 predisposes to MDS and AML, with a reported lifetime myeloid-malignancy risk of approximately 10%.",
+            "locator": "Table 1, lines 139-143",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0034",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "FANCA",
+              "FANCB",
+              "FANCC",
+              "BRCA2",
+              "FANCD2",
+              "FANCE",
+              "FANCF",
+              "FANCG",
+              "FANCI",
+              "FANCM",
+              "PALB2",
+              "RAD51C",
+              "SLX4"
+            ],
+            "interpretation": "Fanconi anaemia associated with FANCA, FANCB, FANCC, BRCA2, FANCD2, FANCE, FANCF, FANCG, FANCI, FANCM, PALB2, RAD51C and SLX4 can include bone marrow failure, short stature, abnormal skin pigmentation, skeletal anomalies, congenital heart disease, ear anomalies, renal malformations and squamous cell carcinomas.",
+            "locator": "Table 1, lines 139-143",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0036",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ELANE",
+              "CSF3R",
+              "GFI1",
+              "SRP54",
+              "HAX1",
+              "G6PC3",
+              "JAGN1",
+              "VPS45",
+              "WAS"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, severe congenital neutropenia associated with ELANE, CSF3R, GFI1, SRP54, HAX1, G6PC3, JAGN1, VPS45, or WAS predisposes to MDS and AML, with a reported lifetime myeloid-malignancy risk of 21–40%.",
+            "locator": "Table 1, lines 145-147",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0038",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SBDS",
+              "MLH1",
+              "MSH2",
+              "MSH6",
+              "PMS2",
+              "EPCAM",
+              "BLM",
+              "LIG4",
+              "ERCC6L2"
+            ],
+            "interpretation": "The Nordic 2019 guidelines list germline predisposition involving SBDS, MLH1, MSH2, MSH6, PMS2, EPCAM, BLM, LIG4, and ERCC6L2 as autosomal recessive.",
+            "locator": "Table 1, lines 149-151, 191-203, 207-211",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0039",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SBDS"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline SBDS Shwachman-Diamond syndrome is associated with MDS, AML and ALL and has a reported lifetime myeloid-malignancy risk of 5–24%.",
+            "locator": "Table 1, lines 149-151",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0040",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "SBDS"
+            ],
+            "interpretation": "Germline SBDS Shwachman-Diamond syndrome can include neutropenia, pancreatic insufficiency, short stature and skeletal abnormalities.",
+            "locator": "Table 1, lines 149-151",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0042",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RPS19",
+              "RPS17",
+              "RPS24",
+              "RPL35A",
+              "RPL5",
+              "RPL11",
+              "RPL15",
+              "RPL26",
+              "RPS7",
+              "RPS26",
+              "RPS10",
+              "RPS29",
+              "GATA1"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, Diamond-Blackfan anaemia associated with RPS19, RPS17, RPS24, RPL35A, RPL5, RPL11, RPL15, RPL26, RPS7, RPS26, RPS10, RPS29, or GATA1 is associated with MDS, AML and ALL and has a reported lifetime myeloid-malignancy risk of approximately 5%.",
+            "locator": "Table 1, lines 153-157",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0043",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RPS19",
+              "RPS17",
+              "RPS24",
+              "RPL35A",
+              "RPL5",
+              "RPL11",
+              "RPL15",
+              "RPL26",
+              "RPS7",
+              "RPS26",
+              "RPS10",
+              "RPS29",
+              "GATA1"
+            ],
+            "interpretation": "Diamond-Blackfan anaemia associated with RPS19, RPS17, RPS24, RPL35A, RPL5, RPL11, RPL15, RPL26, RPS7, RPS26, RPS10, RPS29, or GATA1 can include anaemia with marrow erythroid hypoplasia, small stature and congenital craniofacial, cardiac, skeletal or genitourinary anomalies.",
+            "locator": "Table 1, lines 153-157",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0045",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DKC1",
+              "TERT",
+              "TERC",
+              "TINF2",
+              "RTEL1",
+              "PARN",
+              "ACD",
+              "NOP10",
+              "NHP2",
+              "WRAP53",
+              "CTC1"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, telomere biology disorders associated with DKC1, TERT, TERC, TINF2, RTEL1, PARN, ACD, NOP10, NHP2, WRAP53, or CTC1 predispose to MDS and AML, with a reported lifetime myeloid-malignancy risk of 2–30%.",
+            "locator": "Table 1, lines 171-179",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0046",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DKC1",
+              "TERT",
+              "TERC",
+              "TINF2",
+              "RTEL1",
+              "PARN",
+              "ACD",
+              "NOP10",
+              "NHP2",
+              "WRAP53",
+              "CTC1"
+            ],
+            "interpretation": "Telomere biology disorders associated with DKC1, TERT, TERC, TINF2, RTEL1, PARN, ACD, NOP10, NHP2, WRAP53, or CTC1 can include bone marrow failure, nail dystrophy, abnormal skin pigmentation, oral leukoplakia, early hair graying, pulmonary fibrosis, hepatic fibrosis and squamous cell carcinoma.",
+            "locator": "Table 1, lines 171-179",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0049",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CBL",
+              "KRAS",
+              "NF1",
+              "PTPN11"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, RASopathies associated with CBL, KRAS, NF1, or PTPN11 predispose to JMML and AML, with a reported lifetime myeloid-malignancy risk of approximately 10%.",
+            "locator": "Table 1, line 189",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0050",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "CBL",
+              "KRAS",
+              "NF1",
+              "PTPN11"
+            ],
+            "interpretation": "RASopathies associated with CBL, KRAS, NF1, or PTPN11 can include short stature, characteristic facial features, cardio-thoracic defects and coagulopathy.",
+            "locator": "Table 1, line 189",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0051",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MLH1",
+              "MSH2",
+              "MSH6",
+              "PMS2",
+              "EPCAM"
+            ],
+            "interpretation": "Constitutional mismatch repair deficiency associated with MLH1, MSH2, MSH6, PMS2, or EPCAM is listed as associated with ALL, lymphomas, AML and MDS.",
+            "locator": "Table 1, lines 191-197",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0053",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MLH1",
+              "MSH2",
+              "MSH6",
+              "PMS2",
+              "EPCAM"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, constitutional mismatch repair deficiency associated with MLH1, MSH2, MSH6, PMS2, or EPCAM has a reported lymphoma/ALL risk of approximately 30%.",
+            "locator": "Table 1, lines 191-197",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0054",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MLH1",
+              "MSH2",
+              "MSH6",
+              "PMS2",
+              "EPCAM"
+            ],
+            "interpretation": "Constitutional mismatch repair deficiency associated with MLH1, MSH2, MSH6, PMS2, or EPCAM can include café-au-lait spots, brain tumours, colorectal cancer, osteosarcoma and other solid tumours.",
+            "locator": "Table 1, lines 191-197",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0057",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BLM"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline BLM Bloom syndrome is associated with ALL, AML/MDS and lymphoma and has a reported lifetime myeloid-malignancy risk of approximately 15%.",
+            "locator": "Table 1, line 199",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0058",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BLM"
+            ],
+            "interpretation": "Germline BLM Bloom syndrome can include growth deficiency, photosensitive skin changes, immunodeficiency, early-onset diabetes, microcephaly, a high-pitched voice, hypogonadism and risk of other cancers.",
+            "locator": "Table 1, line 199",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0059",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "LIG4"
+            ],
+            "interpretation": "Germline LIG4 syndrome is listed as associated with MDS, with the risk described as rare.",
+            "locator": "Table 1, lines 201-203",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0061",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "LIG4"
+            ],
+            "interpretation": "Germline LIG4 syndrome can include short stature, microcephaly, combined immunodeficiency and pancytopenia.",
+            "locator": "Table 1, lines 201-203",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0064",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline TP53 Li-Fraumeni syndrome is associated with ALL, MDS and AML and has a reported lifetime myeloid-malignancy risk of 2–4%.",
+            "locator": "Table 1, line 205",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0065",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "According to the Nordic 2019 guidelines, germline TP53 Li-Fraumeni syndrome carries a high overall cancer risk—approximately 50% by age 30 and 90% by age 60—with particularly high risk of cancers including adrenocortical carcinoma, brain and breast cancer, choroid plexus carcinoma, colon and lung cancer, and sarcoma.",
+            "locator": "Table 1, line 205",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0067",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MECOM"
+            ],
+            "interpretation": "Germline MECOM is listed among bone marrow failure syndromes associated with MDS and AML.",
+            "locator": "Table 1, lines 207-211",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0069",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MECOM"
+            ],
+            "interpretation": "Germline MECOM-associated bone marrow failure can include skeletal, cardiac and neurological abnormalities.",
+            "locator": "Table 1, lines 207-211",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0070",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ERCC6L2"
+            ],
+            "interpretation": "ERCC6L2 is listed under other germline bone marrow failure syndromes predisposing to myeloid neoplasms.",
+            "locator": "Table 1, lines 207-211",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0072",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TERC",
+              "RUNX1"
+            ],
+            "interpretation": "Poor stem-cell mobilisation in a sibling donor candidate is a clinical clue to hereditary myeloid predisposition and has been reported in rare cases with germline TERC and RUNX1 variants.",
+            "locator": "Criteria A footnote 1, line 77",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0073",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "BRCA2"
+            ],
+            "interpretation": "Under Nordic criterion A3, germline evaluation is indicated for a patient with MDS or AML who has two first- or second-degree relatives with solid tumours, with at least one diagnosed before age 50; BRCA2-related tumour patterns are included among the suggestive cancers.",
+            "locator": "Criterion A3 and footnote 2, lines 74 and 78",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0075",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "RUNX1",
+              "GATA2",
+              "TP53",
+              "ETV6",
+              "CEBPA"
+            ],
+            "interpretation": "In patients with MDS or AML, a RUNX1, GATA2, TP53, ETV6, or CEBPA variant detected on a somatic NGS panel at VAF 40–60% or >90% can suggest germline origin; the Nordic 2019 guidelines recommend confirmation in extra-haematological tissue after consent.",
+            "locator": "Criterion B discussion, line 221",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0078",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "A truncating DDX41 variant is usually of germline origin according to the Nordic 2019 guidelines.",
+            "locator": "Criterion B discussion, line 221",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0079",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "GATA2",
+              "SAMD9",
+              "SAMD9L"
+            ],
+            "interpretation": "Under the Nordic 2019 recommendations, patients diagnosed with MDS or AML before age 50 who lack a suggestive personal or family history but have monosomy 7, del(7q), or another chromosome 7 aberration with loss of 7q material should be referred for genetic counselling/testing; these abnormalities are particularly common in GATA2-, SAMD9-, and SAMD9L-related germline disorders.",
+            "locator": "Criterion C discussion, line 227",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0080",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "GATA2",
+              "ANKRD26"
+            ],
+            "interpretation": "For suspected GATA2- or ANKRD26-related germline predisposition, the Nordic 2019 guidelines state that testing should include noncoding regulatory regions.",
+            "locator": "Diagnostic algorithm, line 245; Table 1 line 115",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "baliakas-2019-operational-germline-testing-C0081",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1",
+              "ANKRD26",
+              "ETV6"
+            ],
+            "interpretation": "Asymptomatic carriers of germline RUNX1, ANKRD26, or ETV6 variants may have thrombocytopenia or a bleeding tendency at baseline, including bleeding tendency without thrombocytopenia.",
+            "locator": "Baseline work-up, line 291",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 96,
+        "citation": {
+          "authors": [
+            "Baliakas P",
+            "Tesi B",
+            "Wartiovaara-Kautto U",
+            "Stray-Pedersen A",
+            "Friis LS",
+            "Dybedal I",
+            "Hovland R",
+            "Jahnukainen K",
+            "Raaschou-Jensen K",
+            "Ljungman P",
+            "Rustad CF",
+            "Lautrup CK",
+            "Kilpivaara O",
+            "Kittang AO",
+            "Grønbæk K",
+            "Cammenga J",
+            "Hellström-Lindberg E",
+            "Andersen MK"
+          ],
+          "citation_incomplete": [],
+          "display": "Baliakas P, Tesi B, Wartiovaara-Kautto U, Stray-Pedersen A, Friis LS, Dybedal I, et al. Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up. HemaSphere. 2019;3(6):e321.",
+          "doi": "10.1097/hs9.0000000000000321",
+          "issue": "6",
+          "journal": "HemaSphere",
+          "pages": "e321",
+          "title": "Nordic Guidelines for Germline Predisposition to Myeloid Neoplasms in Adults: Recommendations for Genetic Diagnosis, Clinical Management and Follow-up",
+          "volume": "3",
+          "year": 2019
+        },
+        "diseases_covered": [],
+        "extraction_date": "2026-08-26",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ACD",
+          "ANKRD26",
+          "BLM",
+          "BRCA2",
+          "CBL",
+          "CEBPA",
+          "CSF3R",
+          "CTC1",
+          "DDX41",
+          "DKC1",
+          "ELANE",
+          "EPCAM",
+          "ERCC6L2",
+          "ETV6",
+          "FANCA",
+          "FANCB",
+          "FANCC",
+          "FANCD2",
+          "FANCE",
+          "FANCF",
+          "FANCG",
+          "FANCI",
+          "FANCM",
+          "G6PC3",
+          "GATA1",
+          "GATA2",
+          "GFI1",
+          "HAX1",
+          "JAGN1",
+          "KRAS",
+          "LIG4",
+          "MECOM",
+          "MLH1",
+          "MSH2",
+          "MSH6",
+          "NF1",
+          "NHP2",
+          "NOP10",
+          "PALB2",
+          "PARN",
+          "PMS2",
+          "PTPN11",
+          "RAD51C",
+          "RPL11",
+          "RPL15",
+          "RPL26",
+          "RPL35A",
+          "RPL5",
+          "RPS10",
+          "RPS17",
+          "RPS19",
+          "RPS24",
+          "RPS26",
+          "RPS29",
+          "RPS7",
+          "RTEL1",
+          "RUNX1",
+          "SAMD9",
+          "SAMD9L",
+          "SBDS",
+          "SLX4",
+          "SRP54",
+          "SRP72",
+          "TERC",
+          "TERT",
+          "TINF2",
+          "TP53",
+          "VPS45",
+          "WAS",
+          "WRAP53"
+        ],
+        "paper_nickname": "Nordic Germline Predisposition Guidelines 2019",
+        "publication_key": "baliakas-2019-operational-germline-testing",
+        "publication_type": "consensus statement"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-26",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0038",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0003",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0004",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0007",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0010",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0014",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0016",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0021",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0023",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0025",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0029",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0033",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0036",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0039",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0042",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0045",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0049",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0051",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0053",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0057",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0059",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0064",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0067",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0070",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0065",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0022",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0027",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0028",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0031",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0034",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0040",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0043",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0046",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0050",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0054",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0058",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0061",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0069",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0081",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0072",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0073",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0075",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0078",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0079",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "baliakas-2019-operational-germline-testing-C0080",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 46,
+          "census_claims": 96,
+          "census_entries": 96,
+          "ratio": 0.48
+        },
+        "input_id": "742a268d-0273-50c1-a907-e2d77b07c838",
+        "markdown_sha256": "bb84e0a4433f929f7a2cb94ef666f1dc7200742676961f90fda3cf53774d71c5",
+        "source_filename": "Baliakas_2019_Operational_germline_testing.pdf",
+        "source_sha256": "3510c7e395937581b33bf638c203723040fd12a123a91ab0435455b925bebb10",
         "warnings": []
       }
     },
@@ -13892,6 +15939,575 @@
       "document": {
         "cards": [
           {
+            "card_id": "urrutia-2025-tp53-myeloid-C0002",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML",
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In TP53-mutated AML/MDS, findings supporting multihit TP53 status include TP53 cnLOH demonstrated by dedicated testing; loss of chromosome 17 or 17p; two or more TP53 mutations; or a single TP53 mutation with VAF >55% and sequencing coverage >200×. A TP53 VAF <55% does not exclude multihit disease.",
+            "locator": "TP53 mutational status and the role of cnLOH; Figure 3 legend; Suggestions for TP53-mutated myeloid neoplasm testing and nomenclature",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "urrutia-2025-tp53-myeloid-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML",
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In TP53-mutated AML/MDS, complex karyotype may suggest multihit TP53 status but is an imperfect surrogate: some TP53-mutated cases with complex karyotype lack chromosome 17 deletion or TP53 cnLOH, whereas some cases with TP53 cnLOH have noncomplex karyotypes.",
+            "locator": "TP53 mutational status and the role of cnLOH",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "urrutia-2025-tp53-myeloid-C0007",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "According to WHO 2022 as summarized by Urrutia et al., MDS with biallelic TP53 inactivation has <20% blasts and no history of cytotoxic or radiation therapy; biallelic TP53 inactivation is defined by two or more TP53 mutations, one TP53 mutation with chromosome 17/17p copy loss, or one TP53 mutation with TP53 cnLOH.",
+            "locator": "Societal classification of myeloid neoplasms with TP53 mutations, Figure 2",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "urrutia-2025-tp53-myeloid-C0016",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In TP53-mutated AML undergoing transplantation, complex karyotype is associated with inferior overall survival compared with absence of complex karyotype.",
+            "locator": "TP53 mutational status and the role of cnLOH",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "urrutia-2025-tp53-myeloid-C0022",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "In TP53-mutated AML, specific TP53 mutation identity is not currently recommended for prognostication.",
+            "locator": "Does TP53 mutation identity matter?",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 39,
+        "citation": {
+          "authors": [
+            "Urrutia S",
+            "Wong TN",
+            "Link DC"
+          ],
+          "citation_incomplete": [],
+          "display": "Urrutia S, Wong TN, Link DC. A clinical guide to\n                    <i>TP53</i>\n                    mutations in myeloid neoplasms. Blood. 2025;146(18):2157-2167.",
+          "doi": "10.1182/blood.2025029691",
+          "issue": "18",
+          "journal": "Blood",
+          "pages": "2157-2167",
+          "title": "A clinical guide to\n                    <i>TP53</i>\n                    mutations in myeloid neoplasms",
+          "volume": "146",
+          "year": 2025
+        },
+        "diseases_covered": [
+          "AML",
+          "MDS"
+        ],
+        "extraction_date": "2026-08-26",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "TP53"
+        ],
+        "paper_nickname": "Urrutia TP53 Myeloid Guide 2025",
+        "publication_key": "urrutia-2025-tp53-myeloid",
+        "publication_type": "narrative review"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-26",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "urrutia-2025-tp53-myeloid-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "urrutia-2025-tp53-myeloid-C0003",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "urrutia-2025-tp53-myeloid-C0007",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "urrutia-2025-tp53-myeloid-C0016",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "urrutia-2025-tp53-myeloid-C0022",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 5,
+          "census_claims": 39,
+          "census_entries": 39,
+          "ratio": 0.13
+        },
+        "input_id": "b8125973-ee07-5ca1-a4b9-ae960a27b4a3",
+        "markdown_sha256": "f2edd84fb36a4171126b30133a3e99e826b821e32fe4104b80e230a703e4944c",
+        "source_filename": "urrutia-2025-TP53-myeloid.pdf",
+        "source_sha256": "63686e1b479717f15a3741d50e91a838f2be4fd5b672378f28164346dcf234ea",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0001",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "In myeloid malignancies, DDX41 p.Arg525His is described as a hotspot acquired mutation occurring in individuals with deleterious germline DDX41 variants.",
+            "locator": "Clinical case, lines 15-17",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0002",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "Germline DDX41-associated myeloid malignancy can present at advanced age; an age around 70 years does not exclude germline predisposition.",
+            "locator": "Identifying potential germline alterations, line 21",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0003",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "GATA2",
+              "BRCA1",
+              "BRCA2"
+            ],
+            "interpretation": "Germline predisposition involving GATA2, BRCA1, or BRCA2 may arise de novo and therefore be present in the affected individual but absent from the parents.",
+            "locator": "Identifying potential germline alterations, line 21",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0005",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "DDX41"
+            ],
+            "interpretation": "A truncating DDX41 variant should raise suspicion of germline origin.",
+            "locator": "Identifying potential germline alleles from NGS assays of tumor samples, line 57",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0006",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "RUNX1",
+              "TP53"
+            ],
+            "interpretation": "A RUNX1 or TP53 variant detected in hematopoietic tissue should not be assumed to be germline or somatic based on the variant itself, because variants in either gene can occur in both settings.",
+            "locator": "Identifying potential germline alleles from NGS assays of tumor samples, line 57",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0007",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "A TP53 variant detected in hematopoietic tissue is more commonly somatic than germline; however, germline TP53 origin remains possible and may require dedicated germline evaluation.",
+            "locator": "Identifying potential germline alleles from NGS assays of tumor samples, lines 57 and 126",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0008",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "BRCA1",
+              "BRCA2"
+            ],
+            "interpretation": "A deleterious BRCA1 or BRCA2 variant detected during sequencing of a hematologic malignancy may warrant consideration of germline origin; the authors report that such variants were more commonly germline in their experience.",
+            "locator": "Identifying potential germline alleles from NGS assays of tumor samples, line 126",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0009",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Persistence of a TP53 variant at a relatively stable VAF across serial hematopoietic samples can raise suspicion of germline origin, including in patients who do not otherwise meet clinical criteria for Li-Fraumeni syndrome; germline status requires confirmation with appropriate germline testing.",
+            "locator": "Identifying potential germline alleles from NGS assays of tumor samples, lines 57 and 126",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0031",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "BRCA1",
+              "BRCA2"
+            ],
+            "interpretation": "BRCA1 and BRCA2 cancer-predisposition pathway mutations are associated with increased risk of hematopoietic malignancies.",
+            "locator": "Figure 3 legend, line 108",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0032",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "TP53-associated Li-Fraumeni syndrome is associated with increased risk of hematopoietic malignancies.",
+            "locator": "Figure 3 legend, line 108; Table 1 Li-Fraumeni syndrome row, line 68",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "kraft-godley-2020-germline-guide-C0033",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "MLH1",
+              "MSH2",
+              "MSH6",
+              "PMS2"
+            ],
+            "interpretation": "Lynch syndrome associated with MLH1, MSH2, MSH6, or PMS2 is associated with increased risk of hematopoietic malignancies.",
+            "locator": "Figure 3 legend, line 108; Table 1 Lynch syndrome row, line 70",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 96,
+        "citation": {
+          "authors": [
+            "Kraft IL",
+            "Godley LA"
+          ],
+          "citation_incomplete": [],
+          "display": "Kraft IL, Godley LA. Identifying potential germline variants from sequencing hematopoietic malignancies. Blood. 2020;136(22):2498-2506.",
+          "doi": "10.1182/blood.2020006910",
+          "issue": "22",
+          "journal": "Blood",
+          "pages": "2498-2506",
+          "title": "Identifying potential germline variants from sequencing hematopoietic malignancies",
+          "volume": "136",
+          "year": 2020
+        },
+        "diseases_covered": [],
+        "extraction_date": "2026-08-24",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "BRCA1",
+          "BRCA2",
+          "DDX41",
+          "GATA2",
+          "MLH1",
+          "MSH2",
+          "MSH6",
+          "PMS2",
+          "RUNX1",
+          "TP53"
+        ],
+        "paper_nickname": "Kraft–Godley Germline NGS Guide 2020",
+        "publication_key": "kraft-godley-2020-germline-guide",
+        "publication_type": "narrative review"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-26",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0001",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0003",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0005",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0006",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0007",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0008",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0009",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0031",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0032",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "kraft-godley-2020-germline-guide-C0033",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 11,
+          "census_claims": 96,
+          "census_entries": 96,
+          "ratio": 0.11
+        },
+        "input_id": "bd53c463-6019-51b9-9f2b-93a473f37f47",
+        "markdown_sha256": "a5a844b97d9145ab7fff221f170a9b06b48fe75d816786a545e8652de034b2e9",
+        "source_filename": "Kraft_Godley_2020_germline_guide.pdf",
+        "source_sha256": "dd0ac1e9fa3a0b74be638c73cad2dcf78f3c32cc1448fd29b6e7ed700b40d525",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "passamonti-2017-mysec-pm-secondary-C0002",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "post-PV/post-ET MF"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "JAK2",
+              "MPL",
+              "CALR"
+            ],
+            "interpretation": "Among patients with post-PV/post-ET MF, JAK2-mutated post-ET MF and triple-negative disease lacking JAK2, MPL and CALR mutations were reported to have a higher incidence of blast phase than CALR-mutated disease.",
+            "locator": "Introduction, MYSEC project genotype-phenotype associations paragraph",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "passamonti-2017-mysec-pm-secondary-C0003",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "post-PV/post-ET MF"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "JAK2",
+              "MPL",
+              "CALR"
+            ],
+            "interpretation": "In post-PV/post-ET MF, CALR-unmutated genotypes—JAK2-mutated, MPL-mutated, or triple-negative for JAK2, MPL and CALR—are associated with worse survival than CALR-mutated disease.",
+            "locator": "Results, Analysis of survival and identification of risk factors; Discussion, driver mutation paragraph",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 6,
+        "citation": {
+          "authors": [
+            "Passamonti F",
+            "Giorgino T",
+            "Mora B",
+            "Guglielmelli P",
+            "Rumi E",
+            "Maffioli M",
+            "Rambaldi A",
+            "Caramella M",
+            "Komrokji R",
+            "Gotlib J",
+            "Kiladjian JJ",
+            "Cervantes F",
+            "Devos T",
+            "Palandri F",
+            "De Stefano V",
+            "Ruggeri M",
+            "Silver RT",
+            "Benevolo G",
+            "Albano F",
+            "Caramazza D",
+            "Merli M",
+            "Pietra D",
+            "Casalone R",
+            "Rotunno G",
+            "Barbui T",
+            "Cazzola M",
+            "Vannucchi AM"
+          ],
+          "citation_incomplete": [],
+          "display": "Passamonti F, Giorgino T, Mora B, Guglielmelli P, Rumi E, Maffioli M, et al. A clinical-molecular prognostic model to predict survival in patients with post polycythemia vera and post essential thrombocythemia myelofibrosis. Leukemia. 2017;31(12):2726-2731.",
+          "doi": "10.1038/leu.2017.169",
+          "issue": "12",
+          "journal": "Leukemia",
+          "pages": "2726-2731",
+          "title": "A clinical-molecular prognostic model to predict survival in patients with post polycythemia vera and post essential thrombocythemia myelofibrosis",
+          "volume": "31",
+          "year": 2017
+        },
+        "diseases_covered": [
+          "post-PV/post-ET MF"
+        ],
+        "extraction_date": "2026-08-26",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "CALR",
+          "JAK2",
+          "MPL"
+        ],
+        "paper_nickname": "MYSEC-PM Secondary Myelofibrosis Prognostic Model 2017",
+        "publication_key": "passamonti-2017-mysec-pm-secondary",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-26",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "passamonti-2017-mysec-pm-secondary-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "passamonti-2017-mysec-pm-secondary-C0003",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 2,
+          "census_claims": 6,
+          "census_entries": 6,
+          "ratio": 0.33
+        },
+        "input_id": "c2657466-3239-56b6-8632-218dcb727a4c",
+        "markdown_sha256": "ee0da3cc3dfc8cfbd1ddb57946499cedc9f594d553d1ccb5dacd697cdeacdecd",
+        "source_filename": "Passamonti_2017_MYSEC_PM_secondary.pdf",
+        "source_sha256": "e382c23bb2333ea6e0616d653d206de9e543fa381ff2d04d6de56a975c7fd09f",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
             "card_id": "d-hner-2022-blood-140-1345-C0001",
             "category": "diagnosis",
             "disease_ancestors": [],
@@ -16967,6 +19583,423 @@
         "markdown_sha256": "b4de4293499a82b5f68eea66f77f4ec881fa692ced5868d223e03a227e9a5c13",
         "source_filename": "Bernard_2022_IPSS-M_MDS.pdf",
         "source_sha256": "331f4160eaba68a182dbbbfc1a466ac39a768b434076d325ffe0806601e5fe3a",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0002",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "myeloid neoplasm, unspecified"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SF3B1"
+            ],
+            "interpretation": "In unexplained cytopenia, SF3B1 mutation strongly supports an underlying myeloid neoplasm, unspecified by subtype, including when SF3B1 is the only detected mutation.",
+            "locator": "Results—Positive predictive value for myeloid neoplasm of mutation patterns",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "myeloid neoplasm, unspecified"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SRSF2",
+              "U2AF1",
+              "ZRSR2",
+              "JAK2",
+              "RUNX1"
+            ],
+            "interpretation": "In unexplained cytopenia, SRSF2, U2AF1, ZRSR2, JAK2, or RUNX1 mutation strongly supports an underlying myeloid neoplasm, unspecified by subtype, whether detected alone or with other mutations.",
+            "locator": "Results—Positive predictive value for myeloid neoplasm of mutation patterns; Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0004",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "myeloid neoplasm, unspecified"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TET2",
+              "DNMT3A",
+              "ASXL1"
+            ],
+            "interpretation": "In unexplained cytopenia, an isolated TET2, DNMT3A, or ASXL1 mutation provides substantially less support for an underlying myeloid neoplasm, unspecified by subtype, than the same mutation occurring with additional genetic lesions.",
+            "locator": "Results—Positive predictive value for myeloid neoplasm of mutation patterns; Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0005",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "myeloid neoplasm, unspecified"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TP53",
+              "TET2",
+              "ASXL1"
+            ],
+            "interpretation": "In unexplained cytopenia, TP53 mutation is more supportive of an underlying myeloid neoplasm, unspecified by subtype, when co-mutated—most often with TET2 or ASXL1—than when TP53 is isolated.",
+            "locator": "Results—Positive predictive value for myeloid neoplasm of mutation patterns",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0006",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "myeloid neoplasm, unspecified"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TET2",
+              "DNMT3A",
+              "ASXL1",
+              "RUNX1",
+              "EZH2",
+              "CBL",
+              "TP53",
+              "NRAS",
+              "CUX1",
+              "IDH2"
+            ],
+            "interpretation": "In unexplained cytopenia, co-mutation patterns in which TET2, DNMT3A, or ASXL1 co-occurs with RUNX1, EZH2, CBL, TP53, NRAS, CUX1, or IDH2 are highly predictive of an underlying myeloid neoplasm, unspecified by subtype.",
+            "locator": "Results—Positive predictive value for myeloid neoplasm of mutation patterns",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0007",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "MDS",
+              "MDS/MPN",
+              "AML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SF3B1"
+            ],
+            "interpretation": "In unexplained cytopenia, SF3B1 mutation is highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes—even when SF3B1 is the only detected mutation.",
+            "locator": "Results—Implications of mutation status for the diagnosis of myeloid neoplasms",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0008",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "MDS",
+              "MDS/MPN",
+              "AML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "ZRSR2"
+            ],
+            "interpretation": "In unexplained cytopenia, ZRSR2 mutation is highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes.",
+            "locator": "Results—Implications of mutation status for the diagnosis of myeloid neoplasms",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0009",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "MDS",
+              "MDS/MPN",
+              "AML"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "TET2",
+              "ASXL1",
+              "DNMT3A",
+              "RUNX1",
+              "EZH2",
+              "CBL",
+              "BCOR",
+              "CUX1",
+              "TP53",
+              "IDH1",
+              "IDH2"
+            ],
+            "interpretation": "In unexplained cytopenia, co-mutation patterns in which TET2, ASXL1, or DNMT3A co-occurs with RUNX1, EZH2, CBL, BCOR, CUX1, TP53, IDH1, or IDH2 are highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes.",
+            "locator": "Results—Implications of mutation status for the diagnosis of myeloid neoplasms; Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0010",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "MPN"
+            ],
+            "diseases": [
+              "MDS",
+              "MDS/MPN",
+              "AML",
+              "PMF"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SRSF2",
+              "U2AF1",
+              "JAK2"
+            ],
+            "interpretation": "In unexplained cytopenia, SRSF2 or U2AF1 mutation is highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes—except when co-occurring with JAK2 in primary myelofibrosis.",
+            "locator": "Results—Implications of mutation status for the diagnosis of myeloid neoplasms",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0011",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CCUS",
+              "MDS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SF3B1",
+              "SRSF2",
+              "U2AF1",
+              "ZRSR2",
+              "TET2",
+              "ASXL1",
+              "DNMT3A",
+              "RUNX1",
+              "EZH2",
+              "CBL",
+              "BCOR",
+              "CUX1",
+              "TP53",
+              "IDH1",
+              "IDH2"
+            ],
+            "interpretation": "In patients with CCUS and inconclusive dysplasia, the authors propose that highly specific mutation patterns—SF3B1, SRSF2, U2AF1, or ZRSR2 mutation, or TET2, ASXL1, or DNMT3A co-mutated with RUNX1, EZH2, CBL, BCOR, CUX1, TP53, IDH1, or IDH2—may provide presumptive evidence of MDS even when definitive morphologic criteria are absent.",
+            "locator": "Results—Implications of mutation status for the diagnosis of myeloid neoplasms; Discussion",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0012",
+            "category": "diagnosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [],
+            "interpretation": "In MDS with del(5q), del(5q) can be the sole founding and disease-defining genetic lesion; an accompanying sequence mutation is not required.",
+            "locator": "Discussion",
+            "secondary_citation": {
+              "authors": [
+                "Woll PS",
+                "Kjällquist U",
+                "Chowdhury O",
+                "et al."
+              ],
+              "display": "Woll PS, Kjällquist U, Chowdhury O, et al. Myelodysplastic syndromes are propagated by rare and distinct human cancer stem cells in vivo. Cancer Cell. 2014;25(6):794-808.",
+              "journal": "Cancer Cell",
+              "pages": "794-808",
+              "title": "Myelodysplastic syndromes are propagated by rare and distinct human cancer stem cells in vivo",
+              "volume": "25",
+              "year": 2014
+            }
+          },
+          {
+            "card_id": "malcovati-2017-ccus-foundation-C0013",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "CCUS"
+            ],
+            "evidence_tier": "univariable or descriptive",
+            "genes": [
+              "SF3B1",
+              "SRSF2",
+              "U2AF1",
+              "ZRSR2",
+              "TET2",
+              "ASXL1",
+              "DNMT3A"
+            ],
+            "interpretation": "In CCUS, spliceosome mutations in SF3B1, SRSF2, U2AF1, or ZRSR2, or TET2, ASXL1, or DNMT3A mutations with additional mutations, identify a very high risk of progression to a myeloid neoplasm.",
+            "locator": "Results—Diagnostic value of mutation status in patients with cytopenia of undetermined significance; Discussion",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 42,
+        "citation": {
+          "authors": [
+            "Malcovati L",
+            "Gallì A",
+            "Travaglino E",
+            "Ambaglio I",
+            "Rizzo E",
+            "Molteni E",
+            "Elena C",
+            "Ferretti VV",
+            "Catricalà S",
+            "Bono E",
+            "Todisco G",
+            "Bianchessi A",
+            "Rumi E",
+            "Zibellini S",
+            "Pietra D",
+            "Boveri E",
+            "Camaschella C",
+            "Toniolo D",
+            "Papaemmanuil E",
+            "Ogawa S",
+            "Cazzola M"
+          ],
+          "citation_incomplete": [],
+          "display": "Malcovati L, Gallì A, Travaglino E, Ambaglio I, Rizzo E, Molteni E, et al. Clinical significance of somatic mutation in unexplained blood cytopenia. Blood. 2017;129(25):3371-3378.",
+          "doi": "10.1182/blood-2017-01-763425",
+          "issue": "25",
+          "journal": "Blood",
+          "pages": "3371-3378",
+          "title": "Clinical significance of somatic mutation in unexplained blood cytopenia",
+          "volume": "129",
+          "year": 2017
+        },
+        "diseases_covered": [
+          "AML",
+          "CCUS",
+          "MDS",
+          "MDS/MPN",
+          "PMF",
+          "myeloid neoplasm, unspecified"
+        ],
+        "extraction_date": "2026-08-26",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "ASXL1",
+          "BCOR",
+          "CBL",
+          "CUX1",
+          "DNMT3A",
+          "EZH2",
+          "IDH1",
+          "IDH2",
+          "JAK2",
+          "NRAS",
+          "RUNX1",
+          "SF3B1",
+          "SRSF2",
+          "TET2",
+          "TP53",
+          "U2AF1",
+          "ZRSR2"
+        ],
+        "paper_nickname": "Malcovati CCUS 2017",
+        "publication_key": "malcovati-2017-ccus-foundation",
+        "publication_type": "primary study"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-08-26",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0002",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0003",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0004",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0005",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0006",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0007",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0008",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0009",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0010",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0011",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0012",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "malcovati-2017-ccus-foundation-C0013",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 12,
+          "census_claims": 42,
+          "census_entries": 42,
+          "ratio": 0.29
+        },
+        "input_id": "f88fe839-4c17-5254-bf6b-21deeaa3c849",
+        "markdown_sha256": "b20297b68e40526ed8723b74034224301874d4ea3d86c33f22584df68f8d0b6c",
+        "source_filename": "Malcovati_2017_CCUS_foundation.pdf",
+        "source_sha256": "075f66f9aef38a058da97ed9f7f5033822fe3903fdade1a28076268a91b62d65",
         "warnings": []
       }
     }

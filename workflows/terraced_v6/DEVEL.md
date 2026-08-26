@@ -26,7 +26,7 @@ Clinical interpretation belongs to the owner call. Downstream code must not re-d
 
 ## Model-facing card rendering
 
-Every prompt that shows evidence cards must call `rendering.render_prompt_cards()`. Compact mode is the default and groups `source_hint -> category -> diseases`, with exactly one card per line. The model sees only `[card:<12-hex-tag>]`; canonical corpus `card_id` values remain internal/persisted provenance. Evidence matching therefore returns `card_tag`, which Python resolves back to the canonical ID before audit and report construction. Diagnosis retrieval is `diagnosis AND (CMC OR gene)` plus the framework authority filter, and Stage 8 must not apply a second diagnosis gene filter.
+Every prompt that shows evidence cards must call `rendering.render_prompt_cards()` or its diagnosis-specific boundary, `rendering.render_diagnostic_prompt_cards()`. Compact mode is the default and groups `source_hint -> category -> diseases`, with exactly one card per line. The model sees only `[card:<12-hex-tag>]`; canonical corpus `card_id` values remain internal/persisted provenance. Evidence matching therefore returns `card_tag`, which Python resolves back to the canonical ID before audit and report construction. Diagnosis retrieval is `diagnosis AND (CMC OR gene)` plus the framework authority filter. WHO5/ICC authority filtering retains `included_publication_keys` (or all retrieved publications when that list is empty) and then removes `excluded_publication_keys`, so exclusion always wins. Prompt rendering, finite-membership context, and Stage 8 must reuse that resolved pool; Stage 8 must not apply a second diagnosis gene filter.
 
 ## Model-facing identifier rule
 
