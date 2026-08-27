@@ -1,0 +1,7 @@
+classification:
+  - variant: v01
+    bucket: mrd_marker
+    reason: "Suitable as an MRD marker in this context."
+  - variant: v02
+    bucket: not_mrd_marker
+    reason: "Not suitable as an MRD marker in this context."

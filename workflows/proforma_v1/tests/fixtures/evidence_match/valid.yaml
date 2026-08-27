@@ -1,0 +1,8 @@
+matches:
+  - evidence_id: E0001
+    card_tags:
+      - "[card:000000000001]"
+      - "[card:000000000002]"
+  - evidence_id: E0002
+    card_tags:
+      - "[card:000000000003]"

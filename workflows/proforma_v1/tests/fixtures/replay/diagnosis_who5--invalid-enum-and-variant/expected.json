@@ -1,0 +1,13 @@
+{
+  "source_workflow": "terraced-v6",
+  "stage": "diagnosis_who5",
+  "operation_id": "diagnosis.who1",
+  "accepted": false,
+  "message": "WHO5 diagnosis failed validation with 2 issue(s):\n1. schema_disease\n   Problem: 'MDs' is not an allowed schema disease.\n   Required fix: replace it with the exact allowed schema disease it was meant to be — most likely one of ['MDS', 'MDS/MPN'].\n   Received: MDs\n   Expected: one of these nearest allowed values: ['MDS', 'MDS/MPN']\n2. variants\n   Problem: contains ID(s) that were not supplied: ['V1'].\n   Required fix: use only the supplied IDs ['v01', 'v02'].\n   Received: ['V1']\n   Expected: ['v01', 'v02']",
+  "message_sha256": "1b8a5d7ae5182adfd380d445925c16930b846ae047fc676565f452497182981a",
+  "response_sha256": "4341dc4d7b7fbd9fef777a230560fd31ab13fec13c47f4954cc6d5187a1067d0",
+  "context_sha256": "b0421ab4a741e89b9346c7d84588684527cc82d1b6ce089ad8a8d672ad96d861",
+  "prompt_sha256": "73c682581b0cb2899ea695262b2c5090fa04426569936f83b261fb30c6b5e2a9",
+  "schema_sha256": "6553e176c06ad59da907726915544f9f16a5cc0ad21f55f99843dcb8b9099c5f",
+  "stage_spec_sha256": "bf4bab3f902ebf14e8e08f99c12dbad3a0abfd052d27130ffe0a0e7acc954f9d"
+}

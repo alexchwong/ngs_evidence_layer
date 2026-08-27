@@ -1,0 +1,13 @@
+{
+  "source_workflow": "terraced-v6",
+  "stage": "germline",
+  "operation_id": "germline",
+  "accepted": true,
+  "message": "germline valid",
+  "message_sha256": "d41090c3e266104d8265e4d6a5fd19e8b21ad6ef94df1ff7a2ede02e0435b428",
+  "response_sha256": "0cb636dc572d1892c815673cdae588b4f8337c04cfae8b4d2c8873f4d11229cf",
+  "context_sha256": "2f1330dfb0eae8e66570f03f82bfb6a74f0a1be1c49f918f270b15dec06701f8",
+  "prompt_sha256": "2e0b8f0cbbba652142534f117b16c6010898e0cf9731b270bf5dc57754e34a1c",
+  "schema_sha256": "77d939ea007edba3ff17862d76eff8c7906f1e56dc28ddaf11a852d7c812db7f",
+  "stage_spec_sha256": "c3058a5e67eac287bb1685b0ea55ac9637f4d78eb26ce006951e921f53a77f26"
+}

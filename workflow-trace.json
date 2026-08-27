@@ -1,0 +1,453 @@
+{
+  "schema_version": 1,
+  "workflow": "proforma-v1",
+  "operations": [
+    {
+      "id": "biomarker",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "biomarker--invalid-duplicate-row",
+      "prompt_asset": "biomarker.md",
+      "output_artifact": "biomarker",
+      "model_response_sha256": "880c096f748ffdf079a9342defd81d3d4fb95b6ac7ec55297e517bbbb4552dda",
+      "validation_result": "rejected",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "5c62e20776d5210ff7644fd71c5b5a10fd3b3fb18d31f1d442b46837b7cbb274",
+      "schema_sha256": "69047fedcffde738db7448ebdabcefc0f4df5732754e0cec8167cb5c4527d62b",
+      "stage_spec_sha256": "02e5327d6d5156e6073d8ee45344d57a759fc44d48ffe5a63eb64c7454acc1e3"
+    },
+    {
+      "id": "biomarker",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "biomarker--valid",
+      "prompt_asset": "biomarker.md",
+      "output_artifact": "biomarker",
+      "model_response_sha256": "3e5401d3b342767723e1fb20b0059ff359d6181b8e5f5651d5b539452940016e",
+      "validation_result": "rejected",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "5c62e20776d5210ff7644fd71c5b5a10fd3b3fb18d31f1d442b46837b7cbb274",
+      "schema_sha256": "69047fedcffde738db7448ebdabcefc0f4df5732754e0cec8167cb5c4527d62b",
+      "stage_spec_sha256": "02e5327d6d5156e6073d8ee45344d57a759fc44d48ffe5a63eb64c7454acc1e3"
+    },
+    {
+      "id": "diagnosis.icc",
+      "type": "model",
+      "status": "complete",
+      "fixture": "diagnosis_icc--valid",
+      "prompt_asset": "diagnosis_icc.md",
+      "output_artifact": "diagnosis_icc",
+      "model_response_sha256": "77707a4269c1b509a911f4dd759fef6110a9948c1f05fc6d2216399276aaa713",
+      "validation_result": "accepted",
+      "dependencies": [
+        "diagnosis.who1"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "ddace2642e306f0591be321be8b86555eb5653de7d4a2452a74ca24eb50603a3",
+      "schema_sha256": "e29d8210570ca332ca5af67088e1ef81e9bfb4e2296fb5216f0c1a2873b459e1",
+      "stage_spec_sha256": "6a370b20b0a53f7f46fe1cb287d3d0cf54987ac2fc79eaec5d9086103f049a3e"
+    },
+    {
+      "id": "diagnosis.other",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "diagnosis_other--invalid-null-contract",
+      "prompt_asset": "diagnosis_other.md",
+      "output_artifact": "diagnosis_other",
+      "model_response_sha256": "b03d64bfa616e7fd4339b9840e13f2d68ea716e3b2bae2f89a7783af83d70257",
+      "validation_result": "rejected",
+      "dependencies": [
+        "structure"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "50c25c30c27d5f4123959eea1e1b97458b5d58c22c8fac2b464408ab9a78e4aa",
+      "schema_sha256": "3266c0d865018426f428b36e4516edf3c938ef695461525c87ef63a68681c330",
+      "stage_spec_sha256": "a81c9ee91c6a470d2c8a06d76039bbb7b9cf74655f4b5b159b47b8abf7680096"
+    },
+    {
+      "id": "diagnosis.other",
+      "type": "model",
+      "status": "complete",
+      "fixture": "diagnosis_other--valid",
+      "prompt_asset": "diagnosis_other.md",
+      "output_artifact": "diagnosis_other",
+      "model_response_sha256": "ed21ceb8a7e4ded21686492cfb3300a2d60c6a831e81c0df0f1546cef5014be7",
+      "validation_result": "accepted",
+      "dependencies": [
+        "structure"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "50c25c30c27d5f4123959eea1e1b97458b5d58c22c8fac2b464408ab9a78e4aa",
+      "schema_sha256": "3266c0d865018426f428b36e4516edf3c938ef695461525c87ef63a68681c330",
+      "stage_spec_sha256": "a81c9ee91c6a470d2c8a06d76039bbb7b9cf74655f4b5b159b47b8abf7680096"
+    },
+    {
+      "id": "diagnosis.who1",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "diagnosis_who5--invalid-enum-and-variant",
+      "prompt_asset": "diagnosis_who5.md",
+      "output_artifact": "diagnosis_who5",
+      "model_response_sha256": "4341dc4d7b7fbd9fef777a230560fd31ab13fec13c47f4954cc6d5187a1067d0",
+      "validation_result": "rejected",
+      "dependencies": [
+        "structure"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "73c682581b0cb2899ea695262b2c5090fa04426569936f83b261fb30c6b5e2a9",
+      "schema_sha256": "6553e176c06ad59da907726915544f9f16a5cc0ad21f55f99843dcb8b9099c5f",
+      "stage_spec_sha256": "bf4bab3f902ebf14e8e08f99c12dbad3a0abfd052d27130ffe0a0e7acc954f9d"
+    },
+    {
+      "id": "diagnosis.who1",
+      "type": "model",
+      "status": "complete",
+      "fixture": "diagnosis_who5--valid",
+      "prompt_asset": "diagnosis_who5.md",
+      "output_artifact": "diagnosis_who5",
+      "model_response_sha256": "4512faf063497517bd1c02fd9ccf9631ea7c6bfa3bda2de4f6a3e9d813f978a8",
+      "validation_result": "accepted",
+      "dependencies": [
+        "structure"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "73c682581b0cb2899ea695262b2c5090fa04426569936f83b261fb30c6b5e2a9",
+      "schema_sha256": "6553e176c06ad59da907726915544f9f16a5cc0ad21f55f99843dcb8b9099c5f",
+      "stage_spec_sha256": "bf4bab3f902ebf14e8e08f99c12dbad3a0abfd052d27130ffe0a0e7acc954f9d"
+    },
+    {
+      "id": "evidence.audit",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "evidence_audit--invalid-types",
+      "prompt_asset": "evidence_audit.md",
+      "output_artifact": "evidence_audit",
+      "model_response_sha256": "efa3b000b347c54e3c4ca83fe99a3531cb1a091096029758b2d6fd8555428d98",
+      "validation_result": "rejected",
+      "dependencies": [
+        "evidence.assignment"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "299ba9bafe13fd9c6bb4e06a0040a8406028d37cc361229cfe13d5819dc32d9d",
+      "schema_sha256": "46ff66a04e19018121f71c3613d62e7ce0c6a51890cee4f6e9ddbec7621e2fbb",
+      "stage_spec_sha256": "9663ad98d7a9259a2e47fa992357e249b833f4ea9ae66aa645febfe9439d9092"
+    },
+    {
+      "id": "evidence.audit",
+      "type": "model",
+      "status": "complete",
+      "fixture": "evidence_audit--valid",
+      "prompt_asset": "evidence_audit.md",
+      "output_artifact": "evidence_audit",
+      "model_response_sha256": "4bc3ac8e34fb18f15270352db9fa91363c5633232d5cc5e0a8d514a06bb22b9e",
+      "validation_result": "accepted",
+      "dependencies": [
+        "evidence.assignment"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "299ba9bafe13fd9c6bb4e06a0040a8406028d37cc361229cfe13d5819dc32d9d",
+      "schema_sha256": "46ff66a04e19018121f71c3613d62e7ce0c6a51890cee4f6e9ddbec7621e2fbb",
+      "stage_spec_sha256": "9663ad98d7a9259a2e47fa992357e249b833f4ea9ae66aa645febfe9439d9092"
+    },
+    {
+      "id": "evidence.assignment",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "evidence_match--invalid-missing-and-unexpected",
+      "prompt_asset": "evidence_match.md",
+      "output_artifact": "evidence_match",
+      "model_response_sha256": "24ede1d06b6f06cec83e8d0549c71b67dfb60ecccf3e9f89dc21193f8d01bc80",
+      "validation_result": "rejected",
+      "dependencies": [
+        "prognosis",
+        "treatment",
+        "biomarker",
+        "germline"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "b45aab30b89bd81e9c156cd8d9ebc66248735777e8d18d6b15f0c837f0101138",
+      "schema_sha256": "3d8c9fd8acf1a849eee51038bd7da63c1e39850c1e73793ed21464e443c89d32",
+      "stage_spec_sha256": "8049f7ae07d50c900e9cf24ec60cb416d454af99df2a5f67a517a6979d57e1a4"
+    },
+    {
+      "id": "evidence.assignment",
+      "type": "model",
+      "status": "complete",
+      "fixture": "evidence_match--valid",
+      "prompt_asset": "evidence_match.md",
+      "output_artifact": "evidence_match",
+      "model_response_sha256": "f35ec6b986ece910c13a2909082557ecdea117b3d63202e7072d997e6a4a4e4b",
+      "validation_result": "accepted",
+      "dependencies": [
+        "prognosis",
+        "treatment",
+        "biomarker",
+        "germline"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "b45aab30b89bd81e9c156cd8d9ebc66248735777e8d18d6b15f0c837f0101138",
+      "schema_sha256": "3d8c9fd8acf1a849eee51038bd7da63c1e39850c1e73793ed21464e443c89d32",
+      "stage_spec_sha256": "8049f7ae07d50c900e9cf24ec60cb416d454af99df2a5f67a517a6979d57e1a4"
+    },
+    {
+      "id": "germline",
+      "type": "model",
+      "status": "complete",
+      "fixture": "germline--valid",
+      "prompt_asset": "germline.md",
+      "output_artifact": "germline",
+      "model_response_sha256": "0cb636dc572d1892c815673cdae588b4f8337c04cfae8b4d2c8873f4d11229cf",
+      "validation_result": "accepted",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "2e0b8f0cbbba652142534f117b16c6010898e0cf9731b270bf5dc57754e34a1c",
+      "schema_sha256": "77d939ea007edba3ff17862d76eff8c7906f1e56dc28ddaf11a852d7c812db7f",
+      "stage_spec_sha256": "c3058a5e67eac287bb1685b0ea55ac9637f4d78eb26ce006951e921f53a77f26"
+    },
+    {
+      "id": "prognosis",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "prognosis--invalid-bad-bucket-and-score",
+      "prompt_asset": "prognosis.md",
+      "output_artifact": "prognosis",
+      "model_response_sha256": "94b6e37d9e92f5c6296c563cfd681f7b144c702ec41e0a2a20e8c05dfc07fa7d",
+      "validation_result": "rejected",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "14b41282861ed8684b5944c58ec4f75e400e4e716ca5acdb7bbf5e487ca38f46",
+      "schema_sha256": "b5d68997398ed77a6d12393f6c29acc5d8e3bbc8bb0422fc323dded37677b792",
+      "stage_spec_sha256": "33b37560893ccc44922af06f16285bd2ada0d224b2226ff7ad74e84ff67093f6"
+    },
+    {
+      "id": "prognosis",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "prognosis--invalid-missing-variant",
+      "prompt_asset": "prognosis.md",
+      "output_artifact": "prognosis",
+      "model_response_sha256": "f35e57a8d484428f401553d5690ab96565390fcc67cdb8a50b9783629040bad8",
+      "validation_result": "rejected",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "14b41282861ed8684b5944c58ec4f75e400e4e716ca5acdb7bbf5e487ca38f46",
+      "schema_sha256": "b5d68997398ed77a6d12393f6c29acc5d8e3bbc8bb0422fc323dded37677b792",
+      "stage_spec_sha256": "33b37560893ccc44922af06f16285bd2ada0d224b2226ff7ad74e84ff67093f6"
+    },
+    {
+      "id": "prognosis",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "prognosis--valid",
+      "prompt_asset": "prognosis.md",
+      "output_artifact": "prognosis",
+      "model_response_sha256": "7682148bc6063242c6d892de2561145dc2960f7c1e67c9346f1195eda6eefac4",
+      "validation_result": "rejected",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "14b41282861ed8684b5944c58ec4f75e400e4e716ca5acdb7bbf5e487ca38f46",
+      "schema_sha256": "b5d68997398ed77a6d12393f6c29acc5d8e3bbc8bb0422fc323dded37677b792",
+      "stage_spec_sha256": "33b37560893ccc44922af06f16285bd2ada0d224b2226ff7ad74e84ff67093f6"
+    },
+    {
+      "id": "report.preservation",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "report_preservation--invalid-issue-with-preserved",
+      "prompt_asset": "report_preservation.md",
+      "output_artifact": "report_preservation",
+      "model_response_sha256": "a5f7882b691268b78bb556920cc84659dfe3e2e4362d05464c9dd7112956babf",
+      "validation_result": "rejected",
+      "dependencies": [
+        "report"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "056139750b30e5ec4676251442c74e96dabce21261a2cbbafe86bbe6ed1e44e0",
+      "schema_sha256": "129157105ac1c76bb7f245bfa8f997118a232b45229d7f44ab33998af5f4748c",
+      "stage_spec_sha256": "5b894bed8c67a2295d913da7e19617892e193d8f8eba2d50db6af0a090cf5789"
+    },
+    {
+      "id": "report.preservation",
+      "type": "model",
+      "status": "complete",
+      "fixture": "report_preservation--valid",
+      "prompt_asset": "report_preservation.md",
+      "output_artifact": "report_preservation",
+      "model_response_sha256": "b3a1f1522b6b36f0c5afeb5d81faba9a70655bdbb1444c9f58ee15a39411192e",
+      "validation_result": "accepted",
+      "dependencies": [
+        "report"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "056139750b30e5ec4676251442c74e96dabce21261a2cbbafe86bbe6ed1e44e0",
+      "schema_sha256": "129157105ac1c76bb7f245bfa8f997118a232b45229d7f44ab33998af5f4748c",
+      "stage_spec_sha256": "5b894bed8c67a2295d913da7e19617892e193d8f8eba2d50db6af0a090cf5789"
+    },
+    {
+      "id": "report",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "report_write--invalid-wrong-order",
+      "prompt_asset": "report_write.md",
+      "output_artifact": "report_write",
+      "model_response_sha256": "19a251187e5d3d85c012529da16fa781e00c87d942e4b38c489e1545bb09a9f1",
+      "validation_result": "rejected",
+      "dependencies": [
+        "evidence.audit"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "501a7893ea302aa423234259a5b75cf5d07858f718b6ea22f443e4c18a2e0855",
+      "schema_sha256": "b5650388eca9f5763c2a3e8b10572cb8ac0c48edab75125b133c005368dd0607",
+      "stage_spec_sha256": "a2519d9d469557ea2cca728719c659584a916571fb5553ff22ba8d02eae5fc66"
+    },
+    {
+      "id": "report",
+      "type": "model",
+      "status": "complete",
+      "fixture": "report_write--valid",
+      "prompt_asset": "report_write.md",
+      "output_artifact": "report_write",
+      "model_response_sha256": "6430cda52d5b51843a1e092c6ded07d0ae319268613b76e30564b8a21150f897",
+      "validation_result": "accepted",
+      "dependencies": [
+        "evidence.audit"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "501a7893ea302aa423234259a5b75cf5d07858f718b6ea22f443e4c18a2e0855",
+      "schema_sha256": "b5650388eca9f5763c2a3e8b10572cb8ac0c48edab75125b133c005368dd0607",
+      "stage_spec_sha256": "a2519d9d469557ea2cca728719c659584a916571fb5553ff22ba8d02eae5fc66"
+    },
+    {
+      "id": "structure",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "structure_case--invalid-ids",
+      "prompt_asset": "structure_case.md",
+      "output_artifact": "structure_case",
+      "model_response_sha256": "d64818d120260eafd96130a623a1c5b4af3cc2e9f38e50629e74bf562546a2ae",
+      "validation_result": "rejected",
+      "dependencies": [],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "7c1685e080eb5637e0df2d26def80613999253710f56ab97a454ef10dafa2853",
+      "schema_sha256": "427bc3ad6e7fb279ec098905ebc3daa2169db09dc5834d1e62e874e319f0a2be",
+      "stage_spec_sha256": "9f7e86a7d16032b88269a0ed6951eb4b8dc3db02ea0b9f2538a2165cb8fb509f"
+    },
+    {
+      "id": "structure",
+      "type": "model",
+      "status": "complete",
+      "fixture": "structure_case--valid",
+      "prompt_asset": "structure_case.md",
+      "output_artifact": "structure_case",
+      "model_response_sha256": "3fbdedb726d447026e69fd88ac27fb802845a5528f18171c70ce654c542530b3",
+      "validation_result": "accepted",
+      "dependencies": [],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "7c1685e080eb5637e0df2d26def80613999253710f56ab97a454ef10dafa2853",
+      "schema_sha256": "427bc3ad6e7fb279ec098905ebc3daa2169db09dc5834d1e62e874e319f0a2be",
+      "stage_spec_sha256": "9f7e86a7d16032b88269a0ed6951eb4b8dc3db02ea0b9f2538a2165cb8fb509f"
+    },
+    {
+      "id": "treatment",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "treatment--invalid-exclusive-bucket",
+      "prompt_asset": "treatment.md",
+      "output_artifact": "treatment",
+      "model_response_sha256": "df923a0b2f579c7f3dff8ebb7bcee11534a858f9704bd4fbdaab3f71c690db12",
+      "validation_result": "rejected",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "d3c364f9aa6078b6fd6882215d1da572b974f9471c66d0641013ba380ed101c4",
+      "schema_sha256": "7bfd84ca4a20c6e86d2b0747958bd8c11019049914b279ab3b00aa5957554823",
+      "stage_spec_sha256": "a00e7dd619fe002c6cb8d1fc2f04290cba2ad85581cd4899841ef28cb80d7d3c"
+    },
+    {
+      "id": "treatment",
+      "type": "model",
+      "status": "rejected",
+      "fixture": "treatment--valid",
+      "prompt_asset": "treatment.md",
+      "output_artifact": "treatment",
+      "model_response_sha256": "36d5a5b9a7018f4df6a78988b8160315cbf6c86c1fa290e76963ba1696ce6898",
+      "validation_result": "rejected",
+      "dependencies": [
+        "diagnosis.who1",
+        "diagnosis.icc"
+      ],
+      "input_artifacts": [
+        "fixture.context"
+      ],
+      "prompt_sha256": "d3c364f9aa6078b6fd6882215d1da572b974f9471c66d0641013ba380ed101c4",
+      "schema_sha256": "7bfd84ca4a20c6e86d2b0747958bd8c11019049914b279ab3b00aa5957554823",
+      "stage_spec_sha256": "a00e7dd619fe002c6cb8d1fc2f04290cba2ad85581cd4899841ef28cb80d7d3c"
+    }
+  ]
+}

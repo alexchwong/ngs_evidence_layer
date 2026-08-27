@@ -1,0 +1,6 @@
+preservation audit failed validation with 1 issue(s):
+1. audits[0].issue
+   Problem: populated even though preserved is true.
+   Required fix: use null for issue when preserved is true.
+   Received: minor drift
+   Expected: null

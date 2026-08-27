@@ -4,7 +4,9 @@
   "aliases": {
     "legacy": "legacy-v1",
     "diagnosis-first": "diagnosis-first-v1",
-    "terraced": "terraced-v6"
+    "terraced": "terraced-v6",
+    "proforma": "proforma-v1",
+    "proforma_v1": "proforma-v1"
   },
   "workflows": {
     "categorical-v1": {
@@ -41,6 +43,10 @@
     },
     "terraced-v6": {
       "path": "workflows/terraced_v6",
+      "enabled": true
+    },
+    "proforma-v1": {
+      "path": "workflows/proforma_v1",
       "enabled": true
     }
   }

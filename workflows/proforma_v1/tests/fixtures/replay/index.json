@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "source_workflow": "terraced-v6",
+  "fixture_kind": "recorded_model_interaction",
+  "cases": [
+    {
+      "case_id": "biomarker--invalid-duplicate-row",
+      "stage": "biomarker",
+      "operation_id": "biomarker",
+      "prompt_asset": "biomarker.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "biomarker--valid",
+      "stage": "biomarker",
+      "operation_id": "biomarker",
+      "prompt_asset": "biomarker.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "diagnosis_icc--valid",
+      "stage": "diagnosis_icc",
+      "operation_id": "diagnosis.icc",
+      "prompt_asset": "diagnosis_icc.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "diagnosis_other--invalid-null-contract",
+      "stage": "diagnosis_other",
+      "operation_id": "diagnosis.other",
+      "prompt_asset": "diagnosis_other.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "diagnosis_other--valid",
+      "stage": "diagnosis_other",
+      "operation_id": "diagnosis.other",
+      "prompt_asset": "diagnosis_other.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "diagnosis_who5--invalid-enum-and-variant",
+      "stage": "diagnosis_who5",
+      "operation_id": "diagnosis.who1",
+      "prompt_asset": "diagnosis_who5.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "diagnosis_who5--valid",
+      "stage": "diagnosis_who5",
+      "operation_id": "diagnosis.who1",
+      "prompt_asset": "diagnosis_who5.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "evidence_audit--invalid-types",
+      "stage": "evidence_audit",
+      "operation_id": "evidence.audit",
+      "prompt_asset": "evidence_audit.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "evidence_audit--valid",
+      "stage": "evidence_audit",
+      "operation_id": "evidence.audit",
+      "prompt_asset": "evidence_audit.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "evidence_match--invalid-missing-and-unexpected",
+      "stage": "evidence_match",
+      "operation_id": "evidence.assignment",
+      "prompt_asset": "evidence_match.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "evidence_match--valid",
+      "stage": "evidence_match",
+      "operation_id": "evidence.assignment",
+      "prompt_asset": "evidence_match.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "germline--valid",
+      "stage": "germline",
+      "operation_id": "germline",
+      "prompt_asset": "germline.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "prognosis--invalid-bad-bucket-and-score",
+      "stage": "prognosis",
+      "operation_id": "prognosis",
+      "prompt_asset": "prognosis.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "prognosis--invalid-missing-variant",
+      "stage": "prognosis",
+      "operation_id": "prognosis",
+      "prompt_asset": "prognosis.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "prognosis--valid",
+      "stage": "prognosis",
+      "operation_id": "prognosis",
+      "prompt_asset": "prognosis.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "report_preservation--invalid-issue-with-preserved",
+      "stage": "report_preservation",
+      "operation_id": "report.preservation",
+      "prompt_asset": "report_preservation.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "report_preservation--valid",
+      "stage": "report_preservation",
+      "operation_id": "report.preservation",
+      "prompt_asset": "report_preservation.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "report_write--invalid-wrong-order",
+      "stage": "report_write",
+      "operation_id": "report",
+      "prompt_asset": "report_write.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "report_write--valid",
+      "stage": "report_write",
+      "operation_id": "report",
+      "prompt_asset": "report_write.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "structure_case--invalid-ids",
+      "stage": "structure_case",
+      "operation_id": "structure",
+      "prompt_asset": "structure_case.md",
+      "response": "response.json"
+    },
+    {
+      "case_id": "structure_case--valid",
+      "stage": "structure_case",
+      "operation_id": "structure",
+      "prompt_asset": "structure_case.md",
+      "response": "response.json"
+    },
+    {
+      "case_id": "treatment--invalid-exclusive-bucket",
+      "stage": "treatment",
+      "operation_id": "treatment",
+      "prompt_asset": "treatment.md",
+      "response": "response.yaml"
+    },
+    {
+      "case_id": "treatment--valid",
+      "stage": "treatment",
+      "operation_id": "treatment",
+      "prompt_asset": "treatment.md",
+      "response": "response.yaml"
+    }
+  ]
+}

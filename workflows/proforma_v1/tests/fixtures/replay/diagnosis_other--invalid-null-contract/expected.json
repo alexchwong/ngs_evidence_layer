@@ -1,0 +1,13 @@
+{
+  "source_workflow": "terraced-v6",
+  "stage": "diagnosis_other",
+  "operation_id": "diagnosis.other",
+  "accepted": false,
+  "message": "second diagnosis failed validation with 1 issue(s):\n1. second diagnosis\n   Problem: diagnosis is null but variants/reason are populated.\n   Required fix: when there is no independent concurrent diagnosis, return diagnosis: null, variants: [] and reason: null.\n   Received: variants=['v01'] reason=None\n   Expected: variants: [] and reason: null",
+  "message_sha256": "4a11990fa71681960f6bae759d934fc4e26d892b40b063e4239cfd0fb83b1460",
+  "response_sha256": "b03d64bfa616e7fd4339b9840e13f2d68ea716e3b2bae2f89a7783af83d70257",
+  "context_sha256": "2f1330dfb0eae8e66570f03f82bfb6a74f0a1be1c49f918f270b15dec06701f8",
+  "prompt_sha256": "50c25c30c27d5f4123959eea1e1b97458b5d58c22c8fac2b464408ab9a78e4aa",
+  "schema_sha256": "3266c0d865018426f428b36e4516edf3c938ef695461525c87ef63a68681c330",
+  "stage_spec_sha256": "a81c9ee91c6a470d2c8a06d76039bbb7b9cf74655f4b5b159b47b8abf7680096"
+}

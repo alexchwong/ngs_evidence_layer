@@ -1,0 +1,13 @@
+{
+  "source_workflow": "terraced-v6",
+  "stage": "report_preservation",
+  "operation_id": "report.preservation",
+  "accepted": false,
+  "message": "preservation audit failed validation with 1 issue(s):\n1. audits[0].issue\n   Problem: populated even though preserved is true.\n   Required fix: use null for issue when preserved is true.\n   Received: minor drift\n   Expected: null",
+  "message_sha256": "55208f57cc31372dcaceb439f8c09010326a666392996b49fdd8edd4f6fcf871",
+  "response_sha256": "a5f7882b691268b78bb556920cc84659dfe3e2e4362d05464c9dd7112956babf",
+  "context_sha256": "157c7e08c516e97c2f3006ca19b342542f801457c8ea18261a5056d22780cbbb",
+  "prompt_sha256": "056139750b30e5ec4676251442c74e96dabce21261a2cbbafe86bbe6ed1e44e0",
+  "schema_sha256": "129157105ac1c76bb7f245bfa8f997118a232b45229d7f44ab33998af5f4748c",
+  "stage_spec_sha256": "5b894bed8c67a2295d913da7e19617892e193d8f8eba2d50db6af0a090cf5789"
+}

@@ -1,0 +1,13 @@
+{
+  "source_workflow": "terraced-v6",
+  "stage": "biomarker",
+  "operation_id": "biomarker",
+  "accepted": false,
+  "message": "MRD failed validation with 7 issue(s):\n1. MRD\n   Problem: missing ['applicable_disease'].\n   Required fix: return exactly the keys ['applicable_disease', 'classification'].\n   Received: ['classification']\n   Expected: ['applicable_disease', 'classification']\n2. classification[0]\n   Problem: missing ['gene', 'mrd_status']; unexpected ['bucket'].\n   Required fix: return exactly the keys ['gene', 'mrd_status', 'reason', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['gene', 'mrd_status', 'reason', 'variant']\n3. classification[0]\n   Problem: missing ['gene', 'mrd_status']; unexpected ['bucket'].\n   Required fix: return exactly the keys ['gene', 'mrd_status', 'reason', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['gene', 'mrd_status', 'reason', 'variant']\n4. classification[0].mrd_status\n   Problem: 'None' is not an allowed MRD status.\n   Required fix: use one exact MRD status from ['mrd_marker', 'not_mrd_marker'].\n   Received: None\n   Expected: ['mrd_marker', 'not_mrd_marker']\n5. classification[1]\n   Problem: missing ['gene', 'mrd_status']; unexpected ['bucket'].\n   Required fix: return exactly the keys ['gene', 'mrd_status', 'reason', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['gene', 'mrd_status', 'reason', 'variant']\n6. classification[1]\n   Problem: missing ['gene', 'mrd_status']; unexpected ['bucket'].\n   Required fix: return exactly the keys ['gene', 'mrd_status', 'reason', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['gene', 'mrd_status', 'reason', 'variant']\n7. classification[1].mrd_status\n   Problem: 'None' is not an allowed MRD status.\n   Required fix: use one exact MRD status from ['mrd_marker', 'not_mrd_marker'].\n   Received: None\n   Expected: ['mrd_marker', 'not_mrd_marker']",
+  "message_sha256": "4c37d0e9e2159980eed0ed75805824c31fa668e44f6fd5248e1c1238ba66264c",
+  "response_sha256": "3e5401d3b342767723e1fb20b0059ff359d6181b8e5f5651d5b539452940016e",
+  "context_sha256": "2f1330dfb0eae8e66570f03f82bfb6a74f0a1be1c49f918f270b15dec06701f8",
+  "prompt_sha256": "5c62e20776d5210ff7644fd71c5b5a10fd3b3fb18d31f1d442b46837b7cbb274",
+  "schema_sha256": "69047fedcffde738db7448ebdabcefc0f4df5732754e0cec8167cb5c4527d62b",
+  "stage_spec_sha256": "02e5327d6d5156e6073d8ee45344d57a759fc44d48ffe5a63eb64c7454acc1e3"
+}

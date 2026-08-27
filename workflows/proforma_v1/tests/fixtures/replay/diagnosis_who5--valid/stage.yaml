@@ -1,0 +1,20 @@
+stage: diagnosis_who5
+version: 1
+type: model
+role: diagnosis
+label: WHO5 diagnosis
+prompt: diagnosis_who5.md
+output:
+  format: yaml
+  schema: diagnosis_who5.json
+rules:
+- rule: enum
+  field: schema_disease
+  values_from: allowed_diseases
+  label: schema disease
+- rule: id_subset
+  field: variants
+  source: registry
+retries:
+  content: 2
+  serialization: 3

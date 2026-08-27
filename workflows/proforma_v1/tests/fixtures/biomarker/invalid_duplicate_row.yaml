@@ -1,0 +1,7 @@
+classification:
+  - variant: v01
+    bucket: mrd_marker
+    reason: "Marker."
+  - variant: v01
+    bucket: not_mrd_marker
+    reason: "Not a marker."

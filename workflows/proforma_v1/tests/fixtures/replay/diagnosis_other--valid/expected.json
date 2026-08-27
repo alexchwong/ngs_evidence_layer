@@ -1,0 +1,13 @@
+{
+  "source_workflow": "terraced-v6",
+  "stage": "diagnosis_other",
+  "operation_id": "diagnosis.other",
+  "accepted": true,
+  "message": "second diagnosis valid",
+  "message_sha256": "5ae1111bf229ccf689056a10057d80754a173fe01a42a89438c0b4344170de30",
+  "response_sha256": "ed21ceb8a7e4ded21686492cfb3300a2d60c6a831e81c0df0f1546cef5014be7",
+  "context_sha256": "2f1330dfb0eae8e66570f03f82bfb6a74f0a1be1c49f918f270b15dec06701f8",
+  "prompt_sha256": "50c25c30c27d5f4123959eea1e1b97458b5d58c22c8fac2b464408ab9a78e4aa",
+  "schema_sha256": "3266c0d865018426f428b36e4516edf3c938ef695461525c87ef63a68681c330",
+  "stage_spec_sha256": "a81c9ee91c6a470d2c8a06d76039bbb7b9cf74655f4b5b159b47b8abf7680096"
+}

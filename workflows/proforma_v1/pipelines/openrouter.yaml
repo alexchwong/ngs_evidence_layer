@@ -1,0 +1,52 @@
+pipeline:
+  version: 1
+  description: Proforma-v1 OpenRouter pipeline.
+provider:
+  type: openai-compatible
+  base_url: https://openrouter.ai/api/v1
+  base_url_env: NEL_OPENROUTER_BASE_URL
+  api_key_env: OPENROUTER_API_KEY
+  timeout_s: 900
+  api_key_required: true
+model_aliases:
+  default: qwen/qwen3-coder-next
+
+  # Example: pin a model to a specific OpenRouter provider with no fallback:
+  # groq_only:
+  #   model: openai/gpt-oss-20b
+  #   provider:
+  #     order: [groq]
+  #     allow_fallbacks: false
+model_roles:
+  structure:
+    model: default
+    temperature: 0.0
+    max_tokens: 65536
+  diagnosis:
+    model: default
+    temperature: 0.0
+    max_tokens: 65536
+  ptbg:
+    model: default
+    temperature: 0.0
+    max_tokens: 65536
+  evidence_match:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384
+  evidence_audit:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384
+  report_write:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384
+  preservation_check:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384
+  syntax_repair:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384

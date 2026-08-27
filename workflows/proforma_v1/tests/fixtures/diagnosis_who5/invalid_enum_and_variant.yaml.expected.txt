@@ -1,0 +1,11 @@
+WHO5 diagnosis failed validation with 2 issue(s):
+1. schema_disease
+   Problem: 'MDs' is not an allowed schema disease.
+   Required fix: replace it with the exact allowed schema disease it was meant to be — most likely one of ['MDS', 'MDS/MPN'].
+   Received: MDs
+   Expected: one of these nearest allowed values: ['MDS', 'MDS/MPN']
+2. variants
+   Problem: contains ID(s) that were not supplied: ['V1'].
+   Required fix: use only the supplied IDs ['v01', 'v02'].
+   Received: ['V1']
+   Expected: ['v01', 'v02']

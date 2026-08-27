@@ -1,0 +1,69 @@
+stage: treatment
+version: 1
+type: domain_proforma
+role: ptbg
+label: treatment
+prompt: treatment.md
+inputs:
+  registry: canonical
+  case:
+  - provisional_disease
+  - case_facts
+  - ngs_result_completeness
+  - ngs_no_variants_detected
+  diagnosis:
+    roles:
+    - who5
+    fields:
+    - schema_disease
+    - diagnosis
+    - variants
+  cards:
+    category: treatment
+output:
+  path: treatment_state/proforma.yaml
+  format: yaml
+  schema: treatment.json
+buckets:
+- drug_target
+- drug_sensitive
+- drug_resistant
+- no_drug_implication
+therapy_buckets:
+- drug_target
+- drug_sensitive
+- drug_resistant
+solitary_buckets:
+- no_drug_implication
+multi_row: true
+rules:
+- rule: applicable_disease_exact
+- rule: gene_matches_registry
+- rule: rows_per_id
+  field: classification
+  id_field: variant
+  source: registry
+  minimum: 1
+- rule: enum
+  field: classification[].treatment_category
+  values_from: buckets
+  label: treatment category
+- rule: exclusive_with
+  field: classification
+  id_field: variant
+  category_field: treatment_category
+  buckets_from: solitary_buckets
+transforms:
+- consolidate_parallel_variant_rows
+reportability:
+  drug_target: true
+  drug_sensitive: true
+  drug_resistant: true
+  no_drug_implication: false
+retries:
+  content: 2
+  serialization: 3
+guidance:
+- Every positive treatment implication must be supported in the authoritative disease; do not borrow treatment evidence from another disease.
+- A variant may appear in more than one row when it carries genuinely distinct therapeutic implications, each with its own therapy.
+- '`no_drug_implication` is exclusive: a variant in that category must not appear in any other row.'
