@@ -17,6 +17,6 @@
   ],
   "status": "experimental",
   "cloned_from": "terraced-v6",
-  "architecture": "owner-proforma-evidence-deterministic-blocks-single-writer",
-  "phase": 1
+  "architecture": "declarative-workflow-shared-executors-owner-proforma-evidence-deterministic-blocks-single-writer",
+  "phase": 2
 }

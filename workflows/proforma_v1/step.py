@@ -14,6 +14,11 @@ from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
 from workflows.proforma_v1 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
+from workflows.proforma_v1.engine.context import WorkflowContext
+from workflows.proforma_v1.engine.workflow_compiler import compile_workflow, describe as describe_workflow
+from workflows.proforma_v1.engine.workflow_runner import WorkflowRunner
+from workflows.proforma_v1.executors.provider import ProviderExecutor
+from workflows.proforma_v1.trace import TraceRecorder
 
 WORKFLOW_ID='proforma-v1'; RUN_STATE_SCHEMA_VERSION=3; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
@@ -596,6 +601,7 @@ def _timestamped_work_dir(root,label):
     return p
 
 def run_setup(args):
+    compile_workflow()
     plan=pipeline_registry.load(args.pipeline or configured_pipeline()); label=args.mode
     if args.mode=='ngs-report' and args.case_file: label+='-'+args.case_file.stem
     elif args.mode=='nel-demo': label+=f'-{args.example}'
@@ -1357,16 +1363,100 @@ def stage_final(work,case,final_blocks,elements,all_cards,digest,manifest):
     if mode in VALIDATION_MODES:
         case_id=_load_run_state(work).get('validation_case'); package_marking_bundle(case_id,Path(work)/'report-final.md',Path(work)/f'{MARKING_PREFIX[mode]}-{case_id}.zip',case_file=validation_cases.VALIDATION_CASE_FILES[mode])
 
+def _provider_handlers():
+    def structure_handler(step, ctx):
+        _stage_status(ctx.work, step.id, 'Workflow — structure case')
+        case, reg = stage_structure(ctx.work, ctx.profile)
+        ctx.put('case', case); ctx.put('registry', reg)
+        return {}
+
+    def corpus_handler(step, ctx):
+        _stage_status(ctx.work, step.id, 'Workflow — initialise corpus')
+        all_cards, eligible, digest, manifest = stage_corpus(ctx.work)
+        ctx.put('all_cards', all_cards); ctx.put('eligible', eligible)
+        ctx.put('corpus_digest', digest); ctx.put('manifest', manifest)
+        return {}
+
+    def diagnosis_handler(step, ctx):
+        _stage_status(ctx.work, 'diagnosis', 'Workflow — WHO5 / ICC / independent concurrent diagnosis')
+        diagnosis, cmcs, diagnosis_cards = stage_diagnosis(
+            ctx.work, ctx.get('case'), ctx.get('registry'), ctx.get('eligible'), ctx.get('manifest'), ctx.profile
+        )
+        ctx.put('diagnosis', diagnosis); ctx.put('diagnostic_cmcs', cmcs)
+        ctx.put('cards_by_domain', dict(diagnosis_cards))
+        who2 = has_artifact(ctx.work, 'diagnosis_who5_pass_2', 'who5.yaml')
+        statuses = ctx.get('provider_group_status', {}) or {}
+        statuses['diagnosis'] = {
+            'diagnosis.who1': {'status': 'complete'},
+            'diagnosis.icc': {'status': 'complete'},
+            'diagnosis.who2': {'status': 'complete' if who2 else 'skipped', 'reason': None if who2 else 'v6_cmc_reconsideration_not_required'},
+            'diagnosis.other': {'status': 'complete'},
+            'diagnosis.finalize': {'status': 'complete'},
+        }
+        ctx.put('provider_group_status', statuses)
+        return {}
+
+    def domain_handler(step, ctx):
+        domain = step.id
+        _stage_status(ctx.work, domain, f'Workflow — {domain} owner proforma')
+        proforma, cards = stage_domain(
+            ctx.work, domain, ctx.get('case'), ctx.get('registry'), ctx.get('diagnosis'),
+            ctx.get('eligible'), ctx.get('manifest'), ctx.profile
+        )
+        domains = dict(ctx.get('domains', {}) or {}); domains[domain] = proforma; ctx.put('domains', domains)
+        cards_by_domain = dict(ctx.get('cards_by_domain', {}) or {}); cards_by_domain[domain] = cards; ctx.put('cards_by_domain', cards_by_domain)
+        return {}
+
+    def evidence_handler(step, ctx):
+        _stage_status(ctx.work, 'evidence', 'Workflow — evidence, reportability and adjudication')
+        elements = _elements(ctx.get('diagnosis'), ctx.get('domains', {}), ctx.get('case'))
+        supported = stage_evidence(
+            ctx.work, elements, ctx.get('cards_by_domain'), ctx.get('registry'), ctx.get('manifest'), ctx.profile,
+            authoritative_disease=ctx.get('diagnosis')['who5']['schema_disease'],
+        )
+        ctx.put('elements', elements); ctx.put('supported', supported)
+        statuses = ctx.get('provider_group_status', {}) or {}
+        statuses['evidence'] = {
+            'evidence.assignment': {'status': 'complete'},
+            'evidence.audit': {'status': 'complete'},
+            'evidence.adjudication': {'status': 'skipped', 'reason': 'v6_provider_semantic_retry_path'},
+            'evidence.finalize': {'status': 'complete'},
+        }
+        ctx.put('provider_group_status', statuses)
+        return {}
+
+    def report_blocks_handler(step, ctx):
+        blocks = stage_blocks(ctx.work, ctx.get('diagnosis'), ctx.get('supported'), ctx.get('registry'))
+        ctx.put('blocks', blocks)
+        return {}
+
+    def report_handler(step, ctx):
+        _stage_status(ctx.work, 'report', 'Workflow — one report-writing call + preservation check')
+        final_blocks = stage_report_write(ctx.work, ctx.get('blocks'), ctx.get('case'), ctx.get('registry'), ctx.profile)
+        stage_final(ctx.work, ctx.get('case'), final_blocks, ctx.get('supported'), ctx.get('all_cards'), ctx.get('corpus_digest'), ctx.get('manifest'))
+        ctx.put('final_blocks', final_blocks)
+        return {}
+
+    return {
+        'structure': structure_handler,
+        'corpus': corpus_handler,
+        'diagnosis': diagnosis_handler,
+        'domain': domain_handler,
+        'evidence': evidence_handler,
+        'report_blocks': report_blocks_handler,
+        'report': report_handler,
+    }
+
+
 def run_pipeline(work,profile=None):
     _require_work(work); layout.ensure_dirs(work)
-    _stage_status(work,'stage-1','Stage 1 of 9 — structure case'); case,reg=stage_structure(work,profile)
-    _stage_status(work,'stage-2','Stage 2 of 9 — initialise corpus'); all_cards,eligible,digest,manifest=stage_corpus(work)
-    _stage_status(work,'stage-3','Stage 3 of 9 — WHO5 / ICC / independent concurrent diagnosis'); diagnosis,cmcs,diagnosis_cards=stage_diagnosis(work,case,reg,eligible,manifest,profile)
-    domains={}; cards_by_domain=dict(diagnosis_cards)
-    for idx,domain in enumerate(('prognosis','treatment','biomarker','germline'),4):
-        _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} owner proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile)
-    _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains,case); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,authoritative_disease=diagnosis['who5']['schema_disease']); blocks=stage_blocks(work,diagnosis,supported,reg)
-    _stage_status(work,'stage-9','Stage 9 of 9 — one report-writing call + preservation check'); final_blocks=stage_report_write(work,blocks,case,reg,profile); stage_final(work,case,final_blocks,supported,all_cards,digest,manifest); _print_usage(work); _stage_status(work,'complete','proforma-v1 complete'); return EXIT_OK
+    compiled = compile_workflow()
+    context = WorkflowContext(Path(work), executor='provider', profile=profile, data={'settings': load_settings()})
+    trace = TraceRecorder(WORKFLOW_ID)
+    runner = WorkflowRunner(compiled, ProviderExecutor(_provider_handlers()), trace=trace)
+    runner.run_all(context)
+    trace.write(layout.logs(work) / 'workflow-trace.json')
+    _print_usage(work); _stage_status(work,'complete','proforma-v1 complete'); return EXIT_OK
 
 def run_pipeline_setting(pid):
     if pid is not None:
@@ -1394,7 +1484,7 @@ def build_parser():
     cs=sub.add_parser('check-stage'); cs.add_argument('--stage',required=True,choices=stage_checks.names()); cs.add_argument('--file',type=Path,required=True); cs.add_argument('--context',type=Path)
     sp=sub.add_parser('show-prompt'); sp.add_argument('--stage',required=True,choices=stage_checks.names()); sp.add_argument('--context',type=Path)
     sub.add_parser('stages')
-    sub.add_parser('pipelines'); pc=sub.add_parser('pipeline-check'); pc.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pp=sub.add_parser('pipeline-plan'); pp.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); ps=sub.add_parser('pipeline'); ps.add_argument('pipeline_id',nargs='?',choices=pipeline_registry.names()); r=sub.add_parser('run'); r.add_argument('--work-dir',type=Path)
+    sub.add_parser('pipelines'); sub.add_parser('workflow-check'); pc=sub.add_parser('pipeline-check'); pc.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pp=sub.add_parser('pipeline-plan'); pp.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); ps=sub.add_parser('pipeline'); ps.add_argument('pipeline_id',nargs='?',choices=pipeline_registry.names()); r=sub.add_parser('run'); r.add_argument('--work-dir',type=Path)
     return p
 
 def main(argv=None):
@@ -1407,8 +1497,10 @@ def main(argv=None):
         if args.command=='pipelines':
             for name in pipeline_registry.names(): print(f'{name}: {pipeline_registry.descriptions()[name]}')
             return EXIT_OK
+        if args.command=='workflow-check':
+            [print(x) for x in describe_workflow(compile_workflow())]; return EXIT_OK
         if args.command in {'pipeline-check','pipeline-plan'}:
-            plan=pipeline_registry.load(args.pipeline); print(f'PIPELINE={plan.pipeline_id}'); [print(x) for x in pipeline_registry.describe(plan)]; return EXIT_OK
+            compiled=compile_workflow(); plan=pipeline_registry.load(args.pipeline); print(f'PIPELINE={plan.pipeline_id}'); [print(x) for x in pipeline_registry.describe(plan)]; [print(x) for x in describe_workflow(compiled)]; return EXIT_OK
         if args.command=='pipeline': return run_pipeline_setting(args.pipeline_id)
         if args.command=='run':
             work=_resolve_run_work_dir(args.work_dir)

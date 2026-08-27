@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-import re
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,7 +21,7 @@ class Phase1CloneTests(unittest.TestCase):
         metadata = load_workflow_metadata("proforma-v1", registry)
         self.assertEqual(metadata["python_package"], "workflows.proforma_v1")
         self.assertEqual(metadata["cloned_from"], "terraced-v6")
-        self.assertEqual(metadata["phase"], 1)
+        self.assertEqual(metadata["phase"], 2)
 
     def test_setup_binds_work_directory_to_proforma(self):
         with tempfile.TemporaryDirectory() as td:
@@ -37,43 +37,17 @@ class Phase1CloneTests(unittest.TestCase):
             self.assertEqual(state["workflow_id"], "proforma-v1")
             self.assertEqual(state["mode"], "nel-validate-brief")
 
-    def test_clinical_clone_files_match_reference_after_identity_substitution(self):
+    def test_terraced_v6_reference_sources_remain_frozen(self):
         root = Path(__file__).resolve().parents[3]
         reference = root / "workflows" / "terraced_v6"
-        clone = root / "workflows" / "proforma_v1"
-        excluded = {
-            "README.md",
-            "workflow.json",
-            "replay.py",
-            "trace.py",
-        }
-        reference_files = {
-            p.relative_to(reference)
-            for p in reference.rglob("*")
-            if p.is_file()
-            and "__pycache__" not in p.parts
-            and p.relative_to(reference).parts[0] != "runs"
-            and not (p.relative_to(reference).parts[0] == "tests" and p.suffix == ".py")
-            and p.name not in excluded
-        }
-        for rel in sorted(reference_files):
-            with self.subTest(file=str(rel)):
-                source = (reference / rel).read_text(encoding="utf-8")
-                expected = (
-                    source.replace("workflows.terraced_v6", "workflows.proforma_v1")
-                    .replace("workflows/terraced_v6", "workflows/proforma_v1")
-                    .replace("terraced_v6", "proforma_v1")
-                    .replace("terraced-v6", "proforma-v1")
-                    .replace("Terraced-v6", "Proforma-v1")
-                )
-                if rel.as_posix() == "stage_checks.py":
-                    expected = re.sub(
-                        r"`[^`]+ workflows/proforma_v1/tests/` walks",
-                        "`python -m unittest discover -s workflows/proforma_v1/tests` walks",
-                        expected,
-                        count=1,
-                    )
-                self.assertEqual((clone / rel).read_text(encoding="utf-8"), expected)
+        manifest_path = Path(__file__).resolve().parent / "fixtures" / "terraced_v6_source_sha256.json"
+        expected = json.loads(manifest_path.read_text(encoding="utf-8"))
+        actual = {}
+        for path in sorted(reference.rglob("*")):
+            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
+                actual[path.relative_to(reference).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+        self.assertEqual(actual, expected)
+
 
 
 class Phase1ReplayTests(unittest.TestCase):

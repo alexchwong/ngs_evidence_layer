@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "workflow_id", "steps", "evidence_policies"],
+  "properties": {
+    "version": {"const": 1},
+    "workflow_id": {"type": "string", "minLength": 1},
+    "evidence_policies": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assignment", "audit", "adjudication"],
+        "properties": {
+          "assignment": {"$ref": "#/$defs/evidencePass"},
+          "audit": {"$ref": "#/$defs/evidencePass"},
+          "adjudication": {"$ref": "#/$defs/evidencePass"}
+        }
+      }
+    },
+    "steps": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/step"}
+    }
+  },
+  "$defs": {
+    "evidencePass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "prompt"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "prompt": {"type": "string", "minLength": 1}
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {"type": "string", "minLength": 1},
+        "format": {"enum": ["yaml", "json", "text"]},
+        "schema": {"type": "string", "minLength": 1},
+        "assembly": {"type": "object"}
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["model", "transform", "evidence_review", "evidence_adjudication", "render/report"]},
+        "needs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "role": {"type": "string", "minLength": 1},
+        "stage": {"type": "string", "minLength": 1},
+        "prompt": {"type": "string", "minLength": 1},
+        "inputs": {"type": "object"},
+        "output": {"$ref": "#/$defs/output"},
+        "checks": {"type": "array", "items": {"type": "object", "required": ["rule"]}},
+        "transforms": {"type": "array", "items": {"oneOf": [{"type": "string"}, {"type": "object", "required": ["transform"]}] }},
+        "transform": {"type": "string", "minLength": 1},
+        "when": {"type": "object"},
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy", "timing"],
+          "properties": {
+            "policy": {"type": "string", "minLength": 1},
+            "timing": {"enum": ["blocking", "deferred"]},
+            "cards": {"type": "object"},
+            "claims": {"type": "array", "items": {"type": "object"}}
+          }
+        },
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider_handler": {"type": "string"},
+            "provider_group": {"type": "string"},
+            "self_handler": {"type": "string"},
+            "self_group": {"type": "string"},
+            "self_mode": {"enum": ["handoff", "deterministic", "skip"]}
+          }
+        },
+        "barrier_for": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

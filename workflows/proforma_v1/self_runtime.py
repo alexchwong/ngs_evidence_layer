@@ -1,8 +1,8 @@
-"""Additive native-self orchestration helpers for proforma-v1.
+"""Native-self compatibility helpers for the declarative proforma-v1 engine.
 
-This module deliberately reuses the existing proforma-v1 contracts and deterministic
-helpers without changing ``step.py`` or any module imported by ``step.py``.  The
-self executor changes only model-call grouping and context boundaries.
+Logical ordering is owned by ``workflow.yaml`` and the shared workflow runner.
+This module retains deterministic artifact preparation/acceptance mechanics used
+by the self execution adapter.
 """
 from __future__ import annotations
 
@@ -15,17 +15,7 @@ import yaml
 
 from workflows.proforma_v1 import card_identity, domain_contract, layout, model_context, runtime, schema_validation
 from workflows.proforma_v1 import step as staged
-
-SELF_PASS_ORDER = (
-    "who1",
-    "icc",
-    "who2",
-    "ptbg",
-    "evidence_resolution",
-    "evidence_audit",
-    "evidence_adjudication",  # conditional
-    "report_synthesis",
-)
+from workflows.proforma_v1.engine import evidence as evidence_engine
 
 HERE = Path(__file__).resolve().parent
 ADJUDICATION_PROMPT = HERE / "prompts" / "evidence_adjudicate.md"
@@ -423,17 +413,13 @@ def accept_evidence_resolution(work: Path) -> dict:
 
 
 def audit_targets(items: list[dict], matches: dict) -> list[dict]:
-    """Audit selected cards; when resolver selected none, audit the full candidate set.
-
-    This bounded asymmetry catches false-positive assignments and false-negative
-    zero-card decisions without paying to exhaustively audit redundant unselected
-    cards when at least one support card was already found.
-    """
+    """Project the generic asymmetric evidence-audit rule into the legacy shape."""
     mmap = {m["evidence_id"]: m for m in matches.get("matches") or []}
     out = []
     for item in items:
         selected = list((mmap.get(item["evidence_id"]) or {}).get("card_tags") or [])
-        audit_tags = selected if selected else list(item.get("candidate_card_tags") or [])
+        claim = {"candidate_card_tags": list(item.get("candidate_card_tags") or [])}
+        audit_tags = evidence_engine.audit_targets(claim, selected)
         out.append({
             "evidence_id": item["evidence_id"],
             "schema_id": item["schema_id"],
@@ -443,7 +429,6 @@ def audit_targets(items: list[dict], matches: dict) -> list[dict]:
             "audit_scope": "resolver_selected" if selected else "zero_card_full_candidate_check",
         })
     return out
-
 
 def _assert_audit_targets_applicable(work: Path, state: dict, targets: list[dict]) -> None:
     """Re-check PTBG disease/domain scope immediately before semantic audit."""
@@ -510,35 +495,35 @@ def accept_evidence_audit(work: Path) -> tuple[dict, list[dict]]:
 
 
 def compare_evidence(items: list[dict], matches: dict, audits: dict, targets: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Return (agreed assignments, disputes) without making any semantic decision."""
+    """Delegate disagreement semantics to the generic evidence engine."""
     mmap = {m["evidence_id"]: m for m in matches.get("matches") or []}
-    amap = {a["evidence_id"]: {x["card_tag"]: x for x in a.get("card_audits") or []} for a in audits.get("audits") or []}
-    target_map = {x["evidence_id"]: x for x in targets}
+    amap = {a["evidence_id"]: a.get("card_audits") or [] for a in audits.get("audits") or []}
     agreed = []
     disputes = []
     for item in items:
         eid = item["evidence_id"]
-        selected = set((mmap.get(eid) or {}).get("card_tags") or [])
-        aud = amap.get(eid, {})
-        for tag in target_map[eid]["selected_card_tags"]:
-            row = aud[tag]
-            audit_yes = bool(row["card_is_element_of_reason"])
-            if tag in selected and audit_yes:
-                agreed.append({"evidence_id": eid, "schema_id": item["schema_id"], "card_tag": tag, "audit": row})
-            elif tag in selected and not audit_yes:
-                disputes.append({
-                    "evidence_id": eid, "schema_id": item["schema_id"], "reason": item["reason"],
-                    "card_tag": tag, "dispute_type": "resolver_include_auditor_exclude",
-                    "resolver_decision": "include", "auditor_decision": "exclude", "audit_comments": row.get("comments") or [],
-                })
-            elif tag not in selected and audit_yes:
-                disputes.append({
-                    "evidence_id": eid, "schema_id": item["schema_id"], "reason": item["reason"],
-                    "card_tag": tag, "dispute_type": "resolver_zero_auditor_include",
-                    "resolver_decision": "exclude", "auditor_decision": "include", "audit_comments": row.get("comments") or [],
-                })
+        selected = list((mmap.get(eid) or {}).get("card_tags") or [])
+        generic_audits = [
+            {
+                "card_tag": row["card_tag"],
+                "decision": "include" if row.get("card_is_element_of_reason") else "exclude",
+                "comments": row.get("comments") or [],
+            }
+            for row in amap.get(eid, [])
+        ]
+        result = evidence_engine.compare(
+            claim={"evidence_id": eid, "claim": item["reason"], "candidate_card_tags": item.get("candidate_card_tags") or []},
+            assigned_card_tags=selected,
+            audit_rows=generic_audits,
+        )
+        audit_by_tag = {row["card_tag"]: row for row in amap.get(eid, [])}
+        for tag in result["agreed_include"]:
+            agreed.append({"evidence_id": eid, "schema_id": item["schema_id"], "card_tag": tag, "audit": audit_by_tag[tag]})
+        for dispute in result["disputes"]:
+            dispute["schema_id"] = item["schema_id"]
+            dispute["reason"] = item["reason"]
+            disputes.append(dispute)
     return agreed, disputes
-
 
 def prepare_evidence_adjudication(work: Path) -> dict:
     state = _load_evidence_state(work)
@@ -572,22 +557,7 @@ def prepare_evidence_adjudication(work: Path) -> dict:
 
 
 def validate_adjudication(doc: dict, disputes: list[dict]) -> None:
-    rows = doc.get("adjudications")
-    if not isinstance(rows, list):
-        raise ValueError("evidence adjudication requires adjudications list")
-    expected = [(d["evidence_id"], d["card_tag"]) for d in disputes]
-    actual = []
-    for i, row in enumerate(rows):
-        if not isinstance(row, dict) or set(row) != {"evidence_id", "card_tag", "decision", "reason"}:
-            raise ValueError(f"adjudications[{i}] must contain exactly evidence_id, card_tag, decision, reason")
-        if row["decision"] not in {"include", "exclude"}:
-            raise ValueError(f"adjudications[{i}].decision must be include or exclude")
-        if not isinstance(row["reason"], str) or not row["reason"].strip():
-            raise ValueError(f"adjudications[{i}].reason must be non-empty")
-        actual.append((row["evidence_id"], row["card_tag"]))
-    if actual != expected:
-        raise ValueError(f"adjudication rows must exactly preserve dispute order {expected}; received {actual}")
-
+    evidence_engine.validate_adjudication(doc, disputes)
 
 def _record_disputes(work: Path, disputes: list[dict], adjudications: dict | None) -> None:
     amap = {(x["evidence_id"], x["card_tag"]): x for x in (adjudications or {}).get("adjudications") or []}

@@ -1,17 +1,12 @@
-"""Load and validate proforma-v1 stage assets.
+"""Load and validate model-stage contracts used by the Phase 2 workflow engine.
 
-A stage asset declares what a stage is *made of*: prompt, inputs, output schema,
-bucket vocabulary, named relational rules, transforms, retries and reportability.
-It does not declare control flow. The clinical stage sequence remains an ordered
-list in `step.py`, because it is a fixed dependency chain that is read far more
-often than it is edited, and because a YAML vocabulary that can express control
-flow stops being configuration and becomes a programming language with no
-debugger — see `workflows/terraced_v3/` for the version of that experiment this
-repository already ran.
+Stage YAML describes a model artifact contract: prompt, output schema, buckets,
+relational rules, transforms, retries and reportability. Logical ordering and
+dependencies no longer live here or in ``step.py``; they are compiled from the
+canonical ``workflow.yaml``.
 
-Every name referenced from an asset — `type`, `rule`, `transform`, projection —
-must resolve against a registry at load time, so a typo fails at
-`pipeline-check` with a pointed message rather than at model-call time.
+Every referenced rule/transform remains allow-listed so configuration cannot
+become an arbitrary-code execution mechanism.
 """
 from __future__ import annotations
 
@@ -28,7 +23,7 @@ STAGE_ROOT = HERE / "stages"
 META_SCHEMA = STAGE_ROOT / "_stage.schema.json"
 
 STAGE_TYPES = ("model", "domain_proforma", "batch", "compound")
-TRANSFORMS = ("consolidate_parallel_variant_rows",)
+TRANSFORMS = ("consolidate_parallel_variant_rows", "derive_diagnostic_cmcs", "finalize_diagnosis", "finalize_evidence", "identity", "load_corpus", "report_blocks")
 
 
 class StageSpecError(ValueError):
