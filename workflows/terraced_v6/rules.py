@@ -140,10 +140,18 @@ def evidence_match_tags_exist(doc, context, params):
         if item is None:
             continue
         for j, tag in enumerate(row.get("card_tags") or []):
-            out += iss.enum_field(
-                tag, item.get("candidate_card_tags") or [],
-                f"matches[{i}].card_tags[{j}]", label="candidate card tag",
-            )
+            allowed = item.get("candidate_card_tags") or []
+            if tag not in allowed:
+                out.append(
+                    ValidationIssue(
+                        f"matches[{i}].card_tags[{j}]",
+                        f"{tag!r} was not supplied as a candidate for {row.get('evidence_id')}",
+                        f"remove this tag from {row.get('evidence_id')} and preserve otherwise valid selections; select only exact tags supplied under this evidence item",
+                        repair_class="content",
+                        received=iss.preview(tag),
+                        expected=f"one of this item's {len(allowed)} supplied candidate tag(s)",
+                    )
+                )
     return out
 
 
@@ -207,13 +215,14 @@ def audit_feedback_when_needed(doc, context, params):
     return out
 
 def exclusive_with(doc, context, params):
-    """A variant in a solitary bucket must not appear in any other bucket."""
+    """A variant in a solitary category must not appear in any other category."""
     rows = _field(doc, params["field"])
     solitary = params.get("buckets") or context.get("__spec_solitary_buckets") or []
+    category_field = params.get("category_field", "bucket")
     seen = {}
     for row in rows if isinstance(rows, list) else []:
         if isinstance(row, dict) and isinstance(row.get(params["id_field"]), str):
-            seen.setdefault(row[params["id_field"]], []).append(row.get("bucket"))
+            seen.setdefault(row[params["id_field"]], []).append(row.get(category_field))
     out = []
     for bucket in solitary:
         for vid, buckets in seen.items():
@@ -251,27 +260,124 @@ _NOT_CALCULABLE = re.compile(
 )
 
 
-def prognostic_score_not_null_excuse(doc, context, params):
-    score = doc.get("prognostic_score")
-    if not isinstance(score, dict):
+def applicable_disease_exact(doc, context, params):
+    """The PTB owner artifact is anchored to the authoritative WHO5 disease."""
+    expected = context.get("authoritative_disease")
+    if not expected or doc.get("applicable_disease") == expected:
         return []
-    out = list(iss.exact_keys(score, {"name", "result", "reason"}, "prognostic_score"))
-    for key in ("name", "result", "reason"):
-        out += iss.text_field(score.get(key), f"prognostic_score.{key}")
-    combined = " ".join(str(score.get(k)) for k in ("name", "result", "reason"))
-    if _NOT_CALCULABLE.search(combined):
-        out.append(
-            ValidationIssue(
-                "prognostic_score",
-                "reports an inability to calculate a score",
-                "use null instead; do not report that a score could not be calculated",
-                repair_class="content",
-                received=iss.preview(combined),
-                expected="null",
-            )
+    return [
+        ValidationIssue(
+            "applicable_disease",
+            f"does not match the authoritative WHO5 disease {expected!r}",
+            f"use exactly {expected!r}; disease identity is supplied context, not a model decision",
+            repair_class="content",
+            received=iss.preview(doc.get("applicable_disease")),
+            expected=expected,
         )
+    ]
+
+
+def gene_matches_registry(doc, context, params):
+    """Verify the deterministically injected gene against the canonical variant registry."""
+    registry = context.get("registry") or {}
+    out = []
+    for i, row in enumerate(doc.get("classification") or []):
+        if not isinstance(row, dict):
+            continue
+        vid = row.get("variant")
+        canonical = (registry.get(vid) or {}).get("gene") if isinstance(registry, dict) else None
+        if canonical and row.get("gene") != canonical:
+            out.append(
+                ValidationIssue(
+                    f"classification[{i}].gene",
+                    f"does not match canonical gene {canonical!r} for {vid}",
+                    f"use exactly {canonical!r}",
+                    repair_class="content",
+                    received=iss.preview(row.get("gene")),
+                    expected=canonical,
+                )
+            )
     return out
 
+
+def prognosis_contract(doc, context, params):
+    """Relational rules for model-selected prognosis frameworks and variant effects."""
+    out = []
+    frameworks = doc.get("prognostic_frameworks") or []
+    names = []
+    for i, framework in enumerate(frameworks if isinstance(frameworks, list) else []):
+        if not isinstance(framework, dict):
+            continue
+        name = framework.get("name")
+        if isinstance(name, str):
+            if name in names:
+                out.append(ValidationIssue(
+                    f"prognostic_frameworks[{i}].name",
+                    f"duplicates prognostic framework {name!r}",
+                    "list each applicable prognostic framework once",
+                    repair_class="content", received=name, expected="unique framework name",
+                ))
+            names.append(name)
+        combined = " ".join(str(framework.get(k) or "") for k in ("tier", "reason"))
+        if _NOT_CALCULABLE.search(combined):
+            out.append(ValidationIssue(
+                f"prognostic_frameworks[{i}].tier",
+                "reports an inability to calculate/assign the framework tier",
+                "use tier: null instead; identifying a framework does not require assigning its tier",
+                repair_class="content", received=iss.preview(framework.get("tier")), expected="string | null",
+            ))
+    allowed_names = set(names)
+    for i, row in enumerate(doc.get("classification") or []):
+        if not isinstance(row, dict):
+            continue
+        seen = set()
+        effects = []
+        for j, fx in enumerate(row.get("framework_effects") or []):
+            if not isinstance(fx, dict):
+                continue
+            framework = fx.get("framework")
+            if framework not in allowed_names:
+                out.append(ValidationIssue(
+                    f"classification[{i}].framework_effects[{j}].framework",
+                    "does not name one of this artifact's selected prognostic frameworks",
+                    "copy the exact framework name from prognostic_frameworks, or remove this framework-effect row",
+                    repair_class="content", received=iss.preview(framework), expected=str(names),
+                ))
+            if framework in seen:
+                out.append(ValidationIssue(
+                    f"classification[{i}].framework_effects[{j}].framework",
+                    f"duplicates framework {framework!r} for this variant",
+                    "return at most one effect for this variant under each named framework",
+                    repair_class="content", received=iss.preview(framework), expected="unique framework per variant",
+                ))
+            seen.add(framework)
+            effects.append(fx.get("effect"))
+        other = row.get("other_evidence_effect")
+        other_reason = row.get("other_evidence_reason")
+        if other == "no_evidence":
+            if other_reason is not None:
+                out.append(ValidationIssue(
+                    f"classification[{i}].other_evidence_reason",
+                    "is populated even though other_evidence_effect is no_evidence",
+                    "use null when there is no independent disease-applicable prognostic evidence",
+                    repair_class="content", received=iss.preview(other_reason), expected="null",
+                ))
+        elif not isinstance(other_reason, str) or not other_reason.strip():
+            out.append(ValidationIssue(
+                f"classification[{i}].other_evidence_reason",
+                "is missing despite a positive/neutral other-evidence classification",
+                "give one concise same-disease prognostic proposition",
+                repair_class="content", received=iss.preview(other_reason), expected="non-empty string",
+            ))
+        directional = {x for x in effects if x in {"favorable", "adverse", "neutral"}}
+        if other in {"favorable", "adverse", "neutral"} and len(directional) == 1 and other not in directional:
+            out.append(ValidationIssue(
+                f"classification[{i}].other_evidence_effect",
+                f"conflicts with the variant's framework effect direction {sorted(directional)}",
+                "when framework and independent evidence both classify this variant, keep the direction concordant; if named frameworks genuinely disagree, preserve those framework-specific differences",
+                repair_class="content", received=other, expected=str(sorted(directional)),
+            ))
+    return out
 
 def issue_null_when_preserved(doc, context, params):
     out = []
@@ -396,7 +502,9 @@ REGISTRY = {
     "evidence_audit_cards_exact": evidence_audit_cards_exact,
     "audit_feedback_when_needed": audit_feedback_when_needed,
     "exclusive_with": exclusive_with,
-    "prognostic_score_not_null_excuse": prognostic_score_not_null_excuse,
+    "applicable_disease_exact": applicable_disease_exact,
+    "gene_matches_registry": gene_matches_registry,
+    "prognosis_contract": prognosis_contract,
     "issue_null_when_preserved": issue_null_when_preserved,
     "null_diagnosis_contract": null_diagnosis_contract,
     "sequential_ids": sequential_ids,

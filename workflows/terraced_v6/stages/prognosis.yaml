@@ -23,34 +23,41 @@ inputs:
 output:
   path: prognosis_state/proforma.yaml
   format: yaml
-  schema: domain_classification_scored.json
-buckets:
-- favorable
-- adverse
-- neutral
-- uncertain
+  schema: prognosis.json
 extra_keys:
-- prognostic_score
+- prognostic_frameworks
+buckets:
+- framework_favorable
+- framework_adverse
+- framework_neutral
+- other_evidence_favorable
+- other_evidence_adverse
+- other_evidence_neutral
+- no_prognostic_evidence
 rules:
+- rule: applicable_disease_exact
+- rule: gene_matches_registry
 - rule: one_row_per_id
   field: classification
   id_field: variant
   source: registry
-- rule: enum
-  field: classification[].bucket
-  values_from: buckets
-  label: bucket
-- rule: prognostic_score_not_null_excuse
+- rule: prognosis_contract
 transforms:
 - consolidate_parallel_variant_rows
 reportability:
-  favorable: true
-  adverse: true
-  neutral: true
-  uncertain: false
-  prognostic_score: true
+  framework_favorable: true
+  framework_adverse: true
+  framework_neutral: true
+  other_evidence_favorable: true
+  other_evidence_adverse: true
+  other_evidence_neutral: true
+  no_prognostic_evidence: false
+  prognostic_frameworks: true
 retries:
   content: 2
   serialization: 3
 guidance:
-- '`prognostic_score` is populated only when this workflow can actually assign the named score or risk group from the supplied information. Otherwise use null. Never state that a score is "not calculable".'
+- Select prognostic framework(s) from the authoritative disease; do not infer the disease from candidate cards.
+- Zero, one, or multiple disease-applicable frameworks are allowed.
+- Populate a framework tier only when it can be assigned entirely from the supplied genetic/cytogenetic findings; otherwise use null.
+- Other prognostic evidence may classify a variant even when that gene is outside the named framework, but the evidence must explicitly apply to the authoritative disease.

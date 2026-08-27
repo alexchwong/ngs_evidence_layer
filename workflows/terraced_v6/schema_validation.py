@@ -79,8 +79,13 @@ def validate_second_diagnosis(text, *, valid_variants):
 
 # --- PTBG owner proformas (flat one-row-per-variant contract) ----------------
 
-def validate_domain(text, domain, valid_variants):
-    return domain_contract.validate(text, domain_contract.contract(domain), valid_variants)
+def validate_domain(text, domain, valid_variants, *, registry=None, authoritative_disease=None):
+    context = {
+        "variants": sorted(valid_variants),
+        "registry": registry or {},
+        "authoritative_disease": authoritative_disease,
+    }
+    return domain_contract.validate(text, domain_contract.contract(domain), context)
 
 
 def validate_prognosis(text, valid):
@@ -140,9 +145,16 @@ def validate_evidence_match_batch(text, items):
                 )
             item = by_id.get(row.get("evidence_id"))
             for j, tag in enumerate(tags):
-                if item is not None:
-                    problems += iss.enum_field(
-                        tag, item["candidate_card_tags"], f"{path}.card_tags[{j}]", label="candidate card tag"
+                if item is not None and tag not in item["candidate_card_tags"]:
+                    problems.append(
+                        ValidationIssue(
+                            f"{path}.card_tags[{j}]",
+                            f"{tag!r} was not supplied as a candidate for {row.get('evidence_id')}",
+                            f"remove this tag from {row.get('evidence_id')} and preserve otherwise valid selections; select only exact tags supplied under this evidence item",
+                            repair_class="content",
+                            received=iss.preview(tag),
+                            expected=f"one of this item's {len(item['candidate_card_tags'])} supplied candidate tag(s)",
+                        )
                     )
     fail(ctx, problems)
     return "evidence matches valid"

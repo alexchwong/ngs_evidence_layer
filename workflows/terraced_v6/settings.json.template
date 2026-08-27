@@ -55,11 +55,14 @@
         "second_diagnosis": true
       },
       "prognosis": {
-        "favorable": true,
-        "adverse": true,
-        "neutral": true,
-        "uncertain": false,
-        "prognostic_score": true
+        "framework_favorable": true,
+        "framework_adverse": true,
+        "framework_neutral": true,
+        "other_evidence_favorable": true,
+        "other_evidence_adverse": true,
+        "other_evidence_neutral": true,
+        "no_prognostic_evidence": false,
+        "prognostic_frameworks": true
       },
       "treatment": {
         "drug_target": true,

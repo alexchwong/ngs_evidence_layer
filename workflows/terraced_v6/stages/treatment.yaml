@@ -23,7 +23,7 @@ inputs:
 output:
   path: treatment_state/proforma.yaml
   format: yaml
-  schema: domain_classification.json
+  schema: treatment.json
 buckets:
 - drug_target
 - drug_sensitive
@@ -37,18 +37,21 @@ solitary_buckets:
 - no_drug_implication
 multi_row: true
 rules:
+- rule: applicable_disease_exact
+- rule: gene_matches_registry
 - rule: rows_per_id
   field: classification
   id_field: variant
   source: registry
   minimum: 1
 - rule: enum
-  field: classification[].bucket
+  field: classification[].treatment_category
   values_from: buckets
-  label: bucket
+  label: treatment category
 - rule: exclusive_with
   field: classification
   id_field: variant
+  category_field: treatment_category
   buckets_from: solitary_buckets
 transforms:
 - consolidate_parallel_variant_rows
@@ -61,5 +64,6 @@ retries:
   content: 2
   serialization: 3
 guidance:
-- A variant may appear in more than one row when it carries genuinely distinct therapeutic implications — for example a target and a separate sensitivity — each with its own therapy.
-- '`no_drug_implication` is exclusive: a variant in that bucket must not appear in any other row.'
+- Every positive treatment implication must be supported in the authoritative disease; do not borrow treatment evidence from another disease.
+- A variant may appear in more than one row when it carries genuinely distinct therapeutic implications, each with its own therapy.
+- '`no_drug_implication` is exclusive: a variant in that category must not appear in any other row.'

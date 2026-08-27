@@ -13,9 +13,9 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
+from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 
-WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=2; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
+WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=3; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
 
 def configure_runtime(*,settings_path=None,pipelines_dir=None):
@@ -74,7 +74,7 @@ def _card_render_mode():
 
 _REPORTABILITY_DEFAULTS={
     'diagnosis':{'who5':True,'icc':True,'second_diagnosis':True},
-    'prognosis':{'favorable':True,'adverse':True,'neutral':True,'uncertain':False,'prognostic_score':True},
+    'prognosis':{'framework_favorable':True,'framework_adverse':True,'framework_neutral':True,'other_evidence_favorable':True,'other_evidence_adverse':True,'other_evidence_neutral':True,'no_prognostic_evidence':False,'prognostic_frameworks':True},
     'treatment':{'drug_target':True,'drug_sensitive':True,'drug_resistant':True,'no_drug_implication':False},
     'biomarker':{'mrd_marker':True,'not_mrd_marker':False},
     'germline':{'germline_support':True,'germline_against':False,'germline_uncertain':False},
@@ -756,7 +756,10 @@ def _ptbg_card_applicable(card,domain,genes,disease):
     exact_disease=disease in card_diseases
     gene_match=bool(core_retrieval.match_genes(card,set(genes)))
     if domain=='prognosis':
-        return exact_disease and (gene_match or not card.get('genes'))
+        # The owner must see the disease's prognostic framework even when none of
+        # the framework genes are mutated. Variant-specific candidate cropping
+        # happens later at evidence resolution.
+        return exact_disease
     if domain in {'treatment','biomarker'}:
         return exact_disease and gene_match
     if domain=='germline':
@@ -802,8 +805,16 @@ def _assert_ptbg_audit_card_applicable(card,el,reg,authoritative_disease):
     if el.get('domain')=='diagnosis': return
     domain=el.get('domain')
     genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
-    if domain=='prognosis' and el.get('bucket')=='prognostic_score': genes=set()
-    if not _ptbg_card_applicable(card,domain,genes,authoritative_disease):
+    if domain=='prognosis':
+        card_diseases=set(card.get('diseases') or [])
+        disease_ok=authoritative_disease in card_diseases
+        if el.get('bucket')=='prognostic_framework':
+            applicable=disease_ok
+        else:
+            applicable=disease_ok and bool(core_retrieval.match_genes(card,genes))
+    else:
+        applicable=_ptbg_card_applicable(card,domain,genes,authoritative_disease)
+    if not applicable:
         raise StepFailure(
             f'evidence audit refused out-of-scope card {card.get("card_id")!r} for {el.get("schema_id")}: '
             f'domain={domain}, authoritative disease={authoritative_disease!r}, element genes={sorted(genes)}'
@@ -917,12 +928,21 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
         +'\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DOMAIN_CASE_FIELDS)+'\n```'
         +'\n\n# Authoritative framework diagnoses\n```yaml\n'+model_context.diagnosis_context(diagnosis)+'```'
         +'\n\n# Candidate evidence cards\n'+_render_cards(cards,tag_by_id)
-        +'\n\n'+domain_contract.skeleton(contract,sorted(reg)))
+        +'\n\n'+domain_contract.skeleton(contract,sorted(reg),registry=reg,applicable_disease=disease))
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_domain(t,domain,valid),profile=profile,proforma=True)
-    # The model returns the flat one-row-per-variant form; everything downstream
-    # reads the bucket-list form, so pivot before the artifact is stored.
-    flat=yaml.safe_load(_read(out)); doc=domain_contract.pivot(flat,contract)
+    def validate_owner(text):
+        normalized,_records=domain_contract.normalize_model_output(text,contract,reg,disease)
+        return schema_validation.validate_domain(
+            normalized,domain,valid,registry=reg,authoritative_disease=disease
+        )
+    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=validate_owner,profile=profile,proforma=True)
+    normalized,identity_records=domain_contract.normalize_model_output(_read(out),contract,reg,disease)
+    if identity_records:
+        _log_transforms(work,[dict(record,stage=domain) for record in identity_records])
+    _write(out,normalized)
+    # The model returns the variant-centric owner form; Python projects it into
+    # the stable bucketed internal artifact consumed downstream.
+    flat=yaml.safe_load(normalized); doc=domain_contract.pivot(flat,contract)
     doc,merges=_consolidate_rows(domain,doc,reg); _log_transforms(work,merges)
     _write(out,yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
     _write(_artifact(work,f'{domain}_state','model-classification.yaml',new=False),yaml.safe_dump(flat,sort_keys=False,allow_unicode=True,width=110))
@@ -951,15 +971,30 @@ def _elements(diagnosis,domains,case):
     sec=diagnosis['second_diagnosis']
     if _reportable('diagnosis','second_diagnosis') and sec.get('diagnosis'):
         els.append({'schema_id':'DX-SECOND','domain':'diagnosis','bucket':'second_diagnosis','statement':sec['diagnosis'],'reason':sec['reason'],'variants':sec['variants'],'evidence_domain':'diagnosis_other','required':False,'source':sec})
-    # Bucket vocabulary comes from domain_contract, not from four literal tuples.
-    for domain,prefix in (('prognosis','PX'),('treatment','TX'),('biomarker','MRD'),('germline','GL')):
+    prognosis=domains['prognosis']
+    if _reportable('prognosis','prognostic_frameworks'):
+        for i,framework in enumerate(prognosis.get('prognostic_frameworks') or [],1):
+            tier=framework.get('tier')
+            statement=(
+                f'{framework["name"]} prognostic framework; tier: {tier}.'
+                if tier is not None else
+                f'{framework["name"]} is an applicable prognostic framework for {prognosis.get("applicable_disease") or "the authoritative disease"}.'
+            )
+            els.append({
+                'schema_id':f'PX-FRAMEWORK-{i:02d}','domain':'prognosis','bucket':'prognostic_framework',
+                'statement':statement,'reason':framework['reason'],'variants':[],'evidence_domain':'prognosis',
+                'required':False,'source':framework,
+            })
+    for bucket in domain_contract.contract('prognosis').buckets:
+        if not _reportable('prognosis',bucket): continue
+        for i,row in enumerate(prognosis.get(bucket) or [],1):
+            els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'prognosis','required':False,'source':row})
+    for domain,prefix in (('treatment','TX'),('biomarker','MRD'),('germline','GL')):
         doc=domains[domain]
         for bucket in domain_contract.contract(domain).buckets:
             if not _reportable(domain,bucket): continue
-            for i,row in enumerate(doc[bucket],1): els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row})
-    score=(domains['prognosis'] or {}).get('prognostic_score')
-    if score and _reportable('prognosis','prognostic_score'):
-        els.append({'schema_id':'PX-SCORE','domain':'prognosis','bucket':'prognostic_score','statement':f'{score["name"]}: {score["result"]}.','reason':score['reason'],'variants':[],'evidence_domain':'prognosis','required':False,'source':score})
+            for i,row in enumerate(doc[bucket],1):
+                els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row})
     return els
 
 def _candidate_cards(el,cards_by_domain,reg):
@@ -968,13 +1003,42 @@ def _candidate_cards(el,cards_by_domain,reg):
     # the WHO5/ICC authority filter. Do not destroy that OR retrieval semantics
     # by applying a second proposition-gene filter here.
     if el.get('domain')=='diagnosis': return cards
-    if el.get('domain')=='prognosis' and el.get('bucket')=='prognostic_score':
-        return [c for c in cards if not c.get('genes')]
+    if el.get('domain')=='prognosis' and el.get('bucket')=='prognostic_framework':
+        return cards
     genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
     if genes:
-        subset=[c for c in cards if not c.get('genes') or genes & set(c.get('genes') or [])]
-        if subset: cards=subset
+        subset=[c for c in cards if genes & set(c.get('genes') or [])]
+        if subset: return subset
+        return []
     return cards
+
+def _render_evidence_match_candidates(public_items,candidate_items,catalog,tag_by_id):
+    """Render each evidence item's deterministic candidate set beside that item.
+
+    The batch stays one model call, but separately filtered pools are never
+    collapsed into one unlabeled global catalog.
+    """
+    by_eid={item['evidence_id']:item for item in candidate_items}
+    sections=[]
+    for public in public_items:
+        item=by_eid[public['evidence_id']]
+        allowed=set(public.get('candidate_card_tags') or [])
+        cards=[]
+        for cid in evidence_resolution.remaining_candidate_ids(item):
+            tag=f'[card:{tag_by_id[cid]}]'
+            if tag in allowed and cid in catalog:
+                cards.append(catalog[cid])
+        sections += [
+            f"## Evidence item {public['evidence_id']}",
+            "```yaml",
+            yaml.safe_dump(public,sort_keys=False,allow_unicode=True,width=110).rstrip(),
+            "```",
+            f"### Candidate cards for {public['evidence_id']}",
+            _render_cards(cards,tag_by_id).rstrip(),
+            "",
+        ]
+    return '\n'.join(sections).rstrip()+'\n'
+
 
 def _evidence_reviewed_text(el):
     return 'Statement: '+el['statement']+'\nReason: '+el['reason']
@@ -1071,14 +1135,10 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authorit
         if not pending: break
         _status(f'  evidence resolution semantic attempt {semantic_attempt}/{max_attempts}: {len(pending)} item(s)')
         public=[evidence_resolution.public_match_item(item,tag_by_id) for item in pending]
-        candidate_ids=list(dict.fromkeys(cid for item in pending for cid in evidence_resolution.remaining_candidate_ids(item)))
-        cards=[catalog[cid] for cid in candidate_ids]
         mpath=_existing_or_new(work,'evidence_matches',f'attempt-{semantic_attempt:02d}.yaml')
         mprompt=(
-            _prompt('evidence_match')+'\n\n# Evidence items\n```yaml\n'
-            +yaml.safe_dump({'items':public},sort_keys=False,allow_unicode=True,width=110)
-            +'```\n\n# Candidate card catalog\n'
-            +_render_cards(cards,tag_by_id)+'\n'
+            _prompt('evidence_match')+'\n\n# Evidence items with their deterministic candidate cards\n'
+            +_render_evidence_match_candidates(public,pending,catalog,tag_by_id)
         )
         validation_items=[{'evidence_id':x['evidence_id'],'candidate_card_tags':x['candidate_card_tags']} for x in public]
         _model_call(
@@ -1203,8 +1263,26 @@ def stage_blocks(work,diagnosis,elements,reg):
         who=next((x for x in dx if x['role']=='who5'),None); icc=next((x for x in dx if x['role']=='icc'),None)
         relationship=('same' if who and icc and runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different' if who and icc else 'partial')
         blocks.append({'block_id':'DX','domain':'diagnosis','relationship':relationship,'components':dx})
-    order={'prognosis':1,'treatment':2,'biomarker':3,'germline':4}
-    for el in sorted((e for e in elements if e['domain']!='diagnosis'),key=lambda e:(order[e['domain']],e['schema_id'])):
+
+    # Prognosis remains variant-centric through semantic evidence resolution.
+    # Only now, after card matching/audit, collapse supported findings into
+    # report-sized clinical propositions.  The same function is used by the
+    # native-self path via self_runtime.finalize_evidence().
+    prognosis_blocks,prognosis_trace=prognosis_report.aggregate(elements,diagnosis,reg)
+    _write(
+        _existing_or_new(work,'prognosis_report_aggregation','aggregation.yaml'),
+        yaml.safe_dump(prognosis_trace,sort_keys=False,allow_unicode=True,width=110),
+    )
+    _status(
+        '  prognosis report aggregation: '
+        f"{len(prognosis_trace.get('framework_groups') or [])} framework block(s), "
+        f"{len(prognosis_trace.get('retained_other') or [])} independent block(s), "
+        f"{len(prognosis_trace.get('suppressed') or [])} redundant proposition(s) suppressed"
+    )
+    blocks.extend(prognosis_blocks)
+
+    order={'treatment':2,'biomarker':3,'germline':4}
+    for el in sorted((e for e in elements if e['domain'] in order),key=lambda e:(order[e['domain']],e['schema_id'])):
         src=dict(el['source']); blocks.append({'block_id':el['schema_id'],'domain':el['domain'],'components':[{'role':el['bucket'],'reason':el['reason'],'variants':el.get('variants') or [],'genes':_genes(reg,el.get('variants') or []),'source':src,'card_tags':[ev['card_tag'] for ev in (el.get('evidence') or [])]}]})
     _write(_existing_or_new(work,'report_blocks','report-blocks.yaml'),yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110))
     return blocks

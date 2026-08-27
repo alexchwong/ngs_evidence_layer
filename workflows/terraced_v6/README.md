@@ -57,7 +57,7 @@ Terraced-v6 owns the developer canonical defaults in `settings.json.template` an
 5. Deterministically construct candidate evidence pools, then run one evidence-resolution pass. No reason has assigned cards before this stage.
 6. Run one independent evidence audit. Selected cards are audited; zero-card decisions receive a full candidate check.
 7. Python accepts agreements and crops only disagreements. A short adjudication pass runs only when the resolver and auditor disagree.
-8. Python applies evidence/no-support policy and builds deterministic report blocks.
+8. Python applies evidence/no-support policy, deterministically aggregates evidence-resolved prognosis findings into report-sized clinical propositions, and builds deterministic report blocks.
 9. One final synthesis pass receives the original case context plus audited blocks. Python then renders citations, evidence provenance, `dissent.md`, final JSON and validation packages.
 
 ### Existing staged path
@@ -67,16 +67,16 @@ Terraced-v6 owns the developer canonical defaults in `settings.json.template` an
 ## Minimal proformas
 
 - Diagnosis: WHO5, ICC, independent second diagnosis.
-- Prognosis: favorable, adverse, neutral, uncertain, prognostic score.
-- Treatment: drug target, drug sensitive, drug resistant, no drug implication.
-- MRD: marker, not marker.
+- Prognosis: authoritative disease, zero/one/multiple disease-applicable prognostic frameworks, optional framework tier, and per-variant framework/other-evidence effects.
+- Treatment: disease-scoped drug target, drug sensitive, drug resistant, no drug implication.
+- MRD: disease-scoped marker, not marker.
 - Germline: support, against, uncertain; every conclusion must integrate the NGS result with supplied clinical context.
 
 Variant IDs (`v01`, `v02`, ...) link owner reasoning to the structured variant registry, and are the only variant identifiers any model sees.
 
 For a complete NGS result, `case.json` also contains `ngs_no_variants_detected`: every configured panel gene without a detected NGS variant, generated deterministically rather than copied by the model. If the case explicitly says the NGS result is partial, selected, limited, abbreviated, pending, or otherwise incomplete, the list is empty. These negatives apply only to the variant classes defined by `config/ngs-panel-scope.md`.
 
-Owner models return one row per variant (`variant`, `bucket`, `reason`), filling in a pre-supplied skeleton. Rows sharing one proposition are merged deterministically afterwards and recorded in `logs/transforms.yaml`; the stored proforma keeps the familiar bucket-list shape.
+Owner models use variant-centric skeletons. Prognosis returns `prognostic_frameworks` plus one row per variant with framework-specific effects and an independent same-disease evidence effect. Treatment uses `treatment_category`; MRD uses `mrd_status`; germline retains its existing `bucket`. Python injects/overwrites canonical `gene` and the authoritative disease where applicable, then projects the accepted owner output into the stable bucketed internal shape used downstream. Rows sharing one proposition are merged deterministically afterwards and recorded in `logs/transforms.yaml`.
 
 ## Card rendering
 
@@ -84,13 +84,17 @@ All evidence cards shown to models use one shared renderer and 12-character runt
 
 WHO5 and ICC diagnostic pools are configured independently under `diagnosis.who5` and `diagnosis.icc`. Each has an `included_publication_keys` allowlist and an `excluded_publication_keys` denylist. An empty inclusion list includes all retrieved publications. Python then removes excluded publications, so exclusion takes precedence when a publication is present in both lists. The resulting pool is shared by diagnostic prompt rendering, finite-set context, and downstream evidence resolution.
 
-Downstream PTBG retrieval is scoped to the authoritative WHO5 `schema_disease`; it does not expand through disease-vocabulary `retrieval_related` links. Prognosis retrieves exact-disease cards matching a case gene plus exact-disease gene-less cards for disease-level prognostic frameworks/scores. Treatment and MRD require exact disease plus a case-gene match. Germline requires a case-gene match and accepts either disease-neutral cards or cards explicitly tagged to the exact authoritative disease. Explicitly multi-disease cards remain valid because exact membership is tested against the card's own `diseases` list. The evidence-audit boundary deterministically re-checks this applicability before asking the auditor whether a card is an element of a reason.
+Downstream PTBG retrieval is scoped to the authoritative WHO5 `schema_disease`; it does not expand through disease-vocabulary `retrieval_related` links. Prognosis receives all prognosis cards explicitly applicable to the exact disease so the owner can identify disease-level frameworks even when no framework gene is mutated; Step 5 then crops variant-specific prognosis propositions back to the exact variant gene. Treatment and MRD require exact disease plus a case-gene match. Germline requires a case-gene match and accepts either disease-neutral cards or cards explicitly tagged to the exact authoritative disease. Explicitly multi-disease cards remain valid because exact membership is tested against the card's own `diseases` list. The evidence-audit boundary deterministically re-checks disease/domain applicability before semantic audit.
+
+Evidence matching remains batched, but each evidence item is rendered beside only its own deterministic candidate-card set. WHO5 and ICC pools therefore stay separated at model presentation rather than being recombined into one mixed catalog.
+
+After evidence resolution, `prognosis_report.py` performs one deterministic report-only aggregation pass. Same-framework/same-direction variant findings are grouped to gene-level report scope; multiple variants in one gene collapse to that gene. Independent same-disease prognosis remains separate. An `other_evidence` proposition is suppressed as a redundant framework restatement only when the same gene/direction is already framework-supported and all of that proposition's accepted cards are already used by the same-direction framework effect. The trace is written to `intermediates/prognosis_report_aggregation/aggregation.yaml`; the upstream prognosis proforma and evidence-resolution artifacts remain variant-centric and unchanged.
 
 ## Reportability
 
 Edit root `config/settings.json` (created from the synced `config/settings.json.template` on first use). Defaults suppress routine negative/uncertain prose while retaining it in owner proformas:
 
-- prognosis `uncertain`: false
+- prognosis `no_prognostic_evidence`: false
 - treatment `no_drug_implication`: false
 - MRD `not_mrd_marker`: false
 - germline `germline_against`: false
@@ -106,6 +110,7 @@ Pay attention to:
 - `nel-validation*.zip` — external-marking bundle in validation modes.
 - `dissent.md` — semantic dissent history, only when dissent exists.
 - `intermediates/*diagnosis*` and `*_state/proforma.yaml` — owner-model conclusions.
+- `intermediates/prognosis_report_aggregation/aggregation.yaml` — deterministic post-evidence prognosis grouping/suppression trace.
 - `intermediates/report_blocks/report-blocks.yaml` — deterministic composition contract sent to the final writer.
 - `logs/workflow.log` — run trace.
 - `logs/transforms.yaml` — every deterministic change made to an accepted model artifact.

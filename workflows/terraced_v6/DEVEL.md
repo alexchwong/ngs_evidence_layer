@@ -6,6 +6,7 @@ V6 is intentionally smaller than v5.
 
 - `step.py` — orchestration, evidence model calls, reportability, deterministic block assembly, dissent.
 - `evidence_resolution.py` — pure shared policy for cumulative semantic evidence retries, rejected-card exclusion, and diagnosis/PTBG exhaustion behavior.
+- `prognosis_report.py` — pure deterministic post-evidence prognosis aggregation. It groups same-framework/same-direction findings for report composition and suppresses only fully overlapping accepted-card restatements; it never changes the owner proforma or performs clinical inference.
 - `model_context.py` — canonical downstream model context. Owns the rule that model prompts expose only `v01`-style IDs, and the per-stage projections that decide how much of the case/diagnosis each stage reads.
 - `runtime.py` — case/setup validation and small deterministic helpers.
 - `schema_validation.py` — accumulating validators for diagnosis, evidence and writer artifacts.
@@ -21,10 +22,10 @@ V6 is intentionally smaller than v5.
 - `settings.json.template` — canonical default retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
 - `pipelines/` — canonical shipped model/provider defaults for self, LM Studio, and OpenRouter. Pipeline identity is the YAML filename stem; `pipeline.id` is intentionally absent.
-  Non-self defaults use `model_aliases` plus `model_roles`: roles own invocation settings such as `temperature`/`max_tokens`, while aliases resolve to model IDs and may carry an optional request-body `provider` routing mapping. `pipeline_registry.binding()` is the resolution boundary; downstream stage code sees only the resolved `Binding`. Legacy non-self `models:` files are still accepted for compatibility.
 - `devel_sync.py` — copies the canonical settings template and shipped pipeline YAMLs into root `config/` without touching `config/settings.json` or deleting user-added pipeline files.
 
 Clinical interpretation belongs to the owner call. Downstream code must not re-diagnose or repair owner clinical reasoning.
+Prognosis report aggregation is therefore deliberately downstream of evidence resolution: it may compress surviving supported propositions, but it must not create a new effect, framework, direction, disease scope, or evidence relationship.
 
 ## Sync public defaults
 
@@ -133,28 +134,32 @@ python workflows/terraced_v6/step.py show-prompt --stage prognosis
 
 ## PTBG proforma contract
 
-The owner model returns one row per variant:
+Owner outputs are variant-centric. Python owns deterministic identity: the authoritative WHO5 disease is injected into prognosis/treatment/MRD and canonical `gene` is injected from each `variant` ID before validation/persistence. Clinical classifications remain model decisions.
+
+Prognosis may identify zero, one, or multiple frameworks:
 
 ```yaml
+applicable_disease: CMML
+prognostic_frameworks:
+  - name: CPSS-Mol
+    tier: null
+    reason: "CPSS-Mol is the relevant CMML prognostic framework."
 classification:
   - variant: v01
-    bucket: adverse
-    reason: "..."
+    gene: ASXL1
+    framework_effects:
+      - framework: CPSS-Mol
+        effect: adverse
+        reason: "ASXL1 has an adverse effect within CPSS-Mol."
+    other_evidence_effect: adverse
+    other_evidence_reason: "Independent CMML evidence also supports an adverse effect."
 ```
 
-It is handed that list with every `variant` pre-filled, as the **final** block of
-the prompt. Coverage and exclusivity defects are then unrepresentable, and the
-structural check is `one_row_per_id` — the same rule the batch and writer stages
-already use.
+Framework selection is not hard-coded. `tier` is populated only when the model can assign that framework entirely from supplied genetic/cytogenetic findings. Other prognostic evidence may classify genes outside the framework, but it must apply to the authoritative disease.
 
-Grouping variants that share a proposition is Python's job
-(`step._consolidate_rows`), not the model's; it always was, the model's grouping
-was simply being redone. `domain_contract.pivot()` converts the flat list back to
-the bucket-list artifact before anything is written, so evidence selection,
-reportability and block assembly are unchanged.
+Treatment keeps one-or-more rows per variant but names the category `treatment_category`; MRD uses `mrd_status`; germline retains `bucket`. `domain_contract.pivot()` projects these accepted owner artifacts into bucketed internal rows for consolidation/reportability/evidence resolution.
 
-Bucket names are defined once, in `domain_contract.CONTRACTS`. Validators,
-consolidation, element assembly and the reportability defaults all read them.
+Evidence matching is one batched model call, but each evidence item is rendered with only its own deterministic candidate-card set. This preserves WHO5/ICC authority filtering and PTBG disease/gene cropping at the model boundary.
 
 ## Retry hygiene
 

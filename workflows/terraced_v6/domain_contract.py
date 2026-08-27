@@ -1,45 +1,27 @@
-"""One-row-per-variant contracts for the four terraced-v6 PTBG proformas.
+"""Model-facing PTBG contracts and deterministic projection for terraced-v6.
 
-## Why the model-facing shape changed
-
-The previous contract asked the owner model to emit four (or two, or three)
-bucket lists, to cover every supplied variant exactly once across them, and to
-merge variants sharing a proposition into one row. That is a coverage constraint,
-an exclusivity constraint and a grouping constraint held simultaneously — and the
-grouping half was *already redone in Python* immediately afterwards by
-`step._consolidate_rows`, so the model's grouping effort was never load-bearing.
-
-The model now returns one row per variant:
-
-    classification:
-      - variant: v01
-        bucket: adverse
-        reason: "..."
-
-`skeleton()` hands it that list with every `variant:` pre-filled, so the task is
-to fill two fields per row rather than to derive a partition. Coverage and
-exclusivity defects become unrepresentable, and `one_row_per_id` — the same rule
-already used by the batch and writer stages — is the whole structural check.
-
-`pivot()` converts the flat list back into the legacy bucket-list artifact before
-anything is written to disk, so evidence selection, reportability, block assembly
-and `_consolidate_rows` are all untouched.
-
-## Why the bucket names live here
-
-`favorable/adverse/neutral/uncertain` previously appeared in seven places per
-domain. This module is now the single definition; validators, consolidation,
-reportability defaults and element assembly all read it.
+The owner outputs stay variant-centric.  Python injects deterministic identity
+(`applicable_disease` and, where shown, `gene`) and projects the model-facing
+rows into the bucketed internal shape consumed by evidence resolution/reporting.
+Framework selection itself is never deterministic: prognosis may return zero,
+one, or several applicable frameworks.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import json
+
 import yaml
 
-from scripts.core.validated_model_task import ValidationIssue, fail
-from workflows.terraced_v6 import issues as iss
 from workflows.terraced_v6 import stage_spec
+
+
+_CATEGORY_FIELD = {
+    "treatment": "treatment_category",
+    "biomarker": "mrd_status",
+    "germline": "bucket",
+}
 
 
 @dataclass(frozen=True)
@@ -47,36 +29,18 @@ class DomainContract:
     domain: str
     label: str
     buckets: tuple[str, ...]
-    # Buckets whose rows carry a named therapy. Empty for most domains.
     therapy_buckets: tuple[str, ...] = ()
-    # Buckets that cannot coexist with any other bucket for the same variant.
-    # Empty means the domain is a strict partition (one row per variant).
     solitary_buckets: tuple[str, ...] = ()
-    # Whether a variant may legitimately appear in more than one row.
     multi_row: bool = False
-    # Extra top-level keys beyond `classification`.
     extra_keys: tuple[str, ...] = ()
     guidance: tuple[str, ...] = field(default_factory=tuple)
 
     @property
-    def row_keys_for(self):
-        def _keys(bucket):
-            return ("variant", "bucket", "therapy", "reason") if bucket in self.therapy_buckets else ("variant", "bucket", "reason")
-
-        return _keys
-
-    @property
-    def top_level_keys(self):
-        return ("classification", *self.extra_keys)
+    def category_field(self) -> str | None:
+        return _CATEGORY_FIELD.get(self.domain)
 
 
 def _from_spec(stage: str) -> DomainContract:
-    """Build a contract from the declarative stage asset (Phase 5).
-
-    The bucket vocabulary, therapy/solitary buckets and guidance now live in
-    `stages/<domain>.yaml`. This keeps the same dataclass so skeleton rendering,
-    validation and the pivot are unchanged.
-    """
     spec = stage_spec.load(stage)
     return DomainContract(
         domain=spec.stage,
@@ -104,196 +68,198 @@ def contract(domain: str) -> DomainContract:
         raise ValueError(f"unknown terraced-v6 domain {domain!r}") from None
 
 
-# --- model-facing skeleton ---------------------------------------------------
+def _gene(registry, vid):
+    row = (registry or {}).get(vid) or {}
+    return row.get("gene") if isinstance(row, dict) else None
 
-def skeleton(c: DomainContract, variant_ids) -> str:
-    """Render the exact artifact to return, with every `variant` pre-filled.
 
-    Shown to the model as the final block of the prompt. Recency matters
-    disproportionately for a low-active-parameter model: a contract stated
-    several thousand tokens before generation begins competes with everything
-    written since.
-    """
-    choices = "|".join(c.buckets)
+def _prognosis_skeleton(variant_ids, registry, disease) -> str:
     lines = [
-        f"## Return exactly this YAML for the {c.label} proforma, and nothing else.",
+        "## Return exactly this YAML for the prognosis proforma, and nothing else.",
         "",
+        "## `applicable_disease` is deterministic and must remain the supplied authoritative WHO5 disease.",
+        "## Identify zero, one, or multiple prognostic frameworks that genuinely apply to that disease.",
+        "## Do not choose a framework because a card from another disease mentions a familiar gene or framework.",
+        "## `tier` belongs to its framework. Populate it only when that framework can be assigned entirely from the supplied genetic/cytogenetic findings; otherwise use null.",
+        "## For each variant, `framework_effects` contains only effects explicitly defined by one of the named frameworks. Use [] when the variant is not classified by any named framework.",
+        "## `other_evidence_effect` may use any prognostic evidence explicitly applicable to the same disease, whether or not the gene belongs to a named framework.",
+        "## When framework evidence and other evidence both classify the same variant, keep their direction concordant unless distinct named frameworks themselves legitimately differ.",
+        "## One row per supplied variant, in order. Do not add, remove or reorder rows.",
     ]
+    lines += ["", "```yaml", f"applicable_disease: {json.dumps(str(disease), ensure_ascii=False)}"]
+    lines += [
+        "prognostic_frameworks:",
+        "  - name: \"<framework name>\"",
+        "    tier: null",
+        "    reason: \"<one concise proposition supporting framework applicability and, when tier is populated, the tier assignment; use prognostic_frameworks: [] when none can be identified>\"",
+        "  # Add another item for each additional applicable framework.",
+        "classification:",
+    ]
+    for vid in variant_ids:
+        gene = _gene(registry, vid) or "<deterministically injected gene>"
+        lines += [
+            f"  - variant: {vid}",
+            f"    gene: {gene}",
+            "    framework_effects:",
+            "      - framework: \"<exact name from prognostic_frameworks; use framework_effects: [] when none>\"",
+            "        effect: <favorable|adverse|neutral>",
+            "        reason: \"<one concise framework-specific proposition>\"",
+            "    other_evidence_effect: <favorable|adverse|neutral|no_evidence>",
+            "    other_evidence_reason: \"<one concise same-disease proposition; use null when no_evidence>\"",
+        ]
+    lines += ["```"]
+    return "\n".join(lines)
+
+
+def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_disease=None) -> str:
+    """Render the exact model-facing owner artifact with deterministic identities prefilled."""
+    ordered = list(variant_ids)
+    disease = applicable_disease or "<authoritative WHO5 schema_disease>"
+    if c.domain == "prognosis":
+        return _prognosis_skeleton(ordered, registry or {}, disease)
+
+    category = c.category_field or "bucket"
+    choices = "|".join(c.buckets)
+    lines = [f"## Return exactly this YAML for the {c.label} proforma, and nothing else.", ""]
+    if c.domain in {"treatment", "biomarker"}:
+        lines.append("## `applicable_disease` is deterministic and must remain the supplied authoritative WHO5 disease.")
     if c.multi_row:
         lines.append(
-            f"## Every supplied variant must appear at least once. Add a row when a variant has a "
-            f"second, genuinely distinct implication. Do not change any `variant` value."
+            "## Every supplied variant must appear at least once. Add a row only for a second, genuinely distinct implication. Do not change any `variant` value."
         )
     else:
-        lines.append(
-            "## One row per variant, in the order given. Do not add, remove or reorder rows, "
-            "and do not change any `variant` value."
-        )
+        lines.append("## One row per variant, in order. Do not add, remove or reorder rows, and do not change any `variant` value.")
     for line in c.guidance:
         lines.append(f"## {line}")
-    lines += ["", "```yaml", "classification:"]
-    for vid in variant_ids:
+    lines += ["", "```yaml"]
+    if c.domain in {"treatment", "biomarker"}:
+        lines.append(f"applicable_disease: {json.dumps(str(disease), ensure_ascii=False)}")
+    lines.append("classification:")
+    for vid in ordered:
         lines.append(f"  - variant: {vid}")
-        lines.append(f"    bucket: <{choices}>")
+        if c.domain in {"treatment", "biomarker"}:
+            lines.append(f"    gene: {_gene(registry or {}, vid) or '<deterministically injected gene>'}")
+        lines.append(f"    {category}: <{choices}>")
         if c.therapy_buckets:
             lines.append(
                 "    therapy: \"<named therapy; omit this field only for "
                 f"{c.solitary_buckets[0] if c.solitary_buckets else 'non-therapeutic'} rows>\""
             )
         lines.append(f"    reason: \"<one concise report-ready {c.label} proposition>\"")
-    if "prognostic_score" in c.extra_keys:
-        lines += [
-            "prognostic_score: null",
-            "# or, when the named score really is assignable from the supplied information:",
-            "# prognostic_score:",
-            "#   name: \"<framework>\"",
-            "#   result: \"<risk group or score>\"",
-            "#   reason: \"<one concise basis>\"",
-        ]
     lines.append("```")
     return "\n".join(lines)
 
 
-# --- validation --------------------------------------------------------------
+def normalize_model_output(text: str, c: DomainContract, registry: dict, applicable_disease: str | None):
+    """Inject deterministic disease/gene identity without repairing clinical reasoning.
 
-def validate(text: str, c: DomainContract, valid_variants) -> str:
-    """Validate via the stage asset: JSON Schema for structure, named rules for the rest."""
+    Returns ``(yaml_text, transform_records)``. Unknown variant IDs are left alone
+    so ordinary validation can reject them.
+    """
+    try:
+        doc = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return text, []
+    if not isinstance(doc, dict):
+        return text, []
+    records = []
+    if c.domain in {"prognosis", "treatment", "biomarker"} and applicable_disease:
+        if doc.get("applicable_disease") != applicable_disease:
+            records.append({
+                "transform": "inject_authoritative_disease",
+                "path": "applicable_disease",
+                "from": doc.get("applicable_disease"),
+                "to": applicable_disease,
+            })
+        doc["applicable_disease"] = applicable_disease
+    if c.domain in {"prognosis", "treatment", "biomarker"}:
+        rows = doc.get("classification")
+        if isinstance(rows, list):
+            for i, row in enumerate(rows):
+                if not isinstance(row, dict):
+                    continue
+                vid = row.get("variant")
+                gene = _gene(registry, vid)
+                if not gene:
+                    continue
+                if row.get("gene") != gene:
+                    records.append({
+                        "transform": "inject_canonical_gene",
+                        "path": f"classification[{i}].gene",
+                        "from": row.get("gene"),
+                        "to": gene,
+                    })
+                row["gene"] = gene
+    return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=110), records
+
+
+def validate(text: str, c: DomainContract, context: dict) -> str:
     from workflows.terraced_v6 import stage_validation
 
-    return stage_validation.validate(c.domain, text, {"variants": sorted(valid_variants)})
+    return stage_validation.validate(c.domain, text, context)
 
 
-def _validate_multi_row(rows, ordered, c: DomainContract) -> list[ValidationIssue]:
-    if not isinstance(rows, list):
-        return iss.one_row_per_id(rows, ordered, id_field="variant", path="classification")
-    problems: list[ValidationIssue] = []
-    seen = {}
-    for i, row in enumerate(rows):
-        if not isinstance(row, dict):
-            problems.append(
-                ValidationIssue(
-                    f"classification[{i}]",
-                    f"expected a mapping; received {iss.type_name(row)}",
-                    "return one mapping per row",
-                    repair_class="content",
-                    received=iss.preview(row),
-                )
-            )
-            continue
-        vid = row.get("variant")
-        if not isinstance(vid, str) or vid not in ordered:
-            problems.append(
-                ValidationIssue(
-                    f"classification[{i}].variant",
-                    f"{iss.preview(vid)!r} is not a supplied variant ID",
-                    f"use one of the supplied IDs {ordered}",
-                    repair_class="content",
-                    received=iss.preview(vid),
-                    expected=str(ordered),
-                )
-            )
-            continue
-        seen.setdefault(vid, []).append(row.get("bucket"))
-    missing = [v for v in ordered if v not in seen]
-    if missing:
-        problems.append(
-            ValidationIssue(
-                "classification",
-                f"no row for variant(s) {missing}",
-                "return at least one row for every supplied variant",
-                repair_class="content",
-                received=f"rows for {sorted(seen)}",
-                expected=str(ordered),
-            )
-        )
-    for solitary in c.solitary_buckets:
-        for vid, buckets in seen.items():
-            others = [b for b in buckets if b != solitary]
-            if solitary in buckets and others:
-                problems.append(
-                    ValidationIssue(
-                        "classification",
-                        f"{vid} appears in {solitary} and also in {sorted(set(others))}",
-                        f"a variant in {solitary} must not appear in any other bucket; "
-                        f"remove either the {solitary} row or the other row(s)",
-                        repair_class="content",
-                        received=f"{vid}: {buckets}",
-                        expected=f"{vid} in {solitary} alone, or not in {solitary} at all",
-                    )
-                )
-    for vid, buckets in seen.items():
-        dupes = sorted({b for b in buckets if buckets.count(b) > 1})
-        if dupes:
-            problems.append(
-                ValidationIssue(
-                    "classification",
-                    f"{vid} has more than one row in bucket(s) {dupes}",
-                    "merge them into one row, or use a different bucket for the distinct implication",
-                    repair_class="content",
-                    received=f"{vid}: {buckets}",
-                )
-            )
-    return problems
+def _base_entry(row):
+    entry = {"variants": [row.get("variant")], "reason": row.get("reason")}
+    if row.get("gene"):
+        entry["gene"] = row.get("gene")
+    return entry
 
-
-def _validate_prognostic_score(score) -> list[ValidationIssue]:
-    import re
-
-    if score is None:
-        return []
-    if not isinstance(score, dict):
-        return [
-            ValidationIssue(
-                "prognostic_score",
-                f"expected a mapping or null; received {iss.type_name(score)}",
-                "use null when no named score is assignable",
-                repair_class="content",
-                received=iss.preview(score),
-                expected="mapping | null",
-            )
-        ]
-    problems = list(iss.exact_keys(score, {"name", "result", "reason"}, "prognostic_score"))
-    for key in ("name", "result", "reason"):
-        problems += iss.text_field(score.get(key), f"prognostic_score.{key}")
-    combined = " ".join(str(score.get(k)) for k in ("name", "result", "reason"))
-    if re.search(
-        r"not\s+calculable|cannot\s+be\s+calculated|unable\s+to\s+calculate|insufficient.*(?:score|calculate)",
-        combined,
-        re.I,
-    ):
-        problems.append(
-            ValidationIssue(
-                "prognostic_score",
-                "reports an inability to calculate a score",
-                "use null instead; do not report that a score could not be calculated",
-                repair_class="content",
-                received=iss.preview(combined),
-                expected="null",
-            )
-        )
-    return problems
-
-
-# --- pivot back to the stored bucket-list artifact ---------------------------
 
 def pivot(doc: dict, c: DomainContract) -> dict:
-    """Convert the flat classification list into the legacy bucket-list artifact.
+    """Project model-facing variant rows into the stable internal bucket shape."""
+    if c.domain == "prognosis":
+        out = {bucket: [] for bucket in c.buckets}
+        out["applicable_disease"] = doc.get("applicable_disease")
+        out["prognostic_frameworks"] = list(doc.get("prognostic_frameworks") or [])
+        for row in doc.get("classification") or []:
+            if not isinstance(row, dict):
+                continue
+            vid = row.get("variant")
+            gene = row.get("gene")
+            framework_effects = row.get("framework_effects") or []
+            for effect_row in framework_effects:
+                if not isinstance(effect_row, dict):
+                    continue
+                effect = effect_row.get("effect")
+                bucket = f"framework_{effect}"
+                if bucket not in out:
+                    continue
+                entry = {
+                    "variants": [vid],
+                    "gene": gene,
+                    "framework": effect_row.get("framework"),
+                    "reason": effect_row.get("reason"),
+                }
+                out[bucket].append(entry)
+            other = row.get("other_evidence_effect")
+            if other in {"favorable", "adverse", "neutral"}:
+                out[f"other_evidence_{other}"].append({
+                    "variants": [vid],
+                    "gene": gene,
+                    "reason": row.get("other_evidence_reason"),
+                })
+            elif other == "no_evidence" and not framework_effects:
+                out["no_prognostic_evidence"].append({
+                    "variants": [vid],
+                    "gene": gene,
+                    "reason": "No disease-applicable prognostic evidence was identified for this variant.",
+                })
+        return out
 
-    Everything downstream of the owner call — consolidation, reportability,
-    evidence selection, block assembly — continues to read the bucket shape, so
-    the contract change is contained entirely within the model boundary.
-    """
     out = {bucket: [] for bucket in c.buckets}
+    if c.domain in {"treatment", "biomarker"}:
+        out["applicable_disease"] = doc.get("applicable_disease")
+    category = c.category_field or "bucket"
     for row in doc.get("classification") or []:
         if not isinstance(row, dict):
             continue
-        bucket = row.get("bucket")
+        bucket = row.get(category)
         if bucket not in out:
             continue
-        entry = {"variants": [row.get("variant")], "reason": row.get("reason")}
+        entry = _base_entry(row)
         if bucket in c.therapy_buckets:
             entry["therapy"] = row.get("therapy")
-            entry = {"variants": entry["variants"], "therapy": entry["therapy"], "reason": entry["reason"]}
         out[bucket].append(entry)
     for key in c.extra_keys:
         out[key] = doc.get(key)

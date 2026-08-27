@@ -280,7 +280,12 @@ def prepare_ptbg(work: Path) -> dict:
         group = f"self_ptbg_{domain}_input"
         cards_md, _ = _write_pool(work, group, cards, manifest)
         skeleton = output_path(work, group, "output-contract.md")
-        skeleton.write_text(domain_contract.skeleton(domain_contract.contract(domain), sorted(reg)), encoding="utf-8")
+        skeleton.write_text(
+            domain_contract.skeleton(
+                domain_contract.contract(domain), sorted(reg), registry=reg, applicable_disease=disease
+            ),
+            encoding="utf-8",
+        )
         context = output_path(work, group, "context.yaml")
         write_yaml(context, {
             "structured_case": {k: case.get(k) for k in model_context.DOMAIN_CASE_FIELDS},
@@ -308,8 +313,16 @@ def accept_ptbg(work: Path) -> dict[str, dict]:
         if not model_path.is_file():
             raise ValueError(f"{domain} model output missing: {model_path}")
         cleaned = staged._sanitize_proforma_text(work, f"self-{domain}", model_path.read_text(encoding="utf-8"))
-        model_path.write_text(cleaned, encoding="utf-8")
-        schema_validation.validate_domain(cleaned, domain, set(reg))
+        disease = finalize_diagnosis(work)["who5"]["schema_disease"]
+        normalized, identity_records = domain_contract.normalize_model_output(
+            cleaned, domain_contract.contract(domain), reg, disease
+        )
+        if identity_records:
+            staged._log_transforms(work, [dict(record, stage=f"self-{domain}") for record in identity_records])
+        model_path.write_text(normalized, encoding="utf-8")
+        schema_validation.validate_domain(
+            normalized, domain, set(reg), registry=reg, authoritative_disease=disease
+        )
         flat = read_yaml(model_path)
         doc = domain_contract.pivot(flat, domain_contract.contract(domain))
         doc, merges = staged._consolidate_rows(domain, doc, reg)
@@ -378,9 +391,14 @@ def prepare_evidence_resolution(work: Path) -> dict:
     }
     write_yaml(_evidence_state_path(work), state)
     group = "self_evidence_resolution_input"
+    public_rows = [{k: x[k] for k in ("evidence_id", "schema_id", "reason", "candidate_card_tags")} for x in items]
     public = output_path(work, group, "items.yaml")
-    write_yaml(public, {"items": [{k: x[k] for k in ("evidence_id", "schema_id", "reason", "candidate_card_tags")} for x in items]})
-    cards_md, _ = _write_pool(work, group, list(catalog.values()), manifest)
+    write_yaml(public, {"items": public_rows})
+    cards_md = output_path(work, group, "candidate-cards-by-item.md")
+    cards_md.write_text(
+        staged._render_evidence_match_candidates(public_rows, items, catalog, tag_by_id),
+        encoding="utf-8",
+    )
     return {
         "pass": "evidence_resolution",
         "contract": contract_path("evidence_match"),

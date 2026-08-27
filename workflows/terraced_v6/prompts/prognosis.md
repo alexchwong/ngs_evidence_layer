@@ -1,10 +1,19 @@
 # Prognosis
 
-Using only the supplied case, diagnosis, and prognosis cards, classify every supplied variant once by its principal supported prognostic effect in the current disease context.
+Using only the supplied case, authoritative diagnosis, and prognosis cards, assess prognosis in the authoritative disease context.
 
-Rules:
-- `ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
-- `reason` is one concise report-ready clinical proposition. Give variants sharing one proposition the same `reason` wording; they are merged deterministically afterwards.
-- Preserve qualitative strength from the evidence; do not weaken or strengthen it.
-- Do not infer that one variant cancels another unless the supplied evidence explicitly defines that interaction.
-- `prognostic_score` is populated only when this workflow can actually assign the named score/risk group from supplied information. Otherwise use null. Never say a score is "not calculable".
+First identify the prognostic framework or frameworks that genuinely apply to the authoritative disease. Framework selection is a clinical model decision: zero, one, or multiple frameworks may be returned. Do not infer or change the disease from candidate cards, and do not select a framework merely because a card from another disease mentions a familiar gene or framework.
+
+For every supplied variant, assess two independent evidence channels:
+- `framework_effects`: effects explicitly defined by one of the named prognostic frameworks. A variant may have one effect per named framework. Use an empty list when it is not classified by any named framework.
+- `other_evidence_effect`: prognosis supported by other evidence explicitly applicable to the same disease, whether or not the gene belongs to the named framework(s).
+
+Allowed directions are `favorable`, `adverse`, and `neutral`. Use `no_evidence` for `other_evidence_effect` when there is no qualifying same-disease prognostic evidence.
+
+A variant may appear in both a framework effect and other evidence when both apply. Keep their direction concordant unless distinct named frameworks themselves legitimately classify the variant differently.
+
+For each framework, `tier` is optional. Populate it only when the framework tier can be assigned entirely from the supplied genetic/cytogenetic findings. Otherwise use `null`. The framework `reason` must support framework applicability and, when `tier` is populated, the tier assignment as well. Do not calculate combined clinical/molecular scores merely because the framework is relevant, and do not state that a tier or score is "not calculable".
+
+`ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
+
+Keep every reason concise, report-ready, and faithful to the supplied evidence.

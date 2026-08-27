@@ -41,7 +41,12 @@ def _blocks(context):
 
 def _domain_skeleton(domain):
     def render(context):
-        return domain_contract.skeleton(domain_contract.contract(domain), sorted(_variants(context)))
+        return domain_contract.skeleton(
+            domain_contract.contract(domain),
+            sorted(_variants(context)),
+            registry=context.get("registry") or {},
+            applicable_disease=context.get("authoritative_disease"),
+        )
 
     return render
 
