@@ -1,12 +1,22 @@
 # Current corpus
 
-The current 0.2.4 corpus contains 12 active publications. Publications are grouped below by
+The current 0.2.5 corpus contains 19 active publications. Publications are grouped below by
 `latest_accepted_in_version` from `output/corpus/nel.index.json`. Card and acceptance-version
 metadata are stored in the index; matching citation metadata, including DOI, is stored in
 `output/corpus/nel.corpus.json`.
 
-## Last modified in v0.2.4
+### Last modified in v0.2.5
+| Publication key | DOI | Paper nickname | Contribution to corpus |
+|---|---|---|---|
+| `baliakas-2019-operational-germline-testing` | `10.1097/hs9.0000000000000321` | Nordic Germline Predisposition Guidelines 2019 | Adult germline predisposition recognition, genetic testing, clinical management, donor selection, surveillance, and family counselling guidance. |
+| `bernard-2020-tp53-mds` | `10.1038/s41591-020-1008-z` | Bernard TP53 Allelic State in MDS 2020 | TP53 monoallelic versus multi-hit state in MDS, with diagnostic, prognostic, leukemic-transformation, and treatment-response implications. |
+| `kraft-godley-2020-germline-guide` | `10.1182/blood.2020006910` | Kraft–Godley Germline NGS Guide 2020 | Recognition of potential germline variants from haematologic NGS using clinical context, VAF, persistence, and confirmatory-testing principles. |
+| `malcovati-2017-ccus-foundation` | `10.1182/blood-2017-01-763425` | Malcovati CCUS 2017 | Somatic-mutation interpretation in unexplained cytopenia, including CCUS identification and mutation-pattern risk for myeloid neoplasia. |
+| `passamonti-2017-mysec-pm-secondary` | `10.1038/leu.2017.169` | MYSEC-PM Secondary Myelofibrosis Prognostic Model 2017 | MYSEC-PM clinical-molecular survival risk stratification for post-PV and post-ET myelofibrosis. |
+| `tefferi-2020-mipss-et-pv` | `10.1111/bjh.16380` | MIPSS-ET/PV 2020 | Mutation-enhanced prognostic scoring for ET and PV, including survival, fibrotic progression, and leukemic-transformation associations. |
+| `urrutia-2025-tp53-myeloid` | `10.1182/blood.2025029691` | Urrutia TP53 Myeloid Guide 2025 | Clinical TP53 allelic-state assessment in AML/MDS, including multi-hit definitions, testing interpretation, prognosis, and treatment implications. |
 
+### Last modified in v0.2.4
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
 | `alaggio-2022-leukemia-who5-lymphoid` | `10.1038/s41375-022-01620-2` | WHO5 Lymphoid Classification 2022 | WHO fifth-edition lymphoid classification, molecular diagnostic criteria, biomarkers, prognosis, treatment implications, and germline considerations. |
