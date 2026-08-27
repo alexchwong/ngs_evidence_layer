@@ -13,12 +13,26 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
-from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
+from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 
-WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=2; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'
+WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=3; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
+
+def configure_runtime(*,settings_path=None,pipelines_dir=None):
+    """Bind workflow-local defaults or explicit public/frozen runtime inputs."""
+    global SETTINGS_PATH, SETTINGS_TEMPLATE_PATH
+    SETTINGS_PATH=Path(settings_path).expanduser().resolve() if settings_path is not None else HERE/'settings.json'
+    SETTINGS_TEMPLATE_PATH=SETTINGS_PATH.with_name('settings.json.template') if settings_path is not None else HERE/'settings.json.template'
+    pipeline_registry.configure(pipelines_dir)
+    return SETTINGS_PATH,pipeline_registry.ROOT
 EXIT_OK=0; EXIT_FAILURE=1; EXIT_HANDOFF=10
-VALIDATION_MODES={'nel-validate','nel-validate-function','nel-validate-brief'}
+def supported_modes():
+    doc=json.loads(WORKFLOW_PATH.read_text(encoding='utf-8'))
+    modes=doc.get('supported_modes') or []
+    if not isinstance(modes,list) or not modes or any(not isinstance(x,str) or not x for x in modes):
+        raise ValueError(f'invalid supported_modes in {WORKFLOW_PATH}')
+    return tuple(modes)
+VALIDATION_MODES={m for m in supported_modes() if m.startswith('nel-validate')}
 MARKING_PREFIX={'nel-validate':'nel-validation','nel-validate-function':'nel-validation-function','nel-validate-brief':'nel-validation-brief'}
 _EXECUTION_STARTED_AT=None
 
@@ -60,7 +74,7 @@ def _card_render_mode():
 
 _REPORTABILITY_DEFAULTS={
     'diagnosis':{'who5':True,'icc':True,'second_diagnosis':True},
-    'prognosis':{'favorable':True,'adverse':True,'neutral':True,'uncertain':False,'prognostic_score':True},
+    'prognosis':{'framework_favorable':True,'framework_adverse':True,'framework_neutral':True,'other_evidence_favorable':True,'other_evidence_adverse':True,'other_evidence_neutral':True,'no_prognostic_evidence':False,'prognostic_frameworks':True},
     'treatment':{'drug_target':True,'drug_sensitive':True,'drug_resistant':True,'no_drug_implication':False},
     'biomarker':{'mrd_marker':True,'not_mrd_marker':False},
     'germline':{'germline_support':True,'germline_against':False,'germline_uncertain':False},
@@ -110,6 +124,8 @@ def _cli_logging(work):
 
 def _artifact(work,group,name,new=False):
     d=layout.intermediate_dir(work,group,existing=not new); return d/name
+def artifact_path(work,group,name,*,create=False): return _artifact(work,group,name,new=create)
+def has_artifact(work,group,name): return artifact_path(work,group,name).is_file()
 def _existing_or_new(work,group,name):
     p=_artifact(work,group,name)
     return p if p.exists() else _artifact(work,group,name,new=True)
@@ -601,6 +617,37 @@ def _require_work(work):
     if state.get('workflow_id')!=WORKFLOW_ID: raise StepFailure(f'work directory is bound to {state.get("workflow_id")!r}, not {WORKFLOW_ID!r}')
     _load_run_state(work)
 
+def run_metadata(work):
+    state=_load_run_state(Path(work))
+    return {'pipeline':state.get('pipeline'),'mode':state.get('mode')}
+
+def inspect_run(work):
+    """Return canonical staged-provider progress without exposing artifact names to callers."""
+    work=Path(work)
+    try: meta=run_metadata(work)
+    except Exception: meta={'pipeline':None,'mode':None}
+    if (work/'report-final.md').is_file():
+        label,stage,nxt,complete='Complete','complete',None,True
+    elif has_artifact(work,'report_write','report-write.yaml') or has_artifact(work,'report_blocks','report-blocks.yaml') or has_artifact(work,'evidence_enriched','reportable-elements.yaml'):
+        label,stage,nxt,complete='At report synthesis','report_synthesis','complete report',False
+    elif has_artifact(work,'germline_state','proforma.yaml'):
+        label,stage,nxt,complete='At evidence review','evidence_review','resolve evidence',False
+    elif has_artifact(work,'biomarker_state','proforma.yaml'):
+        label,stage,nxt,complete='At germline','germline','complete germline',False
+    elif has_artifact(work,'treatment_state','proforma.yaml'):
+        label,stage,nxt,complete='At biomarker','biomarker','complete biomarker',False
+    elif has_artifact(work,'prognosis_state','proforma.yaml'):
+        label,stage,nxt,complete='At treatment','treatment','complete treatment',False
+    elif has_artifact(work,'diagnosis','diagnosis-final.yaml'):
+        label,stage,nxt,complete='At prognosis','prognosis','complete prognosis',False
+    elif has_artifact(work,'structured_case','case.json'):
+        label,stage,nxt,complete='At diagnosis','diagnosis','complete diagnosis',False
+    elif (work/'workflow.json').is_file() and (work/'case.md').is_file():
+        label,stage,nxt,complete='Setup only','setup','structure case',False
+    else:
+        label,stage,nxt,complete='Unrecognized','unknown','inspect run',False
+    return {'label':label,'stage':stage,'next':nxt,'complete':complete,**meta}
+
 def _load_corpus():
     corpus_doc,_index,digest=corpus.load_corpus(corpus.DEFAULT_CORPUS,corpus.DEFAULT_INDEX); all_cards=corpus.flatten(corpus_doc)
     try: eligible=corpus.blacklist_cards(all_cards,corpus.DEFAULT_BLACKLIST)
@@ -615,9 +662,10 @@ def _load_corpus():
 def _manifest_path(work): return _existing_or_new(work,'card_identity','card-identity-manifest.json')
 def stage_structure(work,profile):
     out=_case_json(work)
-    prompt=_prompt('structure_case')+'\n\n# Authoritative case\n'+_read(layout.input(work,'case.md'))+'\n\n# Allowed bootstrap CMCs\n'+_read(layout.setup(work,'case-major-categories.json'))+'\n\n# Assay scope\n'+_read(layout.setup(work,'ngs-panel-scope.md'))
+    prompt=_prompt('structure_case')+'\n\n# Authoritative case\n'+_read(layout.input(work,'case.md'))+'\n\n# Allowed bootstrap CMCs\n'+_read(layout.setup(work,'case-major-categories.json'))
     _model_call(work,call_id='structure-case',role='structure',prompt=prompt,output=out,validator=runtime.validate_case_text,profile=profile,fmt='json')
     case=runtime.normalize_case_variant_descriptions(runtime.read_json(out))
+    case=runtime.materialize_ngs_no_variants_detected(case,_read(layout.setup(work,'ngs-panel-scope.md')))
     _write(out,json.dumps(case,indent=2,ensure_ascii=False)+'\n')
     runtime.validate_case_text(_read(out),require_gene_prefixed_description=True)
     reg={f'v{i:02d}':{'variant_id':row['variant_id'],'gene':row['gene'],'description':row['description']} for i,row in enumerate(case.get('variants') or [],1)}
@@ -650,6 +698,9 @@ def _closed_gene_set(card):
 def _render_cards(cards,tag_by_id):
     return rendering.render_prompt_cards(cards,tag_by_id,mode=_card_render_mode())
 
+def _render_diagnostic_cards(cards,tag_by_id,authority):
+    return rendering.render_diagnostic_prompt_cards(cards,tag_by_id,authority=authority,mode=_card_render_mode())
+
 def _finite_membership_context(reg,cards,tag_by_id):
     out={}
     for card in cards:
@@ -667,28 +718,107 @@ def _draw_diagnosis_cards(eligible,genes,cmcs):
         if core_retrieval.match_genes(c,wanted) or core_retrieval._matches_case_major_category(c,cmcs): hits.append(c)
     return sorted(hits,key=lambda x:x.get('card_id') or '')
 
+def _diagnosis_publication_keys(authority,setting,*,required):
+    cfg=_setting('diagnosis',authority); values=cfg.get(setting)
+    if not isinstance(values,list) or any(not isinstance(value,str) or not value.strip() for value in values):
+        raise StepFailure(f'diagnosis.{authority}.{setting} must be a string list')
+    keys={value.strip() for value in values}
+    if required and not keys:
+        raise StepFailure(f'diagnosis.{authority}.{setting} must not be empty')
+    return keys
+
 def _diagnosis_authority_publications(authority):
-    return set((_setting('diagnosis',authority).get('publication_keys') or []))
+    return _diagnosis_publication_keys(authority,'included_publication_keys',required=False)
+
+def _diagnosis_authority_excluded_publications(authority):
+    return _diagnosis_publication_keys(authority,'excluded_publication_keys',required=False)
 
 def _filter_diagnosis_authority(cards,authority):
-    keys=_diagnosis_authority_publications(authority)
-    return [c for c in cards if c.get('publication_key') in keys] if keys else list(cards)
+    included=_diagnosis_authority_publications(authority)
+    excluded=_diagnosis_authority_excluded_publications(authority)
+    return [c for c in cards if (not included or c.get('publication_key') in included) and c.get('publication_key') not in excluded]
 
-def _disease_match(card,diseases,category):
-    for disease in diseases:
-        allowed={disease,*runtime.vocab.retrieval_related_diseases(disease,category)}
-        if set(card.get('diseases') or []) & allowed: return True
-    return False
+def _diagnostic_cards(eligible,genes,cmcs,authority):
+    """Build one authority pool; exclusions take precedence over inclusions."""
+    return _filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,cmcs),authority)
+
+def _ptbg_card_applicable(card,domain,genes,disease):
+    """Return whether one PTBG card is in scope for the authoritative WHO5 disease.
+
+    Downstream PTBG must not inherit evidence from ``retrieval_related`` diseases.
+    Multi-disease applicability is expressed explicitly by the card's own ``diseases``
+    list. Germline is the exception: disease-neutral cards are allowed because the
+    constitutional proposition can legitimately be independent of the current neoplasm.
+    """
+    category=str(_setting('ptbg','domains',domain,'card_category'))
+    if card.get('category')!=category: return False
+    card_diseases=set(card.get('diseases') or [])
+    exact_disease=disease in card_diseases
+    gene_match=bool(core_retrieval.match_genes(card,set(genes)))
+    if domain=='prognosis':
+        # The owner must see the disease's prognostic framework even when none of
+        # the framework genes are mutated. Variant-specific candidate cropping
+        # happens later at evidence resolution.
+        return exact_disease
+    if domain in {'treatment','biomarker'}:
+        return exact_disease and gene_match
+    if domain=='germline':
+        return gene_match and (not card_diseases or exact_disease)
+    raise StepFailure(f'unsupported PTBG domain {domain!r}')
 
 def _draw_domain_cards(eligible,domain,genes,diseases):
-    category=str(_setting('ptbg','domains',domain,'card_category')); wanted=set(genes); hits=[]
+    """Draw PTBG cards using exact authoritative-disease scope, never related-disease expansion."""
+    hits=[]
     for c in eligible:
-        if c.get('category')!=category: continue
-        mg=core_retrieval.match_genes(c,wanted)
-        if domain=='germline':
-            if mg: hits.append(c)
-        elif _disease_match(c,diseases,category) and (mg or not c.get('genes')): hits.append(c)
+        if any(_ptbg_card_applicable(c,domain,genes,disease) for disease in diseases): hits.append(c)
     return sorted(hits,key=lambda x:x.get('card_id') or '')
+
+def _log_ptbg_retrieval(work,eligible,domain,genes,disease,cards):
+    """Emit one concise, deterministic PTBG retrieval summary per run/domain."""
+    category=str(_setting('ptbg','domains',domain,'card_category'))
+    category_cards=[c for c in eligible if c.get('category')==category]
+    wanted=set(genes)
+    selected_ids={c.get('card_id') for c in cards}
+    disease_mismatched=0; gene_mismatched=0
+    for card in category_cards:
+        if card.get('card_id') in selected_ids: continue
+        card_diseases=set(card.get('diseases') or [])
+        exact=disease in card_diseases
+        gene_match=bool(core_retrieval.match_genes(card,wanted))
+        disease_ok=(not card_diseases or exact) if domain=='germline' else exact
+        if gene_match and not disease_ok: disease_mismatched+=1
+        elif disease_ok and not gene_match and not (domain=='prognosis' and not card.get('genes')): gene_mismatched+=1
+    variant_cards=sum(1 for c in cards if c.get('genes'))
+    disease_level=sum(1 for c in cards if not c.get('genes'))
+    neutral_germline=sum(1 for c in cards if domain=='germline' and not c.get('diseases'))
+    detail=f'selected: {variant_cards} variant card(s)'
+    if domain=='prognosis': detail+=f', {disease_level} disease-level card(s)'
+    if domain=='germline': detail+=f', {neutral_germline} disease-neutral card(s)'
+    _log_once(
+        work,f'ptbg-retrieval-{domain}',
+        f'{domain} retrieval: exact disease={disease}; genes={",".join(genes) if genes else "none"}; '
+        f'{detail}; suppressed: {disease_mismatched} disease-mismatched, {gene_mismatched} gene-mismatched card(s)',
+    )
+
+def _assert_ptbg_audit_card_applicable(card,el,reg,authoritative_disease):
+    """Fail closed before semantic audit if a selected PTBG card is out of deterministic scope."""
+    if el.get('domain')=='diagnosis': return
+    domain=el.get('domain')
+    genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
+    if domain=='prognosis':
+        card_diseases=set(card.get('diseases') or [])
+        disease_ok=authoritative_disease in card_diseases
+        if el.get('bucket')=='prognostic_framework':
+            applicable=disease_ok
+        else:
+            applicable=disease_ok and bool(core_retrieval.match_genes(card,genes))
+    else:
+        applicable=_ptbg_card_applicable(card,domain,genes,authoritative_disease)
+    if not applicable:
+        raise StepFailure(
+            f'evidence audit refused out-of-scope card {card.get("card_id")!r} for {el.get("schema_id")}: '
+            f'domain={domain}, authoritative disease={authoritative_disease!r}, element genes={sorted(genes)}'
+        )
 
 def _allowed_diseases(work):
     return set(runtime.read_json(layout.setup(work,'allowed-schema-diseases.json'))['allowed_schema_diseases'])
@@ -756,9 +886,9 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     allowed=_allowed_diseases(work); genes=runtime.case_genes(case); bootstrap=list(case.get('bootstrap_cmcs') or []); tag_by_id=card_identity.tag_by_id(manifest)
     max_passes=int(_setting('diagnosis','who5','max_cmc_passes')); prior=list(bootstrap); history=list(bootstrap); who=None; who_cards=[]; authoritative=1
     for idx in range(1,max_passes+1):
-        who_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'who5')
+        who_cards=_diagnostic_cards(eligible,genes,history,'who5')
         out=_artifact(work,f'diagnosis_who5_pass_{idx}','who5.yaml',new=True)
-        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_cards(who_cards,tag_by_id)
+        prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_diagnostic_cards(who_cards,tag_by_id,'who5')
         model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
         _model_call(work,call_id=f'diagnosis-who5-pass-{idx:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
         who=yaml.safe_load(_read(out)); cmcs=runtime.derive_cmcs(who); authoritative=idx
@@ -770,8 +900,8 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     for cmc in final_cmcs:
         if cmc not in history: history.append(cmc)
 
-    icc_cards=_filter_diagnosis_authority(_draw_diagnosis_cards(eligible,genes,history),'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
-    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_cards(icc_cards,tag_by_id)
+    icc_cards=_diagnostic_cards(eligible,genes,history,'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
+    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(icc_cards,tag_by_id,'icc')
     model_context.assert_canonical(iprompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=iprompt,output=icc_out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
     icc=yaml.safe_load(_read(icc_out))
@@ -788,7 +918,7 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards}
 
 def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
-    valid=set(reg); disease=diagnosis['who5']['schema_disease']; cards=_draw_domain_cards(eligible,domain,runtime.case_genes(case),[disease]); tag_by_id=card_identity.tag_by_id(manifest)
+    valid=set(reg); disease=diagnosis['who5']['schema_disease']; genes=runtime.case_genes(case); cards=_draw_domain_cards(eligible,domain,genes,[disease]); _log_ptbg_retrieval(work,eligible,domain,genes,disease,cards); tag_by_id=card_identity.tag_by_id(manifest)
     contract=domain_contract.contract(domain)
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml')
     # The output contract is the final block of the prompt: recency matters
@@ -798,12 +928,21 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
         +'\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DOMAIN_CASE_FIELDS)+'\n```'
         +'\n\n# Authoritative framework diagnoses\n```yaml\n'+model_context.diagnosis_context(diagnosis)+'```'
         +'\n\n# Candidate evidence cards\n'+_render_cards(cards,tag_by_id)
-        +'\n\n'+domain_contract.skeleton(contract,sorted(reg)))
+        +'\n\n'+domain_contract.skeleton(contract,sorted(reg),registry=reg,applicable_disease=disease))
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_domain(t,domain,valid),profile=profile,proforma=True)
-    # The model returns the flat one-row-per-variant form; everything downstream
-    # reads the bucket-list form, so pivot before the artifact is stored.
-    flat=yaml.safe_load(_read(out)); doc=domain_contract.pivot(flat,contract)
+    def validate_owner(text):
+        normalized,_records=domain_contract.normalize_model_output(text,contract,reg,disease)
+        return schema_validation.validate_domain(
+            normalized,domain,valid,registry=reg,authoritative_disease=disease
+        )
+    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=validate_owner,profile=profile,proforma=True)
+    normalized,identity_records=domain_contract.normalize_model_output(_read(out),contract,reg,disease)
+    if identity_records:
+        _log_transforms(work,[dict(record,stage=domain) for record in identity_records])
+    _write(out,normalized)
+    # The model returns the variant-centric owner form; Python projects it into
+    # the stable bucketed internal artifact consumed downstream.
+    flat=yaml.safe_load(normalized); doc=domain_contract.pivot(flat,contract)
     doc,merges=_consolidate_rows(domain,doc,reg); _log_transforms(work,merges)
     _write(out,yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
     _write(_artifact(work,f'{domain}_state','model-classification.yaml',new=False),yaml.safe_dump(flat,sort_keys=False,allow_unicode=True,width=110))
@@ -832,15 +971,30 @@ def _elements(diagnosis,domains,case):
     sec=diagnosis['second_diagnosis']
     if _reportable('diagnosis','second_diagnosis') and sec.get('diagnosis'):
         els.append({'schema_id':'DX-SECOND','domain':'diagnosis','bucket':'second_diagnosis','statement':sec['diagnosis'],'reason':sec['reason'],'variants':sec['variants'],'evidence_domain':'diagnosis_other','required':False,'source':sec})
-    # Bucket vocabulary comes from domain_contract, not from four literal tuples.
-    for domain,prefix in (('prognosis','PX'),('treatment','TX'),('biomarker','MRD'),('germline','GL')):
+    prognosis=domains['prognosis']
+    if _reportable('prognosis','prognostic_frameworks'):
+        for i,framework in enumerate(prognosis.get('prognostic_frameworks') or [],1):
+            tier=framework.get('tier')
+            statement=(
+                f'{framework["name"]} prognostic framework; tier: {tier}.'
+                if tier is not None else
+                f'{framework["name"]} is an applicable prognostic framework for {prognosis.get("applicable_disease") or "the authoritative disease"}.'
+            )
+            els.append({
+                'schema_id':f'PX-FRAMEWORK-{i:02d}','domain':'prognosis','bucket':'prognostic_framework',
+                'statement':statement,'reason':framework['reason'],'variants':[],'evidence_domain':'prognosis',
+                'required':False,'source':framework,
+            })
+    for bucket in domain_contract.contract('prognosis').buckets:
+        if not _reportable('prognosis',bucket): continue
+        for i,row in enumerate(prognosis.get(bucket) or [],1):
+            els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'prognosis','required':False,'source':row})
+    for domain,prefix in (('treatment','TX'),('biomarker','MRD'),('germline','GL')):
         doc=domains[domain]
         for bucket in domain_contract.contract(domain).buckets:
             if not _reportable(domain,bucket): continue
-            for i,row in enumerate(doc[bucket],1): els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row})
-    score=(domains['prognosis'] or {}).get('prognostic_score')
-    if score and _reportable('prognosis','prognostic_score'):
-        els.append({'schema_id':'PX-SCORE','domain':'prognosis','bucket':'prognostic_score','statement':f'{score["name"]}: {score["result"]}.','reason':score['reason'],'variants':[],'evidence_domain':'prognosis','required':False,'source':score})
+            for i,row in enumerate(doc[bucket],1):
+                els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row})
     return els
 
 def _candidate_cards(el,cards_by_domain,reg):
@@ -849,11 +1003,42 @@ def _candidate_cards(el,cards_by_domain,reg):
     # the WHO5/ICC authority filter. Do not destroy that OR retrieval semantics
     # by applying a second proposition-gene filter here.
     if el.get('domain')=='diagnosis': return cards
+    if el.get('domain')=='prognosis' and el.get('bucket')=='prognostic_framework':
+        return cards
     genes={reg[v]['gene'] for v in el.get('variants') or [] if v in reg}
     if genes:
-        subset=[c for c in cards if not c.get('genes') or genes & set(c.get('genes') or [])]
-        if subset: cards=subset
+        subset=[c for c in cards if genes & set(c.get('genes') or [])]
+        if subset: return subset
+        return []
     return cards
+
+def _render_evidence_match_candidates(public_items,candidate_items,catalog,tag_by_id):
+    """Render each evidence item's deterministic candidate set beside that item.
+
+    The batch stays one model call, but separately filtered pools are never
+    collapsed into one unlabeled global catalog.
+    """
+    by_eid={item['evidence_id']:item for item in candidate_items}
+    sections=[]
+    for public in public_items:
+        item=by_eid[public['evidence_id']]
+        allowed=set(public.get('candidate_card_tags') or [])
+        cards=[]
+        for cid in evidence_resolution.remaining_candidate_ids(item):
+            tag=f'[card:{tag_by_id[cid]}]'
+            if tag in allowed and cid in catalog:
+                cards.append(catalog[cid])
+        sections += [
+            f"## Evidence item {public['evidence_id']}",
+            "```yaml",
+            yaml.safe_dump(public,sort_keys=False,allow_unicode=True,width=110).rstrip(),
+            "```",
+            f"### Candidate cards for {public['evidence_id']}",
+            _render_cards(cards,tag_by_id).rstrip(),
+            "",
+        ]
+    return '\n'.join(sections).rstrip()+'\n'
+
 
 def _evidence_reviewed_text(el):
     return 'Statement: '+el['statement']+'\nReason: '+el['reason']
@@ -910,7 +1095,7 @@ def _accepted_evidence(card,card_tag,audit,semantic_attempt):
     }
 
 
-def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
+def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authoritative_disease=None):
     """Resolve each reason to zero or more independently audited evidence cards.
 
     The matcher only selects cards whose proposition is an element of the reason.
@@ -950,14 +1135,10 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
         if not pending: break
         _status(f'  evidence resolution semantic attempt {semantic_attempt}/{max_attempts}: {len(pending)} item(s)')
         public=[evidence_resolution.public_match_item(item,tag_by_id) for item in pending]
-        candidate_ids=list(dict.fromkeys(cid for item in pending for cid in evidence_resolution.remaining_candidate_ids(item)))
-        cards=[catalog[cid] for cid in candidate_ids]
         mpath=_existing_or_new(work,'evidence_matches',f'attempt-{semantic_attempt:02d}.yaml')
         mprompt=(
-            _prompt('evidence_match')+'\n\n# Evidence items\n```yaml\n'
-            +yaml.safe_dump({'items':public},sort_keys=False,allow_unicode=True,width=110)
-            +'```\n\n# Candidate card catalog\n'
-            +_render_cards(cards,tag_by_id)+'\n'
+            _prompt('evidence_match')+'\n\n# Evidence items with their deterministic candidate cards\n'
+            +_render_evidence_match_candidates(public,pending,catalog,tag_by_id)
         )
         validation_items=[{'evidence_id':x['evidence_id'],'candidate_card_tags':x['candidate_card_tags']} for x in public]
         _model_call(
@@ -977,9 +1158,14 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile):
             for item in pending:
                 tags=list(mmap[item['evidence_id']].get('card_tags') or [])
                 if not tags: continue
+                el=enriched[item['element_index']]
                 audit_rows.append({'evidence_id':item['evidence_id'],'schema_id':item['schema_id'],'reason':item['reason'],'selected_card_tags':tags})
                 for tag in tags:
                     cid=id_by_tag[tag]
+                    if el.get('domain')!='diagnosis':
+                        if not authoritative_disease:
+                            raise StepFailure('authoritative WHO5 disease is required for PTBG evidence audit')
+                        _assert_ptbg_audit_card_applicable(catalog[cid],el,reg,authoritative_disease)
                     if cid not in selected_ids: selected_ids.append(cid)
             apath=_existing_or_new(work,'evidence_audits',f'attempt-{semantic_attempt:02d}.yaml')
             selected_cards=[catalog[cid] for cid in selected_ids]
@@ -1077,8 +1263,26 @@ def stage_blocks(work,diagnosis,elements,reg):
         who=next((x for x in dx if x['role']=='who5'),None); icc=next((x for x in dx if x['role']=='icc'),None)
         relationship=('same' if who and icc and runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different' if who and icc else 'partial')
         blocks.append({'block_id':'DX','domain':'diagnosis','relationship':relationship,'components':dx})
-    order={'prognosis':1,'treatment':2,'biomarker':3,'germline':4}
-    for el in sorted((e for e in elements if e['domain']!='diagnosis'),key=lambda e:(order[e['domain']],e['schema_id'])):
+
+    # Prognosis remains variant-centric through semantic evidence resolution.
+    # Only now, after card matching/audit, collapse supported findings into
+    # report-sized clinical propositions.  The same function is used by the
+    # native-self path via self_runtime.finalize_evidence().
+    prognosis_blocks,prognosis_trace=prognosis_report.aggregate(elements,diagnosis,reg)
+    _write(
+        _existing_or_new(work,'prognosis_report_aggregation','aggregation.yaml'),
+        yaml.safe_dump(prognosis_trace,sort_keys=False,allow_unicode=True,width=110),
+    )
+    _status(
+        '  prognosis report aggregation: '
+        f"{len(prognosis_trace.get('framework_groups') or [])} framework block(s), "
+        f"{len(prognosis_trace.get('retained_other') or [])} independent block(s), "
+        f"{len(prognosis_trace.get('suppressed') or [])} redundant proposition(s) suppressed"
+    )
+    blocks.extend(prognosis_blocks)
+
+    order={'treatment':2,'biomarker':3,'germline':4}
+    for el in sorted((e for e in elements if e['domain'] in order),key=lambda e:(order[e['domain']],e['schema_id'])):
         src=dict(el['source']); blocks.append({'block_id':el['schema_id'],'domain':el['domain'],'components':[{'role':el['bucket'],'reason':el['reason'],'variants':el.get('variants') or [],'genes':_genes(reg,el.get('variants') or []),'source':src,'card_tags':[ev['card_tag'] for ev in (el.get('evidence') or [])]}]})
     _write(_existing_or_new(work,'report_blocks','report-blocks.yaml'),yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110))
     return blocks
@@ -1161,7 +1365,7 @@ def run_pipeline(work,profile=None):
     domains={}; cards_by_domain=dict(diagnosis_cards)
     for idx,domain in enumerate(('prognosis','treatment','biomarker','germline'),4):
         _stage_status(work,f'stage-{idx}',f'Stage {idx} of 9 — {domain} owner proforma'); domains[domain],cards_by_domain[domain]=stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile)
-    _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains,case); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile); blocks=stage_blocks(work,diagnosis,supported,reg)
+    _stage_status(work,'stage-8','Stage 8 of 9 — evidence, reportability, deterministic blocks'); elements=_elements(diagnosis,domains,case); supported=stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,authoritative_disease=diagnosis['who5']['schema_disease']); blocks=stage_blocks(work,diagnosis,supported,reg)
     _stage_status(work,'stage-9','Stage 9 of 9 — one report-writing call + preservation check'); final_blocks=stage_report_write(work,blocks,case,reg,profile); stage_final(work,case,final_blocks,supported,all_cards,digest,manifest); _print_usage(work); _stage_status(work,'complete','terraced-v6 complete'); return EXIT_OK
 
 def run_pipeline_setting(pid):
@@ -1186,7 +1390,7 @@ def _resolve_run_work_dir(work_dir):
 
 def build_parser():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='command',required=True)
-    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=['ngs-report','nel-demo','nel-validate','nel-validate-function','nel-validate-brief']); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names())
+    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=supported_modes()); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names())
     cs=sub.add_parser('check-stage'); cs.add_argument('--stage',required=True,choices=stage_checks.names()); cs.add_argument('--file',type=Path,required=True); cs.add_argument('--context',type=Path)
     sp=sub.add_parser('show-prompt'); sp.add_argument('--stage',required=True,choices=stage_checks.names()); sp.add_argument('--context',type=Path)
     sub.add_parser('stages')

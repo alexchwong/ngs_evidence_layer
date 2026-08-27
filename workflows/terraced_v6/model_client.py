@@ -79,6 +79,8 @@ def complete_messages(binding: Binding, messages: list[dict[str, str]]) -> Compl
         "max_tokens": binding.max_tokens,
         "stream": False,
     }
+    if binding.provider_routing is not None:
+        payload["provider"] = binding.provider_routing
     headers = {"Content-Type": "application/json"}
     if binding.api_key:
         headers["Authorization"] = f"Bearer {binding.api_key}"

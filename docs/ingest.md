@@ -9,8 +9,13 @@ From the repository root, create the local environment once:
 ```bash
 python3 -m venv .env
 . .env/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-ingest.txt
 ```
+
+`requirements-ingest.txt` installs the product runtime dependencies plus
+`opendataloader-pdf`, which is required only to convert source PDFs to Markdown.
+It is intentionally excluded from the released skill because end users run the
+bundled evidence corpus and do not ingest publications.
 
 Activate it in each new shell, then run the normal ingestion sequence:
 
@@ -121,7 +126,7 @@ From the repository root:
 ```bash
 python3 -m venv .env
 . .env/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-ingest.txt
 ```
 
 ## Move private corpus state between computers

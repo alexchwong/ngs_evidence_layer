@@ -95,7 +95,7 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
         safe=_single_mapping_list(d)
         issues.append(ValidationIssue('structured case',f'expected object; received {_type_name(d)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required top-level object from the case-structure proforma',repair_class='serialization' if safe else 'content',received=_preview(d),expected='object'))
         d={}
-    _exact(issues,d,{'provisional_disease','morphologic_diagnosis_origin','bootstrap_cmcs','variants','detected_variants_summary','case_facts'})
+    _exact(issues,d,{'provisional_disease','morphologic_diagnosis_origin','bootstrap_cmcs','variants','detected_variants_summary','ngs_result_completeness','ngs_no_variants_detected','case_facts'})
     provisional=d.get('provisional_disease')
     if not _nonempty(provisional):
         cls='serialization' if _scalar_string_repairable(provisional) else 'content'
@@ -140,6 +140,23 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
         issues.append(ValidationIssue('detected_variants_summary',f'expected non-empty string; received {_type_name(summary)}','quote/reserialize the existing summary as one string without changing its words' if cls=='serialization' else 'return one clean source-faithful sentence',repair_class=cls,received=_preview(summary),expected='non-empty one-line string'))
     elif '\n' in summary or summary!=summary.strip():
         issues.append(ValidationIssue('detected_variants_summary','must be one clean physical line','reserialize the same summary on one physical line without changing its words',repair_class='serialization',received=_preview(summary),expected='one physical-line string'))
+    completeness=d.get('ngs_result_completeness')
+    if completeness not in {'complete','incomplete'}:
+        issues.append(ValidationIssue('ngs_result_completeness',f'expected complete or incomplete; received {_preview(completeness)}','use complete unless the supplied NGS result is explicitly partial, selected, limited, abbreviated, pending, or otherwise incomplete',repair_class='content',received=_preview(completeness),expected="'complete' or 'incomplete'"))
+    negatives=d.get('ngs_no_variants_detected')
+    if not isinstance(negatives,list):
+        issues.append(ValidationIssue('ngs_no_variants_detected',f'expected list; received {_type_name(negatives)}','return a JSON list; during structure extraction use an empty list because core materializes panel negatives deterministically',repair_class='serialization' if isinstance(negatives,str) else 'content',received=_preview(negatives),expected='list of uppercase gene symbols'))
+        negatives=[]
+    seen_negative=set()
+    for i,gene in enumerate(negatives):
+        path=f'ngs_no_variants_detected[{i}]'
+        if not _nonempty(gene) or gene!=gene.upper() or not re.fullmatch(r'[A-Z0-9]+',gene or ''):
+            issues.append(ValidationIssue(path,f'invalid gene {gene!r}','use an uppercase panel gene symbol',repair_class='content',received=_preview(gene),expected='uppercase gene symbol'))
+        elif gene in seen_negative:
+            issues.append(ValidationIssue(path,f'duplicate gene {gene!r}','list each negative panel gene once',repair_class='content',received=gene,expected='unique gene symbol'))
+        seen_negative.add(gene)
+    if completeness=='incomplete' and negatives:
+        issues.append(ValidationIssue('ngs_no_variants_detected','must be empty when ngs_result_completeness is incomplete','return [] because no panel-wide negative inference is permitted for an explicitly incomplete result',repair_class='content',received=_preview(negatives),expected='[]'))
     facts=d.get('case_facts')
     if not isinstance(facts,list):
         safe=isinstance(facts,dict)
@@ -157,6 +174,29 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
                 issues.append(ValidationIssue(f'{path}.{f}',f'expected non-empty string; received {_type_name(value)}','quote/reserialize the existing value as one string without changing its words' if cls=='serialization' else 'return non-empty source-faithful text',repair_class=cls,received=_preview(value),expected='non-empty string'))
     fail('structured case',issues); return 'structured case validated'
 
+
+
+def parse_ngs_panel_genes(text:str)->list[str]:
+    """Return the configured gene-level NGS panel scope in source order."""
+    genes=re.findall(r"^- `([A-Z0-9]+)`\s*$",str(text),flags=re.MULTILINE)
+    if not genes:
+        raise ValueError('NGS panel scope contains no parseable gene entries')
+    if len(genes)!=len(set(genes)):
+        duplicates=sorted({gene for gene in genes if genes.count(gene)>1})
+        raise ValueError(f'NGS panel scope contains duplicate gene entries: {duplicates}')
+    return genes
+
+def materialize_ngs_no_variants_detected(case:dict,panel_scope_text:str)->dict:
+    """Deterministically expand complete panel negatives from detected NGS genes.
+
+    This does not make a clinical inference beyond the configured assay contract:
+    the resulting genes are negative only for the variant classes covered by the
+    panel scope. Explicitly incomplete results never receive panel-wide negatives.
+    """
+    panel=parse_ngs_panel_genes(panel_scope_text)
+    detected={row.get('gene') for row in case.get('variants') or [] if isinstance(row,dict) and isinstance(row.get('gene'),str)}
+    case['ngs_no_variants_detected']=[gene for gene in panel if gene not in detected] if case.get('ngs_result_completeness')=='complete' else []
+    return case
 
 
 def case_genes(case:dict)->list[str]:

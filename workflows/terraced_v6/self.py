@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Terraced-v6 native self executor.
 
-The current/session model performs the model reasoning directly.  This script
-only prepares bounded file inputs, validates machine-critical outputs, performs
-deterministic retrieval/provenance, crops evidence disagreements, and renders
-the final report.  It never calls an LLM.
+The current/session model performs the model reasoning directly. This module is
+also the single source of truth for native-self progression: callers may invoke
+``advance()`` (or the ``run`` CLI command) to obtain the next bounded handoff.
 """
 from __future__ import annotations
 
@@ -29,6 +28,11 @@ EXIT_OK = 0
 EXIT_FAILURE = 1
 
 
+def configure_runtime(*, settings_path=None, pipelines_dir=None):
+    """Bind public or frozen per-run configuration through the staged core."""
+    return staged.configure_runtime(settings_path=settings_path, pipelines_dir=pipelines_dir)
+
+
 def _print_manifest(data):
     def convert(value):
         if isinstance(value, Path):
@@ -41,10 +45,25 @@ def _print_manifest(data):
     print(json.dumps(convert(data), indent=2, ensure_ascii=False))
 
 
+def _structure_manifest(work: Path) -> dict:
+    work = Path(work).resolve()
+    return {
+        "pass": "who1",
+        "phase": "structure_case",
+        "note": "Complete this structure subtask and WHO1 in one continuous self reasoning pass; do not treat this deterministic interleave as another model pass.",
+        "contract": sr.contract_path("structure_case"),
+        "inputs": {
+            "case": layout.input(work, "case.md"),
+            "allowed_bootstrap_cmcs": layout.setup(work, "case-major-categories.json"),
+        },
+        "output": staged.artifact_path(work, "structured_case", "case.json", create=True),
+    }
+
+
 def cmd_setup(args):
     # Native-self owns the established work-location policy independently of
-    # the legacy staged executor: default -> system temp; --project ->
-    # <repo-root>/temp; explicit --work-dir -> that directory.
+    # staged execution: default -> system temp; --project -> <repo-root>/temp;
+    # explicit --work-dir -> that directory.
     plan = staged.pipeline_registry.load("self")
     work, demo_case, demo_expected = setup_workflow(
         workflow=staged.WORKFLOW_ID,
@@ -64,7 +83,7 @@ def cmd_setup(args):
     if not case_path.is_file() or not staged._read(case_path).strip():
         raise staged.StepFailure(f"case.md missing or empty: {case_path}")
     if demo_expected:
-        shutil.copyfile(demo_expected, staged._artifact(work, "setup", "demo-expected.md", new=True))
+        shutil.copyfile(demo_expected, staged.artifact_path(work, "setup", "demo-expected.md", create=True))
 
     staged._save_run_state(work, {
         "schema_version": staged.RUN_STATE_SCHEMA_VERSION,
@@ -80,23 +99,122 @@ def cmd_setup(args):
     return EXIT_OK
 
 
+def inspect_run(work: Path) -> dict:
+    """Return canonical native-self progress without exposing internals to callers."""
+    work = Path(work).resolve()
+    try:
+        meta = staged.run_metadata(work)
+    except Exception:
+        meta = {"pipeline": "self", "mode": None}
+
+    if (work / "report-final.md").is_file():
+        label, stage, nxt, complete = "Complete", "complete", None, True
+    elif (
+        staged.has_artifact(work, "report_write", "report-write.yaml")
+        or staged.has_artifact(work, "report_blocks", "report-blocks.yaml")
+        or staged.has_artifact(work, "evidence_enriched", "reportable-elements.yaml")
+    ):
+        label, stage, nxt, complete = "At report synthesis", "report_synthesis", "complete report", False
+    elif any(
+        staged.has_artifact(work, group, name)
+        for group, name in (
+            ("evidence_matches", "self-resolution.yaml"),
+            ("evidence_audits", "self-audit.yaml"),
+            ("self_evidence", "state.yaml"),
+            ("evidence_adjudication", "adjudication.yaml"),
+        )
+    ):
+        label, stage, nxt, complete = "At evidence review", "evidence_review", "continue evidence review", False
+    elif (
+        staged.has_artifact(work, "diagnosis_who5_pass_2", "who5.yaml")
+        or staged.has_artifact(work, "diagnosis", "diagnosis-final.yaml")
+        or any(
+            staged.has_artifact(work, f"{domain}_state", "model-classification.yaml")
+            for domain in ("prognosis", "treatment", "biomarker", "germline")
+        )
+    ):
+        label, stage, nxt, complete = "At PTBG", "ptbg", "complete PTBG", False
+    elif staged.has_artifact(work, "structured_case", "case.json"):
+        label, stage, nxt, complete = "At diagnosis", "diagnosis", "complete diagnosis", False
+    elif (work / "workflow.json").is_file() and (work / "case.md").is_file():
+        label, stage, nxt, complete = "Setup only", "setup", "structure case", False
+    else:
+        label, stage, nxt, complete = "Unrecognized", "unknown", "inspect run", False
+    return {"label": label, "stage": stage, "next": nxt, "complete": complete, **meta}
+
+
+def advance(work: Path) -> dict:
+    """Advance deterministic native-self work and return the next model handoff.
+
+    This is the authoritative self state machine. It validates each completed
+    model output immediately before preparing the next bounded pass.
+    """
+    work = Path(work).resolve()
+    staged._require_work(work)
+    layout.ensure_dirs(work)
+
+    if (work / "report-final.md").is_file():
+        if not (work / sr.DEBUG_ZIP_NAME).is_file():
+            sr.package_debug_bundle(work)
+        return {"status": "complete", "stage": "complete", "artifacts": sr.final_artifacts(work)}
+
+    if not staged.has_artifact(work, "structured_case", "case.json"):
+        return {"status": "handoff", "stage": "case_structure", "manifest": _structure_manifest(work)}
+
+    if not staged.has_artifact(work, "diagnosis_who5_pass_1", "who5.yaml"):
+        return {"status": "handoff", "stage": "diagnosis", "manifest": sr.prepare_who(work, pass_number=1)}
+    if not staged.has_artifact(work, "diagnosis_icc", "icc.yaml"):
+        sr.accept_who(work, pass_number=1)
+        return {"status": "handoff", "stage": "diagnosis", "manifest": sr.prepare_icc(work)}
+    if not staged.has_artifact(work, "diagnosis_who5_pass_2", "who5.yaml"):
+        sr.accept_icc(work)
+        return {"status": "handoff", "stage": "diagnosis", "manifest": sr.prepare_who(work, pass_number=2)}
+
+    ptbg_outputs = [
+        staged.has_artifact(work, f"{domain}_state", "model-classification.yaml")
+        for domain in ("prognosis", "treatment", "biomarker", "germline")
+    ]
+    if not all(ptbg_outputs):
+        sr.accept_who(work, pass_number=2)
+        return {"status": "handoff", "stage": "ptbg", "manifest": sr.prepare_ptbg(work)}
+
+    if not staged.has_artifact(work, "evidence_matches", "self-resolution.yaml"):
+        sr.accept_ptbg(work)
+        return {"status": "handoff", "stage": "evidence_resolution", "manifest": sr.prepare_evidence_resolution(work)}
+    if not staged.has_artifact(work, "evidence_audits", "self-audit.yaml"):
+        return {"status": "handoff", "stage": "evidence_audit", "manifest": sr.prepare_evidence_audit(work)}
+
+    if not staged.has_artifact(work, "evidence_enriched", "reportable-elements.yaml"):
+        adjudication = sr.prepare_evidence_adjudication(work)
+        if adjudication.get("required") and not staged.has_artifact(work, "evidence_adjudication", "adjudication.yaml"):
+            return {"status": "handoff", "stage": "evidence_adjudication", "manifest": adjudication}
+        sr.finalize_evidence(work)
+
+    if not staged.has_artifact(work, "report_write", "report-write.yaml"):
+        return {"status": "handoff", "stage": "report_synthesis", "manifest": sr.prepare_report(work)}
+
+    sr.finalize_report(work)
+    sr.package_debug_bundle(work)
+    return {"status": "complete", "stage": "complete", "artifacts": sr.final_artifacts(work)}
+
+
+def cmd_run(args):
+    result = advance(Path(args.work_dir).resolve())
+    print(f"STATUS={result['status']}")
+    print(f"STAGE={result['stage']}")
+    if result["status"] == "handoff":
+        _print_manifest(result["manifest"])
+    else:
+        for key, value in result["artifacts"].items():
+            print(f"{key}={value if value is not None else 'none'}")
+    return EXIT_OK
+
+
 def cmd_structure(args):
     work = Path(args.work_dir).resolve()
     staged._require_work(work)
     layout.ensure_dirs(work)
-    _print_manifest({
-        "pass": "who1",
-        "phase": "structure_case",
-        "note": "Complete this structure subtask and WHO1 in one continuous self reasoning pass; do not treat this deterministic interleave as another model pass.",
-        "contract": sr.contract_path("structure_case"),
-        "inputs": {
-            "case": layout.input(work, "case.md"),
-            "allowed_bootstrap_cmcs": layout.setup(work, "case-major-categories.json"),
-            "assay_scope": layout.setup(work, "ngs-panel-scope.md"),
-        },
-        "output": sr.case_path(work),
-        "next": f"{Path(__file__).resolve()} who1 --work-dir {work}",
-    })
+    _print_manifest(_structure_manifest(work))
     return EXIT_OK
 
 
@@ -166,14 +284,14 @@ def build_parser():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
     s = sub.add_parser("setup")
-    s.add_argument("--mode", required=True, choices=["ngs-report", "nel-demo", "nel-validate", "nel-validate-function", "nel-validate-brief"])
+    s.add_argument("--mode", required=True, choices=staged.supported_modes())
     s.add_argument("--case-file", type=Path)
     s.add_argument("--example", type=int)
     s.add_argument("--case-id")
     sw = s.add_mutually_exclusive_group()
     sw.add_argument("--work-dir", type=Path)
     sw.add_argument("--project", action="store_true")
-    for name in ("structure", "who1", "icc", "who2", "ptbg", "evidence-resolution", "evidence-audit", "evidence-adjudication", "finalize-evidence", "report", "finalize-report"):
+    for name in ("run", "structure", "who1", "icc", "who2", "ptbg", "evidence-resolution", "evidence-audit", "evidence-adjudication", "finalize-evidence", "report", "finalize-report"):
         q = sub.add_parser(name)
         q.add_argument("--work-dir", type=Path, required=True)
     return p

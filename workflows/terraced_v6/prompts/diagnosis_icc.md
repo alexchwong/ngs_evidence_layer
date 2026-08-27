@@ -11,6 +11,7 @@ Rules:
 - `diagnostic_effect` must be exactly `unchanged`, `refined`, or `superseded` relative to the starting morphologic diagnosis.
 - `variants` contains only variant IDs that materially contribute to the ICC diagnosis update; it may be empty.
 - Use deterministic finite-gene-set membership supplied by core when present.
+- `ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
 - Do not claim an unlisted variant satisfies a closed molecular criterion.
 - `reason` is one concise patient-level proposition about the molecular/cytogenetic effect on diagnosis. Do not relitigate morphology.
 

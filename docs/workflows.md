@@ -3,7 +3,7 @@
 This guide explains how NEL keeps reporting workflows isolated, how to clone the current
 workflow safely, and where to make changes in the clone.
 
-For end-user reporting, see `README.md`. For general repository maintenance and releases,
+For end-user reporting, see `../README.md`. For general repository maintenance and releases,
 see `DEVEL.md`.
 
 ## Contents
@@ -83,18 +83,17 @@ copies of these CLIs.
 
 | Workflow | Status | Purpose |
 |---|---|---|
-| `terraced-v6` | experimental/default | Current default; isolated WHO5/ICC/WHO5 reasoning, combined downstream domains, audited evidence resolution, and final synthesis. |
-| `terraced-v5` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
-| `terraced-v4` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
-| `terraced-v3` | experimental | Scheduler-based terraced workflow retained for explicit comparison and regression. |
-| `terraced-v2` | experimental | Earlier terraced workflow retained for explicit comparison and regression. |
-| `terraced-v1` | experimental | First terraced workflow derived from categorical-v1. |
-| `categorical-v1` | accepted | Diagnosis-first evidence retrieval with independently drafted diagnosis/prognosis/treatment/MRD/germline categories. |
-| `diagnosis-first-v1` | accepted | Previous diagnosis-first summarisation workflow; available through `--diagnosis-first` or its explicit workflow ID. |
-| `legacy-v1` | legacy | Previous adjudication-first/evidence-block pipeline; available only through explicit legacy selectors. |
+| `terraced-v6` | supported product | Final supported workflow; isolated WHO5/ICC/WHO5 reasoning, combined downstream domains, audited evidence resolution, and final synthesis. |
+| `terraced-v5` | legacy/development | Earlier terraced workflow retained in source for comparison and regression only. |
+| `terraced-v4` | legacy/development | Earlier terraced workflow retained in source for comparison and regression only. |
+| `terraced-v3` | legacy/development | Scheduler-based terraced workflow retained in source for comparison and regression only. |
+| `terraced-v2` | legacy/development | Earlier terraced workflow retained in source for comparison and regression only. |
+| `terraced-v1` | legacy/development | First terraced workflow derived from categorical-v1. |
+| `categorical-v1` | legacy/development | Diagnosis-first evidence retrieval retained in source for historical comparison. |
+| `diagnosis-first-v1` | legacy/development | Previous diagnosis-first summarisation workflow retained in source for historical comparison. |
+| `legacy-v1` | legacy/development | Previous adjudication-first/evidence-block pipeline retained in source for historical comparison. |
 
-The top-level `SKILL.md` accepts an explicit registered selector such as
-`--my-workflow-v1`. The selected workflow's own `SKILL.md` then controls execution.
+The supported root `SKILL.md` and `nel.py` facade always target `terraced-v6`. Registered legacy workflows are a developer/source concern and are excluded from the normal release payload.
 
 ## Clone the current workflow
 
@@ -244,8 +243,8 @@ When a development workflow is ready:
 2. change its `status` in `workflows/<workflow>/workflow.json` as appropriate;
 3. change `default_workflow` in `workflows/registry.json` only when it should become the default;
 4. add any intended alias explicitly in `workflows/registry.json`;
-5. update the top-level `SKILL.md` if user-facing mode compatibility or selector guidance changes;
-6. add the new workflow paths to `release/skill.txt` before shipping it in the skill ZIP;
+5. update root `nel.py` and `SKILL.md` only if the supported product workflow itself changes;
+6. keep `release/skill.txt` limited to the supported product workflow unless that product decision changes;
 7. update `README.md`, `NEWS.md`, and release/version metadata as required;
 8. run the release checks in `DEVEL.md`.
 
@@ -260,3 +259,11 @@ If a cloned experiment is abandoned before release:
 
 Never delete a workflow that must remain available for reproducibility or an advertised
 legacy selector without first defining its compatibility/replacement policy.
+
+---
+
+## Legacy public interfaces
+
+The repository previously exposed workflow selectors such as `--legacy`, `--diagnosis-first`, and `--terraced-v1` through `--terraced-v5`, together with legacy `evidence-block`, `evidence-block manual`, and `evidence-to-report` modes. It also exposed workflow-local/system-temporary working-directory behaviour, including the `->project` modifier.
+
+These interfaces are retained here only as historical/developer context. The supported product interface is now root `nel.py`, which always targets `terraced-v6` and writes user runs under root `runs/<run-id>/`. Legacy workflow source remains in the development repository but is not part of the supported release surface.

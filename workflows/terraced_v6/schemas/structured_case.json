@@ -8,6 +8,8 @@
     "bootstrap_cmcs",
     "variants",
     "detected_variants_summary",
+    "ngs_result_completeness",
+    "ngs_no_variants_detected",
     "case_facts"
   ],
   "properties": {
@@ -51,6 +53,22 @@
             "minLength": 1
           }
         }
+      }
+    },
+    "ngs_result_completeness": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "incomplete"
+      ]
+    },
+    "ngs_no_variants_detected": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z0-9]+$",
+        "minLength": 1
       }
     },
     "case_facts": {

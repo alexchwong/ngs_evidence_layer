@@ -83,6 +83,9 @@ def accept_structured_case(work: Path) -> tuple[dict, dict]:
     text = path.read_text(encoding="utf-8")
     runtime.validate_case_text(text)
     case = runtime.normalize_case_variant_descriptions(runtime.read_json(path))
+    case = runtime.materialize_ngs_no_variants_detected(
+        case, layout.setup(work, "ngs-panel-scope.md").read_text(encoding="utf-8")
+    )
     path.write_text(json.dumps(case, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     runtime.validate_case_text(path.read_text(encoding="utf-8"), require_gene_prefixed_description=True)
     reg = {
@@ -111,10 +114,22 @@ def corpus_state(work: Path):
     return all_cards, eligible, digest, manifest
 
 
-def _write_pool(work: Path, group: str, cards: list[dict], manifest: dict) -> tuple[Path, Path]:
+def _write_pool(
+    work: Path,
+    group: str,
+    cards: list[dict],
+    manifest: dict,
+    *,
+    diagnosis_authority: str | None = None,
+) -> tuple[Path, Path]:
     tag_by_id = card_identity.tag_by_id(manifest)
     md = output_path(work, group, "cards.md")
-    md.write_text(staged._render_cards(cards, tag_by_id), encoding="utf-8")
+    rendered = (
+        staged._render_diagnostic_cards(cards, tag_by_id, diagnosis_authority)
+        if diagnosis_authority
+        else staged._render_cards(cards, tag_by_id)
+    )
+    md.write_text(rendered, encoding="utf-8")
     js = output_path(work, group, "cards.json")
     write_json(js, {"card_ids": [c["card_id"] for c in cards], "runtime_tags": {c["card_id"]: tag_by_id[c["card_id"]] for c in cards}})
     return md, js
@@ -145,8 +160,8 @@ def prepare_who(work: Path, *, pass_number: int) -> dict:
         out = output_path(work, "diagnosis_who5_pass_2", "who5.yaml")
     else:
         raise ValueError("WHO pass_number must be 1 or 2")
-    cards = staged._filter_diagnosis_authority(staged._draw_diagnosis_cards(eligible, genes, history), "who5")
-    cards_md, _ = _write_pool(work, group, cards, manifest)
+    cards = staged._diagnostic_cards(eligible, genes, history, "who5")
+    cards_md, _ = _write_pool(work, group, cards, manifest, diagnosis_authority="who5")
     finite = output_path(work, group, "finite-membership.yaml")
     write_yaml(finite, staged._finite_membership_context(reg, cards, card_identity.tag_by_id(manifest)))
     context = output_path(work, group, "context.yaml")
@@ -191,11 +206,9 @@ def prepare_icc(work: Path) -> dict:
     for cmc in runtime.derive_cmcs(who1):
         if cmc not in history:
             history.append(cmc)
-    cards = staged._filter_diagnosis_authority(
-        staged._draw_diagnosis_cards(eligible, runtime.case_genes(case), history), "icc"
-    )
+    cards = staged._diagnostic_cards(eligible, runtime.case_genes(case), history, "icc")
     group = "self_icc_input"
-    cards_md, _ = _write_pool(work, group, cards, manifest)
+    cards_md, _ = _write_pool(work, group, cards, manifest, diagnosis_authority="icc")
     finite = output_path(work, group, "finite-membership.yaml")
     write_yaml(finite, staged._finite_membership_context(reg, cards, card_identity.tag_by_id(manifest)))
     context = output_path(work, group, "context.yaml")
@@ -260,12 +273,19 @@ def prepare_ptbg(work: Path) -> dict:
     disease = diagnosis["who5"]["schema_disease"]
     tag_by_id = card_identity.tag_by_id(manifest)
     outputs = {}
+    genes = runtime.case_genes(case)
     for domain in ("prognosis", "treatment", "biomarker", "germline"):
-        cards = staged._draw_domain_cards(eligible, domain, runtime.case_genes(case), [disease])
+        cards = staged._draw_domain_cards(eligible, domain, genes, [disease])
+        staged._log_ptbg_retrieval(work, eligible, domain, genes, disease, cards)
         group = f"self_ptbg_{domain}_input"
         cards_md, _ = _write_pool(work, group, cards, manifest)
         skeleton = output_path(work, group, "output-contract.md")
-        skeleton.write_text(domain_contract.skeleton(domain_contract.contract(domain), sorted(reg)), encoding="utf-8")
+        skeleton.write_text(
+            domain_contract.skeleton(
+                domain_contract.contract(domain), sorted(reg), registry=reg, applicable_disease=disease
+            ),
+            encoding="utf-8",
+        )
         context = output_path(work, group, "context.yaml")
         write_yaml(context, {
             "structured_case": {k: case.get(k) for k in model_context.DOMAIN_CASE_FIELDS},
@@ -293,8 +313,16 @@ def accept_ptbg(work: Path) -> dict[str, dict]:
         if not model_path.is_file():
             raise ValueError(f"{domain} model output missing: {model_path}")
         cleaned = staged._sanitize_proforma_text(work, f"self-{domain}", model_path.read_text(encoding="utf-8"))
-        model_path.write_text(cleaned, encoding="utf-8")
-        schema_validation.validate_domain(cleaned, domain, set(reg))
+        disease = finalize_diagnosis(work)["who5"]["schema_disease"]
+        normalized, identity_records = domain_contract.normalize_model_output(
+            cleaned, domain_contract.contract(domain), reg, disease
+        )
+        if identity_records:
+            staged._log_transforms(work, [dict(record, stage=f"self-{domain}") for record in identity_records])
+        model_path.write_text(normalized, encoding="utf-8")
+        schema_validation.validate_domain(
+            normalized, domain, set(reg), registry=reg, authoritative_disease=disease
+        )
         flat = read_yaml(model_path)
         doc = domain_contract.pivot(flat, domain_contract.contract(domain))
         doc, merges = staged._consolidate_rows(domain, doc, reg)
@@ -325,12 +353,13 @@ def prepare_evidence_resolution(work: Path) -> dict:
         if cmc not in cmcs:
             cmcs.append(cmc)
     cards_by_domain = {
-        "diagnosis_who5": staged._filter_diagnosis_authority(staged._draw_diagnosis_cards(eligible, genes, cmcs), "who5"),
-        "diagnosis_icc": staged._filter_diagnosis_authority(staged._draw_diagnosis_cards(eligible, genes, cmcs), "icc"),
+        "diagnosis_who5": staged._diagnostic_cards(eligible, genes, cmcs, "who5"),
+        "diagnosis_icc": staged._diagnostic_cards(eligible, genes, cmcs, "icc"),
     }
     disease = diagnosis["who5"]["schema_disease"]
     for domain in ("prognosis", "treatment", "biomarker", "germline"):
         cards_by_domain[domain] = staged._draw_domain_cards(eligible, domain, genes, [disease])
+        staged._log_ptbg_retrieval(work, eligible, domain, genes, disease, cards_by_domain[domain])
     elements = staged._elements(diagnosis, domains, case)
     tag_by_id = card_identity.tag_by_id(manifest)
     catalog = {}
@@ -357,13 +386,19 @@ def prepare_evidence_resolution(work: Path) -> dict:
         "items": items,
         "no_candidate_schema_ids": no_candidates,
         "catalog_card_ids": list(catalog),
+        "authoritative_disease": disease,
         "corpus_sha256": digest,
     }
     write_yaml(_evidence_state_path(work), state)
     group = "self_evidence_resolution_input"
+    public_rows = [{k: x[k] for k in ("evidence_id", "schema_id", "reason", "candidate_card_tags")} for x in items]
     public = output_path(work, group, "items.yaml")
-    write_yaml(public, {"items": [{k: x[k] for k in ("evidence_id", "schema_id", "reason", "candidate_card_tags")} for x in items]})
-    cards_md, _ = _write_pool(work, group, list(catalog.values()), manifest)
+    write_yaml(public, {"items": public_rows})
+    cards_md = output_path(work, group, "candidate-cards-by-item.md")
+    cards_md.write_text(
+        staged._render_evidence_match_candidates(public_rows, items, catalog, tag_by_id),
+        encoding="utf-8",
+    )
     return {
         "pass": "evidence_resolution",
         "contract": contract_path("evidence_match"),
@@ -410,10 +445,31 @@ def audit_targets(items: list[dict], matches: dict) -> list[dict]:
     return out
 
 
+def _assert_audit_targets_applicable(work: Path, state: dict, targets: list[dict]) -> None:
+    """Re-check PTBG disease/domain scope immediately before semantic audit."""
+    _case, reg = load_case_registry(work)
+    disease = state.get("authoritative_disease") or finalize_diagnosis(work)["who5"]["schema_disease"]
+    elements = {el["schema_id"]: el for el in state.get("elements") or []}
+    all_cards, _eligible, _digest, manifest = corpus_state(work)
+    by_id = {c["card_id"]: c for c in all_cards}
+    id_by_tag = {f"[card:{tag}]": cid for cid, tag in card_identity.tag_by_id(manifest).items()}
+    for target in targets:
+        el = elements.get(target["schema_id"])
+        if not el or el.get("domain") == "diagnosis":
+            continue
+        for tag in target.get("selected_card_tags") or []:
+            cid = id_by_tag.get(tag)
+            card = by_id.get(cid)
+            if card is None:
+                raise ValueError(f"evidence audit references unknown runtime card tag {tag}")
+            staged._assert_ptbg_audit_card_applicable(card, el, reg, disease)
+
+
 def prepare_evidence_audit(work: Path) -> dict:
     state = _load_evidence_state(work)
     matches = accept_evidence_resolution(work)
     targets = audit_targets(state["items"], matches)
+    _assert_audit_targets_applicable(work, state, targets)
     group = "self_evidence_audit_input"
     item_path = output_path(work, group, "items.yaml")
     write_yaml(item_path, {"items": targets})
@@ -447,6 +503,7 @@ def accept_evidence_audit(work: Path) -> tuple[dict, list[dict]]:
     path = output_path(work, "evidence_audits", "self-audit.yaml")
     if not path.is_file():
         raise ValueError(f"evidence-audit output missing: {path}")
+    _assert_audit_targets_applicable(work, state, targets)
     validation_items = [{"evidence_id": x["evidence_id"], "selected_card_tags": x["selected_card_tags"]} for x in targets]
     schema_validation.validate_evidence_audit_batch(path.read_text(encoding="utf-8"), validation_items)
     return read_yaml(path), targets

@@ -17,6 +17,15 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     if data.get("schema_version") != 1 or not isinstance(data.get("workflows"), dict):
         raise ValueError(f"invalid workflow registry: {path}")
+
+    # A source checkout can retain legacy/development workflow registrations, while
+    # a stripped release intentionally ships only terraced-v6. Treat registered
+    # workflows whose implementation directory is absent as disabled so the
+    # release cannot route into code that was deliberately not shipped.
+    for row in data["workflows"].values():
+        relative = row.get("path") if isinstance(row, dict) else None
+        if isinstance(relative, str) and not (REPO_ROOT / relative).is_dir():
+            row["enabled"] = False
     return data
 
 

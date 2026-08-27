@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# PDF-to-Markdown ingestion only; requires Python 3.10+ and Java 11+.
+opendataloader-pdf>=2,<3

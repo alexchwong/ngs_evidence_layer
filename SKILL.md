@@ -1,93 +1,90 @@
 ---
 name: ngs-evidence-layer
-description: Routes NGS evidence/report requests to the default terraced-v6 workflow or an explicitly selected registered workflow.
+description: Runs the supported terraced-v6 NGS Evidence Layer product through the root nel.py interface.
 ---
+
+# NGS Evidence Layer
+
+The **repository root** is the directory containing this `SKILL.md` file and `nel.py`. Before running any command, use that directory as the working directory. All relative paths below are relative to the repository root.
+
+The supported workflow is `terraced-v6`. Every other directory under `workflows/` is legacy/development code. Do not invoke workflow-internal CLIs and do not ask the user to edit anything under `workflows/`.
 
 ## Model-step execution
 
-You are the model executor for this workflow.
+When `nel.py run` returns `STATUS=handoff`, you are the model executor for that bounded step. Perform the reasoning yourself in the current session using only the returned manifest inputs and contract, write exactly the requested output file, then call `python nel.py run --run-id <id>` again.
 
-When a step is described as a **model step**, perform that reasoning yourself in the current session and write the required output. Do not delegate it on your own initiative: do not call another model yourself, invoke an LLM API yourself, or merely describe what another model should do.
+Do not delegate a self handoff to another model or LLM API. Do not infer missing evidence from general haematology knowledge.
 
-Use repository scripts wherever the selected workflow names them, and only there.
+## Public interface
 
-# NGS Evidence Layer — workflow router
+From the repository root, use only the public `nel.py` CLI:
 
-This file routes the request only. The selected workflow's `SKILL.md` is authoritative for execution.
+```bash
+python nel.py init
+python nel.py config-check
+python nel.py setup ...
+python nel.py run ...
+python nel.py status ...
+python nel.py runs ...
+```
 
-## Workflow selection
+Root user configuration is in `config/`, including `config/pipelines/`. Run artefacts are always under `runs/<run-id>/`.
+`nel.py` is only the public facade: internally it delegates native self progression to `workflows/terraced_v6/self.py` and non-self execution to `workflows/terraced_v6/step.py`. Do not reproduce either executor's stage logic in the root skill.
 
-Read `workflows/registry.json` and resolve exactly one workflow before reading case-specific inputs.
+## NGS report
 
-- No workflow selector: use `default_workflow` from the registry (`terraced-v6`).
-- `--diagnosis-first`: resolve the registry alias `diagnosis-first` (`diagnosis-first-v1`).
-- `--diagnosis-first-v1`: select `diagnosis-first-v1` explicitly.
-- `--terraced`: resolve the registry alias `terraced` (`terraced-v6`).
-- `--terraced-v1`: select `terraced-v1` explicitly.
-- `--terraced-v2`: select `terraced-v2` explicitly.
-- `--terraced-v3`: select experimental `terraced-v3` explicitly.
-- `--terraced-v4`: select experimental `terraced-v4` explicitly.
-- `--terraced-v5`: select experimental `terraced-v5` explicitly.
-- `--terraced-v6`: select `terraced-v6` explicitly.
-- `--legacy`: resolve the registry alias `legacy` (`legacy-v1`).
-- `--legacy-v1`: select `legacy-v1` explicitly.
-- Any other explicit `--<workflow-id>`: select that exact enabled workflow only if it is registered.
-- Never infer a workflow from files already present in a work directory. Workflow state is established by the selected workflow's setup command and subsequently enforced deterministically.
+For a request containing a clinical case and `ngs-report`:
 
-After selection, the next repository file you read must be the registered workflow's `SKILL.md`; before reading it, do not run commands or infer execution syntax from user-facing mode names. Then follow that workflow `SKILL.md` exactly.
+1. Preserve the supplied case verbatim in a temporary Markdown file outside `workflows/`.
+2. Run:
 
-## Mode compatibility
+   ```bash
+   python nel.py setup --mode ngs-report --case <case-file> [--run-id <id>] [--pipeline <pipeline>]
+   ```
 
-The default workflow is `terraced-v6`.
+   Omit `--pipeline` unless the user selected one; the default comes from `config/settings.json`.
+3. Record the returned `RUN_ID`.
+4. Call:
 
-### Available modes
+   ```bash
+   python nel.py run --run-id <id>
+   ```
 
-- `ngs-report` — generate a full NGS report
-- `nel-demo example <N>` — run repository example N
-- `nel-validate <case-id>` — validate against case_summary.md
-- `nel-validate-function <case-id>` — validate against case_functional.md
-- `nel-validate-brief <case-id>` — validate against validation_brief.md
-- `evidence-block` — generate evidence block only (legacy-v1 only)
-- `evidence-block manual` — generate evidence block with manual review (legacy-v1 only)
-- `evidence-to-report` — convert existing evidence to report (legacy-v1 only)
+5. If `STATUS=handoff`, read every file named by `MANIFEST`, follow the named contract exactly, and write the requested `OUTPUT`. Then repeat step 4.
+6. Stop only when `STATUS=complete`.
+7. Read `runs/<run-id>/report-final.md` and return that report to the user.
 
-### Workflow support
+Never use the old `->project`, system-temp, workflow selector, or workflow-local run interfaces for a new product run.
 
-`categorical-v1` supports the five standard modes.
+## Demo and validation modes
 
-`diagnosis-first-v1` supports the five standard modes and is available through `--diagnosis-first` or `--diagnosis-first-v1`.
-
-`terraced-v1` supports the five standard modes and is selected explicitly with `--terraced-v1`.
-
-`terraced-v2` supports the five standard modes and is selected explicitly with `--terraced-v2`.
-
-`terraced-v3` supports the five standard modes and is selected explicitly with `--terraced-v3`. It is experimental. Its scheduler can additionally be selected with `--scheduler domain|evidence-first|variant-centric|global-ledger|adaptive-microtask`; when omitted, the v3 default is `domain`.
-
-`terraced-v4` supports the five standard modes and is selected explicitly with `--terraced-v4`. It is experimental.
-
-`terraced-v5` supports the five standard modes and is selected explicitly with `--terraced-v5`. It is experimental.
-
-`terraced-v6` supports the five standard modes and is the default workflow. It is selected explicitly with `--terraced-v6` or implicitly with `--terraced`.
-
-`evidence-block`, `evidence-block manual`, and `evidence-to-report` are legacy-only. If one of these is requested without an explicit legacy selector, stop and state that the mode requires `--legacy` or `--legacy-v1`; do not silently route it to legacy.
-
-Examples:
+Map supported requests to root setup as follows:
 
 ```text
-ngs-report
-ngs-report --diagnosis-first
-ngs-report --diagnosis-first-v1
-ngs-report --terraced
-ngs-report --terraced-v1
-ngs-report --terraced-v2
-ngs-report --terraced-v3
-ngs-report --terraced-v4
-ngs-report --terraced-v5
-ngs-report --terraced-v6
-ngs-report --legacy
-nel-validate-function 3B
-nel-validate-brief 8
-nel-validate-brief 1 --terraced-v3 --scheduler global-ledger
-nel-validate-function 3B --diagnosis-first
-nel-validate-function 3B --legacy
+nel-demo example N       -> python nel.py setup --mode nel-demo --example N
+nel-validate ID          -> python nel.py setup --mode nel-validate --case-id ID
+nel-validate-function ID -> python nel.py setup --mode nel-validate-function --case-id ID
+nel-validate-brief ID    -> python nel.py setup --mode nel-validate-brief --case-id ID
 ```
+
+Then use the same repeated `python nel.py run --run-id <id>` loop. Do not read expected results or marking criteria before report generation completes.
+
+## Existing runs
+
+Use:
+
+```bash
+python nel.py runs
+```
+
+to survey all run directories by workflow progress, or:
+
+```bash
+python nel.py runs --incomplete
+```
+
+to find incomplete runs. Use `python nel.py status --run-id <id>` before resuming an existing run.
+
+## Legacy workflows
+
+Legacy workflow source may exist in development checkouts, but it is not part of the supported product path. Do not route a user request to `legacy-v1`, `diagnosis-first-v1`, or terraced-v1 through terraced-v5.

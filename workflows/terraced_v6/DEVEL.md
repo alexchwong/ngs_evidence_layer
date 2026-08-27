@@ -6,6 +6,7 @@ V6 is intentionally smaller than v5.
 
 - `step.py` — orchestration, evidence model calls, reportability, deterministic block assembly, dissent.
 - `evidence_resolution.py` — pure shared policy for cumulative semantic evidence retries, rejected-card exclusion, and diagnosis/PTBG exhaustion behavior.
+- `prognosis_report.py` — pure deterministic post-evidence prognosis aggregation. It groups same-framework/same-direction findings for report composition and suppresses only fully overlapping accepted-card restatements; it never changes the owner proforma or performs clinical inference.
 - `model_context.py` — canonical downstream model context. Owns the rule that model prompts expose only `v01`-style IDs, and the per-stage projections that decide how much of the case/diagnosis each stage reads.
 - `runtime.py` — case/setup validation and small deterministic helpers.
 - `schema_validation.py` — accumulating validators for diagnosis, evidence and writer artifacts.
@@ -18,15 +19,34 @@ V6 is intentionally smaller than v5.
 - `schema_engine.py` — maps `jsonschema` errors onto `ValidationIssue`.
 - `rules.py` — the named relational rules a stage asset may reference.
 - `stage_validation.py` — schema + rules, ordered by document position.
-- `settings.json.template` — retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
+- `settings.json.template` — canonical default retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
-- `pipelines/` — model bindings for self, LM Studio, and OpenRouter.
+- `pipelines/` — canonical shipped model/provider defaults for self, LM Studio, and OpenRouter. Pipeline identity is the YAML filename stem; `pipeline.id` is intentionally absent.
+- `devel_sync.py` — copies the canonical settings template and shipped pipeline YAMLs into root `config/` without touching `config/settings.json` or deleting user-added pipeline files.
 
 Clinical interpretation belongs to the owner call. Downstream code must not re-diagnose or repair owner clinical reasoning.
+Prognosis report aggregation is therefore deliberately downstream of evidence resolution: it may compress surviving supported propositions, but it must not create a new effect, framework, direction, disease scope, or evidence relationship.
+
+## Sync public defaults
+
+After changing `settings.json.template` or a shipped file under `pipelines/`, update the root user-facing defaults:
+
+```bash
+python workflows/terraced_v6/devel_sync.py
+```
+
+Before PR/release preparation, verify there is no drift:
+
+```bash
+python workflows/terraced_v6/devel_sync.py --check
+```
+
+The sync owns only `config/settings.json.template` and filenames present in `workflows/terraced_v6/pipelines/`. It never writes the user-owned `config/settings.json` and never deletes extra files under `config/pipelines/`.
+
 
 ## Model-facing card rendering
 
-Every prompt that shows evidence cards must call `rendering.render_prompt_cards()`. Compact mode is the default and groups `source_hint -> category -> diseases`, with exactly one card per line. The model sees only `[card:<12-hex-tag>]`; canonical corpus `card_id` values remain internal/persisted provenance. Evidence matching therefore returns `card_tag`, which Python resolves back to the canonical ID before audit and report construction. Diagnosis retrieval is `diagnosis AND (CMC OR gene)` plus the framework authority filter, and Stage 8 must not apply a second diagnosis gene filter.
+Every prompt that shows evidence cards must call `rendering.render_prompt_cards()` or its diagnosis-specific boundary, `rendering.render_diagnostic_prompt_cards()`. Compact mode is the default and groups `source_hint -> category -> diseases`, with exactly one card per line. The model sees only `[card:<12-hex-tag>]`; canonical corpus `card_id` values remain internal/persisted provenance. Evidence matching therefore returns `card_tag`, which Python resolves back to the canonical ID before audit and report construction. Diagnosis retrieval is `diagnosis AND (CMC OR gene)` plus the framework authority filter. WHO5/ICC authority filtering retains `included_publication_keys` (or all retrieved publications when that list is empty) and then removes `excluded_publication_keys`, so exclusion always wins. Prompt rendering, finite-membership context, and Stage 8 must reuse that resolved pool; Stage 8 must not apply a second diagnosis gene filter.
 
 ## Model-facing identifier rule
 
@@ -59,6 +79,13 @@ one-line change to the tuples at the top of that module:
 
 `case_projection()` never emits `variants`; variant identity always comes from
 the canonical registry block instead.
+
+`structure_case` also records `ngs_result_completeness`. The model always leaves
+`ngs_no_variants_detected` empty; core deterministically materializes that list
+from `config/ngs-panel-scope.md` minus the detected variant genes when the result
+is complete. Diagnosis and PTBG projections expose both fields. The negative list
+is assay-scope evidence only, not whole-gene biological wild type and not evidence
+against copy-number, rearrangement, structural, or other unassayed variant classes.
 
 ## Validation feedback
 
@@ -107,28 +134,32 @@ python workflows/terraced_v6/step.py show-prompt --stage prognosis
 
 ## PTBG proforma contract
 
-The owner model returns one row per variant:
+Owner outputs are variant-centric. Python owns deterministic identity: the authoritative WHO5 disease is injected into prognosis/treatment/MRD and canonical `gene` is injected from each `variant` ID before validation/persistence. Clinical classifications remain model decisions.
+
+Prognosis may identify zero, one, or multiple frameworks:
 
 ```yaml
+applicable_disease: CMML
+prognostic_frameworks:
+  - name: CPSS-Mol
+    tier: null
+    reason: "CPSS-Mol is the relevant CMML prognostic framework."
 classification:
   - variant: v01
-    bucket: adverse
-    reason: "..."
+    gene: ASXL1
+    framework_effects:
+      - framework: CPSS-Mol
+        effect: adverse
+        reason: "ASXL1 has an adverse effect within CPSS-Mol."
+    other_evidence_effect: adverse
+    other_evidence_reason: "Independent CMML evidence also supports an adverse effect."
 ```
 
-It is handed that list with every `variant` pre-filled, as the **final** block of
-the prompt. Coverage and exclusivity defects are then unrepresentable, and the
-structural check is `one_row_per_id` — the same rule the batch and writer stages
-already use.
+Framework selection is not hard-coded. `tier` is populated only when the model can assign that framework entirely from supplied genetic/cytogenetic findings. Other prognostic evidence may classify genes outside the framework, but it must apply to the authoritative disease.
 
-Grouping variants that share a proposition is Python's job
-(`step._consolidate_rows`), not the model's; it always was, the model's grouping
-was simply being redone. `domain_contract.pivot()` converts the flat list back to
-the bucket-list artifact before anything is written, so evidence selection,
-reportability and block assembly are unchanged.
+Treatment keeps one-or-more rows per variant but names the category `treatment_category`; MRD uses `mrd_status`; germline retains `bucket`. `domain_contract.pivot()` projects these accepted owner artifacts into bucketed internal rows for consolidation/reportability/evidence resolution.
 
-Bucket names are defined once, in `domain_contract.CONTRACTS`. Validators,
-consolidation, element assembly and the reportability defaults all read them.
+Evidence matching is one batched model call, but each evidence item is rendered with only its own deterministic candidate-card set. This preserves WHO5/ICC authority filtering and PTBG disease/gene cropping at the model boundary.
 
 ## Retry hygiene
 
