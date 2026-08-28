@@ -65,6 +65,9 @@ def load_settings():
     required={'retries','diagnosis','ptbg','reportability','prompts'}
     missing=sorted(required-set(d))
     if missing: raise StepFailure(f'proforma-v1 settings missing required sections: {missing}')
+    who5=((d.get('diagnosis') or {}).get('who5') or {})
+    if 'reconsider_after_cmc_expansion' not in who5 and 'max_cmc_passes' in who5:
+        who5['reconsider_after_cmc_expansion']=int(who5.get('max_cmc_passes') or 1)>1
     return d
 
 def _setting(*keys):
@@ -439,13 +442,17 @@ def _prepare_structured(work,raw,fmt,call_id,syntax_binding,*,syntax_attempts):
 _RUNTIME_CARD_TAG_RE=re.compile(r"\[card:[0-9a-f]{12}\]")
 
 
-def _sanitize_proforma_text(work,call_id,text):
-    """Silently remove evidence-card assignment leaked into an owner pro-forma.
+def _sanitize_proforma_text(work,call_id,text,*,preserve_card_assignments=False):
+    """Normalize model-authored card tags according to the selected owner policy.
 
-    Card identity belongs to evidence resolution, never to diagnosis/PTBG owner
-    reasoning.  This runs after syntax repair but before deterministic validation,
-    so a harmless leaked tag does not consume a model repair turn.
+    Owner steps without ``evidence.owner_assignment`` still have leaked runtime
+    card tags stripped before validation.  Phase 3 PTBG owner steps preserve their
+    explicit evidence assignments so deterministic envelope validation can accept
+    or feed them back to the same owner step for repair.
     """
+    if not preserve_card_assignments:
+        declared=_workflow_step_for_call(call_id)
+        preserve_card_assignments=bool(declared and (declared.evidence or {}).get("owner_assignment"))
     try:
         doc=yaml.safe_load(text)
     except yaml.YAMLError:
@@ -457,7 +464,7 @@ def _sanitize_proforma_text(work,call_id,text):
             out={}
             for key,item in value.items():
                 child=f'{path}.{key}' if path else str(key)
-                if key in {'card_tag','card_tags'}:
+                if key in {'card_tag','card_tags','evidence_card_tags','other_evidence_card_tags'} and not preserve_card_assignments:
                     records.append({'stage':call_id,'transform':'strip_proforma_card_assignment','path':child})
                     continue
                 if key=='reason' and isinstance(item,str):
@@ -950,7 +957,7 @@ def _consolidate_rows(domain,doc,reg,contract_override=None):
         rows=doc.get(bucket) or []; groups=[]; index={}; templates={}
         for row in rows:
             canonical,template=_reason_template(row.get('reason'),row.get('variants') or [],reg)
-            extras=tuple(sorted((k,json.dumps(v,sort_keys=True,ensure_ascii=False)) for k,v in row.items() if k not in {'variants','reason'}))
+            extras=tuple(sorted((k,json.dumps(v,sort_keys=True,ensure_ascii=False)) for k,v in row.items() if k not in {'variants','reason','evidence_card_tags'}))
             key=(canonical,extras)
             if canonical and key in index:
                 target=groups[index[key]]
@@ -958,6 +965,9 @@ def _consolidate_rows(domain,doc,reg,contract_override=None):
                 for vid in row['variants']:
                     if vid not in target['variants']: target['variants'].append(vid); merged.append(vid)
                 target['reason']=_render_shared_reason(templates[key],target['variants'],reg)
+                for tag in row.get('evidence_card_tags') or []:
+                    target.setdefault('evidence_card_tags',[])
+                    if tag not in target['evidence_card_tags']: target['evidence_card_tags'].append(tag)
                 if merged: merges.append({'domain':domain,'bucket':bucket,'transform':'consolidate_parallel_variant_rows','merged_variants':merged,'into_variants':list(target['variants']),'resulting_reason':target['reason']})
             else:
                 clone=dict(row); clone['variants']=list(row.get('variants') or [])
@@ -968,7 +978,7 @@ def _consolidate_rows(domain,doc,reg,contract_override=None):
 
 def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     allowed=_allowed_diseases(work); genes=runtime.case_genes(case); bootstrap=list(case.get('bootstrap_cmcs') or []); tag_by_id=card_identity.tag_by_id(manifest)
-    max_passes=int(_setting('diagnosis','who5','max_cmc_passes')); prior=list(bootstrap); history=list(bootstrap); who=None; who_cards=[]; authoritative=1
+    max_passes=2 if bool(_setting('diagnosis','who5','reconsider_after_cmc_expansion')) else 1; prior=list(bootstrap); history=list(bootstrap); who=None; who_cards=[]; authoritative=1
     for idx in range(1,max_passes+1):
         who_cards=_diagnostic_cards(eligible,genes,history,'who5')
         out=_artifact(work,f'diagnosis_who5_pass_{idx}','who5.yaml',new=True)
@@ -1045,6 +1055,7 @@ def stage_diagnosis_finalize_pass(work,case,who1,who2,icc,other,history):
 def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile,*,prompt_text=None,contract_override=None,stage_spec_override=None):
     valid=set(reg); disease=diagnosis['who5']['schema_disease']; genes=runtime.case_genes(case); cards=_draw_domain_cards(eligible,domain,genes,[disease]); _log_ptbg_retrieval(work,eligible,domain,genes,disease,cards); tag_by_id=card_identity.tag_by_id(manifest)
     contract=contract_override or domain_contract.contract(domain)
+    owner_card_tags=[f"[card:{tag_by_id[c['card_id']]}]" for c in cards]
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml')
     # The output contract is the final block of the prompt: recency matters
     # disproportionately for a low-active-parameter model.
@@ -1058,7 +1069,7 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile,*,prom
     def validate_owner(text):
         normalized,_records=domain_contract.normalize_model_output(text,contract,reg,disease)
         return domain_contract.validate(
-            normalized,contract,{"variants":sorted(valid),"registry":reg,"authoritative_disease":disease},spec=stage_spec_override
+            normalized,contract,{"variants":sorted(valid),"registry":reg,"authoritative_disease":disease,"owner_card_tags":owner_card_tags},spec=stage_spec_override
         )
     _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=validate_owner,profile=profile,proforma=True)
     normalized,identity_records=domain_contract.normalize_model_output(_read(out),contract,reg,disease)
@@ -1109,18 +1120,18 @@ def _elements(diagnosis,domains,case,contracts=None):
             els.append({
                 'schema_id':f'PX-FRAMEWORK-{i:02d}','domain':'prognosis','bucket':'prognostic_framework',
                 'statement':statement,'reason':framework['reason'],'variants':[],'evidence_domain':'prognosis',
-                'required':False,'source':framework,
+                'required':False,'source':framework,'owner_card_tags':list(framework.get('evidence_card_tags') or []),
             })
     for bucket in contracts.get('prognosis',domain_contract.contract('prognosis')).buckets:
         if not _reportable('prognosis',bucket): continue
         for i,row in enumerate(prognosis.get(bucket) or [],1):
-            els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'prognosis','required':False,'source':row})
+            els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'prognosis','required':False,'source':row,'owner_card_tags':list(row.get('evidence_card_tags') or [])})
     for domain,prefix in (('treatment','TX'),('biomarker','MRD'),('germline','GL')):
         doc=domains[domain]
         for bucket in contracts.get(domain,domain_contract.contract(domain)).buckets:
             if not _reportable(domain,bucket): continue
             for i,row in enumerate(doc[bucket],1):
-                els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row})
+                els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row,'owner_card_tags':list(row.get('evidence_card_tags') or [])})
     return els
 
 def _candidate_cards(el,cards_by_domain,reg):
@@ -1500,14 +1511,17 @@ def stage_final(work,case,final_blocks,elements,all_cards,digest,manifest):
         case_id=_load_run_state(work).get('validation_case'); package_marking_bundle(case_id,Path(work)/'report-final.md',Path(work)/f'{MARKING_PREFIX[mode]}-{case_id}.zip',case_file=validation_cases.VALIDATION_CASE_FILES[mode])
 
 def _who2_required(ctx):
-    if int(_setting('diagnosis','who5','max_cmc_passes')) < 2:
+    cfg=((load_settings().get('diagnosis') or {}).get('who5') or {})
+    if not bool(cfg.get('reconsider_after_cmc_expansion', False)):
         return False
     case=ctx.get('case') or {}
-    who1=ctx.get('who1')
+    who1=ctx.get('committed_who1') or ctx.get('who1')
     if not who1:
-        path=_artifact(ctx.work,'diagnosis_who5_pass_1','who5.yaml')
-        if not path.is_file(): return False
-        who1=yaml.safe_load(_read(path))
+        commit=_existing_or_new(ctx.work,'diagnosis_who1_commit','accepted-routing.yaml')
+        if commit.is_file():
+            who1=(yaml.safe_load(_read(commit)) or {}).get('accepted_who1')
+    if not who1:
+        return False
     return runtime.derive_cmcs(who1) != list(case.get('bootstrap_cmcs') or [])
 
 
@@ -1545,6 +1559,55 @@ def _provider_handlers(workflow):
         cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_who5']=cards; ctx.put('cards_by_domain',cards_by)
         return {'artifact':who}
 
+    def who1_routing_change_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        change=sr.assess_who1_routing_change(ctx.work); ctx.put('who1_routing_change',change)
+        return {'artifact':change}
+
+    def who1_evidence_assignment_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        max_passes=int((step.evidence or {}).get('match_passes',2))
+        while True:
+            manifest=sr.prepare_who1_evidence_resolution(ctx.work,max_match_passes=max_passes,prompt=step.prompt)
+            if manifest.get('complete'):
+                if not manifest.get('required'):
+                    doc={'matches':[]}
+                else:
+                    doc=sr.accept_who1_evidence_resolution(ctx.work)
+                ctx.put('who1_evidence_assignments',doc); return {'artifact':doc,'status':'complete'}
+            state=sr.read_yaml(sr._who1_gate_state_path(ctx.work)); item=state['item']
+            prompt=_evidence_prompt(step,ctx,manifest)
+            _model_call(ctx.work,call_id=f"who1-evidence-match-{manifest['match_pass']:02d}",role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,it=item:schema_validation.validate_evidence_match_batch(t,[{'evidence_id':it['evidence_id'],'candidate_card_tags':it['candidate_card_tags']}]),profile=ctx.profile)
+
+    def who1_evidence_audit_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        manifest=sr.prepare_who1_evidence_audit(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            doc={'audits':[]}; ctx.put('who1_evidence_audits',doc); return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
+        assignment=sr.accept_who1_evidence_resolution(ctx.work); tags=list((assignment.get('matches') or [{}])[0].get('card_tags') or [])
+        prompt=_evidence_prompt(step,ctx,manifest)
+        _model_call(ctx.work,call_id='who1-evidence-audit',role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,tags=tags:schema_validation.validate_evidence_audit_batch(t,[{'evidence_id':'EWHO1','selected_card_tags':tags}]),profile=ctx.profile)
+        doc=sr.accept_who1_evidence_audit(ctx.work); ctx.put('who1_evidence_audits',doc); return {'artifact':doc}
+
+    def who1_evidence_adjudication_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        manifest=sr.prepare_who1_evidence_adjudication(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            return {'status':'skipped','reason':'no_disagreement','artifact':{'adjudications':[]}}
+        _agreed,disputes=sr.who1_evidence_disputes(ctx.work)
+        prompt=_evidence_prompt(step,ctx,manifest)
+        _model_call(ctx.work,call_id='who1-evidence-adjudication',role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,d=disputes:sr.evidence_engine.validate_adjudication(yaml.safe_load(t),d),profile=ctx.profile)
+        doc=sr.read_yaml(manifest['output']); ctx.put('who1_evidence_adjudication',doc); return {'artifact':doc}
+
+    def who1_commit_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        commit=sr.commit_who1_routing(ctx.work); ctx.put('who1_commit',commit); ctx.put('committed_who1',commit['accepted_who1'])
+        history=list((ctx.get('case') or {}).get('bootstrap_cmcs') or [])
+        for cmc in commit.get('routing_cmcs') or []:
+            if cmc not in history: history.append(cmc)
+        ctx.put('diagnostic_history',history)
+        return {'artifact':commit}
+
     def who2_handler(step, ctx):
         history=list(ctx.get('diagnostic_history') or [])
         who,cards=stage_diagnosis_who_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,pass_number=2,history=history,prompt_text=_compiled_prompt(step,workflow,ctx))
@@ -1556,7 +1619,7 @@ def _provider_handlers(workflow):
 
     def icc_handler(step, ctx):
         history=list(ctx.get('diagnostic_history') or [])
-        who=ctx.get('who2') or ctx.get('who1')
+        who=ctx.get('who2') or ctx.get('committed_who1') or ctx.get('who1')
         icc,cards=stage_diagnosis_icc_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,history=history,who=who,prompt_text=_compiled_prompt(step,workflow,ctx))
         ctx.put('icc',icc)
         cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_icc']=cards; ctx.put('cards_by_domain',cards_by)
@@ -1564,14 +1627,14 @@ def _provider_handlers(workflow):
 
     def other_handler(step, ctx):
         history=list(ctx.get('diagnostic_history') or [])
-        who=ctx.get('who2') or ctx.get('who1')
+        who=ctx.get('who2') or ctx.get('committed_who1') or ctx.get('who1')
         other,cards=stage_diagnosis_other_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,history=history,who=who,icc=ctx.get('icc'),prompt_text=_compiled_prompt(step,workflow,ctx))
         ctx.put('diagnosis_other',other)
         cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_other']=cards; ctx.put('cards_by_domain',cards_by)
         return {'artifact':other}
 
     def diagnosis_finalize_handler(step, ctx):
-        diagnosis,cmcs=stage_diagnosis_finalize_pass(ctx.work,ctx.get('case'),ctx.get('who1'),ctx.get('who2'),ctx.get('icc'),ctx.get('diagnosis_other'),list(ctx.get('diagnostic_history') or []))
+        diagnosis,cmcs=stage_diagnosis_finalize_pass(ctx.work,ctx.get('case'),ctx.get('committed_who1') or ctx.get('who1'),ctx.get('who2'),ctx.get('icc'),ctx.get('diagnosis_other'),list(ctx.get('diagnostic_history') or []))
         ctx.put('diagnosis',diagnosis); ctx.put('diagnostic_cmcs',cmcs)
         return {'artifact':diagnosis}
 
@@ -1606,17 +1669,19 @@ def _provider_handlers(workflow):
         _stage_status(ctx.work,'evidence.assignment','Workflow — evidence assignment')
         contracts=_workflow_domain_contracts(workflow)
         specs={d:workflow.step(d).stage_spec_obj for d in contracts}
-        max_passes=int((step.evidence or {}).get('match_passes',1))
+        rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
+        owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
         while True:
             manifest=sr.prepare_evidence_resolution(
-                ctx.work,contracts=contracts,specs=specs,max_match_passes=max_passes
+                ctx.work,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
             )
             if manifest.get('complete'):
                 break
             pass_no=int(manifest['match_pass'])
-            _status(f"  evidence match pass {pass_no}/{max_passes}: {manifest['fact_count']} fact(s)")
+            rescue_round=int(manifest.get('rescue_round',1))
+            _status(f"  evidence rescue round {rescue_round} pass {pass_no}/{rescue_passes}: {manifest['fact_count']} fact(s)")
             validation_items=list(manifest['validation_items'])
-            call_id='evidence-assignment' if pass_no==1 else f'evidence-assignment-pass-{pass_no:02d}'
+            call_id=f'evidence-assignment-rescue-{rescue_round:02d}-pass-{pass_no:02d}'
             _model_call(
                 ctx.work,call_id=call_id,role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
                 validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=ctx.profile,
@@ -1629,9 +1694,9 @@ def _provider_handlers(workflow):
         from workflows.proforma_v1 import self_runtime as sr
         _stage_status(ctx.work,'evidence.audit','Workflow — evidence audit')
         manifest=sr.prepare_evidence_audit(ctx.work)
-        state=sr._load_evidence_state(ctx.work); matches=sr.accept_evidence_resolution(ctx.work); targets=sr.audit_targets(state['items'],matches)
+        targets=list(manifest.get('targets') or [])
         if not manifest.get('required'):
-            doc={'audits':[]}; ctx.put('evidence_audits',doc)
+            doc={'audits':[]}; sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
             return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
         validation_items=[{'evidence_id':x['evidence_id'],'selected_card_tags':x['selected_card_tags']} for x in targets]
         _model_call(
@@ -1639,7 +1704,7 @@ def _provider_handlers(workflow):
             validator=lambda t,vi=validation_items:schema_validation.validate_evidence_audit_batch(t,vi),profile=ctx.profile,
             max_attempts=_retry('evidence_audit_model_attempts'),
         )
-        doc=yaml.safe_load(_read(manifest['output'])) or {}; ctx.put('evidence_audits',doc)
+        doc=yaml.safe_load(_read(manifest['output'])) or {}; sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
         return {'artifact':doc}
 
     def evidence_adjudication_handler(step,ctx):
@@ -1711,6 +1776,11 @@ def _provider_handlers(workflow):
         'structure': structure_handler,
         'corpus': corpus_handler,
         'diagnosis_who1': who1_handler,
+        'who1_routing_change': who1_routing_change_handler,
+        'who1_evidence_assignment': who1_evidence_assignment_handler,
+        'who1_evidence_audit': who1_evidence_audit_handler,
+        'who1_evidence_adjudication': who1_evidence_adjudication_handler,
+        'who1_commit': who1_commit_handler,
         'diagnosis_who2': who2_handler,
         'diagnosis_icc': icc_handler,
         'diagnosis_other': other_handler,
@@ -1733,29 +1803,47 @@ def _model_step_validated(work, call_id):
 
 
 def _provider_step_complete(step_id, ctx):
-    work=ctx.work
-    checks={
-        'structure': _model_step_validated(work,'structure-case') and has_artifact(work,'structured_case','case.json'),
-        'corpus': has_artifact(work,'card_identity','card-identity-manifest.json'),
-        'diagnosis.who1': _model_step_validated(work,'diagnosis-who5-pass-01'),
-        'diagnosis.who2': _model_step_validated(work,'diagnosis-who5-pass-02'),
-        'diagnosis.icc': _model_step_validated(work,'diagnosis-icc'),
-        'diagnosis.other': _model_step_validated(work,'diagnosis-other'),
-        'diagnosis.finalize': has_artifact(work,'diagnosis','diagnosis-final.yaml'),
-        'prognosis': _model_step_validated(work,'prognosis') and has_artifact(work,'prognosis_state','model-classification.yaml'),
-        'treatment': _model_step_validated(work,'treatment') and has_artifact(work,'treatment_state','model-classification.yaml'),
-        'biomarker': _model_step_validated(work,'biomarker') and has_artifact(work,'biomarker_state','model-classification.yaml'),
-        'germline': _model_step_validated(work,'germline') and has_artifact(work,'germline_state','model-classification.yaml'),
-        'evidence.assignment': has_artifact(work,'evidence_matches','self-resolution.yaml'),
-        'evidence.audit': has_artifact(work,'evidence_audits','self-audit.yaml'),
-        'evidence.adjudication': _model_step_validated(work,'evidence-adjudication') and has_artifact(work,'evidence_adjudication','adjudication.yaml'),
-        'evidence.finalize': has_artifact(work,'evidence_enriched','reportable-elements.yaml'),
-        'report.blocks': has_artifact(work,'report_blocks','report-blocks.yaml'),
-        'report.write': _model_step_validated(work,'report-write') and has_artifact(work,'report_write','report-write.yaml'),
-        'report.preservation': _model_step_validated(work,'report-preservation') and has_artifact(work,'report_write','report-preservation.yaml'),
-        'report.finalize': (Path(work)/'report-final.md').is_file(),
+    # Completion checks must be lazy.  In particular, checking an early step
+    # such as ``structure`` must not evaluate downstream predicates that read
+    # artifacts which cannot exist yet.
+    from workflows.proforma_v1 import self_runtime as sr
+
+    work = ctx.work
+    checks = {
+        'structure': lambda: _model_step_validated(work,'structure-case') and has_artifact(work,'structured_case','case.json'),
+        'corpus': lambda: has_artifact(work,'card_identity','card-identity-manifest.json'),
+        'diagnosis.who1': lambda: _model_step_validated(work,'diagnosis-who5-pass-01'),
+        'diagnosis.who1.routing_change': lambda: sr._who1_routing_change_path(work).is_file(),
+        'diagnosis.who1.evidence.assignment': lambda: sr._who1_gate_match_final_path(work).is_file(),
+        'diagnosis.who1.evidence.audit': lambda: sr._who1_gate_audit_path(work).is_file(),
+        'diagnosis.who1.evidence.adjudication': lambda: (
+            sr._who1_gate_adjudication_path(work).is_file()
+            or not sr.assess_who1_routing_change(work).get('changed')
+        ),
+        'diagnosis.who1.commit': lambda: sr._who1_commit_path(work).is_file(),
+        'diagnosis.who2': lambda: _model_step_validated(work,'diagnosis-who5-pass-02'),
+        'diagnosis.icc': lambda: _model_step_validated(work,'diagnosis-icc'),
+        'diagnosis.other': lambda: _model_step_validated(work,'diagnosis-other'),
+        'diagnosis.finalize': lambda: has_artifact(work,'diagnosis','diagnosis-final.yaml'),
+        'prognosis': lambda: _model_step_validated(work,'prognosis') and has_artifact(work,'prognosis_state','model-classification.yaml'),
+        'treatment': lambda: _model_step_validated(work,'treatment') and has_artifact(work,'treatment_state','model-classification.yaml'),
+        'biomarker': lambda: _model_step_validated(work,'biomarker') and has_artifact(work,'biomarker_state','model-classification.yaml'),
+        'germline': lambda: _model_step_validated(work,'germline') and has_artifact(work,'germline_state','model-classification.yaml'),
+        'evidence.assignment': lambda: has_artifact(work,'evidence_matches','self-resolution.yaml'),
+        'evidence.audit': lambda: (
+            (lambda path: path.is_file() and sr._evidence_state_path(work).is_file() and (
+                sr._load_evidence_state(work).get('processed_audit_sha256') == sr._audit_sha256(path)
+            ))(_existing_or_new(work,'evidence_audits','self-audit.yaml'))
+        ),
+        'evidence.adjudication': lambda: _model_step_validated(work,'evidence-adjudication') and has_artifact(work,'evidence_adjudication','adjudication.yaml'),
+        'evidence.finalize': lambda: has_artifact(work,'evidence_enriched','reportable-elements.yaml'),
+        'report.blocks': lambda: has_artifact(work,'report_blocks','report-blocks.yaml'),
+        'report.write': lambda: _model_step_validated(work,'report-write') and has_artifact(work,'report_write','report-write.yaml'),
+        'report.preservation': lambda: _model_step_validated(work,'report-preservation') and has_artifact(work,'report_write','report-preservation.yaml'),
+        'report.finalize': lambda: (Path(work)/'report-final.md').is_file(),
     }
-    return bool(checks.get(step_id,False))
+    check = checks.get(step_id)
+    return bool(check()) if check is not None else False
 
 
 def _hydrate_provider_context(work, context):
@@ -1770,7 +1858,12 @@ def _hydrate_provider_context(work, context):
     history=list(case.get('bootstrap_cmcs') or [])
     if _model_step_validated(work,'diagnosis-who5-pass-01'):
         who1=yaml.safe_load(_read(_artifact(work,'diagnosis_who5_pass_1','who5.yaml'))) or {}; context.put('who1',who1)
-        for cmc in runtime.derive_cmcs(who1):
+    from workflows.proforma_v1 import self_runtime as _sr
+    if _sr._who1_routing_change_path(work).is_file():
+        context.put('who1_routing_change',yaml.safe_load(_read(_sr._who1_routing_change_path(work))) or {})
+    if _sr._who1_commit_path(work).is_file():
+        commit=yaml.safe_load(_read(_sr._who1_commit_path(work))) or {}; context.put('who1_commit',commit); context.put('committed_who1',commit.get('accepted_who1'))
+        for cmc in runtime.derive_cmcs(commit.get('accepted_who1') or {}):
             if cmc not in history: history.append(cmc)
     if _model_step_validated(work,'diagnosis-who5-pass-02'):
         who2=yaml.safe_load(_read(_artifact(work,'diagnosis_who5_pass_2','who5.yaml'))) or {}; context.put('who2',who2)
@@ -1857,7 +1950,9 @@ def run_pipeline(work,profile=None,*,workflow_path=None):
     compiled=_workflow_for_run(work,workflow_path); _ACTIVE_COMPILED_WORKFLOW=compiled
     context=WorkflowContext(Path(work),executor='provider',profile=profile,data={'settings':load_settings(),'workflow':compiled})
     _ACTIVE_WORKFLOW_CONTEXT=context
-    context.put('predicates',{'who2_required':_who2_required})
+    from workflows.proforma_v1 import self_runtime as sr
+    context.put('predicates',{'who2_required':_who2_required,'who1_routing_changed':lambda c: bool(sr.assess_who1_routing_change(c.work).get('changed'))})
+    context.put('review_predicates',{'evidence_audit_resolved':lambda step,c,result: sr.evidence_audit_resolved(c.work)})
     _hydrate_provider_context(work,context)
     trace=TraceRecorder(compiled.workflow_id)
     runner=WorkflowRunner(compiled,ProviderExecutor(_provider_handlers(compiled),completion=_provider_step_complete,invalidator=_provider_invalidate),trace=trace)

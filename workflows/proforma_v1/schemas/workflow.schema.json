@@ -377,6 +377,14 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 10
+            },
+            "owner_assignment": {
+              "type": "boolean"
+            },
+            "rescue_match_passes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
             }
           }
         },

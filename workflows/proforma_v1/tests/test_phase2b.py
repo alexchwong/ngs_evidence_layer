@@ -85,7 +85,16 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
                 "catalog_card_ids": ["A", "B", "C", "D"],
                 "authoritative_disease": "AML",
                 "corpus_sha256": "x",
-                "max_match_passes": 2,
+                "rescue_match_passes": 2,
+                "rescue_round": 1,
+                "owner_assignment_domains": ["prognosis", "treatment", "biomarker", "germline"],
+                "current_assignment_by_evidence_id": {"E0001": ["[card:aaaaaaaaaaaa]"], "E0002": []},
+                "accepted_card_tags_by_evidence_id": {"E0001": [], "E0002": []},
+                "rejected_card_tags_by_evidence_id": {"E0001": [], "E0002": []},
+                "assignment_meta_by_evidence_id": {"E0001": {"[card:aaaaaaaaaaaa]": {"origin": "owner", "rescue_round": 0, "match_pass": 0}}, "E0002": {}},
+                "audit_by_evidence_id": {},
+                "unresolved_disputes": [],
+                "processed_audit_sha256": None,
                 "match_pass_by_evidence_id": {},
             }
             cards = [
@@ -108,13 +117,12 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
                 first = self_runtime.prepare_evidence_resolution(work, max_match_passes=2)
                 self.assertFalse(first["complete"])
                 self.assertEqual(first["match_pass"], 1)
-                self.assertEqual(first["fact_count"], 2)
+                self.assertEqual(first["fact_count"], 1)
                 first_text = first["facts"].read_text(encoding="utf-8")
-                self.assertIn("fact one", first_text)
+                self.assertNotIn("fact one", first_text)
                 self.assertIn("fact two", first_text)
 
                 self_runtime.write_yaml(first["output"], {"matches": [
-                    {"evidence_id": "E0001", "card_tags": ["[card:aaaaaaaaaaaa]"]},
                     {"evidence_id": "E0002", "card_tags": []},
                 ]})
                 second = self_runtime.prepare_evidence_resolution(work, max_match_passes=2)
@@ -159,26 +167,29 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
         doc = {
             "applicable_disease": "AML",
             "prognostic_frameworks": [
-                {"name": "ELN 2022", "tier": None, "reason": "Applicable AML framework."}
+                {"name": "ELN 2022", "tier": None, "reason": "Applicable AML framework.", "evidence_card_tags": []}
             ],
             "classification": [
                 {
                     "variant": "v01", "gene": "ASXL1",
                     "framework_effects": [
-                        {"framework": "ELN 2022", "effect": "adverse", "reason": "Framework adverse."}
+                        {"framework": "ELN 2022", "effect": "adverse", "reason": "Framework adverse.", "evidence_card_tags": []}
                     ],
                     "other_evidence_effect": "favorable",
                     "other_evidence_reason": "Independent treatment-context evidence is favorable.",
+                    "other_evidence_card_tags": [],
                 },
                 {
                     "variant": "v02", "gene": "DNMT3A", "framework_effects": [],
                     "other_evidence_effect": "no_evidence",
                     "other_evidence_reason": "No qualifying prognostic evidence was found.",
+                    "other_evidence_card_tags": [],
                 },
                 {
                     "variant": "v03", "gene": "TET2", "framework_effects": [],
                     "other_evidence_effect": "no_evidence",
                     "other_evidence_reason": "No qualifying prognostic evidence was found.",
+                    "other_evidence_card_tags": [],
                 },
             ],
         }
@@ -196,7 +207,7 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
         )
         domain_contract.validate(
             normalized, contract,
-            {"variants": ["v01", "v02", "v03"], "registry": registry, "authoritative_disease": "AML"},
+            {"variants": ["v01", "v02", "v03"], "registry": registry, "authoritative_disease": "AML", "owner_card_tags": []},
         )
 
     def test_prognosis_positive_other_effect_still_requires_reason(self):
@@ -207,7 +218,7 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
             "prognostic_frameworks": [],
             "classification": [{
                 "variant": "v01", "gene": "ASXL1", "framework_effects": [],
-                "other_evidence_effect": "favorable", "other_evidence_reason": None,
+                "other_evidence_effect": "favorable", "other_evidence_reason": None, "other_evidence_card_tags": [],
             }],
         }
         normalized, _ = domain_contract.normalize_model_output(
@@ -216,7 +227,7 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "missing despite a positive/neutral other-evidence classification"):
             domain_contract.validate(
                 normalized, contract,
-                {"variants": ["v01"], "registry": registry, "authoritative_disease": "AML"},
+                {"variants": ["v01"], "registry": registry, "authoritative_disease": "AML", "owner_card_tags": []},
             )
 
     def test_provider_declared_checks_receive_live_runtime_context(self):

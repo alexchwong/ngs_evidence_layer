@@ -17,6 +17,6 @@
   ],
   "status": "experimental",
   "cloned_from": "terraced-v6",
-  "architecture": "declarative-workflow-shared-executors-owner-proforma-evidence-deterministic-blocks-single-writer",
-  "phase": 2
+  "architecture": "declarative-workflow-shared-executors-blocking-who1-gate-ptbg-owner-evidence-rescue-audit-adjudication",
+  "phase": 3
 }

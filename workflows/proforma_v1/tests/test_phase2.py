@@ -38,11 +38,13 @@ class WorkflowCompilerTests(unittest.TestCase):
     def test_canonical_workflow_compiles_to_expected_logical_graph(self):
         workflow = compile_workflow()
         self.assertEqual(workflow.workflow_id, "proforma-v1")
-        self.assertEqual(len(workflow.steps), 19)
+        self.assertEqual(len(workflow.steps), 24)
         self.assertEqual(
             [x.id for x in workflow.steps],
             [
-                "structure", "corpus", "diagnosis.who1", "diagnosis.who2", "diagnosis.icc",
+                "structure", "corpus", "diagnosis.who1", "diagnosis.who1.routing_change",
+                "diagnosis.who1.evidence.assignment", "diagnosis.who1.evidence.audit",
+                "diagnosis.who1.evidence.adjudication", "diagnosis.who1.commit", "diagnosis.who2", "diagnosis.icc",
                 "diagnosis.other", "diagnosis.finalize", "prognosis", "treatment", "biomarker",
                 "germline", "evidence.assignment", "evidence.audit", "evidence.adjudication",
                 "evidence.finalize", "report.blocks", "report.write", "report.preservation", "report.finalize",
@@ -52,16 +54,21 @@ class WorkflowCompilerTests(unittest.TestCase):
 
     def test_evidence_match_pass_count_is_workflow_configurable(self):
         workflow = compile_workflow()
-        self.assertEqual(workflow.step("evidence.assignment").evidence["match_passes"], 2)
+        self.assertEqual(workflow.step("evidence.assignment").evidence["rescue_match_passes"], 1)
 
         doc = copy.deepcopy(self.doc)
-        doc["steps"]["evidence.assignment"]["evidence"]["match_passes"] = 3
+        doc["steps"]["evidence.assignment"]["evidence"]["rescue_match_passes"] = 3
         custom = self._compile_doc(doc)
-        self.assertEqual(custom.step("evidence.assignment").evidence["match_passes"], 3)
+        self.assertEqual(custom.step("evidence.assignment").evidence["rescue_match_passes"], 3)
 
         doc = copy.deepcopy(self.doc)
-        doc["steps"]["evidence.assignment"]["evidence"]["match_passes"] = 0
-        with self.assertRaisesRegex(WorkflowCompileError, "minimum of 1"):
+        doc["steps"]["evidence.assignment"]["evidence"]["rescue_match_passes"] = 0
+        custom = self._compile_doc(doc)
+        self.assertEqual(custom.step("evidence.assignment").evidence["rescue_match_passes"], 0)
+
+        doc = copy.deepcopy(self.doc)
+        doc["steps"]["evidence.assignment"]["evidence"]["rescue_match_passes"] = 11
+        with self.assertRaisesRegex(WorkflowCompileError, "maximum of 10"):
             self._compile_doc(doc)
 
     def test_dependency_cycle_is_rejected(self):
@@ -323,8 +330,9 @@ class SharedRunnerTests(unittest.TestCase):
         self_names = {s.execution.get("self_handler") for s in workflow.steps}
         provider = ProviderExecutor({name: (lambda step, ctx: {"status": "complete"}) for name in provider_names if name})
         self_exec = SelfExecutor({name: (lambda step, ctx: {"status": "complete"}) for name in self_names if name})
-        pctx = WorkflowContext(Path("."), "provider")
-        sctx = WorkflowContext(Path("."), "self")
+        common={"predicates":{"who1_routing_changed":lambda c:False,"who2_required":lambda c:False},"review_predicates":{"evidence_audit_resolved":lambda step,c,result:True}}
+        pctx = WorkflowContext(Path("."), "provider", data=dict(common))
+        sctx = WorkflowContext(Path("."), "self", data=dict(common))
         WorkflowRunner(workflow, provider).run_all(pctx)
         WorkflowRunner(workflow, self_exec).run_all(sctx)
         expected = {s.id for s in workflow.steps}

@@ -21,7 +21,7 @@ class Phase1CloneTests(unittest.TestCase):
         metadata = load_workflow_metadata("proforma-v1", registry)
         self.assertEqual(metadata["python_package"], "workflows.proforma_v1")
         self.assertEqual(metadata["cloned_from"], "terraced-v6")
-        self.assertEqual(metadata["phase"], 2)
+        self.assertEqual(metadata["phase"], 3)
 
     def test_setup_binds_work_directory_to_proforma(self):
         with tempfile.TemporaryDirectory() as td:
@@ -89,8 +89,9 @@ class Phase1ReplayTests(unittest.TestCase):
         self.assertEqual(result["failures"], [])
 
     def test_malformed_outputs_preserve_reference_accept_reject_and_feedback(self):
-        cases = [case for case in replay.load_cases() if not case.expected["accepted"]]
-        self.assertGreaterEqual(len(cases), 8)
+        drift = replay.INTENTIONAL_BEHAVIOR_DRIFT.get("proforma-v1", set())
+        cases = [case for case in replay.load_cases() if not case.expected["accepted"] and case.stage not in drift]
+        self.assertGreaterEqual(len(cases), 5)
         for case in cases:
             with self.subTest(case=case.case_id):
                 actual = replay.replay_case(case, workflow_id="proforma-v1")

@@ -157,6 +157,9 @@ def _self_model_output_path(step_id: str, work: Path) -> Path | None:
     mapping={
         'structure': staged.artifact_path(work,'structured_case','case.json',create=True),
         'diagnosis.who1': sr.output_path(work,'diagnosis_who5_pass_1','who5.yaml'),
+        'diagnosis.who1.evidence.assignment': sr._who1_gate_match_final_path(work),
+        'diagnosis.who1.evidence.audit': sr._who1_gate_audit_path(work),
+        'diagnosis.who1.evidence.adjudication': sr._who1_gate_adjudication_path(work),
         'diagnosis.who2': sr.output_path(work,'diagnosis_who5_pass_2','who5.yaml'),
         'diagnosis.icc': sr.output_path(work,'diagnosis_icc','icc.yaml'),
         'diagnosis.other': sr.output_path(work,'diagnosis_other','other.yaml'),
@@ -192,10 +195,43 @@ def _self_declared_validate(step_id: str, context: WorkflowContext) -> None:
 
 def _self_step_complete(step_id: str, context: WorkflowContext) -> bool:
     work=context.work
+    if step_id in {'prognosis','treatment','biomarker','germline'}:
+        model_path=sr.output_path(work,f'{step_id}_state','model-classification.yaml')
+        proforma_path=sr.output_path(work,f'{step_id}_state','proforma.yaml')
+        if proforma_path.is_file():
+            domains=dict(context.get('domains',{}) or {})
+            domains[step_id]=sr.read_yaml(proforma_path)
+            context.put('domains',domains)
+            return True
+        if not model_path.is_file():
+            return False
+        workflow=context.get('workflow')
+        contracts,specs=_self_domain_contracts(workflow)
+        try:
+            accepted=sr.accept_ptbg(
+                work,domains_to_accept=(step_id,),contracts=contracts,specs=specs
+            )[step_id]
+        except Exception as exc:
+            feedback=dict(context.get('self_validation_feedback',{}) or {})
+            feedback[step_id]=str(exc)
+            context.put('self_validation_feedback',feedback)
+            return False
+        feedback=dict(context.get('self_validation_feedback',{}) or {})
+        feedback.pop(step_id,None)
+        context.put('self_validation_feedback',feedback)
+        domains=dict(context.get('domains',{}) or {})
+        domains[step_id]=accepted
+        context.put('domains',domains)
+        return True
     checks={
         'structure': staged.has_artifact(work,'structured_case','case.json'),
         'corpus': staged.has_artifact(work,'card_identity','card-identity-manifest.json'),
         'diagnosis.who1': staged.has_artifact(work,'diagnosis_who5_pass_1','who5.yaml'),
+        'diagnosis.who1.routing_change': sr._who1_routing_change_path(work).is_file(),
+        'diagnosis.who1.evidence.assignment': sr._who1_gate_match_final_path(work).is_file(),
+        'diagnosis.who1.evidence.audit': sr._who1_gate_audit_path(work).is_file(),
+        'diagnosis.who1.evidence.adjudication': sr._who1_gate_adjudication_path(work).is_file(),
+        'diagnosis.who1.commit': sr._who1_commit_path(work).is_file(),
         'diagnosis.icc': staged.has_artifact(work,'diagnosis_icc','icc.yaml'),
         'diagnosis.who2': staged.has_artifact(work,'diagnosis_who5_pass_2','who5.yaml'),
         'diagnosis.other': staged.has_artifact(work,'diagnosis_other','other.yaml'),
@@ -205,7 +241,12 @@ def _self_step_complete(step_id: str, context: WorkflowContext) -> bool:
         'biomarker': staged.has_artifact(work,'biomarker_state','model-classification.yaml'),
         'germline': staged.has_artifact(work,'germline_state','model-classification.yaml'),
         'evidence.assignment': staged.has_artifact(work,'evidence_matches','self-resolution.yaml'),
-        'evidence.audit': staged.has_artifact(work,'evidence_audits','self-audit.yaml'),
+        'evidence.audit': (
+            staged.has_artifact(work,'evidence_audits','self-audit.yaml')
+            and (lambda state,path: bool(state.get('processed_audit_sha256')) and state.get('processed_audit_sha256')==sr._audit_sha256(path))(
+                sr._load_evidence_state(work), sr.output_path(work,'evidence_audits','self-audit.yaml')
+            )
+        ) if sr._evidence_state_path(work).is_file() and staged.has_artifact(work,'evidence_audits','self-audit.yaml') else False,
         'evidence.adjudication': staged.has_artifact(work,'evidence_enriched','reportable-elements.yaml') or staged.has_artifact(work,'evidence_adjudication','adjudication.yaml'),
         'evidence.finalize': staged.has_artifact(work,'evidence_enriched','reportable-elements.yaml'),
         'report.blocks': staged.has_artifact(work,'report_blocks','report-blocks.yaml'),
@@ -243,11 +284,13 @@ def _handoff(stage: str, manifest: dict) -> dict:
 
 
 def _self_who2_required(ctx):
-    if int(staged._setting('diagnosis','who5','max_cmc_passes')) < 2:
+    cfg=((staged.load_settings().get('diagnosis') or {}).get('who5') or {})
+    if not bool(cfg.get('reconsider_after_cmc_expansion', False)):
         return False
     case,_reg=sr.load_case_registry(ctx.work)
-    who1=sr.accept_who(ctx.work,pass_number=1)
-    _self_declared_validate('diagnosis.who1',ctx)
+    who1=ctx.get('committed_who1') or sr.committed_who1(ctx.work, required=False)
+    if not who1:
+        return False
     return sr.runtime.derive_cmcs(who1) != list(case.get('bootstrap_cmcs') or [])
 
 
@@ -261,6 +304,14 @@ def _self_render_prompt(step, ctx, manifest: dict | None = None) -> Path | None:
         if isinstance(candidate,Path) and candidate.is_file():
             output_template=candidate.read_text(encoding="utf-8")
     text=workflow_prompt_renderer.render(step.prompt,root=ctx.get('workflow').asset_root,inputs=inputs,output_template=output_template)
+    feedback=(ctx.get('self_validation_feedback',{}) or {}).get(step.id)
+    if feedback:
+        text += (
+            "\n\n# Deterministic validation feedback\n"
+            "The previous complete artifact failed deterministic validation. Return the complete artifact again, not a patch. "
+            "Fix every issue below and preserve unrelated clinical decisions and supplied IDs exactly.\n\n"
+            + str(feedback).rstrip() + "\n"
+        )
     group=layout.intermediate_dir(ctx.work,f"workflow_prompt_{step.id}",existing=False)
     path=group/'rendered-prompt.md'
     path.write_text(text,encoding='utf-8')
@@ -293,6 +344,32 @@ def _self_handlers():
 
     def who1(step, ctx):
         return _handoff('diagnosis',decorate(sr.prepare_who(ctx.work,pass_number=1,prompt=step.prompt),step,ctx))
+
+    def who1_routing_change(step, ctx):
+        change=sr.assess_who1_routing_change(ctx.work); ctx.put('who1_routing_change',change); return {'status':'complete','artifact':change}
+
+    def who1_evidence_assignment(step, ctx):
+        max_passes=int((step.evidence or {}).get('match_passes',2))
+        manifest=sr.prepare_who1_evidence_resolution(ctx.work,max_match_passes=max_passes,prompt=step.prompt)
+        if manifest.get('complete'):
+            doc=sr.accept_who1_evidence_resolution(ctx.work) if manifest.get('required') else {'matches':[]}
+            ctx.put('who1_evidence_assignments',doc); return {'status':'complete','artifact':doc}
+        return _handoff('diagnosis_who1_evidence_match',decorate(manifest,step,ctx))
+
+    def who1_evidence_audit(step, ctx):
+        manifest=sr.prepare_who1_evidence_audit(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            doc={'audits':[]}; ctx.put('who1_evidence_audits',doc); return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
+        return _handoff('diagnosis_who1_evidence_audit',decorate(manifest,step,ctx))
+
+    def who1_evidence_adjudication(step, ctx):
+        manifest=sr.prepare_who1_evidence_adjudication(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            return {'status':'skipped','reason':'no_disagreement','artifact':{'adjudications':[]}}
+        return _handoff('diagnosis_who1_evidence_adjudication',decorate(manifest,step,ctx))
+
+    def who1_commit(step, ctx):
+        commit=sr.commit_who1_routing(ctx.work); ctx.put('who1_commit',commit); ctx.put('committed_who1',commit['accepted_who1']); return {'status':'complete','artifact':commit}
 
     def who2(step, ctx):
         return _handoff('diagnosis',decorate(sr.prepare_who(ctx.work,pass_number=2,prompt=step.prompt),step,ctx))
@@ -331,9 +408,11 @@ def _self_handlers():
         sr.accept_ptbg(ctx.work,contracts=contracts,specs=specs)
         for domain in ('prognosis','treatment','biomarker','germline'):
             _self_declared_validate(domain,ctx)
-        max_passes=int((step.evidence or {}).get('match_passes',1))
+        rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
+        workflow=ctx.get('workflow')
+        owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
         manifest=sr.prepare_evidence_resolution(
-            ctx.work,prompt=step.prompt,contracts=contracts,specs=specs,max_match_passes=max_passes
+            ctx.work,prompt=step.prompt,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
         )
         if manifest.get('complete'):
             doc=sr.accept_evidence_resolution(ctx.work)
@@ -346,8 +425,12 @@ def _self_handlers():
         manifest=sr.prepare_evidence_audit(ctx.work,prompt=step.prompt)
         _self_declared_validate('evidence.assignment',ctx)
         if not manifest.get('required'):
-            ctx.put('evidence_audits',{'audits':[]})
-            return {'status':'skipped','reason':'no_matched_cards','artifact':{'audits':[]}}
+            sr.apply_evidence_audit(ctx.work)
+            doc={'audits':[]}; ctx.put('evidence_audits',doc)
+            return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
+        if Path(manifest['output']).is_file():
+            doc,_targets=sr.accept_evidence_audit(ctx.work); sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
+            return {'status':'complete','artifact':doc}
         return _handoff('evidence_audit',decorate(manifest,step,ctx))
 
     def evidence_adjudication(step, ctx):
@@ -403,7 +486,10 @@ def _self_handlers():
 
     return {
         'structure':structure,'corpus':corpus,
-        'diagnosis_who1':who1,'diagnosis_who2':who2,'diagnosis_icc':icc,
+        'diagnosis_who1':who1,'who1_routing_change':who1_routing_change,
+        'who1_evidence_assignment':who1_evidence_assignment,'who1_evidence_audit':who1_evidence_audit,
+        'who1_evidence_adjudication':who1_evidence_adjudication,'who1_commit':who1_commit,
+        'diagnosis_who2':who2,'diagnosis_icc':icc,
         'diagnosis_other':diagnosis_other,'diagnosis_finalize':diagnosis_finalize,
         'ptbg':ptbg,'evidence_assignment':evidence_assignment,'evidence_audit':evidence_audit,
         'evidence_adjudication':evidence_adjudication,'evidence_finalize':evidence_finalize,
@@ -462,7 +548,8 @@ def advance(work: Path, *, workflow_path=None) -> dict:
         if path.is_file() and (candidate.output or {}).get('artifact'):
             raw=path.read_text(encoding='utf-8'); fmt=(candidate.output or {}).get('format','yaml')
             context.put(candidate.output['artifact'],json.loads(raw) if fmt=='json' else staged.yaml.safe_load(raw))
-    context.put('predicates',{'who2_required':_self_who2_required})
+    context.put('predicates',{'who2_required':_self_who2_required,'who1_routing_changed':lambda c: bool(sr.assess_who1_routing_change(c.work).get('changed'))})
+    context.put('review_predicates',{'evidence_audit_resolved':lambda step,c,result: sr.evidence_audit_resolved(c.work)})
     runner=WorkflowRunner(workflow,SelfExecutor(_self_handlers(),completion=_self_step_complete,invalidator=_self_invalidate))
     result=runner.advance(context)
     control_state.save(context)
@@ -524,8 +611,10 @@ def cmd_evidence_resolution(args):
     sr.accept_ptbg(work)
     workflow=staged._workflow_for_run(work,args.workflow)
     step=workflow.step('evidence.assignment')
-    max_passes=int((step.evidence or {}).get('match_passes',1))
-    manifest=sr.prepare_evidence_resolution(work,prompt=step.prompt,max_match_passes=max_passes)
+    rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
+    workflow=staged._workflow_for_run(work,args.workflow)
+    owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
+    manifest=sr.prepare_evidence_resolution(work,prompt=step.prompt,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains)
     _print_manifest({k:v for k,v in manifest.items() if k!='validation_items'})
     return EXIT_OK
 

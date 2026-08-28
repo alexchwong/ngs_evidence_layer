@@ -10,13 +10,6 @@ provider:
   api_key_required: true
 model_aliases:
   default: qwen/qwen3-coder-next
-
-  # Example: pin a model to a specific OpenRouter provider with no fallback:
-  # groq_only:
-  #   model: openai/gpt-oss-20b
-  #   provider:
-  #     order: [groq]
-  #     allow_fallbacks: false
 model_roles:
   structure:
     model: default
@@ -47,6 +40,10 @@ model_roles:
     temperature: 0.0
     max_tokens: 16384
   syntax_repair:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384
+  evidence_adjudication:
     model: default
     temperature: 0.0
     max_tokens: 16384

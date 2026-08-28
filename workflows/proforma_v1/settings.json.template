@@ -18,7 +18,7 @@
         "arber-2022-blood-140-1200",
         "d-hner-2022-blood-140-1345"
       ],
-      "max_cmc_passes": 2
+      "reconsider_after_cmc_expansion": false
     },
     "icc": {
       "included_publication_keys": [],

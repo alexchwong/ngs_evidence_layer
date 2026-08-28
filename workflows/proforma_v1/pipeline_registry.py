@@ -7,7 +7,7 @@ from typing import Any
 import yaml
 from workflows.proforma_v1.model_binding import Binding
 HERE=Path(__file__).resolve().parent; ROOT=HERE/'pipelines'
-ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','report_write','preservation_check','syntax_repair')
+ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication','report_write','preservation_check','syntax_repair')
 _PROVIDER_ROUTING_LIST_FIELDS=('order','only','ignore')
 _PROVIDER_ROUTING_BOOL_FIELDS=('allow_fallbacks','require_parameters')
 _PROVIDER_ROUTING_FIELDS=set(_PROVIDER_ROUTING_LIST_FIELDS+_PROVIDER_ROUTING_BOOL_FIELDS)

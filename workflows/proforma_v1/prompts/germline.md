@@ -12,3 +12,8 @@ Classify every supplied variant:
 - `germline_uncertain`: available molecular/clinical information is insufficient for either conclusion.
 
 `reason` must integrate molecular evidence and the supplied clinical context. Do not recommend testing, referral, or counselling.
+Evidence assignment:
+- For every reportable proposition you create, also return `evidence_card_tags` using only exact card IDs supplied to this owner step.
+- Use an empty list when none of the supplied cards genuinely supports that proposition. Do not copy a merely related card.
+- A card tag outside the supplied owner envelope is invalid and the complete owner artifact will be returned for repair.
+

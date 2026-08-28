@@ -468,6 +468,33 @@ def gene_prefixed_descriptions(doc, context, params):
     return out
 
 
+def owner_evidence_card_tags(doc, context, params):
+    """Every owner-assigned card tag must come from that PTBG step's frozen card envelope."""
+    allowed=set(context.get("owner_card_tags") or [])
+    out=[]
+    def visit(value,path=""):
+        if isinstance(value,dict):
+            for key,item in value.items():
+                child=f"{path}.{key}" if path else str(key)
+                if key in {"evidence_card_tags","other_evidence_card_tags"}:
+                    if not isinstance(item,list):
+                        continue
+                    for i,tag in enumerate(item):
+                        if tag not in allowed:
+                            out.append(ValidationIssue(
+                                f"{child}[{i}]",
+                                f"card {tag!r} was not supplied to this owner step",
+                                "use only an exact supplied card tag for this owner step, or remove the unsupported assignment and return an empty list",
+                                repair_class="content", received=iss.preview(tag),
+                                expected=f"one of {len(allowed)} supplied owner card tag(s)",
+                            ))
+                else:
+                    visit(item,child)
+        elif isinstance(value,list):
+            for i,item in enumerate(value): visit(item,f"{path}[{i}]")
+    visit(doc)
+    return out
+
 def single_physical_line(doc, context, params):
     value = _field(doc, params["field"])
     if not isinstance(value, str) or ("\n" not in value and value == value.strip()):
@@ -486,6 +513,7 @@ def single_physical_line(doc, context, params):
 
 REGISTRY = {
     "one_row_per_id": one_row_per_id,
+    "owner_evidence_card_tags": owner_evidence_card_tags,
     "rows_per_id": rows_per_id,
     "enum": enum,
     "id_subset": id_subset,

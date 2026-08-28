@@ -17,3 +17,8 @@ For each framework, `tier` is optional. Populate it only when the framework tier
 `ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
 
 Keep every reason concise, report-ready, and faithful to the supplied evidence.
+Evidence assignment:
+- For every reportable proposition you create, also return `evidence_card_tags` using only exact card IDs supplied to this owner step.
+- Use an empty list when none of the supplied cards genuinely supports that proposition. Do not copy a merely related card.
+- A card tag outside the supplied owner envelope is invalid and the complete owner artifact will be returned for repair.
+

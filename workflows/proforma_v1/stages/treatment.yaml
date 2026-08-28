@@ -37,6 +37,7 @@ solitary_buckets:
 - no_drug_implication
 multi_row: true
 rules:
+- rule: owner_evidence_card_tags
 - rule: applicable_disease_exact
 - rule: gene_matches_registry
 - rule: rows_per_id

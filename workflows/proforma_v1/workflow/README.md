@@ -103,9 +103,30 @@ Custom stage assets use the same allow-listed stage meta-schema/rule/transform r
 
 For an external experiment package, set `asset_root` to a trusted directory and keep all referenced prompts/schemas/stage assets beneath it. Path escape is rejected.
 
-## Evidence match passes
+## Phase 3 evidence ownership and rescue
 
-The evidence-assignment step may choose how many matcher passes are available:
+PTBG owner steps may perform the initial evidence assignment while filling their
+proformas:
+
+```yaml
+steps:
+  prognosis:
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards: {from: owner.cards}
+      owner_assignment: true
+```
+
+An owner may use only exact card tags from its frozen `owner.cards` envelope. An
+unknown/out-of-envelope tag is a deterministic validation failure of that owner
+artifact: the same prognosis/treatment/biomarker/germline step is fed the exact
+issue and must return the complete corrected proforma. It does not proceed to
+evidence audit.
+
+The later `evidence.assignment` operation canonicalises those owner assignments
+and runs dedicated matcher passes only for facts that still need evidence. The
+number of rescue passes is configurable:
 
 ```yaml
 steps:
@@ -114,10 +135,36 @@ steps:
       policy: literature_support
       timing: deferred
       cards: {from: owner.cards}
-      match_passes: 2
+      rescue_match_passes: 1
 ```
 
-Pass 1 receives every reportable fact with candidate evidence. Each later pass is conditional and receives only facts that still have zero matched cards. `match_passes: 1` disables the rescue pass; values from 1 to 10 are accepted. Match and audit model inputs are rendered as isolated `<fact-N>...</fact-N>` JSON blocks, so cards from one fact are not visible inside another fact's reasoning envelope. Audit receives only cards positively selected by the matcher.
+`rescue_match_passes: 0` disables the dedicated rescue matcher. Higher values allow
+additional passes for facts that remain uncarded; rejected fact/card pairs are
+removed from later rescue candidate sets. Owner assignment itself is not counted
+as a rescue pass.
+
+WHO1 uses a separate blocking diagnostic gate. Its `match_passes` controls the
+number of matcher passes for the stricter `diagnosis_complete_support` policy:
+
+```yaml
+diagnosis.who1.evidence.assignment:
+  evidence:
+    policy: diagnosis_complete_support
+    timing: blocking
+    cards: {from: owner.cards}
+    match_passes: 2
+```
+
+Match inputs are rendered as isolated `<fact-N>...</fact-N>` JSON blocks. Each
+block contains that fact and only its eligible rendered cards; there is no shared
+card catalogue. Audit receives only positively assigned cards, regardless of
+whether they came from the PTBG owner or a rescue matcher. Audit rejection removes
+the rejected fact/card pair and may route the fact back through rescue matching on
+the remaining candidates before unresolved disputes reach adjudication.
+
+The default WHO1 gate is blocking because its result can change downstream routing.
+PTBG evidence is deferred because its evidence-approved result is not consumed by
+later clinical model steps.
 
 ## Semantic audit feedback
 

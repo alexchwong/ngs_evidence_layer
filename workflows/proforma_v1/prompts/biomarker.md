@@ -9,3 +9,8 @@ Rules:
 - Give variants sharing one proposition the same `reason` wording; they are merged deterministically afterwards.
 - `reason` is one concise evidence-backed proposition.
 - Do not recommend a marker unless the supplied evidence supports its use for MRD in the authoritative disease.
+Evidence assignment:
+- For every reportable proposition you create, also return `evidence_card_tags` using only exact card IDs supplied to this owner step.
+- Use an empty list when none of the supplied cards genuinely supports that proposition. Do not copy a merely related card.
+- A card tag outside the supplied owner envelope is invalid and the complete owner artifact will be returned for repair.
+

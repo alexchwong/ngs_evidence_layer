@@ -60,9 +60,9 @@ If setup used a non-default workflow, `--workflow` may be repeated on `run` as a
 For `STATUS=handoff`:
 
 1. Read the rendered `prompt`, contract/schema, context, card pool, and other paths in the manifest.
-2. Do only the requested model reasoning. Candidate cards may be clinical source material, but owner proformas must not assign runtime card tags unless the handoff is an evidence operation.
+2. Do only the requested model reasoning. Candidate cards may be clinical source material. A PTBG owner operation whose selected workflow declares `evidence.owner_assignment: true` must assign only exact card tags supplied in that owner's card envelope; other owner operations must not invent or leak runtime card tags.
 3. Write the complete requested artifact(s), never a patch.
-4. Invoke `self.py run` again immediately so deterministic validation can accept, reject, or feed back the result.
+4. Invoke `self.py run` again immediately so deterministic validation can accept, reject, or feed back the result. An invalid PTBG owner assignment is fed back to that owner operation for complete-artifact repair before evidence review proceeds.
 
 Do not manually call historical stage-specific commands to determine progression. They remain compatibility/debug helpers only; `run` is the canonical native-self driver.
 

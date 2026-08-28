@@ -95,6 +95,7 @@ def _prognosis_skeleton(variant_ids, registry, disease) -> str:
         "  - name: \"<framework name>\"",
         "    tier: null",
         "    reason: \"<one concise proposition supporting framework applicability and, when tier is populated, the tier assignment; use prognostic_frameworks: [] when none can be identified>\"",
+        "    evidence_card_tags: [\"[card:0123456789ab]\"]  # exact supplied supporting cards; [] if none",
         "  # Add another item for each additional applicable framework.",
         "classification:",
     ]
@@ -107,8 +108,10 @@ def _prognosis_skeleton(variant_ids, registry, disease) -> str:
             "      - framework: \"<exact name from prognostic_frameworks; use framework_effects: [] when none>\"",
             "        effect: <favorable|adverse|neutral>",
             "        reason: \"<one concise framework-specific proposition>\"",
+            "        evidence_card_tags: [\"[card:0123456789ab]\"]  # exact supplied supporting cards; [] if none",
             "    other_evidence_effect: <favorable|adverse|neutral|no_evidence>",
             "    other_evidence_reason: \"<one concise same-disease proposition; use null when no_evidence>\"",
+            "    other_evidence_card_tags: [\"[card:0123456789ab]\"]  # [] when no_evidence or unsupported",
         ]
     lines += ["```"]
     return "\n".join(lines)
@@ -149,6 +152,7 @@ def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_diseas
                 f"{c.solitary_buckets[0] if c.solitary_buckets else 'non-therapeutic'} rows>\""
             )
         lines.append(f"    reason: \"<one concise report-ready {c.label} proposition>\"")
+        lines.append("    evidence_card_tags: [\"[card:0123456789ab]\"]  # exact supplied supporting cards; [] if none")
     lines.append("```")
     return "\n".join(lines)
 
@@ -219,7 +223,7 @@ def validate(text: str, c: DomainContract, context: dict, *, spec=None) -> str:
 
 
 def _base_entry(row):
-    entry = {"variants": [row.get("variant")], "reason": row.get("reason")}
+    entry = {"variants": [row.get("variant")], "reason": row.get("reason"), "evidence_card_tags": list(row.get("evidence_card_tags") or [])}
     if row.get("gene"):
         entry["gene"] = row.get("gene")
     return entry
@@ -230,7 +234,7 @@ def pivot(doc: dict, c: DomainContract) -> dict:
     if c.domain == "prognosis":
         out = {bucket: [] for bucket in c.buckets}
         out["applicable_disease"] = doc.get("applicable_disease")
-        out["prognostic_frameworks"] = list(doc.get("prognostic_frameworks") or [])
+        out["prognostic_frameworks"] = [dict(row, evidence_card_tags=list(row.get("evidence_card_tags") or [])) for row in (doc.get("prognostic_frameworks") or [])]
         for row in doc.get("classification") or []:
             if not isinstance(row, dict):
                 continue
@@ -249,6 +253,7 @@ def pivot(doc: dict, c: DomainContract) -> dict:
                     "gene": gene,
                     "framework": effect_row.get("framework"),
                     "reason": effect_row.get("reason"),
+                    "evidence_card_tags": list(effect_row.get("evidence_card_tags") or []),
                 }
                 out[bucket].append(entry)
             other = row.get("other_evidence_effect")
@@ -257,12 +262,14 @@ def pivot(doc: dict, c: DomainContract) -> dict:
                     "variants": [vid],
                     "gene": gene,
                     "reason": row.get("other_evidence_reason"),
+                    "evidence_card_tags": list(row.get("other_evidence_card_tags") or []),
                 })
             elif other == "no_evidence" and not framework_effects:
                 out["no_prognostic_evidence"].append({
                     "variants": [vid],
                     "gene": gene,
                     "reason": "No disease-applicable prognostic evidence was identified for this variant.",
+                    "evidence_card_tags": [],
                 })
         return out
 

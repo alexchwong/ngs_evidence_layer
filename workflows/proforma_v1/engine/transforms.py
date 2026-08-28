@@ -31,6 +31,8 @@ REGISTRY = {
     "finalize_report": delegated,
     "consolidate_parallel_variant_rows": delegated,
     "derive_diagnostic_cmcs": derive_diagnostic_cmcs,
+    "assess_who1_routing_change": delegated,
+    "commit_who1_routing": delegated,
 }
 
 
