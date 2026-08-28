@@ -16,3 +16,7 @@ Rules:
 - Give variants sharing one proposition the same `reason` wording; they are merged deterministically afterwards.
 - A variant with any positive treatment implication must not appear in `no_drug_implication`.
 - Keep reasons concise and evidence-backed.
+Evidence assignment:
+- For every reportable proposition you create, also return `evidence_card_tags` using only exact card IDs supplied to this owner step.
+- Use an empty list when none of the supplied cards genuinely supports that proposition. Do not copy a merely related card.
+- A card tag outside the supplied owner envelope is invalid and the complete owner artifact will be returned for repair.

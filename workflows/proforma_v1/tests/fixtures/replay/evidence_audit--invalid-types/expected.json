@@ -1,5 +1,5 @@
 {
-  "source_workflow": "terraced-v6",
+  "source_workflow": "proforma-v1",
   "stage": "evidence_audit",
   "operation_id": "evidence.audit",
   "accepted": false,
@@ -7,7 +7,7 @@
   "message_sha256": "b1ef95160156eb3942428f62f67707f177e4488040869e3183619c8f30dc815e",
   "response_sha256": "efa3b000b347c54e3c4ca83fe99a3531cb1a091096029758b2d6fd8555428d98",
   "context_sha256": "52d73564a008a16a603966204f50fe341501df7b8b96dca98ea29d29873d3f46",
-  "prompt_sha256": "299ba9bafe13fd9c6bb4e06a0040a8406028d37cc361229cfe13d5819dc32d9d",
+  "prompt_sha256": "ae181d190615431adb984022cf2ba8738fd68cdc2ca8c309d70840394e07199d",
   "schema_sha256": "46ff66a04e19018121f71c3613d62e7ce0c6a51890cee4f6e9ddbec7621e2fbb",
   "stage_spec_sha256": "9663ad98d7a9259a2e47fa992357e249b833f4ea9ae66aa645febfe9439d9092"
 }

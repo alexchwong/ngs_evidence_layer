@@ -1,5 +1,5 @@
 {
-  "source_workflow": "terraced-v6",
+  "source_workflow": "proforma-v1",
   "stage": "diagnosis_who5",
   "operation_id": "diagnosis.who1",
   "accepted": false,

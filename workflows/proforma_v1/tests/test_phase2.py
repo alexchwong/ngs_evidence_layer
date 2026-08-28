@@ -146,7 +146,7 @@ class PromptAndValidationTests(unittest.TestCase):
             with self.assertRaises(prompt_renderer.PromptRenderError):
                 prompt_renderer.render(root / "bad.md", root=root, inputs={"case": "x"})
 
-    def test_sequential_ids_match_terraced_v6_unpadded_namespace(self):
+    def test_sequential_ids_use_unpadded_namespace_by_default(self):
         variant_spec = {"rule": "sequential_ids", "path": "variants", "field": "variant_id", "prefix": "V"}
         fact_spec = {"rule": "sequential_ids", "path": "case_facts", "field": "fact_id", "prefix": "C"}
         checks.apply({"variants": [{"variant_id": "V1"}, {"variant_id": "V2"}]}, [variant_spec])
@@ -158,7 +158,7 @@ class PromptAndValidationTests(unittest.TestCase):
         padded = dict(variant_spec, width=2)
         checks.apply({"variants": [{"variant_id": "V01"}, {"variant_id": "V02"}]}, [padded])
 
-    def test_default_structure_declared_check_accepts_v6_valid_fixture(self):
+    def test_default_structure_declared_check_accepts_valid_fixture(self):
         fixture = HERE / "tests" / "fixtures" / "replay" / "structure_case--valid" / "response.json"
         workflow = compile_workflow()
         step = workflow.step("structure")

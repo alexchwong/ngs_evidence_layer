@@ -1,5 +1,5 @@
 {
-  "source_workflow": "terraced-v6",
+  "source_workflow": "proforma-v1",
   "stage": "structure_case",
   "operation_id": "structure",
   "accepted": false,

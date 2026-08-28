@@ -29,6 +29,7 @@ buckets:
 - germline_against
 - germline_uncertain
 rules:
+- rule: owner_evidence_card_tags
 - rule: one_row_per_id
   field: classification
   id_field: variant

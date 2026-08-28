@@ -1,5 +1,5 @@
 {
-  "source_workflow": "terraced-v6",
+  "source_workflow": "proforma-v1",
   "stage": "report_preservation",
   "operation_id": "report.preservation",
   "accepted": true,

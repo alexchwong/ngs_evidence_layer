@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_workflow": "terraced-v6",
+  "source_workflow": "proforma-v1",
   "fixture_kind": "recorded_model_interaction",
   "cases": [
     {

@@ -1,7 +1,7 @@
-"""Deterministic replay oracle for the Phase 1 proforma-v1 clone.
+"""Deterministic replay oracle for proforma-v1.
 
 Fixtures freeze a model-facing response, validator context, prompt identity and
-reference terraced-v6 validation outcome. Replay never calls a model provider.
+proforma-v1 validation outcome. Replay never calls a model provider.
 """
 from __future__ import annotations
 
@@ -38,17 +38,6 @@ OPERATION_IDS = {
 }
 
 
-INTENTIONAL_BEHAVIOR_DRIFT = {
-    # Phase 3 intentionally changes PTBG owner contracts and downstream evidence ownership.
-    "proforma-v1": {"prognosis", "treatment", "biomarker", "germline", "evidence_match", "evidence_audit"},
-}
-
-INTENTIONAL_PROMPT_DRIFT = {
-    # Evidence prompts intentionally changed in Phase 2B. Prognosis prompt
-    # intentionally changed after Phase 2B to allow source-specific directional
-    # disagreement while preserving the frozen v6 validator oracle.
-    "proforma-v1": {"evidence_match", "evidence_audit", "prognosis"},
-}
 DEPENDENCIES = {
     "structure": [],
     "diagnosis.who1": ["structure"],
@@ -214,7 +203,7 @@ def replay_case(case: ReplayCase, *, workflow_id: str = "proforma-v1", trace: Tr
 
 def capture_reference_fixtures(
     *,
-    source_workflow: str = "terraced-v6",
+    source_workflow: str = "proforma-v1",
     destination: Path = DEFAULT_FIXTURES,
 ) -> Path:
     """Freeze every shipped stage characterisation response as a replay interaction."""
@@ -253,7 +242,8 @@ def capture_reference_fixtures(
                 (target / "context.yaml").write_text("{}\n", encoding="utf-8")
             prompt_source = source_root / "prompts" / spec.prompt if spec.prompt else None
             if prompt_source is not None and prompt_source.is_file():
-                shutil.copyfile(prompt_source, target / "prompt.md")
+                prompt_snapshot = prompt_source.read_text(encoding="utf-8").rstrip() + "\n"
+                (target / "prompt.md").write_text(prompt_snapshot, encoding="utf-8")
             schema_source = source_root / "schemas" / spec.schema_name
             shutil.copyfile(schema_source, target / "schema.json")
             shutil.copyfile(spec.path, target / "stage.yaml")
@@ -297,13 +287,10 @@ def run_suite(*, workflow_id: str = "proforma-v1", root: Path = DEFAULT_FIXTURES
     for case in cases:
         actual = replay_case(case, workflow_id=workflow_id, trace=trace)
         expected = case.expected
-        if case.stage in INTENTIONAL_BEHAVIOR_DRIFT.get(workflow_id, set()):
-            continue
-        prompt_required = case.stage not in INTENTIONAL_PROMPT_DRIFT.get(workflow_id, set())
         if (
             actual["accepted"] != expected["accepted"]
             or actual["message_sha256"] != expected["message_sha256"]
-            or (prompt_required and not actual.get("prompt_matches", True))
+            or not actual.get("prompt_matches", True)
             or not actual.get("contract_matches", True)
         ):
             failures.append({"case_id": case.case_id, "expected": expected, "actual": actual})
@@ -316,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     capture = sub.add_parser("capture")
-    capture.add_argument("--source-workflow", default="terraced-v6")
+    capture.add_argument("--source-workflow", default="proforma-v1")
     capture.add_argument("--destination", type=Path, default=DEFAULT_FIXTURES)
     run = sub.add_parser("run")
     run.add_argument("--workflow", default="proforma-v1")

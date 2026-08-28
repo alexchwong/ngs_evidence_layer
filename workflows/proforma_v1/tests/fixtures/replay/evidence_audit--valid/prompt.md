@@ -1,20 +1,20 @@
-# Reason-to-card evidence audit
+# Fact-to-card evidence audit
 
-Audit EVERY selected card independently against the clinical `reason`.
+The input is divided into independent JSON fact blocks named `<fact-1>...</fact-1>`, `<fact-2>...</fact-2>`, and so on.
 
-For each selected card answer one question:
+Each block contains one clinical `fact` and ONLY the cards that the evidence matcher selected for that fact. Audit every supplied card independently against the fact in the SAME block. Do not infer, request, or audit any unmatched card.
 
-- `card_is_element_of_reason`: is the clinical proposition expressed by this card actually an element of the reason?
+For each supplied card answer one question:
 
-A card about a different clinical use of the same gene is not an element of the reason. Topical relevance, a shared gene/disease, absence of contrary evidence, or merely compatible wording is insufficient.
+- `card_is_element_of_reason`: is the clinical proposition expressed by this card actually an element of the fact?
 
-A card does NOT need to support the whole reason. Different cards may support different elements of the same reason.
+A card about a different clinical use of the same gene is not an element of the fact. Topical relevance, a shared gene/disease, absence of contrary evidence, or merely compatible wording is insufficient.
 
-When a card fails, make `comments` operational for the next evidence-match attempt: state concisely WHY it is not an element of the reason (for example wrong clinical function, wrong disease, wrong gene/variant, wrong framework, wrong polarity, or only indirect/related evidence). Do not prescribe a replacement clinical answer or invent a card.
+A card does NOT need to support the whole fact. Different cards may support different elements of the same fact.
 
-Use `risk: warning` for non-gating fidelity/strength/context concerns when `card_is_element_of_reason` is still true. Give concise comments explaining any failure or warning.
+Use `risk: warning` only for non-gating fidelity/strength/context concerns when `card_is_element_of_reason` is still true. Use `comments: []` for an uncomplicated pass. For a failed card or a warning, give only a concise explanation of the mismatch or concern.
 
-Return YAML only, preserving evidence IDs, card tags and order:
+Return YAML only, preserving supplied evidence IDs, card IDs and order:
 ```yaml
 audits:
   - evidence_id: E0001
@@ -27,5 +27,5 @@ audits:
         card_is_element_of_reason: false
         risk: none
         comments:
-          - "The card addresses treatment response, not the prognostic element stated in the reason."
+          - "The card addresses treatment response, not the prognostic element stated in the fact."
 ```

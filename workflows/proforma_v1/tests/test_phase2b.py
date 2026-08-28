@@ -496,26 +496,34 @@ class Phase2BReportBlockOwnershipTests(unittest.TestCase):
                 proforma_step.stage_report_write(Path(td), None, {}, {}, None)
             model_call.assert_not_called()
 
-    def test_report_blocks_are_deterministically_compatible_with_terraced_v6(self):
+    def test_report_blocks_are_built_and_persisted_deterministically(self):
         from workflows.proforma_v1 import step as proforma_step
-        from workflows.terraced_v6 import step as terraced_step
         element = {
             "schema_id": "TX-1", "domain": "treatment", "bucket": "treatment",
             "reason": "Use therapy X.", "variants": ["v01"], "source": {},
             "evidence": [{"card_tag": "[card:aaaaaaaaaaaa]"}],
         }
         registry = {"v01": {"gene": "ASXL1"}}
+        expected = [{
+            "block_id": "TX-1",
+            "domain": "treatment",
+            "components": [{
+                "role": "treatment",
+                "reason": "Use therapy X.",
+                "variants": ["v01"],
+                "genes": ["ASXL1"],
+                "source": {},
+                "card_tags": ["[card:aaaaaaaaaaaa]"],
+            }],
+        }]
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            proforma_work, terraced_work = root / "proforma", root / "terraced"
-            proforma_work.mkdir(); terraced_work.mkdir()
-            proforma_step.layout.ensure_dirs(proforma_work); terraced_step.layout.ensure_dirs(terraced_work)
-            proforma_blocks = proforma_step.stage_blocks(proforma_work, {}, [element], registry)
-            terraced_blocks = terraced_step.stage_blocks(terraced_work, {}, [element], registry)
-            self.assertEqual(proforma_blocks, terraced_blocks)
+            work = Path(td)
+            proforma_step.layout.ensure_dirs(work)
+            blocks = proforma_step.stage_blocks(work, {}, [element], registry)
+            self.assertEqual(blocks, expected)
             self.assertEqual(
-                yaml.safe_load((proforma_step._existing_or_new(proforma_work, "report_blocks", "report-blocks.yaml")).read_text()),
-                yaml.safe_load((terraced_step._existing_or_new(terraced_work, "report_blocks", "report-blocks.yaml")).read_text()),
+                yaml.safe_load(proforma_step._existing_or_new(work, "report_blocks", "report-blocks.yaml").read_text()),
+                {"blocks": expected},
             )
 
 

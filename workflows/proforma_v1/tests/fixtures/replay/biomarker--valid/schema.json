@@ -3,21 +3,53 @@
   "title": "Variant-centric MRD proforma",
   "type": "object",
   "additionalProperties": false,
-  "required": ["applicable_disease", "classification"],
+  "required": [
+    "applicable_disease",
+    "classification"
+  ],
   "properties": {
-    "applicable_disease": {"type": "string", "minLength": 1},
+    "applicable_disease": {
+      "type": "string",
+      "minLength": 1
+    },
     "classification": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["variant", "gene", "mrd_status", "reason"],
+        "required": [
+          "variant",
+          "gene",
+          "mrd_status",
+          "reason",
+          "evidence_card_tags"
+        ],
         "properties": {
-          "variant": {"type": "string", "minLength": 1},
-          "gene": {"type": "string", "minLength": 1},
-          "mrd_status": {"type": "string", "minLength": 1},
-          "reason": {"type": "string", "minLength": 1}
+          "variant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gene": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mrd_status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_card_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\[card:[0-9a-f]{12}\\]$"
+            },
+            "uniqueItems": true
+          }
         }
       }
     }

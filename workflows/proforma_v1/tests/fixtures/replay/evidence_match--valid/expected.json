@@ -1,5 +1,5 @@
 {
-  "source_workflow": "terraced-v6",
+  "source_workflow": "proforma-v1",
   "stage": "evidence_match",
   "operation_id": "evidence.assignment",
   "accepted": true,
@@ -7,7 +7,7 @@
   "message_sha256": "bb34a3ecfd3ad92f5b78376961df463cf8adfe7ab46e7bb43bd4432bf200bd47",
   "response_sha256": "f35ec6b986ece910c13a2909082557ecdea117b3d63202e7072d997e6a4a4e4b",
   "context_sha256": "2cec02f183920cb91dda8b99b755966ea420d6dd42012b57627ccf1e17320a88",
-  "prompt_sha256": "b45aab30b89bd81e9c156cd8d9ebc66248735777e8d18d6b15f0c837f0101138",
+  "prompt_sha256": "73dac55ef56fc97e49344afc3204475802096c9ecc8f457e0826192229dde4a5",
   "schema_sha256": "3d8c9fd8acf1a849eee51038bd7da63c1e39850c1e73793ed21464e443c89d32",
   "stage_spec_sha256": "8049f7ae07d50c900e9cf24ec60cb416d454af99df2a5f67a517a6979d57e1a4"
 }

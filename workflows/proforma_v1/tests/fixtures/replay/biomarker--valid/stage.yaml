@@ -28,6 +28,7 @@ buckets:
 - mrd_marker
 - not_mrd_marker
 rules:
+- rule: owner_evidence_card_tags
 - rule: applicable_disease_exact
 - rule: gene_matches_registry
 - rule: one_row_per_id

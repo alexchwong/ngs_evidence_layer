@@ -1,13 +1,13 @@
 {
-  "source_workflow": "terraced-v6",
+  "source_workflow": "proforma-v1",
   "stage": "germline",
   "operation_id": "germline",
-  "accepted": true,
-  "message": "germline valid",
-  "message_sha256": "d41090c3e266104d8265e4d6a5fd19e8b21ad6ef94df1ff7a2ede02e0435b428",
+  "accepted": false,
+  "message": "germline failed validation with 2 issue(s):\n1. classification[0]\n   Problem: missing ['evidence_card_tags', 'therapy'].\n   Required fix: return exactly the keys ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant']\n2. classification[1]\n   Problem: missing ['evidence_card_tags', 'therapy'].\n   Required fix: return exactly the keys ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant']",
+  "message_sha256": "ff0d7ef88770a14e9603d0ff45815d1a49a63157ee0935cc31e2c54df61a195f",
   "response_sha256": "0cb636dc572d1892c815673cdae588b4f8337c04cfae8b4d2c8873f4d11229cf",
   "context_sha256": "2f1330dfb0eae8e66570f03f82bfb6a74f0a1be1c49f918f270b15dec06701f8",
-  "prompt_sha256": "2e0b8f0cbbba652142534f117b16c6010898e0cf9731b270bf5dc57754e34a1c",
-  "schema_sha256": "77d939ea007edba3ff17862d76eff8c7906f1e56dc28ddaf11a852d7c812db7f",
-  "stage_spec_sha256": "c3058a5e67eac287bb1685b0ea55ac9637f4d78eb26ce006951e921f53a77f26"
+  "prompt_sha256": "d67d3ecf30d24b21731a8ccb8cc82b4c5d2db1b7f717165bc8c09d98f95e6f7a",
+  "schema_sha256": "bb1e881763ba927d2b6f85064b37b2c6e4bfeb7dbc72aeebc951e50abece716c",
+  "stage_spec_sha256": "fa8350f21129fe3d3c1e2678d6f1c3e517b8ca1854acf480eed4be0e08d45926"
 }
