@@ -125,7 +125,7 @@ def _write_pool(
     return md, js
 
 
-def prepare_who(work: Path, *, pass_number: int) -> dict:
+def prepare_who(work: Path, *, pass_number: int, prompt: Path | None = None) -> dict:
     """Prepare WHO1 or authoritative WHO2 using the shared WHO5 contract."""
     work = Path(work)
     case, reg = load_case_registry(work)
@@ -167,6 +167,7 @@ def prepare_who(work: Path, *, pass_number: int) -> dict:
     return {
         "pass": f"who{pass_number}",
         "contract": contract_path("diagnosis_who5"),
+        "prompt": prompt,
         "context": context,
         "finite_membership": finite,
         "cards": cards_md,
@@ -186,11 +187,13 @@ def accept_who(work: Path, *, pass_number: int) -> dict:
     return read_yaml(path)
 
 
-def prepare_icc(work: Path) -> dict:
+def prepare_icc(work: Path, *, prompt: Path | None = None) -> dict:
     """Prepare isolated ICC. WHO1 is validated for routing only and never exposed."""
     work = Path(work)
     case, reg = load_case_registry(work)
     who1 = accept_who(work, pass_number=1)
+    who2_path = output_path(work, "diagnosis_who5_pass_2", "who5.yaml")
+    who = accept_who(work, pass_number=2) if who2_path.is_file() else who1
     _all_cards, eligible, _digest, manifest = corpus_state(work)
     history = list(case.get("bootstrap_cmcs") or [])
     for cmc in runtime.derive_cmcs(who1):
@@ -202,18 +205,18 @@ def prepare_icc(work: Path) -> dict:
     finite = output_path(work, group, "finite-membership.yaml")
     write_yaml(finite, staged._finite_membership_context(reg, cards, card_identity.tag_by_id(manifest)))
     context = output_path(work, group, "context.yaml")
-    # Deliberately contains no WHO diagnosis/result.
     write_yaml(context, {
         "starting_morphologic_diagnosis": case.get("provisional_disease"),
         "morphologic_diagnosis_origin": case.get("morphologic_diagnosis_origin"),
         "structured_case": case,
         "variant_registry": reg,
         "retrieval_cmcs": history,
-        "isolation": "WHO1 conclusion intentionally withheld",
+        "who5_context": who,
     })
     return {
         "pass": "icc",
         "contract": contract_path("diagnosis_icc"),
+        "prompt": prompt,
         "context": context,
         "finite_membership": finite,
         "cards": cards_md,
@@ -232,30 +235,69 @@ def accept_icc(work: Path) -> dict:
     return read_yaml(path)
 
 
+def prepare_diagnosis_other(work: Path, *, prompt: Path | None = None) -> dict:
+    work=Path(work); case,reg=load_case_registry(work)
+    who1=accept_who(work,pass_number=1)
+    who2_path=output_path(work,'diagnosis_who5_pass_2','who5.yaml')
+    who=accept_who(work,pass_number=2) if who2_path.is_file() else who1
+    icc=accept_icc(work)
+    _all,eligible,_digest,manifest=corpus_state(work)
+    history=list(case.get('bootstrap_cmcs') or [])
+    for result in (who1,who):
+        for cmc in runtime.derive_cmcs(result):
+            if cmc not in history: history.append(cmc)
+    cards=staged._draw_diagnosis_cards(eligible,runtime.case_genes(case),history)
+    group='self_diagnosis_other_input'; cards_md,_=_write_pool(work,group,cards,manifest)
+    context=output_path(work,group,'context.yaml')
+    write_yaml(context,{
+        'structured_case':case,'variant_registry':reg,
+        'primary_framework_diagnoses':{'who5':who,'icc':icc},
+        'retrieval_cmcs':history,
+    })
+    return {
+        'pass':'diagnosis_other','contract':contract_path('diagnosis_other'),'prompt':prompt,
+        'context':context,'cards':cards_md,
+        'output':output_path(work,'diagnosis_other','other.yaml'),
+    }
+
+
+def accept_diagnosis_other(work: Path) -> dict:
+    _case,reg=load_case_registry(work); path=output_path(work,'diagnosis_other','other.yaml')
+    if not path.is_file():
+        return {'diagnosis':None,'variants':[],'reason':None}
+    cleaned=staged._sanitize_proforma_text(work,'self-diagnosis-other',path.read_text(encoding='utf-8'))
+    path.write_text(cleaned,encoding='utf-8')
+    schema_validation.validate_second_diagnosis(cleaned,valid_variants=set(reg))
+    return read_yaml(path)
+
+
 def finalize_diagnosis(work: Path) -> dict:
-    who1 = accept_who(work, pass_number=1)
-    icc = accept_icc(work)
-    who2 = accept_who(work, pass_number=2)
-    relationship = "same" if runtime.normalize_dx(who2["diagnosis"]) == runtime.normalize_dx(icc["diagnosis"]) else "different"
-    diagnosis = {
-        "who5": who2,
-        "icc": icc,
-        "second_diagnosis": {"diagnosis": None, "variants": [], "reason": None},
-        "relationship": relationship,
-        "self_execution": {"who5_first_pass": who1, "who5_authoritative_pass": 2},
+    who1=accept_who(work,pass_number=1); icc=accept_icc(work)
+    who2_path=output_path(work,'diagnosis_who5_pass_2','who5.yaml')
+    who2=accept_who(work,pass_number=2) if who2_path.is_file() else None
+    who=who2 or who1; other=accept_diagnosis_other(work)
+    relationship='same' if runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
+    authoritative=2 if who2 is not None else 1
+    diagnosis={
+        'who5':who,'icc':icc,'second_diagnosis':other,'relationship':relationship,
+        'self_execution':{'who5_first_pass':who1,'who5_authoritative_pass':authoritative},
     }
-    write_yaml(output_path(work, "diagnosis", "diagnosis-final.yaml"), diagnosis)
-    route = {
-        "bootstrap_cmcs": load_case_registry(work)[0].get("bootstrap_cmcs") or [],
-        "who5_authoritative_pass": 2,
-        "final_cmcs": runtime.derive_cmcs(who2),
+    write_yaml(output_path(work,'diagnosis','diagnosis-final.yaml'),diagnosis)
+    history=list(load_case_registry(work)[0].get('bootstrap_cmcs') or [])
+    for result in (who1,who):
+        for cmc in runtime.derive_cmcs(result):
+            if cmc not in history: history.append(cmc)
+    route={
+        'bootstrap_cmcs':load_case_registry(work)[0].get('bootstrap_cmcs') or [],
+        'who5_authoritative_pass':authoritative,
+        'final_cmcs':runtime.derive_cmcs(who),'diagnostic_cmc_history':history,
     }
-    write_json(output_path(work, "diagnosis", "routing.json"), route)
+    write_json(output_path(work,'diagnosis','routing.json'),route)
     return diagnosis
 
 
-def prepare_ptbg(work: Path) -> dict:
-    """Prepare all four existing PTBG contracts for one model reasoning pass."""
+def prepare_ptbg(work: Path, *, domains: tuple[str, ...] | list[str] | None = None, prompts: dict[str, Path] | None = None, contracts: dict | None = None) -> dict:
+    """Prepare the YAML-selected ready PTBG operations for one self handoff."""
     work = Path(work)
     case, reg = load_case_registry(work)
     diagnosis = finalize_diagnosis(work)
@@ -264,7 +306,10 @@ def prepare_ptbg(work: Path) -> dict:
     tag_by_id = card_identity.tag_by_id(manifest)
     outputs = {}
     genes = runtime.case_genes(case)
-    for domain in ("prognosis", "treatment", "biomarker", "germline"):
+    domains = tuple(domains or ("prognosis", "treatment", "biomarker", "germline"))
+    prompts = prompts or {}
+    contracts = contracts or {}
+    for domain in domains:
         cards = staged._draw_domain_cards(eligible, domain, genes, [disease])
         staged._log_ptbg_retrieval(work, eligible, domain, genes, disease, cards)
         group = f"self_ptbg_{domain}_input"
@@ -272,7 +317,7 @@ def prepare_ptbg(work: Path) -> dict:
         skeleton = output_path(work, group, "output-contract.md")
         skeleton.write_text(
             domain_contract.skeleton(
-                domain_contract.contract(domain), sorted(reg), registry=reg, applicable_disease=disease
+                contracts.get(domain,domain_contract.contract(domain)), sorted(reg), registry=reg, applicable_disease=disease
             ),
             encoding="utf-8",
         )
@@ -287,6 +332,7 @@ def prepare_ptbg(work: Path) -> dict:
         })
         outputs[domain] = {
             "contract": contract_path(domain),
+            "prompt": prompts.get(domain),
             "context": context,
             "cards": cards_md,
             "output_contract": skeleton,
@@ -295,27 +341,27 @@ def prepare_ptbg(work: Path) -> dict:
     return {"pass": "ptbg", "domains": outputs}
 
 
-def accept_ptbg(work: Path) -> dict[str, dict]:
+def accept_ptbg(work: Path, *, domains_to_accept: tuple[str, ...] | list[str] | None = None, contracts: dict | None = None, specs: dict | None = None) -> dict[str, dict]:
     _case, reg = load_case_registry(work)
     domains = {}
-    for domain in ("prognosis", "treatment", "biomarker", "germline"):
+    contracts=contracts or {}; specs=specs or {}
+    for domain in tuple(domains_to_accept or ("prognosis", "treatment", "biomarker", "germline")):
         model_path = output_path(work, f"{domain}_state", "model-classification.yaml")
         if not model_path.is_file():
             raise ValueError(f"{domain} model output missing: {model_path}")
         cleaned = staged._sanitize_proforma_text(work, f"self-{domain}", model_path.read_text(encoding="utf-8"))
         disease = finalize_diagnosis(work)["who5"]["schema_disease"]
+        contract=contracts.get(domain,domain_contract.contract(domain))
         normalized, identity_records = domain_contract.normalize_model_output(
-            cleaned, domain_contract.contract(domain), reg, disease
+            cleaned, contract, reg, disease
         )
         if identity_records:
             staged._log_transforms(work, [dict(record, stage=f"self-{domain}") for record in identity_records])
         model_path.write_text(normalized, encoding="utf-8")
-        schema_validation.validate_domain(
-            normalized, domain, set(reg), registry=reg, authoritative_disease=disease
-        )
+        domain_contract.validate(normalized,contract,{"variants":sorted(reg),"registry":reg,"authoritative_disease":disease},spec=specs.get(domain))
         flat = read_yaml(model_path)
-        doc = domain_contract.pivot(flat, domain_contract.contract(domain))
-        doc, merges = staged._consolidate_rows(domain, doc, reg)
+        doc = domain_contract.pivot(flat, contract)
+        doc, merges = staged._consolidate_rows(domain, doc, reg, contract)
         staged._log_transforms(work, merges)
         write_yaml(output_path(work, f"{domain}_state", "proforma.yaml"), doc)
         domains[domain] = doc
@@ -330,12 +376,53 @@ def _evidence_state_path(work: Path) -> Path:
     return output_path(work, "self_evidence", "state.yaml")
 
 
-def prepare_evidence_resolution(work: Path) -> dict:
-    """Build bounded candidate pools; no card is assigned to a reason here."""
+def _evidence_match_pass_path(work: Path, pass_number: int) -> Path:
+    return output_path(work, "evidence_matches", f"pass-{int(pass_number):02d}.yaml")
+
+
+def _evidence_match_final_path(work: Path) -> Path:
+    return output_path(work, "evidence_matches", "self-resolution.yaml")
+
+
+def _fact_blocks(rows: list[dict], catalog: dict[str, dict], tag_by_id: dict[str, str], *, card_tags_field: str) -> str:
+    """Render fact-local JSON blocks with no shared card catalogue.
+
+    Each ``<fact-N>`` block is a complete reasoning envelope: one fact and only
+    the cards eligible for that fact in this physical model pass.
+    """
+    id_by_tag = {f"[card:{tag}]": cid for cid, tag in tag_by_id.items()}
+    blocks = []
+    for index, row in enumerate(rows, 1):
+        cards = []
+        for tag in row.get(card_tags_field) or []:
+            cid = id_by_tag.get(tag)
+            card = catalog.get(cid) if cid else None
+            if card is None:
+                raise ValueError(f"fact {row.get('evidence_id')} references unknown runtime card tag {tag}")
+            cards.append({
+                "card_id": tag,
+                "rendered_card": staged._render_cards([card], tag_by_id),
+            })
+        payload = {
+            "evidence_id": row["evidence_id"],
+            "fact": row["reason"],
+            "cards": cards,
+        }
+        blocks.append(
+            f"<fact-{index}>\n"
+            + json.dumps(payload, indent=2, ensure_ascii=False)
+            + f"\n</fact-{index}>"
+        )
+    return "\n\n".join(blocks).rstrip() + ("\n" if blocks else "")
+
+
+def _initial_evidence_state(work: Path, *, contracts: dict | None = None, specs: dict | None = None, max_match_passes: int = 1) -> dict:
     work = Path(work)
     case, reg = load_case_registry(work)
     diagnosis = finalize_diagnosis(work)
-    domains = accept_ptbg(work)
+    contracts = contracts or {}
+    specs = specs or {}
+    domains = accept_ptbg(work, contracts=contracts, specs=specs)
     all_cards, eligible, digest, manifest = corpus_state(work)
     genes = runtime.case_genes(case)
     cmcs = list(case.get("bootstrap_cmcs") or [])
@@ -350,7 +437,7 @@ def prepare_evidence_resolution(work: Path) -> dict:
     for domain in ("prognosis", "treatment", "biomarker", "germline"):
         cards_by_domain[domain] = staged._draw_domain_cards(eligible, domain, genes, [disease])
         staged._log_ptbg_retrieval(work, eligible, domain, genes, disease, cards_by_domain[domain])
-    elements = staged._elements(diagnosis, domains, case)
+    elements = staged._elements(diagnosis, domains, case, contracts=contracts)
     tag_by_id = card_identity.tag_by_id(manifest)
     catalog = {}
     items = []
@@ -378,23 +465,139 @@ def prepare_evidence_resolution(work: Path) -> dict:
         "catalog_card_ids": list(catalog),
         "authoritative_disease": disease,
         "corpus_sha256": digest,
+        "max_match_passes": int(max_match_passes),
+        "match_pass_by_evidence_id": {},
     }
     write_yaml(_evidence_state_path(work), state)
-    group = "self_evidence_resolution_input"
-    public_rows = [{k: x[k] for k in ("evidence_id", "schema_id", "reason", "candidate_card_tags")} for x in items]
-    public = output_path(work, group, "items.yaml")
-    write_yaml(public, {"items": public_rows})
-    cards_md = output_path(work, group, "candidate-cards-by-item.md")
-    cards_md.write_text(
-        staged._render_evidence_match_candidates(public_rows, items, catalog, tag_by_id),
+    return state
+
+
+def prepare_evidence_resolution(
+    work: Path,
+    *,
+    prompt: Path | None = None,
+    contracts: dict | None = None,
+    specs: dict | None = None,
+    max_match_passes: int = 1,
+) -> dict:
+    """Advance evidence matching by at most one physical model pass.
+
+    Pass 1 contains every fact. Each later pass is conditional and contains
+    only facts that still have zero selected cards. The configured pass count
+    is a workflow policy; all passes remain one logical ``evidence.assignment``
+    operation.
+    """
+    work = Path(work)
+    max_match_passes = int(max_match_passes)
+    if max_match_passes < 1:
+        raise ValueError("max_match_passes must be >= 1")
+    state_path = _evidence_state_path(work)
+    if state_path.is_file():
+        state = _load_evidence_state(work)
+        recorded = int(state.get("max_match_passes", max_match_passes))
+        if recorded != max_match_passes:
+            raise ValueError(
+                f"evidence match pass count changed within run: state={recorded}, workflow={max_match_passes}"
+            )
+        if "max_match_passes" not in state:
+            state["max_match_passes"] = max_match_passes
+            state.setdefault("match_pass_by_evidence_id", {})
+            write_yaml(state_path, state)
+    else:
+        state = _initial_evidence_state(
+            work, contracts=contracts, specs=specs, max_match_passes=max_match_passes
+        )
+
+    final_path = _evidence_match_final_path(work)
+    items = list(state.get("items") or [])
+    if final_path.is_file():
+        return {
+            "pass": "evidence_resolution",
+            "complete": True,
+            "match_passes_completed": len([p for p in range(1, max_match_passes + 1) if _evidence_match_pass_path(work, p).is_file()]),
+            "output": final_path,
+        }
+    if not items:
+        write_yaml(final_path, {"matches": []})
+        return {"pass": "evidence_resolution", "complete": True, "match_passes_completed": 0, "output": final_path}
+
+    pass_docs = []
+    unresolved_ids = [item["evidence_id"] for item in items]
+    match_pass_by_eid = dict(state.get("match_pass_by_evidence_id") or {})
+    for pass_number in range(1, max_match_passes + 1):
+        path = _evidence_match_pass_path(work, pass_number)
+        if not path.is_file():
+            break
+        active = [item for item in items if item["evidence_id"] in unresolved_ids]
+        validation_items = [
+            {"evidence_id": item["evidence_id"], "candidate_card_tags": item["candidate_card_tags"]}
+            for item in active
+        ]
+        schema_validation.validate_evidence_match_batch(path.read_text(encoding="utf-8"), validation_items)
+        doc = read_yaml(path)
+        pass_docs.append(doc)
+        before = set(unresolved_ids)
+        merged, unresolved_ids = evidence_engine.merge_match_passes(items, pass_docs)
+        resolved_now = before - set(unresolved_ids)
+        for eid in resolved_now:
+            match_pass_by_eid.setdefault(eid, pass_number)
+        if not unresolved_ids:
+            break
+
+    merged, unresolved_ids = evidence_engine.merge_match_passes(items, pass_docs) if pass_docs else (
+        {"matches": [{"evidence_id": item["evidence_id"], "card_tags": []} for item in items]},
+        [item["evidence_id"] for item in items],
+    )
+    completed_passes = len(pass_docs)
+    if not unresolved_ids or completed_passes >= max_match_passes:
+        state["match_pass_by_evidence_id"] = match_pass_by_eid
+        write_yaml(state_path, state)
+        write_yaml(final_path, merged)
+        return {
+            "pass": "evidence_resolution",
+            "complete": True,
+            "match_passes_completed": completed_passes,
+            "zero_card_evidence_ids": list(unresolved_ids),
+            "output": final_path,
+        }
+
+    next_pass = completed_passes + 1
+    active = [item for item in items if item["evidence_id"] in unresolved_ids]
+    all_cards, _eligible, _digest, manifest = corpus_state(work)
+    by_id = {card["card_id"]: card for card in all_cards}
+    catalog_ids = set(state.get("catalog_card_ids") or [])
+    catalog = {cid: by_id[cid] for cid in catalog_ids if cid in by_id}
+    tag_by_id = card_identity.tag_by_id(manifest)
+    public_rows = [
+        {
+            "evidence_id": item["evidence_id"],
+            "schema_id": item["schema_id"],
+            "reason": item["reason"],
+            "candidate_card_tags": list(item["candidate_card_tags"]),
+        }
+        for item in active
+    ]
+    group = f"self_evidence_resolution_input_pass_{next_pass:02d}"
+    facts_path = output_path(work, group, "facts.md")
+    facts_path.write_text(
+        _fact_blocks(public_rows, catalog, tag_by_id, card_tags_field="candidate_card_tags"),
         encoding="utf-8",
     )
     return {
         "pass": "evidence_resolution",
+        "complete": False,
+        "match_pass": next_pass,
+        "max_match_passes": max_match_passes,
+        "fact_count": len(public_rows),
         "contract": contract_path("evidence_match"),
-        "items": public,
-        "cards": cards_md,
-        "output": output_path(work, "evidence_matches", "self-resolution.yaml"),
+        "prompt": prompt,
+        "facts": facts_path,
+        "items": facts_path,
+        "output": _evidence_match_pass_path(work, next_pass),
+        "validation_items": [
+            {"evidence_id": row["evidence_id"], "candidate_card_tags": row["candidate_card_tags"]}
+            for row in public_rows
+        ],
     }
 
 
@@ -404,31 +607,34 @@ def _load_evidence_state(work: Path) -> dict:
 
 def accept_evidence_resolution(work: Path) -> dict:
     state = _load_evidence_state(work)
-    path = output_path(work, "evidence_matches", "self-resolution.yaml")
+    path = _evidence_match_final_path(work)
     if not path.is_file():
-        raise ValueError(f"evidence-resolution output missing: {path}")
+        raise ValueError(f"evidence-resolution final output missing: {path}")
     items = [{"evidence_id": x["evidence_id"], "candidate_card_tags": x["candidate_card_tags"]} for x in state["items"]]
     schema_validation.validate_evidence_match_batch(path.read_text(encoding="utf-8"), items)
     return read_yaml(path)
 
 
 def audit_targets(items: list[dict], matches: dict) -> list[dict]:
-    """Project the generic asymmetric evidence-audit rule into the legacy shape."""
+    """Audit only positively matched cards; false-negative rescue is match-pass work."""
     mmap = {m["evidence_id"]: m for m in matches.get("matches") or []}
     out = []
     for item in items:
         selected = list((mmap.get(item["evidence_id"]) or {}).get("card_tags") or [])
         claim = {"candidate_card_tags": list(item.get("candidate_card_tags") or [])}
         audit_tags = evidence_engine.audit_targets(claim, selected)
+        if not audit_tags:
+            continue
         out.append({
             "evidence_id": item["evidence_id"],
             "schema_id": item["schema_id"],
             "reason": item["reason"],
             "resolution_card_tags": selected,
             "selected_card_tags": audit_tags,
-            "audit_scope": "resolver_selected" if selected else "zero_card_full_candidate_check",
+            "audit_scope": "resolver_selected",
         })
     return out
+
 
 def _assert_audit_targets_applicable(work: Path, state: dict, targets: list[dict]) -> None:
     """Re-check PTBG disease/domain scope immediately before semantic audit."""
@@ -450,34 +656,41 @@ def _assert_audit_targets_applicable(work: Path, state: dict, targets: list[dict
             staged._assert_ptbg_audit_card_applicable(card, el, reg, disease)
 
 
-def prepare_evidence_audit(work: Path) -> dict:
+def prepare_evidence_audit(work: Path, *, prompt: Path | None = None) -> dict:
     state = _load_evidence_state(work)
     matches = accept_evidence_resolution(work)
     targets = audit_targets(state["items"], matches)
     _assert_audit_targets_applicable(work, state, targets)
-    group = "self_evidence_audit_input"
-    item_path = output_path(work, group, "items.yaml")
-    write_yaml(item_path, {"items": targets})
-    tag_to_id = {}
-    _all, _eligible, _digest, manifest = corpus_state(work)
-    for cid, tag in card_identity.tag_by_id(manifest).items():
-        tag_to_id[f"[card:{tag}]"] = cid
-    needed = []
-    state_catalog = set(state.get("catalog_card_ids") or [])
-    all_cards, _, _, _ = corpus_state(work)
+    output = output_path(work, "evidence_audits", "self-audit.yaml")
+    if not targets:
+        write_yaml(output, {"audits": []})
+        return {"pass": "evidence_audit", "required": False, "output": output}
+
+    all_cards, _eligible, _digest, manifest = corpus_state(work)
     by_id = {c["card_id"]: c for c in all_cards}
+    tag_by_id = card_identity.tag_by_id(manifest)
+    id_by_tag = {f"[card:{tag}]": cid for cid, tag in tag_by_id.items()}
+    state_catalog = set(state.get("catalog_card_ids") or [])
+    catalog = {}
     for target in targets:
         for tag in target["selected_card_tags"]:
-            cid = tag_to_id.get(tag)
-            if cid in state_catalog and cid not in needed:
-                needed.append(cid)
-    cards_md, _ = _write_pool(work, group, [by_id[cid] for cid in needed], manifest)
+            cid = id_by_tag.get(tag)
+            if cid in state_catalog and cid in by_id:
+                catalog[cid] = by_id[cid]
+    group = "self_evidence_audit_input"
+    facts_path = output_path(work, group, "facts.md")
+    facts_path.write_text(
+        _fact_blocks(targets, catalog, tag_by_id, card_tags_field="selected_card_tags"),
+        encoding="utf-8",
+    )
     return {
         "pass": "evidence_audit",
+        "required": True,
         "contract": contract_path("evidence_audit"),
-        "items": item_path,
-        "cards": cards_md,
-        "output": output_path(work, "evidence_audits", "self-audit.yaml"),
+        "prompt": prompt,
+        "facts": facts_path,
+        "items": facts_path,
+        "output": output,
     }
 
 
@@ -525,7 +738,7 @@ def compare_evidence(items: list[dict], matches: dict, audits: dict, targets: li
             disputes.append(dispute)
     return agreed, disputes
 
-def prepare_evidence_adjudication(work: Path) -> dict:
+def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> dict:
     state = _load_evidence_state(work)
     matches = accept_evidence_resolution(work)
     audits, targets = accept_evidence_audit(work)
@@ -550,6 +763,7 @@ def prepare_evidence_adjudication(work: Path) -> dict:
         "pass": "evidence_adjudication",
         "required": True,
         "contract": ADJUDICATION_PROMPT,
+        "prompt": prompt,
         "disputes": crop,
         "cards": cards_md,
         "output": output_path(work, "evidence_adjudication", "adjudication.yaml"),
@@ -628,7 +842,8 @@ def finalize_evidence(work: Path) -> list[dict]:
             clone["evidence"] = []
             for row in rows:
                 cid = id_by_tag[row["card_tag"]]
-                evidence = staged._accepted_evidence(by_id[cid], row["card_tag"], row["audit"], 1)
+                match_pass=int((state.get('match_pass_by_evidence_id') or {}).get(eid, 1))
+                evidence = staged._accepted_evidence(by_id[cid], row["card_tag"], row["audit"], match_pass)
                 if row.get("adjudication"):
                     evidence["adjudication"] = row["adjudication"]
                 clone["evidence"].append(evidence)
@@ -645,7 +860,7 @@ def finalize_evidence(work: Path) -> list[dict]:
                     )
             keep.append(clone)
             continue
-        reason = "No candidate evidence card was available for this reportable proposition." if el["schema_id"] in state.get("no_candidate_schema_ids", []) else "Two-pass evidence review did not establish a supported card for this proposition."
+        reason = "No candidate evidence card was available for this reportable proposition." if el["schema_id"] in state.get("no_candidate_schema_ids", []) else "Configured evidence match passes did not establish a supported card for this proposition."
         resolved = staged._resolve_no_citation_support(work, el, attempt=1, reason=reason)
         if resolved is not None:
             keep.append(resolved)
@@ -653,60 +868,70 @@ def finalize_evidence(work: Path) -> list[dict]:
     order = {el["schema_id"]: i for i, el in enumerate(state["elements"])}
     keep.sort(key=lambda el: order.get(el["schema_id"], len(order)))
     write_yaml(output_path(work, "evidence_enriched", "reportable-elements.yaml"), {"elements": keep})
-    diagnosis = finalize_diagnosis(work)
-    _case, reg = load_case_registry(work)
-    staged.stage_blocks(work, diagnosis, keep, reg)
     staged._write_dissent(work)
     return keep
 
 
-def prepare_report(work: Path) -> dict:
+def prepare_report(work: Path, *, prompt: Path | None = None) -> dict:
     work = Path(work)
-    elements_path = output_path(work, "evidence_enriched", "reportable-elements.yaml")
-    if not elements_path.is_file():
-        finalize_evidence(work)
     blocks_path = output_path(work, "report_blocks", "report-blocks.yaml")
-    blocks = read_yaml(blocks_path).get("blocks") or []
+    if not blocks_path.is_file():
+        raise ValueError(
+            f"report synthesis requires deterministic report blocks from the declared report.blocks operation: {blocks_path}"
+        )
+    blocks_doc = read_yaml(blocks_path)
+    blocks = blocks_doc.get("blocks") if isinstance(blocks_doc, dict) else None
+    schema_validation.validate_report_source_blocks(blocks)
     case, reg = load_case_registry(work)
     context = output_path(work, "self_report_input", "context.yaml")
     write_yaml(context, {"structured_case": case, "variant_registry": reg, "deterministic_report_blocks": blocks})
     return {
         "pass": "report_synthesis",
         "contract": contract_path("report_write"),
+        "prompt": prompt,
         "case": layout.input(work, "case.md"),
         "context": context,
         "output": output_path(work, "report_write", "report-write.yaml"),
     }
 
 
+def prepare_report_preservation(work: Path, *, prompt: Path | None = None) -> dict:
+    work=Path(work)
+    blocks=read_yaml(output_path(work,'report_blocks','report-blocks.yaml')).get('blocks') or []
+    report_path=output_path(work,'report_write','report-write.yaml')
+    if not report_path.is_file(): raise ValueError(f'report synthesis output missing: {report_path}')
+    schema_validation.validate_report_write(report_path.read_text(encoding='utf-8'),blocks)
+    rendered=read_yaml(report_path).get('blocks') or []
+    context=output_path(work,'self_report_preservation_input','context.yaml')
+    write_yaml(context,{'deterministic_source_blocks':blocks,'rendered_blocks':rendered})
+    return {
+        'pass':'report_preservation','contract':contract_path('report_preservation'),'prompt':prompt,
+        'context':context,'output':output_path(work,'report_write','report-preservation.yaml'),
+    }
+
+
+def accept_report_preservation(work: Path) -> dict:
+    blocks=read_yaml(output_path(work,'report_blocks','report-blocks.yaml')).get('blocks') or []
+    path=output_path(work,'report_write','report-preservation.yaml')
+    if not path.is_file(): return {}
+    schema_validation.validate_preservation(path.read_text(encoding='utf-8'),blocks)
+    return {a['block_id']:a for a in (read_yaml(path).get('audits') or [])}
+
+
 def finalize_report(work: Path) -> Path:
-    work = Path(work)
-    blocks = read_yaml(output_path(work, "report_blocks", "report-blocks.yaml")).get("blocks") or []
-    report_path = output_path(work, "report_write", "report-write.yaml")
-    if not report_path.is_file():
-        raise ValueError(f"report synthesis output missing: {report_path}")
-    schema_validation.validate_report_write(report_path.read_text(encoding="utf-8"), blocks)
-    rendered = read_yaml(report_path)["blocks"]
-    text_by_id = {x["block_id"]: x["text"] for x in rendered}
-    final = []
-    for block in blocks:
-        tags = []
-        for comp in block.get("components") or []:
-            for tag in comp.get("card_tags") or []:
-                if tag not in tags:
-                    tags.append(tag)
-        final.append({
-            "block_id": block["block_id"],
-            "domain": block["domain"],
-            "text": runtime.ensure_sentence(text_by_id[block["block_id"]]),
-            "card_tags": tags,
-        })
-    write_yaml(output_path(work, "report_write", "report-final-blocks.yaml"), {"blocks": final})
-    case, _reg = load_case_registry(work)
-    elements = read_yaml(output_path(work, "evidence_enriched", "reportable-elements.yaml"))["elements"]
-    all_cards, _eligible, digest, manifest = corpus_state(work)
-    staged.stage_final(work, case, final, elements, all_cards, digest, manifest)
-    return work / "report-final.md"
+    work=Path(work)
+    blocks=read_yaml(output_path(work,'report_blocks','report-blocks.yaml')).get('blocks') or []
+    report_path=output_path(work,'report_write','report-write.yaml')
+    if not report_path.is_file(): raise ValueError(f'report synthesis output missing: {report_path}')
+    schema_validation.validate_report_write(report_path.read_text(encoding='utf-8'),blocks)
+    rendered=read_yaml(report_path)['blocks']
+    audit_map=accept_report_preservation(work)
+    final=staged.stage_report_finalize_blocks(work,blocks,rendered,audit_map=audit_map or None)
+    case,_reg=load_case_registry(work)
+    elements=read_yaml(output_path(work,'evidence_enriched','reportable-elements.yaml'))['elements']
+    all_cards,_eligible,digest,manifest=corpus_state(work)
+    staged.stage_final(work,case,final,elements,all_cards,digest,manifest)
+    return work/'report-final.md'
 
 
 DEBUG_ZIP_NAME = "ngs-report-debug.zip"

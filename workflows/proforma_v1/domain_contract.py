@@ -40,8 +40,7 @@ class DomainContract:
         return _CATEGORY_FIELD.get(self.domain)
 
 
-def _from_spec(stage: str) -> DomainContract:
-    spec = stage_spec.load(stage)
+def from_spec(spec: stage_spec.StageSpec) -> DomainContract:
     return DomainContract(
         domain=spec.stage,
         label=spec.label,
@@ -52,6 +51,10 @@ def _from_spec(stage: str) -> DomainContract:
         extra_keys=spec.extra_keys,
         guidance=spec.guidance,
     )
+
+
+def _from_spec(stage: str) -> DomainContract:
+    return from_spec(stage_spec.load(stage))
 
 
 CONTRACTS = {name: _from_spec(name) for name in stage_spec.domains()}
@@ -83,7 +86,7 @@ def _prognosis_skeleton(variant_ids, registry, disease) -> str:
         "## `tier` belongs to its framework. Populate it only when that framework can be assigned entirely from the supplied genetic/cytogenetic findings; otherwise use null.",
         "## For each variant, `framework_effects` contains only effects explicitly defined by one of the named frameworks. Use [] when the variant is not classified by any named framework.",
         "## `other_evidence_effect` may use any prognostic evidence explicitly applicable to the same disease, whether or not the gene belongs to a named framework.",
-        "## When framework evidence and other evidence both classify the same variant, keep their direction concordant unless distinct named frameworks themselves legitimately differ.",
+        "## Framework effects and other evidence are independent evidence channels and may legitimately have different prognostic directions; preserve each source-specific direction rather than forcing concordance.",
         "## One row per supplied variant, in order. Do not add, remove or reorder rows.",
     ]
     lines += ["", "```yaml", f"applicable_disease: {json.dumps(str(disease), ensure_ascii=False)}"]
@@ -190,13 +193,29 @@ def normalize_model_output(text: str, c: DomainContract, registry: dict, applica
                         "to": gene,
                     })
                 row["gene"] = gene
+    if c.domain == "prognosis":
+        rows = doc.get("classification")
+        if isinstance(rows, list):
+            for i, row in enumerate(rows):
+                if not isinstance(row, dict) or row.get("other_evidence_effect") != "no_evidence":
+                    continue
+                if row.get("other_evidence_reason") is not None:
+                    records.append({
+                        "transform": "null_reason_for_no_evidence",
+                        "path": f"classification[{i}].other_evidence_reason",
+                        "from": row.get("other_evidence_reason"),
+                        "to": None,
+                    })
+                row["other_evidence_reason"] = None
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=110), records
 
 
-def validate(text: str, c: DomainContract, context: dict) -> str:
-    from workflows.proforma_v1 import stage_validation
-
-    return stage_validation.validate(c.domain, text, context)
+def validate(text: str, c: DomainContract, context: dict, *, spec=None) -> str:
+    from workflows.proforma_v1 import stage_validation, stage_spec as stage_spec_module
+    if spec is None:
+        return stage_validation.validate(c.domain, text, context)
+    structural = spec.path.resolve().parent == stage_spec_module.STAGE_ROOT.resolve()
+    return stage_validation.validate_spec(spec,text,context,structural=structural)
 
 
 def _base_entry(row):

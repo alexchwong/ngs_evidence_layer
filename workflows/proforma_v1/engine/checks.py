@@ -89,8 +89,16 @@ def unique(doc, context, spec):
 def sequential_ids(doc, context, spec):
     rows = _path(doc, spec.get("path", "")) or []
     field = spec.get("field", "id"); prefix = spec.get("prefix", "")
-    width = int(spec.get("width", 2))
-    expected = [f"{prefix}{i:0{width}d}" for i in range(1, len(rows) + 1)]
+    # Legacy terraced-v6 stable source IDs are deliberately unpadded (V1, C1).
+    # Padding is opt-in for workflows that need a distinct namespace.
+    width = spec.get("width")
+    if width is None:
+        expected = [f"{prefix}{i}" for i in range(1, len(rows) + 1)]
+    else:
+        width = int(width)
+        if width < 0:
+            raise CheckFailure("sequential_ids", spec.get("path", ""), "width must be >= 0")
+        expected = [f"{prefix}{i:0{width}d}" for i in range(1, len(rows) + 1)]
     actual = [row.get(field) if isinstance(row, dict) else None for row in rows]
     if actual != expected:
         raise CheckFailure("sequential_ids", spec.get("path", ""), f"expected {expected}; got {actual}")
@@ -99,7 +107,9 @@ def sequential_ids(doc, context, spec):
 def one_row_per(doc, context, spec):
     rows = _path(doc, spec.get("path", "")) or []
     key = spec.get("key", "id")
-    actual = [row.get(key) for row in rows if isinstance(row, dict)]
+    # Preserve row cardinality in the comparison.  Dropping non-mapping rows can
+    # otherwise let an unexpected row pass when the expected source is empty.
+    actual = [row.get(key) if isinstance(row, dict) else None for row in rows]
     expected = list(_source(context, spec["source"]) or [])
     if actual != expected:
         raise CheckFailure("one_row_per", spec.get("path", ""), f"expected exact row keys {expected}; got {actual}")
@@ -149,7 +159,13 @@ def field_matches_source(doc, context, spec):
     source_map = {str(row[spec["source_key"]]): row for row in source_rows}
     for i, row in enumerate(rows):
         key = str(row.get(spec["row_key"]))
-        expected = _path(source_map.get(key, {}), spec["source_path"])
+        if key not in source_map:
+            raise CheckFailure(
+                "field_matches_source",
+                f"{spec.get('rows')}[{i}].{spec.get('row_key')}",
+                f"unknown source key {key!r}",
+            )
+        expected = _path(source_map[key], spec["source_path"])
         actual = _path(row, spec.get("path", ""))
         if actual != expected:
             raise CheckFailure("field_matches_source", f"{spec.get('rows')}[{i}].{spec.get('path')}", f"expected {expected!r}; got {actual!r}")

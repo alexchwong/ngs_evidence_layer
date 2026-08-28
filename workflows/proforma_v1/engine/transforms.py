@@ -28,6 +28,7 @@ REGISTRY = {
     "finalize_diagnosis": delegated,
     "finalize_evidence": delegated,
     "report_blocks": delegated,
+    "finalize_report": delegated,
     "consolidate_parallel_variant_rows": delegated,
     "derive_diagnostic_cmcs": derive_diagnostic_cmcs,
 }

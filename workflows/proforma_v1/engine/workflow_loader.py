@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parents[1]
-DEFAULT_WORKFLOW = HERE / "workflow.yaml"
+DEFAULT_WORKFLOW = HERE / "workflow" / "default.yaml"
 
 
 class WorkflowLoadError(ValueError):

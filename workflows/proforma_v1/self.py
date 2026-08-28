@@ -24,8 +24,10 @@ from workflows.proforma_v1 import layout
 from workflows.proforma_v1 import self_runtime as sr
 from workflows.proforma_v1 import step as staged
 from workflows.proforma_v1.engine.context import WorkflowContext
-from workflows.proforma_v1.engine.workflow_compiler import compile_workflow
-from workflows.proforma_v1.engine.workflow_runner import WorkflowRunner
+from workflows.proforma_v1.engine.workflow_compiler import compile_workflow, resolve_workflow_path
+from workflows.proforma_v1.engine.workflow_runner import WorkflowRunner, condition_applies, executor_enabled
+from workflows.proforma_v1.engine import schema_validation as generic_schema_validation
+from workflows.proforma_v1.engine import bindings as workflow_bindings, prompt_renderer as workflow_prompt_renderer, control_state, artifacts as workflow_artifacts
 from workflows.proforma_v1.executors.self_executor import SelfExecutor
 from workflows.proforma_v1.trace import TraceRecorder
 
@@ -50,13 +52,14 @@ def _print_manifest(data):
     print(json.dumps(convert(data), indent=2, ensure_ascii=False))
 
 
-def _structure_manifest(work: Path) -> dict:
+def _structure_manifest(work: Path, *, prompt: Path | None = None) -> dict:
     work = Path(work).resolve()
     return {
         "pass": "who1",
         "phase": "structure_case",
         "note": "Complete this structure subtask and WHO1 in one continuous self reasoning pass; do not treat this deterministic interleave as another model pass.",
         "contract": sr.contract_path("structure_case"),
+        "prompt": prompt,
         "inputs": {
             "case": layout.input(work, "case.md"),
             "allowed_bootstrap_cmcs": layout.setup(work, "case-major-categories.json"),
@@ -66,7 +69,7 @@ def _structure_manifest(work: Path) -> dict:
 
 
 def cmd_setup(args):
-    compile_workflow()
+    compiled=staged._compile_selected_workflow(args.workflow)
     # Native-self owns the established work-location policy independently of
     # staged execution: default -> system temp; --project -> <repo-root>/temp;
     # explicit --work-dir -> that directory.
@@ -97,6 +100,7 @@ def cmd_setup(args):
         "mode": args.mode,
         "validation_case": args.case_id,
         "pipeline": plan.pipeline_id,
+        "workflow_definition": staged._workflow_state(compiled),
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     with staged._cli_logging(work):
@@ -149,146 +153,331 @@ def inspect_run(work: Path) -> dict:
     return {"label": label, "stage": stage, "next": nxt, "complete": complete, **meta}
 
 
-def _self_step_complete(step_id: str, context: WorkflowContext) -> bool:
-    work = context.work
-    checks = {
-        'structure': staged.has_artifact(work, 'structured_case', 'case.json'),
-        'corpus': staged.has_artifact(work, 'card_identity', 'manifest.json'),
-        'diagnosis.who1': staged.has_artifact(work, 'diagnosis_who5_pass_1', 'who5.yaml'),
-        'diagnosis.icc': staged.has_artifact(work, 'diagnosis_icc', 'icc.yaml'),
-        'diagnosis.who2': staged.has_artifact(work, 'diagnosis_who5_pass_2', 'who5.yaml'),
-        'diagnosis.other': staged.has_artifact(work, 'diagnosis', 'diagnosis-final.yaml'),
-        'diagnosis.finalize': staged.has_artifact(work, 'diagnosis', 'diagnosis-final.yaml'),
-        'prognosis': staged.has_artifact(work, 'prognosis_state', 'model-classification.yaml'),
-        'treatment': staged.has_artifact(work, 'treatment_state', 'model-classification.yaml'),
-        'biomarker': staged.has_artifact(work, 'biomarker_state', 'model-classification.yaml'),
-        'germline': staged.has_artifact(work, 'germline_state', 'model-classification.yaml'),
-        'evidence.assignment': staged.has_artifact(work, 'evidence_matches', 'self-resolution.yaml'),
-        'evidence.audit': staged.has_artifact(work, 'evidence_audits', 'self-audit.yaml'),
-        'evidence.adjudication': staged.has_artifact(work, 'evidence_enriched', 'reportable-elements.yaml') or staged.has_artifact(work, 'evidence_adjudication', 'adjudication.yaml'),
-        'evidence.finalize': staged.has_artifact(work, 'evidence_enriched', 'reportable-elements.yaml'),
-        'report.blocks': staged.has_artifact(work, 'report_blocks', 'report-blocks.yaml'),
-        'report': (work / 'report-final.md').is_file(),
+def _self_model_output_path(step_id: str, work: Path) -> Path | None:
+    mapping={
+        'structure': staged.artifact_path(work,'structured_case','case.json',create=True),
+        'diagnosis.who1': sr.output_path(work,'diagnosis_who5_pass_1','who5.yaml'),
+        'diagnosis.who2': sr.output_path(work,'diagnosis_who5_pass_2','who5.yaml'),
+        'diagnosis.icc': sr.output_path(work,'diagnosis_icc','icc.yaml'),
+        'diagnosis.other': sr.output_path(work,'diagnosis_other','other.yaml'),
+        'prognosis': sr.output_path(work,'prognosis_state','model-classification.yaml'),
+        'treatment': sr.output_path(work,'treatment_state','model-classification.yaml'),
+        'biomarker': sr.output_path(work,'biomarker_state','model-classification.yaml'),
+        'germline': sr.output_path(work,'germline_state','model-classification.yaml'),
+        'evidence.assignment': sr.output_path(work,'evidence_matches','self-resolution.yaml'),
+        'evidence.audit': sr.output_path(work,'evidence_audits','self-audit.yaml'),
+        'evidence.adjudication': sr.output_path(work,'evidence_adjudication','adjudication.yaml'),
+        'report.write': sr.output_path(work,'report_write','report-write.yaml'),
+        'report.preservation': sr.output_path(work,'report_write','report-preservation.yaml'),
     }
-    return bool(checks.get(step_id, False))
+    if step_id in mapping:
+        return mapping[step_id]
+    return None
+
+
+def _self_declared_validate(step_id: str, context: WorkflowContext) -> None:
+    workflow=context.get('workflow')
+    if workflow is None: return
+    try: step=workflow.step(step_id)
+    except KeyError: return
+    if step.type not in {'model','evidence_review','evidence_adjudication','render/report'}: return
+    path=_self_model_output_path(step_id,context.work)
+    if path is None:
+        path=workflow_artifacts.generic_output_path(context.work,step,create=False)
+    if not path.is_file(): return
+    schema_rel=(step.output or {}).get('schema')
+    schema=generic_schema_validation.load_schema((workflow.asset_root/schema_rel).resolve()) if schema_rel else None
+    generic_schema_validation.validate(path.read_text(encoding='utf-8'),fmt=(step.output or {}).get('format','yaml'),schema=schema,check_specs=step.checks,context=context.data)
+
+
+def _self_step_complete(step_id: str, context: WorkflowContext) -> bool:
+    work=context.work
+    checks={
+        'structure': staged.has_artifact(work,'structured_case','case.json'),
+        'corpus': staged.has_artifact(work,'card_identity','card-identity-manifest.json'),
+        'diagnosis.who1': staged.has_artifact(work,'diagnosis_who5_pass_1','who5.yaml'),
+        'diagnosis.icc': staged.has_artifact(work,'diagnosis_icc','icc.yaml'),
+        'diagnosis.who2': staged.has_artifact(work,'diagnosis_who5_pass_2','who5.yaml'),
+        'diagnosis.other': staged.has_artifact(work,'diagnosis_other','other.yaml'),
+        'diagnosis.finalize': staged.has_artifact(work,'diagnosis','diagnosis-final.yaml'),
+        'prognosis': staged.has_artifact(work,'prognosis_state','model-classification.yaml'),
+        'treatment': staged.has_artifact(work,'treatment_state','model-classification.yaml'),
+        'biomarker': staged.has_artifact(work,'biomarker_state','model-classification.yaml'),
+        'germline': staged.has_artifact(work,'germline_state','model-classification.yaml'),
+        'evidence.assignment': staged.has_artifact(work,'evidence_matches','self-resolution.yaml'),
+        'evidence.audit': staged.has_artifact(work,'evidence_audits','self-audit.yaml'),
+        'evidence.adjudication': staged.has_artifact(work,'evidence_enriched','reportable-elements.yaml') or staged.has_artifact(work,'evidence_adjudication','adjudication.yaml'),
+        'evidence.finalize': staged.has_artifact(work,'evidence_enriched','reportable-elements.yaml'),
+        'report.blocks': staged.has_artifact(work,'report_blocks','report-blocks.yaml'),
+        'report.write': staged.has_artifact(work,'report_write','report-write.yaml'),
+        'report.preservation': staged.has_artifact(work,'report_write','report-preservation.yaml'),
+        'report.finalize': (work/'report-final.md').is_file(),
+    }
+    if step_id in checks:
+        done = bool(checks[step_id])
+        if done and step_id == 'report.blocks':
+            path = sr.output_path(work, 'report_blocks', 'report-blocks.yaml')
+            doc = sr.read_yaml(path)
+            blocks = doc.get('blocks') if isinstance(doc, dict) else None
+            sr.schema_validation.validate_report_source_blocks(blocks)
+            context.put('blocks', blocks)
+        return done
+    workflow=context.get('workflow')
+    if workflow is not None:
+        try: step=workflow.step(step_id)
+        except KeyError: return False
+        if step.type in {'model','evidence_review','evidence_adjudication','render/report'}:
+            path=workflow_artifacts.generic_output_path(work,step,create=False)
+            if path.is_file():
+                _self_declared_validate(step_id,context)
+                artifact_name=(step.output or {}).get('artifact')
+                if artifact_name:
+                    raw=path.read_text(encoding='utf-8'); fmt=(step.output or {}).get('format','yaml')
+                    context.put(artifact_name,json.loads(raw) if fmt=='json' else staged.yaml.safe_load(raw))
+                return True
+    return False
 
 
 def _handoff(stage: str, manifest: dict) -> dict:
     return {'status': 'handoff', 'handoff': {'stage': stage, 'manifest': manifest}}
 
 
+def _self_who2_required(ctx):
+    if int(staged._setting('diagnosis','who5','max_cmc_passes')) < 2:
+        return False
+    case,_reg=sr.load_case_registry(ctx.work)
+    who1=sr.accept_who(ctx.work,pass_number=1)
+    _self_declared_validate('diagnosis.who1',ctx)
+    return sr.runtime.derive_cmcs(who1) != list(case.get('bootstrap_cmcs') or [])
+
+
+def _self_render_prompt(step, ctx, manifest: dict | None = None) -> Path | None:
+    if not step.prompt:
+        return None
+    inputs=workflow_bindings.resolve_inputs(step,ctx)
+    output_template=""
+    if manifest:
+        candidate=manifest.get("output_contract")
+        if isinstance(candidate,Path) and candidate.is_file():
+            output_template=candidate.read_text(encoding="utf-8")
+    text=workflow_prompt_renderer.render(step.prompt,root=ctx.get('workflow').asset_root,inputs=inputs,output_template=output_template)
+    group=layout.intermediate_dir(ctx.work,f"workflow_prompt_{step.id}",existing=False)
+    path=group/'rendered-prompt.md'
+    path.write_text(text,encoding='utf-8')
+    return path
+
+
+def _self_domain_contracts(workflow):
+    from workflows.proforma_v1 import domain_contract
+    contracts={}; specs={}
+    for domain in ('prognosis','treatment','biomarker','germline'):
+        step=workflow.step(domain); specs[domain]=step.stage_spec_obj
+        contracts[domain]=domain_contract.from_spec(step.stage_spec_obj) if step.stage_spec_obj and step.stage_spec_obj.type=='domain_proforma' else domain_contract.contract(domain)
+    return contracts,specs
+
+
 def _self_handlers():
+    def decorate(manifest,step,ctx):
+        manifest=dict(manifest)
+        manifest['prompt']=_self_render_prompt(step,ctx,manifest)
+        schema_rel=(step.output or {}).get('schema')
+        if schema_rel: manifest['schema']=(ctx.get('workflow').asset_root/schema_rel).resolve()
+        return manifest
+
     def structure(step, ctx):
-        return _handoff('case_structure', _structure_manifest(ctx.work))
+        return _handoff('case_structure',decorate(_structure_manifest(ctx.work,prompt=step.prompt),step,ctx))
 
     def corpus(step, ctx):
-        sr.accept_structured_case(ctx.work)
-        staged.stage_corpus(ctx.work)
-        return {'status': 'complete'}
+        sr.accept_structured_case(ctx.work); _self_declared_validate('structure',ctx); staged.stage_corpus(ctx.work)
+        return {'status':'complete'}
 
     def who1(step, ctx):
-        return _handoff('diagnosis', sr.prepare_who(ctx.work, pass_number=1))
-
-    def icc(step, ctx):
-        sr.accept_who(ctx.work, pass_number=1)
-        return _handoff('diagnosis', sr.prepare_icc(ctx.work))
+        return _handoff('diagnosis',decorate(sr.prepare_who(ctx.work,pass_number=1,prompt=step.prompt),step,ctx))
 
     def who2(step, ctx):
-        sr.accept_icc(ctx.work)
-        return _handoff('diagnosis', sr.prepare_who(ctx.work, pass_number=2))
+        return _handoff('diagnosis',decorate(sr.prepare_who(ctx.work,pass_number=2,prompt=step.prompt),step,ctx))
 
-    def diagnosis_other_default(step, ctx):
-        sr.accept_who(ctx.work, pass_number=2)
-        sr.finalize_diagnosis(ctx.work)
-        return {'status': 'complete', 'reason': 'v6_self_second_diagnosis_default'}
+    def icc(step, ctx):
+        manifest=sr.prepare_icc(ctx.work,prompt=step.prompt)
+        _self_declared_validate('diagnosis.who1',ctx)
+        if staged.has_artifact(ctx.work,'diagnosis_who5_pass_2','who5.yaml'):
+            _self_declared_validate('diagnosis.who2',ctx)
+        return _handoff('diagnosis',decorate(manifest,step,ctx))
+
+    def diagnosis_other(step, ctx):
+        manifest=sr.prepare_diagnosis_other(ctx.work,prompt=step.prompt)
+        _self_declared_validate('diagnosis.icc',ctx)
+        return _handoff('diagnosis_other',decorate(manifest,step,ctx))
 
     def diagnosis_finalize(step, ctx):
-        sr.finalize_diagnosis(ctx.work)
-        return {'status': 'complete'}
+        sr.finalize_diagnosis(ctx.work); _self_declared_validate('diagnosis.other',ctx); return {'status':'complete'}
 
     def ptbg(step, ctx):
         sr.finalize_diagnosis(ctx.work)
-        return _handoff('ptbg', sr.prepare_ptbg(ctx.work))
+        members=ctx.get('self_group_step_objects') or (step,)
+        domains=tuple(member.id for member in members)
+        prompts={member.id:member.prompt for member in members}
+        contracts,_specs=_self_domain_contracts(ctx.get('workflow'))
+        manifest=sr.prepare_ptbg(ctx.work,domains=domains,prompts=prompts,contracts=contracts)
+        for member in members:
+            sub=manifest['domains'][member.id]
+            sub['prompt']=_self_render_prompt(member,ctx,sub)
+            schema_rel=(member.output or {}).get('schema')
+            if schema_rel: sub['schema']=(ctx.get('workflow').asset_root/schema_rel).resolve()
+        return _handoff('ptbg',manifest)
 
     def evidence_assignment(step, ctx):
-        sr.accept_ptbg(ctx.work)
-        return _handoff('evidence_resolution', sr.prepare_evidence_resolution(ctx.work))
+        contracts,specs=_self_domain_contracts(ctx.get('workflow'))
+        sr.accept_ptbg(ctx.work,contracts=contracts,specs=specs)
+        for domain in ('prognosis','treatment','biomarker','germline'):
+            _self_declared_validate(domain,ctx)
+        max_passes=int((step.evidence or {}).get('match_passes',1))
+        manifest=sr.prepare_evidence_resolution(
+            ctx.work,prompt=step.prompt,contracts=contracts,specs=specs,max_match_passes=max_passes
+        )
+        if manifest.get('complete'):
+            doc=sr.accept_evidence_resolution(ctx.work)
+            ctx.put('evidence_assignments',doc)
+            return {'status':'complete','artifact':doc}
+        public_manifest={k:v for k,v in manifest.items() if k!='validation_items'}
+        return _handoff('evidence_resolution',decorate(public_manifest,step,ctx))
 
     def evidence_audit(step, ctx):
-        return _handoff('evidence_audit', sr.prepare_evidence_audit(ctx.work))
+        manifest=sr.prepare_evidence_audit(ctx.work,prompt=step.prompt)
+        _self_declared_validate('evidence.assignment',ctx)
+        if not manifest.get('required'):
+            ctx.put('evidence_audits',{'audits':[]})
+            return {'status':'skipped','reason':'no_matched_cards','artifact':{'audits':[]}}
+        return _handoff('evidence_audit',decorate(manifest,step,ctx))
 
     def evidence_adjudication(step, ctx):
-        manifest = sr.prepare_evidence_adjudication(ctx.work)
+        manifest=decorate(sr.prepare_evidence_adjudication(ctx.work,prompt=step.prompt),step,ctx)
+        _self_declared_validate('evidence.audit',ctx)
         if not manifest.get('required'):
-            return {'status': 'complete', 'reason': 'no_disagreement'}
-        return _handoff('evidence_adjudication', manifest)
+            return {'status':'complete','reason':'no_disagreement'}
+        return _handoff('evidence_adjudication',manifest)
 
     def evidence_finalize(step, ctx):
         sr.finalize_evidence(ctx.work)
-        return {'status': 'complete'}
+        if staged.has_artifact(ctx.work,'evidence_adjudication','adjudication.yaml'):
+            _self_declared_validate('evidence.adjudication',ctx)
+        return {'status':'complete'}
 
     def report_blocks(step, ctx):
-        if not staged.has_artifact(ctx.work, 'evidence_enriched', 'reportable-elements.yaml'):
+        elements_path = sr.output_path(ctx.work, 'evidence_enriched', 'reportable-elements.yaml')
+        if not elements_path.is_file():
             sr.finalize_evidence(ctx.work)
-        # finalize_evidence deterministically writes report blocks.
-        return {'status': 'complete'}
+        elements_doc = sr.read_yaml(elements_path)
+        elements = elements_doc.get('elements') if isinstance(elements_doc, dict) else None
+        if not isinstance(elements, list):
+            raise ValueError(f"report.blocks requires evidence-enriched elements: {elements_path}")
+        diagnosis = sr.finalize_diagnosis(ctx.work)
+        _case, reg = sr.load_case_registry(ctx.work)
+        blocks = staged.stage_blocks(ctx.work, diagnosis, elements, reg)
+        sr.schema_validation.validate_report_source_blocks(blocks)
+        ctx.put('blocks', blocks)
+        return {'status':'complete','artifact':blocks}
 
-    def report(step, ctx):
-        if not staged.has_artifact(ctx.work, 'report_write', 'report-write.yaml'):
-            return _handoff('report_synthesis', sr.prepare_report(ctx.work))
+    def report_write(step, ctx):
+        return _handoff('report_synthesis',decorate(sr.prepare_report(ctx.work,prompt=step.prompt),step,ctx))
+
+    def report_preservation(step, ctx):
+        return _handoff('report_preservation',decorate(sr.prepare_report_preservation(ctx.work,prompt=step.prompt),step,ctx))
+
+    def report_finalize(step, ctx):
+        _self_declared_validate('report.write',ctx)
+        if staged.has_artifact(ctx.work,'report_write','report-preservation.yaml'):
+            _self_declared_validate('report.preservation',ctx)
         sr.finalize_report(ctx.work); sr.package_debug_bundle(ctx.work)
-        return {'status': 'complete'}
+        return {'status':'complete'}
+
+    def generic_model(step,ctx):
+        manifest={
+            'pass':step.id,
+            'prompt':_self_render_prompt(step,ctx),
+            'output':workflow_artifacts.generic_output_path(ctx.work,step,create=True),
+        }
+        schema_rel=(step.output or {}).get('schema')
+        if schema_rel: manifest['schema']=(ctx.get('workflow').asset_root/schema_rel).resolve()
+        return _handoff(step.id,manifest)
 
     return {
-        'structure': structure,
-        'corpus': corpus,
-        'diagnosis_who1': who1,
-        'diagnosis_icc': icc,
-        'diagnosis_who2': who2,
-        'diagnosis_other_default': diagnosis_other_default,
-        'diagnosis_finalize': diagnosis_finalize,
-        'ptbg': ptbg,
-        'evidence_assignment': evidence_assignment,
-        'evidence_audit': evidence_audit,
-        'evidence_adjudication': evidence_adjudication,
-        'evidence_finalize': evidence_finalize,
-        'report_blocks': report_blocks,
-        'report': report,
+        'structure':structure,'corpus':corpus,
+        'diagnosis_who1':who1,'diagnosis_who2':who2,'diagnosis_icc':icc,
+        'diagnosis_other':diagnosis_other,'diagnosis_finalize':diagnosis_finalize,
+        'ptbg':ptbg,'evidence_assignment':evidence_assignment,'evidence_audit':evidence_audit,
+        'evidence_adjudication':evidence_adjudication,'evidence_finalize':evidence_finalize,
+        'report_blocks':report_blocks,'report_write':report_write,
+        'report_preservation':report_preservation,'report_finalize':report_finalize,
+        'generic_model':generic_model,
     }
+
+def _self_invalidate(step_ids: set[str], context: WorkflowContext) -> None:
+    """Delete persisted outputs invalidated by a bounded semantic review retry."""
+    workflow=context.get('workflow')
+    for step_id in step_ids:
+        path=_self_model_output_path(step_id,context.work)
+        if path is None and workflow is not None:
+            try: path=workflow_artifacts.generic_output_path(context.work,workflow.step(step_id),create=False)
+            except KeyError: path=None
+        if path is not None:
+            Path(path).unlink(missing_ok=True)
+        if step_id in {'prognosis','treatment','biomarker','germline'}:
+            sr.output_path(context.work,f'{step_id}_state','proforma.yaml').unlink(missing_ok=True)
+        if step_id=='evidence.finalize':
+            sr.output_path(context.work,'evidence_enriched','reportable-elements.yaml').unlink(missing_ok=True)
+        if step_id=='report.finalize':
+            for name in ('report-final.md','report-final.json'):
+                (context.work/name).unlink(missing_ok=True)
 
 
 def _write_self_trace(work: Path, workflow, context: WorkflowContext, current=None) -> None:
-    trace = TraceRecorder(staged.WORKFLOW_ID)
+    trace=TraceRecorder(workflow.workflow_id)
     for step in workflow.steps:
-        if step.id in context.completed or _self_step_complete(step.id, context):
-            trace.record(step.id, step.type, 'complete', dependencies=list(step.needs), executor='self')
-        elif current == step.id:
-            trace.record(step.id, step.type, 'handoff', dependencies=list(step.needs), executor='self')
+        if not executor_enabled(step,'self'):
+            trace.record(step.id,step.type,'skipped',dependencies=list(step.needs),executor='self',reason='executor_disabled')
+        elif step.id in context.completed or _self_step_complete(step.id,context):
+            trace.record(step.id,step.type,'complete',dependencies=list(step.needs),executor='self')
+        elif all((need in context.completed or _self_step_complete(need,context) or not executor_enabled(workflow.step(need),'self')) for need in step.needs) and not condition_applies(step.when,context):
+            trace.record(step.id,step.type,'skipped',dependencies=list(step.needs),executor='self',reason='condition_false')
+        elif current==step.id:
+            trace.record(step.id,step.type,'handoff',dependencies=list(step.needs),executor='self')
         else:
-            trace.record(step.id, step.type, 'pending', dependencies=list(step.needs), executor='self')
-    trace.write(layout.logs(work) / 'workflow-trace.json')
+            trace.record(step.id,step.type,'pending',dependencies=list(step.needs),executor='self')
+    trace.write(layout.logs(work)/'workflow-trace.json')
 
 
-def advance(work: Path) -> dict:
-    """Advance native self by one bounded handoff using the shared workflow graph."""
-    work = Path(work).resolve()
-    staged._require_work(work); layout.ensure_dirs(work)
-    workflow = compile_workflow()
-    context = WorkflowContext(work, executor='self', profile='self', data={'settings': staged.load_settings()})
-    runner = WorkflowRunner(workflow, SelfExecutor(_self_handlers(), completion=_self_step_complete))
-    result = runner.advance(context)
-    _write_self_trace(work, workflow, context, result.step_id)
-    if result.status == 'handoff':
-        payload = result.handoff or {}
-        return {'status': 'handoff', 'stage': payload.get('stage') or result.step_id, 'manifest': payload.get('manifest')}
-    if result.status == 'complete':
-        if not (work / sr.DEBUG_ZIP_NAME).is_file() and (work / 'report-final.md').is_file():
-            sr.package_debug_bundle(work)
-        return {'status': 'complete', 'stage': 'complete', 'artifacts': sr.final_artifacts(work)}
-    return {'status': 'pending', 'stage': result.step_id or 'workflow'}
+def advance(work: Path, *, workflow_path=None) -> dict:
+    """Advance native self by one bounded handoff using the selected workflow."""
+    work=Path(work).resolve(); staged._require_work(work); layout.ensure_dirs(work)
+    workflow=staged._workflow_for_run(work,workflow_path)
+    context=WorkflowContext(work,executor='self',profile='self',data={'settings':staged.load_settings(),'workflow':workflow})
+    control_state.hydrate(context)
+    for candidate in workflow.steps:
+        if candidate.type not in {'model','evidence_review','evidence_adjudication','render/report'}:
+            continue
+        if _self_model_output_path(candidate.id,work) is not None:
+            continue
+        path=workflow_artifacts.generic_output_path(work,candidate,create=False)
+        if path.is_file() and (candidate.output or {}).get('artifact'):
+            raw=path.read_text(encoding='utf-8'); fmt=(candidate.output or {}).get('format','yaml')
+            context.put(candidate.output['artifact'],json.loads(raw) if fmt=='json' else staged.yaml.safe_load(raw))
+    context.put('predicates',{'who2_required':_self_who2_required})
+    runner=WorkflowRunner(workflow,SelfExecutor(_self_handlers(),completion=_self_step_complete,invalidator=_self_invalidate))
+    result=runner.advance(context)
+    control_state.save(context)
+    _write_self_trace(work,workflow,context,result.step_id)
+    if result.status=='handoff':
+        payload=result.handoff or {}
+        return {'status':'handoff','stage':payload.get('stage') or result.step_id,'manifest':payload.get('manifest')}
+    if result.status=='complete':
+        if not (work/sr.DEBUG_ZIP_NAME).is_file() and (work/'report-final.md').is_file(): sr.package_debug_bundle(work)
+        return {'status':'complete','stage':'complete','artifacts':sr.final_artifacts(work)}
+    return {'status':'pending','stage':result.step_id or 'workflow'}
+
 
 def cmd_run(args):
-    result = advance(Path(args.work_dir).resolve())
+    result = advance(Path(args.work_dir).resolve(),workflow_path=args.workflow)
     print(f"STATUS={result['status']}")
     print(f"STAGE={result['stage']}")
     if result["status"] == "handoff":
@@ -331,8 +520,13 @@ def cmd_ptbg(args):
 
 
 def cmd_evidence_resolution(args):
-    sr.accept_ptbg(Path(args.work_dir).resolve())
-    _print_manifest(sr.prepare_evidence_resolution(Path(args.work_dir).resolve()))
+    work=Path(args.work_dir).resolve()
+    sr.accept_ptbg(work)
+    workflow=staged._workflow_for_run(work,args.workflow)
+    step=workflow.step('evidence.assignment')
+    max_passes=int((step.evidence or {}).get('match_passes',1))
+    manifest=sr.prepare_evidence_resolution(work,prompt=step.prompt,max_match_passes=max_passes)
+    _print_manifest({k:v for k,v in manifest.items() if k!='validation_items'})
     return EXIT_OK
 
 
@@ -377,18 +571,24 @@ def build_parser():
     s.add_argument("--case-file", type=Path)
     s.add_argument("--example", type=int)
     s.add_argument("--case-id")
+    s.add_argument("--workflow", type=Path)
     sw = s.add_mutually_exclusive_group()
     sw.add_argument("--work-dir", type=Path)
     sw.add_argument("--project", action="store_true")
     for name in ("run", "structure", "who1", "icc", "who2", "ptbg", "evidence-resolution", "evidence-audit", "evidence-adjudication", "finalize-evidence", "report", "finalize-report"):
         q = sub.add_parser(name)
         q.add_argument("--work-dir", type=Path, required=True)
+        q.add_argument("--workflow", type=Path)
+    wc=sub.add_parser("workflow-check"); wc.add_argument("--workflow",type=Path)
     return p
 
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
     try:
+        if args.command=="workflow-check":
+            [print(x) for x in staged.describe_workflow(staged._compile_selected_workflow(args.workflow))]
+            return EXIT_OK
         fn = globals()["cmd_" + args.command.replace("-", "_")]
         return fn(args)
     except Exception as exc:

@@ -193,3 +193,27 @@ def check_all() -> list[str]:
             detail += f" buckets={list(spec.buckets)}"
         lines.append(detail)
     return lines
+
+
+def load_path(path: Path | str, *, expected_stage: str | None = None) -> StageSpec:
+    """Load one allow-listed stage/proforma asset outside the built-in stage directory.
+
+    The caller (workflow compiler) owns the asset-root trust boundary. This
+    function validates the same stage meta-schema, rules and transform registry
+    as built-in assets, but does not require the filename to equal the stage id.
+    """
+    from workflows.proforma_v1 import rules as rule_registry
+    path=Path(path).resolve()
+    try:
+        doc=yaml.safe_load(path.read_text(encoding='utf-8'))
+    except Exception as exc:
+        raise StageSpecError(f"{path.name}: cannot load stage asset: {exc}") from exc
+    if not isinstance(doc,dict):
+        raise StageSpecError(f"{path.name}: stage asset must be a mapping")
+    _validate_asset(doc,path)
+    for rule in doc.get('rules') or []:
+        if rule['rule'] not in rule_registry.REGISTRY:
+            raise StageSpecError(f"{path.name}: unknown rule {rule['rule']!r}; registered: {sorted(rule_registry.REGISTRY)}")
+    if expected_stage is not None and doc.get('stage') != expected_stage:
+        raise StageSpecError(f"{path.name}: declares stage {doc.get('stage')!r}; expected {expected_stage!r}")
+    return StageSpec(stage=doc['stage'],type=doc['type'],role=doc.get('role'),prompt=doc.get('prompt'),path=path,doc=doc)

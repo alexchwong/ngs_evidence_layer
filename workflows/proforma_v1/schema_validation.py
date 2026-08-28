@@ -243,8 +243,27 @@ def validate_evidence_audit_batch(text, items):
 
 # --- writer stages -----------------------------------------------------------
 
+def validate_report_source_blocks(blocks):
+    """Validate deterministic source blocks before any report model call.
+
+    Missing runtime state is a workflow error, not something the report model
+    can repair. Keep this check separate from report-write output validation so
+    callers fail before sending ``blocks: null`` or another malformed source.
+    """
+    if not isinstance(blocks, list):
+        raise ValueError("report.write requires deterministic report_blocks artifact as a list")
+    for i, block in enumerate(blocks):
+        if not isinstance(block, dict):
+            raise ValueError(f"report_blocks[{i}] must be an object")
+        block_id = block.get("block_id")
+        if not isinstance(block_id, str) or not block_id.strip():
+            raise ValueError(f"report_blocks[{i}].block_id must be a non-empty string")
+    return blocks
+
+
 def validate_report_write(text, blocks):
     ctx = "report writer"
+    validate_report_source_blocks(blocks)
     doc, problems = _parsed(text, ctx, {"blocks"})
     rows = doc.get("blocks")
     expected = [b["block_id"] for b in blocks]

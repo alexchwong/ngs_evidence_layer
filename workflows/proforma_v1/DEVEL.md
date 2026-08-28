@@ -1,6 +1,18 @@
-# Terraced v6 developer notes
+# Proforma v1 developer notes
 
-V6 is intentionally smaller than v5.
+`workflow/default.yaml` is the canonical logical workflow. `step.py` and `self.py` are execution adapters over the same compiled definition; intentional executor differences must be declared in YAML. See `workflow/README.md` for workflow authoring.
+
+
+## Workflow-specific unittest suite
+
+Run this before and after changes to `proforma_v1`:
+
+```bash
+python -m unittest discover -s workflows/proforma_v1/tests -p "test_*.py"
+python workflows/proforma_v1/step.py workflow-check
+```
+
+Custom workflow authoring and `--workflow` examples are documented in `workflow/README.md`.
 
 ## Core assets
 
@@ -174,7 +186,7 @@ normalisation.
 
 ## Declarative stage assets
 
-**YAML declares what a stage is made of. Python declares the order stages run in.**
+**The selected workflow YAML declares logical ordering, dependencies, conditions and execution metadata. Python implements only generic execution mechanisms and allow-listed deterministic extensions.**
 
 Stage composition is repetitive and gets customised, so it lives in
 `stages/<stage>.yaml`. The clinical stage sequence is a fixed dependency chain

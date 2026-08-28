@@ -10,7 +10,7 @@ For every supplied variant, assess two independent evidence channels:
 
 Allowed directions are `favorable`, `adverse`, and `neutral`. Use `no_evidence` for `other_evidence_effect` when there is no qualifying same-disease prognostic evidence.
 
-A variant may appear in both a framework effect and other evidence when both apply. Keep their direction concordant unless distinct named frameworks themselves legitimately classify the variant differently.
+A variant may appear in both a framework effect and other evidence when both apply. Treat these as independent evidence channels: preserve source-specific prognostic directions even when they differ, provided each direction is supported by its own applicable source.
 
 For each framework, `tier` is optional. Populate it only when the framework tier can be assigned entirely from the supplied genetic/cytogenetic findings. Otherwise use `null`. The framework `reason` must support framework applicability and, when `tier` is populated, the tier assignment as well. Do not calculate combined clinical/molecular scores merely because the framework is relevant, and do not state that a tier or score is "not calculable".
 

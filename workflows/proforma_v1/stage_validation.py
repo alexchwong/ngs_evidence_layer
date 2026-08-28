@@ -31,13 +31,18 @@ def _path_key(issue):
     return parts
 
 
-def validate(stage: str, text: str, context: dict | None = None) -> str:
-    spec = stage_spec.load(stage)
+def validate_spec(spec: stage_spec.StageSpec, text: str, context: dict | None = None, *, structural: bool = True) -> str:
     label = spec.label
     doc, problems = iss.parse(text, fmt=spec.output_format, context=label)
     if problems:
         fail(label, problems)
-    problems = schema_engine.issues_from_schema(doc, schema_engine.load(spec.schema_name), context=label)
+    problems=[]
+    if structural:
+        problems += schema_engine.issues_from_schema(doc, schema_engine.load(spec.schema_name), context=label)
     problems += rule_registry.apply(spec, doc, context or {})
     fail(label, sorted(problems, key=_path_key))
     return f"{label} valid"
+
+
+def validate(stage: str, text: str, context: dict | None = None) -> str:
+    return validate_spec(stage_spec.load(stage),text,context,structural=True)

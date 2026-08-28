@@ -113,13 +113,49 @@ def extract_claims(*, owner: str, artifact: Any, declarations: list[dict] | tupl
 
 
 def audit_targets(claim: dict, assigned_card_tags: list[str] | tuple[str, ...]) -> list[str]:
-    """Positive assignments audit selected cards; zero assignments audit all."""
+    """Audit only cards positively assigned to this fact.
+
+    False-negative rescue belongs to later evidence-match passes, not to the
+    auditor. This keeps the audit surface bounded to matcher-selected cards.
+    """
     selected = list(assigned_card_tags or [])
     candidates = list(claim.get("candidate_card_tags") or claim.get("candidate_cards") or [])
     unknown = sorted(set(selected) - set(candidates))
     if unknown:
         raise EvidenceError(f"assignment introduced card(s) outside candidate envelope: {unknown}")
-    return selected if selected else candidates
+    return selected
+
+
+def merge_match_passes(items: list[dict], pass_docs: list[dict]) -> tuple[dict, list[str]]:
+    """Merge sequential match passes, retrying only facts that remain at zero.
+
+    The first non-empty selection for an evidence item becomes final. Later
+    passes are allowed to contain only items still unresolved at zero cards.
+    Returns ``(final_doc, zero_evidence_ids)`` in original item order.
+    """
+    expected = [str(item["evidence_id"]) for item in items]
+    by_id = {eid: [] for eid in expected}
+    unresolved = set(expected)
+    for pass_no, doc in enumerate(pass_docs, 1):
+        rows = doc.get("matches") if isinstance(doc, dict) else None
+        if not isinstance(rows, list):
+            raise EvidenceError(f"match pass {pass_no} must contain a matches list")
+        seen = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                raise EvidenceError(f"match pass {pass_no} contains a non-mapping row")
+            eid = str(row.get("evidence_id"))
+            if eid not in unresolved:
+                raise EvidenceError(f"match pass {pass_no} contains non-zero/already-resolved evidence_id {eid!r}")
+            if eid in seen:
+                raise EvidenceError(f"match pass {pass_no} duplicates evidence_id {eid!r}")
+            seen.add(eid)
+            tags = list(row.get("card_tags") or [])
+            if tags:
+                by_id[eid] = tags
+                unresolved.remove(eid)
+        # A pass may intentionally contain only the currently unresolved subset.
+    return {"matches": [{"evidence_id": eid, "card_tags": list(by_id[eid])} for eid in expected]}, [eid for eid in expected if eid in unresolved]
 
 
 def compare(*, claim: dict, assigned_card_tags: list[str] | tuple[str, ...], audit_rows: list[dict] | tuple[dict, ...]) -> dict:

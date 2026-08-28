@@ -1,6 +1,12 @@
 version: 1
 workflow_id: proforma-v1
 
+self_groups:
+  ptbg:
+    strategy: batch_ready
+
+# Evidence policies remain declarative assets. Different workflow files may
+# replace these prompts/roles without changing executor Python.
 evidence_policies:
   literature_support:
     assignment:
@@ -54,14 +60,30 @@ steps:
       format: yaml
       schema: schemas/diagnosis_who5.json
     execution:
-      provider_handler: diagnosis
-      provider_group: diagnosis
+      provider_handler: diagnosis_who1
       self_handler: diagnosis_who1
+      self_mode: handoff
+
+  diagnosis.who2:
+    type: model
+    needs: [diagnosis.who1]
+    role: diagnosis
+    stage: diagnosis_who5
+    prompt: prompts/diagnosis_who5.md
+    when:
+      predicate: who2_required
+    output:
+      artifact: diagnosis_who2
+      format: yaml
+      schema: schemas/diagnosis_who5.json
+    execution:
+      provider_handler: diagnosis_who2
+      self_handler: diagnosis_who2
       self_mode: handoff
 
   diagnosis.icc:
     type: model
-    needs: [diagnosis.who1]
+    needs: [diagnosis.who1, diagnosis.who2]
     role: diagnosis
     stage: diagnosis_icc
     prompt: prompts/diagnosis_icc.md
@@ -70,30 +92,13 @@ steps:
       format: yaml
       schema: schemas/diagnosis.json
     execution:
-      provider_handler: diagnosis
-      provider_group: diagnosis
+      provider_handler: diagnosis_icc
       self_handler: diagnosis_icc
-      self_mode: handoff
-
-  diagnosis.who2:
-    type: model
-    needs: [diagnosis.icc]
-    role: diagnosis
-    stage: diagnosis_who5
-    prompt: prompts/diagnosis_who5.md
-    output:
-      artifact: diagnosis_who2
-      format: yaml
-      schema: schemas/diagnosis_who5.json
-    execution:
-      provider_handler: diagnosis
-      provider_group: diagnosis
-      self_handler: diagnosis_who2
       self_mode: handoff
 
   diagnosis.other:
     type: model
-    needs: [diagnosis.who2]
+    needs: [diagnosis.icc]
     role: diagnosis
     stage: diagnosis_other
     prompt: prompts/diagnosis_other.md
@@ -102,10 +107,9 @@ steps:
       format: yaml
       schema: schemas/second_diagnosis.json
     execution:
-      provider_handler: diagnosis
-      provider_group: diagnosis
-      self_handler: diagnosis_other_default
-      self_mode: deterministic
+      provider_handler: diagnosis_other
+      self_handler: diagnosis_other
+      self_mode: handoff
 
   diagnosis.finalize:
     type: transform
@@ -113,8 +117,7 @@ steps:
     transform: finalize_diagnosis
     output: {artifact: diagnosis}
     execution:
-      provider_handler: diagnosis
-      provider_group: diagnosis
+      provider_handler: diagnosis_finalize
       self_handler: diagnosis_finalize
       self_mode: deterministic
 
@@ -136,7 +139,7 @@ steps:
 
   treatment:
     type: model
-    needs: [prognosis]
+    needs: [diagnosis.finalize]
     role: ptbg
     stage: treatment
     prompt: prompts/treatment.md
@@ -152,7 +155,7 @@ steps:
 
   biomarker:
     type: model
-    needs: [treatment]
+    needs: [diagnosis.finalize]
     role: ptbg
     stage: biomarker
     prompt: prompts/biomarker.md
@@ -168,7 +171,7 @@ steps:
 
   germline:
     type: model
-    needs: [biomarker]
+    needs: [diagnosis.finalize]
     role: ptbg
     stage: germline
     prompt: prompts/germline.md
@@ -184,7 +187,7 @@ steps:
 
   evidence.assignment:
     type: evidence_review
-    needs: [germline]
+    needs: [prognosis, treatment, biomarker, germline]
     role: evidence_match
     stage: evidence_match
     prompt: prompts/evidence_match.md
@@ -192,13 +195,13 @@ steps:
       policy: literature_support
       timing: deferred
       cards: {from: owner.cards}
+      match_passes: 2
     output:
       artifact: evidence_assignments
       format: yaml
       schema: schemas/evidence_match.json
     execution:
-      provider_handler: evidence
-      provider_group: evidence
+      provider_handler: evidence_assignment
       self_handler: evidence_assignment
       self_mode: handoff
 
@@ -217,8 +220,7 @@ steps:
       format: yaml
       schema: schemas/evidence_audit.json
     execution:
-      provider_handler: evidence
-      provider_group: evidence
+      provider_handler: evidence_audit
       self_handler: evidence_audit
       self_mode: handoff
 
@@ -237,8 +239,7 @@ steps:
       format: yaml
       schema: schemas/evidence_adjudicate.json
     execution:
-      provider_handler: evidence
-      provider_group: evidence
+      provider_handler: evidence_adjudication
       self_handler: evidence_adjudication
       self_mode: handoff
 
@@ -248,8 +249,7 @@ steps:
     transform: finalize_evidence
     output: {artifact: evidence_enriched}
     execution:
-      provider_handler: evidence
-      provider_group: evidence
+      provider_handler: evidence_finalize
       self_handler: evidence_finalize
       self_mode: deterministic
 
@@ -263,16 +263,44 @@ steps:
       self_handler: report_blocks
       self_mode: deterministic
 
-  report:
+  report.write:
     type: render/report
     needs: [report.blocks]
     role: report_write
     stage: report_write
     prompt: prompts/report_write.md
     output:
-      artifact: final_report
-      format: text
+      artifact: report_draft
+      format: yaml
+      schema: schemas/report_write.json
     execution:
-      provider_handler: report
-      self_handler: report
+      provider_handler: report_write
+      self_handler: report_write
       self_mode: handoff
+
+  report.preservation:
+    type: model
+    needs: [report.write]
+    role: preservation_check
+    stage: report_preservation
+    prompt: prompts/report_preservation.md
+    output:
+      artifact: report_preservation
+      format: yaml
+      schema: schemas/report_preservation.json
+    execution:
+      provider_handler: report_preservation
+      self_handler: report_preservation
+      self_mode: handoff
+      self:
+        enabled: false
+
+  report.finalize:
+    type: transform
+    needs: [report.preservation]
+    transform: finalize_report
+    output: {artifact: final_report}
+    execution:
+      provider_handler: report_finalize
+      self_handler: report_finalize
+      self_mode: deterministic

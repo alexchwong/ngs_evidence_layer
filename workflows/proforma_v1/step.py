@@ -15,7 +15,9 @@ from validation.package_marking import package_marking_bundle
 from validation import cases as validation_cases
 from workflows.proforma_v1 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 from workflows.proforma_v1.engine.context import WorkflowContext
-from workflows.proforma_v1.engine.workflow_compiler import compile_workflow, describe as describe_workflow
+from workflows.proforma_v1.engine import schema_validation as generic_schema_validation
+from workflows.proforma_v1.engine import bindings as workflow_bindings, prompt_renderer as workflow_prompt_renderer, artifacts as workflow_artifacts
+from workflows.proforma_v1.engine.workflow_compiler import compile_workflow, describe as describe_workflow, resolve_workflow_path
 from workflows.proforma_v1.engine.workflow_runner import WorkflowRunner
 from workflows.proforma_v1.executors.provider import ProviderExecutor
 from workflows.proforma_v1.trace import TraceRecorder
@@ -40,6 +42,8 @@ def supported_modes():
 VALIDATION_MODES={m for m in supported_modes() if m.startswith('nel-validate')}
 MARKING_PREFIX={'nel-validate':'nel-validation','nel-validate-function':'nel-validation-function','nel-validate-brief':'nel-validation-brief'}
 _EXECUTION_STARTED_AT=None
+_ACTIVE_COMPILED_WORKFLOW=None
+_ACTIVE_WORKFLOW_CONTEXT=None
 
 class StepFailure(RuntimeError): pass
 class SyntaxCycleExhausted(StepFailure):
@@ -98,6 +102,16 @@ def configured_pipeline(): return str(load_settings().get('pipeline') or 'self')
 def _prompt(name):
     rel=str(_setting('prompts',name))
     return prompt_loader.render(Path(rel),root=PROMPTS)
+
+def _compiled_prompt(step, workflow, context=None, *, output_template=""):
+    if not step.prompt:
+        raise StepFailure(f'workflow step {step.id!r} has no prompt')
+    if context is None:
+        # Static-only compatibility path used by inspection helpers. Runtime
+        # placeholders are rendered by the shared binding resolver during runs.
+        return prompt_loader.render(step.prompt, root=workflow.asset_root)
+    inputs=workflow_bindings.resolve_inputs(step,context)
+    return workflow_prompt_renderer.render(step.prompt,root=workflow.asset_root,inputs=inputs,output_template=output_template)
 def _run_state_path(work): return _artifact(work,'run_state','proforma-v1-run.json',new=True)
 def _load_run_state(work):
     d=json.loads(_read(_artifact(work,'run_state','proforma-v1-run.json')))
@@ -546,6 +560,38 @@ def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt
     return candidate
 
 
+def _workflow_step_for_call(call_id):
+    workflow=_ACTIVE_COMPILED_WORKFLOW
+    if workflow is None: return None
+    mapping={
+        'structure-case':'structure','diagnosis-who5-pass-01':'diagnosis.who1','diagnosis-who5-pass-02':'diagnosis.who2',
+        'diagnosis-icc':'diagnosis.icc','diagnosis-other':'diagnosis.other',
+        'prognosis':'prognosis','treatment':'treatment','biomarker':'biomarker','germline':'germline',
+        'report-write':'report.write','report-preservation':'report.preservation',
+    }
+    if call_id.startswith('evidence-match-batch-') or call_id=='evidence-assignment': sid='evidence.assignment'
+    elif call_id.startswith('evidence-audit-batch-') or call_id=='evidence-audit': sid='evidence.audit'
+    elif call_id=='evidence-adjudication': sid='evidence.adjudication'
+    else: sid=mapping.get(call_id)
+    if not sid: return None
+    try: return workflow.step(sid)
+    except KeyError: return None
+
+
+def _with_declared_validation(call_id, validator):
+    step=_workflow_step_for_call(call_id); workflow=_ACTIVE_COMPILED_WORKFLOW
+    if step is None or workflow is None: return validator
+    schema_rel=(step.output or {}).get('schema')
+    if not schema_rel and not step.checks: return validator
+    schema_path=(workflow.asset_root/schema_rel).resolve() if schema_rel else None
+    schema=generic_schema_validation.load_schema(schema_path) if schema_path else None
+    def combined(text):
+        message=validator(text)
+        runtime_context=_ACTIVE_WORKFLOW_CONTEXT.data if _ACTIVE_WORKFLOW_CONTEXT is not None else {}
+        generic_schema_validation.validate(text,fmt=(step.output or {}).get('format','yaml'),schema=schema,check_specs=step.checks,context=runtime_context)
+        return message
+    return combined
+
 def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',max_attempts=None,feedback=None,system_prompt=None,proforma=False,max_rewrites=None):
     """Run one validated model task.
 
@@ -554,7 +600,7 @@ def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='ya
     workflow's prompts, paths and provider bindings to it.
     """
     return _run_model_task(
-        work,call_id=call_id,role=role,prompt=prompt,output=output,validator=validator,
+        work,call_id=call_id,role=role,prompt=prompt,output=output,validator=_with_declared_validation(call_id,validator),
         profile=profile,fmt=fmt,mode='proforma' if proforma else 'standard',
         max_attempts=max_attempts,max_rewrites=max_rewrites,feedback=feedback,system_prompt=system_prompt,
     )
@@ -600,8 +646,40 @@ def _timestamped_work_dir(root,label):
     while p.exists(): p=Path(f'{base}-{n}'); n+=1
     return p
 
+def _workflow_state(compiled):
+    return {
+        'id': compiled.workflow_id,
+        'path': str(compiled.source),
+        'sha256': compiled.source_sha256,
+        'asset_root': str(compiled.asset_root),
+        'assets': dict(compiled.asset_sha256),
+    }
+
+def _compile_selected_workflow(selection=None):
+    return compile_workflow(resolve_workflow_path(selection))
+
+def _workflow_for_run(work, selection=None):
+    state=_load_run_state(Path(work))
+    saved=state.get('workflow_definition') or {}
+    if selection is not None:
+        compiled=_compile_selected_workflow(selection)
+        if saved and (compiled.source_sha256!=saved.get('sha256') or compiled.workflow_id!=saved.get('id') or compiled.asset_sha256!=(saved.get('assets') or {})):
+            raise StepFailure('selected --workflow does not match the workflow definition bound to this run')
+        return compiled
+    if saved:
+        path=Path(saved.get('path') or '')
+        if not path.is_file():
+            raise StepFailure(f'workflow definition bound to this run is missing: {path}')
+        compiled=compile_workflow(path)
+        if compiled.source_sha256!=saved.get('sha256'):
+            raise StepFailure('workflow definition changed since run setup; resume refused for reproducibility')
+        if compiled.asset_sha256!=(saved.get('assets') or {}):
+            raise StepFailure('workflow prompt/schema/proforma assets changed since run setup; resume refused for reproducibility')
+        return compiled
+    return compile_workflow()
+
 def run_setup(args):
-    compile_workflow()
+    compiled=_compile_selected_workflow(args.workflow)
     plan=pipeline_registry.load(args.pipeline or configured_pipeline()); label=args.mode
     if args.mode=='ngs-report' and args.case_file: label+='-'+args.case_file.stem
     elif args.mode=='nel-demo': label+=f'-{args.example}'
@@ -614,7 +692,7 @@ def run_setup(args):
     elif args.mode=='nel-demo' and demo_case: shutil.copyfile(demo_case,case_path)
     if not case_path.is_file() or not _read(case_path).strip(): raise StepFailure(f'case.md missing or empty: {case_path}')
     if demo_expected: shutil.copyfile(demo_expected,_artifact(work,'setup','demo-expected.md',new=True))
-    _save_run_state(work,{'schema_version':RUN_STATE_SCHEMA_VERSION,'workflow_id':WORKFLOW_ID,'mode':args.mode,'validation_case':args.case_id,'pipeline':plan.pipeline_id,'created_at':datetime.now(timezone.utc).isoformat()})
+    _save_run_state(work,{'schema_version':RUN_STATE_SCHEMA_VERSION,'workflow_id':WORKFLOW_ID,'mode':args.mode,'validation_case':args.case_id,'pipeline':plan.pipeline_id,'workflow_definition':_workflow_state(compiled),'created_at':datetime.now(timezone.utc).isoformat()})
     with _cli_logging(work): print(work); print(f'PIPELINE={plan.pipeline_id}')
     return EXIT_OK
 
@@ -666,9 +744,9 @@ def _load_corpus():
     manifest=card_identity.build_manifest(all_cards,corpus_sha256=digest); return all_cards,eligible,digest,manifest
 
 def _manifest_path(work): return _existing_or_new(work,'card_identity','card-identity-manifest.json')
-def stage_structure(work,profile):
+def stage_structure(work,profile,*,prompt_text=None):
     out=_case_json(work)
-    prompt=_prompt('structure_case')+'\n\n# Authoritative case\n'+_read(layout.input(work,'case.md'))+'\n\n# Allowed bootstrap CMCs\n'+_read(layout.setup(work,'case-major-categories.json'))
+    prompt=(prompt_text if prompt_text is not None else _prompt('structure_case'))+'\n\n# Authoritative case\n'+_read(layout.input(work,'case.md'))+'\n\n# Allowed bootstrap CMCs\n'+_read(layout.setup(work,'case-major-categories.json'))
     _model_call(work,call_id='structure-case',role='structure',prompt=prompt,output=out,validator=runtime.validate_case_text,profile=profile,fmt='json')
     case=runtime.normalize_case_variant_descriptions(runtime.read_json(out))
     case=runtime.materialize_ngs_no_variants_detected(case,_read(layout.setup(work,'ngs-panel-scope.md')))
@@ -860,14 +938,14 @@ def _render_shared_reason(template,variants,reg):
             text=re.sub(rf'\b{re.escape(subject)}\s+{singular}\b',f'{subject} {plural}',text,flags=re.I)
     return text
 
-def _consolidate_rows(domain,doc,reg):
+def _consolidate_rows(domain,doc,reg,contract_override=None):
     """Merge rows sharing one normalised proposition. Returns (doc, merge records).
 
     The model now emits one row per variant (see domain_contract), so this is the
     only place grouping happens.  Every merge is reported so a developer can tell
     model output from deterministic normalisation.
     """
-    buckets=domain_contract.contract(domain).buckets; merges=[]
+    buckets=(contract_override or domain_contract.contract(domain)).buckets; merges=[]
     for bucket in buckets:
         rows=doc.get(bucket) or []; groups=[]; index={}; templates={}
         for row in rows:
@@ -923,13 +1001,54 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     _write(_existing_or_new(work,'diagnosis','routing.json'),json.dumps({'bootstrap_cmcs':bootstrap,'who5_authoritative_pass':authoritative,'final_cmcs':final_cmcs,'diagnostic_cmc_history':history},indent=2)+'\n')
     return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards}
 
-def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
+
+def stage_diagnosis_who_pass(work,case,reg,eligible,manifest,profile,*,pass_number,history,prompt_text):
+    allowed=_allowed_diseases(work); genes=runtime.case_genes(case); tag_by_id=card_identity.tag_by_id(manifest)
+    who_cards=_diagnostic_cards(eligible,genes,history,'who5')
+    out=_artifact(work,f'diagnosis_who5_pass_{pass_number}','who5.yaml',new=True)
+    prompt=prompt_text+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_diagnostic_cards(who_cards,tag_by_id,'who5')
+    model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
+    _model_call(work,call_id=f'diagnosis-who5-pass-{pass_number:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
+    who=yaml.safe_load(_read(out)); return who,who_cards
+
+
+def stage_diagnosis_icc_pass(work,case,reg,eligible,manifest,profile,*,history,who,prompt_text):
+    genes=runtime.case_genes(case); tag_by_id=card_identity.tag_by_id(manifest)
+    cards=_diagnostic_cards(eligible,genes,history,'icc'); out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
+    prompt=prompt_text+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(cards,tag_by_id,'icc')
+    model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
+    _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
+    return yaml.safe_load(_read(out)),cards
+
+
+def stage_diagnosis_other_pass(work,case,reg,eligible,manifest,profile,*,history,who,icc,prompt_text):
+    genes=runtime.case_genes(case); tag_by_id=card_identity.tag_by_id(manifest)
+    cards=_draw_diagnosis_cards(eligible,genes,history); out=_existing_or_new(work,'diagnosis_other','other.yaml')
+    prompt=prompt_text+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Primary framework diagnoses\n```yaml\n'+yaml.safe_dump({'who5':who,'icc':icc},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate diagnosis cards\n'+_render_cards(cards,tag_by_id)
+    model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
+    _model_call(work,call_id='diagnosis-other',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_second_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
+    return yaml.safe_load(_read(out)),cards
+
+
+def stage_diagnosis_finalize_pass(work,case,who1,who2,icc,other,history):
+    who=who2 or who1; authoritative=2 if who2 is not None else 1
+    final_cmcs=runtime.derive_cmcs(who)
+    for cmc in final_cmcs:
+        if cmc not in history: history.append(cmc)
+    relationship='same' if runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
+    diagnosis={'who5':who,'icc':icc,'second_diagnosis':other,'relationship':relationship}
+    _write(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'),yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110))
+    _write(_existing_or_new(work,'diagnosis','routing.json'),json.dumps({'bootstrap_cmcs':list(case.get('bootstrap_cmcs') or []),'who5_authoritative_pass':authoritative,'final_cmcs':final_cmcs,'diagnostic_cmc_history':history},indent=2)+'\n')
+    return diagnosis,final_cmcs
+
+
+def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile,*,prompt_text=None,contract_override=None,stage_spec_override=None):
     valid=set(reg); disease=diagnosis['who5']['schema_disease']; genes=runtime.case_genes(case); cards=_draw_domain_cards(eligible,domain,genes,[disease]); _log_ptbg_retrieval(work,eligible,domain,genes,disease,cards); tag_by_id=card_identity.tag_by_id(manifest)
-    contract=domain_contract.contract(domain)
+    contract=contract_override or domain_contract.contract(domain)
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml')
     # The output contract is the final block of the prompt: recency matters
     # disproportionately for a low-active-parameter model.
-    prompt=(_prompt(domain)
+    prompt=((prompt_text if prompt_text is not None else _prompt(domain))
         +'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```'
         +'\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DOMAIN_CASE_FIELDS)+'\n```'
         +'\n\n# Authoritative framework diagnoses\n```yaml\n'+model_context.diagnosis_context(diagnosis)+'```'
@@ -938,8 +1057,8 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
     def validate_owner(text):
         normalized,_records=domain_contract.normalize_model_output(text,contract,reg,disease)
-        return schema_validation.validate_domain(
-            normalized,domain,valid,registry=reg,authoritative_disease=disease
+        return domain_contract.validate(
+            normalized,contract,{"variants":sorted(valid),"registry":reg,"authoritative_disease":disease},spec=stage_spec_override
         )
     _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=validate_owner,profile=profile,proforma=True)
     normalized,identity_records=domain_contract.normalize_model_output(_read(out),contract,reg,disease)
@@ -949,12 +1068,13 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile):
     # The model returns the variant-centric owner form; Python projects it into
     # the stable bucketed internal artifact consumed downstream.
     flat=yaml.safe_load(normalized); doc=domain_contract.pivot(flat,contract)
-    doc,merges=_consolidate_rows(domain,doc,reg); _log_transforms(work,merges)
+    doc,merges=_consolidate_rows(domain,doc,reg,contract); _log_transforms(work,merges)
     _write(out,yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
     _write(_artifact(work,f'{domain}_state','model-classification.yaml',new=False),yaml.safe_dump(flat,sort_keys=False,allow_unicode=True,width=110))
     return doc,cards
 
-def _elements(diagnosis,domains,case):
+def _elements(diagnosis,domains,case,contracts=None):
+    contracts=contracts or {}
     els=[]
     origin=case.get('morphologic_diagnosis_origin')
     starting=case.get('provisional_disease')
@@ -991,13 +1111,13 @@ def _elements(diagnosis,domains,case):
                 'statement':statement,'reason':framework['reason'],'variants':[],'evidence_domain':'prognosis',
                 'required':False,'source':framework,
             })
-    for bucket in domain_contract.contract('prognosis').buckets:
+    for bucket in contracts.get('prognosis',domain_contract.contract('prognosis')).buckets:
         if not _reportable('prognosis',bucket): continue
         for i,row in enumerate(prognosis.get(bucket) or [],1):
             els.append({'schema_id':f'PX-{bucket.upper()}-{i:02d}','domain':'prognosis','bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':'prognosis','required':False,'source':row})
     for domain,prefix in (('treatment','TX'),('biomarker','MRD'),('germline','GL')):
         doc=domains[domain]
-        for bucket in domain_contract.contract(domain).buckets:
+        for bucket in contracts.get(domain,domain_contract.contract(domain)).buckets:
             if not _reportable(domain,bucket): continue
             for i,row in enumerate(doc[bucket],1):
                 els.append({'schema_id':f'{prefix}-{bucket.upper()}-{i:02d}','domain':domain,'bucket':bucket,'statement':row['reason'],'reason':row['reason'],'variants':row['variants'],'evidence_domain':domain,'required':False,'source':row})
@@ -1101,7 +1221,7 @@ def _accepted_evidence(card,card_tag,audit,semantic_attempt):
     }
 
 
-def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authoritative_disease=None):
+def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authoritative_disease=None,match_prompt=None,audit_prompt=None):
     """Resolve each reason to zero or more independently audited evidence cards.
 
     The matcher only selects cards whose proposition is an element of the reason.
@@ -1143,7 +1263,7 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authorit
         public=[evidence_resolution.public_match_item(item,tag_by_id) for item in pending]
         mpath=_existing_or_new(work,'evidence_matches',f'attempt-{semantic_attempt:02d}.yaml')
         mprompt=(
-            _prompt('evidence_match')+'\n\n# Evidence items with their deterministic candidate cards\n'
+            (match_prompt if match_prompt is not None else _prompt('evidence_match'))+'\n\n# Evidence items with their deterministic candidate cards\n'
             +_render_evidence_match_candidates(public,pending,catalog,tag_by_id)
         )
         validation_items=[{'evidence_id':x['evidence_id'],'candidate_card_tags':x['candidate_card_tags']} for x in public]
@@ -1175,7 +1295,7 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authorit
                     if cid not in selected_ids: selected_ids.append(cid)
             apath=_existing_or_new(work,'evidence_audits',f'attempt-{semantic_attempt:02d}.yaml')
             selected_cards=[catalog[cid] for cid in selected_ids]
-            aprompt=(_prompt('evidence_audit')+'\n\n# Selected reason/card sets\n```yaml\n'
+            aprompt=((audit_prompt if audit_prompt is not None else _prompt('evidence_audit'))+'\n\n# Selected reason/card sets\n```yaml\n'
                 +yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
                 +'\n# Selected card catalog\n'+_render_cards(selected_cards,tag_by_id)+'\n')
             _model_call(
@@ -1272,8 +1392,8 @@ def stage_blocks(work,diagnosis,elements,reg):
 
     # Prognosis remains variant-centric through semantic evidence resolution.
     # Only now, after card matching/audit, collapse supported findings into
-    # report-sized clinical propositions.  The same function is used by the
-    # native-self path via self_runtime.finalize_evidence().
+    # report-sized clinical propositions. The declared report.blocks workflow
+    # operation uses this same deterministic function for provider and self.
     prognosis_blocks,prognosis_trace=prognosis_report.aggregate(elements,diagnosis,reg)
     _write(
         _existing_or_new(work,'prognosis_report_aggregation','aggregation.yaml'),
@@ -1293,28 +1413,44 @@ def stage_blocks(work,diagnosis,elements,reg):
     _write(_existing_or_new(work,'report_blocks','report-blocks.yaml'),yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110))
     return blocks
 
-def stage_report_write(work,blocks,case,reg,profile):
-    path=_existing_or_new(work,'report_write','report-write.yaml'); prompt=_prompt('report_write')+'\n\n# Deterministic report blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Variant registry — naming context only\n```yaml\n'+model_context.registry_context(reg)+'```\n'
+def stage_report_write(work,blocks,case,reg,profile,*,prompt_text=None):
+    schema_validation.validate_report_source_blocks(blocks)
+    path=_existing_or_new(work,'report_write','report-write.yaml')
+    prompt=(prompt_text if prompt_text is not None else _prompt('report_write'))+'\n\n# Deterministic report blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Variant registry — naming context only\n```yaml\n'+model_context.registry_context(reg)+'```\n'
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='report-write',role='report_write',prompt=prompt,output=path,validator=lambda t:schema_validation.validate_report_write(t,blocks),profile=profile,max_attempts=_retry('report_write_attempts'))
-    rendered=yaml.safe_load(_read(path))['blocks']; amap={r['block_id']:r['text'] for r in rendered}
-    apath=_existing_or_new(work,'report_write','report-preservation.yaml'); aprompt=_prompt('report_preservation')+'\n\n# Deterministic source blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Rendered blocks\n```yaml\n'+yaml.safe_dump({'blocks':rendered},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+    return yaml.safe_load(_read(path))['blocks']
+
+
+def stage_report_preservation(work,blocks,rendered,profile,*,prompt_text=None):
+    apath=_existing_or_new(work,'report_write','report-preservation.yaml')
+    aprompt=(prompt_text if prompt_text is not None else _prompt('report_preservation'))+'\n\n# Deterministic source blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Rendered blocks\n```yaml\n'+yaml.safe_dump({'blocks':rendered},sort_keys=False,allow_unicode=True,width=110)+'```\n'
     try:
         _model_call(work,call_id='report-preservation',role='preservation_check',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_preservation(t,blocks),profile=profile,max_attempts=_retry('preservation_attempts'))
-        audits=yaml.safe_load(_read(apath))['audits']; audit_map={a['block_id']:a for a in audits}
+        audits=yaml.safe_load(_read(apath))['audits']; return {a['block_id']:a for a in audits}
     except StepFailure as exc:
-        audit_map={b['block_id']:{'preserved':False,'issue':'Preservation audit unavailable: '+str(exc)} for b in blocks}
-    final=[]
+        return {b['block_id']:{'preserved':False,'issue':'Preservation audit unavailable: '+str(exc)} for b in blocks}
+
+
+def stage_report_finalize_blocks(work,blocks,rendered,*,audit_map=None):
+    amap={r['block_id']:r['text'] for r in rendered}; final=[]
     for block in blocks:
-        audit=audit_map[block['block_id']]; text=amap.get(block['block_id']) or _fallback_block_text(block)
+        text=amap.get(block['block_id']) or _fallback_block_text(block)
+        audit=(audit_map or {}).get(block['block_id'],{'preserved':True,'issue':None})
         if not audit['preserved']:
-            issue_key=f'report-preservation:{block["block_id"]}'; _semantic_dissent(work,issue_key=issue_key,stage='final preservation audit',reviewed_text=text,dissent_reason=audit.get('issue') or 'Rendered block did not preserve the deterministic source block.',action_recommended='Use the deterministic source-preserving fallback for this block.'); fallback=_fallback_block_text(block); _semantic_dissent_address(work,issue_key=issue_key,stage='deterministic report fallback',action='Replace the failed rendered block with its deterministic fallback.',outcome=fallback,status='resolved'); text=fallback
+            issue_key=f'report-preservation:{block["block_id"]}'
+            _semantic_dissent(work,issue_key=issue_key,stage='final preservation audit',reviewed_text=text,dissent_reason=audit.get('issue') or 'Rendered block did not preserve the deterministic source block.',action_recommended='Use the deterministic source-preserving fallback for this block.')
+            fallback=_fallback_block_text(block)
+            _semantic_dissent_address(work,issue_key=issue_key,stage='deterministic report fallback',action='Replace the failed rendered block with its deterministic fallback.',outcome=fallback,status='resolved')
+            text=fallback
         tags=[]
         for comp in block['components']:
             for tag in comp.get('card_tags') or []:
                 if tag not in tags: tags.append(tag)
         final.append({'block_id':block['block_id'],'domain':block['domain'],'text':runtime.ensure_sentence(text),'card_tags':tags})
-    _write(_existing_or_new(work,'report_write','report-final-blocks.yaml'),yaml.safe_dump({'blocks':final},sort_keys=False,allow_unicode=True,width=110)); return final
+    _write(_existing_or_new(work,'report_write','report-final-blocks.yaml'),yaml.safe_dump({'blocks':final},sort_keys=False,allow_unicode=True,width=110))
+    return final
+
 
 def _render_dissent_markdown(issues):
     sections=[]; labels={'open':'Open','resolved':'Resolved','retained_with_dissent':'Retained with dissent'}
@@ -1363,12 +1499,36 @@ def stage_final(work,case,final_blocks,elements,all_cards,digest,manifest):
     if mode in VALIDATION_MODES:
         case_id=_load_run_state(work).get('validation_case'); package_marking_bundle(case_id,Path(work)/'report-final.md',Path(work)/f'{MARKING_PREFIX[mode]}-{case_id}.zip',case_file=validation_cases.VALIDATION_CASE_FILES[mode])
 
-def _provider_handlers():
+def _who2_required(ctx):
+    if int(_setting('diagnosis','who5','max_cmc_passes')) < 2:
+        return False
+    case=ctx.get('case') or {}
+    who1=ctx.get('who1')
+    if not who1:
+        path=_artifact(ctx.work,'diagnosis_who5_pass_1','who5.yaml')
+        if not path.is_file(): return False
+        who1=yaml.safe_load(_read(path))
+    return runtime.derive_cmcs(who1) != list(case.get('bootstrap_cmcs') or [])
+
+
+def _workflow_domain_contracts(workflow):
+    out={}
+    for domain in ('prognosis','treatment','biomarker','germline'):
+        try: step=workflow.step(domain)
+        except KeyError: continue
+        if step.stage_spec_obj and step.stage_spec_obj.type=='domain_proforma':
+            out[domain]=domain_contract.from_spec(step.stage_spec_obj)
+        else:
+            out[domain]=domain_contract.contract(domain)
+    return out
+
+
+def _provider_handlers(workflow):
     def structure_handler(step, ctx):
         _stage_status(ctx.work, step.id, 'Workflow — structure case')
-        case, reg = stage_structure(ctx.work, ctx.profile)
+        case, reg = stage_structure(ctx.work, ctx.profile, prompt_text=_compiled_prompt(step,workflow,ctx))
         ctx.put('case', case); ctx.put('registry', reg)
-        return {}
+        return {'artifact':case}
 
     def corpus_handler(step, ctx):
         _stage_status(ctx.work, step.id, 'Workflow — initialise corpus')
@@ -1377,85 +1537,332 @@ def _provider_handlers():
         ctx.put('corpus_digest', digest); ctx.put('manifest', manifest)
         return {}
 
-    def diagnosis_handler(step, ctx):
+    def who1_handler(step, ctx):
         _stage_status(ctx.work, 'diagnosis', 'Workflow — WHO5 / ICC / independent concurrent diagnosis')
-        diagnosis, cmcs, diagnosis_cards = stage_diagnosis(
-            ctx.work, ctx.get('case'), ctx.get('registry'), ctx.get('eligible'), ctx.get('manifest'), ctx.profile
-        )
-        ctx.put('diagnosis', diagnosis); ctx.put('diagnostic_cmcs', cmcs)
-        ctx.put('cards_by_domain', dict(diagnosis_cards))
-        who2 = has_artifact(ctx.work, 'diagnosis_who5_pass_2', 'who5.yaml')
-        statuses = ctx.get('provider_group_status', {}) or {}
-        statuses['diagnosis'] = {
-            'diagnosis.who1': {'status': 'complete'},
-            'diagnosis.icc': {'status': 'complete'},
-            'diagnosis.who2': {'status': 'complete' if who2 else 'skipped', 'reason': None if who2 else 'v6_cmc_reconsideration_not_required'},
-            'diagnosis.other': {'status': 'complete'},
-            'diagnosis.finalize': {'status': 'complete'},
-        }
-        ctx.put('provider_group_status', statuses)
-        return {}
+        history=list((ctx.get('case') or {}).get('bootstrap_cmcs') or [])
+        who,cards=stage_diagnosis_who_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,pass_number=1,history=history,prompt_text=_compiled_prompt(step,workflow,ctx))
+        ctx.put('who1',who); ctx.put('diagnostic_history',history)
+        cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_who5']=cards; ctx.put('cards_by_domain',cards_by)
+        return {'artifact':who}
+
+    def who2_handler(step, ctx):
+        history=list(ctx.get('diagnostic_history') or [])
+        who,cards=stage_diagnosis_who_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,pass_number=2,history=history,prompt_text=_compiled_prompt(step,workflow,ctx))
+        for cmc in runtime.derive_cmcs(who):
+            if cmc not in history: history.append(cmc)
+        ctx.put('who2',who); ctx.put('diagnostic_history',history)
+        cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_who5']=cards; ctx.put('cards_by_domain',cards_by)
+        return {'artifact':who}
+
+    def icc_handler(step, ctx):
+        history=list(ctx.get('diagnostic_history') or [])
+        who=ctx.get('who2') or ctx.get('who1')
+        icc,cards=stage_diagnosis_icc_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,history=history,who=who,prompt_text=_compiled_prompt(step,workflow,ctx))
+        ctx.put('icc',icc)
+        cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_icc']=cards; ctx.put('cards_by_domain',cards_by)
+        return {'artifact':icc}
+
+    def other_handler(step, ctx):
+        history=list(ctx.get('diagnostic_history') or [])
+        who=ctx.get('who2') or ctx.get('who1')
+        other,cards=stage_diagnosis_other_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,history=history,who=who,icc=ctx.get('icc'),prompt_text=_compiled_prompt(step,workflow,ctx))
+        ctx.put('diagnosis_other',other)
+        cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_other']=cards; ctx.put('cards_by_domain',cards_by)
+        return {'artifact':other}
+
+    def diagnosis_finalize_handler(step, ctx):
+        diagnosis,cmcs=stage_diagnosis_finalize_pass(ctx.work,ctx.get('case'),ctx.get('who1'),ctx.get('who2'),ctx.get('icc'),ctx.get('diagnosis_other'),list(ctx.get('diagnostic_history') or []))
+        ctx.put('diagnosis',diagnosis); ctx.put('diagnostic_cmcs',cmcs)
+        return {'artifact':diagnosis}
 
     def domain_handler(step, ctx):
         domain = step.id
         _stage_status(ctx.work, domain, f'Workflow — {domain} owner proforma')
+        selected_contract=domain_contract.from_spec(step.stage_spec_obj) if step.stage_spec_obj and step.stage_spec_obj.type=='domain_proforma' else domain_contract.contract(domain)
         proforma, cards = stage_domain(
             ctx.work, domain, ctx.get('case'), ctx.get('registry'), ctx.get('diagnosis'),
-            ctx.get('eligible'), ctx.get('manifest'), ctx.profile
+            ctx.get('eligible'), ctx.get('manifest'), ctx.profile, prompt_text=_compiled_prompt(step,workflow,ctx),
+            contract_override=selected_contract,stage_spec_override=step.stage_spec_obj
         )
         domains = dict(ctx.get('domains', {}) or {}); domains[domain] = proforma; ctx.put('domains', domains)
         cards_by_domain = dict(ctx.get('cards_by_domain', {}) or {}); cards_by_domain[domain] = cards; ctx.put('cards_by_domain', cards_by_domain)
-        return {}
+        return {'artifact':proforma}
 
-    def evidence_handler(step, ctx):
-        _stage_status(ctx.work, 'evidence', 'Workflow — evidence, reportability and adjudication')
-        elements = _elements(ctx.get('diagnosis'), ctx.get('domains', {}), ctx.get('case'))
-        supported = stage_evidence(
-            ctx.work, elements, ctx.get('cards_by_domain'), ctx.get('registry'), ctx.get('manifest'), ctx.profile,
-            authoritative_disease=ctx.get('diagnosis')['who5']['schema_disease'],
+    def _evidence_prompt(step,ctx,manifest):
+        parts=[_compiled_prompt(step,workflow,ctx).rstrip()]
+        seen=set()
+        for label,key in (("Fact blocks","facts"),("Evidence items","items"),("Disputes","disputes")):
+            path=manifest.get(key)
+            if isinstance(path,Path) and path.is_file() and path.resolve() not in seen:
+                seen.add(path.resolve())
+                parts += [f"\n# {label}\n",path.read_text(encoding='utf-8').rstrip()]
+        cards=manifest.get('cards')
+        if isinstance(cards,Path) and cards.is_file():
+            parts += ["\n# Eligible card text\n",cards.read_text(encoding='utf-8').rstrip()]
+        return "\n".join(parts)+"\n"
+
+    def evidence_assignment_handler(step,ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        _stage_status(ctx.work,'evidence.assignment','Workflow — evidence assignment')
+        contracts=_workflow_domain_contracts(workflow)
+        specs={d:workflow.step(d).stage_spec_obj for d in contracts}
+        max_passes=int((step.evidence or {}).get('match_passes',1))
+        while True:
+            manifest=sr.prepare_evidence_resolution(
+                ctx.work,contracts=contracts,specs=specs,max_match_passes=max_passes
+            )
+            if manifest.get('complete'):
+                break
+            pass_no=int(manifest['match_pass'])
+            _status(f"  evidence match pass {pass_no}/{max_passes}: {manifest['fact_count']} fact(s)")
+            validation_items=list(manifest['validation_items'])
+            call_id='evidence-assignment' if pass_no==1 else f'evidence-assignment-pass-{pass_no:02d}'
+            _model_call(
+                ctx.work,call_id=call_id,role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
+                validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=ctx.profile,
+                max_attempts=_retry('evidence_match_model_attempts'),
+            )
+        doc=sr.accept_evidence_resolution(ctx.work); ctx.put('evidence_assignments',doc)
+        return {'artifact':doc}
+
+    def evidence_audit_handler(step,ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        _stage_status(ctx.work,'evidence.audit','Workflow — evidence audit')
+        manifest=sr.prepare_evidence_audit(ctx.work)
+        state=sr._load_evidence_state(ctx.work); matches=sr.accept_evidence_resolution(ctx.work); targets=sr.audit_targets(state['items'],matches)
+        if not manifest.get('required'):
+            doc={'audits':[]}; ctx.put('evidence_audits',doc)
+            return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
+        validation_items=[{'evidence_id':x['evidence_id'],'selected_card_tags':x['selected_card_tags']} for x in targets]
+        _model_call(
+            ctx.work,call_id='evidence-audit',role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
+            validator=lambda t,vi=validation_items:schema_validation.validate_evidence_audit_batch(t,vi),profile=ctx.profile,
+            max_attempts=_retry('evidence_audit_model_attempts'),
         )
-        ctx.put('elements', elements); ctx.put('supported', supported)
-        statuses = ctx.get('provider_group_status', {}) or {}
-        statuses['evidence'] = {
-            'evidence.assignment': {'status': 'complete'},
-            'evidence.audit': {'status': 'complete'},
-            'evidence.adjudication': {'status': 'skipped', 'reason': 'v6_provider_semantic_retry_path'},
-            'evidence.finalize': {'status': 'complete'},
-        }
-        ctx.put('provider_group_status', statuses)
-        return {}
+        doc=yaml.safe_load(_read(manifest['output'])) or {}; ctx.put('evidence_audits',doc)
+        return {'artifact':doc}
+
+    def evidence_adjudication_handler(step,ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        manifest=sr.prepare_evidence_adjudication(ctx.work)
+        if not manifest.get('required'):
+            ctx.put('evidence_adjudication',{'adjudications':[]})
+            return {'status':'skipped','reason':'no_disagreement','artifact':{'adjudications':[]}}
+        disputes=(yaml.safe_load(_read(manifest['disputes'])) or {}).get('disputes') or []
+        def validate(text):
+            doc=yaml.safe_load(text)
+            if not isinstance(doc,dict): raise ValueError('evidence adjudication output must be a YAML mapping')
+            sr.validate_adjudication(doc,disputes)
+            return 'valid evidence adjudication'
+        _model_call(
+            ctx.work,call_id='evidence-adjudication',role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
+            validator=validate,profile=ctx.profile,max_attempts=_retry('evidence_audit_model_attempts'),
+        )
+        doc=yaml.safe_load(_read(manifest['output'])) or {}; ctx.put('evidence_adjudication',doc)
+        return {'artifact':doc}
+
+    def evidence_finalize_handler(step,ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        supported=sr.finalize_evidence(ctx.work); ctx.put('supported',supported)
+        return {'artifact':supported}
 
     def report_blocks_handler(step, ctx):
         blocks = stage_blocks(ctx.work, ctx.get('diagnosis'), ctx.get('supported'), ctx.get('registry'))
         ctx.put('blocks', blocks)
-        return {}
+        return {'artifact':blocks}
 
-    def report_handler(step, ctx):
-        _stage_status(ctx.work, 'report', 'Workflow — one report-writing call + preservation check')
-        final_blocks = stage_report_write(ctx.work, ctx.get('blocks'), ctx.get('case'), ctx.get('registry'), ctx.profile)
-        stage_final(ctx.work, ctx.get('case'), final_blocks, ctx.get('supported'), ctx.get('all_cards'), ctx.get('corpus_digest'), ctx.get('manifest'))
-        ctx.put('final_blocks', final_blocks)
-        return {}
+    def report_write_handler(step, ctx):
+        _stage_status(ctx.work, 'report', 'Workflow — report writing')
+        blocks=ctx.get('blocks')
+        schema_validation.validate_report_source_blocks(blocks)
+        rendered=stage_report_write(ctx.work,blocks,ctx.get('case'),ctx.get('registry'),ctx.profile,prompt_text=_compiled_prompt(step,workflow,ctx))
+        ctx.put('rendered_blocks',rendered)
+        return {'artifact':{'blocks':rendered}}
+
+    def report_preservation_handler(step, ctx):
+        audits=stage_report_preservation(ctx.work,ctx.get('blocks'),ctx.get('rendered_blocks'),ctx.profile,prompt_text=_compiled_prompt(step,workflow,ctx))
+        ctx.put('report_audits',audits)
+        return {'artifact':{'audits':list(audits.values())}}
+
+    def report_finalize_handler(step, ctx):
+        final_blocks=stage_report_finalize_blocks(ctx.work,ctx.get('blocks'),ctx.get('rendered_blocks'),audit_map=ctx.get('report_audits'))
+        stage_final(ctx.work,ctx.get('case'),final_blocks,ctx.get('supported'),ctx.get('all_cards'),ctx.get('corpus_digest'),ctx.get('manifest'))
+        ctx.put('final_blocks',final_blocks)
+        return {'artifact':final_blocks}
+
+    def generic_model_handler(step,ctx):
+        if not step.role:
+            raise StepFailure(f'generic model step {step.id!r} requires a role')
+        output=workflow_artifacts.generic_output_path(ctx.work,step,create=True)
+        schema_rel=(step.output or {}).get('schema')
+        schema=generic_schema_validation.load_schema((workflow.asset_root/schema_rel).resolve()) if schema_rel else None
+        fmt=(step.output or {}).get('format','yaml')
+        def validate(text):
+            generic_schema_validation.validate(text,fmt=fmt,schema=schema,check_specs=step.checks,context=ctx.data)
+            return f'{step.id} valid'
+        call_id='workflow-'+re.sub(r'[^a-zA-Z0-9_-]+','-',step.id).strip('-')
+        _model_call(ctx.work,call_id=call_id,role=step.role,prompt=_compiled_prompt(step,workflow,ctx),output=output,validator=validate,profile=ctx.profile,fmt=fmt)
+        raw=_read(output); doc=json.loads(raw) if fmt=='json' else yaml.safe_load(raw)
+        artifact_name=(step.output or {}).get('artifact')
+        if artifact_name: ctx.put(artifact_name,doc)
+        return {'artifact':doc}
 
     return {
         'structure': structure_handler,
         'corpus': corpus_handler,
-        'diagnosis': diagnosis_handler,
+        'diagnosis_who1': who1_handler,
+        'diagnosis_who2': who2_handler,
+        'diagnosis_icc': icc_handler,
+        'diagnosis_other': other_handler,
+        'diagnosis_finalize': diagnosis_finalize_handler,
         'domain': domain_handler,
-        'evidence': evidence_handler,
+        'evidence_assignment': evidence_assignment_handler,
+        'evidence_audit': evidence_audit_handler,
+        'evidence_adjudication': evidence_adjudication_handler,
+        'evidence_finalize': evidence_finalize_handler,
         'report_blocks': report_blocks_handler,
-        'report': report_handler,
+        'report_write': report_write_handler,
+        'report_preservation': report_preservation_handler,
+        'report_finalize': report_finalize_handler,
+        'generic_model': generic_model_handler,
     }
 
+def _model_step_validated(work, call_id):
+    root=layout.model_step_dir(Path(work),call_id,existing=True)
+    return (root/'validated.txt').is_file()
 
-def run_pipeline(work,profile=None):
+
+def _provider_step_complete(step_id, ctx):
+    work=ctx.work
+    checks={
+        'structure': _model_step_validated(work,'structure-case') and has_artifact(work,'structured_case','case.json'),
+        'corpus': has_artifact(work,'card_identity','card-identity-manifest.json'),
+        'diagnosis.who1': _model_step_validated(work,'diagnosis-who5-pass-01'),
+        'diagnosis.who2': _model_step_validated(work,'diagnosis-who5-pass-02'),
+        'diagnosis.icc': _model_step_validated(work,'diagnosis-icc'),
+        'diagnosis.other': _model_step_validated(work,'diagnosis-other'),
+        'diagnosis.finalize': has_artifact(work,'diagnosis','diagnosis-final.yaml'),
+        'prognosis': _model_step_validated(work,'prognosis') and has_artifact(work,'prognosis_state','model-classification.yaml'),
+        'treatment': _model_step_validated(work,'treatment') and has_artifact(work,'treatment_state','model-classification.yaml'),
+        'biomarker': _model_step_validated(work,'biomarker') and has_artifact(work,'biomarker_state','model-classification.yaml'),
+        'germline': _model_step_validated(work,'germline') and has_artifact(work,'germline_state','model-classification.yaml'),
+        'evidence.assignment': has_artifact(work,'evidence_matches','self-resolution.yaml'),
+        'evidence.audit': has_artifact(work,'evidence_audits','self-audit.yaml'),
+        'evidence.adjudication': _model_step_validated(work,'evidence-adjudication') and has_artifact(work,'evidence_adjudication','adjudication.yaml'),
+        'evidence.finalize': has_artifact(work,'evidence_enriched','reportable-elements.yaml'),
+        'report.blocks': has_artifact(work,'report_blocks','report-blocks.yaml'),
+        'report.write': _model_step_validated(work,'report-write') and has_artifact(work,'report_write','report-write.yaml'),
+        'report.preservation': _model_step_validated(work,'report-preservation') and has_artifact(work,'report_write','report-preservation.yaml'),
+        'report.finalize': (Path(work)/'report-final.md').is_file(),
+    }
+    return bool(checks.get(step_id,False))
+
+
+def _hydrate_provider_context(work, context):
+    work=Path(work)
+    if has_artifact(work,'structured_case','case.json'):
+        case=runtime.read_json(_case_json(work)); context.put('case',case)
+        regdoc=yaml.safe_load(_read(_variants_path(work))) or {}; context.put('registry',regdoc.get('variants') or {})
+    if has_artifact(work,'card_identity','card-identity-manifest.json'):
+        all_cards,eligible,digest,manifest=stage_corpus(work)
+        context.put('all_cards',all_cards); context.put('eligible',eligible); context.put('corpus_digest',digest); context.put('manifest',manifest)
+    case=context.get('case') or {}
+    history=list(case.get('bootstrap_cmcs') or [])
+    if _model_step_validated(work,'diagnosis-who5-pass-01'):
+        who1=yaml.safe_load(_read(_artifact(work,'diagnosis_who5_pass_1','who5.yaml'))) or {}; context.put('who1',who1)
+        for cmc in runtime.derive_cmcs(who1):
+            if cmc not in history: history.append(cmc)
+    if _model_step_validated(work,'diagnosis-who5-pass-02'):
+        who2=yaml.safe_load(_read(_artifact(work,'diagnosis_who5_pass_2','who5.yaml'))) or {}; context.put('who2',who2)
+        for cmc in runtime.derive_cmcs(who2):
+            if cmc not in history: history.append(cmc)
+    context.put('diagnostic_history',history)
+    if _model_step_validated(work,'diagnosis-icc'): context.put('icc',yaml.safe_load(_read(_existing_or_new(work,'diagnosis_icc','icc.yaml'))) or {})
+    if _model_step_validated(work,'diagnosis-other'): context.put('diagnosis_other',yaml.safe_load(_read(_existing_or_new(work,'diagnosis_other','other.yaml'))) or {})
+    if has_artifact(work,'diagnosis','diagnosis-final.yaml'): context.put('diagnosis',yaml.safe_load(_read(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'))) or {})
+    domains={}
+    for domain in ('prognosis','treatment','biomarker','germline'):
+        if has_artifact(work,f'{domain}_state','proforma.yaml'):
+            domains[domain]=yaml.safe_load(_read(_existing_or_new(work,f'{domain}_state','proforma.yaml'))) or {}
+    context.put('domains',domains)
+    if context.get('eligible') is not None and context.get('registry') is not None and context.get('diagnosis'):
+        genes=runtime.case_genes(case); disease=context.get('diagnosis')['who5']['schema_disease']; cards_by={}
+        cards_by['diagnosis_who5']=_diagnostic_cards(context.get('eligible'),genes,history,'who5')
+        cards_by['diagnosis_icc']=_diagnostic_cards(context.get('eligible'),genes,history,'icc')
+        cards_by['diagnosis_other']=_draw_diagnosis_cards(context.get('eligible'),genes,history)
+        for domain in domains: cards_by[domain]=_draw_domain_cards(context.get('eligible'),domain,genes,[disease])
+        context.put('cards_by_domain',cards_by)
+    if has_artifact(work,'evidence_matches','self-resolution.yaml'):
+        context.put('evidence_assignments',yaml.safe_load(_read(_existing_or_new(work,'evidence_matches','self-resolution.yaml'))) or {})
+    if has_artifact(work,'evidence_audits','self-audit.yaml'):
+        context.put('evidence_audits',yaml.safe_load(_read(_existing_or_new(work,'evidence_audits','self-audit.yaml'))) or {})
+    if has_artifact(work,'evidence_adjudication','adjudication.yaml'):
+        context.put('evidence_adjudication',yaml.safe_load(_read(_existing_or_new(work,'evidence_adjudication','adjudication.yaml'))) or {})
+    if has_artifact(work,'evidence_enriched','reportable-elements.yaml'):
+        context.put('supported',(yaml.safe_load(_read(_existing_or_new(work,'evidence_enriched','reportable-elements.yaml'))) or {}).get('elements') or [])
+    if has_artifact(work,'report_blocks','report-blocks.yaml'):
+        context.put('blocks',(yaml.safe_load(_read(_existing_or_new(work,'report_blocks','report-blocks.yaml'))) or {}).get('blocks') or [])
+    if has_artifact(work,'report_write','report-write.yaml'):
+        context.put('rendered_blocks',(yaml.safe_load(_read(_existing_or_new(work,'report_write','report-write.yaml'))) or {}).get('blocks') or [])
+    if has_artifact(work,'report_write','report-preservation.yaml'):
+        audits=(yaml.safe_load(_read(_existing_or_new(work,'report_write','report-preservation.yaml'))) or {}).get('audits') or []
+        context.put('report_audits',{a['block_id']:a for a in audits})
+    return context
+
+def _provider_invalidate(step_ids, context):
+    workflow=context.get('workflow')
+    call_ids={
+        'structure':'structure-case','diagnosis.who1':'diagnosis-who5-pass-01','diagnosis.who2':'diagnosis-who5-pass-02',
+        'diagnosis.icc':'diagnosis-icc','diagnosis.other':'diagnosis-other','prognosis':'prognosis','treatment':'treatment',
+        'biomarker':'biomarker','germline':'germline','evidence.assignment':'evidence-assignment','evidence.audit':'evidence-audit',
+        'evidence.adjudication':'evidence-adjudication','report.write':'report-write','report.preservation':'report-preservation',
+    }
+    outputs={
+        'structure':artifact_path(context.work,'structured_case','case.json',create=False),
+        'diagnosis.who1':artifact_path(context.work,'diagnosis_who5_pass_1','who5.yaml',create=False),
+        'diagnosis.who2':artifact_path(context.work,'diagnosis_who5_pass_2','who5.yaml',create=False),
+        'diagnosis.icc':artifact_path(context.work,'diagnosis_icc','icc.yaml',create=False),
+        'diagnosis.other':artifact_path(context.work,'diagnosis_other','other.yaml',create=False),
+        'diagnosis.finalize':artifact_path(context.work,'diagnosis','diagnosis-final.yaml',create=False),
+        'prognosis':artifact_path(context.work,'prognosis_state','model-classification.yaml',create=False),
+        'treatment':artifact_path(context.work,'treatment_state','model-classification.yaml',create=False),
+        'biomarker':artifact_path(context.work,'biomarker_state','model-classification.yaml',create=False),
+        'germline':artifact_path(context.work,'germline_state','model-classification.yaml',create=False),
+        'evidence.assignment':artifact_path(context.work,'evidence_matches','self-resolution.yaml',create=False),
+        'evidence.audit':artifact_path(context.work,'evidence_audits','self-audit.yaml',create=False),
+        'evidence.adjudication':artifact_path(context.work,'evidence_adjudication','adjudication.yaml',create=False),
+        'evidence.finalize':artifact_path(context.work,'evidence_enriched','reportable-elements.yaml',create=False),
+        'report.write':artifact_path(context.work,'report_write','report-write.yaml',create=False),
+        'report.preservation':artifact_path(context.work,'report_write','report-preservation.yaml',create=False),
+    }
+    for step_id in step_ids:
+        path=outputs.get(step_id)
+        if path: Path(path).unlink(missing_ok=True)
+        if workflow is not None and step_id not in outputs:
+            try: workflow_artifacts.generic_output_path(context.work,workflow.step(step_id),create=False).unlink(missing_ok=True)
+            except KeyError: pass
+        call_id=call_ids.get(step_id)
+        if call_id:
+            root=layout.model_step_dir(context.work,call_id,existing=True)
+            if root.is_dir(): shutil.rmtree(root)
+        if step_id in {'prognosis','treatment','biomarker','germline'}:
+            artifact_path(context.work,f'{step_id}_state','proforma.yaml',create=False).unlink(missing_ok=True)
+        if step_id=='report.finalize':
+            for name in ('report-final.md','report-final.json'): (Path(context.work)/name).unlink(missing_ok=True)
+
+
+def run_pipeline(work,profile=None,*,workflow_path=None):
+    global _ACTIVE_COMPILED_WORKFLOW, _ACTIVE_WORKFLOW_CONTEXT
     _require_work(work); layout.ensure_dirs(work)
-    compiled = compile_workflow()
-    context = WorkflowContext(Path(work), executor='provider', profile=profile, data={'settings': load_settings()})
-    trace = TraceRecorder(WORKFLOW_ID)
-    runner = WorkflowRunner(compiled, ProviderExecutor(_provider_handlers()), trace=trace)
+    compiled=_workflow_for_run(work,workflow_path); _ACTIVE_COMPILED_WORKFLOW=compiled
+    context=WorkflowContext(Path(work),executor='provider',profile=profile,data={'settings':load_settings(),'workflow':compiled})
+    _ACTIVE_WORKFLOW_CONTEXT=context
+    context.put('predicates',{'who2_required':_who2_required})
+    _hydrate_provider_context(work,context)
+    trace=TraceRecorder(compiled.workflow_id)
+    runner=WorkflowRunner(compiled,ProviderExecutor(_provider_handlers(compiled),completion=_provider_step_complete,invalidator=_provider_invalidate),trace=trace)
     runner.run_all(context)
-    trace.write(layout.logs(work) / 'workflow-trace.json')
+    trace.write(layout.logs(work)/'workflow-trace.json')
     _print_usage(work); _stage_status(work,'complete','proforma-v1 complete'); return EXIT_OK
 
 def run_pipeline_setting(pid):
@@ -1480,11 +1887,16 @@ def _resolve_run_work_dir(work_dir):
 
 def build_parser():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='command',required=True)
-    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=supported_modes()); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names())
+    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=supported_modes()); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names()); s.add_argument('--workflow',type=Path)
     cs=sub.add_parser('check-stage'); cs.add_argument('--stage',required=True,choices=stage_checks.names()); cs.add_argument('--file',type=Path,required=True); cs.add_argument('--context',type=Path)
     sp=sub.add_parser('show-prompt'); sp.add_argument('--stage',required=True,choices=stage_checks.names()); sp.add_argument('--context',type=Path)
     sub.add_parser('stages')
-    sub.add_parser('pipelines'); sub.add_parser('workflow-check'); pc=sub.add_parser('pipeline-check'); pc.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pp=sub.add_parser('pipeline-plan'); pp.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); ps=sub.add_parser('pipeline'); ps.add_argument('pipeline_id',nargs='?',choices=pipeline_registry.names()); r=sub.add_parser('run'); r.add_argument('--work-dir',type=Path)
+    sub.add_parser('pipelines')
+    wc=sub.add_parser('workflow-check'); wc.add_argument('--workflow',type=Path)
+    pc=sub.add_parser('pipeline-check'); pc.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pc.add_argument('--workflow',type=Path)
+    pp=sub.add_parser('pipeline-plan'); pp.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pp.add_argument('--workflow',type=Path)
+    ps=sub.add_parser('pipeline'); ps.add_argument('pipeline_id',nargs='?',choices=pipeline_registry.names())
+    r=sub.add_parser('run'); r.add_argument('--work-dir',type=Path); r.add_argument('--workflow',type=Path)
     return p
 
 def main(argv=None):
@@ -1498,13 +1910,13 @@ def main(argv=None):
             for name in pipeline_registry.names(): print(f'{name}: {pipeline_registry.descriptions()[name]}')
             return EXIT_OK
         if args.command=='workflow-check':
-            [print(x) for x in describe_workflow(compile_workflow())]; return EXIT_OK
+            [print(x) for x in describe_workflow(_compile_selected_workflow(args.workflow))]; return EXIT_OK
         if args.command in {'pipeline-check','pipeline-plan'}:
-            compiled=compile_workflow(); plan=pipeline_registry.load(args.pipeline); print(f'PIPELINE={plan.pipeline_id}'); [print(x) for x in pipeline_registry.describe(plan)]; [print(x) for x in describe_workflow(compiled)]; return EXIT_OK
+            compiled=_compile_selected_workflow(args.workflow); plan=pipeline_registry.load(args.pipeline); print(f'PIPELINE={plan.pipeline_id}'); [print(x) for x in pipeline_registry.describe(plan)]; [print(x) for x in describe_workflow(compiled)]; return EXIT_OK
         if args.command=='pipeline': return run_pipeline_setting(args.pipeline_id)
         if args.command=='run':
             work=_resolve_run_work_dir(args.work_dir)
-            with _cli_logging(work): return run_pipeline(work)
+            with _cli_logging(work): return run_pipeline(work,workflow_path=args.workflow)
         raise StepFailure(f'unknown command {args.command}')
     except Handoff as h:
         print(f'HANDOFF={h.call_id}'); print(f'PROMPT={h.prompt}'); print(f'OUTPUT={h.output}'); return EXIT_HANDOFF

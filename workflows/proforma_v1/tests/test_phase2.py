@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 
 from workflows.proforma_v1.engine import assemblers, checks, evidence, prompt_renderer, schema_validation
+from workflows.proforma_v1 import self_runtime as self_runtime
 from workflows.proforma_v1.engine.context import WorkflowContext
 from workflows.proforma_v1.engine.workflow_compiler import WorkflowCompileError, compile_workflow
 from workflows.proforma_v1.engine.workflow_runner import WorkflowRunner
@@ -18,7 +19,7 @@ from workflows.proforma_v1.trace import TraceRecorder
 
 
 HERE = Path(__file__).resolve().parents[1]
-WORKFLOW = HERE / "workflow.yaml"
+WORKFLOW = HERE / "workflow" / "default.yaml"
 
 
 class WorkflowCompilerTests(unittest.TestCase):
@@ -37,21 +38,35 @@ class WorkflowCompilerTests(unittest.TestCase):
     def test_canonical_workflow_compiles_to_expected_logical_graph(self):
         workflow = compile_workflow()
         self.assertEqual(workflow.workflow_id, "proforma-v1")
-        self.assertEqual(len(workflow.steps), 17)
+        self.assertEqual(len(workflow.steps), 19)
         self.assertEqual(
             [x.id for x in workflow.steps],
             [
-                "structure", "corpus", "diagnosis.who1", "diagnosis.icc", "diagnosis.who2",
+                "structure", "corpus", "diagnosis.who1", "diagnosis.who2", "diagnosis.icc",
                 "diagnosis.other", "diagnosis.finalize", "prognosis", "treatment", "biomarker",
                 "germline", "evidence.assignment", "evidence.audit", "evidence.adjudication",
-                "evidence.finalize", "report.blocks", "report",
+                "evidence.finalize", "report.blocks", "report.write", "report.preservation", "report.finalize",
             ],
         )
-        self.assertEqual(workflow.step("report").needs, ("report.blocks",))
+        self.assertEqual(workflow.step("report.finalize").needs, ("report.preservation",))
+
+    def test_evidence_match_pass_count_is_workflow_configurable(self):
+        workflow = compile_workflow()
+        self.assertEqual(workflow.step("evidence.assignment").evidence["match_passes"], 2)
+
+        doc = copy.deepcopy(self.doc)
+        doc["steps"]["evidence.assignment"]["evidence"]["match_passes"] = 3
+        custom = self._compile_doc(doc)
+        self.assertEqual(custom.step("evidence.assignment").evidence["match_passes"], 3)
+
+        doc = copy.deepcopy(self.doc)
+        doc["steps"]["evidence.assignment"]["evidence"]["match_passes"] = 0
+        with self.assertRaisesRegex(WorkflowCompileError, "minimum of 1"):
+            self._compile_doc(doc)
 
     def test_dependency_cycle_is_rejected(self):
         doc = copy.deepcopy(self.doc)
-        doc["steps"]["structure"]["needs"] = ["report"]
+        doc["steps"]["structure"]["needs"] = ["report.finalize"]
         with self.assertRaisesRegex(WorkflowCompileError, "dependency cycle"):
             self._compile_doc(doc)
 
@@ -124,6 +139,67 @@ class PromptAndValidationTests(unittest.TestCase):
             with self.assertRaises(prompt_renderer.PromptRenderError):
                 prompt_renderer.render(root / "bad.md", root=root, inputs={"case": "x"})
 
+    def test_sequential_ids_match_terraced_v6_unpadded_namespace(self):
+        variant_spec = {"rule": "sequential_ids", "path": "variants", "field": "variant_id", "prefix": "V"}
+        fact_spec = {"rule": "sequential_ids", "path": "case_facts", "field": "fact_id", "prefix": "C"}
+        checks.apply({"variants": [{"variant_id": "V1"}, {"variant_id": "V2"}]}, [variant_spec])
+        checks.apply({"case_facts": [{"fact_id": "C1"}, {"fact_id": "C2"}]}, [fact_spec])
+        with self.assertRaisesRegex(checks.CheckFailure, r"expected \['V1', 'V2'\]"):
+            checks.apply({"variants": [{"variant_id": "V01"}, {"variant_id": "V02"}]}, [variant_spec])
+
+        # Padding remains available, but must be an explicit workflow decision.
+        padded = dict(variant_spec, width=2)
+        checks.apply({"variants": [{"variant_id": "V01"}, {"variant_id": "V02"}]}, [padded])
+
+    def test_default_structure_declared_check_accepts_v6_valid_fixture(self):
+        fixture = HERE / "tests" / "fixtures" / "replay" / "structure_case--valid" / "response.json"
+        workflow = compile_workflow()
+        step = workflow.step("structure")
+        schema = schema_validation.load_schema((workflow.asset_root / step.output["schema"]).resolve())
+        doc = schema_validation.validate(
+            fixture.read_text(encoding="utf-8"),
+            fmt=step.output["format"],
+            schema=schema,
+            check_specs=step.checks,
+            context={},
+        )
+        self.assertEqual([row["variant_id"] for row in doc["variants"]], ["V1"])
+
+    def test_generic_row_checks_do_not_silently_accept_unknown_or_non_mapping_rows(self):
+        with self.assertRaisesRegex(checks.CheckFailure, "expected exact row keys"):
+            checks.apply(
+                {"rows": [None]},
+                [{"rule": "one_row_per", "path": "rows", "key": "id", "source": "expected"}],
+                context={"expected": []},
+            )
+
+        spec = {
+            "rule": "field_matches_source", "rows": "rows", "row_key": "id", "path": "gene",
+            "source": "registry", "source_key": "id", "source_path": "gene",
+        }
+        checks.apply(
+            {"rows": [{"id": "v01", "gene": "ASXL1"}]}, [spec],
+            context={"registry": [{"id": "v01", "gene": "ASXL1"}]},
+        )
+        with self.assertRaisesRegex(checks.CheckFailure, "unknown source key"):
+            checks.apply(
+                {"rows": [{"id": "v99", "gene": None}]}, [spec],
+                context={"registry": [{"id": "v01", "gene": "ASXL1"}]},
+            )
+
+    def test_explicit_empty_model_field_allowlist_rejects_model_owned_fields(self):
+        with self.assertRaisesRegex(assemblers.AssemblyError, "non-owned field"):
+            assemblers.assemble(
+                "object_merge", {"model_field": "x"},
+                spec={"source": "base", "model_fields": []}, context={"base": {"locked": 1}},
+            )
+        with self.assertRaisesRegex(assemblers.AssemblyError, "non-owned field"):
+            assemblers.assemble(
+                "keyed_rows", {"answers": {"v01": {"model_field": "x"}}},
+                spec={"source": "registry", "source_key": "id", "answers_path": "answers", "model_fields": []},
+                context={"registry": [{"id": "v01"}]},
+            )
+
     def test_generic_schema_checks_and_keyed_rows_assembly(self):
         model_schema = {
             "type": "object",
@@ -152,14 +228,66 @@ class PromptAndValidationTests(unittest.TestCase):
 
 
 class EvidenceEngineTests(unittest.TestCase):
-    def test_zero_assignment_audits_full_pool_and_rescued_card_is_disputed(self):
-        claim = {"evidence_id": "E0001", "claim": "claim", "candidate_card_tags": ["[card:aaa]", "[card:bbb]"]}
-        self.assertEqual(evidence.audit_targets(claim, []), claim["candidate_card_tags"])
-        result = evidence.compare(claim=claim, assigned_card_tags=[], audit_rows=[
-            {"card_tag": "[card:aaa]", "decision": "exclude"},
-            {"card_tag": "[card:bbb]", "decision": "include", "comments": "rescued"},
-        ])
-        self.assertEqual(result["disputes"][0]["dispute_type"], "resolver_zero_auditor_include")
+    def test_zero_assignment_is_not_audited_and_later_match_pass_can_rescue(self):
+        claim = {"evidence_id": "E0001", "claim": "claim", "candidate_card_tags": ["[card:aaaaaaaaaaaa]", "[card:bbbbbbbbbbbb]"]}
+        self.assertEqual(evidence.audit_targets(claim, []), [])
+
+        items = [
+            {"evidence_id": "E0001"},
+            {"evidence_id": "E0002"},
+        ]
+        pass1 = {"matches": [
+            {"evidence_id": "E0001", "card_tags": ["[card:aaaaaaaaaaaa]"]},
+            {"evidence_id": "E0002", "card_tags": []},
+        ]}
+        merged, zero = evidence.merge_match_passes(items, [pass1])
+        self.assertEqual(zero, ["E0002"])
+        self.assertEqual(merged["matches"][0]["card_tags"], ["[card:aaaaaaaaaaaa]"])
+
+        pass2 = {"matches": [
+            {"evidence_id": "E0002", "card_tags": ["[card:bbbbbbbbbbbb]"]},
+        ]}
+        merged, zero = evidence.merge_match_passes(items, [pass1, pass2])
+        self.assertEqual(zero, [])
+        self.assertEqual(merged["matches"][1]["card_tags"], ["[card:bbbbbbbbbbbb]"])
+
+    def test_match_pass_rejects_already_resolved_fact_on_later_pass(self):
+        items = [{"evidence_id": "E0001"}, {"evidence_id": "E0002"}]
+        pass1 = {"matches": [
+            {"evidence_id": "E0001", "card_tags": ["[card:aaaaaaaaaaaa]"]},
+            {"evidence_id": "E0002", "card_tags": []},
+        ]}
+        bad_pass2 = {"matches": [{"evidence_id": "E0001", "card_tags": []}]}
+        with self.assertRaisesRegex(evidence.EvidenceError, "already-resolved"):
+            evidence.merge_match_passes(items, [pass1, bad_pass2])
+
+    def test_fact_blocks_are_json_segmented_and_card_local(self):
+        rows = [
+            {"evidence_id": "E0001", "reason": "first fact", "candidate_card_tags": ["[card:aaaaaaaaaaaa]"]},
+            {"evidence_id": "E0002", "reason": "second fact", "candidate_card_tags": ["[card:bbbbbbbbbbbb]"]},
+        ]
+        catalog = {
+            "A": {"card_id": "A", "interpretation": "A only"},
+            "B": {"card_id": "B", "interpretation": "B only"},
+        }
+        from unittest.mock import patch
+        with patch.object(self_runtime.staged, "_render_cards", side_effect=lambda cards, tags: cards[0]["interpretation"]):
+            text = self_runtime._fact_blocks(
+                rows, catalog, {"A": "aaaaaaaaaaaa", "B": "bbbbbbbbbbbb"},
+                card_tags_field="candidate_card_tags",
+            )
+        self.assertIn("<fact-1>", text)
+        self.assertIn("</fact-1>", text)
+        self.assertIn("<fact-2>", text)
+        first = text.split("<fact-1>\n", 1)[1].split("\n</fact-1>", 1)[0]
+        second = text.split("<fact-2>\n", 1)[1].split("\n</fact-2>", 1)[0]
+        first_doc = json.loads(first)
+        second_doc = json.loads(second)
+        self.assertEqual(first_doc["fact"], "first fact")
+        self.assertEqual([x["card_id"] for x in first_doc["cards"]], ["[card:aaaaaaaaaaaa]"])
+        self.assertNotIn("bbbbbbbbbbbb", first)
+        self.assertEqual([x["card_id"] for x in second_doc["cards"]], ["[card:bbbbbbbbbbbb]"])
+        self.assertNotIn("aaaaaaaaaaaa", second)
 
     def test_positive_assignment_audits_selected_only_and_adjudication_is_cropped(self):
         claim = {"evidence_id": "E0001", "claim": "claim", "candidate_card_tags": ["[card:aaa]", "[card:bbb]"]}
@@ -208,8 +336,8 @@ class SharedRunnerTests(unittest.TestCase):
         self_source = (HERE / "self.py").read_text(encoding="utf-8")
         self.assertIn("WorkflowRunner(compiled", step_source)
         self.assertIn("WorkflowRunner(workflow", self_source)
-        self.assertIn("compile_workflow()", step_source)
-        self.assertIn("compile_workflow()", self_source)
+        self.assertIn("_workflow_for_run", step_source)
+        self.assertIn("_workflow_for_run", self_source)
 
 
 if __name__ == "__main__":

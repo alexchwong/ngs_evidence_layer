@@ -3,9 +3,19 @@ from __future__ import annotations
 
 
 class ProviderExecutor:
-    def __init__(self, handlers: dict):
+    def __init__(self, handlers: dict, *, completion=None, invalidator=None):
         self.handlers = dict(handlers)
+        self.completion = completion
+        self.invalidator = invalidator
         self.completed_groups: set[str] = set()
+
+    def is_complete(self, step_id, context):
+        return bool(self.completion(step_id, context)) if self.completion else False
+
+
+    def invalidate(self, step_ids, context):
+        if self.invalidator:
+            self.invalidator(set(step_ids), context)
 
     def execute(self, step, context):
         execution = step.execution or {}

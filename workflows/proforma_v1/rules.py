@@ -354,29 +354,20 @@ def prognosis_contract(doc, context, params):
             effects.append(fx.get("effect"))
         other = row.get("other_evidence_effect")
         other_reason = row.get("other_evidence_reason")
-        if other == "no_evidence":
-            if other_reason is not None:
-                out.append(ValidationIssue(
-                    f"classification[{i}].other_evidence_reason",
-                    "is populated even though other_evidence_effect is no_evidence",
-                    "use null when there is no independent disease-applicable prognostic evidence",
-                    repair_class="content", received=iss.preview(other_reason), expected="null",
-                ))
-        elif not isinstance(other_reason, str) or not other_reason.strip():
+        # ``no_evidence`` is a non-reportable state. Runtime normalization owns
+        # removal of any redundant model-supplied reason, so validation should
+        # not spend a model retry on form hygiene that Python can resolve.
+        if other != "no_evidence" and (not isinstance(other_reason, str) or not other_reason.strip()):
             out.append(ValidationIssue(
                 f"classification[{i}].other_evidence_reason",
                 "is missing despite a positive/neutral other-evidence classification",
                 "give one concise same-disease prognostic proposition",
                 repair_class="content", received=iss.preview(other_reason), expected="non-empty string",
             ))
-        directional = {x for x in effects if x in {"favorable", "adverse", "neutral"}}
-        if other in {"favorable", "adverse", "neutral"} and len(directional) == 1 and other not in directional:
-            out.append(ValidationIssue(
-                f"classification[{i}].other_evidence_effect",
-                f"conflicts with the variant's framework effect direction {sorted(directional)}",
-                "when framework and independent evidence both classify this variant, keep the direction concordant; if named frameworks genuinely disagree, preserve those framework-specific differences",
-                repair_class="content", received=other, expected=str(sorted(directional)),
-            ))
+        # Framework-specific and independent literature evidence are separate
+        # evidence channels and may legitimately point in different directions.
+        # Deterministic validation therefore does not force concordance between
+        # them; evidence review decides whether each proposition is supported.
     return out
 
 def issue_null_when_preserved(doc, context, params):

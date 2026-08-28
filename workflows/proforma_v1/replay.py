@@ -37,6 +37,13 @@ OPERATION_IDS = {
     "report_preservation": "report.preservation",
 }
 
+
+INTENTIONAL_PROMPT_DRIFT = {
+    # Evidence prompts intentionally changed in Phase 2B. Prognosis prompt
+    # intentionally changed after Phase 2B to allow source-specific directional
+    # disagreement while preserving the frozen v6 validator oracle.
+    "proforma-v1": {"evidence_match", "evidence_audit", "prognosis"},
+}
 DEPENDENCIES = {
     "structure": [],
     "diagnosis.who1": ["structure"],
@@ -285,10 +292,11 @@ def run_suite(*, workflow_id: str = "proforma-v1", root: Path = DEFAULT_FIXTURES
     for case in cases:
         actual = replay_case(case, workflow_id=workflow_id, trace=trace)
         expected = case.expected
+        prompt_required = case.stage not in INTENTIONAL_PROMPT_DRIFT.get(workflow_id, set())
         if (
             actual["accepted"] != expected["accepted"]
             or actual["message_sha256"] != expected["message_sha256"]
-            or not actual.get("prompt_matches", True)
+            or (prompt_required and not actual.get("prompt_matches", True))
             or not actual.get("contract_matches", True)
         ):
             failures.append({"case_id": case.case_id, "expected": expected, "actual": actual})

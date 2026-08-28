@@ -75,7 +75,7 @@ The runner supports a deliberately small vocabulary: setting equality, artifact-
 3. deterministic resolver/auditor disagreement detection;
 4. cropped adjudication validation.
 
-If assignment selects cards, audit only those cards. If assignment selects zero cards, audit the full eligible candidate pool so a false-negative zero assignment can be rescued. Adjudication is permitted only for disputed claim/card pairs.
+Evidence matching may use multiple workflow-configured passes. Pass 1 reviews every fact; later passes run only for facts still assigned zero cards. Match and audit inputs are isolated per fact in `<fact-N>` JSON blocks. Audit sees only positively matched cards; false-negative rescue belongs to later match passes. Adjudication is permitted only for actual match/audit disagreements.
 
 Evidence policies are declared centrally in `workflow.yaml`. The engine supports `blocking` and `deferred` timing. The compiler requires every deferred review to have a downstream adjudication barrier and rejects non-evidence consumers that can bypass it.
 

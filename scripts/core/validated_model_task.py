@@ -367,22 +367,38 @@ def run(request: TaskRequest, io: TaskIO) -> str:
 
     existing = io.read_output()
     if existing is not None:
-        try:
-            candidate, message = _validate(request, io, _prepare(request, existing))
-        except Exception as exc:
-            feedback = _guard(request, io, state, existing, _content_error(exc))
-            previous = existing
-            mode = "repair"
-            index += 1
-            state.update({"rewrites": index, "mode": mode, "feedback": feedback, "previous": previous})
-            io.save_state(request.task_id, state)
-            io.record_attempt(Attempt(request.task_id, index, existing, feedback))
-            if index >= attempts:
-                raise TaskFailed(f"{request.task_id} failed validation after {attempts} attempt(s): {feedback}")
+        existing_fp = _fingerprint(existing)
+        # A native-self suspension is not a model attempt.  After an invalid
+        # artifact has been consumed we persist its fingerprint; if the next
+        # process invocation sees the same file, it must re-issue the same
+        # repair handoff without incrementing the attempt counter again.
+        already_consumed = state.get("consumed_output_fingerprint") == existing_fp
+        if not already_consumed:
+            try:
+                candidate, message = _validate(request, io, _prepare(request, existing))
+            except Exception as exc:
+                feedback = _guard(request, io, state, existing, _content_error(exc))
+                previous = existing
+                mode = "repair"
+                index += 1
+                state.update({
+                    "rewrites": index, "mode": mode, "feedback": feedback, "previous": previous,
+                    "consumed_output_fingerprint": existing_fp,
+                })
+                io.save_state(request.task_id, state)
+                io.record_attempt(Attempt(request.task_id, index, existing, feedback))
+                if index >= attempts:
+                    raise TaskFailed(f"{request.task_id} failed validation after {attempts} attempt(s): {feedback}")
+            else:
+                io.write_output(candidate)
+                io.save_state(request.task_id, {})
+                return candidate
         else:
-            io.write_output(candidate)
-            io.save_state(request.task_id, {})
-            return candidate
+            # Restore the persisted repair state verbatim.  This is the common
+            # path when a host model has not yet replaced the rejected output.
+            previous = state.get("previous")
+            mode = state.get("mode") or "repair"
+            feedback = state.get("feedback") or ""
 
     if io.is_self:
         # The response must come from a later invocation. All loop state is on

@@ -18,8 +18,12 @@ def object_merge(model_output: Any, *, spec: dict, context: dict) -> dict:
     if not isinstance(base, dict) or not isinstance(model_output, dict):
         raise AssemblyError("object_merge requires mapping source and model output")
     allowed = spec.get("model_fields")
-    incoming = model_output if not allowed else {k: model_output[k] for k in allowed if k in model_output}
-    unknown = set(model_output) - set(allowed or model_output)
+    if allowed is None:
+        incoming = model_output
+        unknown = set()
+    else:
+        incoming = {k: model_output[k] for k in allowed if k in model_output}
+        unknown = set(model_output) - set(allowed)
     if unknown:
         raise AssemblyError(f"model output contains non-owned field(s): {sorted(unknown)}")
     base.update(deepcopy(incoming))
@@ -48,14 +52,15 @@ def keyed_rows(model_output: Any, *, spec: dict, context: dict) -> dict:
         if missing:
             raise AssemblyError(f"missing answer ID(s): {missing}")
     deterministic = spec.get("deterministic_fields") or {}
-    model_fields = tuple(spec.get("model_fields") or ())
+    model_field_spec = spec.get("model_fields")
+    model_fields = tuple(model_field_spec or ())
     rows = []
     for row in source_rows:
         key = str(row[source_key])
         answer = answers.get(key, {})
         if not isinstance(answer, dict):
             raise AssemblyError(f"answer {key!r} must be a mapping")
-        unknown = sorted(set(answer) - set(model_fields)) if model_fields else []
+        unknown = sorted(set(answer) - set(model_fields)) if model_field_spec is not None else []
         if unknown:
             raise AssemblyError(f"answer {key!r} contains non-owned field(s): {unknown}")
         built = {}
