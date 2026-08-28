@@ -67,6 +67,61 @@ class Phase3WorkflowTests(unittest.TestCase):
             with patch.object(self_runtime,"assess_who1_routing_change",side_effect=AssertionError("downstream completion check evaluated eagerly")):
                 self.assertFalse(staged._provider_step_complete("structure",context))
 
+    def test_step_self_resume_requires_deterministic_structure_tail_but_provider_completion_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case_text=(HERE/"tests"/"fixtures"/"structure_case"/"valid.json").read_text(encoding="utf-8")
+            staged._case_json(work).write_text(case_text,encoding="utf-8")
+            root=layout.model_step_dir(work,"structure-case",existing=False)
+            (root/"validated.txt").write_text("accepted\n",encoding="utf-8")
+
+            self_ctx=WorkflowContext(work,executor="provider",profile="self",data={})
+            staged._hydrate_provider_context(work,self_ctx)
+            self.assertNotIn("registry",self_ctx.data)
+            self.assertFalse(staged._provider_step_complete("structure",self_ctx))
+
+            provider_ctx=WorkflowContext(work,executor="provider",profile="lmstudio",data={})
+            self.assertTrue(staged._provider_step_complete("structure",provider_ctx))
+
+            staged._variants_path(work).write_text("variants: {}\n",encoding="utf-8")
+            staged._hydrate_provider_context(work,self_ctx)
+            self.assertEqual(self_ctx.get("registry"),{})
+            self.assertTrue(staged._provider_step_complete("structure",self_ctx))
+
+    def test_step_self_structure_reentry_finishes_deterministic_tail_without_another_model_call(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case_text=(HERE/"tests"/"fixtures"/"structure_case"/"valid.json").read_text(encoding="utf-8")
+            staged._case_json(work).write_text(case_text,encoding="utf-8")
+            layout.input(work,"case.md",existing=False).write_text("MDS with SRSF2 mutation",encoding="utf-8")
+            layout.setup(work,"case-major-categories.json",existing=False).write_text('["MDS"]\n',encoding="utf-8")
+            scope=(staged.REPO_ROOT/"config"/"ngs-panel-scope.md").read_text(encoding="utf-8")
+            layout.setup(work,"ngs-panel-scope.md",existing=False).write_text(scope,encoding="utf-8")
+            with patch.object(staged.model_client,"complete_messages",side_effect=AssertionError("existing self handoff output must be consumed without another model call")):
+                case,registry=staged.stage_structure(work,"self",prompt_text="structure")
+            self.assertEqual(case["variants"][0]["gene"],"SRSF2")
+            self.assertIn("v01",registry)
+            self.assertTrue(staged.has_artifact(work,"variant_registry","variants.yaml"))
+            self.assertTrue((layout.model_step_dir(work,"structure-case",existing=True)/"validated.txt").is_file())
+
+    def test_provider_usage_summary_separates_logical_operations_physical_calls_and_repairs(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            staged._record_usage(work,"prognosis","model-a",1,{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15},role="ptbg",duration_ms=100,logical_operation="prognosis")
+            staged._record_usage(work,"prognosis","model-a",2,{"prompt_tokens":12,"completion_tokens":6,"total_tokens":18},role="ptbg",duration_ms=120,logical_operation="prognosis")
+            staged._record_usage(work,"prognosis-syntax-1","model-b",1,{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6},role="syntax_repair",duration_ms=30,logical_operation="prognosis",call_kind="syntax_repair")
+            staged._record_usage(work,"treatment","model-a",1,None,role="ptbg",duration_ms=80,logical_operation="treatment")
+            summary=staged._usage_summary(work)
+            self.assertEqual(summary["logical_operations"],2)
+            self.assertEqual(summary["physical_calls"],4)
+            self.assertEqual(summary["retry_calls"],1)
+            self.assertEqual(summary["syntax_repair_calls"],1)
+            self.assertEqual(summary["duration_ms"],330)
+            self.assertEqual(summary["totals"]["total_tokens"],39)
+            self.assertEqual(summary["by_operation"]["prognosis"]["physical_calls"],3)
+            self.assertEqual(summary["by_operation"]["prognosis"]["retry_calls"],1)
+            self.assertEqual(summary["by_operation"]["prognosis"]["syntax_repair_calls"],1)
+
     def test_proforma_devel_sync_does_not_own_root_config(self):
         from workflows.proforma_v1 import devel_sync
         self.assertEqual(devel_sync.check(),0)
@@ -307,6 +362,28 @@ class Phase3EvidenceRescueTests(unittest.TestCase):
             self.assertEqual(updated["needs_rescue_evidence_ids"],[])
             self.assertTrue(self_runtime.evidence_audit_resolved(work))
             self.assertEqual(updated["unresolved_disputes"],[])
+
+    def test_committed_audit_replay_does_not_recalculate_now_empty_targets(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            state=self._state(); self_runtime.write_yaml(self_runtime._evidence_state_path(work),state)
+            self_runtime.write_yaml(self_runtime._evidence_match_final_path(work),{"matches":[{"evidence_id":"E0001","card_tags":["[card:aaaaaaaaaaaa]"]}]})
+            audit_path=self_runtime.output_path(work,"evidence_audits","self-audit.yaml")
+            self_runtime.write_yaml(audit_path,{
+                "audits":[{"evidence_id":"E0001","card_audits":[{"card_tag":"[card:aaaaaaaaaaaa]","card_is_element_of_reason":True,"risk":"none","comments":[]}]}]
+            })
+            with patch.object(self_runtime,"_assert_audit_targets_applicable",return_value=None):
+                first=self_runtime.apply_evidence_audit(work)
+            digest=first["processed_audit_sha256"]
+            with patch.object(self_runtime,"audit_targets",side_effect=AssertionError("committed audit targets must not be recalculated")):
+                doc,targets=self_runtime.accept_evidence_audit(work)
+                manifest=self_runtime.prepare_evidence_audit(work)
+                second=self_runtime.apply_evidence_audit(work)
+            self.assertEqual(doc["audits"][0]["evidence_id"],"E0001")
+            self.assertEqual(targets,[{"evidence_id":"E0001","selected_card_tags":["[card:aaaaaaaaaaaa]"]}])
+            self.assertTrue(manifest["committed"])
+            self.assertEqual(second["processed_audit_sha256"],digest)
+            self.assertEqual(audit_path.read_text(encoding="utf-8"),yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
 
     def test_final_adjudication_input_is_blind_and_cropped(self):
         with tempfile.TemporaryDirectory() as td:

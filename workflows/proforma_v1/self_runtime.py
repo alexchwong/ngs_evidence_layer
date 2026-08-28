@@ -942,12 +942,38 @@ def _assert_audit_targets_applicable(work: Path, state: dict, targets: list[dict
             staged._assert_ptbg_audit_card_applicable(card, el, reg, disease)
 
 
+def _audit_targets_from_committed_doc(doc: dict) -> list[dict]:
+    """Reconstruct the immutable reviewed card set from an already committed audit."""
+    out=[]
+    for row in doc.get("audits") or []:
+        if not isinstance(row,dict) or not isinstance(row.get("evidence_id"),str):
+            continue
+        tags=[x.get("card_tag") for x in row.get("card_audits") or [] if isinstance(x,dict) and isinstance(x.get("card_tag"),str)]
+        out.append({"evidence_id":row["evidence_id"],"selected_card_tags":tags})
+    return out
+
+
+def _committed_audit(work: Path, state: dict, path: Path) -> tuple[dict, list[dict]] | None:
+    """Return an already-applied audit without recalculating mutable outstanding targets."""
+    if not path.is_file():
+        return None
+    digest=state.get("processed_audit_sha256")
+    if not digest or digest!=_audit_sha256(path):
+        return None
+    doc=read_yaml(path)
+    return doc,_audit_targets_from_committed_doc(doc)
+
+
 def prepare_evidence_audit(work: Path, *, prompt: Path | None = None) -> dict:
     state = _load_evidence_state(work)
+    output = output_path(work, "evidence_audits", "self-audit.yaml")
+    committed=_committed_audit(work,state,output)
+    if committed is not None:
+        doc,targets=committed
+        return {"pass":"evidence_audit","required":bool(doc.get("audits") or []),"output":output,"targets":targets,"committed":True}
     matches = accept_evidence_resolution(work)
     targets = audit_targets(state["items"], matches, state)
     _assert_audit_targets_applicable(work, state, targets)
-    output = output_path(work, "evidence_audits", "self-audit.yaml")
     if not targets:
         write_yaml(output, {"audits": []})
         return {"pass": "evidence_audit", "required": False, "output": output, "targets": []}
@@ -982,11 +1008,14 @@ def prepare_evidence_audit(work: Path, *, prompt: Path | None = None) -> dict:
 
 def accept_evidence_audit(work: Path) -> tuple[dict, list[dict]]:
     state = _load_evidence_state(work)
-    matches = accept_evidence_resolution(work)
-    targets = audit_targets(state["items"], matches, state)
     path = output_path(work, "evidence_audits", "self-audit.yaml")
     if not path.is_file():
         raise ValueError(f"evidence-audit output missing: {path}")
+    committed=_committed_audit(work,state,path)
+    if committed is not None:
+        return committed
+    matches = accept_evidence_resolution(work)
+    targets = audit_targets(state["items"], matches, state)
     _assert_audit_targets_applicable(work, state, targets)
     validation_items = [{"evidence_id": x["evidence_id"], "selected_card_tags": x["selected_card_tags"]} for x in targets]
     schema_validation.validate_evidence_audit_batch(path.read_text(encoding="utf-8"), validation_items)
@@ -1010,10 +1039,12 @@ def apply_evidence_audit(work: Path) -> dict:
     work=Path(work)
     state=_load_evidence_state(work)
     path=output_path(work,"evidence_audits","self-audit.yaml")
+    if path.is_file():
+        digest=_audit_sha256(path)
+        if state.get("processed_audit_sha256")==digest:
+            return state
     audit,targets=accept_evidence_audit(work)
     digest=_audit_sha256(path)
-    if state.get("processed_audit_sha256")==digest:
-        return state
     accepted=state.setdefault("accepted_card_tags_by_evidence_id",{})
     rejected=state.setdefault("rejected_card_tags_by_evidence_id",{})
     current=state.setdefault("current_assignment_by_evidence_id",{})

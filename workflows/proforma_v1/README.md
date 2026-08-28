@@ -76,6 +76,20 @@ Clinical validation failures are fed back to the owning model operation as a
 complete-artifact repair. Semantic audit failures use the bounded `review` routing
 declared in the workflow.
 
+## Performance accounting
+
+Performance reports use three separate counts: a **logical operation** is the
+workflow step ID, a **physical call** is one provider request, and **retry/repair
+calls** are additional provider requests for the same logical operation. Syntax
+repair calls are reported separately. This keeps workflow work distinct from API
+call count.
+
+For non-self providers, `logs/model-usage.json` records each physical call with
+its logical operation, role, model, attempt number, provider-call duration and
+provider-reported token usage. `report-final.json` aggregates these values for the
+whole run and by logical operation. Native `self.py` execution deliberately does
+not estimate or log ChatGPT/session-model token usage.
+
 ## Validate and test
 
 ```bash
