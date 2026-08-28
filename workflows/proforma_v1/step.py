@@ -89,7 +89,7 @@ _REPORTABILITY_DEFAULTS={
     'prognosis':{'framework_favorable':True,'framework_adverse':True,'framework_neutral':True,'other_evidence_favorable':True,'other_evidence_adverse':True,'other_evidence_neutral':True,'no_prognostic_evidence':False,'prognostic_frameworks':True},
     'treatment':{'drug_target':True,'drug_sensitive':True,'drug_resistant':True,'no_drug_implication':False},
     'biomarker':{'mrd_marker':True,'not_mrd_marker':False},
-    'germline':{'germline_support':True,'germline_against':False,'germline_uncertain':False},
+    'germline':{'germline_suspicious':True,'germline_against':False,'germline_uncertain':False},
 }
 
 def _reportable(domain,key):
@@ -97,7 +97,10 @@ def _reportable(domain,key):
     reportability=load_settings().get('reportability') or {}
     domains=reportability.get('domains') or {}
     domain_cfg=domains.get(domain) or {}
-    value=domain_cfg.get(key,default)
+    if domain=='germline' and key=='germline_suspicious' and key not in domain_cfg and 'germline_support' in domain_cfg:
+        value=domain_cfg['germline_support']
+    else:
+        value=domain_cfg.get(key,default)
     if not isinstance(value,bool):
         raise StepFailure(f'reportability.domains.{domain}.{key} must be true or false')
     return value

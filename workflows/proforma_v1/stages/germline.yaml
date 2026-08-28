@@ -25,7 +25,7 @@ output:
   format: yaml
   schema: domain_classification.json
 buckets:
-- germline_support
+- germline_suspicious
 - germline_against
 - germline_uncertain
 rules:
@@ -41,7 +41,7 @@ rules:
 transforms:
 - consolidate_parallel_variant_rows
 reportability:
-  germline_support: true
+  germline_suspicious: true
   germline_against: false
   germline_uncertain: false
 retries:

@@ -1,111 +1,235 @@
-# proforma_v1 — Phase 3 declarative proforma workflow
+# Proforma v1
 
-`proforma_v1` is the configurable successor to `terraced_v6`. The selected
-`workflow/*.yaml` is the canonical logical workflow; `step.py` and `self.py` are
-execution adapters over the same compiled graph. `terraced_v6` remains the frozen
-behavioural reference for components that Phase 3 does not intentionally change.
+Proforma v1 is an experimental NGS Evidence Layer reporting workflow built around explicit clinical proformas, corpus-grounded evidence review, and a declarative workflow definition.
 
-The shipped workflow is `workflow/default.yaml`. Both entrypoints accept
-`--workflow <yaml>` for experiments with ordering, prompts, compatible proformas,
-conditions, evidence policy and native-self batching. See `workflow/README.md` for
-authoring examples and `DEVEL.md` for the complete default-YAML term reference.
+It can be run directly against LM Studio or OpenRouter with `step.py`, or through the current-session model with `self.py`. The shipped workflow definition is `workflow/default.yaml`.
 
-## Phase 3 logical flow
+## Quick start
 
-The default workflow currently compiles to 24 logical operations:
+Run commands from the repository root.
 
-```text
-structure -> corpus -> WHO1 proposal -> assess routing change
-    -> [blocking WHO1 diagnostic evidence when routing changes]
-    -> commit accepted/fallback routing -> optional WHO2 -> ICC -> diagnosis.other
-    -> diagnosis.finalize -> prognosis/treatment/biomarker/germline
-    -> evidence rescue/audit/adjudication -> evidence.finalize
-    -> report.blocks -> report.write -> report.preservation -> report.finalize
-```
+### LM Studio
 
-Native self may physically batch independent PTBG owner operations; provider
-execution may issue them separately. Intentional executor-specific omissions are
-declared in YAML. The default disables `report.preservation` for native self only.
-
-## WHO routing
-
-WHO1 first produces a proposal. A deterministic transform assesses whether the
-proposal materially changes schema disease, diagnosis or routing CMCs. A routing
-change must pass blocking `diagnosis_complete_support` evidence review before it
-can alter downstream retrieval. Unsupported routing changes fall back
-deterministically when a supplied morphologic routing state exists; rejected
-routing is retained in dissent.
-
-WHO2 reconsideration is controlled by:
-
-```json
-{
-  "diagnosis": {
-    "who5": {
-      "reconsider_after_cmc_expansion": false
-    }
-  }
-}
-```
-
-The default is `false`. Disabling WHO2 disables only reconsideration: an accepted
-WHO1 routing/CMC change still drives ICC and PTBG retrieval.
-
-## PTBG evidence ownership
-
-Prognosis, treatment, biomarker and germline proformas may assign initial card tags
-from the exact cards supplied to that owner step. Out-of-envelope tags reject that
-owner artifact and are fed back to the same model step for repair. Python carries
-valid tags through deterministic pivot/consolidation; equivalent merged
-propositions take a stable union of their tags.
-
-The dedicated evidence matcher is therefore a rescue mechanism for uncarded or
-audit-rejected facts. Rescue pass count is workflow-configurable. Match inputs are
-per-fact isolated blocks; audit sees only assigned cards. Audit-rejected cards are
-excluded from later rescue candidates, and only unresolved disputes proceed to
-cropped adjudication.
-
-## Validation model
-
-Structured model output flows through format parsing, JSON Schema, deterministic
-runtime rules and registered transforms before an artifact commits. Complex
-deterministic checks/transforms are allow-listed Python extensions; workflow YAML
-may select them but cannot execute arbitrary code.
-
-Clinical validation failures are fed back to the owning model operation as a
-complete-artifact repair. Semantic audit failures use the bounded `review` routing
-declared in the workflow.
-
-## Performance accounting
-
-Performance reports use three separate counts: a **logical operation** is the
-workflow step ID, a **physical call** is one provider request, and **retry/repair
-calls** are additional provider requests for the same logical operation. Syntax
-repair calls are reported separately. This keeps workflow work distinct from API
-call count.
-
-For non-self providers, `logs/model-usage.json` records each physical call with
-its logical operation, role, model, attempt number, provider-call duration and
-provider-reported token usage. `report-final.json` aggregates these values for the
-whole run and by logical operation. Native `self.py` execution deliberately does
-not estimate or log ChatGPT/session-model token usage.
-
-## Validate and test
+1. Open LM Studio, load the model configured in `workflows/proforma_v1/pipelines/lmstudio.yaml`, and start the OpenAI-compatible local server.
+2. Check the pipeline configuration:
 
 ```bash
-python workflows/proforma_v1/step.py workflow-check
-python workflows/proforma_v1/step.py pipeline-check --pipeline self
-python -m unittest discover -s workflows/proforma_v1/tests -p "test_*.py"
+python workflows/proforma_v1/step.py pipeline-check --pipeline lmstudio
 ```
 
-After changing proforma-v1's local settings or pipeline defaults, validate them without modifying root `config/`:
+3. Prepare a case. For a normal report, save the clinical case as Markdown, for example `case.md`:
+
+```bash
+python workflows/proforma_v1/step.py setup \
+  --mode ngs-report \
+  --case-file case.md \
+  --pipeline lmstudio
+```
+
+`setup` prints the new work directory. Run it with:
+
+```bash
+python workflows/proforma_v1/step.py run \
+  --work-dir <printed-work-dir>
+```
+
+LM Studio defaults to `http://localhost:1234/v1`. Override this with `NEL_LMSTUDIO_BASE_URL` if required:
+
+```bash
+export NEL_LMSTUDIO_BASE_URL='http://localhost:1234/v1'
+```
+
+### OpenRouter
+
+Export an OpenRouter API key:
+
+```bash
+export OPENROUTER_API_KEY='your-openrouter-api-key'
+```
+
+Check the pipeline configuration:
+
+```bash
+python workflows/proforma_v1/step.py pipeline-check --pipeline openrouter
+```
+
+Prepare the case:
+
+```bash
+python workflows/proforma_v1/step.py setup \
+  --mode ngs-report \
+  --case-file case.md \
+  --pipeline openrouter
+```
+
+Then run the printed work directory:
+
+```bash
+python workflows/proforma_v1/step.py run \
+  --work-dir <printed-work-dir>
+```
+
+The bundled OpenRouter pipeline uses `qwen/qwen3-coder-next` by default. Change model aliases, role assignments, token caps, or provider routing in `workflows/proforma_v1/pipelines/openrouter.yaml`.
+
+### Validation cases
+
+The same provider flow can run bundled validation cases. For example:
+
+```bash
+python workflows/proforma_v1/step.py setup \
+  --mode nel-validate-brief \
+  --case-id 1 \
+  --pipeline lmstudio
+
+python workflows/proforma_v1/step.py run \
+  --work-dir <printed-work-dir>
+```
+
+Use `--pipeline openrouter` instead for OpenRouter.
+
+Supported setup modes are:
+
+- `ngs-report`
+- `nel-demo`
+- `nel-validate`
+- `nel-validate-function`
+- `nel-validate-brief`
+
+## Provider and model configuration
+
+Provider pipelines live under `workflows/proforma_v1/pipelines/`:
+
+- `lmstudio.yaml` — local OpenAI-compatible LM Studio endpoint;
+- `openrouter.yaml` — OpenRouter endpoint and API-key configuration;
+- `self.yaml` — current-session model execution.
+
+Non-self pipelines define models once under `model_aliases` and assign workflow roles under `model_roles`. Different roles may use different aliases, temperatures, and output token limits.
+
+For OpenRouter, an alias may also pin provider routing, for example:
+
+```yaml
+model_aliases:
+  fast: qwen/qwen3-coder-next
+  reasoning:
+    model: openai/gpt-oss-20b
+    provider:
+      order: [groq]
+      allow_fallbacks: false
+```
+
+Pipeline identity is the YAML filename stem. To keep several local configurations, copy an existing pipeline to another filename, edit it, and select that pipeline during setup.
+
+## Settings
+
+The default workflow settings are in:
+
+```text
+workflows/proforma_v1/settings.json.template
+```
+
+To maintain local workflow settings, copy it once to the gitignored working file:
+
+```bash
+cp workflows/proforma_v1/settings.json.template \
+   workflows/proforma_v1/settings.json
+```
+
+`settings.json` controls retry budgets, diagnostic evidence pools, downstream evidence domains, reportability, prompts, card rendering, and the default pipeline. If the working file is absent, proforma v1 uses `settings.json.template`.
+
+After changing the shipped settings template or shipped pipeline defaults as a developer, validate them with:
 
 ```bash
 python workflows/proforma_v1/devel_sync.py --check
 ```
 
-`proforma_v1` is not the promoted default workflow, so its developer tooling must not sync its defaults into root `config/`.
+Proforma v1 is not currently the promoted root workflow, so its development defaults are kept separate from root `config/`.
 
-Phase 3 intentionally changes routing/evidence behaviour, so acceptance focuses on
-clinical/evidence invariants. Replay equality remains useful for unchanged
-components rather than serving as the sole Phase 3 oracle.
+## Workflow
+
+The shipped workflow is:
+
+```text
+workflows/proforma_v1/workflow/default.yaml
+```
+
+At a high level it performs:
+
+1. structured case extraction and deterministic NGS normalization;
+2. WHO5 diagnosis and routing review;
+3. ICC and secondary diagnostic assessment;
+4. prognosis, treatment, biomarker/MRD, and germline proformas;
+5. literature evidence assignment, audit, and conditional adjudication;
+6. deterministic report-block construction;
+7. final report writing and validation.
+
+The workflow YAML defines logical operations, dependencies, prompts, schemas, registered deterministic transforms/checks, evidence policy, and native-self batching. `step.py` executes the same logical workflow through an external provider; `self.py` executes it through the current session model.
+
+To check the shipped workflow definition:
+
+```bash
+python workflows/proforma_v1/step.py workflow-check
+```
+
+To experiment with a copied workflow definition, pass it explicitly during setup and run:
+
+```bash
+python workflows/proforma_v1/step.py setup \
+  --mode ngs-report \
+  --case-file case.md \
+  --pipeline lmstudio \
+  --workflow workflow/my_experiment.yaml
+
+python workflows/proforma_v1/step.py run \
+  --work-dir <printed-work-dir> \
+  --workflow workflow/my_experiment.yaml
+```
+
+See `workflow/README.md` for workflow-authoring examples and `DEVEL.md` for implementation details and the YAML term reference.
+
+## Evidence handling
+
+Clinical owner steps work from bounded evidence cards supplied by the corpus. Downstream evidence review checks the selected support and can attempt bounded evidence rescue when a reportable proposition remains unsupported.
+
+WHO5 routing changes are subject to a stricter blocking evidence gate because they can alter downstream disease-specific retrieval. Unsupported routing changes do not silently become authoritative.
+
+Evidence disagreements are retained through audit/adjudication rather than being hidden by the final writer. The final prose step receives evidence-resolved report blocks and is not intended to change the accepted clinical conclusions.
+
+## Outputs
+
+Each run is stored under:
+
+```text
+workflows/proforma_v1/runs/<run-name>/
+```
+
+Important outputs include:
+
+- `report-final.md` — final clinical report;
+- `report-final.json` — structured final report and run metadata;
+- `logs/workflow.log` — workflow trace;
+- `logs/model-usage.json` — provider-call timing and token usage for non-self pipelines;
+- `logs/transforms.yaml` — deterministic transformations applied during the run;
+- `dissent.md` — retained evidence/semantic dissent when present;
+- validation ZIP bundles when using validation modes.
+
+Run state freezes the selected workflow definition and associated assets. Resuming a run is refused if its bound workflow definition has changed, protecting reproducibility.
+
+If `step.py run` is called without `--work-dir`, it uses the most recent prepared proforma-v1 run directory. Supplying the printed work directory explicitly is safer when several runs are active.
+
+## Native self execution
+
+For current-session model execution, use `self.py` instead of an external provider:
+
+```bash
+python workflows/proforma_v1/self.py setup \
+  --mode nel-validate-brief \
+  --case-id 1
+```
+
+Follow the handoff sequence described in `SKILL.md`. Native self deliberately does not estimate or log session-model token usage.
+
+## Failure policy
+
+Structured model outputs must pass parsing, schema validation, and registered deterministic checks before they commit. Invalid artifacts are returned to the owning model operation for bounded repair.
+
+Literature support is audited separately from output syntax. Unsupported reportable propositions may be rescued with eligible evidence, adjudicated when necessary, or suppressed according to the workflow's evidence policy. Primary diagnostic routing receives stricter handling because an unsupported routing change could contaminate downstream retrieval.

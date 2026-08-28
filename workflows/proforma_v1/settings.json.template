@@ -75,7 +75,7 @@
         "not_mrd_marker": false
       },
       "germline": {
-        "germline_support": true,
+        "germline_suspicious": true,
         "germline_against": false,
         "germline_uncertain": false
       }
