@@ -535,7 +535,7 @@ def run_setup(args: argparse.Namespace) -> int:
     for role in registry["roles"]:
         model_registry.resolve(role, profile_id, None, registry)
 
-    work, demo_case, demo_expected = setup_workflow(
+    work = setup_workflow(
         workflow=WORKFLOW_ID,
         mode=args.mode,
         work_dir=args.work_dir,
@@ -555,8 +555,6 @@ def run_setup(args: argparse.Namespace) -> int:
                 f"--case-file is not permitted in mode {args.mode!r}; setup writes case.md directly."
             )
         shutil.copyfile(source, case_source)
-    elif args.mode == "nel-demo" and demo_case is not None:
-        shutil.copyfile(demo_case, case_source)
     elif (work / "case.md").is_file():
         # Validation modes: step 1A does not run, but the artifact allowlist is
         # uniform across modes, so mirror the case text that setup already wrote.
@@ -568,9 +566,6 @@ def run_setup(args: argparse.Namespace) -> int:
         _write_project_pointer(work)
 
     print(work)
-    if demo_case is not None:
-        print(demo_case.relative_to(REPO_ROOT))
-        print(demo_expected.relative_to(REPO_ROOT))
     print(f"MODEL_PROFILE={profile_id}")
     if args.project:
         print(f"{WORK_DIR_ENV}={work}")

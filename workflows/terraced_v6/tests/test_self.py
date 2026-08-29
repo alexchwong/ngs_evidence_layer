@@ -226,7 +226,7 @@ class NativeSelfSetupTests(unittest.TestCase):
                 # Minimal common setup assets expected by layout.
                 (work / "case-major-categories.json").write_text("{}\n", encoding="utf-8")
                 (work / "ngs-panel-scope.md").write_text("scope\n", encoding="utf-8")
-                return work, None, None
+                return work
 
             args = Namespace(
                 mode="ngs-report", case_file=source, example=None, case_id=None,

@@ -86,7 +86,7 @@ Run exactly one setup command:
 
 Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`.
 
-For `nel-demo`, record output line 2 as `<demo-case>` and line 3 as `<demo-expected>`; do not read either yet. For validation modes, record `<validation-case>` as supplied. Setup writes `<work-dir>/case.md`; do not read validation marking files.
+For `nel-demo`, record the supplied example number as `<demo-example>`; setup has already written the selected clinical text to `<work-dir>/case.md` and no expected/marking file exists yet. For validation modes, record `<validation-case>` as supplied. Setup writes `<work-dir>/case.md`; do not read validation marking files.
 
 Setup also creates:
 
@@ -100,7 +100,7 @@ Setup also creates:
 
 For `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, Step 0 already wrote `<work-dir>/case.md`; do not run a second retrieval command and do not read marking inputs.
 
-For other modes, use a fresh model session and read only `prompts/workflow/capture_case.md` plus the designated case source (`<demo-case>` for demo). Write only `<work-dir>/case.md`.
+For other modes, use a fresh model session and read only `prompts/workflow/capture_case.md` plus the designated case source (`<work-dir>/case.md` for demo). Write only `<work-dir>/case.md`.
 
 ### Step 1B
 
@@ -331,11 +331,12 @@ For all supported modes run exactly:
 Mode-specific delivery remains:
 
 - `ngs-report`: display `report-final.md` unchanged and return `ngs-report-debug.zip`.
-- `nel-demo`: only now read `<demo-case>` and `<demo-expected>`; display case, generated report and expected behaviour, and return `ngs-report-debug.zip`.
+- `nel-demo`: only after `report-final.md` exists, run `python validation/scripts/retrieve_cli.py MC <demo-example> --mode nel-demo > <work-dir>/demo-expected.md`; then display `<work-dir>/case.md`, the generated report, and `<work-dir>/demo-expected.md`, and return `ngs-report-debug.zip`. Do not use the marking criteria to alter workflow artifacts.
 - `nel-validate`: do not run a marking model. Run:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-<validation-case>.zip
 ```
@@ -345,8 +346,8 @@ Return the external-marking ZIP and debug ZIP. Do not model-read marking criteri
 - `nel-validate-function`: do not run a marking model and do not model-read functional marking inputs. Run:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
-  --case-file validation/case_functional.md \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate-function \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-function-<validation-case>.zip
 ```
@@ -356,8 +357,8 @@ Return the external-marking ZIP and debug ZIP.
 - `nel-validate-brief`: do not run a marking model and do not model-read brief-suite marking inputs. Run:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
-  --case-file validation/validation_brief.md \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate-brief \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-brief-<validation-case>.zip
 ```

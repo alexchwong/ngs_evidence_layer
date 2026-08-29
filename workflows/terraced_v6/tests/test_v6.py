@@ -871,7 +871,7 @@ def test_staged_run_setup_passes_explicit_work_dir_to_shared_setup(tmp_path, mon
 
     def fake_setup_workflow(**kwargs):
         captured.update(kwargs)
-        return work, None, None
+        return work
 
     monkeypatch.setattr(step, 'setup_workflow', fake_setup_workflow)
     monkeypatch.setattr(step, 'write_workflow_state', lambda *a, **k: None)

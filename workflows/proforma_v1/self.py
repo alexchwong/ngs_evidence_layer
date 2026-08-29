@@ -74,7 +74,7 @@ def cmd_setup(args):
     # staged execution: default -> system temp; --project -> <repo-root>/temp;
     # explicit --work-dir -> that directory.
     plan = staged.pipeline_registry.load("self")
-    work, demo_case, demo_expected = setup_workflow(
+    work = setup_workflow(
         workflow=staged.WORKFLOW_ID,
         mode=args.mode,
         work_dir=args.work_dir,
@@ -87,18 +87,15 @@ def cmd_setup(args):
     case_path = layout.input(work, "case.md", existing=False)
     if args.case_file:
         shutil.copyfile(args.case_file.expanduser().resolve(), case_path)
-    elif args.mode == "nel-demo" and demo_case:
-        shutil.copyfile(demo_case, case_path)
     if not case_path.is_file() or not staged._read(case_path).strip():
         raise staged.StepFailure(f"case.md missing or empty: {case_path}")
-    if demo_expected:
-        shutil.copyfile(demo_expected, staged.artifact_path(work, "setup", "demo-expected.md", create=True))
 
     staged._save_run_state(work, {
         "schema_version": staged.RUN_STATE_SCHEMA_VERSION,
         "workflow_id": staged.WORKFLOW_ID,
         "mode": args.mode,
         "validation_case": args.case_id,
+        "example": args.example,
         "pipeline": plan.pipeline_id,
         "workflow_definition": staged._workflow_state(compiled),
         "created_at": datetime.now(timezone.utc).isoformat(),

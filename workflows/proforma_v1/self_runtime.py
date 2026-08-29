@@ -13,6 +13,8 @@ from typing import Any
 
 import yaml
 
+from validation.scripts.bundled_cases import is_validation_mode, marking_bundle_filename
+
 from workflows.proforma_v1 import card_identity, domain_contract, layout, model_context, runtime, schema_validation
 from workflows.proforma_v1 import step as staged
 from workflows.proforma_v1.engine import evidence as evidence_engine
@@ -1350,8 +1352,8 @@ def final_artifacts(work: Path) -> dict[str, Path | None]:
     mode = state.get("mode")
     case_id = state.get("validation_case")
     marking = None
-    if mode in staged.VALIDATION_MODES and case_id:
-        candidate = work / f"{staged.MARKING_PREFIX[mode]}-{case_id}.zip"
+    if is_validation_mode(mode) and case_id:
+        candidate = work / marking_bundle_filename(mode, case_id)
         marking = candidate if candidate.is_file() else None
     report = work / "report-final.md"
     report_json = work / "report-final.json"

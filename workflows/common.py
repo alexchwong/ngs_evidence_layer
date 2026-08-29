@@ -13,14 +13,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO_ROOT / "scripts"
-DEMO_EXAMPLES = {
-    1: "01-escalation-fires.md",
-    2: "02-escalation-does-not-fire.md",
-    3: "03-ambiguous-disease.md",
-    4: "04-genes-the-corpus-cannot-address.md",
-    5: "05-germline-architecture.md",
-    6: "06-sf3b1-diagnostic-adjudication.md",
-}
 CASE_MAJOR_CATEGORY_INSTRUCTION = (
     "Select exactly one case_major_category representing the supplied starting "
     "clinicomorphological major category; do not revise it using molecular results."
@@ -74,16 +66,6 @@ def remove_if_present(*paths: Path) -> None:
     for path in paths:
         if path.exists():
             path.unlink()
-
-
-def demo_paths(example: int) -> tuple[Path, Path]:
-    try:
-        name = DEMO_EXAMPLES[example]
-    except KeyError as exc:
-        raise ValueError(
-            "example must be one of: " + ", ".join(map(str, sorted(DEMO_EXAMPLES)))
-        ) from exc
-    return REPO_ROOT / "examples" / "cases" / name, REPO_ROOT / "examples" / "expected" / name
 
 
 def write_case_major_categories(output: Path, categories: list[str] | tuple[str, ...]) -> Path:

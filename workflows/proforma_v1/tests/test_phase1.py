@@ -27,7 +27,7 @@ class Phase1CloneTests(unittest.TestCase):
     def test_setup_binds_work_directory_to_proforma(self):
         with tempfile.TemporaryDirectory() as td:
             work = Path(td) / "run"
-            resolved, _case, _expected = setup_workflow(
+            resolved = setup_workflow(
                 workflow="proforma-v1",
                 mode="nel-validate-brief",
                 work_dir=work,

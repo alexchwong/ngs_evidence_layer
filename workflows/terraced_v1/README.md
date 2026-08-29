@@ -132,7 +132,7 @@ Run a named `nel-validate` case:
 ```
 
 For functional validation, use `--mode nel-validate-function` with a functional validation case ID.
-For brief validation, use `--mode nel-validate-brief` with a case ID from `validation/validation_brief.md`.
+For brief validation, use `--mode nel-validate-brief`; list valid selectors with `python validation/scripts/retrieve_cli.py list --mode nel-validate-brief`.
 
 Equivalent model profiles are:
 
