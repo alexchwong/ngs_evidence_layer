@@ -1594,7 +1594,7 @@ def _who2_required(ctx):
             who1=(yaml.safe_load(_read(commit)) or {}).get('accepted_who1')
     if not who1:
         return False
-    return runtime.derive_cmcs(who1) != list(case.get('bootstrap_cmcs') or [])
+    return runtime.has_cmc_expansion(list(case.get('bootstrap_cmcs') or []), runtime.derive_cmcs(who1))
 
 
 def _workflow_domain_contracts(workflow):

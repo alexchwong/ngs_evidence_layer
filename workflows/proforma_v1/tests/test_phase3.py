@@ -177,6 +177,50 @@ class Phase3WorkflowTests(unittest.TestCase):
             self.assertEqual(change["previous"]["cmcs"],["AML"])
             self.assertEqual(change["proposed"]["cmcs"],["AML"])
 
+    def test_bootstrap_cmc_contraction_does_not_trigger_who1_gate(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case={
+                "provisional_disease":"myelodysplastic neoplasm with increased blasts-2 (MDS-IB2)",
+                "bootstrap_cmcs":["MDS","germline predisposition syndrome"],
+                "morphologic_diagnosis_origin":"supplied",
+            }
+            who1={
+                "schema_disease":"MDS",
+                "diagnosis":"MDS with increased blasts-2",
+                "diagnostic_effect":"unchanged",
+                "variants":[],
+                "reason":"unchanged",
+            }
+            with patch.object(self_runtime,"load_case_registry",return_value=(case,{})), \
+                 patch.object(self_runtime,"accept_who",return_value=who1):
+                change=self_runtime.assess_who1_routing_change(work)
+            self.assertIsNone(change["previous"]["schema_disease"])
+            self.assertEqual(change["previous"]["cmcs"],["MDS","germline predisposition syndrome"])
+            self.assertEqual(change["proposed"]["cmcs"],["MDS"])
+            self.assertFalse(change["changed"])
+
+    def test_new_cmc_still_triggers_who1_gate_after_multi_bootstrap(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case={
+                "provisional_disease":"myelodysplastic neoplasm with increased blasts-2 (MDS-IB2)",
+                "bootstrap_cmcs":["MDS","germline predisposition syndrome"],
+                "morphologic_diagnosis_origin":"supplied",
+            }
+            who1={
+                "schema_disease":"AML",
+                "diagnosis":"AML",
+                "diagnostic_effect":"updated",
+                "variants":[],
+                "reason":"new route",
+            }
+            with patch.object(self_runtime,"load_case_registry",return_value=(case,{})), \
+                 patch.object(self_runtime,"accept_who",return_value=who1):
+                change=self_runtime.assess_who1_routing_change(work)
+            self.assertEqual(change["proposed"]["cmcs"],["AML"])
+            self.assertTrue(change["changed"])
+
 
 
 class Phase3OwnerEvidenceTests(unittest.TestCase):
@@ -457,6 +501,20 @@ class Phase3WhoRoutingTests(unittest.TestCase):
             self.assertFalse(staged._who2_required(ctx))
         with patch.object(staged,"load_settings",return_value=on):
             self.assertTrue(staged._who2_required(ctx))
+
+    def test_who2_reconsideration_ignores_bootstrap_contraction_in_both_executors(self):
+        work=Path("/tmp/nonexistent-phase3-who2-contraction")
+        case={"bootstrap_cmcs":["MDS","germline predisposition syndrome"]}
+        who1={"schema_disease":"MDS","diagnosis":"MDS","diagnostic_effect":"unchanged","variants":[]}
+        ctx=WorkflowContext(work,executor="provider",data={})
+        ctx.put("case",case)
+        ctx.put("committed_who1",who1)
+        on={"diagnosis":{"who5":{"reconsider_after_cmc_expansion":True}}}
+        with patch.object(staged,"load_settings",return_value=on):
+            self.assertFalse(staged._who2_required(ctx))
+        with patch.object(staged,"load_settings",return_value=on), \
+             patch.object(self_runtime,"load_case_registry",return_value=(case,{})):
+            self.assertFalse(self_executor._self_who2_required(ctx))
 
     def test_rejected_routing_change_falls_back_to_supplied_morphology(self):
         with tempfile.TemporaryDirectory() as td:

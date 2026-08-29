@@ -424,10 +424,11 @@ def assess_who1_routing_change(work: Path) -> dict:
     # The blocking gate protects downstream routing, not diagnostic wording.
     # A refinement such as AML -> AML-MR is not a routing change when the
     # schema disease/CMC route remains AML.  If the provisional free text is
-    # not deterministically canonicalisable, rely on the bootstrap CMC change
-    # rather than treating ``None -> proposed_schema`` as a change.
+    # not deterministically canonicalisable, only a CMC newly introduced by
+    # WHO5 counts as a routing change.  Bootstrap CMCs are retrieval scaffolds,
+    # so WHO5 may legitimately contract that list without changing diagnosis.
     schema_changed = previous_schema is not None and proposed_schema != previous_schema
-    changed = schema_changed or proposed_cmcs != previous_cmcs
+    changed = schema_changed or runtime.has_cmc_expansion(previous_cmcs, proposed_cmcs)
     doc = {
         "changed": bool(changed),
         "previous": {

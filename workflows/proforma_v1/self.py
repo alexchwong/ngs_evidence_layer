@@ -288,7 +288,7 @@ def _self_who2_required(ctx):
     who1=ctx.get('committed_who1') or sr.committed_who1(ctx.work, required=False)
     if not who1:
         return False
-    return sr.runtime.derive_cmcs(who1) != list(case.get('bootstrap_cmcs') or [])
+    return sr.runtime.has_cmc_expansion(list(case.get('bootstrap_cmcs') or []), sr.runtime.derive_cmcs(who1))
 
 
 def _self_render_prompt(step, ctx, manifest: dict | None = None) -> Path | None:

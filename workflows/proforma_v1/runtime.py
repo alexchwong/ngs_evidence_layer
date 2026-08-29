@@ -210,6 +210,11 @@ def derive_cmcs(doc:dict)->list[str]:
         raise ValueError(f"WHO5 schema disease {disease!r} has no deterministic preferred CMC mapping")
     return [cmc]
 
+def has_cmc_expansion(previous:list[str], proposed:list[str])->bool:
+    """Return True only when proposed routing adds a CMC absent from bootstrap."""
+    prior=set(previous or [])
+    return any(cmc not in prior for cmc in (proposed or []))
+
 def ensure_sentence(text:str)->str:
     text=" ".join(str(text or "").split()).strip()
     if not text:
