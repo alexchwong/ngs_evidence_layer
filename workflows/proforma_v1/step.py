@@ -1513,6 +1513,33 @@ def stage_report_preservation(work,blocks,rendered,profile,*,prompt_text=None):
         return {b['block_id']:{'preserved':False,'issue':'Preservation audit unavailable: '+str(exc)} for b in blocks}
 
 
+def _strip_block_variant_ids(text,block):
+    """Remove only this block's internal canonical variant join keys from report prose."""
+    variant_ids=[]
+    for comp in block.get('components') or []:
+        for variant_id in comp.get('variants') or []:
+            if isinstance(variant_id,str) and re.fullmatch(r'v\d+',variant_id) and variant_id not in variant_ids:
+                variant_ids.append(variant_id)
+    if not variant_ids:
+        return text
+
+    id_pattern='(?:'+ '|'.join(re.escape(x) for x in sorted(variant_ids,key=len,reverse=True)) +')'
+    id_token=rf'(?<![A-Za-z0-9_]){id_pattern}(?![A-Za-z0-9_])'
+    separator=r'(?:\s*/\s*|\s*&\s*|\s*,\s*(?:and\s+)?|\s+and\s+)'
+    id_list=rf'{id_token}(?:{separator}{id_token})+'
+    # Drop parentheticals that contain only internal IDs, including simple ID lists.
+    text=re.sub(rf'\s*\(\s*(?:{id_list}|{id_token})\s*\)','',text,flags=re.IGNORECASE)
+    # Remove remaining internal-ID lists before individual tokens so separators do not become orphaned.
+    text=re.sub(id_list,'',text,flags=re.IGNORECASE)
+    text=re.sub(id_token,'',text,flags=re.IGNORECASE)
+    text=re.sub(r'\(\s*\)','',text)
+    text=re.sub(r',\s*([)\]}])',r'\1',text)
+    text=re.sub(r'([([{])\s*,',r'\1',text)
+    text=re.sub(r'\s+([,.;:])',r'\1',text)
+    text=re.sub(r',\s*,+',', ',text)
+    text=re.sub(r'\s{2,}',' ',text)
+    return text.strip()
+
 def stage_report_finalize_blocks(work,blocks,rendered,*,audit_map=None):
     amap={r['block_id']:r['text'] for r in rendered}; final=[]
     for block in blocks:
@@ -1524,6 +1551,7 @@ def stage_report_finalize_blocks(work,blocks,rendered,*,audit_map=None):
             fallback=_fallback_block_text(block)
             _semantic_dissent_address(work,issue_key=issue_key,stage='deterministic report fallback',action='Replace the failed rendered block with its deterministic fallback.',outcome=fallback,status='resolved')
             text=fallback
+        text=_strip_block_variant_ids(text,block)
         tags=[]
         for comp in block['components']:
             for tag in comp.get('card_tags') or []:
