@@ -651,6 +651,7 @@ def build_parser():
     s.add_argument("--example", type=int)
     s.add_argument("--case-id")
     s.add_argument("--workflow", type=Path)
+    s.add_argument("--cul", help="corpus user layer profile or frozen layer path")
     sw = s.add_mutually_exclusive_group()
     sw.add_argument("--work-dir", type=Path)
     sw.add_argument("--project", action="store_true")
@@ -658,13 +659,51 @@ def build_parser():
         q = sub.add_parser(name)
         q.add_argument("--work-dir", type=Path, required=True)
         q.add_argument("--workflow", type=Path)
-    wc=sub.add_parser("workflow-check"); wc.add_argument("--workflow",type=Path)
+        q.add_argument("--cul", help="corpus user layer profile or frozen layer path")
+    wc=sub.add_parser("workflow-check"); wc.add_argument("--workflow",type=Path); wc.set_defaults(cul=None)
     return p
+
+
+def _bind_cul(args):
+    """Select the corpus user layer for a direct self.py invocation.
+
+    ``--cul`` accepts a profile name from ``config/cul/`` or a path to a frozen
+    layer. Without it, the environment or the legacy blacklist applies.
+    """
+    selection = getattr(args, "cul", None)
+    if not selection:
+        return
+    from scripts.core import corpus as corpus_core
+    from scripts.core import cul as cul_core
+
+    candidate = Path(selection)
+    if not candidate.is_file():
+        candidate = cul_core.profile_path(selection)
+    if not candidate.is_file():
+        available = cul_core.available_profiles()
+        raise ValueError(
+            f"unknown CUL profile {selection!r}; available: "
+            + (", ".join(available) if available else "none")
+        )
+    document, _index, _digest = corpus_core.load_corpus(
+        corpus_core.DEFAULT_CORPUS, corpus_core.DEFAULT_INDEX
+    )
+    cards = corpus_core.flatten(document)
+    try:
+        layer = cul_core.load_frozen(candidate)
+    except cul_core.CULError:
+        layer = cul_core.load_profile(candidate, corpus_document=document, cards=cards)
+    if layer.get("stale"):
+        raise ValueError(
+            "CUL profile has stale amendment(s): " + ", ".join(layer["stale"])
+        )
+    staged.configure_runtime(cul_path=layer)
 
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
     try:
+        _bind_cul(args)
         if args.command=="workflow-check":
             [print(x) for x in staged.describe_workflow(staged._compile_selected_workflow(args.workflow))]
             return EXIT_OK

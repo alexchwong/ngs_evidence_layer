@@ -29,6 +29,7 @@ SETTINGS_PATH = CONFIG_DIR / "settings.json"
 SETTINGS_TEMPLATE_PATH = CONFIG_DIR / "settings.json.template"
 PANEL_SCOPE_PATH = CONFIG_DIR / "ngs-panel-scope.md"
 PIPELINES_DIR = CONFIG_DIR / "pipelines"
+CUL_DIR = CONFIG_DIR / "cul"
 VERSION_PATH = ROOT / "release" / "VERSION"
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
@@ -195,7 +196,60 @@ def _all_runs() -> list[tuple[str, Path, dict[str, Any]]]:
     return rows
 
 
-def _config_check(pipeline: str | None = None) -> dict[str, Any]:
+def _resolve_cul(name: str | None, corpus_doc, cards) -> tuple[dict, list[str]]:
+    """Resolve the requested profile, or the shipped default when none is named.
+
+    A missing default is not an error: it means an installation that predates the
+    corpus user layer, which keeps its historical permissive retrieval.
+    """
+    from scripts.core import cul as cul_core
+
+    warnings: list[str] = []
+    requested = (name or "").strip() or cul_core.DEFAULT_PROFILE
+    path = cul_core.profile_path(requested, cul_dir=CUL_DIR)
+    if not path.is_file():
+        if name:
+            available = cul_core.available_profiles(cul_dir=CUL_DIR)
+            raise CLIError(
+                f"unknown CUL profile {requested!r}; available: "
+                + (", ".join(available) if available else "none")
+            )
+        legacy = Path(corpus_core_blacklist_path())
+        if legacy.is_file():
+            warnings.append(
+                f"no CUL profile at {path}; falling back to the deprecated {legacy.name}. "
+                "Run 'python scripts/cul.py new --cul default' to migrate."
+            )
+            import json as _json
+            raw = {
+                "schema_version": cul_core.SCHEMA_VERSION,
+                "profile": cul_core.DEFAULT_PROFILE,
+                "description": "Compatibility layer derived from legacy blacklist.json.",
+                "scope": _json.loads(legacy.read_text(encoding="utf-8")),
+                "amendments": {},
+            }
+            return cul_core.resolve_profile(
+                raw, corpus_document=corpus_doc, cards=cards, source=str(legacy)
+            ), warnings
+        return cul_core.empty_layer(), warnings
+    layer = cul_core.load_profile(path, corpus_document=corpus_doc, cards=cards, strict=False)
+    if layer.get("stale"):
+        raise CLIError(
+            f"CUL profile {requested!r} has stale amendment(s): "
+            + ", ".join(layer["stale"])
+            + "\nThese were authored against corpus cards that have since changed. "
+            "Review them in the card browser, or run: "
+            f"python scripts/cul.py check --cul {requested}"
+        )
+    return layer, warnings
+
+
+def corpus_core_blacklist_path() -> str:
+    from scripts.core import corpus as corpus_core
+    return str(corpus_core.DEFAULT_BLACKLIST)
+
+
+def _config_check(pipeline: str | None = None, cul: str | None = None) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
     selected = pipeline
@@ -226,11 +280,15 @@ def _config_check(pipeline: str | None = None) -> dict[str, Any]:
         errors.append(f"NGS panel scope is missing or empty: {PANEL_SCOPE_PATH}")
 
     corpus_sha = None
+    cul_layer = None
     try:
         from scripts.core import corpus as corpus_core
+        from scripts.core import cul as cul_core
         corpus_doc, _index, corpus_sha = corpus_core.load_corpus(corpus_core.DEFAULT_CORPUS, corpus_core.DEFAULT_INDEX)
         cards = corpus_core.flatten(corpus_doc)
-        corpus_core.blacklist_cards(cards, corpus_core.DEFAULT_BLACKLIST)
+        cul_layer, cul_warnings = _resolve_cul(cul, corpus_doc, cards)
+        warnings.extend(cul_warnings)
+        cul_core.eligible_cards(cards, cul_layer, verbose=False)
     except Exception as exc:
         errors.append(f"corpus check failed: {exc}")
 
@@ -251,13 +309,16 @@ def _config_check(pipeline: str | None = None) -> dict[str, Any]:
         "pipeline": selected,
         "pipelines": sorted(plans),
         "corpus_sha256": corpus_sha,
+        "cul_profile": (cul_layer or {}).get("profile"),
+        "cul_sha256": (cul_layer or {}).get("cul_sha256"),
+        "cul_layer": cul_layer,
         "errors": errors,
         "warnings": warnings,
     }
 
 
-def _ensure_config_ok(pipeline: str | None) -> dict[str, Any]:
-    result = _config_check(pipeline)
+def _ensure_config_ok(pipeline: str | None, cul: str | None = None) -> dict[str, Any]:
+    result = _config_check(pipeline, cul)
     if not result["ok"]:
         raise CLIError("configuration check failed:\n- " + "\n- ".join(result["errors"]))
     return result
@@ -283,6 +344,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def _snapshot_run_config(run: Path, *, run_id: str, mode: str, pipeline: str, config_result: dict[str, Any]) -> None:
+    from scripts.core import cul as cul_core
     target = run / "run-config"
     target.mkdir(parents=True, exist_ok=False)
     settings = _json_load(SETTINGS_PATH)
@@ -295,6 +357,8 @@ def _snapshot_run_config(run: Path, *, run_id: str, mode: str, pipeline: str, co
         raise CLIError(f"selected pipeline file is missing: {source_pipeline}")
     (pipeline_target / source_pipeline.name).write_bytes(source_pipeline.read_bytes())
     (target / "ngs-panel-scope.md").write_bytes(PANEL_SCOPE_PATH.read_bytes())
+    cul_layer = config_result.get("cul_layer") or cul_core.empty_layer()
+    cul_core.freeze(cul_layer, target / "cul.json")
     manifest = {
         "schema_version": 1,
         "run_id": run_id,
@@ -305,8 +369,33 @@ def _snapshot_run_config(run: Path, *, run_id: str, mode: str, pipeline: str, co
         "nel_version": _version(),
         "git_commit": _git_commit(),
         "corpus_sha256": config_result.get("corpus_sha256"),
+        "cul_profile": cul_layer.get("profile"),
+        "cul_sha256": cul_layer.get("cul_sha256"),
     }
     (target / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _bind_frozen_cul(config: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    """Publish the run's frozen corpus user layer to the workflow.
+
+    The layer is frozen at setup and re-verified here, so a mid-run edit to a
+    profile in ``config/cul/`` cannot change what an in-flight run retrieves.
+    """
+    from scripts.core import cul as cul_core
+
+    path = config / "cul.json"
+    if not path.is_file():
+        os.environ.pop(cul_core.ENV_ACTIVE_LAYER, None)
+        return cul_core.empty_layer()
+    layer = cul_core.load_frozen(path)
+    expected = manifest.get("cul_sha256")
+    if expected and expected != layer.get("cul_sha256"):
+        raise CLIError(
+            "frozen corpus user layer does not match the digest recorded at setup; "
+            "start a new run"
+        )
+    os.environ[cul_core.ENV_ACTIVE_LAYER] = str(path.resolve())
+    return layer
 
 
 def _bind_run_config(run: Path):
@@ -318,6 +407,7 @@ def _bind_run_config(run: Path):
         raise CLIError(f"run configuration snapshot is missing: {config}")
 
     manifest = _json_load(manifest_path)
+    _bind_frozen_cul(config, manifest)
     expected_corpus = manifest.get("corpus_sha256")
     if expected_corpus:
         from scripts.core import corpus as corpus_core
@@ -360,7 +450,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
         raise CLIError("--case-id is valid only with a validation mode")
 
     _initialize_user_settings()
-    config_result = _ensure_config_ok(args.pipeline)
+    config_result = _ensure_config_ok(args.pipeline, getattr(args, "cul", None))
     pipeline = str(args.pipeline or config_result["pipeline"])
     if args.run_id:
         run_id = _validate_run_id(args.run_id)
@@ -428,11 +518,53 @@ def _print_handoff(run_id: str, run: Path, stage: str, manifest: dict[str, Any])
     return 0
 
 
+def _reseat_cul(run: Path, profile: str) -> None:
+    """Replace a run's frozen corpus user layer, on explicit request only.
+
+    Changing the layer mid-run changes what later stages can retrieve while
+    earlier stages keep evidence drawn under the previous layer, so the swap is
+    recorded in the manifest and announced rather than performed quietly.
+    """
+    from scripts.core import corpus as corpus_core
+    from scripts.core import cul as cul_core
+
+    corpus_doc, _index, _digest = corpus_core.load_corpus(
+        corpus_core.DEFAULT_CORPUS, corpus_core.DEFAULT_INDEX
+    )
+    cards = corpus_core.flatten(corpus_doc)
+    layer, warnings = _resolve_cul(profile, corpus_doc, cards)
+    config = run / "run-config"
+    manifest_path = config / "manifest.json"
+    manifest = _json_load(manifest_path)
+    previous = manifest.get("cul_profile")
+    if previous == layer["profile"] and manifest.get("cul_sha256") == layer["cul_sha256"]:
+        return
+    cul_core.freeze(layer, config / "cul.json")
+    manifest["cul_profile"] = layer["profile"]
+    manifest["cul_sha256"] = layer["cul_sha256"]
+    history = list(manifest.get("cul_history") or [])
+    history.append({
+        "replaced_profile": previous,
+        "profile": layer["profile"],
+        "cul_sha256": layer["cul_sha256"],
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    manifest["cul_history"] = history
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    for warning in warnings:
+        print(f"WARNING={warning}")
+    print(f"CUL_RESEATED={previous or 'none'} -> {layer['profile']}")
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     run_id, run = _resolve_run(args.run_id)
     pipeline = _run_pipeline(run)
     if not pipeline:
         raise CLIError(f"cannot determine pipeline for run: {run_id}")
+    if getattr(args, "cul", None):
+        _reseat_cul(run, args.cul)
     step, self_executor, _registry = _bind_run_config(run)
     if pipeline == "self":
         result = self_executor.advance(run)
@@ -499,7 +631,7 @@ def cmd_runs(args: argparse.Namespace) -> int:
 
 def cmd_config_check(args: argparse.Namespace) -> int:
     _initialize_user_settings()
-    result = _config_check(args.pipeline)
+    result = _config_check(args.pipeline, getattr(args, "cul", None))
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
@@ -508,6 +640,9 @@ def cmd_config_check(args: argparse.Namespace) -> int:
             print(f"PIPELINE={result['pipeline']}")
         if result.get("corpus_sha256"):
             print(f"CORPUS_SHA256={result['corpus_sha256']}")
+        if result.get("cul_profile"):
+            print(f"CUL_PROFILE={result['cul_profile']}")
+            print(f"CUL_SHA256={result['cul_sha256']}")
         for warning in result["warnings"]:
             print(f"WARNING={warning}")
         for error in result["errors"]:
@@ -535,6 +670,7 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report")
     setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report")
     setup.add_argument("--pipeline", help="pipeline name from config/pipelines/<name>.yaml")
+    setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json")
     setup.add_argument("--run-id", help="stable filesystem-safe run identifier")
     setup.add_argument("--example", type=int, help="demo example number")
     setup.add_argument("--case-id", help="validation case identifier")
@@ -542,6 +678,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run", help="continue one run; defaults to runs/LATEST")
     run.add_argument("--run-id")
+    run.add_argument("--cul", help="override the frozen corpus user layer for this invocation")
     run.set_defaults(func=cmd_run)
 
     status = sub.add_parser("status", help="show artifact-derived status for one run")
@@ -556,6 +693,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     check = sub.add_parser("config-check", help="validate public configuration and corpus integrity")
     check.add_argument("--pipeline")
+    check.add_argument("--cul")
     check.add_argument("--json", action="store_true")
     check.set_defaults(func=cmd_config_check)
 

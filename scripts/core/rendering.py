@@ -53,6 +53,8 @@ def citation_entries(card):
         "display": card.get("citation_display") or "[citation missing]",
         "citation_incomplete": card.get("citation_incomplete") or [],
         "kind": "primary",
+        "cul_amended_cards": [],
+        "cul_profile": None,
     }]
     secondary = card.get("secondary_citation")
     if secondary:
@@ -64,6 +66,11 @@ def citation_entries(card):
             "kind": "secondary",
         })
     return entries
+
+
+def _short_card_id(card_id):
+    match = re.search(r"(C\d{4,})$", str(card_id or ""))
+    return match.group(1) if match else str(card_id or "")
 
 
 def assign_references(lines):
@@ -85,6 +92,15 @@ def assign_references(lines):
                     numbers[key] = len(references) + 1
                     references.append(entry)
                 number = numbers[key]
+                if entry["kind"] == "primary" and member.get("cul_interpretation_amended"):
+                    # A reference may back several cards from one paper. Name the
+                    # amended ones so the note cannot be read as impeaching the
+                    # whole citation.
+                    target = references[number - 1]
+                    short = _short_card_id(card_id)
+                    if short not in target["cul_amended_cards"]:
+                        target["cul_amended_cards"].append(short)
+                    target["cul_profile"] = member.get("cul_profile") or target["cul_profile"]
                 bucket = (
                     "primary_refs" if entry["kind"] == "primary"
                     else "secondary_refs"
@@ -351,6 +367,12 @@ def _render_tail(references, dropped, reference_map, extra_tail_lines):
         suffix = ""
         if entry["citation_incomplete"]:
             suffix = " [citation incomplete in source: " + ", ".join(entry["citation_incomplete"]) + "]"
+        if entry.get("cul_amended_cards"):
+            suffix += (
+                f' (NB: custom corpus edit used — profile "{entry.get("cul_profile") or "unnamed"}": '
+                + ", ".join(sorted(entry["cul_amended_cards"]))
+                + ")"
+            )
         out.append(textwrap.fill(
             f"{number}. {entry['display']}{suffix}",
             width=WRAP_WIDTH,

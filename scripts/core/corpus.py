@@ -132,39 +132,38 @@ def _normalise_blacklist_rule(value, *, field):
     }
 
 
-def load_blacklist(path, cards):
-    """Load and validate the optional card-eligibility policy.
+def empty_policy():
+    """An enabled policy that permits every card."""
+    return {
+        "enabled": True,
+        "global": _normalise_blacklist_rule({}, field="global"),
+        "papers": {},
+        "exemptions": [],
+    }
 
-    Missing files are intentionally equivalent to an enabled empty policy so old
-    deployments keep their historical retrieval behaviour.
+
+def normalise_policy(raw, cards, *, label="blacklist"):
+    """Validate an in-memory card-eligibility policy against the known cards.
+
+    The corpus user layer stores the same policy shape inside a profile rather
+    than in a standalone file, so validation must be reachable without a path.
     """
-    path = Path(path)
-    if not path.is_file():
-        return {
-            "enabled": True,
-            "global": _normalise_blacklist_rule({}, field="global"),
-            "papers": {},
-            "path": str(path),
-            "present": False,
-        }
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"blacklist JSON is invalid: {exc}") from exc
+    if raw is None:
+        return empty_policy()
     if not isinstance(raw, dict):
-        raise ValueError("blacklist root must be a JSON object")
-    unknown = set(raw) - {"enabled", "global", "papers"}
+        raise ValueError(f"{label} root must be a JSON object")
+    unknown = set(raw) - {"enabled", "global", "papers", "exemptions"}
     if unknown:
         raise ValueError(
-            "blacklist contains unsupported top-level key(s): " + ", ".join(sorted(unknown))
+            f"{label} contains unsupported top-level key(s): " + ", ".join(sorted(unknown))
         )
     enabled = raw.get("enabled", True)
     if not isinstance(enabled, bool):
-        raise ValueError("blacklist enabled must be true or false")
+        raise ValueError(f"{label} enabled must be true or false")
     global_rule = _normalise_blacklist_rule(raw.get("global"), field="global")
     papers_raw = raw.get("papers") or {}
     if not isinstance(papers_raw, dict):
-        raise ValueError("blacklist papers must be a mapping keyed by publication_key")
+        raise ValueError(f"{label} papers must be a mapping keyed by publication_key")
 
     publication_cards = {}
     all_card_ids = set()
@@ -175,16 +174,16 @@ def load_blacklist(path, cards):
     papers = {}
     for publication_key, rule_raw in papers_raw.items():
         if not isinstance(publication_key, str) or not publication_key.strip():
-            raise ValueError("blacklist paper keys must be non-empty publication_key strings")
+            raise ValueError(f"{label} paper keys must be non-empty publication_key strings")
         publication_key = publication_key.strip()
         if publication_key not in publication_cards:
-            raise ValueError(f"blacklist names unknown publication_key {publication_key!r}")
+            raise ValueError(f"{label} names unknown publication_key {publication_key!r}")
         rule = _normalise_blacklist_rule(rule_raw, field=f"papers.{publication_key}")
         named_cards = set(rule["cards"]["include"]) | set(rule["cards"]["exclude"])
         wrong_cards = sorted(named_cards - publication_cards[publication_key])
         if wrong_cards:
             raise ValueError(
-                f"blacklist papers.{publication_key}.cards names card(s) not in that paper: "
+                f"{label} papers.{publication_key}.cards names card(s) not in that paper: "
                 + ", ".join(wrong_cards)
             )
         papers[publication_key] = rule
@@ -195,15 +194,43 @@ def load_blacklist(path, cards):
     unknown_cards = sorted(global_named_cards - all_card_ids)
     if unknown_cards:
         raise ValueError(
-            "blacklist global.cards names unknown card(s): " + ", ".join(unknown_cards)
+            f"{label} global.cards names unknown card(s): " + ", ".join(unknown_cards)
+        )
+    exemptions = _blacklist_string_list(
+        raw.get("exemptions") or [], field=f"{label} exemptions"
+    )
+    unknown_exemptions = sorted(set(exemptions) - all_card_ids)
+    if unknown_exemptions:
+        raise ValueError(
+            f"{label} exemptions names unknown card(s): " + ", ".join(unknown_exemptions)
         )
     return {
         "enabled": enabled,
         "global": global_rule,
         "papers": papers,
-        "path": str(path),
-        "present": True,
+        "exemptions": exemptions,
     }
+
+
+def load_blacklist(path, cards):
+    """Load and validate the legacy standalone card-eligibility policy.
+
+    Missing files are intentionally equivalent to an enabled empty policy so old
+    deployments keep their historical retrieval behaviour. New configuration
+    lives in a corpus user layer profile; see ``scripts/core/cul.py``.
+    """
+    path = Path(path)
+    if not path.is_file():
+        policy = empty_policy()
+        policy.update({"path": str(path), "present": False})
+        return policy
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"blacklist JSON is invalid: {exc}") from exc
+    policy = normalise_policy(raw, cards, label="blacklist")
+    policy.update({"path": str(path), "present": True})
+    return policy
 
 
 def _dimension_allows(card, dimension, values):
@@ -234,17 +261,43 @@ def _rule_allows(card, rule):
 
 
 def apply_blacklist(cards, config):
-    """Return cards permitted by global AND paper-specific policy rules."""
+    """Split cards into those a policy reaches and those it does not.
+
+    Precedence, highest first:
+
+    1. a card named in any ``cards.exclude`` is out; the operator removed it
+       deliberately and no rule or exemption reinstates it,
+    2. a card named in scope-level ``exemptions`` is in, overriding the category,
+       gene and paper rules that would otherwise suppress it,
+    3. the rules themselves.
+
+    Exemptions exist because a broad rule is usually right about a paper and
+    wrong about one card in it; without them the only way to readmit that card
+    would be to abandon the rule.
+    """
     if not config["enabled"]:
-        return list(cards), []
+        return [], list(cards)
+    exemptions = set(config.get("exemptions") or ())
     allowed = []
     excluded = []
     for card in cards:
+        rules = [config["global"]]
         paper_rule = config["papers"].get(card["publication_key"])
-        permitted = _rule_allows(card, config["global"])
-        if permitted and paper_rule is not None:
-            permitted = _rule_allows(card, paper_rule)
-        (allowed if permitted else excluded).append(card)
+        if paper_rule is not None:
+            rules.append(paper_rule)
+        named_excluded = any(
+            card["card_id"] in rule["cards"]["exclude"] for rule in rules
+        )
+        if named_excluded:
+            excluded.append(card)
+            continue
+        if card["card_id"] in exemptions:
+            allowed.append(card)
+            continue
+        if all(_rule_allows(card, rule) for rule in rules):
+            allowed.append(card)
+        else:
+            excluded.append(card)
     return allowed, excluded
 
 

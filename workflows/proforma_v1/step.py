@@ -8,7 +8,7 @@ import yaml
 
 REPO_ROOT=Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path: sys.path.insert(0,str(REPO_ROOT))
-from scripts.core import citations, corpus, retrieval as core_retrieval, syntax_repair, validated_model_task
+from scripts.core import citations, corpus, cul, retrieval as core_retrieval, syntax_repair, validated_model_task
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.scripts.package_marking import package_marking_bundle
@@ -25,13 +25,15 @@ from workflows.proforma_v1.trace import TraceRecorder
 WORKFLOW_ID='proforma-v1'; RUN_STATE_SCHEMA_VERSION=3; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
 
-def configure_runtime(*,settings_path=None,pipelines_dir=None):
+def configure_runtime(*,settings_path=None,pipelines_dir=None,cul_path=None):
     """Bind workflow-local defaults or explicit public/frozen runtime inputs."""
-    global SETTINGS_PATH, SETTINGS_TEMPLATE_PATH
+    global SETTINGS_PATH, SETTINGS_TEMPLATE_PATH, CUL_LAYER
+    if cul_path is not None: CUL_LAYER=cul.active_layer(explicit=cul_path)
     SETTINGS_PATH=Path(settings_path).expanduser().resolve() if settings_path is not None else HERE/'settings.json'
     SETTINGS_TEMPLATE_PATH=SETTINGS_PATH.with_name('settings.json.template') if settings_path is not None else HERE/'settings.json.template'
     pipeline_registry.configure(pipelines_dir)
     return SETTINGS_PATH,pipeline_registry.ROOT
+CUL_LAYER=None
 EXIT_OK=0; EXIT_FAILURE=1; EXIT_HANDOFF=10
 def supported_modes():
     doc=json.loads(WORKFLOW_PATH.read_text(encoding='utf-8'))
@@ -810,15 +812,26 @@ def inspect_run(work):
     return {'label':label,'stage':stage,'next':nxt,'complete':complete,**meta}
 
 def _load_corpus():
+    """Load the corpus and apply the active corpus user layer.
+
+    The CUL replaces the legacy standalone blacklist. A run frozen by nel.py
+    publishes its layer through the environment; a direct step.py invocation may
+    name a profile with --cul. With neither, retrieval falls back to the legacy
+    blacklist so existing work directories keep their behaviour.
+    """
     corpus_doc,_index,digest=corpus.load_corpus(corpus.DEFAULT_CORPUS,corpus.DEFAULT_INDEX); all_cards=corpus.flatten(corpus_doc)
-    try: eligible=corpus.blacklist_cards(all_cards,corpus.DEFAULT_BLACKLIST)
-    except ValueError as exc:
-        if 'blacklist names unknown publication_key' not in str(exc): raise
-        raw=json.loads(Path(corpus.DEFAULT_BLACKLIST).read_text(encoding='utf-8')); present={c.get('publication_key') for c in all_cards}; filtered=dict(raw); filtered['papers']={k:v for k,v in (raw.get('papers') or {}).items() if k in present}
-        with tempfile.NamedTemporaryFile('w',suffix='.json',encoding='utf-8',delete=False) as h: json.dump(filtered,h); tmp=Path(h.name)
-        try: eligible=corpus.blacklist_cards(all_cards,tmp)
-        finally: tmp.unlink(missing_ok=True)
-    manifest=card_identity.build_manifest(all_cards,corpus_sha256=digest); return all_cards,eligible,digest,manifest
+    layer=cul.active_layer(explicit=CUL_LAYER)
+    if layer.get('profile'):
+        eligible,all_cards=cul.eligible_cards(all_cards,layer)
+    else:
+        try: eligible=corpus.blacklist_cards(all_cards,corpus.DEFAULT_BLACKLIST)
+        except ValueError as exc:
+            if 'blacklist names unknown publication_key' not in str(exc): raise
+            raw=json.loads(Path(corpus.DEFAULT_BLACKLIST).read_text(encoding='utf-8')); present={c.get('publication_key') for c in all_cards}; filtered=dict(raw); filtered['papers']={k:v for k,v in (raw.get('papers') or {}).items() if k in present}
+            with tempfile.NamedTemporaryFile('w',suffix='.json',encoding='utf-8',delete=False) as h: json.dump(filtered,h); tmp=Path(h.name)
+            try: eligible=corpus.blacklist_cards(all_cards,tmp)
+            finally: tmp.unlink(missing_ok=True)
+    manifest=card_identity.build_manifest(all_cards,corpus_sha256=digest,cul_sha256=(layer.get('cul_sha256') if layer.get('profile') else None),cul_profile=layer.get('profile')); return all_cards,eligible,digest,manifest
 
 def _manifest_path(work): return _existing_or_new(work,'card_identity','card-identity-manifest.json')
 def stage_structure(work,profile,*,prompt_text=None):

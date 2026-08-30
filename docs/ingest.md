@@ -56,6 +56,10 @@ python scripts/quarantine.py list
 python scripts/quarantine.py review --key <publication-key> --note "<review-note>"
 ```
 
+To customise the corpus for a user or a run without changing accepted state, use a
+corpus user layer profile instead of a redo; see [`cul.md`](cul.md). A redo is for
+correcting the audited corpus itself.
+
 Redo/review commands for an accepted paper:
 
 Historical Phase 5/5R commands are compatibility-only. New accepted-card review uses

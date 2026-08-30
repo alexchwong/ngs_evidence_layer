@@ -19,7 +19,8 @@ def _canonical_card_bytes(card: dict) -> bytes:
     ).encode("utf-8")
 
 
-def build_manifest(cards: Iterable[dict], *, corpus_sha256: str | None = None) -> dict:
+def build_manifest(cards: Iterable[dict], *, corpus_sha256: str | None = None,
+                   cul_sha256: str | None = None, cul_profile: str | None = None) -> dict:
     """Hash every supplied card before retrieval and return a frozen identity map.
 
     ``card_tag`` identifies the stable card ID. ``content_sha256`` independently
@@ -59,6 +60,8 @@ def build_manifest(cards: Iterable[dict], *, corpus_sha256: str | None = None) -
         "algorithm": ALGORITHM,
         "tag_length": TAG_HEX_LENGTH,
         "corpus_sha256": corpus_sha256,
+        "cul_profile": cul_profile,
+        "cul_sha256": cul_sha256,
         "tags": rows,
     }
 

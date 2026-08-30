@@ -161,20 +161,54 @@ class BuildCardBrowserTests(unittest.TestCase):
             "Fixture authority statement.",
         )
 
-    def test_full_mode_requires_every_accepted_package(self):
+    def test_full_mode_degrades_per_paper_when_a_package_is_absent(self):
+        # A release payload ships no accepted packages at all, so an absent
+        # package is the normal corpus-only state rather than a build failure.
         (self.accept / f"{self.key}.final.json").unlink()
 
-        with self.assertRaisesRegex(ValueError, "accepted evidence unavailable"):
-            browser.collect(self.corpus_path, full=True, accept_dir=self.accept)
+        data = browser.collect(self.corpus_path, full=True, accept_dir=self.accept)
 
-    def test_full_mode_rejects_stale_accepted_card(self):
+        self.assertEqual(data["evidenceMode"], "partial")
+        self.assertEqual(data["missingPackages"], [self.key])
+        self.assertEqual(data["mismatchedPackages"], [])
+        paper = data["papers"][0]
+        self.assertEqual(paper["evidence"], "absent")
+        self.assertNotIn("details", paper)
+        self.assertNotIn("evidenceWarning", paper)
+        # Cards still render from the corpus alone.
+        self.assertTrue(data["cards"])
+        self.assertNotIn("details", data["cards"][0])
+
+    def test_full_mode_flags_a_package_that_disagrees_with_the_corpus(self):
+        # A package that exists but disagrees is a real sync defect and must be
+        # distinguishable from a clean corpus-only checkout.
         package_path = self.accept / f"{self.key}.final.json"
         envelope = json.loads(package_path.read_text(encoding="utf-8"))
         envelope["final"]["cards"][0]["interpretation"] = "changed after incorporation"
         package_path.write_text(json.dumps(envelope), encoding="utf-8")
 
-        with self.assertRaisesRegex(ValueError, "differs from the incorporated corpus"):
-            browser.collect(self.corpus_path, full=True, accept_dir=self.accept)
+        data = browser.collect(self.corpus_path, full=True, accept_dir=self.accept)
+
+        self.assertEqual(data["evidenceMode"], "partial")
+        self.assertEqual(data["mismatchedPackages"], [self.key])
+        self.assertEqual(data["missingPackages"], [])
+        paper = data["papers"][0]
+        self.assertEqual(paper["evidence"], "mismatched")
+        self.assertIn("differs from the incorporated corpus", paper["evidenceWarning"])
+        self.assertNotIn("details", paper)
+
+    def test_corpus_only_mode_needs_no_accepted_packages(self):
+        import shutil
+
+        shutil.rmtree(self.accept)
+
+        data = browser.collect(self.corpus_path)
+
+        self.assertEqual(data["evidenceMode"], "none")
+        self.assertFalse(data["full"])
+        self.assertTrue(data["cards"])
+        self.assertTrue(all(card.get("baseSha256") for card in data["cards"]))
+        self.assertTrue(all(card.get("shortId") for card in data["cards"]))
 
     def test_full_cli_uses_private_default_and_embeds_preview_data(self):
         output = self.root / "evidence" / "card-browser-full.html"
