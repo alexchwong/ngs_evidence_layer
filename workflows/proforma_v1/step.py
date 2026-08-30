@@ -1577,22 +1577,129 @@ def stage_report_finalize_blocks(work,blocks,rendered,*,audit_map=None):
     return final
 
 
+def _dissent_stage_label(stage):
+    """Human-facing stage label with retry counters removed."""
+    text=str(stage or 'unknown stage').strip()
+    text=re.sub(r'\s+attempt\s+\d+$','',text,flags=re.IGNORECASE)
+    return text or 'unknown stage'
+
+
+def _dissent_schema_id(issue):
+    key=str(issue.get('issue_key') or '')
+    if key.startswith('evidence-warning:'):
+        return key.split(':',2)[1]
+    if key.startswith('evidence:'):
+        return key.split(':',1)[1]
+    return None
+
+
+def _dissent_origin_stage(issue):
+    """Best available deterministic owner phase for the reviewed statement."""
+    key=str(issue.get('issue_key') or '')
+    if key=='who1-routing-evidence-rejected': return 'WHO5 diagnosis'
+    if key.startswith('report-preservation:'): return 'report write'
+    if key.startswith('evidence-dispute:'): return 'evidence assignment'
+    schema_id=_dissent_schema_id(issue) or ''
+    if schema_id.startswith('DX-WHO5'): return 'WHO5 diagnosis'
+    if schema_id.startswith('DX-ICC'): return 'ICC diagnosis'
+    if schema_id.startswith('DX-CONCURRENT'): return 'concurrent diagnosis'
+    if schema_id.startswith('PX-'): return 'prognosis'
+    if schema_id.startswith('TX-'): return 'treatment'
+    if schema_id.startswith('MRD-'): return 'biomarker'
+    if schema_id.startswith('GL-'): return 'germline'
+    history=issue.get('history') or []
+    return _dissent_stage_label(history[0].get('stage')) if history else 'unknown stage'
+
+
+def _clean_dissent_text(value):
+    text=' '.join(str(value or '').split())
+    text=re.sub(r'\[card:[0-9a-f]{12}\]','candidate card',text,flags=re.IGNORECASE)
+    text=re.sub(r'\bCard\s+[A-Za-z0-9._-]+\s+rejected:', 'Candidate card rejected:',text,flags=re.IGNORECASE)
+    text=re.sub(r'\s+from semantic attempt\s+\d+\b','',text,flags=re.IGNORECASE)
+    text=re.sub(r'\bsemantic attempt\s+\d+\b','review',text,flags=re.IGNORECASE)
+    return re.sub(r'\s{2,}',' ',text).strip()
+
+
+def _dissent_origin_text(issue):
+    text=str(issue.get('reviewed_text') or '').strip()
+    lines=[line.strip() for line in text.splitlines() if line.strip()]
+    if lines and lines[0].startswith('Statement:'):
+        statement=lines[0].split(':',1)[1].strip()
+        reason=next((line.split(':',1)[1].strip() for line in lines[1:] if line.startswith('Reason:')),None)
+        return _clean_dissent_text(statement+(f' Reason: {reason}' if reason else ''))
+    if lines and lines[0].startswith('Reason:'):
+        return _clean_dissent_text(lines[0].split(':',1)[1].strip())
+    return _clean_dissent_text(text)
+
+
+def _dissent_address_outcome(issue,event):
+    """Project current ledger resolution semantics onto the closed human labels."""
+    key=str(issue.get('issue_key') or '')
+    status=str(issue.get('status') or 'open')
+    action=' '.join(str(x) for x in event.get('action') or [])
+    outcome=' '.join(str(x) for x in event.get('outcome') or [])
+    text=(action+' '+outcome).lower()
+
+    if key=='who1-routing-evidence-rejected': return 'Abandoned'
+    if key.startswith('report-preservation:'): return 'Revised'
+    if key.startswith('evidence-warning:'): return 'Kept'
+    if key.startswith('evidence-dispute:'):
+        if 'decided to exclude' in text: return 'Abandoned'
+        if 'decided to include' in text: return 'Kept'
+    if 'remains unresolved' in text or ('not resolved' in text and status=='open'): return 'Unresolved'
+    if 'discard the unsupported molecular/cytogenetic diagnosis update' in text: return 'Revised'
+    if 'replace the failed rendered block' in text: return 'Revised'
+    if 'suppress this unsupported optional proposition' in text or 'optional proposition was excluded' in text: return 'Abandoned'
+    if 'retain independently audited' in text or 'retain supported card/reason match' in text: return 'Kept'
+    if status=='retained_with_dissent': return 'Kept'
+    if status=='open': return 'Unresolved'
+    return 'Kept'
+
+
+def _compact_dissent_history(issue):
+    """Collapse retry-level repeats while preserving distinct review/adjudication stages."""
+    grouped=[]
+    index={}
+    for event in issue.get('history') or []:
+        kind=event.get('event')
+        if kind not in {'raised','addressed'}: continue
+        stage=_dissent_stage_label(event.get('stage'))
+        key=(kind,stage)
+        if key not in index:
+            clone={'event':kind,'stage':stage}
+            if kind=='raised': clone['reason']=[]
+            else: clone['action']=[]; clone['outcome']=[]; clone['_source_events']=[]
+            index[key]=len(grouped); grouped.append(clone)
+        row=grouped[index[key]]
+        if kind=='raised':
+            for value in event.get('reason') or []:
+                cleaned=_clean_dissent_text(value)
+                if cleaned and cleaned not in row['reason']: row['reason'].append(cleaned)
+        else:
+            for field in ('action','outcome'):
+                for value in event.get(field) or []:
+                    cleaned=_clean_dissent_text(value)
+                    if cleaned and cleaned not in row[field]: row[field].append(cleaned)
+            row['_source_events'].append(event)
+    return grouped
+
+
 def _render_dissent_markdown(issues):
-    sections=[]; labels={'open':'Open','resolved':'Resolved','retained_with_dissent':'Retained with dissent'}
+    sections=[]
     for issue in issues:
         if not issue.get('reviewed_text') or not issue.get('history'): continue
-        lines=[f"## Issue {issue.get('id')}",'','**Reviewed text:**','',str(issue['reviewed_text'])]
-        raised=False
-        for event in issue['history']:
-            stage=str(event.get('stage') or 'unknown stage')
-            if event.get('event')=='raised':
-                lines += ['',('### Stage first raised' if not raised else '### Stage dissent re-raised')+f' — {stage}','','**Reason**','']+[f'- {x}' for x in event.get('reason') or []]+['','**Resolution recommendation**','']+[f'- {x}' for x in event.get('resolution_recommendation') or []]; raised=True
-            elif event.get('event')=='addressed':
-                lines += ['',f'### Stage next addressed — {stage}','','**Action**','']+[f'- {x}' for x in event.get('action') or []]
-                if event.get('outcome'): lines += ['','**Outcome**','']+[f'- {x}' for x in event.get('outcome') or []]
-        lines += ['',f"**Status:** {labels.get(issue.get('status'),issue.get('status','Open'))}"]
+        lines=[f"## {issue.get('id')}",'',f"- **Origin [{_dissent_origin_stage(issue)}]:** {_dissent_origin_text(issue)}"]
+        for event in _compact_dissent_history(issue):
+            stage=event['stage']
+            if event['event']=='raised':
+                detail=' '.join(event.get('reason') or []) or 'A later review raised a concern about this statement.'
+                lines += [f"- **Reviewed [{stage}]:** {detail}","  - **Outcome:** Unresolved"]
+            else:
+                detail=' '.join((event.get('action') or [])+(event.get('outcome') or [])) or 'The statement was addressed.'
+                source=(event.get('_source_events') or [{}])[-1]
+                lines += [f"- **Adjudicated [{stage}]:** {detail}",f"  - **Outcome:** {_dissent_address_outcome(issue,source)}"]
         sections.append('\n'.join(lines))
-    return '# Semantic dissent\n\n'+'\n\n---\n\n'.join(sections)+'\n' if sections else ''
+    return '# Semantic dissent\n\n'+'\n\n'.join(sections)+'\n' if sections else ''
 
 def _write_dissent(work):
     path=Path(work)/'dissent.md'; text=_render_dissent_markdown(_semantic_dissent_doc(work).get('issues') or [])

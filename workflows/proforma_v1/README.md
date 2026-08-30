@@ -219,7 +219,8 @@ Important outputs include:
 - `logs/workflow.log` — workflow trace;
 - `logs/model-usage.json` — provider-call timing and token usage for non-self pipelines;
 - `logs/transforms.yaml` — deterministic transformations applied during the run;
-- `dissent.md` — retained evidence/semantic dissent when present;
+- `logs/semantic_dissent.yaml` — complete machine-readable semantic dissent ledger;
+- `dissent.md` — human-readable statement lifecycles showing origin, review/adjudication stages, and `Kept` / `Revised` / `Abandoned` / `Unresolved` outcomes;
 - validation ZIP bundles when using validation modes.
 
 Run state freezes the selected workflow definition and associated assets. Resuming a run is refused if its bound workflow definition has changed, protecting reproducibility.

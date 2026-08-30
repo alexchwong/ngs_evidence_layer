@@ -223,6 +223,115 @@ class Phase3WorkflowTests(unittest.TestCase):
 
 
 
+class Phase3DissentRenderingTests(unittest.TestCase):
+    def test_human_dissent_uses_statement_lifecycle_and_closed_outcomes(self):
+        issues=[
+            {
+                "id":"D001","issue_key":"evidence-warning:TX-SENSITIVITY-01:[card:aaaaaaaaaaaa]",
+                "reviewed_text":"Treatment statement.","status":"retained_with_dissent",
+                "history":[
+                    {"stage":"evidence audit attempt 2","event":"raised","reason":["Context warning."],"resolution_recommendation":["Review it."]},
+                    {"stage":"evidence resolution","event":"addressed","action":["Retain supported card/reason match."],"outcome":["Membership passed; warning remains visible."]},
+                ],
+            },
+            {
+                "id":"D002","issue_key":"evidence:DX-WHO5","reviewed_text":"Statement: Molecular diagnosis update.\nReason: Molecular criterion.","status":"resolved",
+                "history":[
+                    {"stage":"evidence matching attempt 1","event":"raised","reason":["No supporting card."],"resolution_recommendation":["Use morphology."]},
+                    {"stage":"evidence resolution","event":"addressed","action":["Discard the unsupported molecular/cytogenetic diagnosis update and retain the supplied morphologic diagnosis without a literature citation."],"outcome":["Retained supplied morphology: MDS."]},
+                ],
+            },
+            {
+                "id":"D003","issue_key":"evidence:TX-RESISTANCE-01","reviewed_text":"Optional treatment proposition.","status":"resolved",
+                "history":[
+                    {"stage":"evidence selection","event":"raised","reason":["No candidate evidence card was available."],"resolution_recommendation":["Omit it."]},
+                    {"stage":"evidence resolution","event":"addressed","action":["Suppress this unsupported optional proposition from report construction."],"outcome":["The optional proposition was excluded from the report."]},
+                ],
+            },
+            {
+                "id":"D004","issue_key":"evidence:DX-WHO5","reviewed_text":"Inferred primary diagnosis.","status":"open",
+                "history":[
+                    {"stage":"evidence matching attempt 1","event":"raised","reason":["Support was not resolved."],"resolution_recommendation":["Do not force support."]},
+                    {"stage":"evidence resolution","event":"addressed","action":["Do not report this inferred primary diagnosis because direct citation support was not resolved."],"outcome":["Primary framework diagnosis remains unresolved and is omitted from report construction."]},
+                ],
+            },
+        ]
+        rendered=staged._render_dissent_markdown(issues)
+        self.assertIn("## D001",rendered)
+        self.assertIn("- **Origin [treatment]:** Treatment statement.",rendered)
+        self.assertIn("- **Reviewed [evidence audit]:** Context warning.",rendered)
+        self.assertNotIn("attempt 2",rendered)
+        self.assertIn("- **Origin [WHO5 diagnosis]:** Molecular diagnosis update. Reason: Molecular criterion.",rendered)
+        self.assertEqual(rendered.count("  - **Outcome:** Kept"),1)
+        self.assertEqual(rendered.count("  - **Outcome:** Revised"),1)
+        self.assertEqual(rendered.count("  - **Outcome:** Abandoned"),1)
+        self.assertGreaterEqual(rendered.count("  - **Outcome:** Unresolved"),4)
+        self.assertNotIn("Resolution recommendation",rendered)
+        self.assertNotIn("**Status:**",rendered)
+
+    def test_dissent_retry_noise_is_collapsed_and_card_ids_are_hidden(self):
+        issue={
+            "id":"D001","issue_key":"evidence:PX-ADVERSE-01",
+            "reviewed_text":"Statement: Adverse-risk proposition.\nReason: Variant-associated risk.","status":"resolved",
+            "history":[
+                {"stage":"evidence matching attempt 1","event":"raised","reason":["No card selected."],"resolution_recommendation":["Retry."]},
+                {"stage":"evidence matching attempt 2","event":"raised","reason":["No remaining card selected."],"resolution_recommendation":["Resolve."]},
+                {"stage":"evidence audit attempt 2","event":"raised","reason":["Card deadbeef1234 rejected: wrong context."],"resolution_recommendation":["Exclude it."]},
+                {"stage":"evidence resolution","event":"addressed","action":["Retain independently audited card/reason matches from semantic attempt 2."],"outcome":["1 card(s) passed; rejected card attempts remain recorded."]},
+            ],
+        }
+        rendered=staged._render_dissent_markdown([issue])
+        self.assertEqual(rendered.count("**Reviewed [evidence matching]:**"),1)
+        self.assertIn("No card selected. No remaining card selected.",rendered)
+        self.assertIn("Candidate card rejected: wrong context.",rendered)
+        self.assertNotIn("deadbeef1234",rendered)
+        self.assertNotIn("semantic attempt 2",rendered)
+        self.assertIn("  - **Outcome:** Kept",rendered)
+
+    def test_routing_and_report_fallbacks_map_to_abandoned_and_revised(self):
+        issues=[
+            {
+                "id":"D001","issue_key":"who1-routing-evidence-rejected","reviewed_text":"Proposed WHO5 diagnosis: AML.","status":"resolved",
+                "history":[
+                    {"stage":"WHO1 blocking diagnostic evidence","event":"raised","reason":["No card survived review."],"resolution_recommendation":["Retain morphology."]},
+                    {"stage":"WHO1 routing commit","event":"addressed","action":["Reject proposed routing change and retain supplied morphology."],"outcome":["Committed routing diagnosis: MDS."]},
+                ],
+            },
+            {
+                "id":"D002","issue_key":"report-preservation:DX","reviewed_text":"Rendered diagnosis text.","status":"resolved",
+                "history":[
+                    {"stage":"final preservation audit","event":"raised","reason":["Rendered block changed the source meaning."],"resolution_recommendation":["Use fallback."]},
+                    {"stage":"deterministic report fallback","event":"addressed","action":["Replace the failed rendered block with its deterministic fallback."],"outcome":["Fallback diagnosis text."]},
+                ],
+            },
+        ]
+        rendered=staged._render_dissent_markdown(issues)
+        self.assertIn("- **Origin [WHO5 diagnosis]:** Proposed WHO5 diagnosis: AML.",rendered)
+        self.assertIn("- **Origin [report write]:** Rendered diagnosis text.",rendered)
+        self.assertIn("  - **Outcome:** Abandoned",rendered)
+        self.assertIn("  - **Outcome:** Revised",rendered)
+
+    def test_write_dissent_does_not_change_semantic_ledger(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            doc={
+                "schema_version":2,
+                "issues":[{
+                    "id":"D001","issue_key":"evidence:GL-SUSPICIOUS-01","reviewed_text":"Germline proposition.","status":"open",
+                    "history":[{"stage":"evidence selection","event":"raised","reason":["No candidate card."],"resolution_recommendation":["Review support."]}],
+                }],
+            }
+            ledger=staged._semantic_dissent_path(work)
+            ledger.write_text(yaml.safe_dump(doc,sort_keys=False),encoding="utf-8")
+            before=ledger.read_bytes()
+            path=staged._write_dissent(work)
+            self.assertEqual(ledger.read_bytes(),before)
+            rendered=path.read_text(encoding="utf-8")
+            self.assertIn("- **Origin [germline]:** Germline proposition.",rendered)
+            self.assertIn("  - **Outcome:** Unresolved",rendered)
+
+
+
 class Phase3OwnerEvidenceTests(unittest.TestCase):
     def test_owner_assignment_schemas_accept_runtime_card_tag_format(self):
         valid_tag="[card:3be59917dd3e]"
