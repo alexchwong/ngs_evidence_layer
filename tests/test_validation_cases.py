@@ -22,10 +22,14 @@ class BundledCaseRegistryTests(unittest.TestCase):
     def test_expected_public_suites_are_registered(self):
         self.assertEqual(
             set(bundled_modes()),
-            {"nel-demo", "nel-validate", "nel-validate-function", "nel-validate-brief"},
+            {"nel-demo", "nel-validate", "nel-validate-function", "nel-validate-brief", "nel-validate-dual"},
         )
         self.assertTrue(is_validation_mode("nel-validate"))
         self.assertFalse(is_validation_mode("nel-demo"))
+
+    def test_dual_suite_has_six_standalone_cases(self):
+        self.assertEqual(list_case_ids("nel-validate-dual"), ("1", "2", "3", "4", "5", "6"))
+        self.assertEqual(case_source_path("nel-validate-dual"), ROOT / "validation" / "validate_dual.md")
 
     def test_demo_is_one_file_with_six_cases_and_marking_criteria(self):
         self.assertEqual(list_case_ids("nel-demo"), ("1", "2", "3", "4", "5", "6"))
@@ -72,6 +76,10 @@ class BundledCaseRegistryTests(unittest.TestCase):
         self.assertEqual(
             marking_bundle_filename("nel-validate-brief", "8"),
             "nel-validation-brief-8.zip",
+        )
+        self.assertEqual(
+            marking_bundle_filename("nel-validate-dual", "1"),
+            "nel-validation-dual-1.zip",
         )
         with self.assertRaises(ValueError):
             marking_bundle_filename("nel-demo", "1")
@@ -122,11 +130,23 @@ class WorkflowBundledCaseRegressionTests(unittest.TestCase):
                 "nel-validate": "1A",
                 "nel-validate-function": "1H",
                 "nel-validate-brief": "8",
+                "nel-validate-dual": "1",
             }
             for mode, selector in validation_examples.items():
                 if mode in supported:
                     with self.subTest(workflow=workflow_id, mode=mode):
                         self._assert_setup_case(workflow_id, mode, case_id=selector)
+
+    def test_dual_validation_is_proforma_only(self):
+        registry = load_registry()
+        for workflow_id, row in registry["workflows"].items():
+            if not row.get("enabled", True):
+                continue
+            supported = set(load_workflow_metadata(workflow_id, registry).get("supported_modes") or [])
+            if workflow_id == "proforma-v1":
+                self.assertIn("nel-validate-dual", supported)
+            else:
+                self.assertNotIn("nel-validate-dual", supported, workflow_id)
 
     def test_workflow_code_and_docs_have_no_bundled_asset_sources_or_legacy_registry_constants(self):
         forbidden = (
@@ -140,6 +160,7 @@ class WorkflowBundledCaseRegressionTests(unittest.TestCase):
             "case_summary.md",
             "case_functional.md",
             "validation_brief.md",
+            "validate_dual.md",
             "from validation.cases",
             "validation.package_marking",
         )

@@ -85,6 +85,15 @@ python workflows/proforma_v1/step.py run \
   --work-dir <printed-work-dir>
 ```
 
+The dual-pathology validation suite is available only in `proforma_v1`:
+
+```bash
+python workflows/proforma_v1/step.py setup \
+  --mode nel-validate-dual \
+  --case-id 1 \
+  --pipeline lmstudio
+```
+
 Use `--pipeline openrouter` instead for OpenRouter.
 
 Supported setup modes are:
@@ -94,6 +103,7 @@ Supported setup modes are:
 - `nel-validate`
 - `nel-validate-function`
 - `nel-validate-brief`
+- `nel-validate-dual`
 
 ## Provider and model configuration
 
@@ -222,7 +232,7 @@ For current-session model execution, use `self.py` instead of an external provid
 
 ```bash
 python workflows/proforma_v1/self.py setup \
-  --mode nel-validate-brief \
+  --mode nel-validate-dual \
   --case-id 1
 ```
 

@@ -20,6 +20,7 @@ from scripts.workflow_registry import (  # noqa: E402
     write_workflow_state,
 )
 from validation.scripts.bundled_cases import (  # noqa: E402
+    bundled_modes,
     is_bundled_mode,
     is_validation_mode,
     retrieve_case_input,
@@ -104,10 +105,7 @@ def main() -> int:
             "evidence-block-manual",
             "ngs-report",
             "evidence-to-report",
-            "nel-demo",
-            "nel-validate",
-            "nel-validate-function",
-            "nel-validate-brief",
+            *bundled_modes(),
         ),
     )
     group = parser.add_mutually_exclusive_group()

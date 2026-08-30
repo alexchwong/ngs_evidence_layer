@@ -16,6 +16,7 @@ from validation.scripts.bundled_cases import (  # noqa: E402
     marking_bundle_filename,
     retrieve_case_input,
     retrieve_marking_criteria,
+    validation_modes,
 )
 
 DEFAULT_PROMPT = ROOT / "validation" / "mark_validation_report.md"
@@ -81,7 +82,7 @@ def package_marking_bundle(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("case", help="Validation case selector, e.g. 1A")
-    parser.add_argument("--mode", required=True, choices=sorted(m for m in ("nel-validate", "nel-validate-function", "nel-validate-brief")))
+    parser.add_argument("--mode", required=True, choices=sorted(validation_modes()))
     parser.add_argument("--report", type=Path, required=True, help="Path to report-final.md")
     parser.add_argument("--output", type=Path, help="Optional output ZIP path; canonical name is used by default")
     parser.add_argument("--prompt", type=Path, default=DEFAULT_PROMPT)

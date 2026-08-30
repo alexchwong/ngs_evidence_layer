@@ -51,6 +51,21 @@ def test_functional_and_brief_modes_select_their_registered_sources():
             assert "suspected/possible germline ANKRD26 predisposition" in prompt
 
 
+def test_dual_mode_uses_registered_source_and_canonical_name():
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        report = tmp / "report-final.md"
+        report.write_text("# Report\n", encoding="utf-8")
+        output = package_marking_bundle("nel-validate-dual", "1", report)
+        assert output.name == "nel-validation-dual-1.zip"
+        with zipfile.ZipFile(output) as zf:
+            case = zf.read("validation-case.md").decode("utf-8")
+            prompt = zf.read("marking-prompt.md").decode("utf-8")
+        assert "BRAF" in case
+        assert "CD103" in case
+        assert "hairy cell leukaemia" in prompt.lower()
+
+
 def test_package_fails_closed_without_completed_report():
     with tempfile.TemporaryDirectory() as tmp:
         report = Path(tmp) / "report-final.md"

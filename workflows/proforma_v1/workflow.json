@@ -13,7 +13,8 @@
     "nel-demo",
     "nel-validate",
     "nel-validate-function",
-    "nel-validate-brief"
+    "nel-validate-brief",
+    "nel-validate-dual"
   ],
   "status": "experimental",
   "cloned_from": "terraced-v6",

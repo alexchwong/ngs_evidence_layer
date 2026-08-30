@@ -12,7 +12,7 @@ Bundled demo and validation cases are repository-owned test assets. Their runtim
 - marking-criteria retrieval;
 - validation marking-ZIP naming.
 
-Workflow code must never hard-code `demo.md`, `case_summary.md`, `case_functional.md`, or `validation_brief.md`, and must not parse those files itself. Every workflow must fetch bundled clinical input through `retrieve_case_input(mode, selector)`.
+Workflow code must never hard-code `demo.md`, `case_summary.md`, `case_functional.md`, `validation_brief.md`, or `validate_dual.md`, and must not parse those files itself. Every workflow must fetch bundled clinical input through `retrieve_case_input(mode, selector)`.
 
 ## Retrieval boundary
 

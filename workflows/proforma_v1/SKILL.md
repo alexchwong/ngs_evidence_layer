@@ -45,6 +45,16 @@ python workflows/proforma_v1/self.py setup \
   [--work-dir <dir> | --project]
 ```
 
+For a bundled dual-pathology validation case:
+
+```bash
+python workflows/proforma_v1/self.py setup \
+  --mode nel-validate-dual \
+  --case-id 1
+```
+
+Bundled validation setup exposes only the selected clinical case. Evaluator-only `NEL task` and `Marking criteria` content must not be retrieved or read before `report-final.md` is complete.
+
 Use the exact work directory printed by setup. The selected workflow path and SHA-256 are bound to the run; a changed workflow is rejected on resume.
 
 Then advance with:
