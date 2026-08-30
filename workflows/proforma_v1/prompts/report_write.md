@@ -15,7 +15,7 @@ Rules:
 - For a diagnosis block with `relationship: same`, express WHO5 and ICC together.
 - For `relationship: different`, explicitly contrast WHO5 and ICC; do not create a separate sentence merely saying they differ.
 - For `relationship: partial`, report only the supplied framework component(s); do not infer or reconstruct a missing framework diagnosis.
-- Keep independent concurrent diagnoses explicitly separate from the primary framework diagnoses.
+- Keep concurrent-pathology molecular signals explicitly separate from the primary framework diagnoses. Preserve their uncertainty: report them as findings that warrant investigation/clinicopathological correlation, not as proven second neoplasms unless the deterministic block explicitly says otherwise.
 - Do not merge separate supplied blocks.
 
 Return YAML only:

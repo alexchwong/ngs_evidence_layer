@@ -159,7 +159,6 @@ def _self_model_output_path(step_id: str, work: Path) -> Path | None:
         'diagnosis.who1.evidence.adjudication': sr._who1_gate_adjudication_path(work),
         'diagnosis.who2': sr.output_path(work,'diagnosis_who5_pass_2','who5.yaml'),
         'diagnosis.icc': sr.output_path(work,'diagnosis_icc','icc.yaml'),
-        'diagnosis.other': sr.output_path(work,'diagnosis_other','other.yaml'),
         'prognosis': sr.output_path(work,'prognosis_state','model-classification.yaml'),
         'treatment': sr.output_path(work,'treatment_state','model-classification.yaml'),
         'biomarker': sr.output_path(work,'biomarker_state','model-classification.yaml'),
@@ -231,7 +230,6 @@ def _self_step_complete(step_id: str, context: WorkflowContext) -> bool:
         'diagnosis.who1.commit': sr._who1_commit_path(work).is_file(),
         'diagnosis.icc': staged.has_artifact(work,'diagnosis_icc','icc.yaml'),
         'diagnosis.who2': staged.has_artifact(work,'diagnosis_who5_pass_2','who5.yaml'),
-        'diagnosis.other': staged.has_artifact(work,'diagnosis_other','other.yaml'),
         'diagnosis.finalize': staged.has_artifact(work,'diagnosis','diagnosis-final.yaml'),
         'prognosis': staged.has_artifact(work,'prognosis_state','model-classification.yaml'),
         'treatment': staged.has_artifact(work,'treatment_state','model-classification.yaml'),
@@ -378,13 +376,8 @@ def _self_handlers():
             _self_declared_validate('diagnosis.who2',ctx)
         return _handoff('diagnosis',decorate(manifest,step,ctx))
 
-    def diagnosis_other(step, ctx):
-        manifest=sr.prepare_diagnosis_other(ctx.work,prompt=step.prompt)
-        _self_declared_validate('diagnosis.icc',ctx)
-        return _handoff('diagnosis_other',decorate(manifest,step,ctx))
-
     def diagnosis_finalize(step, ctx):
-        sr.finalize_diagnosis(ctx.work); _self_declared_validate('diagnosis.other',ctx); return {'status':'complete'}
+        sr.finalize_diagnosis(ctx.work); _self_declared_validate('diagnosis.icc',ctx); return {'status':'complete'}
 
     def ptbg(step, ctx):
         sr.finalize_diagnosis(ctx.work)
@@ -487,7 +480,7 @@ def _self_handlers():
         'who1_evidence_assignment':who1_evidence_assignment,'who1_evidence_audit':who1_evidence_audit,
         'who1_evidence_adjudication':who1_evidence_adjudication,'who1_commit':who1_commit,
         'diagnosis_who2':who2,'diagnosis_icc':icc,
-        'diagnosis_other':diagnosis_other,'diagnosis_finalize':diagnosis_finalize,
+        'diagnosis_finalize':diagnosis_finalize,
         'ptbg':ptbg,'evidence_assignment':evidence_assignment,'evidence_audit':evidence_audit,
         'evidence_adjudication':evidence_adjudication,'evidence_finalize':evidence_finalize,
         'report_blocks':report_blocks,'report_write':report_write,

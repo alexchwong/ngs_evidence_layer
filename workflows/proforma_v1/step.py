@@ -83,7 +83,7 @@ def _card_render_mode():
     return mode
 
 _REPORTABILITY_DEFAULTS={
-    'diagnosis':{'who5':True,'icc':True,'second_diagnosis':True},
+    'diagnosis':{'who5':True,'icc':True,'concurrent_pathology':True},
     'prognosis':{'framework_favorable':True,'framework_adverse':True,'framework_neutral':True,'other_evidence_favorable':True,'other_evidence_adverse':True,'other_evidence_neutral':True,'no_prognostic_evidence':False,'prognostic_frameworks':True},
     'treatment':{'drug_target':True,'drug_sensitive':True,'drug_resistant':True,'no_drug_implication':False},
     'biomarker':{'mrd_marker':True,'not_mrd_marker':False},
@@ -641,7 +641,7 @@ def _workflow_step_for_call(call_id):
     if workflow is None: return None
     mapping={
         'structure-case':'structure','diagnosis-who5-pass-01':'diagnosis.who1','diagnosis-who5-pass-02':'diagnosis.who2',
-        'diagnosis-icc':'diagnosis.icc','diagnosis-other':'diagnosis.other',
+        'diagnosis-icc':'diagnosis.icc',
         'prognosis':'prognosis','treatment':'treatment','biomarker':'biomarker','germline':'germline',
         'report-write':'report.write','report-preservation':'report.preservation',
     }
@@ -1065,21 +1065,16 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
         if cmc not in history: history.append(cmc)
 
     icc_cards=_diagnostic_cards(eligible,genes,history,'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
-    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(icc_cards,tag_by_id,'icc')
+    iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(runtime.legacy_who_view(who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(icc_cards,tag_by_id,'icc')
     model_context.assert_canonical(iprompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=iprompt,output=icc_out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
     icc=yaml.safe_load(_read(icc_out))
 
-    other_cards=_draw_diagnosis_cards(eligible,genes,history); other_out=_existing_or_new(work,'diagnosis_other','other.yaml')
-    oprompt=_prompt('diagnosis_other')+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Primary framework diagnoses\n```yaml\n'+yaml.safe_dump({'who5':who,'icc':icc},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate diagnosis cards\n'+_render_cards(other_cards,tag_by_id)
-    model_context.assert_canonical(oprompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id='diagnosis-other',role='diagnosis',prompt=oprompt,output=other_out,validator=lambda t:schema_validation.validate_second_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
-    other=yaml.safe_load(_read(other_out))
     relationship='same' if runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
-    diagnosis={'who5':who,'icc':icc,'second_diagnosis':other,'relationship':relationship}
+    diagnosis={'who5':runtime.legacy_who_view(who),'icc':icc,'concurrent_pathology':runtime.concurrent_pathology_from_who(who),'relationship':relationship}
     _write(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'),yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110))
     _write(_existing_or_new(work,'diagnosis','routing.json'),json.dumps({'bootstrap_cmcs':bootstrap,'who5_authoritative_pass':authoritative,'final_cmcs':final_cmcs,'diagnostic_cmc_history':history},indent=2)+'\n')
-    return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards,'diagnosis_other':other_cards}
+    return diagnosis,final_cmcs,{'diagnosis_who5':who_cards,'diagnosis_icc':icc_cards}
 
 
 def stage_diagnosis_who_pass(work,case,reg,eligible,manifest,profile,*,pass_number,history,prompt_text):
@@ -1095,28 +1090,27 @@ def stage_diagnosis_who_pass(work,case,reg,eligible,manifest,profile,*,pass_numb
 def stage_diagnosis_icc_pass(work,case,reg,eligible,manifest,profile,*,history,who,prompt_text):
     genes=runtime.case_genes(case); tag_by_id=card_identity.tag_by_id(manifest)
     cards=_diagnostic_cards(eligible,genes,history,'icc'); out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
-    prompt=prompt_text+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(who,sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(cards,tag_by_id,'icc')
+    prompt=prompt_text+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(runtime.legacy_who_view(who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(cards,tag_by_id,'icc')
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
     return yaml.safe_load(_read(out)),cards
 
 
-def stage_diagnosis_other_pass(work,case,reg,eligible,manifest,profile,*,history,who,icc,prompt_text):
-    genes=runtime.case_genes(case); tag_by_id=card_identity.tag_by_id(manifest)
-    cards=_draw_diagnosis_cards(eligible,genes,history); out=_existing_or_new(work,'diagnosis_other','other.yaml')
-    prompt=prompt_text+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Primary framework diagnoses\n```yaml\n'+yaml.safe_dump({'who5':who,'icc':icc},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Candidate diagnosis cards\n'+_render_cards(cards,tag_by_id)
-    model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id='diagnosis-other',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_second_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
-    return yaml.safe_load(_read(out)),cards
 
-
-def stage_diagnosis_finalize_pass(work,case,who1,who2,icc,other,history):
-    who=who2 or who1; authoritative=2 if who2 is not None else 1
-    final_cmcs=runtime.derive_cmcs(who)
+def stage_diagnosis_finalize_pass(work,case,who1_raw,who1_commit,who2,icc,history):
+    routing_who=who2 or (who1_commit or {}).get('accepted_who1') or who1_raw
+    assessment_who=runtime.authoritative_who_assessment_source(who1_raw,who2,who1_commit)
+    authoritative=2 if who2 is not None else 1
+    final_cmcs=runtime.derive_cmcs(routing_who)
     for cmc in final_cmcs:
         if cmc not in history: history.append(cmc)
-    relationship='same' if runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
-    diagnosis={'who5':who,'icc':icc,'second_diagnosis':other,'relationship':relationship}
+    relationship='same' if runtime.normalize_dx(routing_who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
+    diagnosis={
+        'who5':runtime.legacy_who_view(routing_who),
+        'icc':icc,
+        'concurrent_pathology':runtime.concurrent_pathology_from_who(assessment_who),
+        'relationship':relationship,
+    }
     _write(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'),yaml.safe_dump(diagnosis,sort_keys=False,allow_unicode=True,width=110))
     _write(_existing_or_new(work,'diagnosis','routing.json'),json.dumps({'bootstrap_cmcs':list(case.get('bootstrap_cmcs') or []),'who5_authoritative_pass':authoritative,'final_cmcs':final_cmcs,'diagnostic_cmc_history':history},indent=2)+'\n')
     return diagnosis,final_cmcs
@@ -1175,9 +1169,14 @@ def _elements(diagnosis,domains,case,contracts=None):
             else f'ICC classification: {r["diagnosis"]}.'
         )
         els.append({'schema_id':'DX-ICC','domain':'diagnosis','bucket':'icc','framework_label':'ICC','statement':statement,'reason':r['reason'],'variants':r['variants'],'evidence_domain':'diagnosis_icc','required':True,'source':r,'morphologic_diagnosis_origin':origin,'starting_morphologic_diagnosis':starting})
-    sec=diagnosis['second_diagnosis']
-    if _reportable('diagnosis','second_diagnosis') and sec.get('diagnosis'):
-        els.append({'schema_id':'DX-SECOND','domain':'diagnosis','bucket':'second_diagnosis','statement':sec['diagnosis'],'reason':sec['reason'],'variants':sec['variants'],'evidence_domain':'diagnosis_other','required':False,'source':sec})
+    if _reportable('diagnosis','concurrent_pathology'):
+        for i,row in enumerate(diagnosis.get('concurrent_pathology') or [],1):
+            pathology=row.get('other_pathology')
+            variant_id=row.get('variant_id')
+            if not pathology or not variant_id:
+                continue
+            statement=f'Molecular findings warrant investigation for concurrent {pathology}; the variant alone does not establish a second neoplasm.'
+            els.append({'schema_id':f'DX-CONCURRENT-{i:02d}','domain':'diagnosis','bucket':'concurrent_pathology','statement':statement,'reason':row['reason'],'variants':[variant_id],'evidence_domain':'diagnosis_who5','required':False,'source':row})
     prognosis=domains['prognosis']
     if _reportable('prognosis','prognostic_frameworks'):
         for i,framework in enumerate(prognosis.get('prognostic_frameworks') or [],1):
@@ -1454,18 +1453,22 @@ def _fallback_block_text(block):
         elif who: text=f'Under WHO5, the diagnosis is {who["diagnosis"]}.'
         elif icc: text=f'Under ICC, the diagnosis is {icc["diagnosis"]}.'
         else: text=''
-        second=next((x for x in comps if x['role']=='second_diagnosis'),None)
-        if second: text+=((' ' if text else '')+'An independent concurrent diagnosis of '+second['diagnosis']+' is also supported.')
+        concurrent=[x for x in comps if x['role']=='concurrent_pathology']
+        for signal in concurrent:
+            text+=((' ' if text else '')+'A molecular finding raises the possibility of concurrent '+signal['pathology']+'; clinicopathological correlation is recommended.')
         return text
     return runtime.ensure_sentence(block['components'][0]['reason'])
 
 def stage_blocks(work,diagnosis,elements,reg):
     by_id={el['schema_id']:el for el in elements}; blocks=[]
     dx=[]
-    for sid,role in (('DX-WHO5','who5'),('DX-ICC','icc'),('DX-SECOND','second_diagnosis')):
+    for sid,role in (('DX-WHO5','who5'),('DX-ICC','icc')):
         el=by_id.get(sid)
         if not el: continue
         src=el['source']; dx.append({'role':role,'diagnosis':src.get('diagnosis'),'reason':src.get('reason'),'variants':src.get('variants') or [],'genes':_genes(reg,src.get('variants') or []),'card_tags':[ev['card_tag'] for ev in (el.get('evidence') or [])]})
+    for el in sorted((x for x in elements if x.get('bucket')=='concurrent_pathology'),key=lambda x:x['schema_id']):
+        src=el['source']; variants=el.get('variants') or []
+        dx.append({'role':'concurrent_pathology','pathology':src.get('other_pathology'),'reason':src.get('reason'),'variants':variants,'genes':_genes(reg,variants),'card_tags':[ev['card_tag'] for ev in (el.get('evidence') or [])]})
     if dx:
         who=next((x for x in dx if x['role']=='who5'),None); icc=next((x for x in dx if x['role']=='icc'),None)
         relationship=('same' if who and icc and runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different' if who and icc else 'partial')
@@ -1725,16 +1728,8 @@ def _provider_handlers(workflow):
         cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_icc']=cards; ctx.put('cards_by_domain',cards_by)
         return {'artifact':icc}
 
-    def other_handler(step, ctx):
-        history=list(ctx.get('diagnostic_history') or [])
-        who=ctx.get('who2') or ctx.get('committed_who1') or ctx.get('who1')
-        other,cards=stage_diagnosis_other_pass(ctx.work,ctx.get('case'),ctx.get('registry'),ctx.get('eligible'),ctx.get('manifest'),ctx.profile,history=history,who=who,icc=ctx.get('icc'),prompt_text=_compiled_prompt(step,workflow,ctx))
-        ctx.put('diagnosis_other',other)
-        cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_other']=cards; ctx.put('cards_by_domain',cards_by)
-        return {'artifact':other}
-
     def diagnosis_finalize_handler(step, ctx):
-        diagnosis,cmcs=stage_diagnosis_finalize_pass(ctx.work,ctx.get('case'),ctx.get('committed_who1') or ctx.get('who1'),ctx.get('who2'),ctx.get('icc'),ctx.get('diagnosis_other'),list(ctx.get('diagnostic_history') or []))
+        diagnosis,cmcs=stage_diagnosis_finalize_pass(ctx.work,ctx.get('case'),ctx.get('who1'),ctx.get('who1_commit'),ctx.get('who2'),ctx.get('icc'),list(ctx.get('diagnostic_history') or []))
         ctx.put('diagnosis',diagnosis); ctx.put('diagnostic_cmcs',cmcs)
         return {'artifact':diagnosis}
 
@@ -1883,7 +1878,6 @@ def _provider_handlers(workflow):
         'who1_commit': who1_commit_handler,
         'diagnosis_who2': who2_handler,
         'diagnosis_icc': icc_handler,
-        'diagnosis_other': other_handler,
         'diagnosis_finalize': diagnosis_finalize_handler,
         'domain': domain_handler,
         'evidence_assignment': evidence_assignment_handler,
@@ -1930,7 +1924,6 @@ def _provider_step_complete(step_id, ctx):
         'diagnosis.who1.commit': lambda: sr._who1_commit_path(work).is_file(),
         'diagnosis.who2': lambda: _model_step_validated(work,'diagnosis-who5-pass-02'),
         'diagnosis.icc': lambda: _model_step_validated(work,'diagnosis-icc'),
-        'diagnosis.other': lambda: _model_step_validated(work,'diagnosis-other'),
         'diagnosis.finalize': lambda: has_artifact(work,'diagnosis','diagnosis-final.yaml'),
         'prognosis': lambda: _model_step_validated(work,'prognosis') and has_artifact(work,'prognosis_state','model-classification.yaml'),
         'treatment': lambda: _model_step_validated(work,'treatment') and has_artifact(work,'treatment_state','model-classification.yaml'),
@@ -1983,7 +1976,6 @@ def _hydrate_provider_context(work, context):
             if cmc not in history: history.append(cmc)
     context.put('diagnostic_history',history)
     if _model_step_validated(work,'diagnosis-icc'): context.put('icc',yaml.safe_load(_read(_existing_or_new(work,'diagnosis_icc','icc.yaml'))) or {})
-    if _model_step_validated(work,'diagnosis-other'): context.put('diagnosis_other',yaml.safe_load(_read(_existing_or_new(work,'diagnosis_other','other.yaml'))) or {})
     if has_artifact(work,'diagnosis','diagnosis-final.yaml'): context.put('diagnosis',yaml.safe_load(_read(_existing_or_new(work,'diagnosis','diagnosis-final.yaml'))) or {})
     domains={}
     for domain in ('prognosis','treatment','biomarker','germline'):
@@ -1994,7 +1986,6 @@ def _hydrate_provider_context(work, context):
         genes=runtime.case_genes(case); disease=context.get('diagnosis')['who5']['schema_disease']; cards_by={}
         cards_by['diagnosis_who5']=_diagnostic_cards(context.get('eligible'),genes,history,'who5')
         cards_by['diagnosis_icc']=_diagnostic_cards(context.get('eligible'),genes,history,'icc')
-        cards_by['diagnosis_other']=_draw_diagnosis_cards(context.get('eligible'),genes,history)
         for domain in domains: cards_by[domain]=_draw_domain_cards(context.get('eligible'),domain,genes,[disease])
         context.put('cards_by_domain',cards_by)
     if has_artifact(work,'evidence_matches','self-resolution.yaml'):
@@ -2018,7 +2009,7 @@ def _provider_invalidate(step_ids, context):
     workflow=context.get('workflow')
     call_ids={
         'structure':'structure-case','diagnosis.who1':'diagnosis-who5-pass-01','diagnosis.who2':'diagnosis-who5-pass-02',
-        'diagnosis.icc':'diagnosis-icc','diagnosis.other':'diagnosis-other','prognosis':'prognosis','treatment':'treatment',
+        'diagnosis.icc':'diagnosis-icc','prognosis':'prognosis','treatment':'treatment',
         'biomarker':'biomarker','germline':'germline','evidence.assignment':'evidence-assignment','evidence.audit':'evidence-audit',
         'evidence.adjudication':'evidence-adjudication','report.write':'report-write','report.preservation':'report-preservation',
     }
@@ -2027,7 +2018,6 @@ def _provider_invalidate(step_ids, context):
         'diagnosis.who1':artifact_path(context.work,'diagnosis_who5_pass_1','who5.yaml',create=False),
         'diagnosis.who2':artifact_path(context.work,'diagnosis_who5_pass_2','who5.yaml',create=False),
         'diagnosis.icc':artifact_path(context.work,'diagnosis_icc','icc.yaml',create=False),
-        'diagnosis.other':artifact_path(context.work,'diagnosis_other','other.yaml',create=False),
         'diagnosis.finalize':artifact_path(context.work,'diagnosis','diagnosis-final.yaml',create=False),
         'prognosis':artifact_path(context.work,'prognosis_state','model-classification.yaml',create=False),
         'treatment':artifact_path(context.work,'treatment_state','model-classification.yaml',create=False),

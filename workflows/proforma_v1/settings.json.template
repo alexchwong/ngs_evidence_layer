@@ -26,9 +26,6 @@
         "khoury-2022-leukemia-36-1703",
         "alaggio-2022-leukemia-who5-lymphoid"
       ]
-    },
-    "other": {
-      "publication_keys": []
     }
   },
   "ptbg": {
@@ -52,7 +49,7 @@
       "diagnosis": {
         "who5": true,
         "icc": true,
-        "second_diagnosis": true
+        "concurrent_pathology": true
       },
       "prognosis": {
         "framework_favorable": true,
@@ -85,7 +82,6 @@
     "structure_case": "structure_case.md",
     "diagnosis_who5": "diagnosis_who5.md",
     "diagnosis_icc": "diagnosis_icc.md",
-    "diagnosis_other": "diagnosis_other.md",
     "prognosis": "prognosis.md",
     "treatment": "treatment.md",
     "biomarker": "biomarker.md",

@@ -12,6 +12,37 @@ HERE=Path(__file__).resolve().parent; REPO_ROOT=HERE.parents[1]
 WHO5_EXCLUDED_SCHEMA_DISEASES={'MDS/AML'}
 HEADINGS={'**Diagnosis**':'diagnosis','**Prognosis**':'prognosis','**Treatment Implications**':'treatment','**MRD**':'biomarker','**Germline**':'germline'}
 DOMAIN_HEADINGS={v:k for k,v in HEADINGS.items()}
+WHO5_LEGACY_FIELDS=('schema_disease','diagnosis','diagnostic_effect','variants','reason')
+
+def legacy_who_view(who:dict|None)->dict:
+    """Project a WHO model artifact to the pre-variant-assessment workflow contract."""
+    row=who or {}
+    return {field:row.get(field) for field in WHO5_LEGACY_FIELDS}
+
+def concurrent_pathology_from_who(who:dict|None)->list[dict]:
+    """Project WHO variant assessments into non-routing concurrent-pathology signals."""
+    out=[]
+    for row in (who or {}).get('variant_assessments') or []:
+        if not isinstance(row,dict) or row.get('classification')!='diagnostic_for_other_pathology':
+            continue
+        out.append({
+            'variant_id':row.get('variant_id'),
+            'other_pathology':row.get('other_pathology'),
+            'reason':row.get('reason'),
+        })
+    return out
+
+def authoritative_who_assessment_source(who1:dict|None,who2:dict|None,who1_commit:dict|None)->dict|None:
+    """Return the raw authoritative WHO artifact for non-routing variant assessment use.
+
+    A rejected WHO1 routing change falls back to supplied morphology. Its raw WHO1
+    interpretation must not create concurrent-pathology report propositions.
+    """
+    if who2:
+        return who2
+    if (who1_commit or {}).get('fallback'):
+        return None
+    return who1
 
 def setup_assets(work_dir:Path,*,mode:str,case_id:str|None=None,example:int|None=None)->None:
     work=Path(work_dir); layout.ensure_dirs(work)

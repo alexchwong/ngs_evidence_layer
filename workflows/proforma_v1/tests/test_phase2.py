@@ -38,14 +38,14 @@ class WorkflowCompilerTests(unittest.TestCase):
     def test_canonical_workflow_compiles_to_expected_logical_graph(self):
         workflow = compile_workflow()
         self.assertEqual(workflow.workflow_id, "proforma-v1")
-        self.assertEqual(len(workflow.steps), 24)
+        self.assertEqual(len(workflow.steps), 23)
         self.assertEqual(
             [x.id for x in workflow.steps],
             [
                 "structure", "corpus", "diagnosis.who1", "diagnosis.who1.routing_change",
                 "diagnosis.who1.evidence.assignment", "diagnosis.who1.evidence.audit",
                 "diagnosis.who1.evidence.adjudication", "diagnosis.who1.commit", "diagnosis.who2", "diagnosis.icc",
-                "diagnosis.other", "diagnosis.finalize", "prognosis", "treatment", "biomarker",
+                "diagnosis.finalize", "prognosis", "treatment", "biomarker",
                 "germline", "evidence.assignment", "evidence.audit", "evidence.adjudication",
                 "evidence.finalize", "report.blocks", "report.write", "report.preservation", "report.finalize",
             ],

@@ -141,7 +141,7 @@ def prepare_who(work: Path, *, pass_number: int, prompt: Path | None = None) -> 
         out = output_path(work, "diagnosis_who5_pass_1", "who5.yaml")
     elif pass_number == 2:
         who1 = committed_who1(work, required=False) or read_yaml(output_path(work, "diagnosis_who5_pass_1", "who5.yaml"))
-        schema_validation.validate_who5_diagnosis(
+        schema_validation.validate_who5_legacy_diagnosis(
             yaml.safe_dump(who1), allowed_diseases=allowed, valid_variants=set(reg)
         )
         history = list(bootstrap)
@@ -213,7 +213,7 @@ def prepare_icc(work: Path, *, prompt: Path | None = None) -> dict:
         "structured_case": case,
         "variant_registry": reg,
         "retrieval_cmcs": history,
-        "who5_context": who,
+        "who5_context": runtime.legacy_who_view(who),
     })
     return {
         "pass": "icc",
@@ -237,62 +237,32 @@ def accept_icc(work: Path) -> dict:
     return read_yaml(path)
 
 
-def prepare_diagnosis_other(work: Path, *, prompt: Path | None = None) -> dict:
-    work=Path(work); case,reg=load_case_registry(work)
-    who1=committed_who1(work,required=False) or accept_who(work,pass_number=1)
-    who2_path=output_path(work,'diagnosis_who5_pass_2','who5.yaml')
-    who=accept_who(work,pass_number=2) if who2_path.is_file() else who1
-    icc=accept_icc(work)
-    _all,eligible,_digest,manifest=corpus_state(work)
-    history=list(case.get('bootstrap_cmcs') or [])
-    for result in (who1,who):
-        for cmc in runtime.derive_cmcs(result):
-            if cmc not in history: history.append(cmc)
-    cards=staged._draw_diagnosis_cards(eligible,runtime.case_genes(case),history)
-    group='self_diagnosis_other_input'; cards_md,_=_write_pool(work,group,cards,manifest)
-    context=output_path(work,group,'context.yaml')
-    write_yaml(context,{
-        'structured_case':case,'variant_registry':reg,
-        'primary_framework_diagnoses':{'who5':who,'icc':icc},
-        'retrieval_cmcs':history,
-    })
-    return {
-        'pass':'diagnosis_other','contract':contract_path('diagnosis_other'),'prompt':prompt,
-        'context':context,'cards':cards_md,
-        'output':output_path(work,'diagnosis_other','other.yaml'),
-    }
-
-
-def accept_diagnosis_other(work: Path) -> dict:
-    _case,reg=load_case_registry(work); path=output_path(work,'diagnosis_other','other.yaml')
-    if not path.is_file():
-        return {'diagnosis':None,'variants':[],'reason':None}
-    cleaned=staged._sanitize_proforma_text(work,'self-diagnosis-other',path.read_text(encoding='utf-8'))
-    path.write_text(cleaned,encoding='utf-8')
-    schema_validation.validate_second_diagnosis(cleaned,valid_variants=set(reg))
-    return read_yaml(path)
-
 
 def finalize_diagnosis(work: Path) -> dict:
-    who1=committed_who1(work,required=False) or accept_who(work,pass_number=1); icc=accept_icc(work)
+    who1=accept_who(work,pass_number=1); icc=accept_icc(work)
+    commit_path=_who1_commit_path(work)
+    who1_commit=read_yaml(commit_path) if commit_path.is_file() else None
     who2_path=output_path(work,'diagnosis_who5_pass_2','who5.yaml')
     who2=accept_who(work,pass_number=2) if who2_path.is_file() else None
-    who=who2 or who1; other=accept_diagnosis_other(work)
-    relationship='same' if runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
+    routing_who=who2 or (who1_commit or {}).get('accepted_who1') or who1
+    assessment_who=runtime.authoritative_who_assessment_source(who1,who2,who1_commit)
+    relationship='same' if runtime.normalize_dx(routing_who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
     authoritative=2 if who2 is not None else 1
     diagnosis={
-        'who5':who,'icc':icc,'second_diagnosis':other,'relationship':relationship,
-        'self_execution':{'who5_first_pass':who1,'who5_authoritative_pass':authoritative},
+        'who5':runtime.legacy_who_view(routing_who),'icc':icc,
+        'concurrent_pathology':runtime.concurrent_pathology_from_who(assessment_who),
+        'relationship':relationship,
+        'self_execution':{'who5_first_pass':runtime.legacy_who_view(who1),'who5_authoritative_pass':authoritative},
     }
     write_yaml(output_path(work,'diagnosis','diagnosis-final.yaml'),diagnosis)
     history=list(load_case_registry(work)[0].get('bootstrap_cmcs') or [])
-    for result in (who1,who):
+    for result in (routing_who,):
         for cmc in runtime.derive_cmcs(result):
             if cmc not in history: history.append(cmc)
     route={
         'bootstrap_cmcs':load_case_registry(work)[0].get('bootstrap_cmcs') or [],
         'who5_authoritative_pass':authoritative,
-        'final_cmcs':runtime.derive_cmcs(who),'diagnostic_cmc_history':history,
+        'final_cmcs':runtime.derive_cmcs(routing_who),'diagnostic_cmc_history':history,
     }
     write_json(output_path(work,'diagnosis','routing.json'),route)
     return diagnosis
@@ -579,7 +549,7 @@ def commit_who1_routing(work: Path) -> dict:
             adjud=read_yaml(apath); evidence_engine.validate_adjudication(adjud,disputes)
             accepted_tags.extend([r["card_tag"] for r in adjud.get("adjudications") or [] if r.get("decision")=="include"])
         rejected=not bool(accepted_tags)
-    accepted_who1=who1
+    accepted_who1=runtime.legacy_who_view(who1)
     fallback=False
     if rejected:
         if case.get("morphologic_diagnosis_origin") != "supplied":

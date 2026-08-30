@@ -7,7 +7,8 @@
     "diagnosis",
     "variants",
     "diagnostic_effect",
-    "reason"
+    "reason",
+    "variant_assessments"
   ],
   "properties": {
     "schema_disease": {
@@ -36,6 +37,72 @@
         "refined",
         "superseded"
       ]
+    },
+    "variant_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant_id",
+          "classification",
+          "other_pathology",
+          "reason"
+        ],
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "diagnostic_for_primary",
+              "nonspecific",
+              "diagnostic_for_other_pathology"
+            ]
+          },
+          "other_pathology": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "classification": {
+                  "const": "diagnostic_for_other_pathology"
+                }
+              },
+              "required": [
+                "classification"
+              ]
+            },
+            "then": {
+              "properties": {
+                "other_pathology": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "other_pathology": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   }
 }

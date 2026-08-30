@@ -85,13 +85,13 @@ def case_context(case: dict, *, fields=CASE_FIELDS) -> str:
 
 
 def diagnosis_projection(diagnosis: dict, *, fields=DOMAIN_DIAGNOSIS_FIELDS) -> dict:
-    """Return the three framework diagnoses reduced to the requested fields.
+    """Return the primary framework diagnoses reduced to the requested fields.
 
     ``relationship`` is always retained: it is one token and it is the only part
     of the diagnosis object a downstream stage cannot re-derive.
     """
     out = {}
-    for role in ("who5", "icc", "second_diagnosis"):
+    for role in ("who5", "icc"):
         row = (diagnosis or {}).get(role)
         if not isinstance(row, dict):
             continue

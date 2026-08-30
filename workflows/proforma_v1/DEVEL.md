@@ -59,8 +59,7 @@ checks that coverage.
 - `diagnosis.who2` — optional WHO5 reconsideration pass, gated by the Phase 3
   `reconsider_after_cmc_expansion` setting and routing state.
 - `diagnosis.icc` — ICC diagnosis using the accepted WHO routing context.
-- `diagnosis.other` — independent/concurrent-diagnosis model operation.
-- `diagnosis.finalize` — deterministic final diagnosis/routing artifact assembly.
+- `diagnosis.finalize` — deterministic final diagnosis/routing artifact assembly. It also projects authoritative WHO `variant_assessments` classified as `diagnostic_for_other_pathology` into non-routing concurrent-pathology signals.
 - `prognosis` — prognosis owner proforma plus initial owner evidence assignment.
 - `treatment` — treatment owner proforma plus initial owner evidence assignment.
 - `biomarker` — MRD/biomarker owner proforma plus initial owner evidence assignment.
@@ -148,7 +147,7 @@ checks that coverage.
 - `provider` / handler names such as `domain`, `evidence_assignment`,
   `evidence_audit`, `evidence_adjudication`, `report_write`, `report_preservation`,
   `report_finalize`, `diagnosis_who1`, `diagnosis_who2`, `diagnosis_icc`,
-  `diagnosis_other`, `diagnosis_finalize`, `who1_routing_change`,
+  `diagnosis_finalize`, `who1_routing_change`,
   `who1_evidence_assignment`, `who1_evidence_audit`,
   `who1_evidence_adjudication`, `who1_commit`, `evidence_finalize`,
   `report_blocks`, `corpus`, and `structure` are allow-listed physical handler
@@ -198,7 +197,7 @@ checks that coverage.
 - `evidence_audit` — independent auditor model role.
 - `evidence_adjudication` — independent adjudicator model role; the same spelling
   is also the evidence-adjudication step type, distinguished by context.
-- `diagnosis` — model role used by WHO/ICC/concurrent-diagnosis operations.
+- `diagnosis` — model role used by WHO/ICC operations. WHO5 also classifies every detected variant for primary-diagnostic, nonspecific, or concurrent-pathology significance.
 - `ptbg` — model role used by prognosis/treatment/biomarker/germline operations.
 - `report_write` — report-writer model role.
 - `preservation_check` — report-preservation model role.
@@ -211,6 +210,7 @@ checks that coverage.
 - `commit_who1_routing` — accept supported WHO1 routing or apply deterministic
   fallback without leaking rejected routing state downstream.
 - `finalize_diagnosis` — assemble the authoritative diagnosis artifact.
+  The primary WHO/ICC fields remain the only routing inputs; WHO `diagnostic_for_other_pathology` assessments become `concurrent_pathology` report candidates and never change CMC/PTBG routing.
 - `finalize_evidence` — commit evidence outcomes, suppression/dissent and metrics.
 - `report_blocks` — build deterministic report blocks from accepted clinical facts.
 - `finalize_report` — assemble final report artifacts.
@@ -221,7 +221,7 @@ The following `artifact` values are stable logical names used by bindings/traces
 `structured_case`, `corpus_state`, `diagnosis_who1`, `who1_routing_change`,
 `who1_evidence_assignments`, `who1_evidence_audits`,
 `who1_evidence_adjudication`, `who1_commit`, `diagnosis_who2`, `diagnosis_icc`,
-`diagnosis_other`, `diagnosis`, `prognosis`, `treatment`, `biomarker`, `germline`,
+`diagnosis`, `prognosis`, `treatment`, `biomarker`, `germline`,
 `evidence_assignments`, `evidence_audits`, `evidence_adjudication`,
 `evidence_enriched`, `report_blocks`, `report_draft`, `report_preservation`, and
 `final_report`. These names are workflow-facing identities; persisted filenames are
@@ -267,7 +267,7 @@ Running `devel_sync.py` without `--check` deliberately refuses to modify root `c
 
 ## Model-facing card rendering
 
-Every prompt that shows evidence cards must call `rendering.render_prompt_cards()` or its diagnosis-specific boundary, `rendering.render_diagnostic_prompt_cards()`. Compact mode is the default and groups `source_hint -> category -> diseases`, with exactly one card per line. The model sees only `[card:<12-hex-tag>]`; canonical corpus `card_id` values remain internal/persisted provenance. Evidence matching therefore returns `card_tag`, which Python resolves back to the canonical ID before audit and report construction. Diagnosis retrieval is `diagnosis AND (CMC OR gene)` plus the framework authority filter. WHO5/ICC authority filtering retains `included_publication_keys` (or all retrieved publications when that list is empty) and then removes `excluded_publication_keys`, so exclusion always wins. Prompt rendering, finite-membership context, and Stage 8 must reuse that resolved pool; Stage 8 must not apply a second diagnosis gene filter.
+Every prompt that shows evidence cards must call `rendering.render_prompt_cards()` or its diagnosis-specific boundary, `rendering.render_diagnostic_prompt_cards()`. Compact mode is the default and groups `source_hint -> category -> diseases`, with exactly one card per line. The model sees only `[card:<12-hex-tag>]`; canonical corpus `card_id` values remain internal/persisted provenance. Evidence matching therefore returns `card_tag`, which Python resolves back to the canonical ID before audit and report construction. Diagnosis retrieval is `diagnosis AND (CMC OR gene)` plus the framework authority filter. WHO5/ICC authority filtering retains `included_publication_keys` (or all retrieved publications when that list is empty) and then removes `excluded_publication_keys`, so exclusion always wins. Prompt rendering, finite-membership context, and Stage 8 must reuse that resolved pool; Stage 8 must not apply a second gene filter to diagnosis propositions.
 
 ## Model-facing identifier rule
 

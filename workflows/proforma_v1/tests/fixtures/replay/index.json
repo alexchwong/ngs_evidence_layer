@@ -25,20 +25,6 @@
       "response": "response.yaml"
     },
     {
-      "case_id": "diagnosis_other--invalid-null-contract",
-      "stage": "diagnosis_other",
-      "operation_id": "diagnosis.other",
-      "prompt_asset": "diagnosis_other.md",
-      "response": "response.yaml"
-    },
-    {
-      "case_id": "diagnosis_other--valid",
-      "stage": "diagnosis_other",
-      "operation_id": "diagnosis.other",
-      "prompt_asset": "diagnosis_other.md",
-      "response": "response.yaml"
-    },
-    {
       "case_id": "diagnosis_who5--invalid-enum-and-variant",
       "stage": "diagnosis_who5",
       "operation_id": "diagnosis.who1",

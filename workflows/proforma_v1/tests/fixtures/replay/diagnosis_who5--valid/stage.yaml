@@ -15,6 +15,17 @@ rules:
 - rule: id_subset
   field: variants
   source: registry
+- rule: one_row_per_id
+  field: variant_assessments
+  id_field: variant_id
+  source: registry
+- rule: enum
+  field: variant_assessments[].classification
+  values:
+  - diagnostic_for_primary
+  - nonspecific
+  - diagnostic_for_other_pathology
+  label: diagnostic classification
 retries:
   content: 2
   serialization: 3

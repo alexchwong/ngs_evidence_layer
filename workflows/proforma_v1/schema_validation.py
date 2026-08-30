@@ -25,9 +25,16 @@ def _parsed(text, context, keys):
 
 # --- diagnosis ---------------------------------------------------------------
 
-def validate_who5_diagnosis(text, *, allowed_diseases, valid_variants):
-    ctx = "WHO5 diagnosis"
-    doc, problems = _parsed(text, ctx, {"schema_disease", "diagnosis", "diagnostic_effect", "variants", "reason"})
+WHO5_LEGACY_KEYS = {"schema_disease", "diagnosis", "diagnostic_effect", "variants", "reason"}
+WHO5_VARIANT_CLASSIFICATIONS = (
+    "diagnostic_for_primary",
+    "nonspecific",
+    "diagnostic_for_other_pathology",
+)
+
+
+def _validate_who5_legacy_doc(doc, *, allowed_diseases, valid_variants, ctx):
+    problems = []
     problems += iss.enum_field(
         doc.get("schema_disease"), allowed_diseases, "schema_disease", label="schema disease"
     )
@@ -36,6 +43,59 @@ def validate_who5_diagnosis(text, *, allowed_diseases, valid_variants):
     _, variant_issues = iss.id_list(doc.get("variants"), "variants", valid_variants, allow_empty=True)
     problems += variant_issues
     problems += iss.text_field(doc.get("reason"), "reason")
+    return problems
+
+
+def validate_who5_legacy_diagnosis(text, *, allowed_diseases, valid_variants):
+    """Validate the five-field WHO view used by existing downstream workflow steps."""
+    ctx = "WHO5 diagnosis"
+    doc, problems = _parsed(text, ctx, WHO5_LEGACY_KEYS)
+    problems += _validate_who5_legacy_doc(
+        doc, allowed_diseases=allowed_diseases, valid_variants=valid_variants, ctx=ctx
+    )
+    fail(ctx, problems)
+    return "WHO5 diagnosis valid"
+
+
+def validate_who5_diagnosis(text, *, allowed_diseases, valid_variants):
+    ctx = "WHO5 diagnosis"
+    doc, problems = _parsed(text, ctx, WHO5_LEGACY_KEYS | {"variant_assessments"})
+    problems += _validate_who5_legacy_doc(
+        doc, allowed_diseases=allowed_diseases, valid_variants=valid_variants, ctx=ctx
+    )
+
+    rows = doc.get("variant_assessments")
+    expected = sorted(valid_variants)
+    problems += iss.one_row_per_id(rows, expected, id_field="variant_id", path="variant_assessments")
+    if isinstance(rows, list):
+        for i, row in enumerate(rows):
+            if not isinstance(row, dict):
+                continue
+            path = f"variant_assessments[{i}]"
+            problems += iss.exact_keys(
+                row, {"variant_id", "classification", "other_pathology", "reason"}, path
+            )
+            classification = row.get("classification")
+            problems += iss.enum_field(
+                classification, WHO5_VARIANT_CLASSIFICATIONS, f"{path}.classification",
+                label="diagnostic classification"
+            )
+            other = row.get("other_pathology")
+            if classification == "diagnostic_for_other_pathology":
+                problems += iss.text_field(other, f"{path}.other_pathology")
+            elif classification in WHO5_VARIANT_CLASSIFICATIONS and other is not None:
+                problems.append(
+                    ValidationIssue(
+                        f"{path}.other_pathology",
+                        "must be null unless classification is diagnostic_for_other_pathology",
+                        "set other_pathology to null without changing the classification",
+                        repair_class="content",
+                        received=iss.preview(other),
+                        expected="null",
+                    )
+                )
+            problems += iss.text_field(row.get("reason"), f"{path}.reason")
+
     fail(ctx, problems)
     return "WHO5 diagnosis valid"
 
@@ -50,31 +110,6 @@ def validate_icc_diagnosis(text, *, valid_variants):
     problems += iss.text_field(doc.get("reason"), "reason")
     fail(ctx, problems)
     return "ICC diagnosis valid"
-
-
-def validate_second_diagnosis(text, *, valid_variants):
-    ctx = "second diagnosis"
-    doc, problems = _parsed(text, ctx, {"diagnosis", "variants", "reason"})
-    if doc.get("diagnosis") is None:
-        if doc.get("variants") not in ([], None) or doc.get("reason") is not None:
-            problems.append(
-                ValidationIssue(
-                    ctx,
-                    "diagnosis is null but variants/reason are populated",
-                    "when there is no independent concurrent diagnosis, return diagnosis: null, "
-                    "variants: [] and reason: null",
-                    repair_class="content",
-                    received=f"variants={iss.preview(doc.get('variants'))} reason={iss.preview(doc.get('reason'))}",
-                    expected="variants: [] and reason: null",
-                )
-            )
-    else:
-        problems += iss.text_field(doc.get("diagnosis"), "diagnosis")
-        _, variant_issues = iss.id_list(doc.get("variants"), "variants", valid_variants, allow_empty=True)
-        problems += variant_issues
-        problems += iss.text_field(doc.get("reason"), "reason")
-    fail(ctx, problems)
-    return "second diagnosis valid"
 
 
 # --- PTBG owner proformas (flat one-row-per-variant contract) ----------------

@@ -195,25 +195,10 @@ steps:
       provider_handler: diagnosis_icc
       self_handler: diagnosis_icc
       self_mode: handoff
-  diagnosis.other:
-    type: model
-    needs:
-    - diagnosis.icc
-    role: diagnosis
-    stage: diagnosis_other
-    prompt: prompts/diagnosis_other.md
-    output:
-      artifact: diagnosis_other
-      format: yaml
-      schema: schemas/second_diagnosis.json
-    execution:
-      provider_handler: diagnosis_other
-      self_handler: diagnosis_other
-      self_mode: handoff
   diagnosis.finalize:
     type: transform
     needs:
-    - diagnosis.other
+    - diagnosis.icc
     transform: finalize_diagnosis
     output:
       artifact: diagnosis
