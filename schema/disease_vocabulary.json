@@ -384,6 +384,9 @@
     "germline predisposition syndrome": [
       "germline predisposition syndrome"
     ],
+    "somatic mutation-associated syndrome": [
+      "somatic mutation-associated syndrome"
+    ],
     "haematological malignancy, other": [
       "haematological malignancy, other"
     ],
@@ -1156,6 +1159,9 @@
         "myeloid neoplasm with germline predisposition",
         "myeloid neoplasm with germ line predisposition"
       ]
+    },
+    {
+      "name": "somatic mutation-associated syndrome"
     },
     {
       "name": "myeloid neoplasm, unspecified"

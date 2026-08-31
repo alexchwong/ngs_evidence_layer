@@ -336,6 +336,14 @@ diseases. Do not use fuzzy matching, stemming, punctuation substitution, semanti
 inference, or nearest-term mapping. A source term that is neither canonical nor a
 configured alias remains outside the controlled vocabulary.
 
+One narrow umbrella exception applies to `somatic mutation-associated syndrome`: a
+source-named acquired or somatic mutation-associated syndrome may ground this canonical
+disease without the specific syndrome name being configured as an alias, but only when
+the source explicitly establishes the relevant acquired/somatic molecular association.
+Do not apply this exception to conventional haematological neoplasms or their molecular
+subtypes (for example, NPM1-mutated AML or JAK2-mutated PV); retain the appropriate
+canonical neoplasm disease instead.
+
 Keep vocabulary relationships distinct:
 - `diseases` = exact clinical applicability written on cards;
 - `parents` = taxonomic ancestry used to derive `disease_ancestors` for indexing;
@@ -2936,6 +2944,9 @@ def apply_publication_type_decision(package, ledger):
     "germline predisposition syndrome": [
       "germline predisposition syndrome"
     ],
+    "somatic mutation-associated syndrome": [
+      "somatic mutation-associated syndrome"
+    ],
     "haematological malignancy, other": [
       "haematological malignancy, other"
     ],
@@ -3708,6 +3719,9 @@ def apply_publication_type_decision(package, ledger):
         "myeloid neoplasm with germline predisposition",
         "myeloid neoplasm with germ line predisposition"
       ]
+    },
+    {
+      "name": "somatic mutation-associated syndrome"
     },
     {
       "name": "myeloid neoplasm, unspecified"

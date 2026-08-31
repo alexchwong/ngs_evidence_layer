@@ -38,7 +38,7 @@ class CaseMajorCategoryTests(unittest.TestCase):
             retrieval_core.validate_case_input(self._case_input("not-a-category", "MDS-IB2"))
 
     def test_every_canonical_disease_maps_to_a_major_category(self):
-        self.assertEqual(len(vocab.DISEASES), 162)
+        self.assertEqual(len(vocab.DISEASES), 163)
         for disease in vocab.DISEASES:
             with self.subTest(disease=disease):
                 categories = vocab.case_major_categories_for_disease(disease)
