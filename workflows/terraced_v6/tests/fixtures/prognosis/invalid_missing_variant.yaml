@@ -1,8 +1,13 @@
+applicable_disease: AML
+prognostic_frameworks: []
 classification:
   - variant: v01
-    bucket: adverse
-    reason: "Adverse."
+    gene: ASXL1
+    framework_effects: []
+    other_evidence_effect: adverse
+    other_evidence_reason: "Adverse."
   - variant: v02
-    bucket: neutral
-    reason: "Neutral."
-prognostic_score: null
+    gene: SRSF2
+    framework_effects: []
+    other_evidence_effect: neutral
+    other_evidence_reason: "Neutral."

@@ -1,5 +1,8 @@
 # Terraced v6 developer notes
 
+> **Legacy configuration:** terraced-v6 is runnable but no longer owns root workflow configuration. `devel_sync.py` validates only workflow-local settings/pipelines and never writes root `config/`.
+
+
 V6 is intentionally smaller than v5.
 
 ## Core assets
@@ -22,26 +25,20 @@ V6 is intentionally smaller than v5.
 - `settings.json.template` — canonical default retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
 - `pipelines/` — canonical shipped model/provider defaults for self, LM Studio, and OpenRouter. Pipeline identity is the YAML filename stem; `pipeline.id` is intentionally absent.
-- `devel_sync.py` — copies the canonical settings template and shipped pipeline YAMLs into root `config/` without touching `config/settings.json` or deleting user-added pipeline files.
+- `devel_sync.py` — validates the legacy workflow-local settings template and shipped pipeline YAMLs. It never writes root `config/`.
 
 Clinical interpretation belongs to the owner call. Downstream code must not re-diagnose or repair owner clinical reasoning.
 Prognosis report aggregation is therefore deliberately downstream of evidence resolution: it may compress surviving supported propositions, but it must not create a new effect, framework, direction, disease scope, or evidence relationship.
 
-## Sync public defaults
+## Validate legacy defaults
 
-After changing `settings.json.template` or a shipped file under `pipelines/`, update the root user-facing defaults:
-
-```bash
-python workflows/terraced_v6/devel_sync.py
-```
-
-Before PR/release preparation, verify there is no drift:
+After changing `settings.json.template` or a shipped file under `pipelines/`, validate the workflow-local defaults:
 
 ```bash
 python workflows/terraced_v6/devel_sync.py --check
 ```
 
-The sync owns only `config/settings.json.template` and filenames present in `workflows/terraced_v6/pipelines/`. It never writes the user-owned `config/settings.json` and never deletes extra files under `config/pipelines/`.
+Running the helper without `--check` performs the same local validation for compatibility. Terraced-v6 must not publish settings or pipelines into root `config/`; root workflow defaults are owned by `proforma_v1`.
 
 
 ## Model-facing card rendering

@@ -1,0 +1,14 @@
+classification:
+  - variant: v01
+    bucket: bad
+    reason: "Adverse."
+  - variant: v02
+    bucket: adverse
+    reason: ""
+  - variant: v03
+    bucket: neutral
+    reason: "Neutral."
+prognostic_score:
+  name: IPSS-M
+  result: not calculable
+  reason: insufficient data

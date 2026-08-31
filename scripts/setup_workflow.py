@@ -19,9 +19,14 @@ from scripts.workflow_registry import (  # noqa: E402
     normalise_selector,
     write_workflow_state,
 )
-from workflows.common import demo_paths, resolve_work_dir, write_case_major_categories  # noqa: E402
-
-VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
+from validation.scripts.bundled_cases import (  # noqa: E402
+    bundled_modes,
+    is_bundled_mode,
+    is_validation_mode,
+    retrieve_case_input,
+    selector_from_args,
+)
+from workflows.common import resolve_work_dir, write_case_major_categories  # noqa: E402
 
 
 def setup_workflow(
@@ -32,7 +37,7 @@ def setup_workflow(
     project: bool = False,
     example: int | None = None,
     case_id: str | None = None,
-) -> tuple[Path, Path | None, Path | None]:
+) -> Path:
     registry = load_registry()
     workflow_id = normalise_selector(workflow, registry)
     metadata = load_workflow_metadata(workflow_id, registry)
@@ -46,41 +51,47 @@ def setup_workflow(
         raise ValueError("nel-demo requires --example")
     if mode != "nel-demo" and example is not None:
         raise ValueError("--example is valid only for nel-demo")
-    if mode in VALIDATION_MODES and not case_id:
+    if is_validation_mode(mode) and not case_id:
         raise ValueError(f"{mode} requires --case-id")
-    if mode not in VALIDATION_MODES and case_id is not None:
+    if not is_validation_mode(mode) and case_id is not None:
         raise ValueError("--case-id is valid only for validation modes")
+
+    # Validate the bundled selector centrally before creating workflow-specific assets.
+    bundled_selector = selector_from_args(mode, example=example, case_id=case_id)
+    if is_bundled_mode(mode):
+        assert bundled_selector is not None
+        retrieve_case_input(mode, bundled_selector)
 
     work = resolve_work_dir(work_dir, project=project)
     write_workflow_state(work, workflow_id, mode)
 
-    # Canonical assay-scope asset. Every workflow/model step that interprets an
-    # NGS negative result reads the work-directory copy, never panel membership
-    # from model knowledge. This is also created for evidence-to-report so a
-    # resumed legacy reporting run has the same assay boundary.
     panel_scope_source = REPO_ROOT / "config" / "ngs-panel-scope.md"
     panel_scope_output = work / "ngs-panel-scope.md"
     if not panel_scope_source.is_file():
         raise ValueError(f"canonical NGS panel scope is missing: {panel_scope_source}")
     shutil.copyfile(panel_scope_source, panel_scope_output)
 
-    # Common procedural asset. evidence-to-report intentionally reuses existing
-    # Step-5 outputs and does not create irrelevant Step-1 state.
     if mode != "evidence-to-report":
         write_case_major_categories(work / "case-major-categories.json", vocab.CASE_MAJOR_CATEGORIES)
 
-    demo_case = demo_expected = None
-    if mode == "nel-demo":
-        demo_case, demo_expected = demo_paths(example)
-
-    # Optional workflow-owned setup hook for genuinely workflow-specific assets.
-    if (metadata.get("entrypoints") or {}).get("runtime"):
+    # Workflow-specific code controls layout only. Every bundled workflow hook
+    # receives the public selector and must fetch content from the central API.
+    entrypoints = metadata.get("entrypoints") or {}
+    if entrypoints.get("runtime"):
         runtime = import_workflow_entrypoint(workflow_id, "runtime")
         hook = getattr(runtime, "setup_assets", None)
         if hook is not None:
-            hook(work, mode=mode, case_id=case_id)
+            hook(work, mode=mode, case_id=case_id, example=example)
+    elif is_bundled_mode(mode):
+        # legacy-v1 has no runtime hook; its historical layout stores case.md at root.
+        assert bundled_selector is not None
+        case_path = work / "case.md"
+        payload = retrieve_case_input(mode, bundled_selector).rstrip() + "\n"
+        if case_path.exists() and case_path.read_text(encoding="utf-8") != payload:
+            raise ValueError(f"{case_path} already exists with different bundled-case content")
+        case_path.write_text(payload, encoding="utf-8")
 
-    return work, demo_case, demo_expected
+    return work
 
 
 def main() -> int:
@@ -94,10 +105,7 @@ def main() -> int:
             "evidence-block-manual",
             "ngs-report",
             "evidence-to-report",
-            "nel-demo",
-            "nel-validate",
-            "nel-validate-function",
-            "nel-validate-brief",
+            *bundled_modes(),
         ),
     )
     group = parser.add_mutually_exclusive_group()
@@ -107,7 +115,7 @@ def main() -> int:
     parser.add_argument("--case-id")
     args = parser.parse_args()
     try:
-        work, demo_case, demo_expected = setup_workflow(
+        work = setup_workflow(
             workflow=args.workflow,
             mode=args.mode,
             work_dir=args.work_dir,
@@ -118,9 +126,6 @@ def main() -> int:
     except (OSError, ValueError, KeyError) as exc:
         parser.exit(1, f"workflow setup failed: {exc}\n")
     print(work)
-    if demo_case is not None:
-        print(demo_case.relative_to(REPO_ROOT))
-        print(demo_expected.relative_to(REPO_ROOT))
     return 0
 
 

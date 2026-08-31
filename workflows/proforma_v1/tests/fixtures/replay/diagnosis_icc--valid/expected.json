@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "diagnosis_icc",
+  "operation_id": "diagnosis.icc",
+  "accepted": true,
+  "message": "ICC diagnosis valid",
+  "message_sha256": "f148ad9f822561b5cd469595075c0794522d9ad21fce712b48c5aa52355ddbe9",
+  "response_sha256": "77707a4269c1b509a911f4dd759fef6110a9948c1f05fc6d2216399276aaa713",
+  "context_sha256": "2f1330dfb0eae8e66570f03f82bfb6a74f0a1be1c49f918f270b15dec06701f8",
+  "prompt_sha256": "ddace2642e306f0591be321be8b86555eb5653de7d4a2452a74ca24eb50603a3",
+  "schema_sha256": "e29d8210570ca332ca5af67088e1ef81e9bfb4e2296fb5216f0c1a2873b459e1",
+  "stage_spec_sha256": "6a370b20b0a53f7f46fe1cb287d3d0cf54987ac2fc79eaec5d9086103f049a3e"
+}

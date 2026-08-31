@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "evidence_audit",
+  "operation_id": "evidence.audit",
+  "accepted": true,
+  "message": "evidence audit valid",
+  "message_sha256": "389a853a46ef95bde8b89698231a3af845bc0201cc01c7b98fba7de7804fbdf0",
+  "response_sha256": "4bc3ac8e34fb18f15270352db9fa91363c5633232d5cc5e0a8d514a06bb22b9e",
+  "context_sha256": "52d73564a008a16a603966204f50fe341501df7b8b96dca98ea29d29873d3f46",
+  "prompt_sha256": "ae181d190615431adb984022cf2ba8738fd68cdc2ca8c309d70840394e07199d",
+  "schema_sha256": "46ff66a04e19018121f71c3613d62e7ce0c6a51890cee4f6e9ddbec7621e2fbb",
+  "stage_spec_sha256": "9663ad98d7a9259a2e47fa992357e249b833f4ea9ae66aa645febfe9439d9092"
+}

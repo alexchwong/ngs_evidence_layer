@@ -1,0 +1,445 @@
+version: 1
+workflow_id: proforma-v1
+self_groups:
+  ptbg:
+    strategy: batch_ready
+evidence_policies:
+  literature_support:
+    assignment:
+      role: evidence_match
+      prompt: prompts/evidence_match.md
+    audit:
+      role: evidence_audit
+      prompt: prompts/evidence_audit.md
+    adjudication:
+      role: evidence_adjudication
+      prompt: prompts/evidence_adjudicate.md
+  diagnosis_complete_support:
+    assignment:
+      role: evidence_match
+      prompt: prompts/evidence/diagnosis_match.md
+    audit:
+      role: evidence_audit
+      prompt: prompts/evidence/diagnosis_audit.md
+    adjudication:
+      role: evidence_adjudication
+      prompt: prompts/evidence/diagnosis_adjudicate.md
+steps:
+  structure:
+    type: model
+    role: structure
+    stage: structure_case
+    prompt: prompts/structure_case.md
+    inputs:
+      case_text:
+        from: run.case_text
+      panel_scope:
+        from: assets.ngs_panel_scope
+    output:
+      artifact: structured_case
+      format: json
+      schema: schemas/structured_case.json
+    checks:
+    - rule: sequential_ids
+      path: variants
+      field: variant_id
+      prefix: V
+    execution:
+      provider_handler: structure
+      self_handler: structure
+      self_mode: handoff
+  corpus:
+    type: transform
+    needs:
+    - structure
+    transform: load_corpus
+    output:
+      artifact: corpus_state
+    execution:
+      provider_handler: corpus
+      self_handler: corpus
+      self_mode: deterministic
+  diagnosis.who1:
+    type: model
+    needs:
+    - corpus
+    role: diagnosis
+    stage: diagnosis_who5
+    prompt: prompts/diagnosis_who5.md
+    output:
+      artifact: diagnosis_who1
+      format: yaml
+      schema: schemas/diagnosis_who5.json
+    execution:
+      provider_handler: diagnosis_who1
+      self_handler: diagnosis_who1
+      self_mode: handoff
+  diagnosis.who1.routing_change:
+    type: transform
+    needs:
+    - diagnosis.who1
+    transform: assess_who1_routing_change
+    output:
+      artifact: who1_routing_change
+    execution:
+      provider_handler: who1_routing_change
+      self_handler: who1_routing_change
+      self_mode: deterministic
+  diagnosis.who1.evidence.assignment:
+    type: evidence_review
+    needs:
+    - diagnosis.who1.routing_change
+    role: evidence_match
+    stage: evidence_match
+    prompt: prompts/evidence/diagnosis_match.md
+    when:
+      predicate: who1_routing_changed
+    evidence:
+      policy: diagnosis_complete_support
+      timing: blocking
+      cards:
+        from: owner.cards
+      match_passes: 2
+    output:
+      artifact: who1_evidence_assignments
+      format: yaml
+      schema: schemas/evidence_match.json
+    execution:
+      provider_handler: who1_evidence_assignment
+      self_handler: who1_evidence_assignment
+      self_mode: handoff
+  diagnosis.who1.evidence.audit:
+    type: evidence_review
+    needs:
+    - diagnosis.who1.evidence.assignment
+    role: evidence_audit
+    stage: evidence_audit
+    prompt: prompts/evidence/diagnosis_audit.md
+    when:
+      predicate: who1_routing_changed
+    evidence:
+      policy: diagnosis_complete_support
+      timing: blocking
+      cards:
+        from: owner.cards
+    output:
+      artifact: who1_evidence_audits
+      format: yaml
+      schema: schemas/evidence_audit.json
+    execution:
+      provider_handler: who1_evidence_audit
+      self_handler: who1_evidence_audit
+      self_mode: handoff
+  diagnosis.who1.evidence.adjudication:
+    type: evidence_adjudication
+    needs:
+    - diagnosis.who1.evidence.audit
+    role: evidence_adjudication
+    prompt: prompts/evidence/diagnosis_adjudicate.md
+    when:
+      predicate: who1_routing_changed
+    evidence:
+      policy: diagnosis_complete_support
+      timing: blocking
+      cards:
+        from: owner.cards
+    output:
+      artifact: who1_evidence_adjudication
+      format: yaml
+      schema: schemas/evidence_adjudicate.json
+    execution:
+      provider_handler: who1_evidence_adjudication
+      self_handler: who1_evidence_adjudication
+      self_mode: handoff
+  diagnosis.who1.commit:
+    type: transform
+    needs:
+    - diagnosis.who1.evidence.adjudication
+    transform: commit_who1_routing
+    output:
+      artifact: who1_commit
+    execution:
+      provider_handler: who1_commit
+      self_handler: who1_commit
+      self_mode: deterministic
+  diagnosis.who2:
+    type: model
+    needs:
+    - diagnosis.who1.commit
+    role: diagnosis
+    stage: diagnosis_who5
+    prompt: prompts/diagnosis_who5.md
+    when:
+      predicate: who2_required
+    output:
+      artifact: diagnosis_who2
+      format: yaml
+      schema: schemas/diagnosis_who5.json
+    execution:
+      provider_handler: diagnosis_who2
+      self_handler: diagnosis_who2
+      self_mode: handoff
+  diagnosis.icc:
+    type: model
+    needs:
+    - diagnosis.who1.commit
+    - diagnosis.who2
+    role: diagnosis
+    stage: diagnosis_icc
+    prompt: prompts/diagnosis_icc.md
+    output:
+      artifact: diagnosis_icc
+      format: yaml
+      schema: schemas/diagnosis.json
+    execution:
+      provider_handler: diagnosis_icc
+      self_handler: diagnosis_icc
+      self_mode: handoff
+  diagnosis.finalize:
+    type: transform
+    needs:
+    - diagnosis.icc
+    transform: finalize_diagnosis
+    output:
+      artifact: diagnosis
+    execution:
+      provider_handler: diagnosis_finalize
+      self_handler: diagnosis_finalize
+      self_mode: deterministic
+  prognosis:
+    type: model
+    needs:
+    - diagnosis.finalize
+    role: ptbg
+    stage: prognosis
+    prompt: prompts/prognosis.md
+    output:
+      artifact: prognosis
+      format: yaml
+      schema: schemas/prognosis.json
+    execution:
+      provider_handler: domain
+      self_handler: ptbg
+      self_group: ptbg
+      self_mode: handoff
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards:
+        from: owner.cards
+      owner_assignment: true
+  treatment:
+    type: model
+    needs:
+    - diagnosis.finalize
+    role: ptbg
+    stage: treatment
+    prompt: prompts/treatment.md
+    output:
+      artifact: treatment
+      format: yaml
+      schema: schemas/treatment.json
+    execution:
+      provider_handler: domain
+      self_handler: ptbg
+      self_group: ptbg
+      self_mode: handoff
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards:
+        from: owner.cards
+      owner_assignment: true
+  biomarker:
+    type: model
+    needs:
+    - diagnosis.finalize
+    role: ptbg
+    stage: biomarker
+    prompt: prompts/biomarker.md
+    output:
+      artifact: biomarker
+      format: yaml
+      schema: schemas/biomarker.json
+    execution:
+      provider_handler: domain
+      self_handler: ptbg
+      self_group: ptbg
+      self_mode: handoff
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards:
+        from: owner.cards
+      owner_assignment: true
+  germline:
+    type: model
+    needs:
+    - diagnosis.finalize
+    role: ptbg
+    stage: germline
+    prompt: prompts/germline.md
+    output:
+      artifact: germline
+      format: yaml
+      schema: schemas/domain_classification.json
+    execution:
+      provider_handler: domain
+      self_handler: ptbg
+      self_group: ptbg
+      self_mode: handoff
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards:
+        from: owner.cards
+      owner_assignment: true
+  evidence.assignment:
+    type: evidence_review
+    needs:
+    - prognosis
+    - treatment
+    - biomarker
+    - germline
+    role: evidence_match
+    stage: evidence_match
+    prompt: prompts/evidence_match.md
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards:
+        from: owner.cards
+      rescue_match_passes: 1
+    output:
+      artifact: evidence_assignments
+      format: yaml
+      schema: schemas/evidence_match.json
+    execution:
+      provider_handler: evidence_assignment
+      self_handler: evidence_assignment
+      self_mode: handoff
+    inputs:
+      audit_feedback:
+        from: feedback.evidence.audit
+        optional: true
+  evidence.audit:
+    type: evidence_review
+    needs:
+    - evidence.assignment
+    role: evidence_audit
+    stage: evidence_audit
+    prompt: prompts/evidence_audit.md
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards:
+        from: owner.cards
+    output:
+      artifact: evidence_audits
+      format: yaml
+      schema: schemas/evidence_audit.json
+    execution:
+      provider_handler: evidence_audit
+      self_handler: evidence_audit
+      self_mode: handoff
+    review:
+      target: evidence.assignment
+      verdict:
+        predicate: evidence_audit_resolved
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.evidence_audits
+          as: audit_feedback
+        max_cycles: 2
+        exhausted:
+          action: continue_with_dissent
+  evidence.adjudication:
+    type: evidence_adjudication
+    needs:
+    - evidence.audit
+    barrier_for:
+    - evidence.assignment
+    - evidence.audit
+    role: evidence_adjudication
+    prompt: prompts/evidence_adjudicate.md
+    evidence:
+      policy: literature_support
+      timing: deferred
+      cards:
+        from: owner.cards
+    output:
+      artifact: evidence_adjudication
+      format: yaml
+      schema: schemas/evidence_adjudicate.json
+    execution:
+      provider_handler: evidence_adjudication
+      self_handler: evidence_adjudication
+      self_mode: handoff
+  evidence.finalize:
+    type: transform
+    needs:
+    - evidence.adjudication
+    transform: finalize_evidence
+    output:
+      artifact: evidence_enriched
+    execution:
+      provider_handler: evidence_finalize
+      self_handler: evidence_finalize
+      self_mode: deterministic
+  report.blocks:
+    type: transform
+    needs:
+    - evidence.finalize
+    transform: report_blocks
+    output:
+      artifact: report_blocks
+    execution:
+      provider_handler: report_blocks
+      self_handler: report_blocks
+      self_mode: deterministic
+  report.write:
+    type: render/report
+    needs:
+    - report.blocks
+    role: report_write
+    stage: report_write
+    prompt: prompts/report_write.md
+    output:
+      artifact: report_draft
+      format: yaml
+      schema: schemas/report_write.json
+    execution:
+      provider_handler: report_write
+      self_handler: report_write
+      self_mode: handoff
+  report.preservation:
+    type: model
+    needs:
+    - report.write
+    role: preservation_check
+    stage: report_preservation
+    prompt: prompts/report_preservation.md
+    output:
+      artifact: report_preservation
+      format: yaml
+      schema: schemas/report_preservation.json
+    execution:
+      provider_handler: report_preservation
+      self_handler: report_preservation
+      self_mode: handoff
+      self:
+        enabled: false
+  report.finalize:
+    type: transform
+    needs:
+    - report.preservation
+    transform: finalize_report
+    output:
+      artifact: final_report
+    execution:
+      provider_handler: report_finalize
+      self_handler: report_finalize
+      self_mode: deterministic

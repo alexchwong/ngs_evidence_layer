@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_disease",
+    "diagnosis",
+    "variants",
+    "diagnostic_effect",
+    "reason",
+    "variant_assessments"
+  ],
+  "properties": {
+    "schema_disease": {
+      "type": "string",
+      "minLength": 1
+    },
+    "diagnosis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "diagnostic_effect": {
+      "type": "string",
+      "enum": [
+        "unchanged",
+        "refined",
+        "superseded"
+      ]
+    },
+    "variant_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant_id",
+          "classification",
+          "other_pathology",
+          "reason"
+        ],
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "diagnostic_for_primary",
+              "nonspecific",
+              "diagnostic_for_other_pathology"
+            ]
+          },
+          "other_pathology": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "classification": {
+                  "const": "diagnostic_for_other_pathology"
+                }
+              },
+              "required": [
+                "classification"
+              ]
+            },
+            "then": {
+              "properties": {
+                "other_pathology": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "other_pathology": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

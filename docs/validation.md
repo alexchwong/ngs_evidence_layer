@@ -1,6 +1,6 @@
 # Validation suites
 
-NEL exposes three terraced-v6 validation modes through the root `nel.py` CLI. Marking criteria are withheld until report generation is complete.
+NEL exposes the canonical `proforma-v1` validation modes through the root `nel.py` CLI. Marking criteria are withheld until report generation is complete.
 
 ## Standard validation
 
@@ -39,3 +39,14 @@ python nel.py run --run-id brief-1
 ```
 
 For a `self` pipeline, repeat `python nel.py run --run-id <id>` after completing each returned model handoff until `STATUS=complete`.
+
+## Dual-pathology validation
+
+`nel-validate-dual` uses `validation/validate_dual.md` and contains cases `1` through `6`. These cases test discordance between the morphological diagnosis and a molecular finding suggesting a concurrent pathology.
+
+Example:
+
+```bash
+python nel.py setup --mode nel-validate-dual --case-id 1 --run-id dual-1
+python nel.py run --run-id dual-1
+```

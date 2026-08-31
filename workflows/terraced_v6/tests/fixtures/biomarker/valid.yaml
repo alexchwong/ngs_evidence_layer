@@ -1,7 +1,10 @@
+applicable_disease: AML
 classification:
   - variant: v01
-    bucket: mrd_marker
+    gene: NPM1
+    mrd_status: mrd_marker
     reason: "Suitable as an MRD marker in this context."
   - variant: v02
-    bucket: not_mrd_marker
+    gene: DNMT3A
+    mrd_status: not_mrd_marker
     reason: "Not suitable as an MRD marker in this context."

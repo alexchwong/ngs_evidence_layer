@@ -161,13 +161,13 @@ class BuildCardBrowserTests(unittest.TestCase):
             "Fixture authority statement.",
         )
 
-    def test_full_mode_requires_every_accepted_package(self):
+    def test_full_mode_fails_when_a_package_is_absent(self):
         (self.accept / f"{self.key}.final.json").unlink()
 
         with self.assertRaisesRegex(ValueError, "accepted evidence unavailable"):
             browser.collect(self.corpus_path, full=True, accept_dir=self.accept)
 
-    def test_full_mode_rejects_stale_accepted_card(self):
+    def test_full_mode_fails_when_a_package_disagrees_with_the_corpus(self):
         package_path = self.accept / f"{self.key}.final.json"
         envelope = json.loads(package_path.read_text(encoding="utf-8"))
         envelope["final"]["cards"][0]["interpretation"] = "changed after incorporation"
@@ -175,6 +175,53 @@ class BuildCardBrowserTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "differs from the incorporated corpus"):
             browser.collect(self.corpus_path, full=True, accept_dir=self.accept)
+
+    def test_corpus_only_mode_needs_no_accept_or_archive(self):
+        import shutil
+
+        shutil.rmtree(self.accept)
+        # No archive directory is created at all.
+        self.assertFalse((self.root / "archive").exists())
+
+        data = browser.collect(self.corpus_path)
+
+        self.assertFalse(data["full"])
+        self.assertTrue(data["cards"])
+        self.assertNotIn("details", data["cards"][0])
+        self.assertNotIn("cul", data)
+        self.assertNotIn("editor", data)
+        self.assertNotIn("profiles", data)
+        self.assertNotIn("vocabulary", data)
+
+    def test_full_mode_needs_accept_but_not_archive(self):
+        self.assertFalse((self.root / "archive").exists())
+        data = browser.collect(self.corpus_path, full=True, accept_dir=self.accept)
+        self.assertTrue(data["full"])
+        self.assertIn("details", data["cards"][0])
+
+    def test_read_only_cli_has_no_edit_mode_and_has_copy_citation(self):
+        output = self.root / "output" / "reports" / "card-browser.html"
+        argv = [
+            str(SCRIPT),
+            "--corpus",
+            str(self.corpus_path),
+            "--output",
+            str(output),
+        ]
+        with mock.patch.object(sys, "argv", argv):
+            browser.main()
+
+        html = output.read_text(encoding="utf-8")
+        self.assertIn("Copy citation", html)
+        self.assertIn("event.stopPropagation()", html)
+        self.assertNotIn("Corpus User Layer", html)
+        self.assertNotIn("mode-edit", html)
+        self.assertNotIn("/*__CUL_LAYER__*/", html)
+
+        with mock.patch.object(sys, "argv", [str(SCRIPT), "--edit"]):
+            with self.assertRaises(SystemExit) as raised:
+                browser.main()
+        self.assertEqual(raised.exception.code, 2)
 
     def test_full_cli_uses_private_default_and_embeds_preview_data(self):
         output = self.root / "evidence" / "card-browser-full.html"
@@ -196,6 +243,10 @@ class BuildCardBrowserTests(unittest.TestCase):
         self.assertIn("full evidence view", html)
         self.assertIn("AML with NPM1 mutation", html)
         self.assertIn("retained in full raw provenance", html)
+        self.assertIn("Copy citation", html)
+        self.assertIn("Support mapping", html)
+        self.assertNotIn("Corpus User Layer", html)
+        self.assertNotIn("mode-edit", html)
 
         # Selected full-mode layout is filters | complete details | interpretations.
         self.assertIn("grid-template-columns:1fr 3fr 1fr", html)

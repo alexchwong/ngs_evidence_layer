@@ -2,9 +2,9 @@
   "schema_version": 1,
   "example": 2,
   "slug": "02-escalation-does-not-fire",
-  "source_case_path": "examples/cases/02-escalation-does-not-fire.md",
-  "source_expected_path": "examples/expected/02-escalation-does-not-fire.md",
-  "case_notes": "# Case 2\n\nProvisional diagnosis: MDS.\n\n74F, macrocytic anaemia, Hb 92 g/L, no transfusion requirement yet. Neutrophils\nand platelets normal. Marrow: hypercellular, erythroid dysplasia with ring\nsideroblasts, no excess of blasts. Karyotype normal.\n\nNGS:\n- SF3B1 p.(Lys700Glu), VAF 38%\n- TET2 p.(Gln1548Ter), VAF 22%\n- ASXL1 p.(Gly646TrpfsTer12), VAF 9%\n",
+  "source_case_path": "validation/demo.md",
+  "source_expected_path": "validation/demo.md",
+  "case_notes": "Provisional diagnosis: MDS.\n\n74F, macrocytic anaemia, Hb 92 g/L, no transfusion requirement yet. Neutrophils and platelets normal. Marrow: hypercellular, erythroid dysplasia with ring sideroblasts, no excess of blasts. Karyotype normal.\n\nNGS:\n- SF3B1 p.(Lys700Glu), VAF 38%\n- TET2 p.(Gln1548Ter), VAF 22%\n- ASXL1 p.(Gly646TrpfsTer12), VAF 9%",
   "structured_case": {
     "provisional_cmcs": [
       "MDS"
@@ -246,7 +246,7 @@
   ],
   "diagnosis_evidence_cards": [
     {
-      "card_id": "arber-2022-blood-140-1200-C0014",
+      "card_id": "arber-2022-blood-140-1200-C0013",
       "category": "diagnosis",
       "genes": [
         "ASXL1",
@@ -261,8 +261,8 @@
         "PMF"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "Mutations in ASXL1, EZH2, IDH1, IDH2, SF3B1, SRSF2, or TET2 can support the clonal nature of suspected PMF.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "In suspected primary myelofibrosis, detection of ASXL1, EZH2, IDH1, IDH2, SF3B1, SRSF2, or TET2 mutation can support the clonal nature of disease when canonical MPN-driver mutations are absent.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "ASXL1",
@@ -272,7 +272,7 @@
       "matched_case_major_categories": []
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0025",
+      "card_id": "arber-2022-blood-140-1200-C0022",
       "category": "diagnosis",
       "genes": [
         "ASXL1",
@@ -287,8 +287,8 @@
         "MPN-U"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "Mutations such as ASXL1, EZH2, IDH1, IDH2, SF3B1, SRSF2, or TET2 support the clonal nature of MPN-U.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "In myeloproliferative neoplasm, unclassifiable (MPN-U), ASXL1, EZH2, IDH1, IDH2, SF3B1, SRSF2, or TET2 mutations detected by sensitive molecular methods can support the clonal nature of disease.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "ASXL1",
@@ -301,42 +301,20 @@
       "card_id": "arber-2022-blood-140-1200-C0046",
       "category": "diagnosis",
       "genes": [
-        "SRSF2",
-        "TET2",
+        "ABL1",
         "ASXL1",
-        "SETBP1",
-        "NRAS",
-        "KRAS",
-        "RUNX1",
-        "CBL",
-        "EZH2"
-      ],
-      "diseases": [
-        "CMML"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "In CMML, common myeloid mutations including SRSF2, TET2, ASXL1, SETBP1, NRAS, KRAS, RUNX1, CBL, and EZH2 can provide molecular evidence of clonality.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [
-        "ASXL1",
-        "TET2"
-      ],
-      "matched_case_major_categories": []
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0053",
-      "category": "diagnosis",
-      "genes": [
-        "SETBP1",
-        "ASXL1"
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL",
+        "SETBP1"
       ],
       "diseases": [
         "aCML"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "SETBP1 mutation, often with ASXL1 co-mutation, supports a diagnosis of aCML.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "According to the ICC, atypical chronic myeloid leukemia (aCML) requires WBC >=13 x 10^9/L due to neutrophils and precursors with promyelocytes/myelocytes/metamyelocytes >=10%; cytopenia using MDS thresholds; <20% blasts; prominent dysgranulopoiesis; monocytes <10% and eosinophils <10% of leukocytes; hypercellular marrow with granulocytic proliferation/dysplasia; and absence of BCR::ABL1 and TK-fusion myeloid/lymphoid neoplasms. Absence of JAK2, CALR, and MPL supports the diagnosis, and SETBP1 mutation, often with ASXL1, provides additional support.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "ASXL1"
@@ -344,17 +322,22 @@
       "matched_case_major_categories": []
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0057",
+      "card_id": "arber-2022-blood-140-1200-C0049",
       "category": "diagnosis",
       "genes": [
+        "ABL1",
+        "BCR",
+        "CALR",
+        "JAK2",
+        "MPL",
         "SF3B1"
       ],
       "diseases": [
         "MDS/MPN-SF3B1-T"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS/MPN with SF3B1 mutation and thrombocytosis requires an SF3B1 mutation with VAF greater than 10%.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "According to the ICC, MDS/MPN with SF3B1 mutation and thrombocytosis requires thrombocytosis >=450 x 10^9/L and anemia present at initial diagnosis, <1% blood blasts and <5% marrow blasts, and SF3B1 mutation with VAF >10%; no recent cytotoxic/growth-factor therapy explaining the phenotype; no prior MPN, MDS, or other MDS/MPN; and absence of BCR::ABL1, TK-fusion myeloid/lymphoid neoplasms, t(3;3), inv(3), and del(5q) meeting MDS-del(5q) criteria. Ring sideroblasts are not required when SF3B1 VAF is >10%; JAK2 V617F, CALR, or MPL W515 co-mutation is not required but supports the diagnosis.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "SF3B1"
@@ -362,17 +345,19 @@
       "matched_case_major_categories": []
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0058",
+      "card_id": "arber-2022-blood-140-1200-C0050",
       "category": "diagnosis",
       "genes": [
+        "ABL1",
+        "BCR",
         "SF3B1"
       ],
       "diseases": [
         "MDS/MPN-SF3B1-T"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "When the qualifying SF3B1 mutation is present in MDS/MPN with SF3B1 mutation and thrombocytosis, ring sideroblasts are not required for diagnosis.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "According to the ICC, MDS/MPN with ring sideroblasts and thrombocytosis, NOS requires thrombocytosis >=450 x 10^9/L and anemia present at initial diagnosis, erythroid dysplasia with >=15% ring sideroblasts, <1% blood blasts and <5% marrow blasts, and clonality by cytogenetic abnormality and/or somatic mutation (or, if clonality is absent, no recent cytotoxic/growth-factor therapy explaining the phenotype); no prior MPN, MDS, or other MDS/MPN; and absence of SF3B1 mutation, BCR::ABL1, TK-fusion myeloid/lymphoid neoplasms, t(3;3), inv(3), and del(5q) meeting MDS-del(5q) criteria.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "SF3B1"
@@ -380,7 +365,7 @@
       "matched_case_major_categories": []
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0060",
+      "card_id": "arber-2022-blood-140-1200-C0051",
       "category": "diagnosis",
       "genes": [
         "SF3B1"
@@ -389,8 +374,8 @@
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS-SF3B1 that later develops thrombocytosis is classified as thrombocytotic progression of MDS-SF3B1 rather than as MDS/MPN.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "MDS with SF3B1 mutation that later develops thrombocytosis is classified as thrombocytotic progression of MDS-SF3B1 rather than MDS/MPN with thrombocytosis.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "SF3B1"
@@ -400,7 +385,83 @@
       ]
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0070",
+      "card_id": "arber-2022-blood-140-1200-C0057",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "For clonal cytopenias spanning CCUS to MDS, the ICC defines cytopenia as acquired sustained hemoglobin <12 g/dL in females or <13 g/dL in males, ANC <1.8 x 10^9/L, and/or platelets <150 x 10^9/L not explained by another condition.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0060",
+      "category": "diagnosis",
+      "genes": [
+        "UBA1"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "VEXAS syndrome is associated with somatic UBA1 mutation and should be kept separate from MDS unless morphologic MDS criteria are met.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0061",
+      "category": "diagnosis",
+      "genes": [
+        "ABL1",
+        "BCR"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS is a clonal hematopoietic neoplasm defined by persistent unexplained cytopenia and morphologic dysplasia, generally chronic for about >=4 months and not explained by drug, toxin, or comorbidity; a 10% dysplasia threshold is recommended for each lineage, and demonstrable clonality is not required when qualifying dysplasia and cytopenia are present. BCR::ABL1 or a TK-fusion myeloid/lymphoid neoplasm excludes MDS. At initial diagnosis, persistent WBC >=13 x 10^9/L, platelets >=450 x 10^9/L (except MDS-del(5q) or inv(3)/t(3;3)), or monocytes >=0.5 x 10^9/L and >=10% of leukocytes instead favors MDS/MPN or MPN classification.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0062",
+      "category": "diagnosis",
+      "genes": [
+        "RUNX1",
+        "SF3B1",
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS with mutated SF3B1 requires SF3B1 mutation VAF >=10%, at least one cytopenia, no ICC-defined cytosis at diagnosis, <5% marrow blasts and <2% blood blasts, and absence of multihit TP53, RUNX1 mutation, isolated del(5q), -7/del(7q), 3q26.2 abnormalities, and complex karyotype. Dysplasia is typically present but is not required, and ring sideroblasts are not required.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0063",
       "category": "diagnosis",
       "genes": [
         "SF3B1"
@@ -409,8 +470,124 @@
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "Neither dysplasia nor ring sideroblasts are required for the diagnosis of MDS-SF3B1 when the defining genetic criteria are met.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "SF3B1-unmutated MDS with ring sideroblasts is classified as MDS, NOS irrespective of ring-sideroblast number.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0064",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "CCUS",
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "In cytopenic patients lacking dysplasia, prior MDS-defining cytogenetic abnormalities other than del(5q), -7/del(7q), or complex karyotype are now classified as CCUS rather than MDS.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0065",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS with excess blasts requires at least one cytopenia, no ICC-defined cytosis, and 5%-9% marrow blasts or 2%-9% blood blasts; 1% peripheral-blood blasts confirmed on two occasions also qualifies. Dysplasia is typically present but not required, multihit TP53 is excluded in favor of MDS with mutated TP53, and excess blasts supersede other non-TP53 MDS subtypes. In patients <18 years, MDS with excess blasts uses 5%-19% marrow blasts and 2%-19% blood blasts, and MDS/AML does not apply.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0066",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS with del(5q) requires at least one cytopenia, del(5q) isolated or with no more than one additional cytogenetic abnormality other than -7/del(7q), <5% marrow blasts and <2% blood blasts, and absence of multihit TP53. Thrombocytosis is allowed but other ICC-defined cytoses are not; dysplasia is typically present but is not required.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0067",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS, NOS without dysplasia requires at least one cytopenia, no ICC-defined cytosis, <5% marrow blasts and <2% blood blasts, and -7/del(7q) or complex karyotype as the defining cytogenetic abnormality; multihit TP53 and SF3B1 mutation with VAF >=10% are excluded.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0068",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS, NOS with single-lineage dysplasia requires dysplasia in one lineage, at least one cytopenia, no ICC-defined cytosis, <5% marrow blasts and <2% blood blasts, and failure to meet criteria for MDS with del(5q) or MDS with mutated SF3B1; multihit TP53 is excluded.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0069",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1",
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS, NOS with multilineage dysplasia requires dysplasia in at least two lineages, at least one cytopenia, no ICC-defined cytosis, <5% marrow blasts and <2% blood blasts, and failure to meet criteria for MDS with del(5q) or MDS with mutated SF3B1; multihit TP53 is excluded.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "SF3B1"
@@ -423,52 +600,14 @@
       "card_id": "arber-2022-blood-140-1200-C0071",
       "category": "diagnosis",
       "genes": [
-        "SF3B1"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "MDS-SF3B1 requires an SF3B1 mutation with VAF at least 10%.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [
-        "SF3B1"
-      ],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0072",
-      "category": "diagnosis",
-      "genes": [
         "TP53"
       ],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS-SF3B1 requires absence of multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0073",
-      "category": "diagnosis",
-      "genes": [
-        "RUNX1"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "MDS-SF3B1 requires absence of a RUNX1 mutation.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "According to the ICC, MDS with mutated TP53 has 0%-9% blasts and requires multihit TP53, defined as 2 distinct TP53 mutations each with VAF >10% or one TP53 mutation plus 17p deletion, VAF >50%, or copy-neutral LOH at TP53; when LOH information is unavailable, TP53 mutation VAF >10% with complex karyotype qualifies. Complex karyotype without a TP53 mutation does not qualify, and monoallelic TP53-mutated MDS is excluded from this entity.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -478,13 +617,15 @@
     {
       "card_id": "arber-2022-blood-140-1200-C0074",
       "category": "diagnosis",
-      "genes": [],
+      "genes": [
+        "TP53"
+      ],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS with del(5q) requires del(5q) to be isolated or accompanied by only one other cytogenetic abnormality, except -7/del(7q).",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "Established MDS that acquires a TP53 mutation can be redesignated as MDS, MDS/AML, or AML with mutated TP53 according to blast count.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -494,15 +635,29 @@
     {
       "card_id": "arber-2022-blood-140-1200-C0075",
       "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
+      "genes": [],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS with del(5q) excludes multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "Development of leukocytosis, thrombocytosis, or monocytosis during established MDS generally does not warrant reclassification as MDS/MPN; the disease can instead be designated as MDS with neutrophilic, thrombocytotic, or monocytic progression.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0076",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "The ICC recommends retaining the morphologic/genetic MDS diagnosis as primary and adding a therapy-related qualifier when disease follows cytotoxic therapy.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -512,15 +667,15 @@
     {
       "card_id": "arber-2022-blood-140-1200-C0077",
       "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
+      "genes": [],
       "diseases": [
+        "CHIP",
+        "CCUS",
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS with mutated TP53 is defined in the 0%-9% blood or marrow blast range.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "The ICC recommends qualifying CHIP, CCUS, and other non-MDS clonal cytopenias as therapy-related when they follow marrow exposure to chemotherapy or radiation.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -530,15 +685,13 @@
     {
       "card_id": "arber-2022-blood-140-1200-C0078",
       "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
+      "genes": [],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS with mutated TP53 requires multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "Any underlying germline predisposition mutation or syndrome should be specified as a qualifier after the MDS diagnosis and subtype.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -546,17 +699,19 @@
       ]
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0079",
+      "card_id": "arber-2022-blood-140-1200-C0084",
       "category": "diagnosis",
       "genes": [
-        "TP53"
+        "ANKRD26",
+        "ETV6",
+        "RUNX1"
       ],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "When TP53-locus LOH information is unavailable, a TP53 mutation with VAF above 10% plus complex karyotype is accepted for MDS with mutated TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "In germline RUNX1-, ANKRD26-, or ETV6-associated constitutional platelet disorders, marrow megakaryocytic dysplasia can be present with isolated thrombocytopenia in the absence of MDS.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -564,17 +719,15 @@
       ]
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0080",
+      "card_id": "arber-2022-blood-140-1200-C0085",
       "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
+      "genes": [],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "Two distinct TP53 mutations, each with VAF above 10%, establish multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "When assessing MDS in patients with germline predisposition, baseline dyspoietic bone-marrow changes can be present even in the absence of a myeloid malignancy.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -582,53 +735,15 @@
       ]
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0081",
+      "card_id": "arber-2022-blood-140-1200-C0086",
       "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
+      "genes": [],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "A TP53 mutation with a cytogenetic deletion involving the TP53 locus at 17p13.1 establishes multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0082",
-      "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "A single TP53 mutation with VAF above 50% establishes multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0083",
-      "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "A TP53 mutation with copy-neutral loss of heterozygosity at the 17p TP53 locus establishes multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "In patients with germline predisposition, development of MDS is generally associated with new or progressive cytopenia, often with rising marrow cellularity, overt multilineage dysplasia, increased blasts, and/or acquired pathogenic genetic abnormalities.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -639,87 +754,15 @@
       "card_id": "arber-2022-blood-140-1200-C0087",
       "category": "diagnosis",
       "genes": [
+        "SF3B1",
         "TP53"
       ],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "Monoallelic TP53-mutated MDS is not included in the ICC MDS with mutated TP53 entity, which requires multi-hit TP53.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0090",
-      "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "Acquisition of TP53 mutation during MDS progression can reclassify disease as MDS, MDS/AML, or AML with mutated TP53 according to blast count.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0116",
-      "category": "diagnosis",
-      "genes": [
-        "RUNX1",
-        "ETV6"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "In germline RUNX1- or ETV6-associated platelet disorders, megakaryocytic dysplasia can occur without MDS and therefore should not by itself establish MDS.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0117",
-      "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "In a germline-predisposition setting, emergence of multi-hit TP53 mutation with VAF above 10% is considered MDS-defining.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0118",
-      "category": "diagnosis",
-      "genes": [
-        "SF3B1"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "In a germline-predisposition setting, emergence of SF3B1 mutation with VAF above 10% is considered MDS-defining.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "In a patient with germline predisposition, emergence of del(5q), -7/del(7q), complex karyotype, multihit TP53 mutation VAF >10%, or SF3B1 mutation VAF >10% is considered MDS-defining.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [
         "SF3B1"
@@ -729,7 +772,7 @@
       ]
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0119",
+      "card_id": "arber-2022-blood-140-1200-C0088",
       "category": "diagnosis",
       "genes": [
         "TP53"
@@ -738,8 +781,8 @@
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "In Shwachman-Diamond syndrome, a small stable monoallelic TP53-mutant clone in isolation is not considered development of MDS.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
+      "interpretation": "In Shwachman-Diamond syndrome, a small stable clone with monoallelic TP53 mutation alone is not considered MDS, whereas biallelic TP53 mutation is associated with myeloid malignancy.",
+      "paper_nickname": "ICC Classification 2022",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -747,63 +790,7 @@
       ]
     },
     {
-      "card_id": "arber-2022-blood-140-1200-C0151",
-      "category": "diagnosis",
-      "genes": [
-        "ASXL1"
-      ],
-      "diseases": [
-        "MDS/AML",
-        "AML"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "ASXL1 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [
-        "ASXL1"
-      ],
-      "matched_case_major_categories": []
-    },
-    {
-      "card_id": "arber-2022-blood-140-1200-C0155",
-      "category": "diagnosis",
-      "genes": [
-        "SF3B1"
-      ],
-      "diseases": [
-        "MDS/AML",
-        "AML"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "SF3B1 mutation qualifies for MDS/AML with myelodysplasia-related gene mutation at 10%-19% blasts or AML with myelodysplasia-related gene mutation at at least 20% blasts.",
-      "paper_nickname": "ICC Classification of Myeloid Neoplasms and Acute Leukemias",
-      "publication_year": 2022,
-      "matched_genes": [
-        "SF3B1"
-      ],
-      "matched_case_major_categories": []
-    },
-    {
-      "card_id": "bernard-2022-nejm-evidence-1-na-C0001",
-      "category": "diagnosis",
-      "genes": [
-        "TP53"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "univariable or descriptive",
-      "interpretation": "In MDS, TP53 multihit status is defined by multiple TP53 mutations or by a TP53 mutation with loss of heterozygosity, including chromosomal deletion or copy-neutral LOH.",
-      "paper_nickname": "IPSS-M Prognostic score for MDS",
-      "publication_year": 2022,
-      "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "d-hner-2022-blood-140-1345-C0019",
+      "card_id": "arber-2022-blood-140-1200-C0099",
       "category": "diagnosis",
       "genes": [
         "ASXL1",
@@ -813,65 +800,115 @@
         "SF3B1",
         "SRSF2",
         "STAG2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "diseases": [
+        "MDS/AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, MDS/AML with myelodysplasia-related gene mutations has 10%-19% blasts and is defined by mutation in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "ASXL1",
+        "SF3B1"
+      ],
+      "matched_case_major_categories": []
+    },
+    {
+      "card_id": "arber-2022-blood-140-1200-C0100",
+      "category": "diagnosis",
+      "genes": [
+        "ASXL1",
+        "BCOR",
+        "EZH2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "U2AF1",
+        "ZRSR2"
+      ],
+      "diseases": [
+        "AML"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to the ICC, AML with myelodysplasia-related gene mutations requires >=20% blasts and is defined by mutation in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2.",
+      "paper_nickname": "ICC Classification 2022",
+      "publication_year": 2022,
+      "matched_genes": [
+        "ASXL1",
+        "SF3B1"
+      ],
+      "matched_case_major_categories": []
+    },
+    {
+      "card_id": "bernard-2020-tp53-mds-C0001",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "For TP53-mutated MDS, a single TP53 mutation with a retained wild-type copy represents a monoallelic state, whereas multiple TP53 mutations or TP53 mutation(s) with TP53 deletion or copy-neutral loss of heterozygosity represent multi-hit TP53, consistent with biallelic targeting.",
+      "paper_nickname": "Bernard TP53 Allelic State in MDS 2020",
+      "publication_year": 2020,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "d-hner-2022-blood-140-1345-C0007",
+      "category": "diagnosis",
+      "genes": [
         "TP53",
+        "ASXL1",
+        "BCOR",
+        "EZH2",
+        "RUNX1",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
         "U2AF1",
         "ZRSR2"
       ],
       "diseases": [
         "AML",
+        "MDS",
         "MDS/AML"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "In acute myeloid leukemia (AML) lacking an overriding recurrent AML abnormality and TP53 mutation, mutations in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2 define the myelodysplasia-related gene-mutated category irrespective of prior MDS; these cases are designated MDS/AML at 10%-19% blasts and AML at at least 20% blasts.",
-      "paper_nickname": "ELN AML Recommendations 2022",
+      "interpretation": "Under the 2022 ICC, when higher-priority recurrent AML-defining abnormalities and TP53-mutated disease are absent, pathogenic mutations in ASXL1, BCOR, EZH2, RUNX1, SF3B1, SRSF2, STAG2, U2AF1, or ZRSR2 define AML with myelodysplasia-related gene mutations at ≥20% blasts, irrespective of prior MDS; the corresponding 10%-19% blast category is MDS/AML.",
+      "paper_nickname": "ELN 2022 AML Recommendations",
       "publication_year": 2022,
       "matched_genes": [
         "ASXL1",
         "SF3B1"
       ],
-      "matched_case_major_categories": []
+      "matched_case_major_categories": [
+        "MDS"
+      ]
     },
     {
-      "card_id": "d-hner-2022-blood-140-1345-C0176",
-      "category": "germline",
-      "genes": [
-        "ASXL1",
-        "FLT3",
-        "GATA2",
-        "PHF6",
-        "RUNX1",
-        "SRSF2",
-        "WT1"
-      ],
-      "diseases": [],
-      "evidence_tier": "univariable or descriptive",
-      "interpretation": "When leukemia develops in germline RUNX1 predisposition, somatic mutation of the wild-type RUNX1 allele is common, together with acquired mutations in ASXL1, FLT3, GATA2, PHF6, SRSF2, and WT1.",
-      "paper_nickname": "ELN AML Recommendations 2022",
-      "publication_year": 2022,
-      "matched_genes": [
-        "ASXL1"
-      ],
-      "matched_case_major_categories": []
-    },
-    {
-      "card_id": "elena-2016-blood-128-1408-C0003",
+      "card_id": "d-hner-2022-blood-140-1345-C0010",
       "category": "diagnosis",
-      "genes": [
-        "TET2",
-        "SF3B1"
-      ],
+      "genes": [],
       "diseases": [
-        "CMML"
+        "AML",
+        "MDS"
       ],
-      "evidence_tier": "univariable or descriptive",
-      "interpretation": "In CMML, TET2 and SF3B1 mutations were significantly associated with the myelodysplastic subtype (CMML-MD; P=.007 and P=.03, respectively).",
-      "paper_nickname": "CMML-specific CPSS-Mol score",
-      "publication_year": 2016,
-      "matched_genes": [
-        "SF3B1",
-        "TET2"
-      ],
-      "matched_case_major_categories": []
+      "evidence_tier": "guideline criterion",
+      "interpretation": "Under the 2022 ICC, a prior MDS is appended as a diagnostic qualifier to the AML category only when it was established by standard diagnostics more than 3 months before AML diagnosis.",
+      "paper_nickname": "ELN 2022 AML Recommendations",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
     },
     {
       "card_id": "khoury-2022-leukemia-36-1703-C0003",
@@ -883,8 +920,8 @@
         "MDS/MPN"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "For CCUS, MDS and MDS/MPN, cytopenia thresholds are haemoglobin <13 g/dL in males or <12 g/dL in females, ANC <1.8 ×10^9/L, and platelets <150 ×10^9/L.",
-      "paper_nickname": "WHO 5th Edition 2022",
+      "interpretation": "According to WHO 5th Edition 2022, cytopenia thresholds harmonized across CCUS, MDS and MDS/MPN are haemoglobin <13 g/dL in males or <12 g/dL in females, absolute neutrophil count <1.8 × 10^9/L, and platelets <150 × 10^9/L.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -892,15 +929,15 @@
       ]
     },
     {
-      "card_id": "khoury-2022-leukemia-36-1703-C0022",
+      "card_id": "khoury-2022-leukemia-36-1703-C0035",
       "category": "diagnosis",
       "genes": [],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS is defined by cytopenias and morphologic dysplasia, with a recommended dysplasia threshold of 10% for all lineages.",
-      "paper_nickname": "WHO 5th Edition 2022",
+      "interpretation": "According to WHO 5th Edition 2022, the term “myelodysplastic neoplasms,” abbreviated MDS, replaces “myelodysplastic syndromes.” MDS is defined as a clonal haematopoietic neoplasm with cytopenia(s) and morphologic dysplasia, with a recommended dysplasia threshold of ≥10% in a lineage.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -908,28 +945,7 @@
       ]
     },
     {
-      "card_id": "khoury-2022-leukemia-36-1703-C0023",
-      "category": "diagnosis",
-      "genes": [
-        "TP53",
-        "SF3B1"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "Within genetically defined MDS, MDS with biallelic TP53 inactivation supersedes MDS-5q and MDS-SF3B1 in the WHO5 hierarchy.",
-      "paper_nickname": "WHO 5th Edition 2022",
-      "publication_year": 2022,
-      "matched_genes": [
-        "SF3B1"
-      ],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "khoury-2022-leukemia-36-1703-C0024",
+      "card_id": "khoury-2022-leukemia-36-1703-C0036",
       "category": "diagnosis",
       "genes": [
         "SF3B1",
@@ -939,8 +955,8 @@
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "In MDS-5q, an SF3B1 mutation or a TP53 mutation that is not multi-hit does not by itself override the MDS-5q diagnosis.",
-      "paper_nickname": "WHO 5th Edition 2022",
+      "interpretation": "According to WHO 5th Edition 2022, MDS with low blasts and isolated 5q deletion requires <5% bone-marrow blasts and <2% peripheral-blood blasts, with 5q deletion alone or with one additional abnormality other than monosomy 7 or 7q deletion. An SF3B1 mutation or a TP53 mutation that is not multi-hit does not by itself override the MDS-5q diagnosis.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
       "publication_year": 2022,
       "matched_genes": [
         "SF3B1"
@@ -950,7 +966,7 @@
       ]
     },
     {
-      "card_id": "khoury-2022-leukemia-36-1703-C0025",
+      "card_id": "khoury-2022-leukemia-36-1703-C0037",
       "category": "diagnosis",
       "genes": [
         "SF3B1"
@@ -959,8 +975,8 @@
         "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "For SF3B1-wild-type MDS with ≥15% ring sideroblasts, “MDS with low blasts and ring sideroblasts” remains an acceptable alternative designation.",
-      "paper_nickname": "WHO 5th Edition 2022",
+      "interpretation": "According to WHO 5th Edition 2022, MDS with low blasts and SF3B1 mutation is a genetically defined MDS type in which 5q deletion, monosomy 7 and complex karyotype are exclusionary. Detection of ≥15% ring sideroblasts may substitute for an SF3B1 mutation; for SF3B1-wild-type cases with ≥15% ring sideroblasts, “MDS with low blasts and ring sideroblasts” is an acceptable alternative term.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
       "publication_year": 2022,
       "matched_genes": [
         "SF3B1"
@@ -970,16 +986,17 @@
       ]
     },
     {
-      "card_id": "khoury-2022-leukemia-36-1703-C0033",
+      "card_id": "khoury-2022-leukemia-36-1703-C0039",
       "category": "diagnosis",
-      "genes": [],
+      "genes": [
+        "TP53"
+      ],
       "diseases": [
-        "MDS",
-        "AML"
+        "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "WHO5 retains a 20% blast cutoff to delineate MDS from AML while removing blast cutoffs for most AML types with defining genetic abnormalities.",
-      "paper_nickname": "WHO 5th Edition 2022",
+      "interpretation": "According to WHO 5th Edition 2022, MDS with biallelic TP53 inactivation requires <20% blasts in blood and marrow plus either ≥2 TP53 mutations or one TP53 mutation with TP53 copy-number loss or copy-neutral loss of heterozygosity. Two or more TP53 mutations can generally be considered multi-hit status. MDS-biTP53 supersedes MDS-5q and MDS-SF3B1 in the WHO5 genetic hierarchy.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
       "publication_year": 2022,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -987,154 +1004,225 @@
       ]
     },
     {
-      "card_id": "khoury-2022-leukemia-36-1703-C0040",
+      "card_id": "khoury-2022-leukemia-36-1703-C0050",
       "category": "diagnosis",
-      "genes": [
-        "SF3B1"
-      ],
+      "genes": [],
       "diseases": [
-        "MDS/MPN"
+        "MDS"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "MDS/MPN with ring sideroblasts and thrombocytosis is redefined on the basis of SF3B1 mutation and renamed MDS/MPN with SF3B1 mutation and thrombocytosis.",
-      "paper_nickname": "WHO 5th Edition 2022",
+      "interpretation": "According to WHO 5th Edition 2022, hypoplastic MDS is a distinct MDS type defined by bone-marrow cellularity ≤25%, adjusted for age.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
       "publication_year": 2022,
-      "matched_genes": [
-        "SF3B1"
-      ],
-      "matched_case_major_categories": []
-    },
-    {
-      "card_id": "khoury-2022-leukemia-36-1703-C0041",
-      "category": "diagnosis",
-      "genes": [
-        "SF3B1"
-      ],
-      "diseases": [
-        "MDS/MPN"
-      ],
-      "evidence_tier": "guideline criterion",
-      "interpretation": "For SF3B1-wild-type MDS/MPN with ≥15% ring sideroblasts, “MDS/MPN with ring sideroblasts and thrombocytosis” remains an acceptable term.",
-      "paper_nickname": "WHO 5th Edition 2022",
-      "publication_year": 2022,
-      "matched_genes": [
-        "SF3B1"
-      ],
-      "matched_case_major_categories": []
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
     },
     {
       "card_id": "khoury-2022-leukemia-36-1703-C0053",
       "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, distinction between single-lineage and multilineage dysplasia is optional rather than disease-type defining in MDS.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0054",
+      "category": "diagnosis",
       "genes": [
-        "SRSF2",
-        "SF3B1",
-        "U2AF1",
-        "ZRSR2",
-        "ASXL1",
-        "EZH2",
-        "BCOR",
-        "STAG2"
+        "BCR",
+        "ABL1",
+        "CEBPA"
       ],
       "diseases": [
+        "MDS",
         "AML"
       ],
       "evidence_tier": "guideline criterion",
-      "interpretation": "AML, myelodysplasia-related has a mutation-based definition that includes SRSF2, SF3B1, U2AF1, ZRSR2, ASXL1, EZH2, BCOR or STAG2.",
-      "paper_nickname": "WHO 5th Edition 2022",
+      "interpretation": "According to WHO 5th Edition 2022, a 20% blast cutoff is retained to delineate MDS from AML, but most AML types with defining genetic abnormalities may be diagnosed below 20% blasts. AML with BCR::ABL1 and AML with CEBPA mutation remain exceptions requiring ≥20% blasts. When a genetically defined AML is diagnosed below 20%, morphologic and molecular findings must be correlated to establish that the defining abnormality is driving the disease.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0055",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, childhood MDS with low blasts replaces the former term refractory cytopenia of childhood and is defined by <5% bone-marrow blasts and <2% peripheral-blood blasts. It comprises hypocellular and NOS subtypes, and diagnosis requires exclusion of non-neoplastic causes of cytopenia, bone-marrow failure syndromes and germline pathogenic variants.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0057",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, childhood MDS with increased blasts is defined by 5–19% bone-marrow blasts or 2–19% peripheral-blood blasts.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0073",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS/MPN-SF3B1-T"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, MDS/MPN with ring sideroblasts and thrombocytosis is redefined on the basis of SF3B1 mutation and renamed MDS/MPN with SF3B1 mutation and thrombocytosis. For SF3B1-wild-type cases with ≥15% ring sideroblasts, MDS/MPN with ring sideroblasts and thrombocytosis remains acceptable terminology.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
       "publication_year": 2022,
       "matched_genes": [
-        "ASXL1",
         "SF3B1"
       ],
       "matched_case_major_categories": []
     },
     {
-      "card_id": "kraft-godley-2020-germline-guide-C0007",
-      "category": "germline",
-      "genes": [
-        "ANKRD26",
-        "CEBPA",
-        "DDX41",
-        "ETV6",
-        "GATA2",
-        "MBD4",
-        "MECOM",
-        "EVI1",
-        "PTPN11",
-        "RUNX1",
-        "SAMD9",
-        "SAMD9L",
-        "SRP72",
-        "TET2"
-      ],
-      "diseases": [],
-      "evidence_tier": "restated secondary",
-      "interpretation": "For familial MDS/AML germline assessment, this review lists ANKRD26, CEBPA, DDX41, ETV6, GATA2, MBD4, MECOM/EVI1, PTPN11, RUNX1, SAMD9, SAMD9L, SRP72, and TET2 among genes recommended as yielding clinically actionable results.",
-      "paper_nickname": "Kraft & Godley 2020 Germline NGS Review",
-      "publication_year": 2020,
-      "matched_genes": [
-        "TET2"
-      ],
-      "matched_case_major_categories": []
-    },
-    {
-      "card_id": "malcovati-2017-ccus-foundation-C0001",
+      "card_id": "khoury-2022-leukemia-36-1703-C0096",
       "category": "diagnosis",
       "genes": [
-        "TET2",
         "ASXL1",
-        "SRSF2",
-        "SF3B1",
-        "DNMT3A",
-        "RUNX1",
-        "JAK2",
-        "TP53",
-        "U2AF1",
-        "EZH2",
-        "IDH2",
-        "ZRSR2",
-        "NRAS",
-        "IDH1",
-        "STAG2",
         "BCOR",
-        "CBL",
-        "CUX1",
-        "KRAS",
-        "GATA2",
-        "PTPN11",
-        "CALR",
-        "ETV6",
-        "PHF6",
-        "KIT",
-        "NPM1",
-        "MLL",
-        "GNAS",
-        "ATRX",
-        "CDKN2A",
-        "KDM6A",
-        "MPL",
-        "WT1",
-        "ABL1",
-        "RAD21",
-        "FLT3",
-        "CEBPA",
-        "GATA1"
+        "EZH2",
+        "SF3B1",
+        "SRSF2",
+        "STAG2",
+        "U2AF1",
+        "ZRSR2"
       ],
       "diseases": [
+        "AML",
         "MDS",
         "MDS/MPN",
-        "MPN",
-        "AML"
+        "acute erythroid leukaemia"
       ],
-      "evidence_tier": "univariable or descriptive",
-      "interpretation": "In patients investigated for unexplained cytopenia, a negative result across the studied 40-gene panel did not exclude the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML): the negative predictive value was 0.76, increasing to 0.84 when mutation status was combined with standard karyotyping.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
-      "publication_year": 2017,
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, AML, myelodysplasia-related (AML-MR; formerly AML with myelodysplasia-related changes) requires ≥20% blasts with a myeloid immunophenotype plus at least one qualifying MDS-related feature: a history of MDS or MDS/MPN; a defining somatic mutation in ASXL1, BCOR, EZH2, SF3B1, SRSF2, STAG2, U2AF1 or ZRSR2; or a defining cytogenetic abnormality comprising complex karyotype (≥3 abnormalities), 5q deletion/loss, monosomy 7 or 7q deletion/loss, 11q deletion, 12p deletion/loss, monosomy 13 or 13q deletion, 17p deletion/loss, isochromosome 17q or idic(X)(q13). Morphologic dysplasia alone is insufficient. A diagnosis of acute erythroid leukaemia supersedes AML-MR.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
       "matched_genes": [
         "ASXL1",
-        "SF3B1",
-        "TET2"
+        "SF3B1"
       ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0125",
+      "category": "diagnosis",
+      "genes": [
+        "NPM1",
+        "RUNX1",
+        "RUNX1T1",
+        "CBFB",
+        "MYH11",
+        "PARP1"
+      ],
+      "diseases": [
+        "AML",
+        "MDS",
+        "MDS/MPN",
+        "CCUS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, a myeloid neoplasm post cytotoxic therapy (MN-pCT) is diagnosed when criteria for AML, MDS or MDS/MPN are fulfilled in a patient with a documented history of chemotherapy or large-field radiation therapy for an unrelated neoplasm. CCUS is excluded. NPM1-mutated disease and core-binding-factor leukaemias with RUNX1::RUNX1T1 or CBFB::MYH11 still receive the post-cytotoxic designation when the exposure history is present. PARP1 inhibitors qualify as an exposure and methotrexate does not. The specific myeloid diagnosis should be given when possible with “post cytotoxic therapy” appended.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0196",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, MDS with low blasts is defined by <5% bone-marrow blasts and <2% peripheral-blood blasts.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0198",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, MDS with increased blasts is subgrouped as MDS-IB1, defined by 5–9% bone-marrow blasts or 2–4% peripheral-blood blasts, and MDS-IB2, defined by 10–19% bone-marrow blasts, 5–19% peripheral-blood blasts, or Auer rods.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0200",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, MDS with fibrosis has 5–19% bone-marrow blasts and 2–19% peripheral-blood blasts.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "khoury-2022-leukemia-36-1703-C0201",
+      "category": "diagnosis",
+      "genes": [],
+      "diseases": [
+        "MDS"
+      ],
+      "evidence_tier": "guideline criterion",
+      "interpretation": "According to WHO 5th Edition 2022, MDS, unclassifiable is no longer a recognized MDS category.",
+      "paper_nickname": "WHO5 2022 Myeloid Classification",
+      "publication_year": 2022,
+      "matched_genes": [],
       "matched_case_major_categories": [
         "MDS"
       ]
@@ -1143,59 +1231,17 @@
       "card_id": "malcovati-2017-ccus-foundation-C0002",
       "category": "diagnosis",
       "genes": [
-        "TET2",
-        "ASXL1",
-        "SRSF2",
-        "SF3B1",
-        "DNMT3A",
-        "RUNX1",
-        "JAK2",
-        "TP53",
-        "U2AF1",
-        "EZH2",
-        "IDH2",
-        "ZRSR2",
-        "NRAS",
-        "IDH1",
-        "STAG2",
-        "BCOR",
-        "CBL",
-        "CUX1",
-        "KRAS",
-        "GATA2",
-        "PTPN11",
-        "CALR",
-        "ETV6",
-        "PHF6",
-        "KIT",
-        "NPM1",
-        "MLL",
-        "GNAS",
-        "ATRX",
-        "CDKN2A",
-        "KDM6A",
-        "MPL",
-        "WT1",
-        "ABL1",
-        "RAD21",
-        "FLT3",
-        "CEBPA",
-        "GATA1"
+        "SF3B1"
       ],
       "diseases": [
-        "MDS",
-        "MDS/MPN",
-        "MPN",
-        "AML"
+        "myeloid neoplasm, unspecified"
       ],
-      "evidence_tier": "univariable or descriptive",
-      "interpretation": "In patients investigated for unexplained cytopenia, finding two or more somatic mutations in the studied 40-gene panel was strongly predictive of the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML), with positive predictive value 0.88 (95% CI 0.84-0.92). These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "evidence_tier": "multivariable-adjusted",
+      "interpretation": "In unexplained cytopenia, SF3B1 mutation strongly supports an underlying myeloid neoplasm, unspecified by subtype, including when SF3B1 is the only detected mutation.",
+      "paper_nickname": "Malcovati CCUS 2017",
       "publication_year": 2017,
       "matched_genes": [
-        "ASXL1",
-        "SF3B1",
-        "TET2"
+        "SF3B1"
       ],
       "matched_case_major_categories": [
         "MDS"
@@ -1205,60 +1251,20 @@
       "card_id": "malcovati-2017-ccus-foundation-C0003",
       "category": "diagnosis",
       "genes": [
-        "TET2",
-        "ASXL1",
         "SRSF2",
-        "SF3B1",
-        "DNMT3A",
-        "RUNX1",
-        "JAK2",
-        "TP53",
         "U2AF1",
-        "EZH2",
-        "IDH2",
         "ZRSR2",
-        "NRAS",
-        "IDH1",
-        "STAG2",
-        "BCOR",
-        "CBL",
-        "CUX1",
-        "KRAS",
-        "GATA2",
-        "PTPN11",
-        "CALR",
-        "ETV6",
-        "PHF6",
-        "KIT",
-        "NPM1",
-        "MLL",
-        "GNAS",
-        "ATRX",
-        "CDKN2A",
-        "KDM6A",
-        "MPL",
-        "WT1",
-        "ABL1",
-        "RAD21",
-        "FLT3",
-        "CEBPA",
-        "GATA1"
+        "JAK2",
+        "RUNX1"
       ],
       "diseases": [
-        "MDS",
-        "MDS/MPN",
-        "MPN",
-        "AML"
+        "myeloid neoplasm, unspecified"
       ],
       "evidence_tier": "univariable or descriptive",
-      "interpretation": "For mutations measured in isolated peripheral-blood granulocytes, a VAF around 0.10 was associated with the best classification of the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML); the paper cautions that the applicable allele-burden threshold may vary when a different blood-cell source is used. These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "interpretation": "In unexplained cytopenia, SRSF2, U2AF1, ZRSR2, JAK2, or RUNX1 mutation strongly supports an underlying myeloid neoplasm, unspecified by subtype, whether detected alone or with other mutations.",
+      "paper_nickname": "Malcovati CCUS 2017",
       "publication_year": 2017,
-      "matched_genes": [
-        "ASXL1",
-        "SF3B1",
-        "TET2"
-      ],
+      "matched_genes": [],
       "matched_case_major_categories": [
         "MDS"
       ]
@@ -1267,24 +1273,20 @@
       "card_id": "malcovati-2017-ccus-foundation-C0004",
       "category": "diagnosis",
       "genes": [
-        "SF3B1",
-        "SRSF2",
-        "U2AF1",
-        "JAK2",
-        "RUNX1"
+        "TET2",
+        "DNMT3A",
+        "ASXL1"
       ],
       "diseases": [
-        "MDS",
-        "MDS/MPN",
-        "MPN",
-        "AML"
+        "myeloid neoplasm, unspecified"
       ],
       "evidence_tier": "univariable or descriptive",
-      "interpretation": "In unexplained cytopenia, mutations in SF3B1, SRSF2, U2AF1, JAK2, or RUNX1 had the highest predictive values for the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML), with positive predictive values of 0.88-0.97 irrespective of co-occurring mutations. These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "interpretation": "In unexplained cytopenia, an isolated TET2, DNMT3A, or ASXL1 mutation provides substantially less support for an underlying myeloid neoplasm, unspecified by subtype, than the same mutation occurring with additional genetic lesions.",
+      "paper_nickname": "Malcovati CCUS 2017",
       "publication_year": 2017,
       "matched_genes": [
-        "SF3B1"
+        "ASXL1",
+        "TET2"
       ],
       "matched_case_major_categories": [
         "MDS"
@@ -1294,19 +1296,16 @@
       "card_id": "malcovati-2017-ccus-foundation-C0005",
       "category": "diagnosis",
       "genes": [
+        "TP53",
         "TET2",
-        "DNMT3A",
         "ASXL1"
       ],
       "diseases": [
-        "MDS",
-        "MDS/MPN",
-        "MPN",
-        "AML"
+        "myeloid neoplasm, unspecified"
       ],
       "evidence_tier": "univariable or descriptive",
-      "interpretation": "In unexplained cytopenia, isolated TET2, DNMT3A, or ASXL1 mutations were substantially less predictive of the study's composite myeloid-neoplasm endpoint (MDS, MDS/MPN, MPN, or AML) than the same mutations occurring with additional genetic lesions (positive predictive value 0.29-0.57 vs 0.81-0.89). These predictive findings were reported as fully confirmed in the independent 190-patient validation cohort.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "interpretation": "In unexplained cytopenia, TP53 mutation is more supportive of an underlying myeloid neoplasm, unspecified by subtype, when co-mutated—most often with TET2 or ASXL1—than when TP53 is isolated.",
+      "paper_nickname": "Malcovati CCUS 2017",
       "publication_year": 2017,
       "matched_genes": [
         "ASXL1",
@@ -1317,15 +1316,127 @@
       ]
     },
     {
-      "card_id": "malcovati-2017-ccus-foundation-C0009",
+      "card_id": "malcovati-2017-ccus-foundation-C0006",
       "category": "diagnosis",
-      "genes": [],
+      "genes": [
+        "TET2",
+        "DNMT3A",
+        "ASXL1",
+        "RUNX1",
+        "EZH2",
+        "CBL",
+        "TP53",
+        "NRAS",
+        "CUX1",
+        "IDH2"
+      ],
       "diseases": [
-        "MDS"
+        "myeloid neoplasm, unspecified"
       ],
       "evidence_tier": "univariable or descriptive",
-      "interpretation": "For patients diagnosed with MDS on the basis of mild dysplasia (<25% dysplastic cells), absence of detectable clonality by standard cytogenetics and targeted sequencing, together with a stable course, raised concern that the MDS diagnosis might be inappropriate despite meeting then-current WHO criteria.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "interpretation": "In unexplained cytopenia, co-mutation patterns in which TET2, DNMT3A, or ASXL1 co-occurs with RUNX1, EZH2, CBL, TP53, NRAS, CUX1, or IDH2 are highly predictive of an underlying myeloid neoplasm, unspecified by subtype.",
+      "paper_nickname": "Malcovati CCUS 2017",
+      "publication_year": 2017,
+      "matched_genes": [
+        "ASXL1",
+        "TET2"
+      ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0007",
+      "category": "diagnosis",
+      "genes": [
+        "SF3B1"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In unexplained cytopenia, SF3B1 mutation is highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes—even when SF3B1 is the only detected mutation.",
+      "paper_nickname": "Malcovati CCUS 2017",
+      "publication_year": 2017,
+      "matched_genes": [
+        "SF3B1"
+      ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0008",
+      "category": "diagnosis",
+      "genes": [
+        "ZRSR2"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In unexplained cytopenia, ZRSR2 mutation is highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes.",
+      "paper_nickname": "Malcovati CCUS 2017",
+      "publication_year": 2017,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0009",
+      "category": "diagnosis",
+      "genes": [
+        "TET2",
+        "ASXL1",
+        "DNMT3A",
+        "RUNX1",
+        "EZH2",
+        "CBL",
+        "BCOR",
+        "CUX1",
+        "TP53",
+        "IDH1",
+        "IDH2"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "AML"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In unexplained cytopenia, co-mutation patterns in which TET2, ASXL1, or DNMT3A co-occurs with RUNX1, EZH2, CBL, BCOR, CUX1, TP53, IDH1, or IDH2 are highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes.",
+      "paper_nickname": "Malcovati CCUS 2017",
+      "publication_year": 2017,
+      "matched_genes": [
+        "ASXL1",
+        "TET2"
+      ],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "malcovati-2017-ccus-foundation-C0010",
+      "category": "diagnosis",
+      "genes": [
+        "SRSF2",
+        "U2AF1",
+        "JAK2"
+      ],
+      "diseases": [
+        "MDS",
+        "MDS/MPN",
+        "AML",
+        "PMF"
+      ],
+      "evidence_tier": "univariable or descriptive",
+      "interpretation": "In unexplained cytopenia, SRSF2 or U2AF1 mutation is highly specific for a myeloid neoplasm with myelodysplasia—MDS, MDS/MPN, or AML with myelodysplasia-related changes—except when co-occurring with JAK2 in primary myelofibrosis.",
+      "paper_nickname": "Malcovati CCUS 2017",
       "publication_year": 2017,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -1350,15 +1461,15 @@
         "CUX1",
         "TP53",
         "IDH1",
-        "IDH2",
-        "JAK2"
+        "IDH2"
       ],
       "diseases": [
+        "CCUS",
         "MDS"
       ],
       "evidence_tier": "univariable or descriptive",
-      "interpretation": "In cases with inconclusive dysplasia, highly specific mutation patterns may provide presumptive evidence of MDS even without definitive morphology. The reported patterns included splicing-factor mutations and co-mutation patterns involving TET2, ASXL1, or DNMT3A with RUNX1, EZH2, CBL, BCOR, CUX1, TP53, or IDH1/IDH2; SRSF2/U2AF1 with JAK2 in primary myelofibrosis was a stated specificity exception.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "interpretation": "In patients with CCUS and inconclusive dysplasia, the authors propose that highly specific mutation patterns—SF3B1, SRSF2, U2AF1, or ZRSR2 mutation, or TET2, ASXL1, or DNMT3A co-mutated with RUNX1, EZH2, CBL, BCOR, CUX1, TP53, IDH1, or IDH2—may provide presumptive evidence of MDS even when definitive morphologic criteria are absent.",
+      "paper_nickname": "Malcovati CCUS 2017",
       "publication_year": 2017,
       "matched_genes": [
         "ASXL1",
@@ -1377,8 +1488,8 @@
         "MDS"
       ],
       "evidence_tier": "restated secondary",
-      "interpretation": "In MDS with del(5q), the chromosomal deletion itself can represent the founding and disease-defining genetic lesion.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
+      "interpretation": "In MDS with del(5q), del(5q) can be the sole founding and disease-defining genetic lesion; an accompanying sequence mutation is not required.",
+      "paper_nickname": "Malcovati CCUS 2017",
       "publication_year": 2017,
       "matched_genes": [],
       "matched_case_major_categories": [
@@ -1386,41 +1497,61 @@
       ]
     },
     {
-      "card_id": "malcovati-2017-ccus-foundation-C0013",
+      "card_id": "urrutia-2025-tp53-myeloid-C0002",
       "category": "diagnosis",
-      "genes": [],
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "In TP53-mutated AML/MDS, findings supporting multihit TP53 status include TP53 cnLOH demonstrated by dedicated testing; loss of chromosome 17 or 17p; two or more TP53 mutations; or a single TP53 mutation with VAF >55% and sequencing coverage >200×. A TP53 VAF <55% does not exclude multihit disease.",
+      "paper_nickname": "Urrutia TP53 Myeloid Guide 2025",
+      "publication_year": 2025,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "urrutia-2025-tp53-myeloid-C0003",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
+      "diseases": [
+        "AML",
+        "MDS"
+      ],
+      "evidence_tier": "restated secondary",
+      "interpretation": "In TP53-mutated AML/MDS, complex karyotype may suggest multihit TP53 status but is an imperfect surrogate: some TP53-mutated cases with complex karyotype lack chromosome 17 deletion or TP53 cnLOH, whereas some cases with TP53 cnLOH have noncomplex karyotypes.",
+      "paper_nickname": "Urrutia TP53 Myeloid Guide 2025",
+      "publication_year": 2025,
+      "matched_genes": [],
+      "matched_case_major_categories": [
+        "MDS"
+      ]
+    },
+    {
+      "card_id": "urrutia-2025-tp53-myeloid-C0007",
+      "category": "diagnosis",
+      "genes": [
+        "TP53"
+      ],
       "diseases": [
         "MDS"
       ],
       "evidence_tier": "restated secondary",
-      "interpretation": "As restated from then-current WHO criteria, MDS diagnosis required unexplained cytopenia plus morphologic evidence of dysplasia and/or an MDS-specific cytogenetic abnormality.",
-      "paper_nickname": "Malcovati 2017 CCUS Foundation",
-      "publication_year": 2017,
+      "interpretation": "According to WHO 2022 as summarized by Urrutia et al., MDS with biallelic TP53 inactivation has <20% blasts and no history of cytotoxic or radiation therapy; biallelic TP53 inactivation is defined by two or more TP53 mutations, one TP53 mutation with chromosome 17/17p copy loss, or one TP53 mutation with TP53 cnLOH.",
+      "paper_nickname": "Urrutia TP53 Myeloid Guide 2025",
+      "publication_year": 2025,
       "matched_genes": [],
-      "matched_case_major_categories": [
-        "MDS"
-      ]
-    },
-    {
-      "card_id": "tp53-lenalidomide-clonal-dynamics-C0001",
-      "category": "germline",
-      "genes": [
-        "TET2"
-      ],
-      "diseases": [
-        "MDS"
-      ],
-      "evidence_tier": "univariable or descriptive",
-      "interpretation": "In MDS, TET2-mutated clones can contribute to lymphoid cells; therefore, lymphocyte DNA may not be a reliable germline comparator for TET2 in some patients because MDS-associated somatic lesions can be present in lymphocytes.",
-      "paper_nickname": "Mossner 2016 MDS clonal dynamics",
-      "publication_year": 2016,
-      "matched_genes": [
-        "TET2"
-      ],
       "matched_case_major_categories": [
         "MDS"
       ]
     }
   ],
-  "corpus_digest": "53a43d1f45980f1acdd94f9b32abbfb964e99953cad493a79137d48db04c3ee3"
+  "corpus_digest": "e5964a834a953317e4f91e99d54d97d7541985d3fdd000652289b6a85364bc62"
 }

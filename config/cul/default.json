@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "profile": "default",
+  "description": "Shipped default corpus user layer. Reproduces the historical blacklist.json retrieval scope exactly; contains no amendments.",
+  "scope": {
+    "enabled": true,
+    "global": {
+      "categories": {
+        "include": [],
+        "exclude": []
+      },
+      "genes": {
+        "include": [],
+        "exclude": []
+      },
+      "cards": {
+        "include": [],
+        "exclude": []
+      }
+    },
+    "papers": {
+      "d-hner-2022-blood-140-1345": {
+        "categories": {
+          "exclude": [
+            "biomarker"
+          ]
+        }
+      },
+      "khoury-2022-leukemia-36-1703": {
+        "categories": {
+          "include": [
+            "diagnosis"
+          ]
+        }
+      },
+      "arber-2022-blood-140-1200": {
+        "categories": {
+          "include": [
+            "diagnosis"
+          ]
+        }
+      }
+    }
+  },
+  "amendments": {}
+}

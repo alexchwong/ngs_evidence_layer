@@ -1,0 +1,51 @@
+stage: biomarker
+version: 1
+type: domain_proforma
+role: ptbg
+label: MRD
+prompt: biomarker.md
+inputs:
+  registry: canonical
+  case:
+  - provisional_disease
+  - case_facts
+  - ngs_result_completeness
+  - ngs_no_variants_detected
+  diagnosis:
+    roles:
+    - who5
+    fields:
+    - schema_disease
+    - diagnosis
+    - variants
+  cards:
+    category: biomarker
+output:
+  path: biomarker_state/proforma.yaml
+  format: yaml
+  schema: biomarker.json
+buckets:
+- mrd_marker
+- not_mrd_marker
+rules:
+- rule: owner_evidence_card_tags
+- rule: applicable_disease_exact
+- rule: gene_matches_registry
+- rule: one_row_per_id
+  field: classification
+  id_field: variant
+  source: registry
+- rule: enum
+  field: classification[].mrd_status
+  values_from: buckets
+  label: MRD status
+transforms:
+- consolidate_parallel_variant_rows
+reportability:
+  mrd_marker: true
+  not_mrd_marker: false
+retries:
+  content: 2
+  serialization: 3
+guidance:
+- Every MRD/biomarker interpretation must be supported in the authoritative disease; do not borrow biomarker evidence from another disease.

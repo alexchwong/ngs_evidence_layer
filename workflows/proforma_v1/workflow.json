@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "workflow_id": "proforma-v1",
+  "python_package": "workflows.proforma_v1",
+  "entrypoints": {
+    "rendering": "rendering",
+    "runtime": "runtime"
+  },
+  "skill": "workflows/proforma_v1/SKILL.md",
+  "pipeline": "pipelines/self.yaml",
+  "supported_modes": [
+    "ngs-report",
+    "nel-demo",
+    "nel-validate",
+    "nel-validate-function",
+    "nel-validate-brief",
+    "nel-validate-dual"
+  ],
+  "status": "accepted",
+  "architecture": "declarative-workflow-shared-executors-blocking-who1-gate-ptbg-owner-evidence-rescue-audit-adjudication",
+  "phase": 3
+}

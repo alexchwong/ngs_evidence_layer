@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "evidence_match",
+  "operation_id": "evidence.assignment",
+  "accepted": false,
+  "message": "evidence match failed validation with 2 issue(s):\n1. matches\n   Problem: missing ['E0002']; unexpected ['E0099'].\n   Required fix: return exactly one row for every supplied evidence_id and no other rows.\n   Received: 2 row(s): ['E0001', 'E0099']\n   Expected: 2 row(s): ['E0001', 'E0002']\n2. matches[0].card_tags[0]\n   Problem: '[card:000000000009]' was not supplied as a candidate for E0001.\n   Required fix: remove this tag from E0001 and preserve otherwise valid selections; select only exact tags supplied under this evidence item.\n   Received: [card:000000000009]\n   Expected: one of this item's 2 supplied candidate tag(s)",
+  "message_sha256": "61231ec7f281d3dbe291bfb52f90664c4052d5a31ca230ffaa6dc90544da7183",
+  "response_sha256": "24ede1d06b6f06cec83e8d0549c71b67dfb60ecccf3e9f89dc21193f8d01bc80",
+  "context_sha256": "2cec02f183920cb91dda8b99b755966ea420d6dd42012b57627ccf1e17320a88",
+  "prompt_sha256": "73dac55ef56fc97e49344afc3204475802096c9ecc8f457e0826192229dde4a5",
+  "schema_sha256": "3d8c9fd8acf1a849eee51038bd7da63c1e39850c1e73793ed21464e443c89d32",
+  "stage_spec_sha256": "8049f7ae07d50c900e9cf24ec60cb416d454af99df2a5f67a517a6979d57e1a4"
+}

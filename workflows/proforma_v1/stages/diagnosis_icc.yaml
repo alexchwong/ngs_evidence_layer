@@ -1,0 +1,16 @@
+stage: diagnosis_icc
+version: 1
+type: model
+role: diagnosis
+label: ICC diagnosis
+prompt: diagnosis_icc.md
+output:
+  format: yaml
+  schema: diagnosis.json
+rules:
+- rule: id_subset
+  field: variants
+  source: registry
+retries:
+  content: 2
+  serialization: 3

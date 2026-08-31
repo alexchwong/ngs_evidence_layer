@@ -11,6 +11,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 from scripts import vocab  # noqa: E402
+from validation.scripts.bundled_cases import is_bundled_mode, retrieve_case_input  # noqa: E402
 from scripts.core import citations as report_citations  # noqa: E402
 from workflows.terraced_v1 import layout, rendering, retrieval  # noqa: E402
 
@@ -23,19 +24,6 @@ DOMAINS = ("diagnosis", "prognosis", "treatment", "mrd", "germline")
 WHO5_EXCLUDED_SCHEMA_DISEASES = {"MDS/AML"}
 
 
-def _validation_case_text(mode: str, case_id: str) -> str:
-    repo_text = str(REPO_ROOT)
-    inserted = repo_text not in sys.path
-    if inserted:
-        sys.path.insert(0, repo_text)
-    try:
-        from validation.cases import case_file_for_mode, retrieve_case
-        return retrieve_case(case_id, case_file_for_mode(mode))
-    finally:
-        if inserted and sys.path and sys.path[0] == repo_text:
-            sys.path.pop(0)
-
-
 def _write_case_if_absent(work: Path, text: str) -> None:
     path = layout.input(work, "case.md")
     payload = text.rstrip() + "\n"
@@ -45,7 +33,7 @@ def _write_case_if_absent(work: Path, text: str) -> None:
         path.write_text(payload, encoding="utf-8")
 
 
-def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> None:
+def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None, example: int | None = None) -> None:
     work = Path(work_dir)
     legacy_layout = layout.is_legacy(work)
     layout.ensure_dirs(work)
@@ -72,10 +60,11 @@ def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> No
     if category_output != work / "case-major-categories.json":
         (work / "case-major-categories.json").unlink(missing_ok=True)
 
-    if mode in {"nel-validate", "nel-validate-function", "nel-validate-brief"}:
-        if not case_id:
-            raise ValueError(f"{mode} requires a validation case ID")
-        _write_case_if_absent(work, _validation_case_text(mode, case_id))
+    if is_bundled_mode(mode):
+        selector = example if mode == "nel-demo" else case_id
+        if selector is None:
+            raise ValueError(f"{mode} requires a bundled case selector")
+        _write_case_if_absent(work, retrieve_case_input(mode, selector))
     questions_source = QUESTIONS_PATH if QUESTIONS_PATH.is_file() else QUESTIONS_TEMPLATE_PATH
     config_output = work / "terraced-config.yaml" if legacy_layout else layout.input(work, "terraced-config.yaml", existing=False)
     shutil.copyfile(questions_source, config_output)

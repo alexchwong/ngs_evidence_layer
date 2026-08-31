@@ -10,13 +10,13 @@ from pathlib import Path
 import yaml
 
 from scripts import vocab
+from validation.scripts.bundled_cases import is_bundled_mode, retrieve_case_input
 from scripts.core.validated_model_task import ValidationFailure, ValidationIssue, fail
 from workflows.terraced_v3 import layout
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
 WHO5_EXCLUDED_SCHEMA_DISEASES = {"MDS/AML"}
-VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
 CARD_TAG_RE = re.compile(r"\[card:([0-9a-f]{12})\]")
 CASE_REF_RE = re.compile(r"^[CV]\d+$")
 
@@ -100,7 +100,7 @@ HEADINGS = {
 DOMAIN_HEADINGS = {value: key for key, value in HEADINGS.items()}
 
 
-def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> None:
+def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None, example: int | None = None) -> None:
     work = Path(work_dir)
     layout.ensure_dirs(work)
     panel_root = work / "ngs-panel-scope.md"
@@ -140,26 +140,13 @@ def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> No
         ) + "\n",
         encoding="utf-8",
     )
-    if mode in VALIDATION_MODES:
-        if not case_id:
-            raise ValueError(f"{mode} requires a validation case ID")
-        repo_text = str(REPO_ROOT)
-        inserted = False
-        if repo_text not in sys.path:
-            sys.path.insert(0, repo_text)
-            inserted = True
-        try:
-            from validation.cases import case_file_for_mode, retrieve_case
-            text = retrieve_case(case_id, case_file_for_mode(mode))
-        finally:
-            if inserted and sys.path and sys.path[0] == repo_text:
-                sys.path.pop(0)
-        path = layout.input(work, "case.md", existing=False)
-        payload = text.rstrip() + "\n"
-        if path.exists() and path.read_text(encoding="utf-8") != payload:
-            raise ValueError(f"{path} exists with different validation case content")
-        path.write_text(payload, encoding="utf-8")
-
+    if is_bundled_mode(mode):
+        selector=example if mode=='nel-demo' else case_id
+        if selector is None: raise ValueError(f'{mode} requires a bundled case selector')
+        text=retrieve_case_input(mode,selector)
+        p=layout.input(work,'case.md',existing=False); payload=text.rstrip()+'\n'
+        if p.exists() and p.read_text(encoding='utf-8')!=payload: raise ValueError(f'{p} exists with different bundled case content')
+        p.write_text(payload,encoding='utf-8')
 
 def read_json(path: Path) -> dict:
     try:

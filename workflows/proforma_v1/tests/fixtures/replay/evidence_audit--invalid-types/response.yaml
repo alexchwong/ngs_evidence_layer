@@ -1,0 +1,11 @@
+audits:
+  - evidence_id: E0001
+    card_audits:
+      - card_tag: "[card:000000000001]"
+        card_is_element_of_reason: "yes"
+        risk: severe
+        comments: "fine"
+      - card_tag: "[card:000000000002]"
+        card_is_element_of_reason: true
+        risk: none
+        comments: []

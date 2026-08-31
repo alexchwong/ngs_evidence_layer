@@ -84,9 +84,9 @@ Run exactly one diagnosis-first setup command for the selected mode:
 
 Record output line 1 as `<work-dir>` and print `Working directory: <absolute-path>`.
 
-For `nel-demo`, also record output line 2 as `<demo-case>` and line 3 as `<demo-expected>`. Do not read either yet.
+For `nel-demo`, record the supplied example number as `<demo-example>`. Setup has already written the selected clinical text to `<work-dir>/case.md`; no expected/marking file exists yet.
 
-For `nel-validate <case-id>`, `nel-validate-function <case-id>`, or `nel-validate-brief <case-id>`, record `<validation-case>` as the supplied case ID. Setup deterministically writes `<work-dir>/case.md`; do not read validation marking files. For `nel-validate-function`, `validation/case_functional.md` and `validation/case_functional_manifest.md` remain forbidden model inputs.
+For `nel-validate <case-id>`, `nel-validate-function <case-id>`, or `nel-validate-brief <case-id>`, record `<validation-case>` as the supplied case ID. Setup deterministically writes `<work-dir>/case.md`; do not read validation marking files. For `nel-validate-function`, bundled marking criteria and `validation/case_functional_manifest.md` remain forbidden model inputs.
 
 Setup also generates the branch-independent procedural assets used later:
 
@@ -102,9 +102,9 @@ For all supported modes record `<format-prompt>` as `workflows/diagnosis_first_v
 
 ### Step 1A
 
-For `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, Step 0 has already written `<work-dir>/case.md` deterministically. Do not run a second case-retrieval command. Do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, `validation/validation_brief.md`, or marking criteria.
+For `nel-validate`, `nel-validate-function`, and `nel-validate-brief`, Step 0 has already written `<work-dir>/case.md` deterministically. Do not run a second case-retrieval command. Do not model-read bundled validation sources, `validation/case_functional_manifest.md`, or marking criteria.
 
-For other modes, use a fresh model session and read only `prompts/workflow/capture_case.md` plus the designated case source (`<demo-case>` for demo). Write only `<work-dir>/case.md`.
+For other modes, use a fresh model session and read only `prompts/workflow/capture_case.md` plus the designated case source (`<work-dir>/case.md` for demo). Write only `<work-dir>/case.md`.
 
 ### Step 1B
 
@@ -309,33 +309,34 @@ For all supported modes run exactly:
 Mode-specific delivery remains:
 
 - `ngs-report`: display `report-final.md` unchanged and return `ngs-report-debug.zip`.
-- `nel-demo`: only now read `<demo-case>` and `<demo-expected>`; display case, generated report and expected behaviour, and return `ngs-report-debug.zip`.
+- `nel-demo`: only after `report-final.md` exists, run `python validation/scripts/retrieve_cli.py MC <demo-example> --mode nel-demo > <work-dir>/demo-expected.md`; then display `<work-dir>/case.md`, the generated report, and `<work-dir>/demo-expected.md`, and return `ngs-report-debug.zip`. Do not use the marking criteria to alter workflow artifacts.
 - `nel-validate`: do not run a marking model. Run exactly:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-<validation-case>.zip
 ```
 
 Return the external-marking ZIP and the separate debug ZIP. Do not model-read marking criteria or the marking prompt.
 
-- `nel-validate-function`: do not run a marking model and do not model-read `validation/case_functional.md`, `validation/case_functional_manifest.md`, marking criteria, or the marking prompt. Run exactly:
+- `nel-validate-function`: do not run a marking model and do not model-read bundled marking criteria, `validation/case_functional_manifest.md`, or the marking prompt. Run exactly:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
-  --case-file validation/case_functional.md \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate-function \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-function-<validation-case>.zip
 ```
 
 Return the functional external-marking ZIP and the separate debug ZIP. The functional manifest is never read or packaged by the runtime workflow.
 
-- `nel-validate-brief`: do not run a marking model and do not model-read `validation/validation_brief.md`, marking criteria, or the marking prompt. Run exactly:
+- `nel-validate-brief`: do not run a marking model and do not model-read bundled marking criteria or the marking prompt. Run exactly:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
-  --case-file validation/validation_brief.md \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate-brief \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-brief-<validation-case>.zip
 ```

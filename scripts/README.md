@@ -50,6 +50,25 @@ Workflow-specific retrieval, rendering, adjudication, audit and report policy be
   - `phase2_state.py` — validate/resume Phase 2 semantic-gate or authoring checkpoints, deterministically diff repaired censuses, and report the exact semantic recheck claim set.
   - `phase4.py`
 
+
+## Corpus browser and Corpus User Layer
+
+These are deliberately separate HTML artefacts:
+
+- `python scripts/build_card_browser.py` builds the read-only corpus browser at
+  `output/reports/card-browser.html`. It reads `output/corpus/` only.
+- `python scripts/build_card_browser.py --full` builds the same read-only browser
+  with accepted evidence, support mapping and provenance at
+  `evidence/card-browser-full.html`. It requires matching `accept/*.final.json`
+  packages and does not require `archive/`.
+- `python scripts/cul.py --edit` builds/opens the editable Corpus User Layer at
+  `config/cul/corpus-user-layer.html`. This is a different, gitignored artefact
+  owned by `cul.py`; it does not overwrite `output/reports/card-browser.html`.
+  `python scripts/cul.py edit` is retained as an alias.
+
+Both read-only browser modes provide a per-card `Copy citation` control. Editing
+profiles and retrieval scope belongs only to the Corpus User Layer interface.
+
 ## Development
 
 - `build_blacklist.py`

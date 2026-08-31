@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "diagnosis_who5",
+  "operation_id": "diagnosis.who1",
+  "accepted": true,
+  "message": "WHO5 diagnosis valid",
+  "message_sha256": "81f22c93d02f5945c1357137b77830e9744d80e9ad805a6169672dcb721d016f",
+  "response_sha256": "b20b7470784999c72cf613c0c718951f8688eed1ca593c8679a19550ec31a248",
+  "context_sha256": "b0421ab4a741e89b9346c7d84588684527cc82d1b6ce089ad8a8d672ad96d861",
+  "prompt_sha256": "d65478de71d522eb6bf7d1a576f8d279442cd9a01d89c01e54b277a4a9ca36ad",
+  "schema_sha256": "2d1ad05933fd5067de0f88ec54b1408700462cad50986950215f25e6c7e7b3f9",
+  "stage_spec_sha256": "5a76f3c05e5f72fcab92bf0630ea360c682937de6bd25fd4a07bf32b227ccb2e"
+}

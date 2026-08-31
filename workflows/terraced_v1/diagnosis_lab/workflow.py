@@ -31,24 +31,18 @@ from workflows.terraced_v1 import layout
 from scripts.core import citations, corpus
 from scripts.core import retrieval as core_retrieval
 from scripts.setup_workflow import setup_workflow
-from validation import cases as validation_cases
-from validation.package_marking import package_marking_bundle
+from validation.scripts.bundled_cases import is_bundled_mode, is_validation_mode, write_demo_marking_criteria_after_report
+from validation.scripts.package_marking import package_marking_bundle
 from workflows.terraced_v1 import rendering as terraced_rendering
 from workflows.terraced_v1 import step as terraced_step
 from workflows.terraced_v1 import card_identity
 from workflows.terraced_v1.diagnosis_lab import connector
 from workflows.terraced_v1.diagnosis_lab import run as lab
 
-VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
 MODE_ALIASES = {
     "nel-validation": "nel-validate",
     "nel-validation-function": "nel-validate-function",
     "nel-validation-brief": "nel-validate-brief",
-}
-MARKING_PREFIX = {
-    "nel-validate": "nel-validation",
-    "nel-validate-function": "nel-validation-function",
-    "nel-validate-brief": "nel-validation-brief",
 }
 
 
@@ -136,18 +130,14 @@ def _quiet_call(func, *args, **kwargs):
         raise
 
 
-def _prepare_case(args, work: Path, demo_case) -> None:
+def _prepare_case(args, work: Path) -> None:
     case_path = layout.input(work, "case.md")
     case_path.parent.mkdir(parents=True, exist_ok=True)
     if args.mode == "ngs-report":
         if args.case_file is None:
             raise ValueError("--case-file case.md is required for mode ngs-report")
         shutil.copyfile(args.case_file, case_path)
-    elif args.mode == "nel-demo":
-        if demo_case is None:
-            raise ValueError("nel-demo setup did not return a demonstration case")
-        shutil.copyfile(Path(demo_case), case_path)
-    elif args.mode in VALIDATION_MODES:
+    elif is_bundled_mode(args.mode):
         if not case_path.is_file():
             raise ValueError(f"{args.mode} setup did not create {case_path}")
     else:
@@ -450,17 +440,15 @@ def _render_final_report(work: Path, diagnosis_dir: Path, evidence_path: Path, t
 
 
 def _package_marking_if_applicable(args, work: Path, report: Path) -> Path | None:
-    if args.mode not in VALIDATION_MODES:
-        return None
-    case_file = validation_cases.VALIDATION_CASE_FILES[args.mode]
-    output = work / f"{MARKING_PREFIX[args.mode]}-{args.case_id}.zip"
-    package_marking_bundle(
-        args.case_id,
-        report,
-        output,
-        case_file=case_file,
-    )
-    return output
+    if is_validation_mode(args.mode):
+        return package_marking_bundle(args.mode, args.case_id, report)
+    if args.mode == "nel-demo":
+        write_demo_marking_criteria_after_report(
+            args.example,
+            report_path=report,
+            output_path=work / "demo-expected.md",
+        )
+    return None
 
 
 def _package_debug(work: Path) -> Path:
@@ -485,8 +473,7 @@ def _run(args) -> tuple[Path, Path, Path | None, Path]:
     root = args.output_dir or (REPO_ROOT / "temp")
     work = _timestamped_work_dir(Path(root), label)
 
-    demo_case = demo_expected = None
-    work, demo_case, demo_expected = setup_workflow(
+    work = setup_workflow(
         workflow="terraced-v1",
         mode=args.mode,
         work_dir=work,
@@ -496,10 +483,7 @@ def _run(args) -> tuple[Path, Path, Path | None, Path]:
     )
     logger = RunLog(work)
     logger.status("Setup diagnosis-only terraced workflow")
-    _prepare_case(args, work, demo_case)
-    if demo_expected:
-        expected_path = work / "demo-expected.md"
-        shutil.copyfile(Path(demo_expected), expected_path)
+    _prepare_case(args, work)
 
     logger.status("Initialize deterministic identity for all corpus cards")
     all_cards, eligible_cards, corpus_digest, identity_manifest = _load_corpus_identity(work)
@@ -625,7 +609,7 @@ def main() -> int:
         parser.error("ngs-report requires --case-file case.md")
     if args.mode == "nel-demo" and args.example is None:
         parser.error("nel-demo requires --example N")
-    if args.mode in VALIDATION_MODES and not args.case_id:
+    if is_validation_mode(args.mode) and not args.case_id:
         parser.error(f"{args.mode} requires --case-id ID")
     try:
         work, report, marking, debug = _run(args)

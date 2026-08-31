@@ -1,1 +1,5 @@
 variants: [v01, v02]
+authoritative_disease: AML
+registry:
+  v01: {gene: NPM1}
+  v02: {gene: DNMT3A}

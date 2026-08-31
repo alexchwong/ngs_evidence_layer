@@ -1,0 +1,34 @@
+stage: structure_case
+version: 1
+type: model
+role: structure
+label: structured case
+prompt: structure_case.md
+output:
+  format: json
+  schema: structured_case.json
+rules:
+- rule: sequential_ids
+  field: variants
+  id_field: variant_id
+  prefix: V
+- rule: sequential_ids
+  field: case_facts
+  id_field: fact_id
+  prefix: C
+- rule: gene_prefixed_descriptions
+- rule: enum
+  field: bootstrap_cmcs[]
+  values_from: case_major_categories
+  label: CMC
+- rule: single_physical_line
+  field: detected_variants_summary
+- rule: enum
+  field: ngs_result_completeness
+  values:
+  - complete
+  - incomplete
+  label: NGS result completeness
+retries:
+  content: 2
+  serialization: 3

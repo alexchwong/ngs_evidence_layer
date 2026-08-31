@@ -1,0 +1,6 @@
+MRD failed validation with 1 issue(s):
+1. classification
+   Problem: missing ['v02']; duplicated ['v01'].
+   Required fix: return exactly one row for every supplied variant and no other rows.
+   Received: 2 row(s): ['v01', 'v01']
+   Expected: 2 row(s): ['v01', 'v02']

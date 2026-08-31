@@ -9,6 +9,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 from workflows.diagnosis_first_v1 import audit_policy as report_audit
 from scripts import vocab  # noqa: E402
+from validation.scripts.bundled_cases import is_bundled_mode, retrieve_case_input  # noqa: E402
 from workflows.diagnosis_first_v1 import report_yaml  # noqa: E402
 
 WORKFLOW_PROMPT_DIR = REPO_ROOT / "workflows" / "diagnosis_first_v1" / "prompts"
@@ -22,19 +23,6 @@ RULE_TEMPLATES = {
     "full": PROMPT_DIR / "full_rule_view.md",
 }
 SECTION_HEADING = re.compile(r"^# R(\d+)\b")
-
-
-def _validation_case_text(mode: str, case_id: str) -> str:
-    repo_text = str(REPO_ROOT)
-    inserted = repo_text not in sys.path
-    if inserted:
-        sys.path.insert(0, repo_text)
-    try:
-        from validation.cases import case_file_for_mode, retrieve_case
-        return retrieve_case(case_id, case_file_for_mode(mode))
-    finally:
-        if inserted and sys.path and sys.path[0] == repo_text:
-            sys.path.pop(0)
 
 
 def _write_case_if_absent(work_dir: Path, text: str) -> Path:
@@ -53,12 +41,13 @@ def _write_case_if_absent(work_dir: Path, text: str) -> Path:
     return output
 
 
-def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None) -> None:
+def setup_assets(work_dir: Path, *, mode: str, case_id: str | None = None, example: int | None = None) -> None:
     """Create only diagnosis-first-specific setup assets. Shared setup is external."""
-    if mode in {"nel-validate", "nel-validate-function", "nel-validate-brief"}:
-        if not case_id:
-            raise ValueError(f"{mode} requires a validation case ID")
-        _write_case_if_absent(work_dir, _validation_case_text(mode, case_id))
+    if is_bundled_mode(mode):
+        selector = example if mode == "nel-demo" else case_id
+        if selector is None:
+            raise ValueError(f"{mode} requires a bundled case selector")
+        _write_case_if_absent(work_dir, retrieve_case_input(mode, selector))
     write_rule_slice(DEFAULT_RULES, work_dir / "reporting-rules-dx.md", {0, 1})
 
 

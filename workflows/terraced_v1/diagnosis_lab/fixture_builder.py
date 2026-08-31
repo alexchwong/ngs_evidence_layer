@@ -14,6 +14,7 @@ if str(REPO_ROOT) not in sys.path:
 from scripts import vocab
 from scripts.core import corpus
 from scripts.core import retrieval as core_retrieval
+from validation.scripts.bundled_cases import retrieve_case_input, retrieve_marking_criteria
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
@@ -155,10 +156,10 @@ def build() -> None:
     panel_text = PANEL_SCOPE.read_text(encoding="utf-8")
     for number, meta in EXAMPLES.items():
         slug = meta["slug"]
-        case_path = REPO / "examples" / "cases" / f"{slug}.md"
-        expected_path = REPO / "examples" / "expected" / f"{slug}.md"
-        case_text = case_path.read_text(encoding="utf-8")
-        expected_text = expected_path.read_text(encoding="utf-8")
+        case_path = REPO / "validation" / "demo.md"
+        expected_path = case_path
+        case_text = retrieve_case_input("nel-demo", number)
+        expected_text = retrieve_marking_criteria("nel-demo", number)
         case_input = {k: v for k, v in meta.items() if k != "slug"}
         cards, digest = _selected_cards(case_input["genes"], case_input["provisional_cmcs"])
         fixture = {

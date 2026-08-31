@@ -1,0 +1,51 @@
+stage: germline
+version: 1
+type: domain_proforma
+role: ptbg
+label: germline
+prompt: germline.md
+inputs:
+  registry: canonical
+  case:
+  - provisional_disease
+  - case_facts
+  - ngs_result_completeness
+  - ngs_no_variants_detected
+  diagnosis:
+    roles:
+    - who5
+    fields:
+    - schema_disease
+    - diagnosis
+    - variants
+  cards:
+    category: germline
+output:
+  path: germline_state/proforma.yaml
+  format: yaml
+  schema: domain_classification.json
+buckets:
+- germline_suspicious
+- germline_against
+- germline_uncertain
+rules:
+- rule: owner_evidence_card_tags
+- rule: one_row_per_id
+  field: classification
+  id_field: variant
+  source: registry
+- rule: enum
+  field: classification[].bucket
+  values_from: buckets
+  label: bucket
+transforms:
+- consolidate_parallel_variant_rows
+reportability:
+  germline_suspicious: true
+  germline_against: false
+  germline_uncertain: false
+retries:
+  content: 2
+  serialization: 3
+guidance:
+- Every conclusion must integrate the molecular result with the supplied clinical context, not the molecular result alone.

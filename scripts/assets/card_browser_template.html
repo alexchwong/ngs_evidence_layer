@@ -192,6 +192,17 @@
   }
   :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* ---------- citation copy ---------- */
+  .copyrow{display:flex;gap:14px;align-items:baseline;margin-top:8px}
+  .copybtn{
+    border:0;background:none;padding:0;cursor:pointer;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+    color:var(--muted);text-decoration:underline;text-underline-offset:2px;
+  }
+  .copybtn:hover{color:var(--azure)}
+  .copybtn.copied{color:var(--cat-treatment);text-decoration:none}
+
 </style>
 </head>
 <body>
@@ -199,9 +210,7 @@
   <h1 class="wordmark">Evidence <em>cards</em></h1>
   <div class="provenance" id="provenance"></div>
 </header>
-
 <button class="railtoggle" id="railtoggle" aria-expanded="false" aria-controls="rail">Filters</button>
-
 <div class="shell">
   <aside class="rail" id="rail" aria-label="Filters"></aside>
   <main class="main">
@@ -214,7 +223,6 @@
   </main>
   <aside class="detail" id="detail" aria-label="Card details"></aside>
 </div>
-
 <script>
 const DATA = /*__CARD_DATA__*/null;
 
@@ -229,14 +237,16 @@ const paperByKey = {};
 DATA.papers.forEach(p => { paperName[p.key] = p.nickname; paperByKey[p.key] = p; });
 if (DATA.full) document.body.classList.add("full-mode");
 
-const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"", selected:null };
+const state = {
+  paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(),
+  query:"", selected:null
+};
 const facetSearch = { paper:"", disease:"", gene:"", category:"" };
-
 const FACETS = [
-  { key:"category", title:"Category",  field:c => [c.category], searchable:false, swatch:true },
-  { key:"paper",    title:"Paper",     field:c => [c.paper],    searchable:true,  labelOf:k => paperName[k] || k },
-  { key:"disease",  title:"Disease",   field:c => c.diseases,   searchable:true },
-  { key:"gene",     title:"Gene",      field:c => c.genes,      searchable:true }
+  { key:"category", title:"Category", field:c => [c.category], searchable:false, swatch:true },
+  { key:"paper", title:"Paper", field:c => [c.paper], searchable:true, labelOf:k => paperName[k] || k },
+  { key:"disease", title:"Disease", field:c => c.diseases, searchable:true },
+  { key:"gene", title:"Gene", field:c => c.genes, searchable:true }
 ];
 
 function matches(card, skip){
@@ -246,9 +256,7 @@ function matches(card, skip){
     if (!chosen.size) continue;
     if (!f.field(card).some(v => chosen.has(v))) return false;
   }
-  if (state.query && !skip){
-    if (!card.text.toLowerCase().includes(state.query)) return false;
-  }
+  if (state.query && !skip && !card.text.toLowerCase().includes(state.query)) return false;
   return true;
 }
 
@@ -278,12 +286,13 @@ function buildRail(){
     const tally = countsFor(facet);
     let entries = [...tally.entries()];
     if (facet.key === "paper"){
-      entries.sort((a,b) => (facet.labelOf(a[0])).localeCompare(facet.labelOf(b[0])));
+      entries.sort((a,b) => facet.labelOf(a[0]).localeCompare(facet.labelOf(b[0])));
     } else if (facet.key === "category"){
       entries.sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     } else {
       entries.sort((a,b) => a[0].localeCompare(b[0], undefined, {numeric:true}));
     }
+
     const needle = facetSearch[facet.key].toLowerCase();
     if (needle){
       entries = entries.filter(([value]) => {
@@ -314,7 +323,7 @@ function buildRail(){
       input.value = facetSearch[facet.key];
       input.addEventListener("input", event => {
         facetSearch[facet.key] = event.target.value;
-        render({ keepFocus: facet.key });
+        render({keepFocus:facet.key});
       });
       box.appendChild(input);
     }
@@ -361,6 +370,7 @@ function buildRail(){
       item.appendChild(button);
       list.appendChild(item);
     }
+
     if (!entries.length){
       const item = document.createElement("li");
       item.className = "tally";
@@ -448,9 +458,6 @@ function buildDetail(card){
   head.append(id, close);
   pane.appendChild(head);
 
-  // Repeat the interpretation at the top, then show only the metadata useful
-  // for reviewing/classifying the selected card. Arrays are rendered as
-  // human-readable joined values rather than indexed parameter paths.
   const interpretation = detailSection("Interpretation");
   const text = document.createElement("p");
   text.className = "detail-interpretation";
@@ -477,18 +484,36 @@ function buildDetail(card){
     exact.secondary_citation && exact.secondary_citation.display
   );
   evidenceMeta.appendChild(evidenceGrid);
+
   for (const fragment of (evidence.fragments || [])){
     const box = document.createElement("div");
     box.className = "evidence-fragment";
     const label = document.createElement("div");
     label.className = "fragment-label";
     label.textContent = [fragment.fragment_id, fragment.role, fragment.locator]
-      .filter(Boolean)
-      .join(" · ");
+      .filter(Boolean).join(" · ");
     const quote = document.createElement("blockquote");
     quote.textContent = fragment.quote || "";
     box.append(label, quote);
     evidenceMeta.appendChild(box);
+  }
+
+  const supportMap = evidence.support_map || {};
+  if (Object.keys(supportMap).length){
+    const mapSection = document.createElement("div");
+    mapSection.className = "evidence-fragment";
+    const label = document.createElement("div");
+    label.className = "fragment-label";
+    label.textContent = "Support mapping";
+    const list = document.createElement("ul");
+    list.className = "support-list";
+    for (const [field, fragmentIds] of Object.entries(supportMap)){
+      const li = document.createElement("li");
+      li.textContent = field + ": " + textOrDash(fragmentIds);
+      list.appendChild(li);
+    }
+    mapSection.append(label, list);
+    evidenceMeta.appendChild(mapSection);
   }
   pane.appendChild(evidenceMeta);
 
@@ -509,6 +534,58 @@ function buildDetail(card){
   document.querySelectorAll("li.card").forEach(el => {
     el.classList.toggle("selected", el.dataset.cardId === card.id);
   });
+}
+
+function legacyCopy(text, done){
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  try {
+    document.execCommand("copy");
+    done();
+  } catch (err) {
+    window.prompt("Copy:", text);
+  }
+  document.body.removeChild(area);
+}
+
+function copyText(text, button){
+  const done = () => {
+    const original = button.textContent;
+    button.textContent = "Copied";
+    button.classList.add("copied");
+    setTimeout(() => {
+      button.textContent = original;
+      button.classList.remove("copied");
+    }, 1200);
+  };
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done, () => legacyCopy(text, done));
+  } else {
+    legacyCopy(text, done);
+  }
+}
+
+function copyCitationRow(card){
+  const paper = paperByKey[card.paper] || {};
+  const row = document.createElement("div");
+  row.className = "copyrow";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "copybtn";
+  button.textContent = "Copy citation";
+  button.addEventListener("click", event => {
+    event.stopPropagation();
+    const citation = paper.display || paper.nickname || card.paper;
+    copyText(citation, button);
+  });
+  button.addEventListener("keydown", event => event.stopPropagation());
+  row.appendChild(button);
+  return row;
 }
 
 function buildCards(){
@@ -534,12 +611,14 @@ function buildCards(){
     item.className = "card" + (state.selected === card.id ? " selected" : "");
     item.dataset.cardId = card.id;
     item.style.setProperty("--spine", CATEGORY_COLOURS[card.category] || "var(--rule)");
+
     if (DATA.full){
       item.tabIndex = 0;
       item.setAttribute("role", "button");
       item.setAttribute("aria-label", "Open full details for " + card.id);
       item.addEventListener("click", () => buildDetail(card));
       item.addEventListener("keydown", event => {
+        if (event.target !== item) return;
         if (event.key === "Enter" || event.key === " "){
           event.preventDefault();
           buildDetail(card);
@@ -555,6 +634,7 @@ function buildCards(){
     const para = document.createElement("p");
     para.appendChild(highlight(card.text, state.query));
     item.appendChild(para);
+    item.appendChild(copyCitationRow(card));
 
     chunk.appendChild(item);
   }
@@ -577,7 +657,7 @@ function render(options){
 }
 
 document.getElementById("provenance").textContent =
-  "corpus " + DATA.corpusVersion + " \u00b7 " + DATA.cards.length + " cards \u00b7 " +
+  "corpus " + DATA.corpusVersion + " · " + DATA.cards.length + " cards · " +
   DATA.papers.length + " papers" + (DATA.full ? " · full evidence view" : "");
 
 document.getElementById("textsearch").addEventListener("input", event => {

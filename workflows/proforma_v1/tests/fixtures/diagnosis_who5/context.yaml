@@ -1,0 +1,2 @@
+variants: [v01, v02]
+allowed_diseases: [AML, MDS, "MDS/MPN", CMML, CCUS, CHIP, MPN, PMF, ET, PV, CML, "MDS/MPN-U", aCML, JMML, "MPN blast phase"]

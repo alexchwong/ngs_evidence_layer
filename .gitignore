@@ -17,6 +17,13 @@ venv/
 /evidence/
 /runs/
 
+# The Corpus User Layer editor is a generated local tool owned by cul.py, and
+# its remembered downloads directory is machine-specific. Profiles themselves
+# (config/cul/*.json) are intentionally not ignored: a shared profile is worth
+# committing.
+/config/cul/corpus-user-layer.html
+/config/cul/settings.json
+
 # Working files from a retrieval session. The rendered block is the deliverable;
 # the intermediate JSON is not worth keeping.
 step2.json

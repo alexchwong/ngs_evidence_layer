@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PTBG owner proforma",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "classification"
+  ],
+  "properties": {
+    "classification": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant",
+          "bucket",
+          "reason",
+          "evidence_card_tags"
+        ],
+        "properties": {
+          "variant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bucket": {
+            "type": "string",
+            "minLength": 1
+          },
+          "therapy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_card_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\[card:[0-9a-f]{12}\\]$"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

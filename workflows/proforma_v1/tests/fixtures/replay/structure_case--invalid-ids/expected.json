@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "structure_case",
+  "operation_id": "structure",
+  "accepted": false,
+  "message": "structured case failed validation with 3 issue(s):\n1. case_facts[0].fact_id\n   Problem: received 'F1'.\n   Required fix: use the sequential stable ID C1.\n   Received: F1\n   Expected: C1\n2. variants[0].gene\n   Problem: gene symbol 'srsf2' is not uppercase.\n   Required fix: use the uppercase reported gene symbol.\n   Received: srsf2\n   Expected: SRSF2\n3. variants[0].variant_id\n   Problem: received 'v01'.\n   Required fix: use the sequential stable ID V1.\n   Received: v01\n   Expected: V1",
+  "message_sha256": "be0f9aa1b21c10714a80a26a10f269a0b4317ad224ec41cfe24a81e5391debc4",
+  "response_sha256": "d64818d120260eafd96130a623a1c5b4af3cc2e9f38e50629e74bf562546a2ae",
+  "context_sha256": "e783a19d4d3f75254fd9d01c22ae91701954c8309591c79551deb6bef29359a9",
+  "prompt_sha256": "7c1685e080eb5637e0df2d26def80613999253710f56ab97a454ef10dafa2853",
+  "schema_sha256": "427bc3ad6e7fb279ec098905ebc3daa2169db09dc5834d1e62e874e319f0a2be",
+  "stage_spec_sha256": "9f7e86a7d16032b88269a0ed6951eb4b8dc3db02ea0b9f2538a2165cb8fb509f"
+}

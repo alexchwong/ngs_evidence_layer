@@ -31,8 +31,8 @@ from scripts.core import citations, corpus, provenance
 from scripts.core import retrieval as core_retrieval
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
-from validation.package_marking import package_marking_bundle
-from validation import cases as validation_cases
+from validation.scripts.package_marking import package_marking_bundle
+from validation.scripts.bundled_cases import is_validation_mode, write_demo_marking_criteria_after_report
 from workflows.terraced_v2 import card_identity, diagnosis_connector, layout, model_client, model_registry, rendering, runtime
 
 WORKFLOW_ID = "terraced-v2"
@@ -43,12 +43,6 @@ SETTINGS_TEMPLATE_PATH = HERE / "settings.json.template"
 EXIT_OK = 0
 EXIT_FAILURE = 1
 EXIT_HANDOFF = 10
-VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
-MARKING_PREFIX = {
-    "nel-validate": "nel-validation",
-    "nel-validate-function": "nel-validation-function",
-    "nel-validate-brief": "nel-validation-brief",
-}
 _EXECUTION_STARTED_AT: float | None = None
 
 
@@ -573,7 +567,7 @@ def run_setup(args: argparse.Namespace) -> int:
         root.mkdir(parents=True, exist_ok=True)
         work_arg = _timestamped_work_dir(root, label)
 
-    work, demo_case, demo_expected = setup_workflow(
+    work = setup_workflow(
         workflow=WORKFLOW_ID,
         mode=args.mode,
         work_dir=work_arg,
@@ -588,26 +582,20 @@ def run_setup(args: argparse.Namespace) -> int:
         if not supplied.is_file():
             raise StepFailure(f"--case-file not found: {supplied}")
         shutil.copyfile(supplied, case_path)
-    elif args.mode == "nel-demo" and demo_case:
-        shutil.copyfile(demo_case, case_path)
     if not case_path.is_file() or not case_path.read_text(encoding="utf-8").strip():
         raise StepFailure(f"authoritative case.md is missing or empty: {case_path}")
-    if demo_expected:
-        shutil.copyfile(demo_expected, work / "demo-expected.md")
     _save_run_state(work, {
         "schema_version": 1,
         "workflow_id": WORKFLOW_ID,
         "mode": args.mode,
         "validation_case": args.case_id,
+        "example": args.example,
         "model_profile": model_profile,
         "terrace_profile": terrace_profile,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     with _cli_logging(work):
         print(work)
-        if demo_case:
-            print(demo_case.relative_to(REPO_ROOT))
-            print(demo_expected.relative_to(REPO_ROOT))
         print(f"MODEL_PROFILE={model_profile}")
         print(f"TERRACE_PROFILE={terrace_profile}")
     return EXIT_OK
@@ -1128,10 +1116,11 @@ def module_finalise_report(work: Path, stage: dict, profile: str | None) -> None
 
     run_state = _load_run_state(work)
     mode = run_state.get("mode")
-    if mode in VALIDATION_MODES:
+    if is_validation_mode(mode):
         case_id = run_state.get("validation_case")
-        output = work / f"{MARKING_PREFIX[mode]}-{case_id}.zip"
-        package_marking_bundle(case_id, report, output, case_file=validation_cases.VALIDATION_CASE_FILES[mode])
+        package_marking_bundle(mode, case_id, report)
+    elif mode == "nel-demo":
+        write_demo_marking_criteria_after_report(run_state.get("example"), report_path=report, output_path=work / "demo-expected.md")
     _package_debug(work)
 
 
@@ -1228,7 +1217,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise StepFailure("ngs-report requires --case-file case.md")
             if args.mode == "nel-demo" and args.example is None:
                 raise StepFailure("nel-demo requires --example N")
-            if args.mode in VALIDATION_MODES and not args.case_id:
+            if is_validation_mode(args.mode) and not args.case_id:
                 raise StepFailure(f"{args.mode} requires --case-id ID")
             return run_setup(args)
         if args.command == "provider":
