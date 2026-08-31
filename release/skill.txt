@@ -7,6 +7,7 @@ release/VERSION
 config/settings.json.template
 config/pipelines/*.yaml
 config/ngs-panel-scope.md
+config/cul/*.json
 docs/corpus.md
 docs/validation.md
 scripts/setup_workflow.py
@@ -32,7 +33,7 @@ validation/validate_dual.md
 workflows/__init__.py
 workflows/common.py
 workflows/registry.json
-workflows/terraced_v6/*.py
+:(glob)workflows/terraced_v6/*.py
 workflows/terraced_v6/workflow.json
 workflows/terraced_v6/settings.json.template
 workflows/terraced_v6/pipelines/*.yaml

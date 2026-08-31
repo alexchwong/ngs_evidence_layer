@@ -1,6 +1,6 @@
 # Current corpus
 
-The current 0.2.5 corpus contains 19 active publications. Publications are grouped below by
+The current 0.3.0 corpus contains 19 active publications. Publications are grouped below by
 `latest_accepted_in_version` from `output/corpus/nel.index.json`. Card and acceptance-version
 metadata are stored in the index; matching citation metadata, including DOI, is stored in
 `output/corpus/nel.corpus.json`.
@@ -33,7 +33,8 @@ metadata are stored in the index; matching citation metadata, including DOI, is 
 | `weeks-2023-nejm-evidence-2-na` | `10.1056/evidoa2200310` | CHRS for CHIP/CCUS 2023 | CHIP/CCUS definitions and genotype-informed clonal-haematopoiesis risk prediction for progression to myeloid neoplasia. |
 
 The human-readable table above describes corpus contents. Runtime evidence remains in the structured
-`output/corpus/nel.corpus.json`, `output/corpus/nel.index.json`, and `output/corpus/blacklist.json` assets.
+`output/corpus/nel.corpus.json` and `output/corpus/nel.index.json` assets.
+`output/corpus/blacklist.json` is retained only as a deprecated compatibility snapshot.
 
 ## Corpus user layer
 

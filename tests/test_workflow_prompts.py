@@ -233,7 +233,7 @@ def test_release_manifest_contains_root_product_and_available_workflows():
         "docs/validation.md",
         "workflows/registry.json",
         "workflows/common.py",
-        "workflows/terraced_v6/*.py",
+        ":(glob)workflows/terraced_v6/*.py",
         "workflows/terraced_v6/settings.json.template",
         "workflows/terraced_v6/pipelines/*.yaml",
         "workflows/terraced_v6/prompts/*.md",

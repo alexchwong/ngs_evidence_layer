@@ -168,6 +168,13 @@ python nel.py config-check --pipeline lmstudio
 python nel.py config-check --pipeline openrouter
 ```
 
+### Optional corpus user layer
+
+NEL ships `config/cul/default.json` as the default retrieval-scope profile. Create or inspect
+custom profiles with `python scripts/cul.py`, then select one at setup with `--cul <name>`.
+The resolved profile and digest are frozen into the run configuration. See
+[`docs/cul.md`](docs/cul.md) for scope, amendments, staleness, disclosure, and the standalone editor.
+
 ## Run a clinical case
 
 Save the clinical case as Markdown, for example `case.md`. Preserve all information required for interpretation in that file.
@@ -347,6 +354,7 @@ Useful run artifacts include `report-final.md`, `report-final.json`, `dissent.md
 ## Documentation
 
 - [`docs/corpus.md`](docs/corpus.md) — publications in the current evidence corpus;
+- [`docs/cul.md`](docs/cul.md) — optional corpus user layer profiles and editor;
 - [`docs/validation.md`](docs/validation.md) — bundled validation suites and case IDs;
 - [`SKILL.md`](SKILL.md) — instructions for skill-capable applications and agents;
 - [`NEWS.md`](NEWS.md) — changelog.

@@ -1,33 +1,24 @@
 # NEWS
 ## 0.3.0
-- Added the corpus user layer (CUL): per-profile, non-destructive corpus customisation in `config/cul/<name>.json` that never modifies `accept/`, `archive/` or `output/corpus/`.
-- CUL profiles may amend `interpretation`, `category`, `evidence_tier`, `genes` and `diseases` on existing cards, and may scope retrieval by paper, category, gene or card. Card creation is not supported.
-- Amendments bind to the corpus card they were authored against; a card changed by a redo makes its amendment stale, which blocks run setup until reviewed.
-- An amended interpretation is disclosed in the report reference list, naming the profile and the affected card IDs. Scope and classification changes are not disclosed per statement.
-- `nel.py setup --cul` and `nel.py run --cul` select a profile; the resolved layer is frozen into `runs/<id>/run-config/cul.json` and digested into the run manifest, and is re-verified on every resume.
-- `workflows/proforma_v1/step.py` and `self.py` accept `--cul`, and the card-identity manifest records the active profile and digest.
-- Added `scripts/cul.py` with `list`, `show`, `new`, `check`, `diff` and `apply`.
-- `config/cul/default.json` reproduces the previous `blacklist.json` retrieval scope exactly; `output/corpus/blacklist.json` and `scripts/build_blacklist.py` are deprecated.
-- The read-only card browser is built from `output/corpus/` alone. `--full` uses the same browser with accepted evidence/mapping/provenance, requires matching `accept/*.final.json` packages, and does not read or require `archive/`.
-- Restored the read-only card-browser interface and removed edit mode from `build_card_browser.py`. Both normal and `--full` browser modes now include a per-card `Copy citation` control.
-- Fixed: the Corpus User Layer editor's opening view rendered in browse mode, so the card list showed editor controls until the first filter click. Edit mode is now set at declaration and applied before the first render rather than corrected afterwards.
-- Added scope-level `exemptions`: a card named there is readmitted despite the category, gene or paper rules that would suppress it, leaving the rule intact for every other card. Precedence is explicit exclusion, then exemption, then rules. Reported separately by `cul.py check`, `cul.py diff` and the editor.
-- The editor's left rail now lists every retrieval rule with a checkbox to disable it and a control to remove it, and a form to create new rules from paper, dimension, mode and values, previewing how many cards a rule would remove before it is added.
-- Rule-suppressed cards are no longer locked in the card list: ticking one writes an exemption.
-- `cul.py --edit` builds the Corpus User Layer editor, opens it, and installs profiles as they are saved by watching the downloads directory (`~/Downloads` by default, overridable and remembered). `cul.py edit` remains a backward-compatible alias and `cul.py apply --from` remains the manual install path.
-- The editor is now a separate artefact at `config/cul/corpus-user-layer.html`, owned by `cul.py` and gitignored, distinct from the read-only `output/reports/card-browser.html` that incorporation regenerates. It carries its own title and has no browse mode.
-- Installing a profile refreshes the editor so it appears in the dropdown; a failed refresh warns rather than failing the install.
-- Removed edit/CUL handling from `build_card_browser.py` entirely. The standalone editor is rendered directly by `cul.py --edit`; every valid profile is embedded and the editor starts on `default` when available.
-- Fixed: loading a profile from the browser dropdown replaced the underlying state but left the profile name and counters showing the previous profile, so a subsequent download used the wrong name.
-- The profile bar now summarises reachable cards, rules, exclusions, amendments and unsaved state, and the dropdown reflects the profile currently loaded.
-- Fixed: filtering while in edit mode rendered the editor controls into the right-hand card list. All rendering now routes through a single mode-aware function.
-- The Corpus User Layer editor uses three panes: filters, editor, and a card list whose tickboxes control retrieval scope, replacing hand-edited scope JSON.
-- Scope editing is hybrid: paper and category rules stay rules, tickboxes write only card-level exclusions, and rule-suppressed cards are shown locked. Bulk exclusions that match a whole paper or category offer promotion to a rule.
-- "Review changes" summarises retrieval rules, individually excluded cards, and card amendments in one panel.
-- Profiles in `config/cul/` are embedded when `cul.py --edit` builds the editor and are switchable from a dropdown; profiles can also be loaded from a file. Saving remains download-plus-`cul.py apply`, since a page opened from disk cannot overwrite files in place.
-- The disease picker now lists the full schema vocabulary in alphabetical order.
-- Card editing places the interpretation and its classification side by side, with `category` and `evidence_tier` as closed dropdowns, `diseases` as a filtering token field over the disease vocabulary, and the corpus value displayed beneath any amended field.
-- CUL now validates `evidence_tier` against the ingestion schema enum rather than accepting any string.
+- `proforma-v1` is now canonical; `terraced-v6` remains available through `--legacy` for reproducibility.
+- Added evidence-gated WHO routing, concurrent-pathology reporting, PTBG owner proformas, and audited/adjudicated evidence resolution.
+- Added six `nel-validate-dual` cases covering morphology-molecular discordance and concurrent pathology.
+- Centralized bundled demo and validation case retrieval under `validation/` for maintained workflows.
+- Dissent reports now trace statements through origin, review, adjudication, and final kept/refuted/abandoned outcomes.
+- Final reports suppress internal runtime variant identifiers.
+- Germline reporting may recommend confirmatory testing when inherited predisposition is suspected without requiring prior germline confirmation.
+- Added corpus user layer profiles for non-destructive retrieval scope and card amendments.
+- `nel.py setup` and `run` can select CUL profiles; runs freeze profile identity and digest.
+- The default CUL preserves historical retrieval scope while standalone blacklist files remain deprecated compatibility assets.
+- Added `scripts/cul.py` for profile listing, creation, validation, diffing, installation, and editor launch.
+- CUL amendments can change interpretation, category, evidence tier, genes, and diseases without modifying the accepted corpus.
+- CUL scope can include or exclude cards by paper, category, gene, or card identifier.
+- CUL exemptions can readmit selected cards without removing broader retrieval rules.
+- Stale CUL amendments block setup after their underlying corpus cards change.
+- Report references disclose amended interpretations by profile and affected card identifiers.
+- Added a standalone three-pane CUL editor with rule controls, exemptions, profile switching, and corpus-aware card editing.
+- The card browser remains read-only; `--full` adds accepted evidence without depending on archived packages.
+- CUL evidence-tier editing now validates against the ingestion schema enumeration.
 
 ## 0.2.5
 - Added root `nel.py` setup, run, status, configuration checks, and run inventory for the then-current product workflow.

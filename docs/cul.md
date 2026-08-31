@@ -17,11 +17,11 @@ python scripts/cul.py list
 # Create a profile seeded from the default retrieval scope.
 python scripts/cul.py new --cul alice-mds --description "MDS reporting"
 
-# Review and edit cards, then download the profile from the browser.
-python scripts/build_card_browser.py --cul alice-mds
-open output/reports/card-browser.html      # switch to Edit, then Download profile
+# Open the standalone CUL editor. It watches ~/Downloads by default and
+# installs valid profiles when they are saved.
+python scripts/cul.py --edit
 
-# Install the downloaded profile and inspect what it changes.
+# Or install a downloaded profile manually, then inspect what it changes.
 python scripts/cul.py apply --from ~/Downloads/alice-mds.json
 python scripts/cul.py diff --cul alice-mds
 
@@ -43,8 +43,8 @@ editable. They bind a card to its source.
 
 **A profile cannot create cards.** An amendment must name a card that already
 exists in the corpus. An invented card would render under a real citation with no
-locator and no evidence behind it. New evidence is ingestion's job: see
-[`ingest.md`](ingest.md).
+locator and no evidence behind it. New evidence belongs in the ingestion workflow;
+in a source checkout, see `docs/ingest.md`.
 
 `category`, `evidence_tier` and `diseases` are closed value sets, validated
 against `schema/ingestion_package_schema.json` and
@@ -54,8 +54,8 @@ against `schema/ingestion_package_schema.json` and
 automatically. Unrecognised genes are allowed, because gene lists are
 legitimately open.
 
-The browser's edit controls read the same value sets from the build payload, so
-an edit that `cul.py` would reject cannot be composed in the browser.
+The standalone editor reads the same value sets from its build payload, so an edit
+that `cul.py` would reject cannot be composed in the editor.
 
 ## Disclosure
 
@@ -86,7 +86,7 @@ stops applying, and `nel.py setup` refuses to start.
 python scripts/cul.py check --cul alice-mds
 ```
 
-Re-edit the card in the browser against its new text, or remove the amendment.
+Re-edit the card in the standalone editor against its new text, or remove the amendment.
 This is deliberate. An amendment written against text that no longer exists is
 not safe to reapply silently.
 
@@ -115,13 +115,13 @@ python workflows/proforma_v1/self.py run --work-dir <dir> --cul alice-mds
 ## Card browser
 
 ```bash
-python scripts/build_card_browser.py                  # corpus-only
-python scripts/build_card_browser.py --cul alice-mds  # preload a profile for editing
-python scripts/build_card_browser.py --full           # add accepted evidence where available
+python scripts/build_card_browser.py        # read-only, corpus-only
+python scripts/build_card_browser.py --full # source checkout: add accepted evidence
+python scripts/cul.py --edit                # separate editable CUL interface
 ```
 
-The browser is built from `output/corpus/` alone and needs no `accept/` or
-`archive/`. `--full` adds the accepted evidence block **per paper**: a paper
+The read-only browser is built from `output/corpus/` alone and needs no `accept/` or
+`archive/`. It has no CUL edit mode. `--full` adds the accepted evidence block **per paper**: a paper
 without an accepted package renders corpus-only and quietly; a paper whose
 accepted package disagrees with the incorporated corpus renders corpus-only with
 a warning badge, because that is a real sync defect and should not look like a
@@ -136,10 +136,10 @@ prognosis -germline        exclude a term
 gene:TP53 cat:treatment    field-scoped; also disease: paper: tier: id: locator:
 ```
 
-Edit mode uses three panes: filters on the left, the editor in the centre, the
+The standalone CUL editor uses three panes: filters on the left, the editor in the centre, the
 card list on the right. Each row in the card list has a tickbox controlling
 whether retrieval can reach that card, and clicking the row opens it in the
-editor. Browse mode is unchanged.
+editor.
 
 **Scope is a hybrid model.** Paper and category rules stay rules: they are
 compact and they keep applying to cards a later redo adds. Tickboxes only ever
@@ -149,7 +149,7 @@ never be silently expanded into a hundred card IDs.
 
 Filter on the left, then use "Exclude N shown" to remove the filtered set. The
 button states how many cards it will affect. When the filtered set happens to be
-exactly one paper, or one category within a paper, the browser offers to write a
+exactly one paper, or one category within a paper, the editor offers to write a
 rule instead, which stays compact and covers cards added later.
 
 "Review changes" opens a summary in three parts: retrieval rules, individually
@@ -172,9 +172,9 @@ no browser API can overwrite a file in place, and whether a download replaces
 `cul.py apply --from <file>` is the write path: it validates the profile, refuses
 stale amendments, and replaces the named profile atomically.
 
-When no `--cul` is given, the browser preloads the `default` profile if one
-exists, so downloading from a fresh page cannot silently drop the shipped
-retrieval rules.
+The standalone CUL editor preloads the `default` profile when it exists, so a fresh
+save cannot silently drop the shipped retrieval rules. The read-only card browser
+never loads or edits a CUL profile.
 
 ## Promotion to the accepted corpus
 
