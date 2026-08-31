@@ -37,7 +37,7 @@ Workflow-specific retrieval, rendering, adjudication, audit and report policy be
 - `make_key.py`
 - `package_validation.py`
 - `parse_pdfs.py`
-- `prepare_redo.py` — restore accepted state for census, provisional, or accepted-card Phase 2 review.
+- `prepare_redo.py` — restore accepted or archive-only state for census, provisional, or card Phase 2 review.
 - `ingest_artifacts.py` — versioned/legacy ingestion filename resolver.
 - `quarantine.py`
 - `render_corpus.py`

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore an accepted publication into work/ for census, provisional, or card review."""
+"""Restore an accepted or archive-only publication for census, provisional, or card review."""
 import argparse
 import hashlib
 import json
@@ -27,25 +27,52 @@ def canonical_sha256(document):
     return hashlib.sha256(payload).hexdigest()
 
 
-def _accepted_state(args):
+def _baseline_state(args):
     archive_source = args.archive_dir / args.publication_key
     accepted_final_path = args.accept_dir / f"{args.publication_key}.final.json"
     accepted_census_path = args.accept_dir / f"{args.publication_key}.census.json"
     if not archive_source.is_dir():
         raise ValueError(f"archive folder not found: {archive_source}")
-    if not accepted_final_path.is_file() or not accepted_census_path.is_file():
-        raise ValueError("accepted final/census pair is required for redo")
-    envelope = read_json(accepted_final_path, "accepted package")
-    census = read_json(accepted_census_path, "accepted census")
-    metadata = envelope.get("metadata") or {}
-    base_final = envelope.get("final") or {}
+
+    accepted_final_exists = accepted_final_path.is_file()
+    accepted_census_exists = accepted_census_path.is_file()
+    if accepted_final_exists != accepted_census_exists:
+        raise ValueError("accepted final/census state is incomplete; remove or restore the partial pair")
+
+    if accepted_final_exists:
+        baseline_source = "accepted"
+        envelope = read_json(accepted_final_path, "accepted package")
+        census = read_json(accepted_census_path, "accepted census")
+        metadata = envelope.get("metadata") or {}
+        base_final = envelope.get("final") or {}
+        if envelope.get("acceptance_path") != "confirmed":
+            raise ValueError("redo requires a deterministically confirmed accepted package")
+    else:
+        baseline_source = "archive"
+        envelope = {}
+        metadata_path = archive_source / "metadata.json"
+        final_path = archive_source / "paper.final.json"
+        census_path = ingest_artifacts.resolve_census(archive_source)
+        if not metadata_path.is_file():
+            raise ValueError(f"archived metadata not found: {metadata_path}")
+        if census_path is None:
+            raise ValueError(f"archived census not found: {archive_source}")
+        if not final_path.is_file():
+            raise ValueError(f"archived final package not found: {final_path}")
+        metadata = read_json(metadata_path, "archived metadata")
+        census = read_json(census_path, "archived census")
+        base_final = read_json(final_path, "archived final package")
+
     if metadata.get("publication_key") != args.publication_key:
-        raise ValueError("accepted package publication_key does not match --key")
-    if envelope.get("acceptance_path") != "confirmed":
-        raise ValueError("redo requires a deterministically confirmed accepted package")
-    if census.get("paper_id") != metadata.get("paper_id"):
-        raise ValueError("accepted census paper_id does not match accepted metadata")
-    return archive_source, envelope, census, metadata, base_final
+        raise ValueError(f"{baseline_source} metadata publication_key does not match --key")
+    paper_id = metadata.get("paper_id")
+    if not paper_id:
+        raise ValueError(f"{baseline_source} metadata has no paper_id")
+    if census.get("paper_id") != paper_id:
+        raise ValueError(f"{baseline_source} census paper_id does not match metadata")
+    if base_final.get("paper_id") != paper_id:
+        raise ValueError(f"{baseline_source} final paper_id does not match metadata")
+    return archive_source, envelope, census, metadata, base_final, baseline_source
 
 
 def _next_redo_sequence(envelope, archive_source):
@@ -148,7 +175,14 @@ def prepare(args):
     if work_destination.exists():
         raise ValueError(f"working folder already exists: {work_destination}")
 
-    archive_source, envelope, census, metadata, base_final = _accepted_state(args)
+    (
+        archive_source,
+        envelope,
+        census,
+        metadata,
+        base_final,
+        baseline_source,
+    ) = _baseline_state(args)
     redo_sequence = _next_redo_sequence(envelope, archive_source)
     revision = _next_card_revision(envelope, archive_source) if mode == "cards" else None
     next_census_attempt = ingest_artifacts.next_census_attempt(archive_source)
@@ -198,11 +232,12 @@ def prepare(args):
             )
 
         marker = {
-            "schema_version": "2.0",
+            "schema_version": "2.1",
             "publication_key": args.publication_key,
             "paper_id": metadata.get("paper_id"),
             "mode": mode,
             "redo": redo_sequence,
+            "baseline_source": baseline_source,
             "base_final_sha256": canonical_sha256(base_final),
             "base_census_sha256": canonical_sha256(census),
             "base_metadata_sha256": canonical_sha256(metadata),

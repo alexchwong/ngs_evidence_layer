@@ -317,7 +317,7 @@ def _validate_redo(
 ):
     errors = []
     schema_version = marker.get("schema_version")
-    if schema_version == "2.0":
+    if schema_version in {"2.0", "2.1"}:
         mode = marker.get("mode")
         if mode not in {"census", "provisional", "cards"}:
             errors.append("redo.json mode must be census, provisional, or cards")
@@ -333,6 +333,12 @@ def _validate_redo(
         mode = None
         start_phase = None
 
+    baseline_source = marker.get("baseline_source", "accepted")
+    if schema_version == "2.1" and baseline_source not in {"accepted", "archive"}:
+        errors.append("redo.json baseline_source must be accepted or archive")
+    if schema_version != "2.1":
+        baseline_source = "accepted"
+
     if marker.get("publication_key") != metadata.get("publication_key"):
         errors.append("redo.json publication_key does not match metadata")
     if marker.get("paper_id") != metadata.get("paper_id"):
@@ -344,30 +350,51 @@ def _validate_redo(
     if mode == "cards" and (not isinstance(revision, int) or revision < 1):
         errors.append("cards redo requires a positive accepted-card revision number")
 
-    required_destinations = (final_destination, census_destination, archive_root)
-    missing_destinations = [str(path) for path in required_destinations if not path.exists()]
-    if missing_destinations:
-        errors.append(
-            "redo requires the complete current accepted/archive set; missing:\n"
-            + "\n".join(missing_destinations)
-        )
-        return errors, None
-    if not final_destination.is_file() or not census_destination.is_file() or not archive_root.is_dir():
-        errors.append("redo destinations have unexpected file types")
+    if not archive_root.is_dir():
+        errors.append(f"redo archive folder is missing or invalid: {archive_root}")
         return errors, None
 
-    current_envelope = validation.read_json(final_destination, "current accepted package")
-    current_census = validation.read_json(census_destination, "current accepted census")
-    current_metadata = current_envelope.get("metadata") or {}
-    current_final = current_envelope.get("final") or {}
-    if current_envelope.get("acceptance_path") != "confirmed":
-        errors.append("redo requires a deterministically confirmed current accepted package")
+    if baseline_source == "accepted":
+        if not final_destination.is_file() or not census_destination.is_file():
+            errors.append("accepted-baseline redo requires the complete current accepted pair")
+            return errors, None
+        current_envelope = validation.read_json(final_destination, "current accepted package")
+        current_census = validation.read_json(census_destination, "current accepted census")
+        current_metadata = current_envelope.get("metadata") or {}
+        current_final = current_envelope.get("final") or {}
+        if current_envelope.get("acceptance_path") != "confirmed":
+            errors.append("redo requires a deterministically confirmed current accepted package")
+    else:
+        if final_destination.exists() or census_destination.exists():
+            errors.append(
+                "archive-baseline redo requires accepted destinations to remain absent after preparation"
+            )
+        archived_metadata_path = archive_root / "metadata.json"
+        archived_final_path = archive_root / "paper.final.json"
+        archived_census_path = ingest_artifacts.resolve_census(archive_root)
+        missing_baseline = [
+            str(path)
+            for path in (archived_metadata_path, archived_final_path)
+            if not path.is_file()
+        ]
+        if archived_census_path is None:
+            missing_baseline.append(str(archive_root / "paper census (legacy or versioned)"))
+        if missing_baseline:
+            errors.append("archive redo baseline is incomplete:\n" + "\n".join(missing_baseline))
+            return errors, None
+        current_envelope = {}
+        current_metadata = validation.read_json(archived_metadata_path, "current archived metadata")
+        current_final = validation.read_json(archived_final_path, "current archived final")
+        current_census = validation.read_json(archived_census_path, "current archived census")
+
     if current_metadata.get("publication_key") != marker.get("publication_key"):
-        errors.append("current accepted publication_key differs from redo.json")
+        errors.append(f"current {baseline_source} publication_key differs from redo.json")
     if current_metadata.get("paper_id") != marker.get("paper_id"):
-        errors.append("current accepted paper_id differs from redo.json")
+        errors.append(f"current {baseline_source} metadata paper_id differs from redo.json")
+    if current_final.get("paper_id") != marker.get("paper_id"):
+        errors.append(f"current {baseline_source} final paper_id differs from redo.json")
     if current_census.get("paper_id") != marker.get("paper_id"):
-        errors.append("current accepted census paper_id differs from redo.json")
+        errors.append(f"current {baseline_source} census paper_id differs from redo.json")
 
     expected_hashes = {
         "base_final_sha256": canonical_sha256(current_final),
@@ -376,7 +403,9 @@ def _validate_redo(
     }
     for field, expected in expected_hashes.items():
         if marker.get(field) != expected:
-            errors.append(f"redo baseline is stale: {field} does not match current accepted state")
+            errors.append(
+                f"redo baseline is stale: {field} does not match current {baseline_source} state"
+            )
     if canonical_sha256(metadata) != marker.get("base_metadata_sha256"):
         errors.append("metadata.json changed after redo preparation")
 
@@ -417,6 +446,7 @@ def _validate_redo(
         "base_final_sha256": marker.get("base_final_sha256"),
         "base_census_sha256": marker.get("base_census_sha256"),
         "base_metadata_sha256": marker.get("base_metadata_sha256"),
+        "baseline_source": baseline_source,
     }
     if revision is not None:
         report["revision"] = revision
@@ -500,11 +530,16 @@ def confirm(args):
                 errors.append("--overwrite destinations have unexpected file types")
     if not errors and active_provisional_path is not None:
         current_accepted_final = None
-        if is_redo and final_destination.is_file():
-            current_envelope_for_delta = validation.read_json(
-                final_destination, "current accepted package"
-            )
-            current_accepted_final = current_envelope_for_delta.get("final") or None
+        if is_redo:
+            if redo_marker.get("baseline_source", "accepted") == "archive":
+                current_accepted_final = validation.read_json(
+                    archive_root / "paper.final.json", "current archived final"
+                )
+            elif final_destination.is_file():
+                current_envelope_for_delta = validation.read_json(
+                    final_destination, "current accepted package"
+                )
+                current_accepted_final = current_envelope_for_delta.get("final") or None
         require_phase2r_ledger = bool(
             is_redo and redo_marker.get("mode") == "cards"
         ) or _has_prior_phase4_handoff(working, active_provisional_path)
@@ -550,7 +585,12 @@ def confirm(args):
     archive_destination = archive_root
 
     if is_redo:
-        current_envelope = validation.read_json(final_destination, "current accepted package")
+        baseline_source = redo_report["baseline_source"]
+        current_envelope = (
+            validation.read_json(final_destination, "current accepted package")
+            if baseline_source == "accepted"
+            else {}
+        )
         accepted_at = datetime.now(timezone.utc).isoformat()
         redos = list(current_envelope.get("redos") or [])
         redo_record = {
@@ -561,6 +601,7 @@ def confirm(args):
             "base_final_sha256": redo_report["base_final_sha256"],
             "base_census_sha256": redo_report["base_census_sha256"],
             "base_metadata_sha256": redo_report["base_metadata_sha256"],
+            "baseline_source": baseline_source,
         }
         if redo_report.get("mode"):
             redo_record["mode"] = redo_report["mode"]
@@ -568,17 +609,16 @@ def confirm(args):
             redo_record["revision"] = redo_report["revision"]
         redos.append(redo_record)
         accepted = dict(current_envelope)
-        accepted.update(
-            {
-                "schema_version": "1.5",
-                "acceptance_path": "confirmed",
-                "accepted_at": accepted_at,
-                "accepted_at_source": "confirm",
-                "metadata": metadata,
-                "final": final,
-                "redos": redos,
-            }
-        )
+        accepted.update({
+            "schema_version": "1.5",
+            "acceptance_path": "confirmed",
+            "accepted_at": accepted_at,
+            "accepted_at_source": "confirm",
+            "accepted_in_version": current_envelope.get("accepted_in_version", accepted_version),
+            "metadata": metadata,
+            "final": final,
+            "redos": redos,
+        })
         envelope_errors = validation.schema_errors(
             accepted, "accepted_package_schema.json", "accepted package"
         )
@@ -604,7 +644,9 @@ def confirm(args):
 
     staged_final.write_text(json.dumps(accepted, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     shutil.copyfile(paths["census"], staged_census)
-    replacing_existing = is_redo or overwrite
+    replacing_existing = overwrite or (
+        is_redo and redo_report["baseline_source"] == "accepted"
+    )
     old_final_bytes = final_destination.read_bytes() if replacing_existing else None
     old_census_bytes = census_destination.read_bytes() if replacing_existing else None
     staged_archive = None
@@ -644,8 +686,9 @@ def confirm(args):
         if redo_snapshot.exists():
             raise ValueError(f"redo archive destination already exists: {redo_snapshot}")
         _copy_directory_contents(archive_root, redo_snapshot, excluded={"redo"})
-        shutil.copy2(final_destination, redo_snapshot / "accepted.final.json")
-        shutil.copy2(census_destination, redo_snapshot / "accepted.census.json")
+        if redo_report["baseline_source"] == "accepted":
+            shutil.copy2(final_destination, redo_snapshot / "accepted.final.json")
+            shutil.copy2(census_destination, redo_snapshot / "accepted.census.json")
         (redo_snapshot / "replacement.redo.json").write_text(
             json.dumps(redo_marker, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )

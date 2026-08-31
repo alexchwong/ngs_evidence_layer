@@ -673,12 +673,17 @@ The command never modifies `archive/`, `accept/`, or `output/`. `curation/` is i
 by Git but is included by `transport.py` when moving private corpus state to another
 computer.
 
-## 6A. Redo or review an accepted paper
+## 6A. Redo or review an accepted or archived paper
 
 `prepare_redo.py` restores only the source and intermediate files required to resume the
-requested model phase. In `cards` mode, authorization is recorded later by the interactive
-Phase 2R decision ledger; preparation itself does not authorize a card edit. Baseline
-hashes in `redo.json` are used to detect stale accepted state at confirmation.
+requested model phase. A complete pair under `accept/` is the preferred baseline. If both
+accepted files are absent, the active `metadata.json`, census, and `paper.final.json` under
+`archive/<publication-key>/` form an archive baseline instead. A partial accepted pair is
+an error and must be removed or restored; accepted and archived state are never mixed.
+
+In `cards` mode, authorization is recorded later by the interactive Phase 2R decision
+ledger; preparation itself does not authorize a card edit. Baseline source and hashes in
+`redo.json` are used to detect stale state at confirmation.
 
 ### Redo the census
 
@@ -722,12 +727,15 @@ python scripts/confirm.py --key <publication-key>
 python scripts/incorporate.py
 ```
 
-Confirmation verifies the accepted baseline has not changed since preparation, validates
+Confirmation verifies the selected baseline has not changed since preparation, validates
 the complete new lineage, and deterministically rechecks the Phase 2R/Phase 4 authorized
-deltas before replacing the current accepted/archive state. It snapshots the superseded
-archive under `archive/<publication-key>/redo/NNN/`. Historical accepted packages and
-archived folders created by the former Phase 5 workflow remain readable; new workflows
-do not create Phase-5 artefacts.
+deltas. An accepted-baseline redo replaces the current accepted/archive state. An
+archive-baseline redo requires the accepted pair to remain absent and creates a new
+accepted pair. Both paths snapshot the superseded archive under
+`archive/<publication-key>/redo/NNN/`; an archive-only snapshot naturally has no
+`accepted.final.json` or `accepted.census.json`. Historical accepted packages and archived
+folders created by the former Phase 5 workflow remain readable; new workflows do not
+create Phase-5 artefacts.
 
 ### Filename compatibility
 

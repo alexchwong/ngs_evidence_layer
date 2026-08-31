@@ -290,6 +290,12 @@
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
         },
+        "baseline_source": {
+          "enum": [
+            "accepted",
+            "archive"
+          ]
+        },
         "mode": {
           "enum": [
             "census",
