@@ -1,1 +1,8 @@
-"""Local browser interface for the NGS Evidence Layer. Client of nel.py only."""
+"""NEL browser interface package with the current UI enhancements applied."""
+
+from . import server as server
+from . import enhancements as _enhancements
+
+_enhancements.apply(server)
+
+__all__ = ["server"]
