@@ -159,7 +159,7 @@ def test_legacy_skill_uses_same_state_driven_case_clis():
     assert "pip install -r requirements.txt" not in skill
 
 
-def test_release_manifest_contains_root_product_and_only_terraced_v6():
+def test_release_manifest_contains_root_product_and_available_workflows():
     manifest = RELEASE_MANIFEST.read_text(encoding="utf-8").splitlines()
     for required in (
         "README.md",
@@ -179,6 +179,18 @@ def test_release_manifest_contains_root_product_and_only_terraced_v6():
         "workflows/terraced_v6/prompts/*.md",
         "workflows/terraced_v6/schemas/*.json",
         "workflows/terraced_v6/stages/*.yaml",
+        ":(glob)workflows/proforma_v1/*.py",
+        "workflows/proforma_v1/workflow.json",
+        "workflows/proforma_v1/SKILL.md",
+        "workflows/proforma_v1/settings.json.template",
+        ":(glob)workflows/proforma_v1/pipelines/*.yaml",
+        ":(glob)workflows/proforma_v1/prompts/*.md",
+        ":(glob)workflows/proforma_v1/prompts/evidence/*.md",
+        ":(glob)workflows/proforma_v1/schemas/*.json",
+        ":(glob)workflows/proforma_v1/stages/*.yaml",
+        ":(glob)workflows/proforma_v1/workflow/*.yaml",
+        ":(glob)workflows/proforma_v1/engine/*.py",
+        ":(glob)workflows/proforma_v1/executors/*.py",
         "scripts/setup_workflow.py",
         "scripts/workflow_registry.py",
         "scripts/core/*.py",
@@ -187,7 +199,8 @@ def test_release_manifest_contains_root_product_and_only_terraced_v6():
         assert required in manifest
     assert not any(
         line.startswith("workflows/")
-        and line.split("/", 2)[1] not in {"terraced_v6", "__init__.py", "common.py", "registry.json"}
+        and line.split("/", 2)[1]
+        not in {"terraced_v6", "proforma_v1", "__init__.py", "common.py", "registry.json"}
         for line in manifest
     )
     for obsolete in (

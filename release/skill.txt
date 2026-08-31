@@ -40,3 +40,16 @@ workflows/terraced_v6/prompts/*.md
 workflows/terraced_v6/schemas/*.json
 workflows/terraced_v6/stages/*.json
 workflows/terraced_v6/stages/*.yaml
+:(glob)workflows/proforma_v1/*.py
+workflows/proforma_v1/workflow.json
+workflows/proforma_v1/SKILL.md
+workflows/proforma_v1/settings.json.template
+:(glob)workflows/proforma_v1/pipelines/*.yaml
+:(glob)workflows/proforma_v1/prompts/*.md
+:(glob)workflows/proforma_v1/prompts/evidence/*.md
+:(glob)workflows/proforma_v1/schemas/*.json
+:(glob)workflows/proforma_v1/stages/*.json
+:(glob)workflows/proforma_v1/stages/*.yaml
+:(glob)workflows/proforma_v1/workflow/*.yaml
+:(glob)workflows/proforma_v1/engine/*.py
+:(glob)workflows/proforma_v1/executors/*.py
