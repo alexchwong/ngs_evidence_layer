@@ -4,6 +4,54 @@ A corpus-grounded command-line tool for myeloid NGS interpretation.
 
 NEL combines a supplied clinical case with the bundled evidence corpus and explicit reporting rules to produce a concise, citable report. It does not fill evidence gaps from general model knowledge. The canonical product workflow is `proforma-v1`, exposed through the root `nel.py` CLI. `terraced-v6` remains available only as a legacy/reproducibility workflow.
 
+## Contents
+
+- [Quick start](#quick-start)
+- [Requirements](#requirements)
+- [Choose a model provider](#choose-a-model-provider)
+- [Configure NEL](#configure-nel)
+- [Run a clinical case](#run-a-clinical-case)
+- [Inspect and resume runs](#inspect-and-resume-runs)
+- [Proforma-v1 vs terraced-v6](#proforma-v1-vs-terraced-v6)
+- [Legacy terraced-v6](#legacy-terraced-v6)
+- [Demo and validation modes](#demo-and-validation-modes)
+- [CLI reference](#cli-reference)
+- [Using the release as a skill](#using-the-release-as-a-skill)
+- [Report behavior and boundaries](#report-behavior-and-boundaries)
+- [Documentation](#documentation)
+
+## Quick start
+
+Run commands from the repository root. For a local LM Studio workflow:
+
+```bash
+python -m venv .env
+source .env/bin/activate
+python -m pip install -r requirements.txt
+
+# Start LM Studio's OpenAI-compatible server first.
+python nel.py config-check --pipeline lmstudio
+python nel.py setup --mode ngs-report --case case.md --pipeline lmstudio --run-id my-case
+python nel.py run --run-id my-case
+```
+
+The completed report is written to:
+
+```text
+runs/my-case/report-final.md
+```
+
+For OpenRouter, export an API key and substitute `openrouter` for `lmstudio`:
+
+```bash
+export OPENROUTER_API_KEY='your-openrouter-api-key'
+python nel.py config-check --pipeline openrouter
+python nel.py setup --mode ngs-report --case case.md --pipeline openrouter --run-id my-case
+python nel.py run --run-id my-case
+```
+
+`proforma-v1` is always used for normal root commands. Use `--legacy` only when you deliberately need the older `terraced-v6` workflow.
+
 ## Requirements
 
 - Python 3.10 or later
@@ -189,6 +237,25 @@ python nel.py runs --incomplete
 
 All run data is stored under the gitignored `runs/<run-id>/` directory.
 
+
+## Proforma-v1 vs terraced-v6
+
+`proforma-v1` is the supported product workflow. `terraced-v6` is retained so older runs and deliberate legacy comparisons remain reproducible.
+
+| Area | `proforma-v1` | `terraced-v6` |
+| --- | --- | --- |
+| Status | Canonical workflow for new runs | Legacy/reproducibility workflow |
+| Root CLI | Default for normal `nel.py` commands | Selected explicitly with `--legacy` during setup/configuration |
+| Configuration | Root `config/settings.json` and `config/pipelines/` | Workflow-local `workflows/terraced_v6/settings.json` and `pipelines/` |
+| Workflow definition | Declarative `workflow/default.yaml` with registered operations, dependencies and evidence policies | Older staged/native executor topology implemented directly in workflow code |
+| WHO diagnosis | WHO5 routing changes are evidence-gated before commit; an authoritative WHO reassessment runs when required | Legacy WHO/ICC/second-diagnosis topology retained for reproducibility |
+| Concurrent pathology | WHO5 assesses each detected variant; strong signals for another pathology are projected as non-routing concurrent-pathology findings | Legacy staged workflow uses an independent second-diagnosis path |
+| Evidence review | Explicit assignment → independent audit → conditional adjudication, including a blocking gate for WHO routing changes | Older evidence-resolution/audit implementation retained |
+| Report construction | Evidence-finalized propositions are converted into deterministic report blocks before final prose; provider-backed runs also use a preservation check | Legacy report synthesis/preservation topology retained |
+| Workflow evolution | Current validation and reporting changes target this workflow | Receives only fixes needed to keep the legacy path runnable |
+
+For routine clinical reporting, demos and validation, use `proforma-v1`. Use `terraced-v6` only when reproducing a prior result, comparing workflow generations, or maintaining an existing legacy run.
+
 ## Legacy terraced-v6
 
 `proforma-v1` is the canonical workflow. `terraced-v6` is retained only for explicit legacy/reproducibility use through the same root facade. Do not place terraced settings or pipelines in root `config/`.
@@ -250,26 +317,32 @@ To use a release ZIP as a chat skill, upload it through your application's skill
 
 ## Report behavior and boundaries
 
-Proforma-v1:
+`proforma-v1` separates clinical interpretation, evidence support, deterministic transformations and final prose so that reportable conclusions can be traced back through the run artifacts.
 
-1. preserves and structures the supplied case;
-2. performs WHO5, ICC, and authoritative second-WHO5 diagnostic assessment;
-3. evaluates prognosis, treatment, MRD/biomarker, and germline implications;
-4. resolves supporting evidence for reportable reasons;
-5. independently audits evidence assignments and adjudicates disagreements;
-6. constructs deterministic citable report blocks; and
-7. synthesizes the final report against the original case context.
+### Report behavior
 
-The final report uses Vancouver-style citations in square brackets and numbers references in order of first citation.
+At a high level, the canonical workflow:
 
-Important boundaries:
+1. **Structures the supplied case.** It extracts case facts and variants into a validated structured artifact. For a complete NGS result, Python also materializes assayed panel genes with no detected variant from `config/ngs-panel-scope.md`; these negatives are not invented by the model.
+2. **Establishes the primary diagnosis.** WHO5 is assessed first. If that assessment would change downstream WHO routing, the change is held behind a blocking evidence assignment, audit and adjudication gate before it can commit. A second authoritative WHO5 assessment runs when the workflow determines reconsideration is required. ICC is assessed separately and retained alongside WHO5.
+3. **Separates concurrent-pathology signals from primary routing.** WHO5 classifies detected variants for their diagnostic significance. A strong molecular signal for a distinct pathology can become a `concurrent_pathology` report candidate, but it does not itself change the primary WHO/ICC disease used for downstream retrieval and does not by itself prove a second neoplasm.
+4. **Runs domain-specific interpretation.** Prognosis, treatment, biomarker/MRD and germline implications are completed against the finalized diagnosis and bounded corpus evidence. Reportability settings determine which positive, negative or uncertain categories are eligible for the final report.
+5. **Resolves literature support.** Candidate reportable propositions pass through evidence assignment and an independent evidence audit. Failed audits can trigger bounded reassignment; remaining disagreements proceed to adjudication and are retained in the dissent trail rather than being silently erased.
+6. **Builds the report deterministically before prose synthesis.** Accepted evidence is finalized, report propositions are normalized/aggregated where registered transforms require it, and deterministic report blocks are constructed before the report writer sees them.
+7. **Writes and validates the final report.** Provider-backed runs perform a report-preservation check before deterministic finalization. Citations are rendered from accepted corpus evidence, with Vancouver-style numbering in order of first citation. Native `self` execution uses the same clinical workflow contract but does not run the separate preservation-model step.
 
-- NEL reports only what the supplied case and bundled corpus support.
-- Different publications can coexist in the corpus even when their recommendations differ.
-- NEL does not query live approval, drug, guideline, or other external databases during interpretation.
-- Evidence absent from the corpus is not supplied from model memory.
-- The evidence corpus is distinct from reporting rules and formatting prompts.
-- Other directories under `workflows/` are legacy or development code, not supported product interfaces.
+Useful run artifacts include `report-final.md`, `report-final.json`, `dissent.md`, `logs/workflow.log`, `logs/transforms.yaml`, `logs/semantic_dissent.yaml`, and the structured intermediates under `runs/<run-id>/`.
+
+### Boundaries
+
+- **Corpus-grounded only:** NEL does not fill evidence gaps from general model memory. A proposition unsupported by eligible corpus evidence can be suppressed or retained as dissent according to workflow policy rather than being rescued from outside knowledge.
+- **No live clinical lookup during interpretation:** NEL does not query current drug approvals, guidelines, trial registries or other external databases while producing the report. The bundled corpus therefore defines the evidence ceiling for a run.
+- **Case facts remain authoritative inputs:** the workflow may normalize and structure supplied facts, but it must not create missing clinical, morphological, cytogenetic or molecular observations.
+- **Concurrent pathology is a signal, not an automatic second diagnosis:** these findings are reported as warranting investigation/clinicopathological correlation unless the deterministic report block explicitly supports a stronger conclusion.
+- **WHO routing has a higher evidence bar:** unsupported molecular/cytogenetic changes that would alter downstream WHO retrieval are not silently committed.
+- **Reporting rules are distinct from evidence:** `config/settings.json` controls reportability and workflow behavior; the evidence corpus controls what literature support is available. Changing a reportability switch does not create supporting evidence.
+- **Runs are reproducible snapshots:** setup freezes the selected workflow, settings, pipeline, panel scope and corpus/CUL provenance into `run-config/`. Resuming a run uses that frozen identity rather than whichever defaults exist later.
+- **`proforma-v1` is the supported product interface:** other workflows are development or legacy implementations. `terraced-v6` is supported only through the explicit legacy path described below.
 
 ## Documentation
 
