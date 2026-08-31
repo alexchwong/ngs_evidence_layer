@@ -167,7 +167,7 @@ def test_model_client_adds_provider_routing_to_request_payload():
     assert captured['payload']['provider']=={'order':['groq'],'allow_fallbacks':False}
 
 def test_reportability_defaults():
-    assert step._reportable('prognosis','uncertain') is False
+    assert step._reportable('prognosis','no_prognostic_evidence') is False
     assert step._reportable('treatment','no_drug_implication') is False
     assert step._reportable('biomarker','not_mrd_marker') is False
     assert step._reportable('germline','germline_against') is False
@@ -184,40 +184,50 @@ def test_second_diagnosis_null_contract():
     with _assert_raises(ValueError): schema_validation.validate_second_diagnosis('diagnosis: null\nvariants: [v01]\nreason: null\n',valid_variants={'v01'})
 
 def test_prognosis_flat_contract_requires_one_row_per_variant():
-    text=("classification:\n  - variant: v01\n    bucket: favorable\n    reason: favorable\n"
-          "  - variant: v02\n    bucket: adverse\n    reason: adverse\nprognostic_score: null\n")
+    text=("applicable_disease: AML\nprognostic_frameworks: []\nclassification:\n"
+          "  - variant: v01\n    gene: NPM1\n    framework_effects: []\n"
+          "    other_evidence_effect: favorable\n    other_evidence_reason: favorable\n"
+          "  - variant: v02\n    gene: ASXL1\n    framework_effects: []\n"
+          "    other_evidence_effect: adverse\n    other_evidence_reason: adverse\n")
     schema_validation.validate_prognosis(text,{'v01','v02'})
 
 
 def test_prognosis_reports_missing_and_bad_bucket_together():
-    text=("classification:\n  - variant: v01\n    bucket: nonsense\n    reason: x\nprognostic_score: null\n")
+    text=("applicable_disease: AML\nprognostic_frameworks: []\nclassification:\n"
+          "  - variant: v01\n    gene: NPM1\n    framework_effects: []\n"
+          "    other_evidence_effect: nonsense\n    other_evidence_reason: x\n")
     with _assert_raises(ValidationFailure) as exc:
         schema_validation.validate_prognosis(text,{'v01','v02'})
     paths={i.path for i in exc.exception.issues}
-    assert 'classification' in paths and 'classification[0].bucket' in paths
+    assert 'classification' in paths and 'classification[0].other_evidence_effect' in paths
 
 
 def test_prognosis_no_not_calculable():
-    text=("classification:\n  - variant: v01\n    bucket: favorable\n    reason: favorable\n"
-          "prognostic_score:\n  name: score\n  result: not calculable\n  reason: missing data\n")
+    text=("applicable_disease: AML\nprognostic_frameworks:\n  - name: ELN\n"
+          "    tier: not calculable\n    reason: missing data\nclassification:\n"
+          "  - variant: v01\n    gene: NPM1\n    framework_effects: []\n"
+          "    other_evidence_effect: no_evidence\n    other_evidence_reason: null\n")
     with _assert_raises(ValidationFailure): schema_validation.validate_prognosis(text,{'v01'})
 
 
 def test_treatment_allows_multiple_rows_but_not_alongside_no_drug_implication():
-    ok=("classification:\n  - variant: v01\n    bucket: drug_target\n    therapy: drug A\n    reason: target\n"
-        "  - variant: v01\n    bucket: drug_sensitive\n    therapy: drug B\n    reason: sensitivity\n"
-        "  - variant: v02\n    bucket: no_drug_implication\n    reason: none\n")
+    ok=("applicable_disease: AML\nclassification:\n"
+        "  - variant: v01\n    gene: IDH1\n    treatment_category: drug_target\n    therapy: drug A\n    reason: target\n"
+        "  - variant: v01\n    gene: IDH1\n    treatment_category: drug_sensitive\n    therapy: drug B\n    reason: sensitivity\n"
+        "  - variant: v02\n    gene: ASXL1\n    treatment_category: no_drug_implication\n    reason: none\n")
     schema_validation.validate_treatment(ok,{'v01','v02'})
-    bad=("classification:\n  - variant: v01\n    bucket: drug_target\n    therapy: drug A\n    reason: target\n"
-         "  - variant: v01\n    bucket: no_drug_implication\n    reason: none\n"
-         "  - variant: v02\n    bucket: no_drug_implication\n    reason: none\n")
+    bad=("applicable_disease: AML\nclassification:\n"
+         "  - variant: v01\n    gene: IDH1\n    treatment_category: drug_target\n    therapy: drug A\n    reason: target\n"
+         "  - variant: v01\n    gene: IDH1\n    treatment_category: no_drug_implication\n    reason: none\n"
+         "  - variant: v02\n    gene: ASXL1\n    treatment_category: no_drug_implication\n    reason: none\n")
     with _assert_raises(ValidationFailure): schema_validation.validate_treatment(bad,{'v01','v02'})
 
 
 def test_mrd_binary_coverage():
     schema_validation.validate_biomarker(
-        "classification:\n  - variant: v01\n    bucket: mrd_marker\n    reason: marker\n"
-        "  - variant: v02\n    bucket: not_mrd_marker\n    reason: not marker\n",{'v01','v02'})
+        "applicable_disease: AML\nclassification:\n"
+        "  - variant: v01\n    gene: NPM1\n    mrd_status: mrd_marker\n    reason: marker\n"
+        "  - variant: v02\n    gene: DNMT3A\n    mrd_status: not_mrd_marker\n    reason: not marker\n",{'v01','v02'})
 
 
 def test_germline_integrated_buckets_cover_variants():
@@ -234,11 +244,15 @@ def test_finite_membership_context_only_detected_variants():
 
 def test_parallel_rows_consolidate_only_same_normalized_proposition():
     reg={'v01':{'gene':'ASXL1','description':'ASXL1 p.X'},'v02':{'gene':'SRSF2','description':'SRSF2 p.Y'}}
-    doc={'favorable':[],'adverse':[{'variants':['v01'],'reason':'ASXL1 mutation confers adverse prognosis.'},{'variants':['v02'],'reason':'SRSF2 mutation confers adverse prognosis.'}],'neutral':[],'uncertain':[],'prognostic_score':None}
+    doc={bucket:[] for bucket in domain_contract.PROGNOSIS.buckets}
+    doc['other_evidence_adverse']=[
+        {'variants':['v01'],'reason':'ASXL1 mutation confers adverse prognosis.'},
+        {'variants':['v02'],'reason':'SRSF2 mutation confers adverse prognosis.'},
+    ]
     out,merges=step._consolidate_rows('prognosis',doc,reg)
     assert len(merges)==1 and merges[0]['merged_variants']==['v02']
-    assert len(out['adverse'])==1
-    assert out['adverse'][0]['variants']==['v01','v02']
+    assert len(out['other_evidence_adverse'])==1
+    assert out['other_evidence_adverse'][0]['variants']==['v01','v02']
 
 def test_diagnosis_fallback_combines_equal_labels():
     block={'domain':'diagnosis','relationship':'same','components':[{'role':'who5','diagnosis':'MDS'},{'role':'icc','diagnosis':'MDS'}]}
@@ -494,42 +508,57 @@ def test_skeleton_prefills_every_supplied_variant():
     text=domain_contract.skeleton(domain_contract.PROGNOSIS,['v01','v02','v03'])
     assert text.count('- variant: v')==3
     for vid in ('v01','v02','v03'): assert f'- variant: {vid}' in text
-    assert '<favorable|adverse|neutral|uncertain>' in text
+    assert 'effect: <favorable|adverse|neutral>' in text
+    assert 'other_evidence_effect: <favorable|adverse|neutral|no_evidence>' in text
 
 
 def test_pivot_restores_the_legacy_bucket_artifact():
-    flat={'classification':[{'variant':'v01','bucket':'adverse','reason':'a'},
-                            {'variant':'v02','bucket':'favorable','reason':'b'}],
-          'prognostic_score':None}
+    flat={
+        'applicable_disease':'AML',
+        'prognostic_frameworks':[{'name':'ELN','tier':None,'reason':'Applicable to AML.'}],
+        'classification':[
+            {'variant':'v01','gene':'ASXL1','framework_effects':[
+                {'framework':'ELN','effect':'adverse','reason':'a'}],
+             'other_evidence_effect':'no_evidence','other_evidence_reason':None},
+            {'variant':'v02','gene':'NPM1','framework_effects':[],
+             'other_evidence_effect':'favorable','other_evidence_reason':'b'},
+        ],
+    }
     doc=domain_contract.pivot(flat,domain_contract.PROGNOSIS)
-    assert set(doc)=={'favorable','adverse','neutral','uncertain','prognostic_score'}
-    assert doc['adverse']==[{'variants':['v01'],'reason':'a'}]
-    assert doc['prognostic_score'] is None
+    assert set(doc)==set(domain_contract.PROGNOSIS.buckets)|{'applicable_disease','prognostic_frameworks'}
+    assert doc['framework_adverse']==[{'variants':['v01'],'gene':'ASXL1','framework':'ELN','reason':'a'}]
+    assert doc['other_evidence_favorable']==[{'variants':['v02'],'gene':'NPM1','reason':'b'}]
+    assert doc['applicable_disease']=='AML'
 
 
 def test_pivot_keeps_therapy_on_positive_treatment_buckets_only():
-    flat={'classification':[{'variant':'v01','bucket':'drug_target','therapy':'T','reason':'a'},
-                            {'variant':'v02','bucket':'no_drug_implication','reason':'b'}]}
+    flat={'applicable_disease':'AML','classification':[
+        {'variant':'v01','gene':'IDH1','treatment_category':'drug_target','therapy':'T','reason':'a'},
+        {'variant':'v02','gene':'ASXL1','treatment_category':'no_drug_implication','reason':'b'},
+    ]}
     doc=domain_contract.pivot(flat,domain_contract.TREATMENT)
-    assert doc['drug_target']==[{'variants':['v01'],'therapy':'T','reason':'a'}]
-    assert doc['no_drug_implication']==[{'variants':['v02'],'reason':'b'}]
+    assert doc['drug_target']==[{'variants':['v01'],'reason':'a','gene':'IDH1','therapy':'T'}]
+    assert doc['no_drug_implication']==[{'variants':['v02'],'reason':'b','gene':'ASXL1'}]
 
 
 def test_pivot_output_still_satisfies_downstream_consolidation():
-    reg={'v01':{'gene':'ASXL1','description':'ASXL1 p.X'},'v02':{'gene':'SRSF2','description':'SRSF2 p.Y'}}
-    flat={'classification':[{'variant':'v01','bucket':'adverse','reason':'ASXL1 mutation confers adverse prognosis.'},
-                            {'variant':'v02','bucket':'adverse','reason':'SRSF2 mutation confers adverse prognosis.'}],
-          'prognostic_score':None}
+    reg={'v01':{'gene':'ASXL1','description':'ASXL1 p.X'},'v02':{'gene':'ASXL1','description':'ASXL1 p.Y'}}
+    flat={'applicable_disease':'AML','prognostic_frameworks':[],'classification':[
+        {'variant':'v01','gene':'ASXL1','framework_effects':[],
+         'other_evidence_effect':'adverse','other_evidence_reason':'ASXL1 mutation confers adverse prognosis.'},
+        {'variant':'v02','gene':'ASXL1','framework_effects':[],
+         'other_evidence_effect':'adverse','other_evidence_reason':'ASXL1 mutation confers adverse prognosis.'},
+    ]}
     doc=domain_contract.pivot(flat,domain_contract.PROGNOSIS)
     out,merges=step._consolidate_rows('prognosis',doc,reg)
-    assert out['adverse'][0]['variants']==['v01','v02'] and len(merges)==1
+    assert out['other_evidence_adverse'][0]['variants']==['v01','v02'] and len(merges)==1
 
 
 def test_bucket_vocabulary_has_exactly_one_definition():
     # Reportability defaults, element assembly and consolidation must all agree
     # with domain_contract rather than carrying their own literal tuples.
     for domain,contract in domain_contract.CONTRACTS.items():
-        defaults=set(step._REPORTABILITY_DEFAULTS[domain])-{'prognostic_score'}
+        defaults=set(step._REPORTABILITY_DEFAULTS[domain])-set(contract.extra_keys)
         assert defaults==set(contract.buckets), domain
     source=(HERE/'step.py').read_text()
     assert "'favorable','adverse','neutral','uncertain'" not in source
@@ -585,7 +614,7 @@ def test_stage8_diagnosis_candidates_do_not_refilter_by_proposition_gene():
     assert [c['card_id'] for c in step._candidate_cards(el,{'diagnosis_who5':cards},reg)]==['BCR-CARD','ANKRD26-CARD']
 
 
-def test_ptbg_candidates_keep_existing_proposition_gene_filter():
+def test_ptbg_candidates_keep_variant_gene_filter_and_exclude_disease_level_cards():
     cards=[
         _test_card('FLT3',gene='FLT3'),
         _test_card('NPM1',gene='NPM1'),
@@ -593,7 +622,7 @@ def test_ptbg_candidates_keep_existing_proposition_gene_filter():
     ]
     el={'domain':'prognosis','evidence_domain':'prognosis','variants':['v01']}
     reg={'v01':{'gene':'FLT3'}}
-    assert [c['card_id'] for c in step._candidate_cards(el,{'prognosis':cards},reg)]==['FLT3','GENELESS']
+    assert [c['card_id'] for c in step._candidate_cards(el,{'prognosis':cards},reg)]==['FLT3']
 
 
 def test_compact_prompt_cards_group_metadata_and_use_only_12hex_tags():
@@ -690,13 +719,15 @@ def test_evidence_match_allows_zero_or_multiple_cards_per_reason():
 
 
 def test_proforma_card_assignment_is_silently_stripped_before_validation(tmp_path):
-    raw=('classification:\n  - variant: v01\n    bucket: adverse\n'
-         '    reason: "FLT3 confers adverse prognosis. [card:aaaaaaaaaaa1]"\n'
-         '    card_tags: ["[card:aaaaaaaaaaa1]"]\nprognostic_score: null\n')
+    raw=('applicable_disease: AML\nprognostic_frameworks: []\nclassification:\n'
+         '  - variant: v01\n    gene: FLT3\n    framework_effects: []\n'
+         '    other_evidence_effect: adverse\n'
+         '    other_evidence_reason: "FLT3 confers adverse prognosis. [card:aaaaaaaaaaa1]"\n'
+         '    card_tags: ["[card:aaaaaaaaaaa1]"]\n')
     cleaned=step._sanitize_proforma_text(tmp_path,'prognosis',raw)
     doc=yaml.safe_load(cleaned)
     assert 'card_tags' not in doc['classification'][0]
-    assert doc['classification'][0]['reason']=='FLT3 confers adverse prognosis.'
+    assert doc['classification'][0]['other_evidence_reason']=='FLT3 confers adverse prognosis.'
     schema_validation.validate_prognosis(cleaned,{'v01'})
     transforms=yaml.safe_load(step._transform_log_path(tmp_path).read_text())['transforms']
     assert {x['transform'] for x in transforms}=={'strip_proforma_card_assignment','strip_runtime_card_tag_from_reason'}
@@ -720,18 +751,21 @@ def test_semantic_retry_carries_all_prior_audit_feedback_and_resolves_dissent(tm
     def check2(prompt):
         assert "rejected_card_tag: '[card:aaaaaaaaaaa1]'" in prompt
         assert 'wrong disease context' in prompt
-        assert "candidate_card_tags:\n  - '[card:aaaaaaaaaaa2]'\n  - '[card:aaaaaaaaaaa3]'" in prompt
+        assert '[card:aaaaaaaaaaa2]' in prompt and '[card:aaaaaaaaaaa3]' in prompt
         evidence_input=prompt.split('# Evidence items',1)[1].split('# Candidate card catalog',1)[0]
         assert 'statement:' not in evidence_input
     def check3(prompt):
         assert "rejected_card_tag: '[card:aaaaaaaaaaa1]'" in prompt and "rejected_card_tag: '[card:aaaaaaaaaaa2]'" in prompt
         assert 'wrong disease context' in prompt and 'wrong clinical function' in prompt
-        assert "candidate_card_tags:\n  - '[card:aaaaaaaaaaa3]'" in prompt
+        evidence_input=prompt.split('# Evidence items',1)[1].split('# Candidate card catalog',1)[0]
+        candidate_section=evidence_input.split('candidate_card_tags:',1)[1].split('prior_failed_matches:',1)[0]
+        assert '[card:aaaaaaaaaaa3]' in candidate_section
+        assert '[card:aaaaaaaaaaa1]' not in candidate_section and '[card:aaaaaaaaaaa2]' not in candidate_section
     monkeypatch.setattr(step,'_model_call',_scripted_model_call(script,{
         'evidence-match-batch-02':check2,'evidence-match-batch-03':check3}))
     monkeypatch.setattr(step,'_retry',lambda name: 3 if name=='evidence_resolution_attempts' else 2)
     monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'aaaaaaaaaaa1','C2':'aaaaaaaaaaa2','C3':'aaaaaaaaaaa3'})
-    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
+    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None,authoritative_disease='AML')
     assert len(out)==1 and out[0]['evidence'][0]['card_id']=='C3'
     assert out[0]['evidence'][0]['semantic_attempt']==3
     issue=step._semantic_dissent_issue(tmp_path,'evidence:PX-ADVERSE-01')
@@ -744,7 +778,7 @@ def test_semantic_retry_carries_all_prior_audit_feedback_and_resolves_dissent(tm
 
 def test_multiple_cards_for_one_reason_are_audited_independently(tmp_path,monkeypatch):
     cards=[_test_card('C1'),_test_card('C2')]
-    el={'schema_id':'PX-ADVERSE-01','domain':'prognosis','bucket':'adverse','statement':'claim','reason':'A and B.',
+    el={'schema_id':'PX-OTHER_EVIDENCE_ADVERSE-01','domain':'prognosis','bucket':'other_evidence_adverse','statement':'claim','reason':'A and B.',
         'variants':['v01'],'evidence_domain':'prognosis','required':False,'source':{'variants':['v01'],'reason':'A and B.'}}
     reg={'v01':{'gene':'FLT3'}}
     script={
@@ -754,17 +788,17 @@ def test_multiple_cards_for_one_reason_are_audited_independently(tmp_path,monkey
     monkeypatch.setattr(step,'_model_call',_scripted_model_call(script))
     monkeypatch.setattr(step,'_retry',lambda name: 3 if name=='evidence_resolution_attempts' else 2)
     monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'aaaaaaaaaaa1','C2':'aaaaaaaaaaa2'})
-    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
+    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None,authoritative_disease='AML')
     assert [x['card_id'] for x in out[0]['evidence']]==['C1']
     blocks=step.stage_blocks(tmp_path,{},out,reg)
     assert blocks[0]['components'][0]['card_tags']==['[card:aaaaaaaaaaa1]']
-    issue=step._semantic_dissent_issue(tmp_path,'evidence:PX-ADVERSE-01')
+    issue=step._semantic_dissent_issue(tmp_path,'evidence:PX-OTHER_EVIDENCE_ADVERSE-01')
     assert issue['status']=='resolved'
 
 
 def test_multiple_passing_cards_propagate_to_report_block(tmp_path,monkeypatch):
     cards=[_test_card('C1'),_test_card('C2')]
-    el={'schema_id':'PX-ADVERSE-01','domain':'prognosis','bucket':'adverse','statement':'claim','reason':'A and B.',
+    el={'schema_id':'PX-OTHER_EVIDENCE_ADVERSE-01','domain':'prognosis','bucket':'other_evidence_adverse','statement':'claim','reason':'A and B.',
         'variants':['v01'],'evidence_domain':'prognosis','required':False,'source':{'variants':['v01'],'reason':'A and B.'}}
     reg={'v01':{'gene':'FLT3'}}
     script={
@@ -773,7 +807,7 @@ def test_multiple_passing_cards_propagate_to_report_block(tmp_path,monkeypatch):
     }
     monkeypatch.setattr(step,'_model_call',_scripted_model_call(script))
     monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'aaaaaaaaaaa1','C2':'aaaaaaaaaaa2'})
-    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
+    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None,authoritative_disease='AML')
     assert [x['card_id'] for x in out[0]['evidence']]==['C1','C2']
     blocks=step.stage_blocks(tmp_path,{},out,reg)
     assert blocks[0]['components'][0]['card_tags']==['[card:aaaaaaaaaaa1]','[card:aaaaaaaaaaa2]']
@@ -793,7 +827,7 @@ def test_ptbg_semantic_exhaustion_suppresses_statement_but_keeps_failed_audits(t
     monkeypatch.setattr(step,'_model_call',_scripted_model_call(script))
     monkeypatch.setattr(step,'_retry',lambda name: 2)
     monkeypatch.setattr(step.card_identity,'tag_by_id',lambda manifest:{'C1':'aaaaaaaaaaa1','C2':'aaaaaaaaaaa2'})
-    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None)
+    out=step.stage_evidence(tmp_path,[el],{'prognosis':cards},reg,{},None,authoritative_disease='AML')
     assert out==[]
     issue=step._semantic_dissent_issue(tmp_path,'evidence:PX-ADVERSE-01')
     assert issue['status']=='resolved'

@@ -260,7 +260,7 @@ def test_self_handoff_resumes_correctly_across_three_invocations():
     assert shared_state.get("t1") in (None, {})
 
 
-def test_self_handoff_stagnation_counter_survives_the_process_boundary():
+def test_self_handoff_unchanged_consumed_output_does_not_count_as_a_new_attempt():
     shared_state = {}
     output = {"text": "a: bad\n"}
 
@@ -272,10 +272,12 @@ def test_self_handoff_stagnation_counter_survives_the_process_boundary():
 
     with unittest.TestCase().assertRaises(Suspend):
         invoke()
-    first = shared_state["t1"].get("stagnation_repeats")
+    first = dict(shared_state["t1"])
     with unittest.TestCase().assertRaises(Suspend):
         invoke()
-    assert shared_state["t1"]["stagnation_repeats"] > first
+    assert shared_state["t1"] == first
+    assert shared_state["t1"]["rewrites"] == 1
+    assert shared_state["t1"].get("stagnation_repeats", 0) == 0
 
 
 # 9 -------------------------------------------------------------------------

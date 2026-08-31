@@ -1,11 +1,15 @@
+applicable_disease: AML
 classification:
   - variant: v01
-    bucket: drug_target
+    gene: IDH1
+    treatment_category: drug_target
     therapy: "IDH1 inhibitor"
     reason: "Targetable."
   - variant: v01
-    bucket: no_drug_implication
+    gene: IDH1
+    treatment_category: no_drug_implication
     reason: "No implication."
   - variant: v02
-    bucket: no_drug_implication
+    gene: ASXL1
+    treatment_category: no_drug_implication
     reason: "No implication."

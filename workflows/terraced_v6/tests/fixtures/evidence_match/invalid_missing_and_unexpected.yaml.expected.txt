@@ -5,7 +5,7 @@ evidence match failed validation with 2 issue(s):
    Received: 2 row(s): ['E0001', 'E0099']
    Expected: 2 row(s): ['E0001', 'E0002']
 2. matches[0].card_tags[0]
-   Problem: '[card:000000000009]' is not an allowed candidate card tag.
-   Required fix: use one exact candidate card tag from ['[card:000000000001]', '[card:000000000002]'].
+   Problem: '[card:000000000009]' was not supplied as a candidate for E0001.
+   Required fix: remove this tag from E0001 and preserve otherwise valid selections; select only exact tags supplied under this evidence item.
    Received: [card:000000000009]
-   Expected: ['[card:000000000001]', '[card:000000000002]']
+   Expected: one of this item's 2 supplied candidate tag(s)

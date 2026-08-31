@@ -1,11 +1,21 @@
+applicable_disease: AML
+prognostic_frameworks:
+  - name: ELN
+    tier: null
+    reason: "ELN is applicable to AML, but the supplied findings are insufficient to assign a tier."
 classification:
   - variant: v01
-    bucket: adverse
-    reason: "ASXL1 mutation confers an adverse prognosis in this context."
+    gene: ASXL1
+    framework_effects: []
+    other_evidence_effect: adverse
+    other_evidence_reason: "ASXL1 mutation confers an adverse prognosis in AML."
   - variant: v02
-    bucket: adverse
-    reason: "SRSF2 mutation confers an adverse prognosis in this context."
+    gene: SRSF2
+    framework_effects: []
+    other_evidence_effect: adverse
+    other_evidence_reason: "SRSF2 mutation confers an adverse prognosis in AML."
   - variant: v03
-    bucket: neutral
-    reason: "No independent prognostic effect is supported in this context."
-prognostic_score: null
+    gene: NPM1
+    framework_effects: []
+    other_evidence_effect: no_evidence
+    other_evidence_reason: null

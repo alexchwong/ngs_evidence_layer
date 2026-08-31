@@ -439,7 +439,7 @@ def _sanitize_proforma_text(work,call_id,text):
                 if key in {'card_tag','card_tags'}:
                     records.append({'stage':call_id,'transform':'strip_proforma_card_assignment','path':child})
                     continue
-                if key=='reason' and isinstance(item,str):
+                if key in {'reason','other_evidence_reason'} and isinstance(item,str):
                     cleaned=' '.join(_RUNTIME_CARD_TAG_RE.sub(' ',item).split()).strip()
                     if cleaned!=item:
                         records.append({'stage':call_id,'transform':'strip_runtime_card_tag_from_reason','path':child})

@@ -1,16 +1,16 @@
 prognosis failed validation with 3 issue(s):
-1. classification[0].bucket
-   Problem: 'bad' is not an allowed bucket.
-   Required fix: use one exact bucket from ['adverse', 'favorable', 'neutral', 'uncertain'].
+1. classification[0].other_evidence_effect
+   Problem: 'bad' is not an allowed value.
+   Required fix: use one exact value from ['adverse', 'favorable', 'neutral', 'no_evidence'].
    Received: bad
-   Expected: ['adverse', 'favorable', 'neutral', 'uncertain']
-2. classification[1].reason
-   Problem: expected a non-empty string; received string.
-   Required fix: supply non-empty text.
-   Received: 
+   Expected: ['adverse', 'favorable', 'neutral', 'no_evidence']
+2. classification[1].other_evidence_reason
+   Problem: is missing despite a positive/neutral other-evidence classification.
+   Required fix: give one concise same-disease prognostic proposition.
+   Received: None
    Expected: non-empty string
-3. prognostic_score
-   Problem: reports an inability to calculate a score.
-   Required fix: use null instead; do not report that a score could not be calculated.
-   Received: IPSS-M not calculable insufficient data
-   Expected: null
+3. prognostic_frameworks[0].tier
+   Problem: reports an inability to calculate/assign the framework tier.
+   Required fix: use tier: null instead; identifying a framework does not require assigning its tier.
+   Received: not calculable
+   Expected: string | null

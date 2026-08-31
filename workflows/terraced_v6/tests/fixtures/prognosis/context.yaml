@@ -1,1 +1,6 @@
 variants: [v01, v02, v03]
+authoritative_disease: AML
+registry:
+  v01: {gene: ASXL1}
+  v02: {gene: SRSF2}
+  v03: {gene: NPM1}
