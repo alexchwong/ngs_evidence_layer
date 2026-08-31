@@ -12,7 +12,9 @@ Commands:
     new     --cul P            create a profile seeded from the default scope
     check   --cul P            validate and report stale amendments
     diff    --cul P            show every change the profile makes to the corpus
-    apply   --cul P --from F   install a profile downloaded from the card browser
+    apply   --cul P --from F   install a profile downloaded from the CUL editor
+    --edit                     build/open the Corpus User Layer editor
+    edit                       backward-compatible alias for --edit
 """
 from __future__ import annotations
 
@@ -46,6 +48,128 @@ def _resolve(name, *, strict=False):
     )
     return document, cards, layer
 
+
+
+def _profile_payload(name: str, document, cards) -> dict:
+    """Serializable profile state consumed by the editor."""
+    path = cul_core.profile_path(name)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    layer = cul_core.load_profile(path, corpus_document=document, cards=cards, strict=False)
+    return {
+        "profile": layer["profile"],
+        "description": layer.get("description") or "",
+        "scope": raw.get("scope") or {"enabled": True, "global": {}, "papers": {}},
+        "amendments": {
+            card_id: {
+                **{field: entry[field] for field in cul_core.AMENDABLE_FIELDS if field in entry},
+                "base_sha256": entry.get("base_sha256"),
+                "stale": entry.get("stale", False),
+            }
+            for card_id, entry in layer["amendments"].items()
+        },
+        "stale": layer.get("stale") or [],
+    }
+
+
+def _all_profiles(document, cards) -> dict:
+    """Embed every valid CUL profile so the editor can switch without rebuilding."""
+    profiles = {}
+    for name in cul_core.available_profiles():
+        try:
+            profiles[name] = _profile_payload(name, document, cards)
+        except (ValueError, cul_core.CULError):
+            continue
+    return profiles
+
+
+def _vocabulary() -> dict:
+    """Closed value sets used by the editor controls and CLI validator."""
+    from scripts import vocab as vocab_module
+
+    return {
+        "categories": sorted(corpus_core.CARD_CATEGORIES),
+        "evidenceTiers": list(cul_core.EVIDENCE_TIERS),
+        "diseases": sorted(vocab_module.DISEASES, key=str.casefold),
+    }
+
+
+def _editor_data() -> dict:
+    """Build the CUL editor payload from the incorporated corpus only.
+
+    This deliberately has no dependency on ``accept/`` or ``archive/``. The CUL
+    is a user overlay on the public incorporated corpus; private evidence belongs
+    only to ``build_card_browser.py --full``.
+    """
+    document, cards, corpus_sha256 = _corpus()
+    profiles = _all_profiles(document, cards)
+    selected = cul_core.DEFAULT_PROFILE if cul_core.DEFAULT_PROFILE in profiles else None
+    cul_profile = profiles[selected] if selected else None
+
+    papers = []
+    browser_cards = []
+    for entry in document.get("publications", []):
+        paper_doc = entry["document"]
+        key = paper_doc["publication_key"]
+        citation = paper_doc.get("citation", {})
+        source = entry.get("source") or {}
+        audit = source.get("audit") or {}
+        audit_by_card = {
+            item.get("card_id"): {
+                "verdict": item.get("verdict"),
+                "basis": item.get("review_basis"),
+            }
+            for item in (audit.get("results") or [])
+            if item.get("card_id")
+        }
+        papers.append({
+            "key": key,
+            "nickname": paper_doc.get("paper_nickname") or key,
+            "display": citation.get("display", ""),
+            "journal": citation.get("journal", ""),
+            "year": citation.get("year"),
+            "type": paper_doc.get("publication_type", ""),
+            "doi": citation.get("doi", ""),
+            "citation": citation,
+            "auditModel": audit.get("audit_model"),
+            "extractionModel": paper_doc.get("extraction_model"),
+            "auditDate": audit.get("audit_date"),
+            "evidence": "absent",
+        })
+
+        for card in paper_doc.get("cards", []):
+            browser_cards.append({
+                "id": card["card_id"],
+                "shortId": cul_core.short_card_id(card["card_id"]),
+                "paper": key,
+                "category": card.get("category", ""),
+                "tier": card.get("evidence_tier", ""),
+                "genes": card.get("genes", []),
+                "diseases": card.get("diseases", []),
+                "ancestors": card.get("disease_ancestors", []),
+                "locator": card.get("locator", ""),
+                "secondary": card.get("secondary_citation"),
+                "text": card.get("interpretation", ""),
+                "baseSha256": cul_core.base_digest(card),
+                "audit": audit_by_card.get(card["card_id"]),
+            })
+
+    papers.sort(key=lambda item: (-(item["year"] or 0), item["nickname"]))
+    browser_cards.sort(key=lambda item: item["id"])
+    return {
+        "corpusVersion": document.get("corpus_version"),
+        "corpusSha256": corpus_sha256,
+        "generatedAt": document.get("generated_at"),
+        "full": False,
+        "evidenceMode": "none",
+        "missingPackages": [],
+        "mismatchedPackages": [],
+        "papers": papers,
+        "cards": browser_cards,
+        "cul": cul_profile,
+        "editor": True,
+        "profiles": profiles,
+        "vocabulary": _vocabulary(),
+    }
 
 def cmd_list(args):
     names = cul_core.available_profiles()
@@ -127,7 +251,7 @@ def cmd_check(args):
         print("STALE=" + ",".join(stale))
         print(
             "\nThese amendments were authored against corpus cards that have since changed.\n"
-            "They will not apply until reviewed. Re-edit each card in the browser, or remove\n"
+            "They will not apply until reviewed. Re-edit each card in the CUL editor, or remove\n"
             "the amendment, then re-check."
         )
         return 1
@@ -199,7 +323,7 @@ def cmd_apply(args):
         sys.exit(
             "downloaded profile contains stale amendments: "
             + ", ".join(layer["stale"])
-            + "\nRe-edit them in the browser, or pass --allow-stale to install anyway."
+            + "\nRe-edit them in the CUL editor, or pass --allow-stale to install anyway."
         )
     path = cul_core.profile_path(raw["profile"])
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,24 +337,14 @@ def cmd_apply(args):
 
 
 def _refresh_editor() -> None:
-    """Rebuild the editor so a newly installed profile appears in its dropdown.
-
-    The profile is already written and valid by the time this runs, so a failed
-    rebuild is reported and ignored rather than failing the install. Nothing is
-    built on a machine that has never built the editor.
-    """
+    """Refresh an already-built CUL editor after a profile install."""
     if not EDITOR_HTML.is_file():
         return
-    builder = REPO_ROOT / "scripts" / "build_card_browser.py"
     try:
-        subprocess.run(
-            [sys.executable, str(builder), "--edit"],
-            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
-        )
-    except (subprocess.CalledProcessError, OSError) as exc:
-        detail = getattr(exc, "stderr", "") or exc
-        print(f"WARNING: could not refresh {EDITOR_HTML.name}: {detail}")
-        print("  Rebuild manually: python scripts/build_card_browser.py --edit")
+        _build_editor()
+    except (OSError, ValueError, cul_core.CULError) as exc:
+        print(f"WARNING: could not refresh {EDITOR_HTML.name}: {exc}")
+        print("  Rebuild manually: python scripts/cul.py --edit --no-open --no-watch")
         return
     print(f"EDITOR REFRESHED: {EDITOR_HTML}")
 
@@ -241,6 +355,9 @@ def _refresh_editor() -> None:
 
 SETTINGS_PATH = REPO_ROOT / "config" / "cul" / "settings.json"
 EDITOR_HTML = REPO_ROOT / "config" / "cul" / "corpus-user-layer.html"
+EDITOR_TEMPLATE = REPO_ROOT / "scripts" / "assets" / "corpus_user_layer_template.html"
+EDITOR_SCRIPT = REPO_ROOT / "scripts" / "assets" / "card_browser_cul.js"
+READ_ONLY_BROWSER_HTML = REPO_ROOT / "output" / "reports" / "card-browser.html"
 
 
 def _settings() -> dict:
@@ -272,8 +389,20 @@ def _downloads_dir(explicit: str | None) -> Path:
 
 
 def _build_editor() -> Path:
-    builder = REPO_ROOT / "scripts" / "build_card_browser.py"
-    subprocess.run([sys.executable, str(builder), "--edit"], check=True)
+    """Render the standalone Corpus User Layer editor.
+
+    The editor is generated here, not through ``build_card_browser.py``. Its
+    output path is deliberately separate from the read-only browser.
+    """
+    data = _editor_data()
+    template = EDITOR_TEMPLATE.read_text(encoding="utf-8")
+    cul_script = EDITOR_SCRIPT.read_text(encoding="utf-8")
+    template = template.replace("/*__CUL_LAYER__*/", cul_script)
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    payload = payload.replace("</", "<\\/")
+    html = template.replace("/*__CARD_DATA__*/null", payload)
+    EDITOR_HTML.parent.mkdir(parents=True, exist_ok=True)
+    EDITOR_HTML.write_text(html, encoding="utf-8")
     return EDITOR_HTML
 
 
@@ -348,6 +477,7 @@ def cmd_edit(args):
 
     html = _build_editor()
     print(f"EDITOR: {html}")
+    print(f"READ-ONLY CARD BROWSER (separate artefact): {READ_ONLY_BROWSER_HTML}")
     if not args.no_open and not _open_in_browser(html):
         print("Could not open a browser automatically; open the path above.")
 
@@ -356,7 +486,7 @@ def cmd_edit(args):
     if not downloads.is_dir():
         print(
             f"\nNot watching: {downloads} does not exist.\n"
-            "Set the right one with: python scripts/cul.py edit --downloads-dir <path>\n"
+            "Set the right one with: python scripts/cul.py --edit --downloads-dir <path>\n"
             "Or install a saved profile manually: "
             "python scripts/cul.py apply --from <file>"
         )
@@ -415,7 +545,7 @@ def build_parser():
     diff.add_argument("--cul", required=True)
     diff.set_defaults(func=cmd_diff)
 
-    apply_cmd = sub.add_parser("apply", help="install a profile downloaded from the browser")
+    apply_cmd = sub.add_parser("apply", help="install a profile downloaded from the CUL editor")
     apply_cmd.add_argument("--from", dest="source", required=True)
     apply_cmd.add_argument("--cul", help="override the profile name in the downloaded file")
     apply_cmd.add_argument("--allow-stale", action="store_true")
@@ -436,6 +566,12 @@ def build_parser():
 
 
 def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    else:
+        argv = list(argv)
+    if argv and argv[0] == "--edit":
+        argv[0] = "edit"
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)

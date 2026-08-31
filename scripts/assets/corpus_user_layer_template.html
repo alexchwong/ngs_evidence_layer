@@ -193,7 +193,43 @@
   :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
-  /* ---------- citation copy ---------- */
+  /* ---------- corpus user layer ---------- */
+  /* Inherits the light document palette above. Editable surfaces are white with
+     --ink text so they stay legible before selection. */
+  .modebar{display:flex;gap:0;align-items:stretch;margin-left:auto;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+  .modebtn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    padding:5px 12px;border:0;background:#fff;color:var(--muted);cursor:pointer;
+  }
+  .modebtn + .modebtn{border-left:1px solid var(--rule)}
+  .modebtn:hover{color:var(--ink)}
+  .modebtn[aria-pressed="true"]{background:var(--azure);color:#fff}
+
+  .profilebar{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:10px 14px;margin:0 0 18px;
+    background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--azure);
+  }
+  .profilebar .pname{
+    font-family:var(--mono);font-size:12px;color:var(--ink);background:#fff;
+    border:1px solid var(--rule);border-radius:2px;padding:5px 8px;width:13rem;
+  }
+  .pcount{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .pstale{
+    font-family:var(--mono);font-size:10.5px;color:#fff;background:var(--eosin);
+    border-radius:2px;padding:2px 7px;letter-spacing:.04em;
+  }
+  .pbtn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+    border:1px solid var(--rule);background:#fff;color:var(--ink);
+    border-radius:2px;padding:5px 11px;cursor:pointer;
+  }
+  .pbtn:hover{border-color:var(--azure);color:var(--azure)}
+  .pbtn.primary{background:var(--azure);border-color:var(--azure);color:#fff}
+  .pbtn.primary:hover{background:#22406f;color:#fff}
+  .phelp{flex-basis:100%;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+  /* Copy controls are quiet text affordances, not buttons competing with the card. */
   .copyrow{display:flex;gap:14px;align-items:baseline;margin-top:8px}
   .copybtn{
     border:0;background:none;padding:0;cursor:pointer;
@@ -203,6 +239,228 @@
   .copybtn:hover{color:var(--azure)}
   .copybtn.copied{color:var(--cat-treatment);text-decoration:none}
 
+  .editor{margin-top:14px;border-top:1px solid var(--rule);padding-top:14px}
+  .original{background:var(--panel);border-left:3px solid var(--muted);padding:9px 12px;margin-bottom:12px}
+  .origlabel{
+    display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px;
+  }
+  .original p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink)}
+  .editarea{
+    width:100%;font-family:var(--sans);font-size:14.5px;line-height:1.5;
+    background:#fff;color:var(--ink);
+    border:1px solid var(--rule);border-radius:2px;padding:9px 11px;resize:vertical;
+  }
+  .editarea:focus,.editfield:focus,.profilebar .pname:focus{
+    outline:2px solid var(--focus);outline-offset:-1px;border-color:var(--focus);
+  }
+  /* Assertion left, classification right; stacks when the column is too narrow
+     (mobile, or the full-mode detail pane taking two thirds of the shell). */
+  .editcolumns{display:grid;grid-template-columns:minmax(0,1fr) 17rem;gap:18px;align-items:start}
+  .editmain{min-width:0}
+  .editside{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .editlabel{display:flex;flex-direction:column;gap:4px}
+  .wasline{
+    font-family:var(--mono);font-size:10.5px;line-height:1.4;color:var(--muted);
+    overflow-wrap:anywhere;
+  }
+  select.editfield{
+    appearance:none;-webkit-appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 14px) 52%,calc(100% - 9px) 52%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+    padding-right:26px;cursor:pointer;
+  }
+
+  /* Disease token field: chips for the selection, filtering list to add. */
+  .tokenfield{position:relative;display:flex;flex-direction:column;gap:5px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;
+    font-family:var(--mono);font-size:11px;line-height:1.3;
+    background:#fff;color:var(--ink);border:1px solid var(--rule);
+    border-radius:2px;padding:2px 4px 2px 7px;
+  }
+  .chipx{
+    border:0;background:none;padding:0 1px;cursor:pointer;
+    font-family:var(--mono);font-size:13px;line-height:1;color:var(--muted);
+  }
+  .chipx:hover{color:var(--eosin)}
+  .chipnone{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .tokeninput{width:100%}
+  .tokenlist{
+    list-style:none;margin:0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
+    max-height:210px;overflow-y:auto;background:#fff;border:1px solid var(--rule);
+    box-shadow:0 4px 14px rgba(25,24,37,.13);
+  }
+  .tokenopt{
+    display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;
+    font-family:var(--sans);font-size:12.5px;color:var(--ink);padding:5px 9px;
+  }
+  .tokenopt:hover{background:var(--panel);color:var(--azure)}
+  @media (max-width:1100px){
+    .editcolumns{grid-template-columns:minmax(0,1fr)}
+  }
+  body.full-mode.detail-open .editcolumns{grid-template-columns:minmax(0,1fr)}
+
+
+  /* The editor carries its own accent so it is never mistaken for the
+     read-only card browser. */
+  body.cul-app .masthead{border-bottom:2px solid var(--azure)}
+  body.cul-app .wordmark em{color:var(--azure)}
+
+
+  /* ---------- rules panel ---------- */
+  .rulespanel{border-bottom:2px solid var(--azure)}
+  .rulelist{list-style:none;margin:0 0 10px;padding:0}
+  .ruleempty{font-family:var(--mono);font-size:10.5px;color:var(--muted);line-height:1.5}
+  .ruleitem{display:flex;gap:7px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--rule)}
+  .ruleitem.off .rulebody{opacity:.45;text-decoration:line-through}
+  .rulebody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+  .rulescope{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted)}
+  .ruletext{font-size:12px;line-height:1.4;color:var(--ink);overflow-wrap:anywhere}
+  .ruledrop{border:0;background:none;cursor:pointer;color:var(--muted);
+    font-family:var(--mono);font-size:14px;line-height:1;padding:0 2px}
+  .ruledrop:hover{color:var(--eosin)}
+  .ruleexempt{font-family:var(--mono);font-size:10.5px;color:var(--azure);
+    border-left:3px solid var(--azure);padding:5px 9px;background:var(--panel);margin:0 0 10px}
+  .ruleform{display:flex;flex-direction:column;gap:9px;
+    border-top:1px solid var(--rule);padding-top:11px}
+  .rulevalues{display:flex;flex-direction:column;gap:4px}
+  .rulecheck{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink);cursor:pointer}
+  .rulepreview{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0;line-height:1.5}
+  .exempttag{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+    color:var(--azure);border:1px solid var(--azure);border-radius:2px;padding:1px 5px}
+
+  /* ---------- modal ---------- */
+  .modalback{
+    position:fixed;inset:0;z-index:40;background:rgba(25,24,37,.42);
+    display:flex;align-items:flex-start;justify-content:center;padding:6vh 20px;
+  }
+  .modalbox{
+    background:#fff;border:1px solid var(--rule);max-width:760px;width:100%;
+    max-height:82vh;overflow-y:auto;padding:20px 24px 28px;box-shadow:0 12px 40px rgba(25,24,37,.24);
+  }
+  .modalhead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .modalhead h2{font-family:var(--display);font-size:22px;margin:0 0 4px;font-weight:500}
+  .modalsection{border-top:1px solid var(--rule);margin-top:18px;padding-top:14px}
+  .modalsection > h3{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 8px;
+  }
+  .modalline{margin:0 0 5px;font-size:13px;line-height:1.5;color:var(--ink)}
+  .pselect{width:11rem}
+  .pfile{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  label.pbtn{cursor:pointer;position:relative;display:inline-flex;align-items:center}
+
+  /* ---------- edit mode: filters | editor | card picker ---------- */
+  body.edit-mode .shell{grid-template-columns:288px minmax(0,1fr) 27rem}
+  body.edit-mode .rail{grid-column:1}
+  body.edit-mode .detail{
+    grid-column:2;grid-row:1;display:block;background:#fff;
+    border-left:1px solid var(--rule);border-right:1px solid var(--rule);
+    padding:18px 24px 60px;position:sticky;top:0;max-height:100vh;overflow-y:auto;min-width:0;
+  }
+  body.edit-mode .main{grid-column:3;grid-row:1;padding:18px 20px 70px}
+  body.edit-mode .toolbar{flex-wrap:wrap}
+  body.edit-mode .cards{list-style:none;margin:0;padding:0}
+
+  .pickbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .picktally{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .pbtn[disabled]{opacity:.45;cursor:default}
+  .pbtn[disabled]:hover{border-color:var(--rule);color:var(--ink)}
+
+  .promptbox{
+    border:1px solid var(--azure);border-left:3px solid var(--azure);background:var(--panel);
+    padding:11px 13px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  }
+  .promptbox p{flex-basis:100%;margin:0;font-size:12.5px;line-height:1.5;color:var(--ink)}
+
+  .pickrow{
+    display:flex;gap:9px;align-items:flex-start;
+    border-top:1px solid var(--rule);padding:10px 6px;cursor:pointer;
+  }
+  .pickrow:hover{background:var(--panel)}
+  .pickrow.selected{background:var(--panel);box-shadow:inset 3px 0 0 var(--azure)}
+  .pickrow.excluded .picktext,.pickrow.excluded .pickid{opacity:.45}
+  .pickbox{margin-top:3px;accent-color:var(--azure);width:15px;height:15px;flex:none;cursor:pointer}
+  .pickbox:disabled{cursor:default}
+  .pickbody{min-width:0}
+  .pickhead{display:flex;flex-wrap:wrap;gap:7px;align-items:baseline;margin-bottom:3px}
+  .pickid{font-family:var(--mono);font-size:11px;color:var(--ink)}
+  .pickpaper{font-family:var(--mono);font-size:10px;color:var(--muted);overflow-wrap:anywhere}
+  .locktag{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+    color:var(--muted);border:1px solid var(--rule);border-radius:2px;padding:1px 5px;
+  }
+  .picktext{
+    margin:0;font-size:12.5px;line-height:1.45;color:var(--ink);
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .scopenote{
+    font-family:var(--mono);font-size:10.5px;color:var(--cat-germline);
+    border-left:3px solid var(--cat-germline);padding:6px 10px;background:var(--panel);margin:12px 0 0;
+  }
+  /* Keep the rules/filters rail as a real LHS column on desktop-sized windows.
+     The old 1250px collapse made the rail appear to disappear on ordinary
+     laptop/browser widths. Only the mobile breakpoint stacks the editor. */
+  @media (min-width:901px) and (max-width:1250px){
+    body.edit-mode .shell{grid-template-columns:250px minmax(0,1fr) minmax(18rem,22rem)}
+    body.edit-mode .rail{padding-left:14px;padding-right:14px}
+    body.edit-mode .detail{padding-left:18px;padding-right:18px}
+    body.edit-mode .main{padding-left:14px;padding-right:14px}
+  }
+  @media (max-width:900px){
+    body.edit-mode .shell{grid-template-columns:minmax(0,1fr)}
+    body.edit-mode .rail{grid-column:1;grid-row:1;position:static;max-height:none}
+    body.edit-mode .detail{grid-column:1;grid-row:2;position:static;max-height:none;border-left:0;border-right:0}
+    body.edit-mode .main{grid-column:1;grid-row:3}
+  }
+
+  .editlabel > span{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .editlabel.changed > span{color:var(--eosin)}
+  .editfield{
+    font-family:var(--sans);font-size:13.5px;
+    background:#fff;color:var(--ink);
+    border:1px solid var(--rule);border-radius:2px;padding:6px 9px;
+  }
+  .editlabel.changed .editfield{border-color:var(--eosin)}
+  .editfield::placeholder{color:#767290}
+  .editactions{display:flex;gap:12px;align-items:baseline;margin-top:14px}
+  .revert{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;
+    border:1px solid var(--rule);background:#fff;color:var(--eosin);
+    border-radius:2px;padding:4px 10px;cursor:pointer;
+  }
+  .revert:hover{border-color:var(--eosin)}
+  .editnote{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+  .amendtag{
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:#fff;background:var(--eosin);border-radius:2px;padding:1px 6px;margin-left:8px;
+  }
+  .amendtag.staletag{background:var(--cat-germline)}
+  .evidencetag{
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--cat-germline);border:1px solid var(--cat-germline);
+    border-radius:2px;padding:1px 6px;margin-left:8px;
+  }
+
+  .diffblock{border-top:1px solid var(--rule);padding-top:14px;margin-top:16px}
+  .diffblock h3{font-family:var(--mono);font-size:12px;margin:0 0 10px;color:var(--ink)}
+  .diffrow{margin:10px 0}
+  .difffield{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .diffrow .before{margin:4px 0;font-size:13.5px;color:var(--muted);text-decoration:line-through}
+  .diffrow .after{margin:4px 0;font-size:13.5px;color:var(--ink);border-left:3px solid var(--eosin);padding-left:9px}
+  .diffkind{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:10px}
+  body.edit-mode .card{cursor:default}
 </style>
 </head>
 <body>
@@ -210,21 +468,34 @@
   <h1 class="wordmark">Evidence <em>cards</em></h1>
   <div class="provenance" id="provenance"></div>
 </header>
+
 <button class="railtoggle" id="railtoggle" aria-expanded="false" aria-controls="rail">Filters</button>
+
 <div class="shell">
   <aside class="rail" id="rail" aria-label="Filters"></aside>
   <main class="main">
     <div class="toolbar">
       <div class="tally" id="tally"></div>
-      <input class="text-search" id="textsearch" type="search" placeholder="Search interpretation text" aria-label="Search interpretation text">
+      <input class="text-search" id="textsearch" type="search" placeholder="Search: free text, &quot;phrases&quot;, -exclude, gene:TP53" aria-label="Search cards">
       <button class="reset" id="reset" type="button">Clear all filters</button>
+      <div class="modebar" id="modebar" role="group" aria-label="Mode">
+        <button class="modebtn" id="mode-browse" type="button" aria-pressed="true">Browse</button>
+        <button class="modebtn" id="mode-edit" type="button" aria-pressed="false">Edit</button>
+      </div>
     </div>
+    <div id="profilemount"></div>
     <ol class="cards" id="cards"></ol>
   </main>
   <aside class="detail" id="detail" aria-label="Card details"></aside>
 </div>
+
 <script>
 const DATA = /*__CARD_DATA__*/null;
+const EDIT = { on:false };
+/* The editor artefact has no browse mode, so it starts in edit mode. Deciding
+   this at declaration keeps the first render correct; setting it later left the
+   opening paint in browse mode until something triggered a re-render. */
+EDIT.on = !!DATA.editor;
 
 const CATEGORY_COLOURS = {
   diagnosis:"var(--cat-diagnosis)", prognosis:"var(--cat-prognosis)",
@@ -237,38 +508,47 @@ const paperByKey = {};
 DATA.papers.forEach(p => { paperName[p.key] = p.nickname; paperByKey[p.key] = p; });
 if (DATA.full) document.body.classList.add("full-mode");
 
-const state = {
-  paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(),
-  query:"", selected:null
-};
+/*__CUL_LAYER__*/
+
+
+const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"", terms:[], selected:null };
 const facetSearch = { paper:"", disease:"", gene:"", category:"" };
+
 const FACETS = [
-  { key:"category", title:"Category", field:c => [c.category], searchable:false, swatch:true },
-  { key:"paper", title:"Paper", field:c => [c.paper], searchable:true, labelOf:k => paperName[k] || k },
-  { key:"disease", title:"Disease", field:c => c.diseases, searchable:true },
-  { key:"gene", title:"Gene", field:c => c.genes, searchable:true }
+  { key:"category", title:"Category",  field:c => [c.category], searchable:false, swatch:true },
+  { key:"paper",    title:"Paper",     field:c => [c.paper],    searchable:true,  labelOf:k => paperName[k] || k },
+  { key:"disease",  title:"Disease",   field:c => c.diseases,   searchable:true },
+  { key:"gene",     title:"Gene",      field:c => c.genes,      searchable:true }
 ];
 
 function matches(card, skip){
+  const view = effective(card);
   for (const f of FACETS){
     if (f.key === skip) continue;
     const chosen = state[f.key];
     if (!chosen.size) continue;
-    if (!f.field(card).some(v => chosen.has(v))) return false;
+    if (!f.field(view).some(v => chosen.has(v))) return false;
   }
-  if (state.query && !skip && !card.text.toLowerCase().includes(state.query)) return false;
+  if (state.terms.length && !skip){
+    if (scoreCard(view, state.terms) < 0) return false;
+  }
   return true;
 }
 
 function visibleCards(){
-  return DATA.cards.filter(c => matches(c, null));
+  const rows = DATA.cards.filter(c => matches(c, null));
+  if (!state.terms.length) return rows;
+  return rows
+    .map(c => ({ card:c, score:scoreCard(effective(c), state.terms) }))
+    .sort((a, b) => b.score - a.score || (a.card.id < b.card.id ? -1 : 1))
+    .map(x => x.card);
 }
 
 function countsFor(facet){
   const tally = new Map();
   for (const card of DATA.cards){
     if (!matches(card, facet.key)) continue;
-    if (state.query && !card.text.toLowerCase().includes(state.query)) continue;
+    if (state.terms.length && scoreCard(effective(card), state.terms) < 0) continue;
     for (const value of facet.field(card)){
       if (!value) continue;
       tally.set(value, (tally.get(value) || 0) + 1);
@@ -282,17 +562,18 @@ function countsFor(facet){
 function buildRail(){
   const rail = document.getElementById("rail");
   rail.innerHTML = "";
+  /* Rules sit above the filters: they change what exists to be filtered. */
+  if (EDIT.on) rail.appendChild(buildRulesPanel());
   for (const facet of FACETS){
     const tally = countsFor(facet);
     let entries = [...tally.entries()];
     if (facet.key === "paper"){
-      entries.sort((a,b) => facet.labelOf(a[0]).localeCompare(facet.labelOf(b[0])));
+      entries.sort((a,b) => (facet.labelOf(a[0])).localeCompare(facet.labelOf(b[0])));
     } else if (facet.key === "category"){
       entries.sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     } else {
       entries.sort((a,b) => a[0].localeCompare(b[0], undefined, {numeric:true}));
     }
-
     const needle = facetSearch[facet.key].toLowerCase();
     if (needle){
       entries = entries.filter(([value]) => {
@@ -323,7 +604,7 @@ function buildRail(){
       input.value = facetSearch[facet.key];
       input.addEventListener("input", event => {
         facetSearch[facet.key] = event.target.value;
-        render({keepFocus:facet.key});
+        render({ keepFocus: facet.key });
       });
       box.appendChild(input);
     }
@@ -370,7 +651,6 @@ function buildRail(){
       item.appendChild(button);
       list.appendChild(item);
     }
-
     if (!entries.length){
       const item = document.createElement("li");
       item.className = "tally";
@@ -458,6 +738,9 @@ function buildDetail(card){
   head.append(id, close);
   pane.appendChild(head);
 
+  // Repeat the interpretation at the top, then show only the metadata useful
+  // for reviewing/classifying the selected card. Arrays are rendered as
+  // human-readable joined values rather than indexed parameter paths.
   const interpretation = detailSection("Interpretation");
   const text = document.createElement("p");
   text.className = "detail-interpretation";
@@ -484,36 +767,18 @@ function buildDetail(card){
     exact.secondary_citation && exact.secondary_citation.display
   );
   evidenceMeta.appendChild(evidenceGrid);
-
   for (const fragment of (evidence.fragments || [])){
     const box = document.createElement("div");
     box.className = "evidence-fragment";
     const label = document.createElement("div");
     label.className = "fragment-label";
     label.textContent = [fragment.fragment_id, fragment.role, fragment.locator]
-      .filter(Boolean).join(" · ");
+      .filter(Boolean)
+      .join(" · ");
     const quote = document.createElement("blockquote");
     quote.textContent = fragment.quote || "";
     box.append(label, quote);
     evidenceMeta.appendChild(box);
-  }
-
-  const supportMap = evidence.support_map || {};
-  if (Object.keys(supportMap).length){
-    const mapSection = document.createElement("div");
-    mapSection.className = "evidence-fragment";
-    const label = document.createElement("div");
-    label.className = "fragment-label";
-    label.textContent = "Support mapping";
-    const list = document.createElement("ul");
-    list.className = "support-list";
-    for (const [field, fragmentIds] of Object.entries(supportMap)){
-      const li = document.createElement("li");
-      li.textContent = field + ": " + textOrDash(fragmentIds);
-      list.appendChild(li);
-    }
-    mapSection.append(label, list);
-    evidenceMeta.appendChild(mapSection);
   }
   pane.appendChild(evidenceMeta);
 
@@ -536,58 +801,6 @@ function buildDetail(card){
   });
 }
 
-function legacyCopy(text, done){
-  const area = document.createElement("textarea");
-  area.value = text;
-  area.setAttribute("readonly", "");
-  area.style.position = "fixed";
-  area.style.opacity = "0";
-  document.body.appendChild(area);
-  area.select();
-  try {
-    document.execCommand("copy");
-    done();
-  } catch (err) {
-    window.prompt("Copy:", text);
-  }
-  document.body.removeChild(area);
-}
-
-function copyText(text, button){
-  const done = () => {
-    const original = button.textContent;
-    button.textContent = "Copied";
-    button.classList.add("copied");
-    setTimeout(() => {
-      button.textContent = original;
-      button.classList.remove("copied");
-    }, 1200);
-  };
-  if (navigator.clipboard && window.isSecureContext){
-    navigator.clipboard.writeText(text).then(done, () => legacyCopy(text, done));
-  } else {
-    legacyCopy(text, done);
-  }
-}
-
-function copyCitationRow(card){
-  const paper = paperByKey[card.paper] || {};
-  const row = document.createElement("div");
-  row.className = "copyrow";
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "copybtn";
-  button.textContent = "Copy citation";
-  button.addEventListener("click", event => {
-    event.stopPropagation();
-    const citation = paper.display || paper.nickname || card.paper;
-    copyText(citation, button);
-  });
-  button.addEventListener("keydown", event => event.stopPropagation());
-  row.appendChild(button);
-  return row;
-}
-
 function buildCards(){
   const list = document.getElementById("cards");
   const rows = visibleCards();
@@ -607,18 +820,17 @@ function buildCards(){
 
   const chunk = document.createDocumentFragment();
   for (const card of rows){
+    const view = effective(card);
     const item = document.createElement("li");
     item.className = "card" + (state.selected === card.id ? " selected" : "");
     item.dataset.cardId = card.id;
-    item.style.setProperty("--spine", CATEGORY_COLOURS[card.category] || "var(--rule)");
-
-    if (DATA.full){
+    item.style.setProperty("--spine", CATEGORY_COLOURS[view.category] || "var(--rule)");
+    if (DATA.full && !EDIT.on){
       item.tabIndex = 0;
       item.setAttribute("role", "button");
       item.setAttribute("aria-label", "Open full details for " + card.id);
       item.addEventListener("click", () => buildDetail(card));
       item.addEventListener("keydown", event => {
-        if (event.target !== item) return;
         if (event.key === "Enter" || event.key === " "){
           event.preventDefault();
           buildDetail(card);
@@ -629,12 +841,27 @@ function buildCards(){
     const cid = document.createElement("span");
     cid.className = "cid";
     cid.textContent = card.id;
+    if (view.amended){
+      const tag = document.createElement("span");
+      tag.className = "amendtag" + (view.stale ? " staletag" : "");
+      tag.textContent = view.stale ? "stale amendment" : "amended";
+      cid.appendChild(tag);
+    }
+    const paper = paperByKey[card.paper] || {};
+    if (paper.evidence === "mismatched"){
+      const tag = document.createElement("span");
+      tag.className = "evidencetag";
+      tag.textContent = "package out of sync";
+      tag.title = paper.evidenceWarning || "";
+      cid.appendChild(tag);
+    }
     item.appendChild(cid);
 
     const para = document.createElement("p");
-    para.appendChild(highlight(card.text, state.query));
+    para.appendChild(highlight(view.text, highlightNeedle()));
     item.appendChild(para);
-    item.appendChild(copyCitationRow(card));
+
+    item.appendChild(copyRow(card));
 
     chunk.appendChild(item);
   }
@@ -645,7 +872,7 @@ function buildCards(){
 function render(options){
   const keep = options && options.keepFocus;
   buildRail();
-  buildCards();
+  renderBody();
   if (keep){
     const facetIndex = FACETS.findIndex(f => f.key === keep);
     const input = document.querySelectorAll(".facet")[facetIndex].querySelector(".facet-search");
@@ -657,18 +884,20 @@ function render(options){
 }
 
 document.getElementById("provenance").textContent =
-  "corpus " + DATA.corpusVersion + " · " + DATA.cards.length + " cards · " +
+  "corpus " + DATA.corpusVersion + " \u00b7 " + DATA.cards.length + " cards \u00b7 " +
   DATA.papers.length + " papers" + (DATA.full ? " · full evidence view" : "");
 
 document.getElementById("textsearch").addEventListener("input", event => {
   state.query = event.target.value.trim().toLowerCase();
+  state.terms = parseQuery(state.query);
   buildRail();
-  buildCards();
+  renderBody();
 });
 
 document.getElementById("reset").addEventListener("click", () => {
   FACETS.forEach(f => { state[f.key].clear(); facetSearch[f.key] = ""; });
   state.query = "";
+  state.terms = [];
   document.getElementById("textsearch").value = "";
   render();
 });
@@ -684,7 +913,83 @@ if (window.matchMedia("(max-width:900px)").matches){
   document.getElementById("rail").setAttribute("hidden", "");
 }
 
+if (DATA.editor){
+  /* Identity: this artefact is cul.py's, not incorporation's. Distinct title,
+     wordmark and accent so a screenshot is unambiguous about which tool it is.
+     Applied before the first render so the opening view is already correct. */
+  document.title = "Corpus User Layer";
+  document.body.classList.add("cul-app", "edit-mode", "detail-open");
+  document.getElementById("modebar").remove();
+  const mark = document.querySelector(".wordmark");
+  mark.innerHTML = "";
+  mark.appendChild(document.createTextNode("Corpus "));
+  const em = document.createElement("em");
+  em.textContent = "User Layer";
+  mark.appendChild(em);
+  const mount = document.getElementById("profilemount");
+  mount.innerHTML = "";
+  mount.appendChild(buildProfileBar());
+}
+
 render();
+
+function highlightNeedle(){
+  const plain = state.terms.filter(x => !x.negate && !x.field);
+  return plain.length ? plain[0].text : "";
+}
+
+/* The only place that decides what the panes contain. render() and renderAll()
+   both route through it, so a filter click cannot render browse-mode cards while
+   edit mode is active. */
+function renderBody(){
+  if (EDIT.on){
+    buildPicker(visibleCards());
+    buildEditorPane();
+    updateProfileBar();
+  } else {
+    buildCards();
+  }
+}
+
+function renderAll(){ render(); }
+
+function setMode(on){
+  if (DATA.editor) on = true;   /* the editor has no browse mode */
+  EDIT.on = on;
+  document.body.classList.toggle("edit-mode", on);
+  document.body.classList.toggle("detail-open", on ? true : document.body.classList.contains("detail-open") && !on ? false : false);
+  const browseMode = document.getElementById("mode-browse");
+  const editMode = document.getElementById("mode-edit");
+  if (browseMode) browseMode.setAttribute("aria-pressed", String(!on));
+  if (editMode) editMode.setAttribute("aria-pressed", String(on));
+  const mount = document.getElementById("profilemount");
+  mount.innerHTML = "";
+  if (on){ mount.appendChild(buildProfileBar()); }
+  else { CUL.selected = null; CUL.pending = null; }
+  renderAll();
+}
+
+if (DATA.editor){
+  setMode(true);
+} else {
+  document.getElementById("mode-browse").addEventListener("click", () => setMode(false));
+  document.getElementById("mode-edit").addEventListener("click", () => setMode(true));
+}
+
+if (DATA.editor){
+  const names = Object.keys(DATA.profiles || {});
+  document.getElementById("provenance").textContent =
+    "Corpus " + (DATA.corpusVersion || "") + " \u00b7 " +
+    (DATA.corpusSha256 || "").slice(0, 12) + " \u00b7 " +
+    DATA.cards.length + " cards \u00b7 built " + (DATA.generatedAt || "").slice(0, 10) +
+    " with " + (names.length ? names.join(", ") : "no profiles");
+} else if (DATA.evidenceMode === "partial" || DATA.evidenceMode === "none"){
+  const note = DATA.evidenceMode === "none"
+    ? " \u00b7 corpus-only view"
+    : " \u00b7 partial evidence (" + DATA.missingPackages.length + " paper(s) without accepted packages)";
+  document.getElementById("provenance").textContent += note;
+}
+
 </script>
 </body>
 </html>
