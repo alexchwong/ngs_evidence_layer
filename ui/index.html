@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NGS Evidence Layer</title>
+<script src="/assets/marked.min.js"></script>
+<style>
+:root{
+  --ink:#101720; --ink-soft:#4A5866; --paper:#DFE4EA;
+  --panel:#FFFFFF; --panel-2:#F4F6F9;
+  --rule:#C6CED8; --rule-soft:#E2E7EE;
+  --accent:#17539E; --run:#B4670A; --done:#0F6B58; --fail:#9E2430;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+.eyebrow{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-soft)}
+.mono{font-family:var(--mono)}
+
+/* masthead */
+header{background:var(--ink);color:#EDF1F6;display:flex;align-items:center;gap:18px;padding:10px 16px}
+header .wordmark{font-family:var(--mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+header .ver{font-family:var(--mono);font-size:11px;color:#93A2B2}
+header .chip{font-family:var(--mono);font-size:11px;background:#1D2836;border:1px solid #2C3B4D;padding:3px 8px;border-radius:2px;color:#C8D3DF}
+header .chip b{color:#FFF;font-weight:600}
+header .spacer{flex:1}
+header button{background:#22303F;border:1px solid #35485E;color:#E7EEF5;padding:5px 12px;border-radius:2px;cursor:pointer}
+header button:hover{background:#2C3D50}
+
+/* grid */
+main{display:grid;grid-template-columns:340px minmax(360px,1fr) minmax(380px,1.15fr);gap:1px;background:var(--paper);height:calc(100vh - 45px)}
+section{background:var(--panel);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.head{background:var(--panel-2);border-bottom:1px solid var(--rule);padding:8px 12px;display:flex;align-items:center;gap:10px;min-height:38px}
+.head .spacer{flex:1}
+.body{padding:12px;overflow:auto;min-height:0;flex:1}
+@media (max-width:1180px){
+  main{grid-template-columns:1fr;height:auto}
+  section{max-height:none}
+  .body{overflow:visible}
+}
+
+/* controls */
+label.field{display:block;margin:0 0 12px}
+label.field > span{display:block;margin-bottom:4px}
+input[type=text],select,textarea{width:100%;background:#FFF;border:1px solid var(--rule);border-radius:2px;padding:6px 8px;font-family:var(--mono);font-size:12.5px}
+textarea{min-height:190px;resize:vertical;line-height:1.4}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(23,83,158,.35);outline-offset:-1px;border-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden;margin-bottom:12px}
+.seg button{flex:1;background:#FFF;border:0;border-right:1px solid var(--rule-soft);padding:6px 4px;cursor:pointer;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:#FFF}
+.actions{display:flex;gap:8px;margin:4px 0 6px}
+button.primary{background:var(--accent);color:#FFF;border:1px solid var(--accent);padding:7px 14px;border-radius:2px;cursor:pointer}
+button.ghost{background:#FFF;color:var(--ink);border:1px solid var(--rule);padding:7px 14px;border-radius:2px;cursor:pointer}
+button.danger{background:#FFF;color:var(--fail);border:1px solid var(--rule);padding:4px 8px;border-radius:2px;cursor:pointer;font-size:11px;font-family:var(--mono)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:11.5px;color:var(--ink-soft);margin:0 0 12px}
+.notice{font-family:var(--mono);font-size:11.5px;padding:7px 9px;border-radius:2px;margin-bottom:12px;white-space:pre-wrap;word-break:break-word}
+.notice.info{background:#EEF3F9;border:1px solid #CBD9EA;color:#1B3D66}
+.notice.bad{background:#FBEEF0;border:1px solid #EBC9CF;color:#7C1F29}
+.notice.good{background:#EAF4F1;border:1px solid #C4E0D8;color:#0B5344}
+.hidden{display:none !important}
+
+/* run list */
+.runs{border-top:1px solid var(--rule-soft);margin-top:6px;padding-top:8px}
+.run{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--rule-soft)}
+.run .pick{flex:1;text-align:left;background:none;border:0;padding:4px 2px;cursor:pointer;font-family:var(--mono);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.run.sel .pick{color:var(--accent);font-weight:600}
+.run .dot{width:7px;height:7px;border-radius:50%;background:var(--rule);flex:none}
+.run.live .dot{background:var(--run)}
+.run.done .dot{background:var(--done)}
+.run .tag{font-family:var(--mono);font-size:10px;color:var(--ink-soft);flex:none}
+
+/* stage rail */
+.rail{display:flex;gap:3px;height:78px;align-items:stretch;padding:10px 12px 6px}
+.tread{flex:1;display:flex;flex-direction:column;min-width:0}
+.riser{flex:none}
+.slab{height:8px;background:var(--rule);border-radius:1px;transition:background .35s}
+.tread.past .slab{background:var(--accent)}
+.tread.now .slab{background:var(--run)}
+.tread.end .slab{background:var(--done)}
+.tread .name{margin-top:auto;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.usage{font-family:var(--mono);font-size:11px;color:var(--ink-soft);padding:0 12px 8px;border-bottom:1px solid var(--rule-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* console */
+.console{flex:1;min-height:0;overflow:auto;background:#0D141C;color:#C7D3E0;font-family:var(--mono);font-size:11.5px;line-height:1.5;padding:10px 12px;white-space:pre-wrap;word-break:break-word}
+.console .cmd{color:#6FA8E8}
+.console .stage{color:#E0A24A}
+.console .err{color:#E8737F}
+.console .ok{color:#5CC0A3}
+.console .warn{color:#D9B45C}
+
+/* output */
+.tabs{display:flex;gap:2px}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:4px 8px;cursor:pointer;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.doc{max-width:78ch}
+.doc h1{font-size:20px;margin:0 0 12px}
+.doc h2{font-size:15px;margin:22px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--rule-soft)}
+.doc h3{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:16px 0 6px}
+.doc p,.doc li{font-size:13.5px}
+.doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12.5px}
+.doc th,.doc td{border:1px solid var(--rule);padding:5px 7px;text-align:left;vertical-align:top}
+.doc th{background:var(--panel-2)}
+.doc code{font-family:var(--mono);font-size:12px;background:var(--panel-2);padding:1px 3px}
+pre.raw{font-family:var(--mono);font-size:12px;white-space:pre-wrap;word-break:break-word;margin:0}
+.filegroup{margin-bottom:10px}
+.filegroup h4{margin:0 0 4px;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft)}
+.filebtn{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule-soft);padding:4px 2px;cursor:pointer;font-family:var(--mono);font-size:11.5px}
+.filebtn.on{color:var(--accent)}
+.filebtn .sz{float:right;color:var(--ink-soft);font-size:10.5px}
+.viewer{margin-top:10px;border-top:1px solid var(--rule);padding-top:8px}
+
+/* modal */
+.backdrop{position:fixed;inset:0;background:rgba(16,23,32,.55);display:flex;align-items:flex-start;justify-content:center;padding:28px 16px;overflow:auto;z-index:20}
+.modal{background:var(--panel);width:min(940px,100%);border-radius:3px;box-shadow:0 18px 50px rgba(16,23,32,.35)}
+.modal .head{border-bottom:1px solid var(--rule)}
+.modal .body{max-height:calc(100vh - 150px)}
+fieldset{border:1px solid var(--rule-soft);border-radius:2px;padding:10px 12px;margin:0 0 14px}
+legend{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-soft);padding:0 5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px}
+.card{border:1px solid var(--rule-soft);border-radius:2px;padding:10px;margin-bottom:10px;background:var(--panel-2)}
+.card .top{display:flex;gap:10px;align-items:flex-end}
+.card .top label.field{flex:1}
+.routing.off{opacity:.45;pointer-events:none}
+table.roles{width:100%;border-collapse:collapse;font-size:12.5px}
+table.roles th{text-align:left;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft);padding:0 6px 5px 0;font-weight:400}
+table.roles td{padding:2px 6px 2px 0}
+table.roles td.rolename{font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+table.roles select,table.roles input{padding:4px 6px}
+tr.fresh td.rolename{color:var(--run)}
+.check{display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:12.5px}
+.check input{width:auto}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="wordmark">NGS Evidence Layer</span>
+  <span class="ver" id="version">—</span>
+  <span class="chip">workflow <b id="chipWorkflow">proforma-v1</b></span>
+  <span class="chip" id="chipProfile" title="">profile <b id="chipProfileName">—</b></span>
+  <span class="chip" id="chipKey">key <b id="chipKeyState">—</b></span>
+  <span class="spacer"></span>
+  <button id="btnProvider">Provider settings</button>
+</header>
+
+<main>
+  <!-- ── left ─────────────────────────────────────────────────── -->
+  <section>
+    <div class="head"><span class="eyebrow">Case input</span></div>
+    <div class="body">
+      <div class="seg" id="segSource">
+        <button data-source="text" class="on">Free text</button>
+        <button data-source="demo">Demo</button>
+        <button data-source="validation">Validation</button>
+      </div>
+
+      <div id="paneText">
+        <label class="field"><span class="eyebrow">Clinical case</span>
+          <textarea id="caseText" placeholder="Paste the clinical case in Markdown."></textarea>
+        </label>
+      </div>
+
+      <div id="paneDemo" class="hidden">
+        <label class="field"><span class="eyebrow">Demo example</span>
+          <select id="demoSelect"></select>
+        </label>
+      </div>
+
+      <div id="paneValidation" class="hidden">
+        <label class="field"><span class="eyebrow">Suite</span>
+          <select id="suiteSelect"></select>
+        </label>
+        <label class="field"><span class="eyebrow">Case</span>
+          <select id="caseSelect"></select>
+        </label>
+      </div>
+
+      <label class="field"><span class="eyebrow">Provider profile</span>
+        <select id="pipelineSelect"></select>
+      </label>
+      <label class="field"><span class="eyebrow">Corpus user layer</span>
+        <select id="culSelect"></select>
+      </label>
+      <label class="field"><span class="eyebrow">Run identifier</span>
+        <input type="text" id="runIdInput" spellcheck="false">
+      </label>
+
+      <div class="actions">
+        <button class="primary" id="btnPrepare">Prepare run</button>
+        <button class="primary" id="btnStart">Start run</button>
+        <button class="ghost" id="btnStop">Stop</button>
+      </div>
+      <p class="hint">Prepare freezes the profile, the corpus digest and the corpus user layer into
+        the run. Editing a profile afterwards does not change a prepared run.</p>
+
+      <div id="notice" class="notice info hidden"></div>
+
+      <div class="runs">
+        <div class="eyebrow" style="margin-bottom:6px">Runs</div>
+        <div id="runList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── middle ───────────────────────────────────────────────── -->
+  <section>
+    <div class="head">
+      <span class="eyebrow">Progress</span>
+      <span class="mono" id="runPill" style="font-size:11.5px;color:var(--ink-soft)">no run selected</span>
+      <span class="spacer"></span>
+      <span class="mono" id="concurrency" style="font-size:10.5px;color:var(--ink-soft)"></span>
+    </div>
+    <div class="rail" id="rail"></div>
+    <div class="usage" id="usage">no provider usage recorded</div>
+    <div class="console" id="console"></div>
+  </section>
+
+  <!-- ── right ────────────────────────────────────────────────── -->
+  <section>
+    <div class="head">
+      <span class="eyebrow">Output</span>
+      <span class="spacer"></span>
+      <div class="tabs" id="tabs">
+        <button data-tab="report" class="on">Report</button>
+        <button data-tab="markdown">Markdown</button>
+        <button data-tab="files">Step files</button>
+      </div>
+    </div>
+    <div class="body">
+      <div id="tabReport"><div class="doc" id="reportDoc"></div></div>
+      <div id="tabMarkdown" class="hidden"><pre class="raw" id="reportRaw"></pre></div>
+      <div id="tabFiles" class="hidden">
+        <div id="fileTree"></div>
+        <div class="viewer hidden" id="fileViewer">
+          <div class="eyebrow" id="fileName"></div>
+          <pre class="raw" id="fileBody"></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ── provider window ────────────────────────────────────────── -->
+<div class="backdrop hidden" id="providerBackdrop">
+  <div class="modal">
+    <div class="head">
+      <span class="eyebrow">Provider settings</span>
+      <span class="mono" style="font-size:11px;color:var(--ink-soft)" id="pipelineDir"></span>
+      <span class="spacer"></span>
+      <button class="ghost" id="btnCloseProvider">Close</button>
+    </div>
+    <div class="body">
+      <div id="providerNotice" class="notice info hidden"></div>
+
+      <fieldset>
+        <legend>Profile</legend>
+        <div class="grid2">
+          <label class="field"><span class="eyebrow">Load profile</span>
+            <select id="profileSelect"></select>
+          </label>
+          <label class="field"><span class="eyebrow">Save as</span>
+            <input type="text" id="profileName" spellcheck="false">
+          </label>
+        </div>
+        <label class="field"><span class="eyebrow">Description</span>
+          <input type="text" id="profileDescription">
+        </label>
+        <div class="check">
+          <input type="checkbox" id="overwrite">
+          <label for="overwrite">Overwrite an existing profile of that name</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Connection</legend>
+        <div class="grid2">
+          <label class="field"><span class="eyebrow">Base URL</span>
+            <input type="text" id="baseUrl" spellcheck="false"></label>
+          <label class="field"><span class="eyebrow">Base URL override variable</span>
+            <input type="text" id="baseUrlEnv" spellcheck="false"></label>
+          <label class="field"><span class="eyebrow">API key variable</span>
+            <input type="text" id="apiKeyEnv" spellcheck="false"></label>
+          <label class="field"><span class="eyebrow">Timeout, seconds</span>
+            <input type="text" id="timeout"></label>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="apiKeyRequired">
+          <label for="apiKeyRequired">This endpoint requires an API key</label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span class="eyebrow">Session API key</span>
+            <input type="text" id="apiKeyValue" placeholder="held in memory only, never written to disk"></label>
+          <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px">
+            <button class="primary" id="btnUseKey">Use key</button>
+            <button class="ghost" id="btnForgetKey">Forget key</button>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Model options</legend>
+        <div id="aliasList"></div>
+        <div class="actions">
+          <button class="ghost" id="btnAddAlias">Add model option</button>
+          <button class="ghost" id="btnLoadModels">Load models from provider</button>
+        </div>
+        <datalist id="modelList"></datalist>
+        <datalist id="providerList"></datalist>
+        <p class="hint" id="routingNote">Provider routing applies to OpenRouter only.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Role assignment</legend>
+        <table class="roles">
+          <thead><tr><th>Role</th><th>Model option</th><th>Temperature</th><th>Max tokens</th></tr></thead>
+          <tbody id="roleRows"></tbody>
+        </table>
+      </fieldset>
+
+      <div class="actions">
+        <button class="primary" id="btnSaveProfile">Save profile</button>
+        <button class="ghost" id="btnCheckProfile">Check saved profile</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN = "__NEL_TOKEN__";
+const $ = (id) => document.getElementById(id);
+
+const state = {
+  boot: null,
+  source: "text",
+  pipeline: "",
+  cul: "",
+  runId: "",
+  offset: 0,
+  activeRuns: [],
+  tab: "report",
+  files: [],
+  file: "",
+  aliases: [],
+  roles: {},
+  freshRoles: {},
+  models: [],
+  providers: [],
+};
+
+/* ── transport ──────────────────────────────────────────────── */
+async function api(path, options) {
+  const opts = Object.assign({ headers: {} }, options || {});
+  opts.headers["X-NEL-Token"] = TOKEN;
+  if (opts.body !== undefined) {
+    opts.method = opts.method || "POST";
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.body);
+  }
+  const response = await fetch(path, opts);
+  let doc = null;
+  try { doc = await response.json(); } catch (e) { doc = null; }
+  if (!response.ok) {
+    throw new Error((doc && doc.error) || (response.status + " " + response.statusText));
+  }
+  return doc;
+}
+
+function notice(text, kind) {
+  const node = $("notice");
+  node.textContent = text || "";
+  node.className = "notice " + (kind || "info") + (text ? "" : " hidden");
+}
+function providerNotice(text, kind) {
+  const node = $("providerNotice");
+  node.textContent = text || "";
+  node.className = "notice " + (kind || "info") + (text ? "" : " hidden");
+}
+function bytes(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " kB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+function slug(value) {
+  const s = String(value || "").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^[-._]+|[-._]+$/g, "");
+  return s || "run";
+}
+function stamp() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+}
+
+/* ── boot ───────────────────────────────────────────────────── */
+async function boot() {
+  const doc = await api("/api/bootstrap");
+  state.boot = doc;
+  $("version").textContent = doc.version;
+  $("chipWorkflow").textContent = doc.workflow;
+  $("pipelineDir").textContent = doc.root + "/config/pipelines";
+
+  const demo = $("demoSelect");
+  demo.innerHTML = "";
+  doc.examples.forEach((n) => {
+    const opt = document.createElement("option");
+    opt.value = String(n); opt.textContent = "Example " + n; demo.appendChild(opt);
+  });
+
+  const suite = $("suiteSelect");
+  suite.innerHTML = "";
+  Object.keys(doc.validation).forEach((mode) => {
+    const opt = document.createElement("option");
+    opt.value = mode; opt.textContent = mode; suite.appendChild(opt);
+  });
+  renderCases();
+
+  const cul = $("culSelect");
+  cul.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = ""; none.textContent = "shipped default";
+  cul.appendChild(none);
+  doc.cul_profiles.forEach((name) => {
+    const opt = document.createElement("option");
+    opt.value = name; opt.textContent = name; cul.appendChild(opt);
+  });
+
+  renderPipelines(doc.pipelines, doc.default_pipeline, doc.default_pipeline_note);
+  renderKeys(doc.keys);
+  renderRail(null, false);
+  suggestRunId();
+  await refreshRuns();
+}
+
+function renderPipelines(rows, fallback, note) {
+  const visible = rows.filter((row) => row.readable);
+  const previous = state.pipeline;
+  const select = $("pipelineSelect");
+  select.innerHTML = "";
+  rows.forEach((row) => {
+    const opt = document.createElement("option");
+    opt.value = row.name;
+    opt.textContent = row.readable ? row.name : row.name + " (unreadable)";
+    opt.disabled = !row.readable;
+    select.appendChild(opt);
+  });
+  const wanted = visible.some((r) => r.name === previous) ? previous : (fallback || "");
+  select.value = wanted;
+  state.pipeline = select.value;
+  $("chipProfileName").textContent = state.pipeline || "none";
+  $("chipProfile").title = note || "";
+
+  const profile = $("profileSelect");
+  profile.innerHTML = "";
+  rows.forEach((row) => {
+    const opt = document.createElement("option");
+    opt.value = row.name;
+    opt.textContent = row.shipped ? row.name + " (shipped, read-only)" : row.name;
+    profile.appendChild(opt);
+  });
+  if (state.pipeline) profile.value = state.pipeline;
+  if (note) notice(note, "info");
+}
+
+function renderKeys(keys) {
+  const names = Object.keys(keys || {});
+  const held = names.filter((name) => keys[name]);
+  $("chipKeyState").textContent = held.length ? held.join(", ") : "none held";
+}
+
+function renderCases() {
+  const doc = state.boot;
+  const mode = $("suiteSelect").value;
+  const ids = (doc && doc.validation[mode]) || [];
+  const select = $("caseSelect");
+  select.innerHTML = "";
+  ids.forEach((id) => {
+    const opt = document.createElement("option");
+    opt.value = id; opt.textContent = "Case " + id; select.appendChild(opt);
+  });
+}
+
+function suggestRunId() {
+  let label = "case";
+  if (state.source === "demo") label = "demo-" + ($("demoSelect").value || "1");
+  else if (state.source === "validation") {
+    const mode = $("suiteSelect").value || "nel-validate";
+    label = mode.replace(/^nel-/, "") + "-" + ($("caseSelect").value || "1");
+  }
+  $("runIdInput").value = stamp() + "-" + slug(label);
+}
+
+/* ── stage rail and usage ───────────────────────────────────── */
+function renderRail(stage, complete) {
+  const stages = (state.boot && state.boot.stages) || [];
+  const index = stages.findIndex((s) => s.key === stage);
+  const rail = $("rail");
+  rail.innerHTML = "";
+  stages.forEach((s, i) => {
+    const tread = document.createElement("div");
+    tread.className = "tread";
+    if (index >= 0 && i < index) tread.classList.add("past");
+    if (index >= 0 && i === index) tread.classList.add(complete && s.key === "complete" ? "end" : "now");
+    const riser = document.createElement("div");
+    riser.className = "riser";
+    riser.style.height = (i * 4) + "px";
+    const slab = document.createElement("div");
+    slab.className = "slab";
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = s.label;
+    tread.appendChild(riser); tread.appendChild(slab); tread.appendChild(name);
+    rail.appendChild(tread);
+  });
+}
+
+function renderUsage(doc) {
+  const node = $("usage");
+  if (!doc || !doc.available || !doc.summary) {
+    node.textContent = "no provider usage recorded";
+    return;
+  }
+  const s = doc.summary;
+  const totals = s.totals || {};
+  const cost = s.cost || {};
+  const parts = [];
+  let calls = s.physical_calls + " calls";
+  const extras = [];
+  if (s.retry_calls) extras.push(s.retry_calls + " retry");
+  if (s.syntax_repair_calls) extras.push(s.syntax_repair_calls + " repair");
+  if (extras.length) calls += " (" + extras.join(", ") + ")";
+  parts.push(calls);
+  parts.push((totals.total_tokens || 0).toLocaleString() + " tokens");
+  parts.push(Math.round((s.duration_ms || 0) / 1000) + "s model time");
+  if (cost.amount === null || cost.amount === undefined) {
+    parts.push("cost not reported by provider");
+  } else if (cost.complete === false) {
+    parts.push("US$" + Number(cost.amount).toFixed(6) + " partial, "
+      + (cost.unreported_calls || 0) + " calls without cost");
+  } else {
+    parts.push("US$" + Number(cost.amount).toFixed(6));
+  }
+  node.textContent = parts.join("  ·  ");
+}
+
+/* ── console ────────────────────────────────────────────────── */
+function classify(line) {
+  const t = line.trim();
+  if (t.startsWith("$ ")) return "cmd";
+  if (/^\[\s*\d+\s*\]\s+-/.test(t)) return "stage";
+  if (/nel failed|ERROR=|failed/.test(t)) return "err";
+  if (/^WARNING=/.test(t)) return "warn";
+  if (/STATUS=complete|exit code 0/.test(t)) return "ok";
+  return "";
+}
+function appendConsole(text) {
+  if (!text) return;
+  const pane = $("console");
+  const atBottom = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 40;
+  text.split("\n").forEach((line, i, arr) => {
+    if (i === arr.length - 1 && line === "") return;
+    const kind = classify(line);
+    const node = document.createElement(kind ? "span" : "span");
+    if (kind) node.className = kind;
+    node.textContent = line + "\n";
+    pane.appendChild(node);
+  });
+  if (atBottom) pane.scrollTop = pane.scrollHeight;
+}
+
+/* ── runs ───────────────────────────────────────────────────── */
+async function refreshRuns() {
+  let rows = [];
+  try { rows = (await api("/api/runs")).runs || []; } catch (e) { return; }
+  const list = $("runList");
+  list.innerHTML = "";
+  rows.reverse().forEach((row) => {
+    const div = document.createElement("div");
+    div.className = "run";
+    if (row.run_id === state.runId) div.classList.add("sel");
+    if (state.activeRuns.indexOf(row.run_id) >= 0) div.classList.add("live");
+    else if (row.complete) div.classList.add("done");
+    const dot = document.createElement("span"); dot.className = "dot";
+    const pick = document.createElement("button");
+    pick.className = "pick"; pick.textContent = row.run_id;
+    pick.title = (row.label || "") + (row.pipeline ? " · " + row.pipeline : "");
+    pick.onclick = () => selectRun(row.run_id);
+    div.appendChild(dot); div.appendChild(pick);
+    if (row.archived) {
+      const tag = document.createElement("span");
+      tag.className = "tag"; tag.textContent = "archived";
+      div.appendChild(tag);
+    } else if (row.complete) {
+      const btn = document.createElement("button");
+      btn.className = "danger"; btn.textContent = "archive";
+      btn.onclick = () => archiveRun(row.run_id);
+      div.appendChild(btn);
+    }
+    const del = document.createElement("button");
+    del.className = "danger"; del.textContent = "delete";
+    del.onclick = () => deleteRun(row.run_id);
+    div.appendChild(del);
+    list.appendChild(div);
+  });
+}
+
+async function deleteRun(runId) {
+  const typed = window.prompt(
+    "Deleting removes the run directory and its clinical case permanently.\n" +
+    "Type the run identifier to confirm:", "");
+  if (typed !== runId) { notice("delete cancelled", "info"); return; }
+  try {
+    await api("/api/delete", { body: { run_id: runId } });
+    if (state.runId === runId) { state.runId = ""; resetPanes(); }
+    notice("deleted " + runId, "good");
+    await refreshRuns();
+  } catch (e) { notice(String(e.message), "bad"); }
+}
+
+async function archiveRun(runId) {
+  if (!window.confirm(
+    "Archiving removes case.md, intermediates/ and model_steps/ and keeps the report, " +
+    "logs and run configuration.\n\nThe report itself restates clinical findings.\n\nArchive " +
+    runId + "?")) return;
+  try {
+    await api("/api/archive", { body: { run_id: runId } });
+    notice("archived " + runId, "good");
+    await refreshRuns();
+    if (state.runId === runId) await loadRunPanes();
+  } catch (e) { notice(String(e.message), "bad"); }
+}
+
+function resetPanes() {
+  $("console").innerHTML = "";
+  $("reportDoc").innerHTML = "";
+  $("reportRaw").textContent = "";
+  $("fileTree").innerHTML = "";
+  $("fileViewer").classList.add("hidden");
+  $("runPill").textContent = "no run selected";
+  renderRail(null, false);
+  renderUsage(null);
+}
+
+async function selectRun(runId) {
+  state.runId = runId;
+  state.offset = 0;
+  $("console").innerHTML = "";
+  $("runPill").textContent = runId;
+  await refreshRuns();
+  await loadRunPanes();
+}
+
+async function loadRunPanes() {
+  if (!state.runId) return;
+  await Promise.all([pollConsole(), pollStatus(), pollUsage(), loadReport(), loadFiles()]);
+}
+
+/* ── polling ────────────────────────────────────────────────── */
+let beat = 0;
+async function pollRunner() {
+  let snap;
+  try { snap = await api("/api/runner"); } catch (e) { return; }
+  const active = (snap.children || []).filter((c) => c.active);
+  state.activeRuns = active.map((c) => c.run_id);
+  const selfActive = state.activeRuns.indexOf(state.runId) >= 0;
+  $("btnStop").disabled = !selfActive;
+  $("btnPrepare").disabled = false;
+  $("btnStart").disabled = !state.runId || selfActive;
+  $("concurrency").textContent = active.length
+    ? active.length + " active" + (snap.exclusive ? " · local provider, exclusive" : "")
+    : "";
+  return selfActive;
+}
+
+async function pollConsole() {
+  if (!state.runId) return;
+  try {
+    const doc = await api("/api/console?run=" + encodeURIComponent(state.runId)
+      + "&offset=" + state.offset);
+    if (doc.offset < state.offset) { $("console").innerHTML = ""; }
+    state.offset = doc.offset;
+    appendConsole(doc.text);
+  } catch (e) { /* transient */ }
+}
+
+async function pollStatus() {
+  if (!state.runId) return;
+  try {
+    const doc = await api("/api/status?run=" + encodeURIComponent(state.runId));
+    if (!doc.available) { renderRail(null, false); return; }
+    const s = doc.status || {};
+    renderRail(s.stage, !!s.complete);
+    const m = doc.manifest || {};
+    const bits = [state.runId];
+    if (m.pipeline) bits.push(m.pipeline);
+    if (m.workflow) bits.push(m.workflow);
+    if (m.cul_profile) bits.push("cul:" + m.cul_profile);
+    if (doc.archived) bits.push("archived");
+    $("runPill").textContent = bits.join(" · ");
+  } catch (e) { /* transient */ }
+}
+
+async function pollUsage() {
+  if (!state.runId) return;
+  try { renderUsage(await api("/api/usage?run=" + encodeURIComponent(state.runId))); }
+  catch (e) { /* transient */ }
+}
+
+let wasActive = false;
+async function tick() {
+  beat += 1;
+  const selfActive = await pollRunner();
+  if (selfActive) {
+    await pollConsole();
+    if (beat % 4 === 0) { await pollStatus(); await pollUsage(); }
+  } else if (wasActive) {
+    await pollConsole(); await pollStatus(); await pollUsage();
+    await refreshRuns(); await loadReport(); await loadFiles();
+  }
+  wasActive = selfActive;
+  setTimeout(tick, selfActive ? 1000 : 3000);
+}
+
+/* ── output ─────────────────────────────────────────────────── */
+async function loadReport() {
+  if (!state.runId) return;
+  try {
+    const doc = await api("/api/report?run=" + encodeURIComponent(state.runId));
+    if (!doc.exists) {
+      $("reportDoc").innerHTML =
+        "<p class='hint'>The report appears here once the run reaches STATUS=complete.</p>";
+      $("reportRaw").textContent = "";
+      return;
+    }
+    $("reportDoc").innerHTML = window.marked.parse(doc.text);
+    $("reportRaw").textContent = doc.text;
+  } catch (e) { /* transient */ }
+}
+
+async function loadFiles() {
+  if (!state.runId) return;
+  try {
+    const doc = await api("/api/files?run=" + encodeURIComponent(state.runId));
+    state.files = doc.files || [];
+  } catch (e) { state.files = []; }
+  const groups = {};
+  state.files.forEach((f) => {
+    const parts = f.path.split("/");
+    const dir = parts.length > 1 ? parts.slice(0, -1).join("/") : "run root";
+    (groups[dir] = groups[dir] || []).push(f);
+  });
+  const order = Object.keys(groups).sort((a, b) => {
+    const rank = (k) => (k === "run root" ? 0 : k.startsWith("run-config") ? 1 : 2);
+    return rank(a) - rank(b) || a.localeCompare(b);
+  });
+  const tree = $("fileTree");
+  tree.innerHTML = "";
+  order.forEach((dir) => {
+    const wrap = document.createElement("div");
+    wrap.className = "filegroup";
+    const title = document.createElement("h4");
+    title.textContent = dir;
+    wrap.appendChild(title);
+    groups[dir].forEach((f) => {
+      const btn = document.createElement("button");
+      btn.className = "filebtn" + (state.file === f.path ? " on" : "");
+      const name = f.path.split("/").pop();
+      btn.innerHTML = "";
+      btn.appendChild(document.createTextNode(name));
+      const sz = document.createElement("span");
+      sz.className = "sz"; sz.textContent = bytes(f.size);
+      btn.appendChild(sz);
+      btn.onclick = () => openFile(f.path);
+      wrap.appendChild(btn);
+    });
+    tree.appendChild(wrap);
+  });
+}
+
+async function openFile(path) {
+  state.file = path;
+  $("fileViewer").classList.remove("hidden");
+  $("fileName").textContent = path;
+  try {
+    const doc = await api("/api/file?run=" + encodeURIComponent(state.runId)
+      + "&path=" + encodeURIComponent(path));
+    $("fileBody").textContent = doc.text + (doc.truncated ? "\n… truncated" : "");
+  } catch (e) {
+    $("fileBody").textContent = "could not read this file: " + e.message;
+  }
+  loadFiles();
+}
+
+/* ── actions ────────────────────────────────────────────────── */
+async function prepare() {
+  const body = {
+    pipeline: $("pipelineSelect").value,
+    cul: $("culSelect").value,
+    run_id: $("runIdInput").value.trim(),
+  };
+  if (state.source === "text") {
+    body.mode = "ngs-report";
+    body.case_text = $("caseText").value;
+  } else if (state.source === "demo") {
+    body.mode = "nel-demo";
+    body.example = $("demoSelect").value;
+  } else {
+    body.mode = $("suiteSelect").value;
+    body.case_id = $("caseSelect").value;
+  }
+  try {
+    const doc = await api("/api/setup", { body: body });
+    notice("preparing " + doc.run_id, "info");
+    await selectRun(doc.run_id);
+  } catch (e) { notice(String(e.message), "bad"); }
+}
+
+async function start() {
+  try {
+    await api("/api/run", { body: { run_id: state.runId } });
+    notice("running " + state.runId, "info");
+    state.offset = 0;
+    $("console").innerHTML = "";
+  } catch (e) { notice(String(e.message), "bad"); }
+}
+
+async function stop() {
+  try {
+    const doc = await api("/api/stop", { body: { run_id: state.runId } });
+    notice(doc.detail, doc.stopped ? "info" : "bad");
+  } catch (e) { notice(String(e.message), "bad"); }
+}
+
+/* ── provider window ────────────────────────────────────────── */
+function openProvider() {
+  $("providerBackdrop").classList.remove("hidden");
+  providerNotice("");
+  if ($("profileSelect").value) loadProfile($("profileSelect").value);
+}
+function closeProvider() { $("providerBackdrop").classList.add("hidden"); }
+
+function routingEnabled() {
+  return /openrouter/i.test($("baseUrl").value || "");
+}
+
+function aliasCard(alias) {
+  const wrap = document.createElement("div");
+  wrap.className = "card";
+  const top = document.createElement("div");
+  top.className = "top";
+  top.innerHTML =
+    "<label class='field'><span class='eyebrow'>Option name</span>" +
+    "<input type='text' class='a-name' spellcheck='false'></label>" +
+    "<label class='field'><span class='eyebrow'>Model ID</span>" +
+    "<input type='text' class='a-model' list='modelList' spellcheck='false'></label>";
+  const remove = document.createElement("button");
+  remove.className = "danger"; remove.textContent = "remove";
+  remove.style.marginBottom = "12px";
+  remove.onclick = () => { wrap.remove(); syncRoleOptions(); };
+  top.appendChild(remove);
+  wrap.appendChild(top);
+
+  const routing = document.createElement("div");
+  routing.className = "routing" + (routingEnabled() ? "" : " off");
+  routing.innerHTML =
+    "<div class='grid3'>" +
+    "<label class='field'><span class='eyebrow'>Provider order</span>" +
+    "<input type='text' class='r-order' list='providerList' spellcheck='false'></label>" +
+    "<label class='field'><span class='eyebrow'>Only</span>" +
+    "<input type='text' class='r-only' list='providerList' spellcheck='false'></label>" +
+    "<label class='field'><span class='eyebrow'>Ignore</span>" +
+    "<input type='text' class='r-ignore' list='providerList' spellcheck='false'></label>" +
+    "</div><div class='grid2'>" +
+    "<label class='field'><span class='eyebrow'>Allow fallbacks</span><select class='r-fallback'>" +
+    "<option value=''>unset</option><option value='true'>true</option>" +
+    "<option value='false'>false</option></select></label>" +
+    "<label class='field'><span class='eyebrow'>Require parameters</span><select class='r-params'>" +
+    "<option value=''>unset</option><option value='true'>true</option>" +
+    "<option value='false'>false</option></select></label></div>";
+  wrap.appendChild(routing);
+
+  wrap.querySelector(".a-name").value = alias.alias || "";
+  wrap.querySelector(".a-model").value = alias.model || "";
+  const r = alias.routing || {};
+  wrap.querySelector(".r-order").value = r.order || "";
+  wrap.querySelector(".r-only").value = r.only || "";
+  wrap.querySelector(".r-ignore").value = r.ignore || "";
+  wrap.querySelector(".r-fallback").value =
+    r.allow_fallbacks === true ? "true" : r.allow_fallbacks === false ? "false" : "";
+  wrap.querySelector(".r-params").value =
+    r.require_parameters === true ? "true" : r.require_parameters === false ? "false" : "";
+  wrap.querySelector(".a-name").addEventListener("input", syncRoleOptions);
+  return wrap;
+}
+
+function readAliases() {
+  const rows = [];
+  $("aliasList").querySelectorAll(".card").forEach((card) => {
+    const bool = (v) => (v === "true" ? true : v === "false" ? false : null);
+    rows.push({
+      alias: card.querySelector(".a-name").value.trim(),
+      model: card.querySelector(".a-model").value.trim(),
+      routing: routingEnabled() ? {
+        order: card.querySelector(".r-order").value,
+        only: card.querySelector(".r-only").value,
+        ignore: card.querySelector(".r-ignore").value,
+        allow_fallbacks: bool(card.querySelector(".r-fallback").value),
+        require_parameters: bool(card.querySelector(".r-params").value),
+      } : {},
+    });
+  });
+  return rows;
+}
+
+function renderAliases(rows) {
+  const list = $("aliasList");
+  list.innerHTML = "";
+  (rows.length ? rows : [{ alias: "default", model: "" }]).forEach((row) => {
+    list.appendChild(aliasCard(row));
+  });
+  syncRoleOptions();
+}
+
+function renderRoles(assignments, fresh) {
+  const names = (state.boot && state.boot.roles) || [];
+  const body = $("roleRows");
+  body.innerHTML = "";
+  names.forEach((role) => {
+    const row = assignments[role] || {};
+    const tr = document.createElement("tr");
+    tr.dataset.role = role;
+    if (fresh && fresh[role]) tr.className = "fresh";
+    tr.innerHTML =
+      "<td class='rolename'>" + role + "</td>" +
+      "<td><select class='x-model'></select></td>" +
+      "<td><input type='text' class='x-temp'></td>" +
+      "<td><input type='text' class='x-tokens'></td>";
+    tr.querySelector(".x-temp").value = row.temperature !== undefined ? row.temperature : "0.0";
+    tr.querySelector(".x-tokens").value = row.max_tokens !== undefined ? row.max_tokens : "16384";
+    tr.dataset.wanted = row.model || "";
+    body.appendChild(tr);
+  });
+  syncRoleOptions();
+}
+
+function syncRoleOptions() {
+  const names = readAliases().map((a) => a.alias).filter(Boolean);
+  $("roleRows").querySelectorAll("tr").forEach((tr) => {
+    const select = tr.querySelector(".x-model");
+    const wanted = select.value || tr.dataset.wanted || names[0] || "";
+    select.innerHTML = "";
+    names.forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name; opt.textContent = name; select.appendChild(opt);
+    });
+    if (names.indexOf(wanted) >= 0) select.value = wanted;
+    else if (names.length) select.value = names[0];
+  });
+}
+
+function readRoles() {
+  const out = {};
+  $("roleRows").querySelectorAll("tr").forEach((tr) => {
+    out[tr.dataset.role] = {
+      model: tr.querySelector(".x-model").value,
+      temperature: tr.querySelector(".x-temp").value,
+      max_tokens: tr.querySelector(".x-tokens").value,
+    };
+  });
+  return out;
+}
+
+async function loadProfile(name) {
+  let doc;
+  try { doc = await api("/api/pipeline?name=" + encodeURIComponent(name)); }
+  catch (e) { providerNotice(String(e.message), "bad"); return; }
+  const d = doc.doc || {};
+  const meta = d.pipeline || {};
+  const provider = d.provider || {};
+  const shipped = ((state.boot && state.boot.shipped) || []).indexOf(name) >= 0;
+  $("profileName").value = shipped ? name + "-copy" : name;
+  $("profileDescription").value = meta.description || "";
+  $("baseUrl").value = provider.base_url || "";
+  $("baseUrlEnv").value = provider.base_url_env || "";
+  $("apiKeyEnv").value = provider.api_key_env || "";
+  $("timeout").value = provider.timeout_s !== undefined ? provider.timeout_s : 900;
+  $("apiKeyRequired").checked = !!provider.api_key_required;
+  $("overwrite").checked = false;
+
+  let aliases = [];
+  let roles = {};
+  const fresh = {};
+  if (d.model_aliases) {
+    Object.keys(d.model_aliases).forEach((alias) => {
+      const value = d.model_aliases[alias];
+      if (typeof value === "string") aliases.push({ alias: alias, model: value });
+      else {
+        const p = value.provider || {};
+        aliases.push({
+          alias: alias, model: value.model || "",
+          routing: {
+            order: (p.order || []).join(", "),
+            only: (p.only || []).join(", "),
+            ignore: (p.ignore || []).join(", "),
+            allow_fallbacks: p.allow_fallbacks,
+            require_parameters: p.require_parameters,
+          },
+        });
+      }
+    });
+    roles = d.model_roles || {};
+  } else if (d.models) {
+    const byModel = {};
+    Object.keys(d.models).forEach((role) => {
+      const row = d.models[role] || {};
+      const model = row.model || "";
+      if (!byModel[model]) {
+        byModel[model] = "option" + (Object.keys(byModel).length + 1);
+        aliases.push({ alias: byModel[model], model: model });
+      }
+      roles[role] = { model: byModel[model], temperature: row.temperature, max_tokens: row.max_tokens };
+    });
+  }
+  const known = (state.boot && state.boot.roles) || [];
+  known.forEach((role) => { if (!roles[role]) fresh[role] = true; });
+  renderAliases(aliases);
+  renderRoles(roles, fresh);
+  const missing = Object.keys(fresh);
+  if (shipped) {
+    providerNotice(name + " is shipped with the repository and is read-only. "
+      + "It has been loaded into the form; save it under a new name.", "info");
+  } else if (missing.length) {
+    providerNotice("this profile did not define: " + missing.join(", ")
+      + ". Defaults were inserted; review them before saving.", "info");
+  } else {
+    providerNotice("");
+  }
+  $("routingNote").textContent = routingEnabled()
+    ? "Provider routing is available for this endpoint."
+    : "Provider routing applies to OpenRouter only; these fields are disabled.";
+}
+
+async function saveProfile() {
+  const body = {
+    name: $("profileName").value.trim(),
+    description: $("profileDescription").value,
+    overwrite: $("overwrite").checked,
+    provider: {
+      base_url: $("baseUrl").value.trim(),
+      base_url_env: $("baseUrlEnv").value.trim(),
+      api_key_env: $("apiKeyEnv").value.trim(),
+      timeout_s: $("timeout").value,
+      api_key_required: $("apiKeyRequired").checked,
+    },
+    aliases: readAliases(),
+    roles: readRoles(),
+  };
+  try {
+    const doc = await api("/api/pipeline", { body: body });
+    providerNotice("saved " + doc.name + " to " + doc.path, "good");
+    const boot = state.boot;
+    boot.pipelines = doc.pipelines;
+    renderPipelines(doc.pipelines, doc.name, "");
+    $("profileSelect").value = doc.name;
+  } catch (e) { providerNotice(String(e.message), "bad"); }
+}
+
+async function checkProfile() {
+  const name = $("profileSelect").value;
+  providerNotice("checking " + name + " …", "info");
+  try {
+    const doc = await api("/api/config-check?pipeline=" + encodeURIComponent(name)
+      + "&cul=" + encodeURIComponent($("culSelect").value || ""));
+    const lines = [];
+    lines.push(doc.ok ? name + " is usable." : name + " is not usable.");
+    (doc.warnings || []).forEach((w) => lines.push("warning: " + w));
+    (doc.errors || []).forEach((e) => lines.push("error: " + e));
+    providerNotice(lines.join("\n"), doc.ok ? "good" : "bad");
+  } catch (e) { providerNotice(String(e.message), "bad"); }
+}
+
+async function useKey() {
+  const env = $("apiKeyEnv").value.trim();
+  const value = $("apiKeyValue").value.trim();
+  if (!env) { providerNotice("name the API key variable first", "bad"); return; }
+  try {
+    const doc = await api("/api/key", { body: { env: env, value: value } });
+    renderKeys(doc.keys);
+    $("apiKeyValue").value = "";
+    providerNotice("key held in memory for " + env + " until the server stops", "good");
+  } catch (e) { providerNotice(String(e.message), "bad"); }
+}
+
+async function forgetKey() {
+  const env = $("apiKeyEnv").value.trim();
+  try {
+    const doc = await api("/api/key", { body: { env: env, value: "" } });
+    renderKeys(doc.keys);
+    providerNotice("forgot the key for " + env, "info");
+  } catch (e) { providerNotice(String(e.message), "bad"); }
+}
+
+async function loadModels() {
+  providerNotice("loading models …", "info");
+  try {
+    const doc = await api("/api/provider-models", {
+      body: {
+        base_url: $("baseUrl").value.trim(),
+        api_key: $("apiKeyValue").value.trim(),
+        api_key_env: $("apiKeyEnv").value.trim(),
+      },
+    });
+    const fill = (id, values) => {
+      const list = $(id);
+      list.innerHTML = "";
+      values.forEach((v) => {
+        const opt = document.createElement("option");
+        opt.value = v; list.appendChild(opt);
+      });
+    };
+    fill("modelList", doc.models || []);
+    fill("providerList", doc.providers || []);
+    const bits = [(doc.models || []).length + " models"];
+    if ((doc.providers || []).length) bits.push((doc.providers || []).length + " provider slugs");
+    providerNotice(bits.join(", ") + ((doc.notes || []).length ? "\n" + doc.notes.join("\n") : ""),
+      (doc.notes || []).length ? "info" : "good");
+  } catch (e) { providerNotice(String(e.message), "bad"); }
+}
+
+/* ── wiring ─────────────────────────────────────────────────── */
+$("segSource").addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+  state.source = button.dataset.source;
+  $("segSource").querySelectorAll("button").forEach((b) => {
+    b.classList.toggle("on", b === button);
+  });
+  $("paneText").classList.toggle("hidden", state.source !== "text");
+  $("paneDemo").classList.toggle("hidden", state.source !== "demo");
+  $("paneValidation").classList.toggle("hidden", state.source !== "validation");
+  suggestRunId();
+});
+$("demoSelect").addEventListener("change", suggestRunId);
+$("suiteSelect").addEventListener("change", () => { renderCases(); suggestRunId(); });
+$("caseSelect").addEventListener("change", suggestRunId);
+$("pipelineSelect").addEventListener("change", () => {
+  state.pipeline = $("pipelineSelect").value;
+  $("chipProfileName").textContent = state.pipeline || "none";
+});
+$("btnPrepare").addEventListener("click", prepare);
+$("btnStart").addEventListener("click", start);
+$("btnStop").addEventListener("click", stop);
+
+$("tabs").addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+  state.tab = button.dataset.tab;
+  $("tabs").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === button));
+  $("tabReport").classList.toggle("hidden", state.tab !== "report");
+  $("tabMarkdown").classList.toggle("hidden", state.tab !== "markdown");
+  $("tabFiles").classList.toggle("hidden", state.tab !== "files");
+});
+
+$("btnProvider").addEventListener("click", openProvider);
+$("btnCloseProvider").addEventListener("click", closeProvider);
+$("providerBackdrop").addEventListener("click", (event) => {
+  if (event.target === $("providerBackdrop")) closeProvider();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeProvider();
+});
+$("profileSelect").addEventListener("change", () => loadProfile($("profileSelect").value));
+$("btnAddAlias").addEventListener("click", () => {
+  $("aliasList").appendChild(aliasCard({ alias: "", model: "" }));
+  syncRoleOptions();
+});
+$("baseUrl").addEventListener("input", () => {
+  const on = routingEnabled();
+  $("aliasList").querySelectorAll(".routing").forEach((node) => {
+    node.classList.toggle("off", !on);
+  });
+  $("routingNote").textContent = on
+    ? "Provider routing is available for this endpoint."
+    : "Provider routing applies to OpenRouter only; these fields are disabled.";
+});
+$("btnLoadModels").addEventListener("click", loadModels);
+$("btnSaveProfile").addEventListener("click", saveProfile);
+$("btnCheckProfile").addEventListener("click", checkProfile);
+$("btnUseKey").addEventListener("click", useKey);
+$("btnForgetKey").addEventListener("click", forgetKey);
+
+boot().then(() => { tick(); }).catch((e) => {
+  notice("could not reach the server: " + e.message, "bad");
+});
+</script>
+</body>
+</html>

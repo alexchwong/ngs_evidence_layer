@@ -801,6 +801,21 @@ def cmd_pipelines(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ui(args: argparse.Namespace) -> int:
+    """Serve the optional local browser interface.
+
+    The import is deferred so every other command is unaffected when ``ui/`` is
+    absent, which is the case in the skill release archive.
+    """
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    try:
+        from ui import server
+    except ImportError as exc:
+        raise CLIError(f"the browser interface is not installed in this checkout: {exc}") from exc
+    return int(server.serve(port=args.port, open_browser=not args.no_browser))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -845,6 +860,11 @@ def build_parser() -> argparse.ArgumentParser:
     pipelines = sub.add_parser("pipelines", help="list canonical pipeline configurations")
     pipelines.add_argument("--legacy", action="store_true", help="list terraced-v6 workflow-local pipelines")
     pipelines.set_defaults(func=cmd_pipelines)
+
+    ui = sub.add_parser("ui", help="serve the local browser interface on this machine")
+    ui.add_argument("--port", type=int, default=8765, help="first port to try")
+    ui.add_argument("--no-browser", action="store_true", help="do not open a browser window")
+    ui.set_defaults(func=cmd_ui)
     return parser
 
 

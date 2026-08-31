@@ -314,7 +314,44 @@ The public commands are:
 - `status` — inspect one run's artifact-derived status;
 - `runs` — survey existing runs;
 - `config-check` — validate configuration and corpus integrity;
-- `pipelines` — inspect installed pipeline definitions.
+- `pipelines` — inspect installed pipeline definitions;
+- `ui` — serve the local browser interface.
+
+## Browser interface
+
+An optional browser interface drives the same `nel.py` commands from a local web page. It runs on
+this machine only:
+
+```bash
+python nel.py ui
+```
+
+The terminal prints an address carrying a one-time session token; open that address. The interface
+binds `127.0.0.1` and cannot be exposed to other machines. Use `--port` to move it and
+`--no-browser` to suppress the automatic browser launch.
+
+What it does:
+
+- prepares and runs free-text cases, the `nel-demo` examples and the `nel-validate*` suites;
+- edits provider profiles: endpoint, model options, OpenRouter provider routing, and the assignment
+  of options to workflow roles;
+- accepts a provider API key, held in server memory for the life of the process and injected into
+  each `nel.py` child. **Keys are never written to disk and are lost when the server stops.** Never
+  put a key in a pipeline YAML file;
+- shows the live console, the terraced stage rail, token and cost accounting, the rendered report,
+  and every intermediate file a run produced;
+- deletes a run, or archives it — archiving removes `case.md`, `intermediates/` and `model_steps/`
+  and keeps the report, logs and run configuration.
+
+Runs whose provider is a loopback address, such as LM Studio, run one at a time. Runs against a
+remote provider may run concurrently.
+
+The profiles shipped with the repository — `self`, `lmstudio` and `openrouter` — are read-only in
+the interface; save your changes under a new name. `self` is hidden, because its handoff protocol
+needs a session model and cannot be driven unattended.
+
+The interface writes only to `runs/`, `.nel-ui/` and `config/pipelines/`, and it is not part of the
+release skill archive.
 
 ## Using the release as a skill
 
