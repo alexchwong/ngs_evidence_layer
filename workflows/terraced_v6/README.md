@@ -118,7 +118,10 @@ Pay attention to:
 - `intermediates/prognosis_report_aggregation/aggregation.yaml` — deterministic post-evidence prognosis grouping/suppression trace.
 - `intermediates/report_blocks/report-blocks.yaml` — deterministic composition contract sent to the final writer.
 - `logs/workflow.log` — run trace.
+- `logs/model-usage.json` — provider-call timing, token usage, and provider-reported cost for non-self pipelines.
 - `logs/transforms.yaml` — every deterministic change made to an accepted model artifact.
+
+For OpenRouter, run cost is the sum of the cost returned for each physical provider call, including retries and syntax repairs. NEL does not maintain a pricing table or estimate missing monetary usage.
 
 ## Failure policy
 

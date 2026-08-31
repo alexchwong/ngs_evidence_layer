@@ -144,13 +144,15 @@ Important outputs include:
 - `report-final.md` — final clinical report;
 - `report-final.json` — structured final report and run metadata;
 - `logs/workflow.log` — workflow trace;
-- `logs/model-usage.json` — provider-call timing and token usage for non-self pipelines;
+- `logs/model-usage.json` — provider-call timing, token usage, and provider-reported cost for non-self pipelines;
 - `logs/transforms.yaml` — deterministic transformations applied during the run;
 - `logs/semantic_dissent.yaml` — complete machine-readable semantic dissent ledger;
 - `dissent.md` — human-readable statement lifecycles and adjudication outcomes;
 - validation ZIP bundles when using validation modes.
 
 Each root run freezes the selected workflow, settings, pipeline, panel scope, corpus/CUL provenance, and workflow identity. Resume with `python nel.py run --run-id <id>`; the run manifest selects the correct executor.
+
+For OpenRouter, each physical provider call retains OpenRouter's returned cost and generation ID when supplied. Run cost is derived from that ledger and printed at completion; NEL does not estimate cost from a local pricing table. Providers that do not return monetary usage keep token accounting but have no fabricated cost.
 
 ## Native self execution
 

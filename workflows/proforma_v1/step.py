@@ -9,6 +9,7 @@ import yaml
 REPO_ROOT=Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path: sys.path.insert(0,str(REPO_ROOT))
 from scripts.core import citations, corpus, cul, retrieval as core_retrieval, syntax_repair, validated_model_task
+from scripts import model_usage
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.scripts.package_marking import package_marking_bundle
@@ -157,62 +158,16 @@ def _existing_or_new(work,group,name):
 def _case_json(work): return _existing_or_new(work,'structured_case','case.json')
 def _variants_path(work): return _existing_or_new(work,'variant_registry','variants.yaml')
 def _usage_path(work): return layout.logs(work)/USAGE_FILE
-def _record_usage(work,call_id,model,attempt,usage,*,role=None,duration_ms=None,logical_operation=None,call_kind='model',error=None):
-    p=_usage_path(work); doc={'schema_version':1,'calls':[]}
-    if p.is_file():
-        try: doc=json.loads(_read(p))
-        except (OSError,json.JSONDecodeError,TypeError): doc={'schema_version':1,'calls':[]}
-    calls=doc.setdefault('calls',[])
-    row={
-        'call_index':len(calls)+1,'operation':call_id,'logical_operation':logical_operation or call_id,
-        'call_kind':call_kind,'role':role,'model':model,'attempt':attempt,'duration_ms':duration_ms,'usage':usage,
-    }
-    if error: row['error']=str(error)
-    calls.append(row)
-    _write(p,json.dumps(doc,indent=2,ensure_ascii=False)+'\n')
-def _usage_summary(work):
-    p=_usage_path(work)
-    if not p.is_file(): return None
-    try: calls=json.loads(_read(p)).get('calls',[])
-    except (OSError,json.JSONDecodeError,TypeError): return None
-    reported=[r.get('usage') for r in calls if isinstance(r.get('usage'),dict)]
-    token_totals={k:sum((u or {}).get(k,0) for u in reported) for k in ('prompt_tokens','completion_tokens','total_tokens')}
-    duration_ms=sum(int(r.get('duration_ms') or 0) for r in calls)
-    logical=[]
-    for row in calls:
-        op=row.get('logical_operation') or row.get('operation')
-        if op and op not in logical: logical.append(op)
-    by_operation={}
-    for op in logical:
-        rows=[r for r in calls if (r.get('logical_operation') or r.get('operation'))==op]
-        usages=[r.get('usage') for r in rows if isinstance(r.get('usage'),dict)]
-        by_operation[op]={
-            'physical_calls':len(rows),
-            'retry_calls':max(0,len([r for r in rows if r.get('call_kind','model')=='model'])-1),
-            'syntax_repair_calls':len([r for r in rows if r.get('call_kind')=='syntax_repair']),
-            'duration_ms':sum(int(r.get('duration_ms') or 0) for r in rows),
-            'tokens':{k:sum((u or {}).get(k,0) for u in usages) for k in ('prompt_tokens','completion_tokens','total_tokens')},
-        }
-    return {
-        'logical_operations':len(logical),'physical_calls':len(calls),
-        'retry_calls':sum(max(0,len([r for r in calls if (r.get('logical_operation') or r.get('operation'))==op and r.get('call_kind','model')=='model'])-1) for op in logical),
-        'syntax_repair_calls':sum(1 for r in calls if r.get('call_kind')=='syntax_repair'),
-        'reported_calls':len(reported),'unreported_calls':len(calls)-len(reported),
-        'duration_ms':duration_ms,'totals':token_totals,'by_operation':by_operation,
-    }
-def _print_usage(work):
-    summary=_usage_summary(work)
-    if summary is None:
-        _status('Token usage: unavailable (self handoff or no provider usage ledger)'); return
-    _status(
-        f"Model execution: {summary['logical_operations']} logical operation(s), "
-        f"{summary['physical_calls']} provider call(s), {summary['retry_calls']} retry call(s), "
-        f"{summary['syntax_repair_calls']} syntax-repair call(s), {summary['duration_ms']/1000:.2f}s provider runtime"
+def _provider_name(binding): return model_usage.provider_name(base_url=binding.base_url,pipeline=binding.pipeline)
+def _record_usage(work,call_id,model,attempt,usage,*,role=None,provider=None,duration_ms=None,logical_operation=None,call_kind='model',error=None,generation_id=None):
+    model_usage.record_call(
+        _usage_path(work),call_id,model,attempt,usage,role=role,provider=provider,
+        duration_ms=duration_ms,logical_operation=logical_operation,call_kind=call_kind,
+        error=error,generation_id_value=generation_id,
     )
-    if not summary['reported_calls']:
-        _status('Token usage: unavailable (provider did not report usage)'); return
-    t=summary['totals']; suffix=f"; partial, {summary['unreported_calls']} attempt(s) unreported" if summary['unreported_calls'] else ''
-    _status(f"Token usage: prompt {t['prompt_tokens']:,}, completion {t['completion_tokens']:,}, total {t['total_tokens']:,}{suffix}")
+def _usage_summary(work): return model_usage.summarize(_usage_path(work))
+def _print_usage(work):
+    for line in model_usage.format_status_lines(_usage_summary(work)): _status(line)
 
 def _risk_path(work): return layout.logs(work)/'risk_log.yaml'
 def _risk_doc(work):
@@ -409,16 +364,16 @@ def _syntax_callback(work,binding,call_id,total_attempts):
         try: comp=model_client.complete_messages(binding,[{'role':'system','content':syntax_repair.SYNTAX_REPAIR_SYSTEM_PROMPT},{'role':'user','content':prompt}])
         except model_client.TruncatedCompletion as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,sid,binding.model,attempt,exc.usage,role='syntax_repair',duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair'); text=exc.content
+            _record_usage(work,sid,binding.model,attempt,exc.usage,role='syntax_repair',provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=exc.generation_id); text=exc.content
         except RuntimeError as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,sid,binding.model,attempt,None,role='syntax_repair',duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',error=exc)
+            _record_usage(work,sid,binding.model,attempt,None,role='syntax_repair',provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',error=exc)
             raise StepFailure(str(exc)) from exc
         else:
             duration_ms=round((time.perf_counter()-started)*1000)
             if isinstance(comp,model_client.Completion): text=comp.content; usage=comp.usage
             else: text=comp; usage=None
-            _record_usage(work,sid,binding.model,attempt,usage,role='syntax_repair',duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair')
+            _record_usage(work,sid,binding.model,attempt,usage,role='syntax_repair',provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=comp.generation_id if isinstance(comp,model_client.Completion) else None)
         _write(out,text.rstrip()+'\n'); return text
     return repair
 
@@ -552,17 +507,17 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
         try: comp=model_client.complete_messages(binding,messages)
         except model_client.TruncatedCompletion as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,call_id,binding.model,model_attempt,exc.usage,role=role,duration_ms=duration_ms,logical_operation=logical_id)
+            _record_usage(work,call_id,binding.model,model_attempt,exc.usage,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,generation_id=exc.generation_id)
             return validated_model_task.Truncated(exc.content,max_tokens=exc.max_tokens)
         except RuntimeError as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,call_id,binding.model,model_attempt,None,role=role,duration_ms=duration_ms,logical_operation=logical_id,error=exc)
+            _record_usage(work,call_id,binding.model,model_attempt,None,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,error=exc)
             raise StepFailure(str(exc)) from exc
         duration_ms=round((time.perf_counter()-started)*1000)
         if isinstance(comp,model_client.Completion):
-            _record_usage(work,call_id,binding.model,model_attempt,comp.usage,role=role,duration_ms=duration_ms,logical_operation=logical_id)
+            _record_usage(work,call_id,binding.model,model_attempt,comp.usage,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,generation_id=comp.generation_id)
             return comp.content
-        _record_usage(work,call_id,binding.model,model_attempt,None,role=role,duration_ms=duration_ms,logical_operation=logical_id)
+        _record_usage(work,call_id,binding.model,model_attempt,None,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id)
         return comp
 
     def call_syntax(prompt,attempt):
@@ -576,15 +531,15 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
         try: comp=model_client.complete_messages(syntax_binding,[{'role':'system','content':syntax_repair.SYNTAX_REPAIR_SYSTEM_PROMPT},{'role':'user','content':prompt}])
         except model_client.TruncatedCompletion as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,sid,syntax_binding.model,attempt,exc.usage,role='syntax_repair',duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair')
+            _record_usage(work,sid,syntax_binding.model,attempt,exc.usage,role='syntax_repair',provider=_provider_name(syntax_binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=exc.generation_id)
             return exc.content
         except RuntimeError as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,sid,syntax_binding.model,attempt,None,role='syntax_repair',duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',error=exc)
+            _record_usage(work,sid,syntax_binding.model,attempt,None,role='syntax_repair',provider=_provider_name(syntax_binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',error=exc)
             raise StepFailure(str(exc)) from exc
         duration_ms=round((time.perf_counter()-started)*1000)
         usage=comp.usage if isinstance(comp,model_client.Completion) else None
-        _record_usage(work,sid,syntax_binding.model,attempt,usage,role='syntax_repair',duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair')
+        _record_usage(work,sid,syntax_binding.model,attempt,usage,role='syntax_repair',provider=_provider_name(syntax_binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=comp.generation_id if isinstance(comp,model_client.Completion) else None)
         return comp.content if isinstance(comp,model_client.Completion) else comp
 
     def record(attempt):

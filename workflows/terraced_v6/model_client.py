@@ -7,6 +7,8 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
+from scripts import model_usage
+
 from workflows.terraced_v6.model_binding import Binding
 
 SYSTEM_PROMPT = (
@@ -25,7 +27,8 @@ class Completion:
     """Provider completion plus exact usage metadata, when the provider supplies it."""
 
     content: str
-    usage: dict[str, int] | None = None
+    usage: dict[str, object] | None = None
+    generation_id: str | None = None
 
 
 class TruncatedCompletion(RuntimeError):
@@ -33,11 +36,13 @@ class TruncatedCompletion(RuntimeError):
         self,
         content: str,
         max_tokens: int,
-        usage: dict[str, int] | None = None,
+        usage: dict[str, object] | None = None,
+        generation_id: str | None = None,
     ):
         self.content = content
         self.max_tokens = max_tokens
         self.usage = usage
+        self.generation_id = generation_id
         super().__init__(f"provider truncated output at max_tokens={max_tokens}")
 
 
@@ -45,26 +50,8 @@ def _endpoint(binding: Binding) -> str:
     return f"{binding.base_url.rstrip('/')}/chat/completions"
 
 
-def _usage(document: dict) -> dict[str, int] | None:
-    raw = document.get("usage")
-    if not isinstance(raw, dict):
-        return None
-    aliases = {
-        "prompt_tokens": ("prompt_tokens", "input_tokens"),
-        "completion_tokens": ("completion_tokens", "output_tokens"),
-        "total_tokens": ("total_tokens",),
-    }
-    usage = {}
-    for canonical, names in aliases.items():
-        value = next((raw.get(name) for name in names if raw.get(name) is not None), None)
-        if isinstance(value, int) and value >= 0:
-            usage[canonical] = value
-    if "total_tokens" not in usage and {
-        "prompt_tokens",
-        "completion_tokens",
-    } <= usage.keys():
-        usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
-    return usage or None
+def _usage(document: dict) -> dict[str, object] | None:
+    return model_usage.normalize_provider_usage(document)
 
 
 def complete_messages(binding: Binding, messages: list[dict[str, str]]) -> Completion:
@@ -112,9 +99,10 @@ def complete_messages(binding: Binding, messages: list[dict[str, str]]) -> Compl
     if not isinstance(content, str) or not content.strip():
         raise RuntimeError("provider returned an empty completion")
     usage = _usage(document)
+    generation_id = model_usage.generation_id(document)
     if finish_reason == "length":
-        raise TruncatedCompletion(content, binding.max_tokens, usage)
-    return Completion(content, usage)
+        raise TruncatedCompletion(content, binding.max_tokens, usage, generation_id)
+    return Completion(content, usage, generation_id)
 
 
 def strip_code_fence(text: str) -> str:
