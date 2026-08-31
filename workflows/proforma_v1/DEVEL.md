@@ -247,22 +247,23 @@ owned by the artifact/layout adapters.
 - `settings.json.template` — canonical default retry, authority, retrieval, reportability, and model-facing card-rendering policy. `evidence_resolution_attempts` counts semantic match→audit attempts and is separate from per-model syntax/content retries.
 - `prompts/` — only active model tasks. There are no statement-generation, summary-plan, or paraphrase prompts.
 - `pipelines/` — canonical shipped model/provider defaults for self, LM Studio, and OpenRouter. Pipeline identity is the YAML filename stem; `pipeline.id` is intentionally absent.
-- `devel_sync.py` — validates proforma-v1 local settings/pipeline defaults. It intentionally refuses to write root `config/` while `terraced-v6` remains the promoted default workflow.
+- `devel_sync.py` — validates proforma-v1 local settings/pipeline defaults and synchronizes the shipped root `config/settings.json.template` plus managed root pipeline defaults. It never overwrites user-owned `config/settings.json` or deletes custom pipelines.
 
 Clinical interpretation belongs to the owner call. Downstream code must not re-diagnose or repair owner clinical reasoning.
 Prognosis report aggregation is therefore deliberately downstream of evidence resolution: it may compress surviving supported propositions, but it must not create a new effect, framework, direction, disease scope, or evidence relationship.
 
 ## Validate workflow-local defaults
 
-`proforma_v1` is not yet the promoted root workflow. Root `config/` therefore remains owned by `terraced-v6`; changes to proforma-v1 settings or pipeline defaults must remain under `workflows/proforma_v1/`.
+`proforma_v1` is the promoted root workflow. Its settings template and shipped pipeline YAMLs are the source of truth for root workflow configuration. Run `python workflows/proforma_v1/devel_sync.py` after changing those defaults, then `--check` to verify no drift.
 
-Validate the workflow-local defaults with:
+Synchronize and validate the canonical shipped defaults with:
 
 ```bash
+python workflows/proforma_v1/devel_sync.py
 python workflows/proforma_v1/devel_sync.py --check
 ```
 
-Running `devel_sync.py` without `--check` deliberately refuses to modify root `config/`. Root defaults should be changed only as part of an explicit workflow-promotion decision.
+The sync manages only `config/settings.json.template` and shipped pipeline filenames. It never modifies `config/settings.json` or removes custom pipeline YAMLs.
 
 
 ## Model-facing card rendering

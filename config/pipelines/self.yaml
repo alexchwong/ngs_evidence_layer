@@ -1,6 +1,6 @@
 pipeline:
   version: 1
-  description: Terraced-v6 current-session self pipeline.
+  description: Proforma-v1 current-session self pipeline.
 provider:
   type: self
 models:
@@ -33,6 +33,10 @@ models:
     temperature: 0.0
     max_tokens: 131072
   syntax_repair:
+    model: self
+    temperature: 0.0
+    max_tokens: 131072
+  evidence_adjudication:
     model: self
     temperature: 0.0
     max_tokens: 131072

@@ -1,13 +1,13 @@
 ---
 name: ngs-evidence-layer
-description: Runs the supported terraced-v6 NGS Evidence Layer product through the root nel.py interface.
+description: Runs the canonical proforma-v1 NGS Evidence Layer product through the root nel.py interface.
 ---
 
 # NGS Evidence Layer
 
 The **repository root** is the directory containing this `SKILL.md` file and `nel.py`. Before running any command, use that directory as the working directory. All relative paths below are relative to the repository root.
 
-The supported workflow is `terraced-v6`. Every other directory under `workflows/` is legacy/development code. Do not invoke workflow-internal CLIs and do not ask the user to edit anything under `workflows/`.
+The canonical supported workflow is `proforma-v1`. Use the root `nel.py` facade for all product runs. `terraced-v6` is retained only as an explicit legacy/reproducibility path selected with root `--legacy`; never route a normal request to it.
 
 ## Model-step execution
 
@@ -28,8 +28,8 @@ python nel.py status ...
 python nel.py runs ...
 ```
 
-Root user configuration is in `config/`, including `config/pipelines/`. Run artefacts are always under `runs/<run-id>/`.
-`nel.py` is only the public facade: internally it delegates native self progression to `workflows/terraced_v6/self.py` and non-self execution to `workflows/terraced_v6/step.py`. Do not reproduce either executor's stage logic in the root skill.
+Root user configuration is in `config/`, including `config/pipelines/`, and belongs exclusively to canonical `proforma-v1`. Run artefacts are always under `runs/<run-id>/`.
+`nel.py` is the only public facade. Normal new runs use `proforma-v1`; explicit `--legacy` setup uses the retained legacy implementation with workflow-local settings/pipelines. Existing runs are dispatched by their frozen workflow manifest. Do not reproduce executor stage logic in the root skill.
 
 ## NGS report
 
@@ -54,7 +54,7 @@ For a request containing a clinical case and `ngs-report`:
 6. Stop only when `STATUS=complete`.
 7. Read `runs/<run-id>/report-final.md` and return that report to the user.
 
-Never use the old `->project`, system-temp, workflow selector, or workflow-local run interfaces for a new product run.
+Never use the old `->project`, system-temp, historical workflow-selector flags, or workflow-local run interfaces for a new product run.
 
 ## Demo and validation modes
 
@@ -65,6 +65,7 @@ nel-demo example N       -> python nel.py setup --mode nel-demo --example N
 nel-validate ID          -> python nel.py setup --mode nel-validate --case-id ID
 nel-validate-function ID -> python nel.py setup --mode nel-validate-function --case-id ID
 nel-validate-brief ID    -> python nel.py setup --mode nel-validate-brief --case-id ID
+nel-validate-dual ID     -> python nel.py setup --mode nel-validate-dual --case-id ID
 ```
 
 Then use the same repeated `python nel.py run --run-id <id>` loop. Do not read expected results or marking criteria before report generation completes.
@@ -85,6 +86,14 @@ python nel.py runs --incomplete
 
 to find incomplete runs. Use `python nel.py status --run-id <id>` before resuming an existing run.
 
-## Legacy workflows
+## Legacy workflow
 
-Legacy workflow source may exist in development checkouts, but it is not part of the supported product path. Do not route a user request to `legacy-v1`, `diagnosis-first-v1`, or terraced-v1 through terraced-v5.
+`proforma-v1` remains canonical. Only when the user explicitly requests the prior product workflow, create it through the root facade:
+
+```bash
+python nel.py setup --legacy --mode <mode> [mode arguments] [--pipeline <pipeline>]
+```
+
+`--legacy` selects `terraced-v6` and its workflow-local settings/pipelines; it never reuses root `config/settings.json` or `config/pipelines/`. For self execution, follow the same repeated `python nel.py run --run-id <id>` handoff loop. Existing legacy runs are also resumed with ordinary `python nel.py run --run-id <id>` because their frozen manifest records the workflow. Do not pass `--legacy` to `run` or `status`.
+
+Do not route product requests to `legacy-v1`, `diagnosis-first-v1`, or terraced-v1 through terraced-v5.

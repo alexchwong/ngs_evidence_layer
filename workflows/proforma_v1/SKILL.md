@@ -1,5 +1,7 @@
 # Proforma v1 — native self execution
 
+`proforma-v1` is the canonical product workflow. The repository-root `SKILL.md` and `nel.py` are the public interface; this workflow-local skill documents the internal native-self adapter used behind that facade.
+
 `proforma_v1` has one selected declarative workflow and two execution adapters. The selected YAML, not this file, owns clinical operations, dependencies, conditions, evidence barriers, self batching, and intentional executor-specific omissions.
 
 ## Routing

@@ -35,30 +35,90 @@ CURRENT_PROMPTS = {
 CURRENT_RULE_PROMPTS = {"diagnosis_context.md", "diagnosis_rule_view.md", "remainder_rule_view.md", "full_rule_view.md"}
 
 
-def test_root_skill_exposes_only_terraced_v6_product_facade():
+def test_root_skill_exposes_proforma_v1_product_facade_and_legacy_terraced():
     skill = ROOT_SKILL.read_text(encoding="utf-8")
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
-    assert registry["default_workflow"] == "terraced-v6"
+    assert registry["default_workflow"] == "proforma-v1"
     assert "python nel.py setup" in skill
     assert "python nel.py run" in skill
     assert "python nel.py runs" in skill
+    assert "proforma-v1" in skill
     assert "terraced-v6" in skill
-    assert "--legacy" not in skill
+    assert "--legacy" in skill
+    assert "nel-validate-dual" in skill
     assert "--diagnosis-first" not in skill
     assert "->project" in skill  # explicitly prohibited, not exposed as a supported path
-    assert "workflow-internal CLIs" in skill
     assert "python3 -m venv .env" not in skill
     assert ".env/bin/python -m pip install -r requirements.txt" not in skill
 
+
+def test_canonical_config_and_proforma_package_have_no_terraced_references():
+    forbidden = re.compile(r"terraced(?:[_-]v6|-v6)", re.IGNORECASE)
+    for base in (ROOT / "config", ROOT / "workflows" / "proforma_v1"):
+        for path in base.rglob("*"):
+            if not path.is_file() or path.suffix in {".pyc", ".zip"}:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            assert not forbidden.search(text), path
+
+
+def test_terraced_references_outside_legacy_package_are_operationally_allowlisted():
+    forbidden = re.compile(r"terraced[_-]v6|terraced-v6", re.IGNORECASE)
+    allowed = {
+        Path("nel.py"),
+        Path("SKILL.md"),
+        Path("README.md"),
+        Path("docs/DEVEL.md"),
+        Path("docs/workflows.md"),
+        Path("release/skill.txt"),
+        Path("workflows/registry.json"),
+        Path("tests/test_nel_cli.py"),
+        Path("tests/test_workflow_prompts.py"),
+    }
+    offenders=[]
+    for path in ROOT.rglob("*"):
+        if not path.is_file() or "workflows/terraced_v6" in path.as_posix() or path.suffix in {".pyc", ".zip"}:
+            continue
+        rel=path.relative_to(ROOT)
+        text=path.read_text(encoding="utf-8", errors="ignore")
+        if forbidden.search(text) and rel not in allowed:
+            offenders.append(str(rel))
+    assert offenders == []
+
+
+def test_root_workflow_defaults_are_owned_by_proforma_v1():
+    assert (ROOT / "config" / "settings.json.template").read_bytes() == (ROOT / "workflows" / "proforma_v1" / "settings.json.template").read_bytes()
+    for name in ("self.yaml", "lmstudio.yaml", "openrouter.yaml"):
+        assert (ROOT / "config" / "pipelines" / name).read_bytes() == (ROOT / "workflows" / "proforma_v1" / "pipelines" / name).read_bytes()
+    # Proforma needs a role absent from the legacy terraced defaults; this catches accidental ownership reversal.
+    assert b"evidence_adjudication:" in (ROOT / "config" / "pipelines" / "self.yaml").read_bytes()
+
+
+def test_terraced_devel_sync_does_not_publish_root_config():
+    from workflows.terraced_v6 import devel_sync
+    managed = [
+        ROOT / "config" / "settings.json.template",
+        ROOT / "config" / "pipelines" / "self.yaml",
+        ROOT / "config" / "pipelines" / "lmstudio.yaml",
+        ROOT / "config" / "pipelines" / "openrouter.yaml",
+    ]
+    before = {path: path.read_bytes() for path in managed}
+    assert devel_sync.sync() == 0
+    after = {path: path.read_bytes() for path in managed}
+    assert after == before
 
 
 def test_workflow_metadata_marks_accepted_and_legacy_status():
     categorical = json.loads((ROOT / "workflows" / "categorical_v1" / "workflow.json").read_text(encoding="utf-8"))
     current = json.loads((ROOT / "workflows" / "diagnosis_first_v1" / "workflow.json").read_text(encoding="utf-8"))
     legacy = json.loads((ROOT / "workflows" / "legacy_v1" / "workflow.json").read_text(encoding="utf-8"))
+    proforma = json.loads((ROOT / "workflows" / "proforma_v1" / "workflow.json").read_text(encoding="utf-8"))
+    terraced = json.loads((ROOT / "workflows" / "terraced_v6" / "workflow.json").read_text(encoding="utf-8"))
     assert categorical["status"] == "accepted"
     assert current["status"] == "accepted"
     assert legacy["status"] == "legacy"
+    assert proforma["status"] == "accepted"
+    assert terraced["status"] == "legacy"
     assert (ROOT / "scripts" / "devel_workflow.py").is_file()
 
 def test_workflow_owned_and_shared_prompts_are_separated():

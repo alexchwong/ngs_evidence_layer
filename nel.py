@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Root product CLI for the terraced-v6 NGS Evidence Layer workflow.
+"""Root product CLI for the canonical proforma-v1 NGS Evidence Layer workflow.
 
-End users interact with this file, root configuration, and ``runs/`` only.
-``workflows/terraced_v6`` remains the execution implementation; this facade owns
-only public run management, configuration freezing, dispatch, and presentation.
+End users interact with this file, root configuration, and ``runs/`` only. New
+runs use ``workflows/proforma_v1``. The previous terraced-v6 workflow is available
+only through an explicit ``--legacy`` setup/configuration path or a frozen run manifest.
 """
 from __future__ import annotations
 
@@ -29,9 +29,16 @@ SETTINGS_PATH = CONFIG_DIR / "settings.json"
 SETTINGS_TEMPLATE_PATH = CONFIG_DIR / "settings.json.template"
 PANEL_SCOPE_PATH = CONFIG_DIR / "ngs-panel-scope.md"
 PIPELINES_DIR = CONFIG_DIR / "pipelines"
+LEGACY_WORKFLOW_DIR = ROOT / "workflows" / "terraced_v6"
+LEGACY_SETTINGS_PATH = LEGACY_WORKFLOW_DIR / "settings.json"
+LEGACY_SETTINGS_TEMPLATE_PATH = LEGACY_WORKFLOW_DIR / "settings.json.template"
+LEGACY_PIPELINES_DIR = LEGACY_WORKFLOW_DIR / "pipelines"
 CUL_DIR = CONFIG_DIR / "cul"
 VERSION_PATH = ROOT / "release" / "VERSION"
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+CANONICAL_WORKFLOW = "proforma-v1"
+LEGACY_WORKFLOW = "terraced-v6"
+SUPPORTED_RUN_WORKFLOWS = {CANONICAL_WORKFLOW, LEGACY_WORKFLOW}
 
 class CLIError(RuntimeError):
     pass
@@ -73,27 +80,50 @@ def _version() -> str | None:
     return value or None
 
 
-def _v6_modules():
+def _workflow_modules(workflow_id: str = CANONICAL_WORKFLOW):
+    """Return executor modules for the canonical workflow or supported legacy runs."""
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
-    from workflows.terraced_v6 import pipeline_registry, self as self_executor, step
+    if workflow_id == CANONICAL_WORKFLOW:
+        from workflows.proforma_v1 import pipeline_registry, self as self_executor, step
+    elif workflow_id == LEGACY_WORKFLOW:
+        from workflows.terraced_v6 import pipeline_registry, self as self_executor, step
+    else:
+        raise CLIError(f"unsupported run workflow: {workflow_id}")
     return step, self_executor, pipeline_registry
 
 
-def _configure_v6(*, settings_path: Path = SETTINGS_PATH, pipelines_dir: Path = PIPELINES_DIR):
-    """Configure terraced-v6 through its public executor hook."""
-    step, self_executor, pipeline_registry = _v6_modules()
+def _workflow_config_paths(workflow_id: str) -> tuple[Path, Path, Path]:
+    """Return settings, settings-template and pipeline paths for one root-facing workflow."""
+    if workflow_id == CANONICAL_WORKFLOW:
+        return SETTINGS_PATH, SETTINGS_TEMPLATE_PATH, PIPELINES_DIR
+    if workflow_id == LEGACY_WORKFLOW:
+        return LEGACY_SETTINGS_PATH, LEGACY_SETTINGS_TEMPLATE_PATH, LEGACY_PIPELINES_DIR
+    raise CLIError(f"unsupported run workflow: {workflow_id}")
+
+
+def _configure_workflow(
+    workflow_id: str = CANONICAL_WORKFLOW,
+    *,
+    settings_path: Path | None = None,
+    pipelines_dir: Path | None = None,
+):
+    """Configure one supported workflow through its public executor hook."""
+    default_settings, _template, default_pipelines = _workflow_config_paths(workflow_id)
+    settings_path = Path(settings_path) if settings_path is not None else default_settings
+    pipelines_dir = Path(pipelines_dir) if pipelines_dir is not None else default_pipelines
+    step, self_executor, pipeline_registry = _workflow_modules(workflow_id)
     step.configure_runtime(settings_path=settings_path, pipelines_dir=pipelines_dir)
     return step, self_executor, pipeline_registry
 
 
-def _supported_modes() -> tuple[str, ...]:
-    step, _self_executor, _registry = _v6_modules()
+def _supported_modes(workflow_id: str = CANONICAL_WORKFLOW) -> tuple[str, ...]:
+    step, _self_executor, _registry = _workflow_modules(workflow_id)
     return tuple(step.supported_modes())
 
 
-def _validation_modes() -> set[str]:
-    return {mode for mode in _supported_modes() if mode.startswith("nel-validate")}
+def _validation_modes(workflow_id: str = CANONICAL_WORKFLOW) -> set[str]:
+    return {mode for mode in _supported_modes(workflow_id) if mode.startswith("nel-validate")}
 
 
 def _validate_run_id(value: str) -> str:
@@ -169,20 +199,43 @@ def _run_pipeline(run: Path) -> str | None:
     return None
 
 
+def _run_workflow(run: Path) -> str | None:
+    """Resolve a run's workflow from frozen root metadata, with legacy fallback."""
+    run = Path(run)
+    manifest = run / "run-config" / "manifest.json"
+    if manifest.is_file():
+        try:
+            value = _json_load(manifest).get("workflow")
+            if isinstance(value, str) and value:
+                return value
+        except CLIError:
+            pass
+    workflow = run / "workflow.json"
+    if workflow.is_file():
+        try:
+            value = _json_load(workflow).get("workflow_id")
+            if isinstance(value, str) and value:
+                return value
+        except CLIError:
+            pass
+    return None
+
+
 def inspect_run(run: Path) -> dict[str, Any]:
-    """Delegate provider-specific progress inspection to the canonical executor."""
+    """Delegate progress inspection to the workflow recorded for the run."""
     run = Path(run)
     pipeline = _run_pipeline(run)
-    if not pipeline:
+    workflow_id = _run_workflow(run)
+    if not pipeline or workflow_id not in SUPPORTED_RUN_WORKFLOWS:
         return {
             "label": "Unrecognized",
             "stage": "unknown",
             "next": "inspect run",
             "complete": False,
-            "pipeline": None,
+            "pipeline": pipeline,
             "mode": None,
         }
-    step, self_executor, _registry = _v6_modules()
+    step, self_executor, _registry = _workflow_modules(workflow_id)
     return self_executor.inspect_run(run) if pipeline == "self" else step.inspect_run(run)
 
 def _all_runs() -> list[tuple[str, Path, dict[str, Any]]]:
@@ -249,26 +302,83 @@ def corpus_core_blacklist_path() -> str:
     return str(corpus_core.DEFAULT_BLACKLIST)
 
 
-def _config_check(pipeline: str | None = None, cul: str | None = None) -> dict[str, Any]:
+def _legacy_settings_warnings(settings: dict[str, Any]) -> list[str]:
+    """Warn about terraced-era user keys without rewriting user-owned settings."""
+    found: list[str] = []
+    diagnosis = settings.get("diagnosis") or {}
+    who5 = diagnosis.get("who5") or {} if isinstance(diagnosis, dict) else {}
+    if isinstance(who5, dict) and "max_cmc_passes" in who5:
+        found.append("diagnosis.who5.max_cmc_passes")
+    if isinstance(diagnosis, dict) and "other" in diagnosis:
+        found.append("diagnosis.other")
+
+    reportability = settings.get("reportability") or {}
+    domains = reportability.get("domains") or {} if isinstance(reportability, dict) else {}
+    if isinstance(domains, dict):
+        dx = domains.get("diagnosis") or {}
+        if isinstance(dx, dict) and "second_diagnosis" in dx:
+            found.append("reportability.domains.diagnosis.second_diagnosis")
+        prognosis = domains.get("prognosis") or {}
+        if isinstance(prognosis, dict):
+            for key in ("favorable", "adverse", "neutral", "uncertain", "prognostic_score"):
+                if key in prognosis:
+                    found.append(f"reportability.domains.prognosis.{key}")
+        germline = domains.get("germline") or {}
+        if isinstance(germline, dict) and "germline_support" in germline:
+            found.append("reportability.domains.germline.germline_support")
+
+    prompts = settings.get("prompts") or {}
+    if isinstance(prompts, dict) and "diagnosis_other" in prompts:
+        found.append("prompts.diagnosis_other")
+    if not found:
+        return []
+    return [
+        "config/settings.json contains legacy terraced-v6 key(s): "
+        + ", ".join(found)
+        + ". The file was not modified; review it against config/settings.json.template before relying on custom behavior."
+    ]
+
+
+def _config_check(
+    workflow_id: str = CANONICAL_WORKFLOW,
+    pipeline: str | None = None,
+    cul: str | None = None,
+) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
     selected = pipeline
+    names: tuple[str, ...] = ()
     plans: dict[str, Any] = {}
+    settings_path, settings_template, pipelines_dir = _workflow_config_paths(workflow_id)
 
     try:
-        if not SETTINGS_PATH.is_file():
-            raise CLIError(f"settings file is missing: {SETTINGS_PATH}")
-        step, _self_executor, registry = _configure_v6()
+        if workflow_id == CANONICAL_WORKFLOW and not settings_path.is_file():
+            raise CLIError(f"settings file is missing: {settings_path}")
+        if not settings_path.is_file() and not settings_template.is_file():
+            raise CLIError(f"settings template is missing: {settings_template}")
+        step, _self_executor, registry = _configure_workflow(workflow_id)
         settings = step.load_settings()
+        if workflow_id == CANONICAL_WORKFLOW and settings_path.is_file():
+            warnings.extend(_legacy_settings_warnings(_json_load(settings_path)))
         selected = selected or str(settings.get("pipeline") or "self")
-        names = registry.names()
+        # Pipeline discovery must not validate unrelated YAML files. A user may keep
+        # additional/custom pipelines in config/pipelines; setup/config-check for an
+        # explicitly selected pipeline should fail only if that selected pipeline is
+        # unavailable or invalid.
+        names = tuple(sorted(path.stem for path in pipelines_dir.glob("*.yaml")))
         if not names:
-            raise CLIError(f"no pipeline YAML files found in {PIPELINES_DIR}")
-        for name in names:
-            plans[name] = registry.load(name)
-        if selected not in plans:
+            raise CLIError(f"no pipeline YAML files found in {pipelines_dir}")
+        if selected not in names:
             raise CLIError(f"configured pipeline {selected!r} is unavailable; choose one of: {', '.join(names)}")
-        plan = plans[selected]
+        selected_path = pipelines_dir / f"{selected}.yaml"
+        try:
+            plan = registry.load_yaml(selected_path)
+        except Exception as exc:
+            raise CLIError(f"pipeline {selected!r} failed validation ({selected_path}): {exc}") from exc
+        plans[selected] = plan
+        for warning in getattr(plan, "warnings", ()):
+            if warning not in warnings:
+                warnings.append(warning)
         provider = plan.doc.get("provider") or {}
         env_name = str(provider.get("api_key_env") or "")
         if provider.get("api_key_required") is True and env_name and not os.environ.get(env_name, "").strip():
@@ -292,22 +402,24 @@ def _config_check(pipeline: str | None = None, cul: str | None = None) -> dict[s
     except Exception as exc:
         errors.append(f"corpus check failed: {exc}")
 
-    workflow_path = ROOT / "workflows" / "terraced_v6" / "workflow.json"
+    workflow_dir = ROOT / "workflows" / ("proforma_v1" if workflow_id == CANONICAL_WORKFLOW else "terraced_v6")
+    workflow_path = workflow_dir / "workflow.json"
     if not workflow_path.is_file():
-        errors.append(f"terraced-v6 implementation is missing: {workflow_path}")
+        errors.append(f"{workflow_id} implementation is missing: {workflow_path}")
 
     try:
         from scripts.workflow_registry import load_registry
         workflow_registry = load_registry()
-        if workflow_registry.get("default_workflow") != "terraced-v6":
-            warnings.append("workflow registry default is not terraced-v6")
+        if workflow_registry.get("default_workflow") != CANONICAL_WORKFLOW:
+            warnings.append(f"workflow registry default is not {CANONICAL_WORKFLOW}")
     except Exception as exc:
         errors.append(f"workflow registry check failed: {exc}")
 
     return {
         "ok": not errors,
+        "workflow": workflow_id,
         "pipeline": selected,
-        "pipelines": sorted(plans),
+        "pipelines": sorted(names),
         "corpus_sha256": corpus_sha,
         "cul_profile": (cul_layer or {}).get("profile"),
         "cul_sha256": (cul_layer or {}).get("cul_sha256"),
@@ -317,42 +429,57 @@ def _config_check(pipeline: str | None = None, cul: str | None = None) -> dict[s
     }
 
 
-def _ensure_config_ok(pipeline: str | None, cul: str | None = None) -> dict[str, Any]:
-    result = _config_check(pipeline, cul)
+def _ensure_config_ok(
+    workflow_id: str, pipeline: str | None, cul: str | None = None
+) -> dict[str, Any]:
+    result = _config_check(workflow_id, pipeline, cul)
     if not result["ok"]:
         raise CLIError("configuration check failed:\n- " + "\n- ".join(result["errors"]))
     return result
 
 
-def _initialize_user_settings() -> bool:
-    """Create the user-owned working settings once, never overwrite them."""
-    if SETTINGS_PATH.is_file():
+def _initialize_user_settings(workflow_id: str = CANONICAL_WORKFLOW) -> bool:
+    """Create one workflow's optional working settings once, never overwrite them."""
+    settings_path, settings_template, pipelines_dir = _workflow_config_paths(workflow_id)
+    if settings_path.is_file():
         return False
-    if not SETTINGS_TEMPLATE_PATH.is_file():
-        raise CLIError(f"settings template is missing: {SETTINGS_TEMPLATE_PATH}")
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(SETTINGS_TEMPLATE_PATH, SETTINGS_PATH)
+    if not settings_template.is_file():
+        raise CLIError(f"settings template is missing: {settings_template}")
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(settings_template, settings_path)
     return True
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    created = _initialize_user_settings()
+    workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
+    created = _initialize_user_settings(workflow_id)
+    settings_path, _settings_template, pipelines_dir = _workflow_config_paths(workflow_id)
     print(f"STATUS={'created' if created else 'existing'}")
-    print(f"SETTINGS={SETTINGS_PATH.resolve()}")
-    print(f"PIPELINES={PIPELINES_DIR.resolve()}")
+    print(f"WORKFLOW={workflow_id}")
+    print(f"SETTINGS={settings_path.resolve()}")
+    print(f"PIPELINES={pipelines_dir.resolve()}")
     return 0
 
 
-def _snapshot_run_config(run: Path, *, run_id: str, mode: str, pipeline: str, config_result: dict[str, Any]) -> None:
+def _snapshot_run_config(
+    run: Path,
+    *,
+    run_id: str,
+    workflow_id: str,
+    mode: str,
+    pipeline: str,
+    config_result: dict[str, Any],
+) -> None:
     from scripts.core import cul as cul_core
     target = run / "run-config"
     target.mkdir(parents=True, exist_ok=False)
-    settings = _json_load(SETTINGS_PATH)
+    settings_path, settings_template, pipelines_dir = _workflow_config_paths(workflow_id)
+    settings = _json_load(settings_path if settings_path.is_file() else settings_template)
     settings["pipeline"] = pipeline
     (target / "settings.json").write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     pipeline_target = target / "pipelines"
     pipeline_target.mkdir()
-    source_pipeline = PIPELINES_DIR / f"{pipeline}.yaml"
+    source_pipeline = pipelines_dir / f"{pipeline}.yaml"
     if not source_pipeline.is_file():
         raise CLIError(f"selected pipeline file is missing: {source_pipeline}")
     (pipeline_target / source_pipeline.name).write_bytes(source_pipeline.read_bytes())
@@ -362,7 +489,7 @@ def _snapshot_run_config(run: Path, *, run_id: str, mode: str, pipeline: str, co
     manifest = {
         "schema_version": 1,
         "run_id": run_id,
-        "workflow": "terraced-v6",
+        "workflow": workflow_id,
         "mode": mode,
         "pipeline": pipeline,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -419,7 +546,10 @@ def _bind_run_config(run: Path):
                 "current corpus differs from the corpus captured at setup; "
                 "restore the recorded corpus or start a new run"
             )
-    return _configure_v6(settings_path=settings, pipelines_dir=pipelines)
+    workflow_id = manifest.get("workflow") or _run_workflow(run)
+    if workflow_id not in SUPPORTED_RUN_WORKFLOWS:
+        raise CLIError(f"unsupported or missing run workflow in {manifest_path}: {workflow_id!r}")
+    return _configure_workflow(workflow_id, settings_path=settings, pipelines_dir=pipelines)
 
 
 def _print_run_header(run_id: str, run: Path, status: dict[str, Any]) -> None:
@@ -434,7 +564,13 @@ def _print_run_header(run_id: str, run: Path, status: dict[str, Any]) -> None:
 
 
 def cmd_setup(args: argparse.Namespace) -> int:
+    workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
     mode = args.mode
+    if mode not in _supported_modes(workflow_id):
+        raise CLIError(
+            f"mode {mode!r} is not supported by {workflow_id}; choose one of: "
+            + ", ".join(_supported_modes(workflow_id))
+        )
     case = args.case.expanduser().resolve() if args.case else None
     if mode == "ngs-report" and case is None:
         raise CLIError("ngs-report setup requires --case <case.md>")
@@ -444,13 +580,14 @@ def cmd_setup(args: argparse.Namespace) -> int:
         raise CLIError("nel-demo setup requires --example <N>")
     if mode != "nel-demo" and args.example is not None:
         raise CLIError("--example is valid only with --mode nel-demo")
-    if mode in _validation_modes() and not args.case_id:
+    if mode in _validation_modes(workflow_id) and not args.case_id:
         raise CLIError(f"{mode} setup requires --case-id <ID>")
-    if mode not in _validation_modes() and args.case_id:
+    if mode not in _validation_modes(workflow_id) and args.case_id:
         raise CLIError("--case-id is valid only with a validation mode")
 
-    _initialize_user_settings()
-    config_result = _ensure_config_ok(args.pipeline, getattr(args, "cul", None))
+    if workflow_id == CANONICAL_WORKFLOW:
+        _initialize_user_settings(CANONICAL_WORKFLOW)
+    config_result = _ensure_config_ok(workflow_id, args.pipeline, getattr(args, "cul", None))
     pipeline = str(args.pipeline or config_result["pipeline"])
     if args.run_id:
         run_id = _validate_run_id(args.run_id)
@@ -468,7 +605,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
             suffix += 1
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
-    step, self_executor, _registry = _configure_v6()
+    step, self_executor, _registry = _configure_workflow(workflow_id)
     argv = ["setup", "--mode", mode, "--work-dir", str(run)]
     if pipeline != "self":
         argv += ["--pipeline", pipeline]
@@ -485,7 +622,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
         shutil.rmtree(run, ignore_errors=True)
         return code
     try:
-        _snapshot_run_config(run, run_id=run_id, mode=mode, pipeline=pipeline, config_result=config_result)
+        _snapshot_run_config(run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline, config_result=config_result)
     except Exception:
         shutil.rmtree(run, ignore_errors=True)
         raise
@@ -630,12 +767,15 @@ def cmd_runs(args: argparse.Namespace) -> int:
 
 
 def cmd_config_check(args: argparse.Namespace) -> int:
-    _initialize_user_settings()
-    result = _config_check(args.pipeline, getattr(args, "cul", None))
+    workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
+    if workflow_id == CANONICAL_WORKFLOW:
+        _initialize_user_settings(CANONICAL_WORKFLOW)
+    result = _config_check(workflow_id, args.pipeline, getattr(args, "cul", None))
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
         print(f"STATUS={'ok' if result['ok'] else 'error'}")
+        print(f"WORKFLOW={result['workflow']}")
         if result.get("pipeline"):
             print(f"PIPELINE={result['pipeline']}")
         if result.get("corpus_sha256"):
@@ -651,9 +791,11 @@ def cmd_config_check(args: argparse.Namespace) -> int:
 
 
 def cmd_pipelines(args: argparse.Namespace) -> int:
-    _initialize_user_settings()
-    _ensure_config_ok(None)
-    _step, _self_executor, registry = _configure_v6()
+    workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
+    if workflow_id == CANONICAL_WORKFLOW:
+        _initialize_user_settings(CANONICAL_WORKFLOW)
+    _ensure_config_ok(workflow_id, None)
+    _step, _self_executor, registry = _configure_workflow(workflow_id)
     for name in registry.names():
         print(f"{name}: {registry.descriptions()[name]}")
     return 0
@@ -663,13 +805,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    init = sub.add_parser("init", help="create config/settings.json from the shipped template if missing")
+    init = sub.add_parser("init", help="create canonical settings from the shipped template if missing")
+    init.add_argument("--legacy", action="store_true", help="initialize workflow-local terraced-v6 settings instead")
     init.set_defaults(func=cmd_init)
 
-    setup = sub.add_parser("setup", help="create a new root run bound to terraced-v6")
+    setup = sub.add_parser("setup", help="create a new root run; canonical proforma-v1 unless --legacy")
+    setup.add_argument("--legacy", action="store_true", help="create a terraced-v6 legacy run with workflow-local settings/pipelines")
     setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report")
     setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report")
-    setup.add_argument("--pipeline", help="pipeline name from config/pipelines/<name>.yaml")
+    setup.add_argument("--pipeline", help="pipeline name for the selected canonical/legacy workflow")
     setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json")
     setup.add_argument("--run-id", help="stable filesystem-safe run identifier")
     setup.add_argument("--example", type=int, help="demo example number")
@@ -691,13 +835,15 @@ def build_parser() -> argparse.ArgumentParser:
     runs.add_argument("--json", action="store_true")
     runs.set_defaults(func=cmd_runs)
 
-    check = sub.add_parser("config-check", help="validate public configuration and corpus integrity")
+    check = sub.add_parser("config-check", help="validate canonical configuration and corpus integrity")
+    check.add_argument("--legacy", action="store_true", help="validate terraced-v6 workflow-local settings/pipelines")
     check.add_argument("--pipeline")
     check.add_argument("--cul")
     check.add_argument("--json", action="store_true")
     check.set_defaults(func=cmd_config_check)
 
-    pipelines = sub.add_parser("pipelines", help="list public pipeline configurations")
+    pipelines = sub.add_parser("pipelines", help="list canonical pipeline configurations")
+    pipelines.add_argument("--legacy", action="store_true", help="list terraced-v6 workflow-local pipelines")
     pipelines.set_defaults(func=cmd_pipelines)
     return parser
 

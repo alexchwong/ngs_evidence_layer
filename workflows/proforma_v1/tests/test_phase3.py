@@ -9,7 +9,7 @@ from unittest.mock import patch
 import yaml
 from jsonschema import Draft202012Validator
 
-from workflows.proforma_v1 import domain_contract, layout, rules, self as self_executor, self_runtime, step as staged
+from workflows.proforma_v1 import domain_contract, layout, pipeline_registry, rules, self as self_executor, self_runtime, step as staged
 from workflows.proforma_v1.engine.context import WorkflowContext
 from workflows.proforma_v1.engine.workflow_compiler import compile_workflow
 
@@ -56,6 +56,20 @@ class Phase3WorkflowTests(unittest.TestCase):
             roles=doc.get("model_roles") or doc.get("models")
             with self.subTest(path=path.name):
                 self.assertIn("evidence_adjudication", roles)
+
+
+    def test_workflow_local_pipeline_validation_remains_strict_for_missing_adjudication_role(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/"lmstudio.yaml"
+            doc=yaml.safe_load((HERE/"pipelines"/"lmstudio.yaml").read_text(encoding="utf-8"))
+            doc["model_roles"].pop("evidence_adjudication")
+            path.write_text(yaml.safe_dump(doc,sort_keys=False),encoding="utf-8")
+            try:
+                pipeline_registry.configure(Path(td))
+                with self.assertRaisesRegex(ValueError,"model_roles must map exactly"):
+                    pipeline_registry.load("lmstudio")
+            finally:
+                pipeline_registry.configure()
 
     def test_provider_completion_check_for_structure_does_not_touch_downstream_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
@@ -122,10 +136,17 @@ class Phase3WorkflowTests(unittest.TestCase):
             self.assertEqual(summary["by_operation"]["prognosis"]["retry_calls"],1)
             self.assertEqual(summary["by_operation"]["prognosis"]["syntax_repair_calls"],1)
 
-    def test_proforma_devel_sync_does_not_own_root_config(self):
+    def test_proforma_devel_sync_owns_root_shipped_defaults_only(self):
         from workflows.proforma_v1 import devel_sync
+        user_settings = devel_sync.REPO_ROOT / "config" / "settings.json"
+        before = user_settings.read_bytes() if user_settings.is_file() else None
+        self.assertEqual(devel_sync.sync(),0)
         self.assertEqual(devel_sync.check(),0)
-        self.assertEqual(devel_sync.sync(),2)
+        self.assertEqual(devel_sync.SOURCE_SETTINGS.read_bytes(), devel_sync.TARGET_SETTINGS.read_bytes())
+        for source, target in devel_sync._managed_files():
+            self.assertEqual(source.read_bytes(), target.read_bytes())
+        after = user_settings.read_bytes() if user_settings.is_file() else None
+        self.assertEqual(after, before)
 
     def test_diagnosis_evidence_prompts_show_exact_machine_contracts(self):
         audit=(HERE/"prompts"/"evidence"/"diagnosis_audit.md").read_text(encoding="utf-8")

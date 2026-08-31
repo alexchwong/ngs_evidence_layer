@@ -16,8 +16,7 @@
     "nel-validate-brief",
     "nel-validate-dual"
   ],
-  "status": "experimental",
-  "cloned_from": "terraced-v6",
+  "status": "accepted",
   "architecture": "declarative-workflow-shared-executors-blocking-who1-gate-ptbg-owner-evidence-rescue-audit-adjudication",
   "phase": 3
 }

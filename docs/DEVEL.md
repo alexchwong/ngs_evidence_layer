@@ -35,8 +35,8 @@ python scripts/build_blacklist.py
 # Run the full test suite.
 python -m unittest discover -s tests -v 2>&1
 
-# Sync terraced-v6 developer defaults into root config and verify no drift.
-python workflows/terraced_v6/devel_sync.py --check
+# Sync canonical proforma-v1 developer defaults into root config and verify no drift.
+python workflows/proforma_v1/devel_sync.py --check
 
 # Build and verify a provisional skill ZIP.
 python scripts/build_skill_zip.py
@@ -63,7 +63,9 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 See [`workflows.md`](workflows.md) for the full workflow-separation contract, cloning
 procedure, modification boundaries, validation, and promotion/removal steps.
 
-**Default workflow:** `terraced-v6` — Uses isolated WHO5/ICC/WHO5 diagnostic passes, combined downstream domain reasoning, and audited evidence resolution before final synthesis.
+**Default workflow:** `proforma-v1` — Canonical declarative proforma workflow with blocking WHO1 routing, concurrent-pathology reporting, PTBG owner proformas, and audited/adjudicated evidence resolution before final synthesis.
+
+**Runnable legacy workflow:** `terraced-v6` — Retained only for root `nel.py --legacy` compatibility and frozen-run reproducibility. Its settings/pipelines remain workflow-local and it does not own or publish root workflow configuration.
 
 **Diagnosis-first compatibility workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
 the integrated diagnosis, then passes that diagnosis into a second pass over the remaining
@@ -77,7 +79,7 @@ agreed reporting rules.
 Create an isolated experimental workflow with:
 
 ```bash
-python scripts/devel_workflow.py new --from terraced-v6 --name <new-workflow-id>
+python scripts/devel_workflow.py new --from proforma-v1 --name <new-workflow-id>
 python scripts/devel_workflow.py check <new-workflow-id>
 ```
 

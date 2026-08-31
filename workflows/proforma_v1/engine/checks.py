@@ -89,7 +89,7 @@ def unique(doc, context, spec):
 def sequential_ids(doc, context, spec):
     rows = _path(doc, spec.get("path", "")) or []
     field = spec.get("field", "id"); prefix = spec.get("prefix", "")
-    # Legacy terraced-v6 stable source IDs are deliberately unpadded (V1, C1).
+    # Stable source IDs are deliberately unpadded (V1, C1).
     # Padding is opt-in for workflows that need a distinct namespace.
     width = spec.get("width")
     if width is None:

@@ -21,7 +21,7 @@ class Phase1CloneTests(unittest.TestCase):
         self.assertEqual(normalise_selector("proforma_v1", registry), "proforma-v1")
         metadata = load_workflow_metadata("proforma-v1", registry)
         self.assertEqual(metadata["python_package"], "workflows.proforma_v1")
-        self.assertEqual(metadata["cloned_from"], "terraced-v6")
+        self.assertNotIn("cloned_from", metadata)
         self.assertEqual(metadata["phase"], 3)
 
     def test_setup_binds_work_directory_to_proforma(self):

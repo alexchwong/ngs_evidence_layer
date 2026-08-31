@@ -18,7 +18,7 @@
         "arber-2022-blood-140-1200",
         "d-hner-2022-blood-140-1345"
       ],
-      "max_cmc_passes": 2
+      "reconsider_after_cmc_expansion": false
     },
     "icc": {
       "included_publication_keys": [],
@@ -26,9 +26,6 @@
         "khoury-2022-leukemia-36-1703",
         "alaggio-2022-leukemia-who5-lymphoid"
       ]
-    },
-    "other": {
-      "publication_keys": []
     }
   },
   "ptbg": {
@@ -52,7 +49,7 @@
       "diagnosis": {
         "who5": true,
         "icc": true,
-        "second_diagnosis": true
+        "concurrent_pathology": true
       },
       "prognosis": {
         "framework_favorable": true,
@@ -75,7 +72,7 @@
         "not_mrd_marker": false
       },
       "germline": {
-        "germline_support": true,
+        "germline_suspicious": true,
         "germline_against": false,
         "germline_uncertain": false
       }
@@ -85,7 +82,6 @@
     "structure_case": "structure_case.md",
     "diagnosis_who5": "diagnosis_who5.md",
     "diagnosis_icc": "diagnosis_icc.md",
-    "diagnosis_other": "diagnosis_other.md",
     "prognosis": "prognosis.md",
     "treatment": "treatment.md",
     "biomarker": "biomarker.md",

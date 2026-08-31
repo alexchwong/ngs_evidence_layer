@@ -1,6 +1,6 @@
 pipeline:
   version: 1
-  description: Terraced-v6 local LM Studio OpenAI-compatible pipeline.
+  description: Proforma-v1 local LM Studio OpenAI-compatible pipeline.
 provider:
   type: openai-compatible
   base_url: http://localhost:1234/v1
@@ -40,6 +40,10 @@ model_roles:
     temperature: 0.0
     max_tokens: 16384
   syntax_repair:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384
+  evidence_adjudication:
     model: default
     temperature: 0.0
     max_tokens: 16384

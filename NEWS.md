@@ -30,12 +30,12 @@
 - CUL now validates `evidence_tier` against the ingestion schema enum rather than accepting any string.
 
 ## 0.2.5
-- Added root `nel.py` setup, run, status, configuration checks, and run inventory for the supported terraced-v6 product.
-- Moved user-editable settings and provider pipelines to root configuration while leaving terraced-v6 implementation files unchanged.
+- Added root `nel.py` setup, run, status, configuration checks, and run inventory for the then-current product workflow.
+- Moved user-editable settings and provider pipelines to root configuration while leaving the then-current implementation files unchanged.
 - New runs now live under gitignored root `runs/<run-id>/` with frozen per-run configuration and corpus provenance.
 - Added artifact-derived incomplete-run grouping, including diagnosis, PTBG, evidence review, report synthesis, and completion states.
-- Simplified root README and SKILL documentation to the terraced-v6 product interface; legacy workflow guidance moved to developer documentation.
-- Release payloads now ship only terraced-v6 and smoke-test root setup in an isolated extracted archive.
+- Simplified root README and SKILL documentation to the then-current product interface; legacy workflow guidance moved to developer documentation.
+- Release payloads were narrowed to the then-current product implementation and smoke-tested root setup in an isolated extracted archive.
 - Expanded the active corpus from 12 to 19 publications with germline guidance, TP53 evidence, CCUS, and MPN prognostic models.
 - Case structuring now records NGS completeness and deterministically materializes assayed genes with no detected variants.
 - Model pipelines now support reusable aliases and OpenRouter provider routing with explicit fallback control.
@@ -43,7 +43,7 @@
 - PTBG proformas now separate disease-specific variant effects from framework-level conclusions and use disease-scoped evidence retrieval.
 - Prognosis now deterministically groups same-framework findings and suppresses only fully overlapping accepted-card restatements.
 ## 0.2.4
-- Made `terraced-v6` the default reporting workflow, with native session-model execution and retained staged provider pipelines.
+- Promoted the then-current reporting workflow to default, with native session-model execution and retained staged provider pipelines.
 - Added independent WHO5, ICC, and second-WHO5 diagnosis passes before downstream prognosis, treatment, MRD, and germline reasoning.
 - Deferred card assignment until shared evidence resolution, followed by independent audit and cropped disagreement adjudication.
 - Added deterministic dissent rendering for evidence disagreements and adjudication outcomes.

@@ -2,7 +2,7 @@
 
 A corpus-grounded command-line tool for myeloid NGS interpretation.
 
-NEL combines a supplied clinical case with the bundled evidence corpus and explicit reporting rules to produce a concise, citable report. It does not fill evidence gaps from general model knowledge. The supported product workflow is `terraced-v6`, exposed through the root `nel.py` CLI.
+NEL combines a supplied clinical case with the bundled evidence corpus and explicit reporting rules to produce a concise, citable report. It does not fill evidence gaps from general model knowledge. The canonical product workflow is `proforma-v1`, exposed through the root `nel.py` CLI. `terraced-v6` remains available only as a legacy/reproducibility workflow.
 
 ## Requirements
 
@@ -93,7 +93,7 @@ python nel.py init
 
 `nel.py setup` and `nel.py config-check` also perform this initialization automatically if `config/settings.json` is missing. The working file is copied from `config/settings.json.template` and is never silently overwritten.
 
-Review these user-editable files before running a case:
+Review these user-editable files before running a case. Root workflow settings and pipeline defaults belong exclusively to canonical `proforma-v1`.
 
 - `config/settings.json` — workflow behavior and default pipeline name;
 - `config/ngs-panel-scope.md` — genes assayed by the NGS panel;
@@ -189,6 +189,19 @@ python nel.py runs --incomplete
 
 All run data is stored under the gitignored `runs/<run-id>/` directory.
 
+## Legacy terraced-v6
+
+`proforma-v1` is the canonical workflow. `terraced-v6` is retained only for explicit legacy/reproducibility use through the same root facade. Do not place terraced settings or pipelines in root `config/`.
+
+Check the legacy configuration or create a new legacy run with `--legacy`:
+
+```bash
+python nel.py config-check --legacy --pipeline lmstudio
+python nel.py setup --legacy --mode nel-demo --example 1 --pipeline lmstudio --run-id legacy-demo-1
+```
+
+Legacy setup reads `workflows/terraced_v6/settings.json` when present (otherwise its local template) and `workflows/terraced_v6/pipelines/`. To create a workflow-local editable settings file, run `python nel.py init --legacy`. After setup, resume normally with `python nel.py run --run-id <id>`; the frozen run manifest selects the executor, so `--legacy` is not used on `run` or `status`.
+
 ## Demo and validation modes
 
 Bundled examples and validation suites use the same CLI. Select either `lmstudio` or `openrouter` explicitly:
@@ -198,6 +211,7 @@ python nel.py setup --mode nel-demo --example 1 --pipeline lmstudio --run-id dem
 python nel.py setup --mode nel-validate --case-id 1A --pipeline lmstudio --run-id validation-1A
 python nel.py setup --mode nel-validate-function --case-id 1A --pipeline lmstudio --run-id function-1A
 python nel.py setup --mode nel-validate-brief --case-id 1 --pipeline lmstudio --run-id brief-1
+python nel.py setup --mode nel-validate-dual --case-id 1 --pipeline lmstudio --run-id dual-1
 ```
 
 Then execute the prepared run:
@@ -236,7 +250,7 @@ To use a release ZIP as a chat skill, upload it through your application's skill
 
 ## Report behavior and boundaries
 
-Terraced-v6:
+Proforma-v1:
 
 1. preserves and structures the supplied case;
 2. performs WHO5, ICC, and authoritative second-WHO5 diagnostic assessment;

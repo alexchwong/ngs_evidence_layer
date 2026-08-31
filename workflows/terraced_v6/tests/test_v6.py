@@ -82,11 +82,11 @@ def test_obsolete_pipeline_id_is_rejected():
         with _assert_raises(ValueError):
             pipeline_registry.load_yaml(target)
 
-def test_public_defaults_are_synced_from_terraced_v6():
-    assert (HERE/'settings.json.template').read_bytes()==(ROOT/'config/settings.json.template').read_bytes()
-    source={p.name:p.read_bytes() for p in (HERE/'pipelines').glob('*.yaml')}
-    public={p.name:p.read_bytes() for p in (ROOT/'config/pipelines').glob('*.yaml')}
-    assert source==public
+def test_legacy_defaults_are_workflow_local():
+    from workflows.terraced_v6 import devel_sync
+    assert devel_sync.check() == 0
+    assert step.SETTINGS_TEMPLATE_PATH == HERE/'settings.json.template'
+    assert pipeline_registry.ROOT == HERE/'pipelines'
 
 def test_non_self_defaults_use_model_aliases():
     for name in ('lmstudio','openrouter'):

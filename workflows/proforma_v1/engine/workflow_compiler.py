@@ -99,11 +99,9 @@ def _validate_schema(doc: dict) -> None:
 
 
 def _known_roles() -> set[str]:
-    roles: set[str] = set()
-    for name in pipeline_registry.names():
-        plan = pipeline_registry.load(name)
-        roles.update((plan.doc.get("model_roles") or plan.doc.get("models") or {}).keys())
-    return roles
+    # Workflow role validity is part of the canonical proforma schema, not an
+    # emergent property of whichever pipeline YAML files happen to be present.
+    return set(pipeline_registry.ROLES)
 
 
 def _asset_root(doc: dict, source: Path) -> Path:

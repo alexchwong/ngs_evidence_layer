@@ -1,10 +1,9 @@
 {
   "schema_version": 1,
-  "default_workflow": "terraced-v6",
+  "default_workflow": "proforma-v1",
   "aliases": {
     "legacy": "legacy-v1",
     "diagnosis-first": "diagnosis-first-v1",
-    "terraced": "terraced-v6",
     "proforma": "proforma-v1",
     "proforma_v1": "proforma-v1"
   },
