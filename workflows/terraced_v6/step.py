@@ -11,8 +11,8 @@ if str(REPO_ROOT) not in sys.path: sys.path.insert(0,str(REPO_ROOT))
 from scripts.core import citations, corpus, retrieval as core_retrieval, syntax_repair, validated_model_task
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
-from validation.package_marking import package_marking_bundle
-from validation import cases as validation_cases
+from validation.scripts.package_marking import package_marking_bundle
+from validation.scripts.bundled_cases import is_validation_mode, write_demo_marking_criteria_after_report
 from workflows.terraced_v6 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 
 WORKFLOW_ID='terraced-v6'; RUN_STATE_SCHEMA_VERSION=3; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
@@ -32,8 +32,6 @@ def supported_modes():
     if not isinstance(modes,list) or not modes or any(not isinstance(x,str) or not x for x in modes):
         raise ValueError(f'invalid supported_modes in {WORKFLOW_PATH}')
     return tuple(modes)
-VALIDATION_MODES={m for m in supported_modes() if m.startswith('nel-validate')}
-MARKING_PREFIX={'nel-validate':'nel-validation','nel-validate-function':'nel-validation-function','nel-validate-brief':'nel-validation-brief'}
 _EXECUTION_STARTED_AT=None
 
 class StepFailure(RuntimeError): pass
@@ -441,7 +439,7 @@ def _sanitize_proforma_text(work,call_id,text):
                 if key in {'card_tag','card_tags'}:
                     records.append({'stage':call_id,'transform':'strip_proforma_card_assignment','path':child})
                     continue
-                if key=='reason' and isinstance(item,str):
+                if key in {'reason','other_evidence_reason'} and isinstance(item,str):
                     cleaned=' '.join(_RUNTIME_CARD_TAG_RE.sub(' ',item).split()).strip()
                     if cleaned!=item:
                         records.append({'stage':call_id,'transform':'strip_runtime_card_tag_from_reason','path':child})
@@ -601,14 +599,12 @@ def run_setup(args):
     elif args.mode=='nel-demo': label+=f'-{args.example}'
     elif args.case_id: label+='-'+args.case_id
     work_arg=args.work_dir or _timestamped_work_dir(HERE/'runs',label); work_arg.parent.mkdir(parents=True,exist_ok=True)
-    work,demo_case,demo_expected=setup_workflow(workflow=WORKFLOW_ID,mode=args.mode,work_dir=work_arg,project=False,example=args.example,case_id=args.case_id)
+    work=setup_workflow(workflow=WORKFLOW_ID,mode=args.mode,work_dir=work_arg,project=False,example=args.example,case_id=args.case_id)
     write_workflow_state(work,WORKFLOW_ID,args.mode,model_profile=plan.pipeline_id)
     case_path=layout.input(work,'case.md',existing=False)
     if args.case_file: shutil.copyfile(args.case_file.expanduser().resolve(),case_path)
-    elif args.mode=='nel-demo' and demo_case: shutil.copyfile(demo_case,case_path)
     if not case_path.is_file() or not _read(case_path).strip(): raise StepFailure(f'case.md missing or empty: {case_path}')
-    if demo_expected: shutil.copyfile(demo_expected,_artifact(work,'setup','demo-expected.md',new=True))
-    _save_run_state(work,{'schema_version':RUN_STATE_SCHEMA_VERSION,'workflow_id':WORKFLOW_ID,'mode':args.mode,'validation_case':args.case_id,'pipeline':plan.pipeline_id,'created_at':datetime.now(timezone.utc).isoformat()})
+    _save_run_state(work,{'schema_version':RUN_STATE_SCHEMA_VERSION,'workflow_id':WORKFLOW_ID,'mode':args.mode,'validation_case':args.case_id,'example':args.example,'pipeline':plan.pipeline_id,'created_at':datetime.now(timezone.utc).isoformat()})
     with _cli_logging(work): print(work); print(f'PIPELINE={plan.pipeline_id}')
     return EXIT_OK
 
@@ -1353,9 +1349,11 @@ def stage_final(work,case,final_blocks,elements,all_cards,digest,manifest):
     cited='\n'.join(parts).rstrip()+'\n'; _write(_existing_or_new(work,'report_write','report-cited.md'),cited)
     rendered=citations.render(cited,_read(epath),_read(tpath),require_citation_after_full_stop=False); rendered=case['detected_variants_summary']+'\n\n'+rendered.lstrip(); _write(Path(work)/'report-final.md',rendered); _write_dissent(work)
     payload={'workflow':WORKFLOW_ID,'blocks':final_blocks,'risk_log':_risk_doc(work),'model_usage':_usage_summary(work),'report_markdown':rendered}; _write(Path(work)/'report-final.json',json.dumps(payload,indent=2,ensure_ascii=False)+'\n')
-    mode=_load_run_state(work).get('mode')
-    if mode in VALIDATION_MODES:
-        case_id=_load_run_state(work).get('validation_case'); package_marking_bundle(case_id,Path(work)/'report-final.md',Path(work)/f'{MARKING_PREFIX[mode]}-{case_id}.zip',case_file=validation_cases.VALIDATION_CASE_FILES[mode])
+    state=_load_run_state(work); mode=state.get('mode')
+    if is_validation_mode(mode):
+        case_id=state.get('validation_case'); package_marking_bundle(mode,case_id,Path(work)/'report-final.md')
+    elif mode=='nel-demo':
+        write_demo_marking_criteria_after_report(state.get('example'),report_path=Path(work)/'report-final.md',output_path=_artifact(work,'setup','demo-expected.md',new=True))
 
 def run_pipeline(work,profile=None):
     _require_work(work); layout.ensure_dirs(work)

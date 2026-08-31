@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Build a single self-contained HTML browser for the accepted card corpus.
+"""Build a single self-contained HTML browser for the incorporated card corpus.
 
-The default browser keeps the compact corpus-only view. ``--full`` enriches
-cards with their accepted evidence package and enables a click-through detail
-pane containing the complete card, evidence, publication and provenance data.
-Because accepted evidence is private/gitignored, full mode writes into the
-private ``evidence/`` directory by default.
+The default browser is corpus-only and reads exclusively from
+``output/corpus/nel.corpus.json`` (or ``--corpus``). ``--full`` renders the same
+browser with accepted evidence and provenance attached to each card. Full mode
+requires matching ``accept/<publication_key>.final.json`` packages but never
+reads or requires ``archive/``.
 
 Usage:
   build_card_browser.py [--corpus output/corpus/nel.corpus.json]
@@ -47,10 +47,9 @@ def _accepted_package(publication_key: str, accept_dir: Path) -> dict:
 def _full_details(entry: dict, accept_dir: Path) -> tuple[dict, dict[str, dict]]:
     """Return paper-level detail and evidence indexed by card ID.
 
-    Full mode deliberately verifies that the accepted package still matches the
-    incorporated corpus. Mixing a newer accepted package with an older corpus
-    would otherwise produce a plausible-looking but internally inconsistent
-    browser.
+    Full mode verifies that the accepted package still matches the incorporated
+    corpus. It intentionally uses ``accept/`` only; archive history is neither
+    read nor required.
     """
     document = entry["document"]
     source = entry.get("source", {})
@@ -114,32 +113,29 @@ def _full_details(entry: dict, accept_dir: Path) -> tuple[dict, dict[str, dict]]
 
     for card_id, corpus_card in corpus_cards.items():
         comparable_corpus = {k: v for k, v in corpus_card.items() if k != "disease_ancestors"}
-        comparable_accepted = {k: v for k, v in accepted_cards[card_id].items() if k != "disease_ancestors"}
+        comparable_accepted = {
+            k: v for k, v in accepted_cards[card_id].items() if k != "disease_ancestors"
+        }
         if comparable_accepted != comparable_corpus:
             raise ValueError(
                 f"accepted card {card_id} differs from the incorporated corpus. "
                 "Re-run incorporation before building --full."
             )
 
-    # Retain every paper/provenance field without duplicating every card and
-    # evidence item in every card payload. The selected card carries its exact
-    # card/evidence objects; these paper details carry the remaining fields.
     acceptance = {key: value for key, value in envelope.items() if key != "final"}
-
-    # Compute the latest acceptance version from redos/supplements/revisions
-    # if not already set in the envelope.
     if not acceptance.get("latest_version"):
         modifications = []
         for field in ("supplements", "revisions", "redos"):
             entries = envelope.get(field) or []
-            for entry in entries:
-                accepted_time = entry.get("accepted_at")
-                version = entry.get("accepted_in_version")
+            for item in entries:
+                accepted_time = item.get("accepted_at")
+                version = item.get("accepted_in_version")
                 if accepted_time and version:
                     modifications.append((accepted_time, version))
         if modifications:
             modifications.sort()
             acceptance["latest_version"] = modifications[-1][1]
+
     package_fields = {
         key: value for key, value in package.items() if key not in {"cards", "evidence"}
     }
@@ -152,7 +148,17 @@ def _full_details(entry: dict, accept_dir: Path) -> tuple[dict, dict[str, dict]]
     return paper_details, evidence_by_card
 
 
-def collect(corpus_path: Path, *, full: bool = False, accept_dir: Path = DEFAULT_ACCEPT_DIR) -> dict:
+def collect(
+    corpus_path: Path,
+    *,
+    full: bool = False,
+    accept_dir: Path = DEFAULT_ACCEPT_DIR,
+) -> dict:
+    """Collect browser data.
+
+    Normal mode depends only on the incorporated corpus. Full mode additionally
+    requires one matching accepted package for every incorporated publication.
+    """
     corpus = _load_json(corpus_path, "corpus")
     papers = []
     cards = []
@@ -180,8 +186,8 @@ def collect(corpus_path: Path, *, full: bool = False, accept_dir: Path = DEFAULT
             else:
                 paper_details, evidence_by_card = _full_details(entry, accept_dir)
                 paper["details"] = paper_details
-        papers.append(paper)
 
+        papers.append(paper)
         for card in document.get("cards", []):
             row = {
                 "id": card["card_id"],
@@ -243,8 +249,8 @@ def main() -> None:
         help="accepted package directory used by --full (default: accept)",
     )
     args = parser.parse_args()
-
     output = args.output or (DEFAULT_FULL_OUTPUT if args.full else DEFAULT_OUTPUT)
+
     try:
         data = collect(args.corpus, full=args.full, accept_dir=args.accept_dir)
     except ValueError as exc:

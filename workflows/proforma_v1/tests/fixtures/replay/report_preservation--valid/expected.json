@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "report_preservation",
+  "operation_id": "report.preservation",
+  "accepted": true,
+  "message": "preservation audit valid",
+  "message_sha256": "60d488b4547aa40305e795f3ef54acf03552df6c8def02262c83d7009809be6c",
+  "response_sha256": "b3a1f1522b6b36f0c5afeb5d81faba9a70655bdbb1444c9f58ee15a39411192e",
+  "context_sha256": "157c7e08c516e97c2f3006ca19b342542f801457c8ea18261a5056d22780cbbb",
+  "prompt_sha256": "dbeff134e5e2554166d09ffed6cd35ef043d1d4e4b99a296616a2433a3bc922a",
+  "schema_sha256": "129157105ac1c76bb7f245bfa8f997118a232b45229d7f44ab33998af5f4748c",
+  "stage_spec_sha256": "5b894bed8c67a2295d913da7e19617892e193d8f8eba2d50db6af0a090cf5789"
+}

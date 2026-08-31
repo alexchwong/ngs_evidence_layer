@@ -1,0 +1,14 @@
+schema_disease: MDs
+diagnosis: MDS with increased blasts
+diagnostic_effect: refined
+variants: [V1]
+reason: The molecular findings refine the supplied morphologic diagnosis.
+variant_assessments:
+  - variant_id: v01
+    classification: diagnostic_for_primary
+    other_pathology: null
+    reason: This variant contributes to the refined primary WHO5 diagnosis.
+  - variant_id: v02
+    classification: nonspecific
+    other_pathology: null
+    reason: This variant is not specific enough to define the primary or another pathology.

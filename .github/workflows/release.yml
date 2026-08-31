@@ -67,24 +67,7 @@ jobs:
           git rev-parse --verify "$TAG^{commit}" >/dev/null
 
           mapfile -t payload_patterns < <(grep -vE '^[[:space:]]*$' release/skill.txt)
-          mapfile -t changed_files < <(git diff --name-only "$TAG"..HEAD)
-
-          payload_changed=false
-          for changed in "${changed_files[@]}"; do
-            if [[ "$changed" == "release/skill.txt" ]]; then
-              payload_changed=true
-              break
-            fi
-
-            for payload in "${payload_patterns[@]}"; do
-              if [[ "$changed" == $payload ]]; then
-                payload_changed=true
-                break 2
-              fi
-            done
-          done
-
-          if [[ "$payload_changed" == "true" ]]; then
+          if ! git diff --quiet "$TAG"..HEAD -- release/skill.txt "${payload_patterns[@]}"; then
             echo "Skill release payload changed after $TAG was released." >&2
             echo "Bump release/VERSION before merging these skill changes to master." >&2
             exit 1

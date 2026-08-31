@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evidence cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#efeef4;
+    --panel:#f7f6fa;
+    --ink:#191825;
+    --muted:#6e6a82;
+    --rule:#d8d5e3;
+    --azure:#2b4c8c;
+    --eosin:#a31e63;
+    --focus:#a31e63;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --display:"Newsreader",Georgia,serif;
+    --cat-diagnosis:#4a3f8f;
+    --cat-prognosis:#a31e63;
+    --cat-treatment:#1d6f63;
+    --cat-biomarker:#2b4c8c;
+    --cat-germline:#8a5a12;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--azure)}
+  button{font:inherit;color:inherit}
+
+  /* ---------- masthead ---------- */
+  header.masthead{
+    border-bottom:1px solid var(--rule);
+    padding:22px 28px 16px;
+    display:flex;flex-wrap:wrap;gap:18px;align-items:baseline;justify-content:space-between;
+  }
+  .wordmark{font-family:var(--display);font-size:31px;line-height:1;letter-spacing:-.01em;font-weight:500;margin:0}
+  .wordmark em{font-style:italic;color:var(--eosin)}
+  .provenance{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+
+  /* ---------- shell ---------- */
+  .shell{display:grid;grid-template-columns:288px minmax(0,1fr);gap:0;align-items:start}
+  body.full-mode.detail-open .shell{grid-template-columns:1fr 3fr 1fr}
+  body.full-mode.detail-open .rail{grid-column:1}
+  body.full-mode.detail-open .detail{grid-column:2;grid-row:1}
+  body.full-mode.detail-open .main{grid-column:3;grid-row:1;padding-left:20px;padding-right:20px}
+  .rail{
+    border-right:1px solid var(--rule);padding:20px 20px 60px;
+    position:sticky;top:0;max-height:100vh;overflow-y:auto;background:var(--panel);
+  }
+  .main{padding:20px 28px 90px;min-width:0}
+
+  /* ---------- full detail pane ---------- */
+  .detail{display:none}
+  body.full-mode.detail-open .detail{
+    display:block;border-left:1px solid var(--rule);border-right:1px solid var(--rule);
+    background:#fff;padding:18px 24px 60px;position:sticky;top:0;max-height:100vh;
+    overflow-y:auto;min-width:0;
+  }
+  .detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .detail-id{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+  .detail-close{border:1px solid var(--rule);background:#fff;border-radius:2px;cursor:pointer;padding:3px 8px;font-family:var(--mono);font-size:12px}
+  .detail-close:hover{border-color:var(--eosin);color:var(--eosin)}
+  .detail-section{border-top:1px solid var(--rule);padding-top:14px;margin-top:16px}
+  .detail-section:first-of-type{border-top:0;padding-top:0;margin-top:0}
+  .detail-section h2{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .detail-interpretation{font-family:var(--display);font-size:20px;line-height:1.45;margin:0}
+  .meta-grid{display:grid;grid-template-columns:minmax(100px,130px) minmax(0,1fr);gap:6px 12px;margin:0;font-size:13px}
+  .meta-grid dt{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0}
+  .meta-grid dd{margin:0;overflow-wrap:anywhere}
+  .evidence-fragment{margin:12px 0 0;padding:10px 12px;background:var(--panel);border-left:3px solid var(--azure)}
+  .fragment-label{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:6px}
+  .evidence-fragment blockquote{margin:0;font-size:13.5px;line-height:1.55}
+  .support-list{margin:0;padding-left:18px;font-size:13px}
+  .support-list code{font-family:var(--mono);font-size:11px}
+  .detail-citation{font-size:13px;line-height:1.55;margin:0}
+  details.raw{margin-top:16px;border-top:1px solid var(--rule);padding-top:12px}
+  details.raw summary{cursor:pointer;font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  pre.raw-json{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mono);font-size:10px;line-height:1.45;background:var(--panel);padding:10px;margin:10px 0 0;border:1px solid var(--rule)}
+
+  /* ---------- filters ---------- */
+  .facet{margin-bottom:26px}
+  .facet h2{
+    font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 9px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  }
+  .facet h2 .clear{
+    border:0;background:none;padding:0;cursor:pointer;color:var(--eosin);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:none;
+    visibility:hidden;
+  }
+  .facet.active h2 .clear{visibility:visible}
+  .facet-search{
+    width:100%;border:1px solid var(--rule);background:#fff;border-radius:2px;
+    padding:6px 8px;font-family:var(--mono);font-size:12px;color:var(--ink);margin-bottom:8px;
+  }
+  .facet-search::placeholder{color:#9a96ab}
+  .options{list-style:none;margin:0;padding:0;max-height:264px;overflow-y:auto}
+  .options.short{max-height:none}
+  .opt{
+    width:100%;display:flex;gap:8px;align-items:baseline;text-align:left;
+    border:0;background:none;cursor:pointer;padding:3px 4px;border-radius:2px;
+    font-size:13.5px;line-height:1.35;color:var(--ink);
+  }
+  .opt:hover{background:#e9e6f1}
+  .opt .tick{
+    font-family:var(--mono);font-size:11px;color:var(--muted);width:12px;flex:none;
+  }
+  .opt[aria-pressed="true"]{background:#fff}
+  .opt[aria-pressed="true"] .label{color:var(--eosin);font-weight:600}
+  .opt[aria-pressed="true"] .tick{color:var(--eosin)}
+  .opt .label{flex:1;min-width:0;overflow-wrap:anywhere}
+  .opt .count{font-family:var(--mono);font-size:11px;color:var(--muted);flex:none}
+  .opt[disabled]{opacity:.35;cursor:default}
+  .opt[disabled]:hover{background:none}
+  .swatch{width:8px;height:8px;border-radius:50%;flex:none;align-self:center}
+
+  /* ---------- results ---------- */
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
+    padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:4px;
+  }
+  .tally{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.03em}
+  .tally b{color:var(--ink);font-weight:500}
+  .text-search{
+    flex:1;min-width:200px;max-width:380px;border:1px solid var(--rule);background:#fff;
+    border-radius:2px;padding:7px 10px;font-family:var(--sans);font-size:13.5px;
+  }
+  .reset{
+    border:1px solid var(--rule);background:#fff;border-radius:2px;padding:6px 11px;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;cursor:pointer;
+  }
+  .reset:hover{border-color:var(--eosin);color:var(--eosin)}
+
+  ol.cards{list-style:none;margin:0;padding:0}
+  li.card{
+    display:grid;grid-template-columns:232px minmax(0,1fr);gap:22px;
+    padding:15px 0 15px 13px;border-bottom:1px solid var(--rule);
+    border-left:3px solid var(--spine,var(--rule));
+  }
+  body.full-mode li.card{cursor:pointer}
+  body.full-mode li.card:hover{background:#f7f4fa}
+  body.full-mode li.card.selected{background:#fff;border-left-width:5px;padding-left:11px}
+  body.full-mode.detail-open li.card{display:block;padding-top:13px;padding-bottom:13px}
+  body.full-mode.detail-open li.card .cid{display:block;margin-bottom:5px}
+  body.full-mode.detail-open li.card p{font-size:14px;line-height:1.5}
+  li.card .cid{
+    font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);
+    letter-spacing:-.01em;overflow-wrap:anywhere;padding-top:2px;
+  }
+  li.card p{margin:0;font-size:15.5px;line-height:1.6}
+  li.card mark{background:#f7dbe8;color:inherit;padding:0 1px}
+  .empty{padding:56px 0;max-width:44ch}
+  .empty h3{font-family:var(--display);font-size:22px;font-weight:500;margin:0 0 6px}
+  .empty p{margin:0;color:var(--muted)}
+
+  .railtoggle{display:none}
+
+  @media (max-width:1150px){
+    body.full-mode.detail-open .rail{padding-left:14px;padding-right:14px}
+    body.full-mode.detail-open .detail{padding-left:18px;padding-right:18px}
+    body.full-mode.detail-open .main{padding-left:14px;padding-right:14px}
+  }
+
+  @media (max-width:900px){
+    .shell, body.full-mode.detail-open .shell{grid-template-columns:1fr}
+    body.full-mode.detail-open .rail{grid-column:1;grid-row:1}
+    body.full-mode.detail-open .detail{
+      grid-column:1;grid-row:2;position:static;max-height:none;border-right:0;
+    }
+    body.full-mode.detail-open .main{grid-column:1;grid-row:3;padding:16px 20px 70px}
+    .rail{
+      position:static;max-height:none;border-right:0;border-bottom:1px solid var(--rule);
+      padding-bottom:24px;
+    }
+    .rail[hidden]{display:none}
+    .railtoggle{
+      display:block;margin:16px 28px 0;border:1px solid var(--rule);background:#fff;
+      border-radius:2px;padding:8px 12px;font-family:var(--mono);font-size:12px;cursor:pointer;
+    }
+    .main{padding:16px 20px 70px}
+    li.card{grid-template-columns:1fr;gap:5px}
+    header.masthead{padding:18px 20px 14px}
+  }
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* ---------- corpus user layer ---------- */
+  /* Inherits the light document palette above. Editable surfaces are white with
+     --ink text so they stay legible before selection. */
+  .modebar{display:flex;gap:0;align-items:stretch;margin-left:auto;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+  .modebtn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    padding:5px 12px;border:0;background:#fff;color:var(--muted);cursor:pointer;
+  }
+  .modebtn + .modebtn{border-left:1px solid var(--rule)}
+  .modebtn:hover{color:var(--ink)}
+  .modebtn[aria-pressed="true"]{background:var(--azure);color:#fff}
+
+  .profilebar{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:10px 14px;margin:0 0 18px;
+    background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--azure);
+  }
+  .profilebar .pname{
+    font-family:var(--mono);font-size:12px;color:var(--ink);background:#fff;
+    border:1px solid var(--rule);border-radius:2px;padding:5px 8px;width:13rem;
+  }
+  .pcount{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .pstale{
+    font-family:var(--mono);font-size:10.5px;color:#fff;background:var(--eosin);
+    border-radius:2px;padding:2px 7px;letter-spacing:.04em;
+  }
+  .pbtn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+    border:1px solid var(--rule);background:#fff;color:var(--ink);
+    border-radius:2px;padding:5px 11px;cursor:pointer;
+  }
+  .pbtn:hover{border-color:var(--azure);color:var(--azure)}
+  .pbtn.primary{background:var(--azure);border-color:var(--azure);color:#fff}
+  .pbtn.primary:hover{background:#22406f;color:#fff}
+  .phelp{flex-basis:100%;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+  /* Copy controls are quiet text affordances, not buttons competing with the card. */
+  .copyrow{display:flex;gap:14px;align-items:baseline;margin-top:8px}
+  .copybtn{
+    border:0;background:none;padding:0;cursor:pointer;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+    color:var(--muted);text-decoration:underline;text-underline-offset:2px;
+  }
+  .copybtn:hover{color:var(--azure)}
+  .copybtn.copied{color:var(--cat-treatment);text-decoration:none}
+
+  .editor{margin-top:14px;border-top:1px solid var(--rule);padding-top:14px}
+  .original{background:var(--panel);border-left:3px solid var(--muted);padding:9px 12px;margin-bottom:12px}
+  .origlabel{
+    display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px;
+  }
+  .original p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink)}
+  .editarea{
+    width:100%;font-family:var(--sans);font-size:14.5px;line-height:1.5;
+    background:#fff;color:var(--ink);
+    border:1px solid var(--rule);border-radius:2px;padding:9px 11px;resize:vertical;
+  }
+  .editarea:focus,.editfield:focus,.profilebar .pname:focus{
+    outline:2px solid var(--focus);outline-offset:-1px;border-color:var(--focus);
+  }
+  /* Assertion left, classification right; stacks when the column is too narrow
+     (mobile, or the full-mode detail pane taking two thirds of the shell). */
+  .editcolumns{display:grid;grid-template-columns:minmax(0,1fr) 17rem;gap:18px;align-items:start}
+  .editmain{min-width:0}
+  .editside{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .editlabel{display:flex;flex-direction:column;gap:4px}
+  .wasline{
+    font-family:var(--mono);font-size:10.5px;line-height:1.4;color:var(--muted);
+    overflow-wrap:anywhere;
+  }
+  select.editfield{
+    appearance:none;-webkit-appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 14px) 52%,calc(100% - 9px) 52%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+    padding-right:26px;cursor:pointer;
+  }
+
+  /* Disease token field: chips for the selection, filtering list to add. */
+  .tokenfield{position:relative;display:flex;flex-direction:column;gap:5px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;
+    font-family:var(--mono);font-size:11px;line-height:1.3;
+    background:#fff;color:var(--ink);border:1px solid var(--rule);
+    border-radius:2px;padding:2px 4px 2px 7px;
+  }
+  .chipx{
+    border:0;background:none;padding:0 1px;cursor:pointer;
+    font-family:var(--mono);font-size:13px;line-height:1;color:var(--muted);
+  }
+  .chipx:hover{color:var(--eosin)}
+  .chipnone{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .tokeninput{width:100%}
+  .tokenlist{
+    list-style:none;margin:0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
+    max-height:210px;overflow-y:auto;background:#fff;border:1px solid var(--rule);
+    box-shadow:0 4px 14px rgba(25,24,37,.13);
+  }
+  .tokenopt{
+    display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;
+    font-family:var(--sans);font-size:12.5px;color:var(--ink);padding:5px 9px;
+  }
+  .tokenopt:hover{background:var(--panel);color:var(--azure)}
+  @media (max-width:1100px){
+    .editcolumns{grid-template-columns:minmax(0,1fr)}
+  }
+  body.full-mode.detail-open .editcolumns{grid-template-columns:minmax(0,1fr)}
+
+
+  /* The editor carries its own accent so it is never mistaken for the
+     read-only card browser. */
+  body.cul-app .masthead{border-bottom:2px solid var(--azure)}
+  body.cul-app .wordmark em{color:var(--azure)}
+
+
+  /* ---------- rules panel ---------- */
+  .rulespanel{border-bottom:2px solid var(--azure)}
+  .rulelist{list-style:none;margin:0 0 10px;padding:0}
+  .ruleempty{font-family:var(--mono);font-size:10.5px;color:var(--muted);line-height:1.5}
+  .ruleitem{display:flex;gap:7px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--rule)}
+  .ruleitem.off .rulebody{opacity:.45;text-decoration:line-through}
+  .rulebody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+  .rulescope{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--muted)}
+  .ruletext{font-size:12px;line-height:1.4;color:var(--ink);overflow-wrap:anywhere}
+  .ruledrop{border:0;background:none;cursor:pointer;color:var(--muted);
+    font-family:var(--mono);font-size:14px;line-height:1;padding:0 2px}
+  .ruledrop:hover{color:var(--eosin)}
+  .ruleexempt{font-family:var(--mono);font-size:10.5px;color:var(--azure);
+    border-left:3px solid var(--azure);padding:5px 9px;background:var(--panel);margin:0 0 10px}
+  .ruleform{display:flex;flex-direction:column;gap:9px;
+    border-top:1px solid var(--rule);padding-top:11px}
+  .rulevalues{display:flex;flex-direction:column;gap:4px}
+  .rulecheck{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink);cursor:pointer}
+  .rulepreview{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0;line-height:1.5}
+  .exempttag{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+    color:var(--azure);border:1px solid var(--azure);border-radius:2px;padding:1px 5px}
+
+  /* ---------- modal ---------- */
+  .modalback{
+    position:fixed;inset:0;z-index:40;background:rgba(25,24,37,.42);
+    display:flex;align-items:flex-start;justify-content:center;padding:6vh 20px;
+  }
+  .modalbox{
+    background:#fff;border:1px solid var(--rule);max-width:760px;width:100%;
+    max-height:82vh;overflow-y:auto;padding:20px 24px 28px;box-shadow:0 12px 40px rgba(25,24,37,.24);
+  }
+  .modalhead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .modalhead h2{font-family:var(--display);font-size:22px;margin:0 0 4px;font-weight:500}
+  .modalsection{border-top:1px solid var(--rule);margin-top:18px;padding-top:14px}
+  .modalsection > h3{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 8px;
+  }
+  .modalline{margin:0 0 5px;font-size:13px;line-height:1.5;color:var(--ink)}
+  .pselect{width:11rem}
+  .pfile{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  label.pbtn{cursor:pointer;position:relative;display:inline-flex;align-items:center}
+
+  /* ---------- edit mode: filters | editor | card picker ---------- */
+  body.edit-mode .shell{grid-template-columns:288px minmax(0,1fr) 27rem}
+  body.edit-mode .rail{grid-column:1}
+  body.edit-mode .detail{
+    grid-column:2;grid-row:1;display:block;background:#fff;
+    border-left:1px solid var(--rule);border-right:1px solid var(--rule);
+    padding:18px 24px 60px;position:sticky;top:0;max-height:100vh;overflow-y:auto;min-width:0;
+  }
+  body.edit-mode .main{grid-column:3;grid-row:1;padding:18px 20px 70px}
+  body.edit-mode .toolbar{flex-wrap:wrap}
+  body.edit-mode .cards{list-style:none;margin:0;padding:0}
+
+  .pickbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .picktally{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .pbtn[disabled]{opacity:.45;cursor:default}
+  .pbtn[disabled]:hover{border-color:var(--rule);color:var(--ink)}
+
+  .promptbox{
+    border:1px solid var(--azure);border-left:3px solid var(--azure);background:var(--panel);
+    padding:11px 13px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  }
+  .promptbox p{flex-basis:100%;margin:0;font-size:12.5px;line-height:1.5;color:var(--ink)}
+
+  .pickrow{
+    display:flex;gap:9px;align-items:flex-start;
+    border-top:1px solid var(--rule);padding:10px 6px;cursor:pointer;
+  }
+  .pickrow:hover{background:var(--panel)}
+  .pickrow.selected{background:var(--panel);box-shadow:inset 3px 0 0 var(--azure)}
+  .pickrow.excluded .picktext,.pickrow.excluded .pickid{opacity:.45}
+  .pickbox{margin-top:3px;accent-color:var(--azure);width:15px;height:15px;flex:none;cursor:pointer}
+  .pickbox:disabled{cursor:default}
+  .pickbody{min-width:0}
+  .pickhead{display:flex;flex-wrap:wrap;gap:7px;align-items:baseline;margin-bottom:3px}
+  .pickid{font-family:var(--mono);font-size:11px;color:var(--ink)}
+  .pickpaper{font-family:var(--mono);font-size:10px;color:var(--muted);overflow-wrap:anywhere}
+  .locktag{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;
+    color:var(--muted);border:1px solid var(--rule);border-radius:2px;padding:1px 5px;
+  }
+  .picktext{
+    margin:0;font-size:12.5px;line-height:1.45;color:var(--ink);
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .scopenote{
+    font-family:var(--mono);font-size:10.5px;color:var(--cat-germline);
+    border-left:3px solid var(--cat-germline);padding:6px 10px;background:var(--panel);margin:12px 0 0;
+  }
+  /* Keep the rules/filters rail as a real LHS column on desktop-sized windows.
+     The old 1250px collapse made the rail appear to disappear on ordinary
+     laptop/browser widths. Only the mobile breakpoint stacks the editor. */
+  @media (min-width:901px) and (max-width:1250px){
+    body.edit-mode .shell{grid-template-columns:250px minmax(0,1fr) minmax(18rem,22rem)}
+    body.edit-mode .rail{padding-left:14px;padding-right:14px}
+    body.edit-mode .detail{padding-left:18px;padding-right:18px}
+    body.edit-mode .main{padding-left:14px;padding-right:14px}
+  }
+  @media (max-width:900px){
+    body.edit-mode .shell{grid-template-columns:minmax(0,1fr)}
+    body.edit-mode .rail{grid-column:1;grid-row:1;position:static;max-height:none}
+    body.edit-mode .detail{grid-column:1;grid-row:2;position:static;max-height:none;border-left:0;border-right:0}
+    body.edit-mode .main{grid-column:1;grid-row:3}
+  }
+
+  .editlabel > span{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .editlabel.changed > span{color:var(--eosin)}
+  .editfield{
+    font-family:var(--sans);font-size:13.5px;
+    background:#fff;color:var(--ink);
+    border:1px solid var(--rule);border-radius:2px;padding:6px 9px;
+  }
+  .editlabel.changed .editfield{border-color:var(--eosin)}
+  .editfield::placeholder{color:#767290}
+  .editactions{display:flex;gap:12px;align-items:baseline;margin-top:14px}
+  .revert{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;
+    border:1px solid var(--rule);background:#fff;color:var(--eosin);
+    border-radius:2px;padding:4px 10px;cursor:pointer;
+  }
+  .revert:hover{border-color:var(--eosin)}
+  .editnote{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+  .amendtag{
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:#fff;background:var(--eosin);border-radius:2px;padding:1px 6px;margin-left:8px;
+  }
+  .amendtag.staletag{background:var(--cat-germline)}
+  .evidencetag{
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--cat-germline);border:1px solid var(--cat-germline);
+    border-radius:2px;padding:1px 6px;margin-left:8px;
+  }
+
+  .diffblock{border-top:1px solid var(--rule);padding-top:14px;margin-top:16px}
+  .diffblock h3{font-family:var(--mono);font-size:12px;margin:0 0 10px;color:var(--ink)}
+  .diffrow{margin:10px 0}
+  .difffield{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .diffrow .before{margin:4px 0;font-size:13.5px;color:var(--muted);text-decoration:line-through}
+  .diffrow .after{margin:4px 0;font-size:13.5px;color:var(--ink);border-left:3px solid var(--eosin);padding-left:9px}
+  .diffkind{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:10px}
+  body.edit-mode .card{cursor:default}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <h1 class="wordmark">Evidence <em>cards</em></h1>
+  <div class="provenance" id="provenance"></div>
+</header>
+
+<button class="railtoggle" id="railtoggle" aria-expanded="false" aria-controls="rail">Filters</button>
+
+<div class="shell">
+  <aside class="rail" id="rail" aria-label="Filters"></aside>
+  <main class="main">
+    <div class="toolbar">
+      <div class="tally" id="tally"></div>
+      <input class="text-search" id="textsearch" type="search" placeholder="Search: free text, &quot;phrases&quot;, -exclude, gene:TP53" aria-label="Search cards">
+      <button class="reset" id="reset" type="button">Clear all filters</button>
+      <div class="modebar" id="modebar" role="group" aria-label="Mode">
+        <button class="modebtn" id="mode-browse" type="button" aria-pressed="true">Browse</button>
+        <button class="modebtn" id="mode-edit" type="button" aria-pressed="false">Edit</button>
+      </div>
+    </div>
+    <div id="profilemount"></div>
+    <ol class="cards" id="cards"></ol>
+  </main>
+  <aside class="detail" id="detail" aria-label="Card details"></aside>
+</div>
+
+<script>
+const DATA = /*__CARD_DATA__*/null;
+const EDIT = { on:false };
+/* The editor artefact has no browse mode, so it starts in edit mode. Deciding
+   this at declaration keeps the first render correct; setting it later left the
+   opening paint in browse mode until something triggered a re-render. */
+EDIT.on = !!DATA.editor;
+
+const CATEGORY_COLOURS = {
+  diagnosis:"var(--cat-diagnosis)", prognosis:"var(--cat-prognosis)",
+  treatment:"var(--cat-treatment)", biomarker:"var(--cat-biomarker)",
+  germline:"var(--cat-germline)"
+};
+
+const paperName = {};
+const paperByKey = {};
+DATA.papers.forEach(p => { paperName[p.key] = p.nickname; paperByKey[p.key] = p; });
+if (DATA.full) document.body.classList.add("full-mode");
+
+/*__CUL_LAYER__*/
+
+
+const state = { paper:new Set(), disease:new Set(), gene:new Set(), category:new Set(), query:"", terms:[], selected:null };
+const facetSearch = { paper:"", disease:"", gene:"", category:"" };
+
+const FACETS = [
+  { key:"category", title:"Category",  field:c => [c.category], searchable:false, swatch:true },
+  { key:"paper",    title:"Paper",     field:c => [c.paper],    searchable:true,  labelOf:k => paperName[k] || k },
+  { key:"disease",  title:"Disease",   field:c => c.diseases,   searchable:true },
+  { key:"gene",     title:"Gene",      field:c => c.genes,      searchable:true }
+];
+
+function matches(card, skip){
+  const view = effective(card);
+  for (const f of FACETS){
+    if (f.key === skip) continue;
+    const chosen = state[f.key];
+    if (!chosen.size) continue;
+    if (!f.field(view).some(v => chosen.has(v))) return false;
+  }
+  if (state.terms.length && !skip){
+    if (scoreCard(view, state.terms) < 0) return false;
+  }
+  return true;
+}
+
+function visibleCards(){
+  const rows = DATA.cards.filter(c => matches(c, null));
+  if (!state.terms.length) return rows;
+  return rows
+    .map(c => ({ card:c, score:scoreCard(effective(c), state.terms) }))
+    .sort((a, b) => b.score - a.score || (a.card.id < b.card.id ? -1 : 1))
+    .map(x => x.card);
+}
+
+function countsFor(facet){
+  const tally = new Map();
+  for (const card of DATA.cards){
+    if (!matches(card, facet.key)) continue;
+    if (state.terms.length && scoreCard(effective(card), state.terms) < 0) continue;
+    for (const value of facet.field(card)){
+      if (!value) continue;
+      tally.set(value, (tally.get(value) || 0) + 1);
+    }
+  }
+  const all = new Set(tally.keys());
+  state[facet.key].forEach(v => { if (!all.has(v)) tally.set(v, 0); });
+  return tally;
+}
+
+function buildRail(){
+  const rail = document.getElementById("rail");
+  rail.innerHTML = "";
+  /* Rules sit above the filters: they change what exists to be filtered. */
+  if (EDIT.on) rail.appendChild(buildRulesPanel());
+  for (const facet of FACETS){
+    const tally = countsFor(facet);
+    let entries = [...tally.entries()];
+    if (facet.key === "paper"){
+      entries.sort((a,b) => (facet.labelOf(a[0])).localeCompare(facet.labelOf(b[0])));
+    } else if (facet.key === "category"){
+      entries.sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    } else {
+      entries.sort((a,b) => a[0].localeCompare(b[0], undefined, {numeric:true}));
+    }
+    const needle = facetSearch[facet.key].toLowerCase();
+    if (needle){
+      entries = entries.filter(([value]) => {
+        const label = facet.labelOf ? facet.labelOf(value) : value;
+        return label.toLowerCase().includes(needle) || state[facet.key].has(value);
+      });
+    }
+
+    const box = document.createElement("section");
+    box.className = "facet" + (state[facet.key].size ? " active" : "");
+
+    const head = document.createElement("h2");
+    head.textContent = facet.title;
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "clear";
+    clear.textContent = "clear";
+    clear.addEventListener("click", () => { state[facet.key].clear(); render(); });
+    head.appendChild(clear);
+    box.appendChild(head);
+
+    if (facet.searchable){
+      const input = document.createElement("input");
+      input.className = "facet-search";
+      input.type = "search";
+      input.placeholder = "Filter " + facet.title.toLowerCase() + "s";
+      input.setAttribute("aria-label", "Filter " + facet.title.toLowerCase() + " list");
+      input.value = facetSearch[facet.key];
+      input.addEventListener("input", event => {
+        facetSearch[facet.key] = event.target.value;
+        render({ keepFocus: facet.key });
+      });
+      box.appendChild(input);
+    }
+
+    const list = document.createElement("ul");
+    list.className = "options" + (entries.length <= 8 ? " short" : "");
+    for (const [value, count] of entries){
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      const on = state[facet.key].has(value);
+      button.type = "button";
+      button.className = "opt";
+      button.setAttribute("aria-pressed", on ? "true" : "false");
+      if (!count && !on) button.disabled = true;
+
+      const tick = document.createElement("span");
+      tick.className = "tick";
+      tick.textContent = on ? "\u2715" : "";
+      tick.setAttribute("aria-hidden", "true");
+      button.appendChild(tick);
+
+      if (facet.swatch){
+        const dot = document.createElement("span");
+        dot.className = "swatch";
+        dot.style.background = CATEGORY_COLOURS[value] || "var(--muted)";
+        button.appendChild(dot);
+      }
+
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = facet.labelOf ? facet.labelOf(value) : value;
+      button.appendChild(label);
+
+      const num = document.createElement("span");
+      num.className = "count";
+      num.textContent = count;
+      button.appendChild(num);
+
+      button.addEventListener("click", () => {
+        const set = state[facet.key];
+        if (set.has(value)) set.delete(value); else set.add(value);
+        render();
+      });
+      item.appendChild(button);
+      list.appendChild(item);
+    }
+    if (!entries.length){
+      const item = document.createElement("li");
+      item.className = "tally";
+      item.style.padding = "4px";
+      item.textContent = "No matches in this list.";
+      list.appendChild(item);
+    }
+    box.appendChild(list);
+    rail.appendChild(box);
+  }
+}
+
+function highlight(text, needle){
+  if (!needle) return document.createTextNode(text);
+  const fragment = document.createDocumentFragment();
+  const lower = text.toLowerCase();
+  let from = 0;
+  let at = lower.indexOf(needle, from);
+  while (at !== -1){
+    fragment.appendChild(document.createTextNode(text.slice(from, at)));
+    const mark = document.createElement("mark");
+    mark.textContent = text.slice(at, at + needle.length);
+    fragment.appendChild(mark);
+    from = at + needle.length;
+    at = lower.indexOf(needle, from);
+  }
+  fragment.appendChild(document.createTextNode(text.slice(from)));
+  return fragment;
+}
+
+function textOrDash(value){
+  if (value === null || value === undefined || value === "") return "—";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function addMeta(grid, label, value){
+  const dt = document.createElement("dt");
+  dt.textContent = label;
+  const dd = document.createElement("dd");
+  dd.textContent = textOrDash(value);
+  grid.append(dt, dd);
+}
+
+function detailSection(title){
+  const section = document.createElement("section");
+  section.className = "detail-section";
+  const head = document.createElement("h2");
+  head.textContent = title;
+  section.appendChild(head);
+  return section;
+}
+
+function closeDetail(){
+  state.selected = null;
+  document.body.classList.remove("detail-open");
+  document.getElementById("detail").innerHTML = "";
+  document.querySelectorAll("li.card.selected").forEach(el => el.classList.remove("selected"));
+}
+
+function buildDetail(card){
+  if (!DATA.full || !card || !card.details) return;
+  state.selected = card.id;
+  document.body.classList.add("detail-open");
+  const pane = document.getElementById("detail");
+  pane.innerHTML = "";
+
+  const paper = paperByKey[card.paper];
+  const exact = card.details.card || {};
+  const evidence = card.details.evidence || {};
+  const paperDetails = (paper && paper.details) || {};
+
+  const head = document.createElement("div");
+  head.className = "detail-head";
+  const id = document.createElement("div");
+  id.className = "detail-id";
+  id.textContent = card.id;
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "detail-close";
+  close.textContent = "Close";
+  close.setAttribute("aria-label", "Close card details");
+  close.addEventListener("click", closeDetail);
+  head.append(id, close);
+  pane.appendChild(head);
+
+  // Repeat the interpretation at the top, then show only the metadata useful
+  // for reviewing/classifying the selected card. Arrays are rendered as
+  // human-readable joined values rather than indexed parameter paths.
+  const interpretation = detailSection("Interpretation");
+  const text = document.createElement("p");
+  text.className = "detail-interpretation";
+  text.textContent = exact.interpretation || card.text;
+  interpretation.appendChild(text);
+  pane.appendChild(interpretation);
+
+  const classification = detailSection("Classification");
+  const classificationGrid = document.createElement("dl");
+  classificationGrid.className = "meta-grid";
+  addMeta(classificationGrid, "Genes", exact.genes || card.genes);
+  addMeta(classificationGrid, "Category", exact.category || card.category);
+  addMeta(classificationGrid, "Disease", exact.diseases || card.diseases);
+  classification.appendChild(classificationGrid);
+  pane.appendChild(classification);
+
+  const evidenceMeta = detailSection("Evidence");
+  const evidenceGrid = document.createElement("dl");
+  evidenceGrid.className = "meta-grid";
+  addMeta(evidenceGrid, "Evidence tier", exact.evidence_tier || card.tier);
+  addMeta(
+    evidenceGrid,
+    "Secondary citation",
+    exact.secondary_citation && exact.secondary_citation.display
+  );
+  evidenceMeta.appendChild(evidenceGrid);
+  for (const fragment of (evidence.fragments || [])){
+    const box = document.createElement("div");
+    box.className = "evidence-fragment";
+    const label = document.createElement("div");
+    label.className = "fragment-label";
+    label.textContent = [fragment.fragment_id, fragment.role, fragment.locator]
+      .filter(Boolean)
+      .join(" · ");
+    const quote = document.createElement("blockquote");
+    quote.textContent = fragment.quote || "";
+    box.append(label, quote);
+    evidenceMeta.appendChild(box);
+  }
+  pane.appendChild(evidenceMeta);
+
+  const acceptance = paperDetails.accepted_package || {};
+  const acceptanceMeta = detailSection("Acceptance");
+  const acceptanceGrid = document.createElement("dl");
+  acceptanceGrid.className = "meta-grid";
+  addMeta(acceptanceGrid, "Acceptance path", acceptance.acceptance_path);
+  addMeta(acceptanceGrid, "Accepted at", acceptance.accepted_at);
+  addMeta(acceptanceGrid, "Accepted at source", acceptance.accepted_at_source);
+  addMeta(acceptanceGrid, "Accepted in version", acceptance.accepted_in_version);
+  addMeta(acceptanceGrid, "Latest version", acceptance.latest_version || acceptance.accepted_in_version);
+  addMeta(acceptanceGrid, "Version history", acceptance.version_history);
+  acceptanceMeta.appendChild(acceptanceGrid);
+  pane.appendChild(acceptanceMeta);
+
+  pane.scrollTop = 0;
+  document.querySelectorAll("li.card").forEach(el => {
+    el.classList.toggle("selected", el.dataset.cardId === card.id);
+  });
+}
+
+function buildCards(){
+  const list = document.getElementById("cards");
+  const rows = visibleCards();
+  list.innerHTML = "";
+
+  document.getElementById("tally").innerHTML =
+    "<b>" + rows.length + "</b> of " + DATA.cards.length + " cards";
+
+  if (!rows.length){
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.innerHTML = "<h3>Nothing matches these filters</h3>" +
+      "<p>Remove a filter, or clear all of them and start from a single gene or paper.</p>";
+    list.appendChild(empty);
+    return;
+  }
+
+  const chunk = document.createDocumentFragment();
+  for (const card of rows){
+    const view = effective(card);
+    const item = document.createElement("li");
+    item.className = "card" + (state.selected === card.id ? " selected" : "");
+    item.dataset.cardId = card.id;
+    item.style.setProperty("--spine", CATEGORY_COLOURS[view.category] || "var(--rule)");
+    if (DATA.full && !EDIT.on){
+      item.tabIndex = 0;
+      item.setAttribute("role", "button");
+      item.setAttribute("aria-label", "Open full details for " + card.id);
+      item.addEventListener("click", () => buildDetail(card));
+      item.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " "){
+          event.preventDefault();
+          buildDetail(card);
+        }
+      });
+    }
+
+    const cid = document.createElement("span");
+    cid.className = "cid";
+    cid.textContent = card.id;
+    if (view.amended){
+      const tag = document.createElement("span");
+      tag.className = "amendtag" + (view.stale ? " staletag" : "");
+      tag.textContent = view.stale ? "stale amendment" : "amended";
+      cid.appendChild(tag);
+    }
+    const paper = paperByKey[card.paper] || {};
+    if (paper.evidence === "mismatched"){
+      const tag = document.createElement("span");
+      tag.className = "evidencetag";
+      tag.textContent = "package out of sync";
+      tag.title = paper.evidenceWarning || "";
+      cid.appendChild(tag);
+    }
+    item.appendChild(cid);
+
+    const para = document.createElement("p");
+    para.appendChild(highlight(view.text, highlightNeedle()));
+    item.appendChild(para);
+
+    item.appendChild(copyRow(card));
+
+    chunk.appendChild(item);
+  }
+  list.appendChild(chunk);
+  if (DATA.full && state.selected && !rows.some(card => card.id === state.selected)) closeDetail();
+}
+
+function render(options){
+  const keep = options && options.keepFocus;
+  buildRail();
+  renderBody();
+  if (keep){
+    const facetIndex = FACETS.findIndex(f => f.key === keep);
+    const input = document.querySelectorAll(".facet")[facetIndex].querySelector(".facet-search");
+    if (input){
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+}
+
+document.getElementById("provenance").textContent =
+  "corpus " + DATA.corpusVersion + " \u00b7 " + DATA.cards.length + " cards \u00b7 " +
+  DATA.papers.length + " papers" + (DATA.full ? " · full evidence view" : "");
+
+document.getElementById("textsearch").addEventListener("input", event => {
+  state.query = event.target.value.trim().toLowerCase();
+  state.terms = parseQuery(state.query);
+  buildRail();
+  renderBody();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  FACETS.forEach(f => { state[f.key].clear(); facetSearch[f.key] = ""; });
+  state.query = "";
+  state.terms = [];
+  document.getElementById("textsearch").value = "";
+  render();
+});
+
+const railToggle = document.getElementById("railtoggle");
+railToggle.addEventListener("click", () => {
+  const rail = document.getElementById("rail");
+  const open = rail.hasAttribute("hidden");
+  if (open) rail.removeAttribute("hidden"); else rail.setAttribute("hidden", "");
+  railToggle.setAttribute("aria-expanded", open ? "true" : "false");
+});
+if (window.matchMedia("(max-width:900px)").matches){
+  document.getElementById("rail").setAttribute("hidden", "");
+}
+
+if (DATA.editor){
+  /* Identity: this artefact is cul.py's, not incorporation's. Distinct title,
+     wordmark and accent so a screenshot is unambiguous about which tool it is.
+     Applied before the first render so the opening view is already correct. */
+  document.title = "Corpus User Layer";
+  document.body.classList.add("cul-app", "edit-mode", "detail-open");
+  document.getElementById("modebar").remove();
+  const mark = document.querySelector(".wordmark");
+  mark.innerHTML = "";
+  mark.appendChild(document.createTextNode("Corpus "));
+  const em = document.createElement("em");
+  em.textContent = "User Layer";
+  mark.appendChild(em);
+  const mount = document.getElementById("profilemount");
+  mount.innerHTML = "";
+  mount.appendChild(buildProfileBar());
+}
+
+render();
+
+function highlightNeedle(){
+  const plain = state.terms.filter(x => !x.negate && !x.field);
+  return plain.length ? plain[0].text : "";
+}
+
+/* The only place that decides what the panes contain. render() and renderAll()
+   both route through it, so a filter click cannot render browse-mode cards while
+   edit mode is active. */
+function renderBody(){
+  if (EDIT.on){
+    buildPicker(visibleCards());
+    buildEditorPane();
+    updateProfileBar();
+  } else {
+    buildCards();
+  }
+}
+
+function renderAll(){ render(); }
+
+function setMode(on){
+  if (DATA.editor) on = true;   /* the editor has no browse mode */
+  EDIT.on = on;
+  document.body.classList.toggle("edit-mode", on);
+  document.body.classList.toggle("detail-open", on ? true : document.body.classList.contains("detail-open") && !on ? false : false);
+  const browseMode = document.getElementById("mode-browse");
+  const editMode = document.getElementById("mode-edit");
+  if (browseMode) browseMode.setAttribute("aria-pressed", String(!on));
+  if (editMode) editMode.setAttribute("aria-pressed", String(on));
+  const mount = document.getElementById("profilemount");
+  mount.innerHTML = "";
+  if (on){ mount.appendChild(buildProfileBar()); }
+  else { CUL.selected = null; CUL.pending = null; }
+  renderAll();
+}
+
+if (DATA.editor){
+  setMode(true);
+} else {
+  document.getElementById("mode-browse").addEventListener("click", () => setMode(false));
+  document.getElementById("mode-edit").addEventListener("click", () => setMode(true));
+}
+
+if (DATA.editor){
+  const names = Object.keys(DATA.profiles || {});
+  document.getElementById("provenance").textContent =
+    "Corpus " + (DATA.corpusVersion || "") + " \u00b7 " +
+    (DATA.corpusSha256 || "").slice(0, 12) + " \u00b7 " +
+    DATA.cards.length + " cards \u00b7 built " + (DATA.generatedAt || "").slice(0, 10) +
+    " with " + (names.length ? names.join(", ") : "no profiles");
+} else if (DATA.evidenceMode === "partial" || DATA.evidenceMode === "none"){
+  const note = DATA.evidenceMode === "none"
+    ? " \u00b7 corpus-only view"
+    : " \u00b7 partial evidence (" + DATA.missingPackages.length + " paper(s) without accepted packages)";
+  document.getElementById("provenance").textContent += note;
+}
+
+</script>
+</body>
+</html>

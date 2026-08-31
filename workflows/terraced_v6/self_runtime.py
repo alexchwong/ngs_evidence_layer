@@ -13,6 +13,8 @@ from typing import Any
 
 import yaml
 
+from validation.scripts.bundled_cases import is_validation_mode, marking_bundle_filename
+
 from workflows.terraced_v6 import card_identity, domain_contract, layout, model_context, runtime, schema_validation
 from workflows.terraced_v6 import step as staged
 
@@ -775,8 +777,8 @@ def final_artifacts(work: Path) -> dict[str, Path | None]:
     mode = state.get("mode")
     case_id = state.get("validation_case")
     marking = None
-    if mode in staged.VALIDATION_MODES and case_id:
-        candidate = work / f"{staged.MARKING_PREFIX[mode]}-{case_id}.zip"
+    if is_validation_mode(mode) and case_id:
+        candidate = work / marking_bundle_filename(mode, case_id)
         marking = candidate if candidate.is_file() else None
     report = work / "report-final.md"
     report_json = work / "report-final.json"

@@ -95,7 +95,7 @@ Use the frontier/session-model defaults unless the user explicitly requested a d
   --model-profile self --terrace-profile frontier <setup-work-arg>
 ```
 
-Record output line 1 as `<work-dir>`. For `nel-demo`, record output lines 2 and 3 as the demo case and expected-behaviour paths; do not read them until delivery.
+Record output line 1 as `<work-dir>`. Bundled case input is already materialised by setup; marking criteria are not exposed during report generation.
 
 For interactive `ngs-report` under the frontier/session-model harness, write the user-supplied case source from the current request verbatim to `<work-dir>/input/case-source.md` before Step 1A. This is the only non-CLI source-ingest action: the subsequent capture prompt, model handoffs, validation, retrieval, reasoning, alignment, synthesis and packaging are all CLI-orchestrated. For direct CLI execution, supply the case with `setup --case-file <path>` instead.
 
@@ -234,11 +234,12 @@ This writes `ngs-report-debug.zip` and, when model bundles exist, `ngs-report-mo
 Mode-specific delivery remains the same as the other `ngs-report` workflows:
 
 - `ngs-report`: display `report-final.md` unchanged and return the debug ZIP.
-- `nel-demo`: only now read the recorded demo case and expected-behaviour files; display case, generated report and expected behaviour, and return the debug ZIP.
+- `nel-demo`: only after `report-final.md` exists, run `python validation/scripts/retrieve_cli.py MC <demo-example> --mode nel-demo > <work-dir>/demo-expected.md`; then display the bundled case, generated report and expected behaviour, and return the debug ZIP. Do not use marking criteria to alter workflow artifacts.
 - `nel-validate`: do not run a marking model. Run:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-<validation-case>.zip
 ```
@@ -246,8 +247,8 @@ Mode-specific delivery remains the same as the other `ngs-report` workflows:
 - `nel-validate-function`: do not run a marking model. Run:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
-  --case-file validation/case_functional.md \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate-function \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-function-<validation-case>.zip
 ```
@@ -255,8 +256,8 @@ Mode-specific delivery remains the same as the other `ngs-report` workflows:
 - `nel-validate-brief`: do not run a marking model. Run:
 
 ```bash
-<python> validation/package_marking.py <validation-case> \
-  --case-file validation/validation_brief.md \
+<python> validation/scripts/package_marking.py <validation-case> \
+  --mode nel-validate-brief \
   --report <work-dir>/report-final.md \
   --output <work-dir>/nel-validation-brief-<validation-case>.zip
 ```

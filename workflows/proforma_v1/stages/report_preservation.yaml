@@ -1,0 +1,18 @@
+stage: report_preservation
+version: 1
+type: batch
+role: preservation_check
+label: preservation audit
+prompt: report_preservation.md
+output:
+  format: yaml
+  schema: report_preservation.json
+rules:
+- rule: one_row_per_id
+  field: audits
+  id_field: block_id
+  source: blocks
+- rule: issue_null_when_preserved
+retries:
+  content: 2
+  serialization: 3

@@ -1,0 +1,5 @@
+blocks:
+  - block_id: DX
+    text: The diagnosis is MDS under both classifications.
+  - block_id: PX-ADVERSE-01
+    text: The findings confer an adverse prognosis.

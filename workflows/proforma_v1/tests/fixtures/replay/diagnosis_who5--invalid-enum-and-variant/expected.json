@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "diagnosis_who5",
+  "operation_id": "diagnosis.who1",
+  "accepted": false,
+  "message": "WHO5 diagnosis failed validation with 2 issue(s):\n1. schema_disease\n   Problem: 'MDs' is not an allowed schema disease.\n   Required fix: replace it with the exact allowed schema disease it was meant to be — most likely one of ['MDS', 'MDS/MPN'].\n   Received: MDs\n   Expected: one of these nearest allowed values: ['MDS', 'MDS/MPN']\n2. variants\n   Problem: contains ID(s) that were not supplied: ['V1'].\n   Required fix: use only the supplied IDs ['v01', 'v02'].\n   Received: ['V1']\n   Expected: ['v01', 'v02']",
+  "message_sha256": "1b8a5d7ae5182adfd380d445925c16930b846ae047fc676565f452497182981a",
+  "response_sha256": "4c26c51fbdf0a446d7782ee4db8465bc03cbfca7abecde6bbfb2c0e53d8c377f",
+  "context_sha256": "b0421ab4a741e89b9346c7d84588684527cc82d1b6ce089ad8a8d672ad96d861",
+  "prompt_sha256": "d65478de71d522eb6bf7d1a576f8d279442cd9a01d89c01e54b277a4a9ca36ad",
+  "schema_sha256": "2d1ad05933fd5067de0f88ec54b1408700462cad50986950215f25e6c7e7b3f9",
+  "stage_spec_sha256": "5a76f3c05e5f72fcab92bf0630ea360c682937de6bd25fd4a07bf32b227ccb2e"
+}

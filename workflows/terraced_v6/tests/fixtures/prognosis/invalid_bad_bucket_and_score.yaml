@@ -1,14 +1,21 @@
+applicable_disease: AML
+prognostic_frameworks:
+  - name: ELN
+    tier: not calculable
+    reason: "Insufficient data."
 classification:
   - variant: v01
-    bucket: bad
-    reason: "Adverse."
+    gene: ASXL1
+    framework_effects: []
+    other_evidence_effect: bad
+    other_evidence_reason: "Adverse."
   - variant: v02
-    bucket: adverse
-    reason: ""
+    gene: SRSF2
+    framework_effects: []
+    other_evidence_effect: adverse
+    other_evidence_reason: null
   - variant: v03
-    bucket: neutral
-    reason: "Neutral."
-prognostic_score:
-  name: IPSS-M
-  result: not calculable
-  reason: insufficient data
+    gene: NPM1
+    framework_effects: []
+    other_evidence_effect: neutral
+    other_evidence_reason: "Neutral."

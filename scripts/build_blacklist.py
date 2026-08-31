@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# DEPRECATED: superseded by the corpus user layer. See docs/cul.md and
+# scripts/cul.py. This script generates output/corpus/blacklist.json, which is
+# now a compatibility fallback only and will be removed.
 """Convert the canonical blacklist YAML into runtime JSON."""
 import argparse
 import json

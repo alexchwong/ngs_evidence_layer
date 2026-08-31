@@ -28,8 +28,8 @@ from scripts.core.validated_model_task import ValidationFailure, ValidationIssue
 from scripts.core import syntax_repair
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
-from validation.package_marking import package_marking_bundle
-from validation import cases as validation_cases
+from validation.scripts.package_marking import package_marking_bundle
+from validation.scripts.bundled_cases import is_validation_mode, write_demo_marking_criteria_after_report
 from workflows.terraced_v3 import card_identity, contract_registry, evidence_resolution, layout, model_client, module_registry, pipeline_registry, rendering, runtime
 from workflows.terraced_v3 import scheduler_engine, scheduler_registry, scheduler_primitives
 
@@ -42,12 +42,6 @@ SETTINGS_TEMPLATE_PATH = HERE / "settings.json.template"
 EXIT_OK = 0
 EXIT_FAILURE = 1
 EXIT_HANDOFF = 10
-VALIDATION_MODES = {"nel-validate", "nel-validate-function", "nel-validate-brief"}
-MARKING_PREFIX = {
-    "nel-validate": "nel-validation",
-    "nel-validate-function": "nel-validation-function",
-    "nel-validate-brief": "nel-validation-brief",
-}
 _EXECUTION_STARTED_AT: float | None = None
 
 
@@ -413,7 +407,7 @@ def run_setup(args:argparse.Namespace)->int:
     if args.work_dir: work_arg=args.work_dir
     else:
         root=HERE/"runs"; root.mkdir(parents=True,exist_ok=True); work_arg=_timestamped_work_dir(root,label)
-    work,demo_case,demo_expected=setup_workflow(workflow=WORKFLOW_ID,mode=args.mode,work_dir=work_arg,project=False,example=args.example,case_id=args.case_id)
+    work=setup_workflow(workflow=WORKFLOW_ID,mode=args.mode,work_dir=work_arg,project=False,example=args.example,case_id=args.case_id)
     # Keep the existing workflow registry field populated for compatibility, but the run-state `pipeline` is authoritative.
     write_workflow_state(work,WORKFLOW_ID,args.mode,model_profile=pipeline_id)
     case_path=layout.input(work,"case.md",existing=False)
@@ -421,12 +415,10 @@ def run_setup(args:argparse.Namespace)->int:
         supplied=args.case_file.expanduser().resolve()
         if not supplied.is_file(): raise StepFailure(f"--case-file not found: {supplied}")
         shutil.copyfile(supplied,case_path)
-    elif args.mode=="nel-demo" and demo_case: shutil.copyfile(demo_case,case_path)
     if not case_path.is_file() or not _read(case_path).strip(): raise StepFailure(f"authoritative case.md is missing or empty: {case_path}")
-    if demo_expected: shutil.copyfile(demo_expected,layout.setup(work,"demo-expected.md",existing=False))
     _save_run_state(work,{
         "schema_version":RUN_STATE_SCHEMA_VERSION,"workflow_id":WORKFLOW_ID,"mode":args.mode,"validation_case":args.case_id,
-        "pipeline":pipeline_id,"schedulers":schedulers,"created_at":datetime.now(timezone.utc).isoformat(),
+        "example":args.example,"pipeline":pipeline_id,"schedulers":schedulers,"created_at":datetime.now(timezone.utc).isoformat(),
     })
     _atomic_write(layout.setup(work,"pipeline-resolved.yaml",existing=False),yaml.safe_dump(plan.doc,sort_keys=False,allow_unicode=True,width=110))
     _atomic_write(layout.setup(work,"pipeline-compiled.md",existing=False),pipeline_registry.compiled_markdown(plan))
@@ -836,8 +828,10 @@ def module_finalise_report(work:Path,stage:dict,profile:str|None)->None:
     report=work/"report-final.md"
     _atomic_write(report,rendered)
     run_state=_load_run_state(work); mode=run_state.get("mode")
-    if mode in VALIDATION_MODES:
-        case_id=run_state.get("validation_case"); output=work/f"{MARKING_PREFIX[mode]}-{case_id}.zip"; package_marking_bundle(case_id,report,output,case_file=validation_cases.VALIDATION_CASE_FILES[mode])
+    if is_validation_mode(mode):
+        case_id=run_state.get("validation_case"); package_marking_bundle(mode,case_id,report)
+    elif mode=="nel-demo":
+        write_demo_marking_criteria_after_report(run_state.get("example"),report_path=report,output_path=layout.setup(work,"demo-expected.md",existing=False))
     _package_debug(work)
 
 
@@ -907,7 +901,7 @@ def main(argv:list[str]|None=None)->int:
         if args.command=="setup":
             if args.mode=="ngs-report" and args.case_file is None: raise StepFailure("ngs-report requires --case-file case.md")
             if args.mode=="nel-demo" and args.example is None: raise StepFailure("nel-demo requires --example N")
-            if args.mode in VALIDATION_MODES and not args.case_id: raise StepFailure(f"{args.mode} requires --case-id ID")
+            if is_validation_mode(args.mode) and not args.case_id: raise StepFailure(f"{args.mode} requires --case-id ID")
             return run_setup(args)
         if args.command=="contracts":
             for ref in contract_registry.core_refs(): print(ref)

@@ -1,0 +1,13 @@
+{
+  "source_workflow": "proforma-v1",
+  "stage": "evidence_audit",
+  "operation_id": "evidence.audit",
+  "accepted": false,
+  "message": "evidence audit failed validation with 3 issue(s):\n1. audits[0].card_audits[0].card_is_element_of_reason\n   Problem: expected true or false; received string.\n   Required fix: reserialize the existing value as an unquoted boolean.\n   Received: yes\n   Expected: true | false\n2. audits[0].card_audits[0].comments\n   Problem: expected array; received string.\n   Required fix: reserialize the existing value with the correct structure, without changing its content.\n   Received: fine\n   Expected: array\n3. audits[0].card_audits[0].risk\n   Problem: 'severe' is not an allowed value.\n   Required fix: use one exact value from ['none', 'warning'].\n   Received: severe\n   Expected: ['none', 'warning']",
+  "message_sha256": "b1ef95160156eb3942428f62f67707f177e4488040869e3183619c8f30dc815e",
+  "response_sha256": "efa3b000b347c54e3c4ca83fe99a3531cb1a091096029758b2d6fd8555428d98",
+  "context_sha256": "52d73564a008a16a603966204f50fe341501df7b8b96dca98ea29d29873d3f46",
+  "prompt_sha256": "ae181d190615431adb984022cf2ba8738fd68cdc2ca8c309d70840394e07199d",
+  "schema_sha256": "46ff66a04e19018121f71c3613d62e7ce0c6a51890cee4f6e9ddbec7621e2fbb",
+  "stage_spec_sha256": "9663ad98d7a9259a2e47fa992357e249b833f4ea9ae66aa645febfe9439d9092"
+}

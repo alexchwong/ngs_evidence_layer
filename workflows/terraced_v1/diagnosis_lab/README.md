@@ -85,7 +85,7 @@ Negative NGS is explicitly supported but is independent of a no-pathology conclu
 - allowed final `schema_disease` values;
 - diagnosis/germline cards retrieved from the current corpus using the example's initial CMC(s) and genes;
 
-The adjacent `expected.md` is copied from `examples/expected/` for human comparison and is **not supplied to the model**.
+The adjacent `expected.md` is generated from the centrally managed `nel-demo` marking criteria for fixture comparison and is **not supplied to the model**.
 
 Regenerate the fixture inputs after corpus changes:
 

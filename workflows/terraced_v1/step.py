@@ -28,6 +28,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.workflow_registry import read_workflow_state, write_workflow_state  # noqa: E402
+from validation.scripts.bundled_cases import is_validation_mode  # noqa: E402
 from workflows.terraced_v1 import layout, model_client, model_registry, retrieval, runtime  # noqa: E402
 
 WORKFLOW_ID = "terraced-v1"
@@ -671,7 +672,7 @@ def _case_capture_validator(path: Path) -> str:
 
 def step_1a(work: Path, profile: str | None) -> int:
     mode = _require_work(work).get("mode")
-    if mode in {"nel-validate", "nel-validate-function", "nel-validate-brief"}:
+    if is_validation_mode(mode):
         return EXIT_NOT_REQUIRED
     source = layout.input(work, "case-source.md")
     messages = [
@@ -2123,7 +2124,7 @@ def run_setup(args: argparse.Namespace) -> int:
         raise StepFailure(
             f"unknown terrace profile {terrace_profile!r}; choose one of: " + ", ".join(config["execution_profiles"])
         )
-    work, demo_case, demo_expected = setup_workflow(
+    work = setup_workflow(
         workflow=WORKFLOW_ID,
         mode=args.mode,
         work_dir=args.work_dir,
@@ -2138,8 +2139,6 @@ def run_setup(args: argparse.Namespace) -> int:
         if not supplied.is_file():
             raise StepFailure(f"--case-file not found: {supplied}")
         shutil.copyfile(supplied, source)
-    elif args.mode == "nel-demo" and demo_case:
-        shutil.copyfile(demo_case, source)
     elif layout.input(work, "case.md").is_file():
         shutil.copyfile(layout.input(work, "case.md"), source)
     _save_run_state(
@@ -2150,15 +2149,13 @@ def run_setup(args: argparse.Namespace) -> int:
             "model_profile": model_profile,
             "mode": args.mode,
             "validation_case": args.case_id,
+            "example": args.example,
         },
     )
     if args.project:
         _write_project_pointer(work)
     with _cli_logging(work):
         print(work)
-        if demo_case:
-            print(demo_case.relative_to(REPO_ROOT))
-            print(demo_expected.relative_to(REPO_ROOT))
         print(f"MODEL_PROFILE={model_profile}")
         print(f"TERRACE_PROFILE={terrace_profile}")
     return EXIT_OK
@@ -2225,7 +2222,7 @@ def run_step(step_id: str, work: Path, profile: str | None) -> int:
 def run_all(work: Path, profile: str | None) -> int:
     mode = _require_work(work).get("mode")
     for step_id in ("1a", "1b", "2", "3", "4", "5", "6", "7"):
-        if step_id == "1a" and mode in {"nel-validate", "nel-validate-function", "nel-validate-brief"}:
+        if step_id == "1a" and is_validation_mode(mode):
             continue
         code = run_step(step_id, work, profile)
         if code not in {EXIT_OK, EXIT_NOT_REQUIRED}:

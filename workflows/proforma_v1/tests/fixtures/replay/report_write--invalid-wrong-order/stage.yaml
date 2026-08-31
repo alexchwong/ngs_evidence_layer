@@ -1,0 +1,17 @@
+stage: report_write
+version: 1
+type: batch
+role: report_write
+label: report writer
+prompt: report_write.md
+output:
+  format: yaml
+  schema: report_write.json
+rules:
+- rule: one_row_per_id
+  field: blocks
+  id_field: block_id
+  source: blocks
+retries:
+  content: 2
+  serialization: 3

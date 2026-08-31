@@ -1,0 +1,18 @@
+stage: evidence_match
+version: 1
+type: batch
+role: evidence_match
+label: evidence match
+prompt: evidence_match.md
+output:
+  format: yaml
+  schema: evidence_match.json
+rules:
+- rule: one_row_per_id
+  field: matches
+  id_field: evidence_id
+  source: items
+- rule: evidence_match_tags_exist
+retries:
+  content: 2
+  serialization: 3

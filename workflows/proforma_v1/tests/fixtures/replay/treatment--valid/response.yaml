@@ -1,0 +1,12 @@
+classification:
+  - variant: v01
+    bucket: drug_target
+    therapy: "IDH1 inhibitor"
+    reason: "The lesion is directly targetable."
+  - variant: v01
+    bucket: drug_sensitive
+    therapy: "hypomethylating agent"
+    reason: "Increased sensitivity is predicted."
+  - variant: v02
+    bucket: no_drug_implication
+    reason: "No supported therapeutic implication."

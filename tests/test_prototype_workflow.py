@@ -9,7 +9,7 @@ from workflows.diagnosis_first_v1 import audit_policy as report_audit
 from scripts.setup_workflow import setup_workflow
 from workflows.diagnosis_first_v1 import report_yaml
 from workflows.diagnosis_first_v1 import runtime as diagnosis_first
-from validation.cases import retrieve_case
+from validation.scripts.bundled_cases import retrieve_case_input
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,13 +57,11 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
             case = work / "case.md"
             case.write_text("existing patient case\n", encoding="utf-8")
 
-            resolved, demo_case, demo_expected = setup_workflow(
+            resolved = setup_workflow(
                 workflow="diagnosis-first-v1", mode="ngs-report", work_dir=work
             )
 
             self.assertEqual(resolved, work.resolve())
-            self.assertIsNone(demo_case)
-            self.assertIsNone(demo_expected)
             self.assertEqual(case.read_text(encoding="utf-8"), "existing patient case\n")
             categories = json.loads((work / "case-major-categories.json").read_text(encoding="utf-8"))
             self.assertEqual(
@@ -74,16 +72,18 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
             self.assertTrue(dx_rules.startswith("# Diagnosis-pass reporting rules\n"))
             self.assertFalse((work / "reporting-rules-remainder.md").exists())
 
-    def test_setup_demo_resolves_paths_without_reading_or_copying_case(self):
+    def test_setup_demo_writes_only_clinical_case_and_withholds_marking_criteria(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp) / "demo-work"
-            resolved, demo_case, demo_expected = setup_workflow(
+            resolved = setup_workflow(
                 workflow="diagnosis-first-v1", mode="nel-demo", work_dir=work, example=1
             )
             self.assertEqual(resolved, work.resolve())
-            self.assertEqual(demo_case, ROOT / "examples" / "cases" / "01-escalation-fires.md")
-            self.assertEqual(demo_expected, ROOT / "examples" / "expected" / "01-escalation-fires.md")
-            self.assertFalse((work / "case.md").exists())
+            self.assertEqual(
+                (work / "case.md").read_text(encoding="utf-8"),
+                retrieve_case_input("nel-demo", 1).rstrip() + "\n",
+            )
+            self.assertFalse((work / "demo-expected.md").exists())
 
     def test_setup_validation_writes_case_additively_and_refuses_different_existing_case(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -105,7 +105,7 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
                 workflow="diagnosis-first-v1", mode="nel-validate-function", work_dir=work, case_id="1A"
             )
             case = (work / "case.md").read_text(encoding="utf-8")
-            expected = retrieve_case("1A", "case_functional.md").rstrip() + "\n"
+            expected = retrieve_case_input("nel-validate-function", "1A").rstrip() + "\n"
             self.assertEqual(case, expected)
 
     def test_setup_brief_validation_uses_brief_case_file(self):
@@ -115,7 +115,7 @@ class DiagnosisFirstWorkflowTests(unittest.TestCase):
                 workflow="diagnosis-first-v1", mode="nel-validate-brief", work_dir=work, case_id="8"
             )
             case = (work / "case.md").read_text(encoding="utf-8")
-            expected = retrieve_case("8", "validation_brief.md").rstrip() + "\n"
+            expected = retrieve_case_input("nel-validate-brief", "8").rstrip() + "\n"
             self.assertEqual(case, expected)
 
     def test_rule_slices_are_canonical_subsets(self):

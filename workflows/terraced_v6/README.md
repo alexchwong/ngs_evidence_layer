@@ -1,5 +1,10 @@
 # Terraced v6
 
+## Legacy status
+
+Terraced-v6 is retained as a runnable legacy/reproducibility workflow. It uses `workflows/terraced_v6/settings.json.template` and `workflows/terraced_v6/pipelines/` as its defaults. Root `config/settings.json.template` and `config/pipelines/` belong to canonical `proforma-v1` and are not terraced-v6 configuration.
+
+
 Terraced v6 is the simplified prototype derived from v5. It deliberately removes downstream semantic repair and model-driven summarisation.
 
 ## Quick start
@@ -46,7 +51,7 @@ Its existing `self` pipeline remains available as the legacy staged/handoff impl
 ## Architecture
 
 The clinical contracts/proformas under `prompts/`, `stages/`, and `schemas/` are shared by both execution engines. Only execution grouping differs.
-Terraced-v6 owns the developer canonical defaults in `settings.json.template` and `pipelines/*.yaml`. The root product uses synced copies at `config/settings.json.template` and `config/pipelines/*.yaml`, plus the user-owned working `config/settings.json`. `nel.py` binds those public files explicitly; frozen run snapshots are bound the same way on resume.
+Terraced-v6 keeps its legacy defaults entirely workflow-local in `settings.json.template` and `pipelines/*.yaml`. Direct legacy runs use those files (or a workflow-local `settings.json` if present). Root `nel.py` does not use terraced defaults for new runs; it binds terraced only when resuming a frozen root run whose manifest records `workflow: terraced-v6`.
 
 ### Native self path
 
@@ -80,7 +85,7 @@ Owner models use variant-centric skeletons. Prognosis returns `prognostic_framew
 
 ## Card rendering
 
-All evidence cards shown to models use one shared renderer and 12-character runtime card tags. `rendering.cards` in root `config/settings.json` may be `compact` (default) or `verbose`. Compact mode groups cards by source hint, category, then diseases and emits one card per line as `[card:<tag>] Interpretation (evidence_tier: ...)`; gene metadata and canonical corpus card IDs are not repeated model-side.
+All evidence cards shown to models use one shared renderer and 12-character runtime card tags. `rendering.cards` in the workflow-local terraced settings may be `compact` (default) or `verbose`. Compact mode groups cards by source hint, category, then diseases and emits one card per line as `[card:<tag>] Interpretation (evidence_tier: ...)`; gene metadata and canonical corpus card IDs are not repeated model-side.
 
 WHO5 and ICC diagnostic pools are configured independently under `diagnosis.who5` and `diagnosis.icc`. Each has an `included_publication_keys` allowlist and an `excluded_publication_keys` denylist. An empty inclusion list includes all retrieved publications. Python then removes excluded publications, so exclusion takes precedence when a publication is present in both lists. The resulting pool is shared by diagnostic prompt rendering, finite-set context, and downstream evidence resolution.
 
@@ -92,7 +97,7 @@ After evidence resolution, `prognosis_report.py` performs one deterministic repo
 
 ## Reportability
 
-Edit root `config/settings.json` (created from the synced `config/settings.json.template` on first use). Defaults suppress routine negative/uncertain prose while retaining it in owner proformas:
+For a new legacy run, copy `workflows/terraced_v6/settings.json.template` to the gitignored workflow-local `workflows/terraced_v6/settings.json` if custom settings are needed. Defaults suppress routine negative/uncertain prose while retaining it in owner proformas:
 
 - prognosis `no_prognostic_evidence`: false
 - treatment `no_drug_implication`: false

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["audits"],
+  "properties": {
+    "audits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_id", "card_audits"],
+        "properties": {
+          "evidence_id": {"type": "string", "minLength": 1},
+          "card_audits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["card_tag", "card_is_element_of_reason", "risk", "comments"],
+              "properties": {
+                "card_tag": {
+                  "type": "string",
+                  "pattern": "^\\[card:[0-9a-f]{12}\\]$"
+                },
+                "card_is_element_of_reason": {"type": "boolean"},
+                "risk": {"type": "string", "enum": ["none", "warning"]},
+                "comments": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

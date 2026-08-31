@@ -83,7 +83,8 @@ copies of these CLIs.
 
 | Workflow | Status | Purpose |
 |---|---|---|
-| `terraced-v6` | supported product | Final supported workflow; isolated WHO5/ICC/WHO5 reasoning, combined downstream domains, audited evidence resolution, and final synthesis. |
+| `proforma-v1` | supported product | Canonical declarative proforma workflow; blocking WHO1 routing, concurrent-pathology reporting, PTBG owner proformas, and audited/adjudicated evidence resolution. |
+| `terraced-v6` | legacy runnable | Previous supported product retained for reproducibility with workflow-local configuration. |
 | `terraced-v5` | legacy/development | Earlier terraced workflow retained in source for comparison and regression only. |
 | `terraced-v4` | legacy/development | Earlier terraced workflow retained in source for comparison and regression only. |
 | `terraced-v3` | legacy/development | Scheduler-based terraced workflow retained in source for comparison and regression only. |
@@ -93,7 +94,7 @@ copies of these CLIs.
 | `diagnosis-first-v1` | legacy/development | Previous diagnosis-first summarisation workflow retained in source for historical comparison. |
 | `legacy-v1` | legacy/development | Previous adjudication-first/evidence-block pipeline retained in source for historical comparison. |
 
-The supported root `SKILL.md` and `nel.py` facade always target `terraced-v6`. Registered legacy workflows are a developer/source concern and are excluded from the normal release payload.
+The canonical root `SKILL.md` and ordinary `nel.py setup` runs target `proforma-v1`. The only supported legacy product path is `python nel.py setup --legacy ...`, which selects `terraced-v6` with workflow-local settings/pipelines. Existing runs are inspectable and resumable from their frozen manifests. Other registered workflows are developer/source concerns.
 
 ## Clone the current workflow
 
@@ -101,7 +102,7 @@ Create a new workflow from the current default workflow from the repository root
 
 ```bash
 python scripts/devel_workflow.py new \
-  --from terraced-v6 \
+  --from proforma-v1 \
   --name <new-workflow-id>
 ```
 
@@ -262,8 +263,8 @@ legacy selector without first defining its compatibility/replacement policy.
 
 ---
 
-## Legacy public interfaces
+## Legacy product interface
 
-The repository previously exposed workflow selectors such as `--legacy`, `--diagnosis-first`, and `--terraced-v1` through `--terraced-v5`, together with legacy `evidence-block`, `evidence-block manual`, and `evidence-to-report` modes. It also exposed workflow-local/system-temporary working-directory behaviour, including the `->project` modifier.
+The supported product interface is always root `nel.py`. Ordinary setup targets canonical `proforma-v1` and writes under root `runs/<run-id>/`. The root-only `--legacy` flag is reserved for explicitly requested `terraced-v6` setup/configuration and binds workflow-local terraced settings/pipelines before freezing them into the run. Subsequent `run` and `status` commands select the workflow from that frozen manifest and take no workflow selector.
 
-These interfaces are retained here only as historical/developer context. The supported product interface is now root `nel.py`, which always targets `terraced-v6` and writes user runs under root `runs/<run-id>/`. Legacy workflow source remains in the development repository but is not part of the supported release surface.
+Older workflow-selector flags, workflow-local/system-temporary public run interfaces, `evidence-block` modes, and the `->project` modifier are historical/developer interfaces rather than supported product routing.

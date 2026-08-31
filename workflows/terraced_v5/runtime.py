@@ -4,16 +4,16 @@ import json, re, shutil, sys
 from pathlib import Path
 import yaml
 from scripts import vocab
+from validation.scripts.bundled_cases import is_bundled_mode, retrieve_case_input
 from scripts.core.validated_model_task import ValidationFailure, ValidationIssue, fail
 from workflows.terraced_v5 import layout
 
 HERE=Path(__file__).resolve().parent; REPO_ROOT=HERE.parents[1]
 WHO5_EXCLUDED_SCHEMA_DISEASES={'MDS/AML'}
-VALIDATION_MODES={'nel-validate','nel-validate-function','nel-validate-brief'}
 HEADINGS={'**Diagnosis**':'diagnosis','**Prognosis**':'prognosis','**Treatment Implications**':'treatment','**MRD**':'biomarker','**Germline**':'germline'}
 DOMAIN_HEADINGS={v:k for k,v in HEADINGS.items()}
 
-def setup_assets(work_dir:Path,*,mode:str,case_id:str|None=None)->None:
+def setup_assets(work_dir:Path,*,mode:str,case_id:str|None=None,example:int|None=None)->None:
     work=Path(work_dir); layout.ensure_dirs(work)
     panel_root=work/'ngs-panel-scope.md'; panel_out=layout.setup(work,'ngs-panel-scope.md',existing=False)
     if panel_root.is_file() and panel_root!=panel_out: shutil.move(str(panel_root),str(panel_out))
@@ -21,17 +21,12 @@ def setup_assets(work_dir:Path,*,mode:str,case_id:str|None=None)->None:
     cmc_out.write_text(json.dumps({'case_major_categories':list(vocab.CASE_MAJOR_CATEGORIES),'instruction':'bootstrap_cmcs are retrieval scaffolds only. Authoritative CMCs are derived deterministically from validated WHO5 schema diseases.'},indent=2,ensure_ascii=False)+'\n',encoding='utf-8'); cmc_root.unlink(missing_ok=True)
     allowed=[d for d in vocab.CASE_DISEASES if d not in WHO5_EXCLUDED_SCHEMA_DISEASES]
     layout.setup(work,'allowed-schema-diseases.json',existing=False).write_text(json.dumps({'schema_version':1,'allowed_schema_diseases':allowed,'instruction':'WHO5 schema disease controls deterministic CMC routing; ICC never routes evidence.'},indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
-    if mode in VALIDATION_MODES:
-        if not case_id: raise ValueError(f'{mode} requires a validation case ID')
-        repo=str(REPO_ROOT); inserted=False
-        if repo not in sys.path: sys.path.insert(0,repo); inserted=True
-        try:
-            from validation.cases import case_file_for_mode,retrieve_case
-            text=retrieve_case(case_id,case_file_for_mode(mode))
-        finally:
-            if inserted and sys.path and sys.path[0]==repo: sys.path.pop(0)
+    if is_bundled_mode(mode):
+        selector=example if mode=='nel-demo' else case_id
+        if selector is None: raise ValueError(f'{mode} requires a bundled case selector')
+        text=retrieve_case_input(mode,selector)
         p=layout.input(work,'case.md',existing=False); payload=text.rstrip()+'\n'
-        if p.exists() and p.read_text(encoding='utf-8')!=payload: raise ValueError(f'{p} exists with different validation case content')
+        if p.exists() and p.read_text(encoding='utf-8')!=payload: raise ValueError(f'{p} exists with different bundled case content')
         p.write_text(payload,encoding='utf-8')
 
 def read_json(path:Path)->dict:

@@ -1,0 +1,64 @@
+stage: prognosis
+version: 1
+type: domain_proforma
+role: ptbg
+label: prognosis
+prompt: prognosis.md
+inputs:
+  registry: canonical
+  case:
+  - provisional_disease
+  - case_facts
+  - ngs_result_completeness
+  - ngs_no_variants_detected
+  diagnosis:
+    roles:
+    - who5
+    fields:
+    - schema_disease
+    - diagnosis
+    - variants
+  cards:
+    category: prognosis
+output:
+  path: prognosis_state/proforma.yaml
+  format: yaml
+  schema: prognosis.json
+extra_keys:
+- prognostic_frameworks
+buckets:
+- framework_favorable
+- framework_adverse
+- framework_neutral
+- other_evidence_favorable
+- other_evidence_adverse
+- other_evidence_neutral
+- no_prognostic_evidence
+rules:
+- rule: owner_evidence_card_tags
+- rule: applicable_disease_exact
+- rule: gene_matches_registry
+- rule: one_row_per_id
+  field: classification
+  id_field: variant
+  source: registry
+- rule: prognosis_contract
+transforms:
+- consolidate_parallel_variant_rows
+reportability:
+  framework_favorable: true
+  framework_adverse: true
+  framework_neutral: true
+  other_evidence_favorable: true
+  other_evidence_adverse: true
+  other_evidence_neutral: true
+  no_prognostic_evidence: false
+  prognostic_frameworks: true
+retries:
+  content: 2
+  serialization: 3
+guidance:
+- Select prognostic framework(s) from the authoritative disease; do not infer the disease from candidate cards.
+- Zero, one, or multiple disease-applicable frameworks are allowed.
+- Populate a framework tier only when it can be assigned entirely from the supplied genetic/cytogenetic findings; otherwise use null.
+- Other prognostic evidence may classify a variant even when that gene is outside the named framework, but the evidence must explicitly apply to the authoritative disease.

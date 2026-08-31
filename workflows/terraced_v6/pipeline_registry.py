@@ -68,10 +68,9 @@ def load_yaml(path:Path)->PipelinePlan:
         _validate_role_rows(models,'pipeline.models')
     return PipelinePlan(path.stem,str(meta.get('description') or ''),path,doc)
 def _paths():
-    out={}
-    for p in sorted(ROOT.glob('*.yaml')):
-        plan=load_yaml(p); out[plan.pipeline_id]=p
-    return out
+    # Discovery is filename-only. Validation belongs to load(name), so an
+    # unrelated invalid/custom YAML cannot block a selected pipeline.
+    return {p.stem:p for p in sorted(ROOT.glob('*.yaml'))}
 def names(): return tuple(_paths())
 def load(name:str):
     paths=_paths()
