@@ -18,11 +18,10 @@ Return JSON only using exactly this shape:
 }
 ```
 Morphologic diagnosis rules:
-- If the case explicitly supplies a morphologic/pathologic diagnosis, copy it source-faithfully into `provisional_disease` and return `morphologic_diagnosis_origin: supplied`.
-- If no morphologic diagnosis is explicitly supplied, you may propose the best provisional morphologic diagnosis supported by the non-molecular case facts and return `morphologic_diagnosis_origin: inferred`.
-- Do not infer a named myeloid neoplasm from nonspecific clinical or laboratory abnormalities alone. When no morphologic diagnosis is supplied and the available non-molecular findings do not themselves establish a morphologic diagnosis, use a neutral provisional description rather than manufacturing a disease entity; `bootstrap_cmcs` may still be used for retrieval.
-- Do not use NGS findings to manufacture the provisional morphologic diagnosis. Molecular refinement occurs downstream.
-- `bootstrap_cmcs` are retrieval scaffolds, not diagnoses.
+- Only an explicit supplied diagnostic label counts as a morphologic/pathologic diagnosis. Copy that label source-faithfully into `provisional_disease` and return `morphologic_diagnosis_origin: supplied`.
+- Descriptive marrow or tissue findings are not diagnoses. For example, statements such as normal trilineage hematopoiesis, left-shifted granulopoiesis, dysplasia descriptions, cellularity, blast percentages, or other observations remain `case_facts` unless the case separately supplies an explicit diagnostic label.
+- If no morphologic/pathologic diagnosis is explicitly supplied, return `provisional_disease: "No morphologic diagnosis supplied"` and `morphologic_diagnosis_origin: inferred`. Do not invent a provisional disease label from descriptive morphology, cytopenias, other nonspecific laboratory findings, or NGS findings. Molecular refinement occurs downstream.
+- `bootstrap_cmcs` are retrieval scaffolds, not diagnoses. When there is no explicit morphologic diagnosis, morphology is explicitly normal or non-diagnostic, no NGS variants are detected, and current cytogenetic/other molecular findings are absent, normal, pending, unavailable, not performed, or otherwise non-diagnostic, use `no_haematological_malignancy` as the bootstrap CMC. This is an internal no-established-diagnosis routing sentinel; it does not assert that a myeloid neoplasm has been excluded.
 For `variants`:
 - preserve every reported NGS variant;
 - when the case explicitly states that no NGS variants were detected, or gives an equivalent unequivocal negative NGS result, return `variants: []` and state that no NGS variants were detected in `detected_variants_summary`;
