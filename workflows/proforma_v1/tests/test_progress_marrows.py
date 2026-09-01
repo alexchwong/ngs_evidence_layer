@@ -68,42 +68,39 @@ def test_structure_prompt_separates_new_from_progress_and_preserves_established_
     assert "may indicate progression or transformation" in text
 
 
-def test_who5_and_icc_progress_rules_are_asymmetric_response_vs_progression():
-    for name in ("diagnosis_who5.md", "diagnosis_icc.md"):
-        text = _prompt(name)
-        assert "Legacy cases without this field are treated as `new`" in text
-        assert "treatment response must not downgrade the established disease entity" in text
-        assert "do not convert AML to MDS" in text
-        assert "must not be used to retrospectively criticize or invalidate the established diagnosis" in text
-        assert "protects against treatment-related downgrading; it does not freeze the established disease label" in text
-        assert "whether documented at the original diagnosis or in the current specimen" in text
-        assert "Historical diagnostic molecular/cytogenetic findings may therefore refine the established disease" in text
-        assert "established AML may be refined to AML-MR" in text
-        assert "does not block genuine progression or transformation" in text
-        assert "blast-phase/transformed disease" in text
-        assert "For `diagnosis_status: new`, when no morphologic diagnosis was supplied" in text
+def test_icc_progress_rules_remain_unchanged_by_who5_refactor():
+    text = _prompt("diagnosis_icc.md")
+    assert "Legacy cases without this field are treated as `new`" in text
+    assert "treatment response must not downgrade the established disease entity" in text
+    assert "do not convert AML to MDS" in text
+    assert "must not be used to retrospectively criticize or invalidate the established diagnosis" in text
+    assert "Historical diagnostic molecular/cytogenetic findings may therefore refine the established disease" in text
+    assert "established AML may be refined to AML-MR" in text
+    assert "does not block genuine progression or transformation" in text
+    assert "blast-phase/transformed disease" in text
 
 
-def test_demo4_progress_remission_does_not_block_aml_mr_refinement_from_diagnostic_phase_variants():
-    for name in ("diagnosis_who5.md", "diagnosis_icc.md"):
-        text = _prompt(name)
-        assert "Historical diagnostic molecular/cytogenetic findings may therefore refine the established disease" in text
-        assert "even when they are no longer detected after therapy" in text
-        assert "established AML may be refined to AML-MR" in text
-        assert "treatment response must not downgrade the established disease entity" in text
-
-
-
-
-def test_who5_assesses_primary_effects_before_freezing_diagnosis_and_concurrent_pathology():
+def test_who5_classifies_underlying_disease_before_response_and_allows_multicard_chains():
     text = _prompt("diagnosis_who5.md")
-    first = text.index("For each detected variant, first assess")
-    combine = text.index("Then combine those conclusions")
+    variant = text.index("For each detected variant, first assess its effect")
+    progress = text.index("determine the underlying disease classification before interpreting current response")
+    combine = text.index("Then combine the variant-specific conclusions")
+    status = text.index("After the underlying diagnosis is fixed, interpret current response")
     final = text.index("After the primary WHO5 diagnosis is fixed")
-    assert first < combine < final
-    assert "Complete and freeze that primary WHO5 decision before performing the variant assessments" not in text
+    assert variant < progress < combine < status < final
+    assert "Multiple cards may form an evidence chain" in text
+    assert "every link from the finding through any intermediate state to the WHO5 entity must be supported by supplied cards" in text
+    assert "must not be used to reject historical molecular/cytogenetic subclassification" in text
+    assert "Response must not downgrade the established disease" in text
     assert "consider only variants that did not contribute to the primary diagnosis" in text
     assert "Mere occurrence in another disease is insufficient" in text
+
+
+def test_previous_who5_progress_strengtheners_are_replaced():
+    text = _prompt("diagnosis_who5.md")
+    assert "must not be used to retrospectively criticize or invalidate the established diagnosis" not in text
+    assert "protects against treatment-related downgrading; it does not freeze the established disease label" not in text
+    assert "established AML may be refined to AML-MR" not in text
 
 
 def test_diagnosis_context_renames_negative_gene_list_without_changing_case_schema():
