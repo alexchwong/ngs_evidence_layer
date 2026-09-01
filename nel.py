@@ -4,6 +4,10 @@
 End users interact with this file, root configuration, and ``runs/`` only. New
 runs use ``workflows/proforma_v1``. The previous terraced-v6 workflow is available
 only through an explicit ``--legacy`` setup/configuration path or a frozen run manifest.
+
+Run layout is explicit: single runs require ``run.json``; batch roots require
+``batch.json`` and contain manifested child runs. Legacy unmanifested run folders
+are intentionally unsupported.
 """
 from __future__ import annotations
 
@@ -14,12 +18,17 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import tempfile
+import threading
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent
 RUNS_DIR = ROOT / "runs"
@@ -39,9 +48,20 @@ RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 CANONICAL_WORKFLOW = "proforma-v1"
 LEGACY_WORKFLOW = "terraced-v6"
 SUPPORTED_RUN_WORKFLOWS = {CANONICAL_WORKFLOW, LEGACY_WORKFLOW}
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
+DEFAULT_CLOUD_PARALLEL = 4
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from scripts import run_layout
+
 
 class CLIError(RuntimeError):
     pass
+
+
+def _layout_error(exc: Exception) -> CLIError:
+    return CLIError(str(exc))
 
 
 def _json_load(path: Path) -> dict[str, Any]:
@@ -59,17 +79,12 @@ def _json_load(path: Path) -> dict[str, Any]:
 def _git_commit() -> str | None:
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=ROOT,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, check=True,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
         return None
-    value = result.stdout.strip()
-    return value or None
+    return result.stdout.strip() or None
 
 
 def _version() -> str | None:
@@ -81,9 +96,6 @@ def _version() -> str | None:
 
 
 def _workflow_modules(workflow_id: str = CANONICAL_WORKFLOW):
-    """Return executor modules for the canonical workflow or supported legacy runs."""
-    if str(ROOT) not in sys.path:
-        sys.path.insert(0, str(ROOT))
     if workflow_id == CANONICAL_WORKFLOW:
         from workflows.proforma_v1 import pipeline_registry, self as self_executor, step
     elif workflow_id == LEGACY_WORKFLOW:
@@ -94,7 +106,6 @@ def _workflow_modules(workflow_id: str = CANONICAL_WORKFLOW):
 
 
 def _workflow_config_paths(workflow_id: str) -> tuple[Path, Path, Path]:
-    """Return settings, settings-template and pipeline paths for one root-facing workflow."""
     if workflow_id == CANONICAL_WORKFLOW:
         return SETTINGS_PATH, SETTINGS_TEMPLATE_PATH, PIPELINES_DIR
     if workflow_id == LEGACY_WORKFLOW:
@@ -104,11 +115,8 @@ def _workflow_config_paths(workflow_id: str) -> tuple[Path, Path, Path]:
 
 def _configure_workflow(
     workflow_id: str = CANONICAL_WORKFLOW,
-    *,
-    settings_path: Path | None = None,
-    pipelines_dir: Path | None = None,
+    *, settings_path: Path | None = None, pipelines_dir: Path | None = None,
 ):
-    """Configure one supported workflow through its public executor hook."""
     default_settings, _template, default_pipelines = _workflow_config_paths(workflow_id)
     settings_path = Path(settings_path) if settings_path is not None else default_settings
     pipelines_dir = Path(pipelines_dir) if pipelines_dir is not None else default_pipelines
@@ -127,19 +135,14 @@ def _validation_modes(workflow_id: str = CANONICAL_WORKFLOW) -> set[str]:
 
 
 def _validate_run_id(value: str) -> str:
-    value = str(value).strip()
-    if not RUN_ID_RE.fullmatch(value):
-        raise CLIError(
-            "invalid run ID; use only letters, numbers, '.', '_' and '-', and start with a letter or number"
-        )
-    if value in {".", "..", "LATEST"}:
-        raise CLIError(f"reserved run ID: {value}")
-    return value
+    try:
+        return run_layout.validate_id(value, label="run ID")
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
 
 
 def _slug(value: str) -> str:
-    value = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-._")
-    return value or "run"
+    return run_layout.slug(value)
 
 
 def _generated_run_id(mode: str, *, case: Path | None, example: int | None, case_id: str | None) -> str:
@@ -155,7 +158,12 @@ def _generated_run_id(mode: str, *, case: Path | None, example: int | None, case
     return f"{stamp}-{_slug(label)}"
 
 
-def _run_dir(run_id: str) -> Path:
+def _generated_batch_id(label: str) -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return f"batch-{stamp}-{_slug(label)}"
+
+
+def _top_dir(run_id: str) -> Path:
     return RUNS_DIR / _validate_run_id(run_id)
 
 
@@ -165,98 +173,68 @@ def _latest_run_id() -> str:
     except OSError as exc:
         raise CLIError("no latest run is recorded; run 'python nel.py setup ...' first") from exc
     run_id = _validate_run_id(value)
-    if not _run_dir(run_id).is_dir():
-        raise CLIError(f"LATEST points to missing run: {run_id}")
+    try:
+        run_layout.resolve_run(RUNS_DIR, run_id)
+    except run_layout.LayoutError as exc:
+        raise CLIError(f"LATEST is invalid: {exc}") from exc
     return run_id
 
 
 def _resolve_run(run_id: str | None) -> tuple[str, Path]:
-    rid = _validate_run_id(run_id) if run_id else _latest_run_id()
-    path = _run_dir(rid)
-    if not path.is_dir():
-        raise CLIError(f"run not found: {rid}")
-    return rid, path
+    ref = str(run_id).strip() if run_id else _latest_run_id()
+    try:
+        location = run_layout.resolve_run(RUNS_DIR, ref)
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
+    return location.run_id, location.path
+
+
+def _resolve_batch(batch_id: str) -> run_layout.BatchLocation:
+    try:
+        return run_layout.resolve_batch(RUNS_DIR, batch_id)
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
+
+
+def _run_identity(run: Path) -> dict[str, Any]:
+    try:
+        return run_layout.load_run_manifest(run)
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
 
 
 def _run_pipeline(run: Path) -> str | None:
-    """Read facade-owned pipeline identity, with workflow.json compatibility fallback."""
-    manifest = run / "run-config" / "manifest.json"
-    if manifest.is_file():
-        try:
-            value = _json_load(manifest).get("pipeline")
-            if isinstance(value, str) and value:
-                return value
-        except CLIError:
-            pass
-    workflow = run / "workflow.json"
-    if workflow.is_file():
-        try:
-            value = _json_load(workflow).get("model_profile")
-            if isinstance(value, str) and value:
-                return value
-        except CLIError:
-            pass
-    return None
+    identity = _run_identity(run)
+    value = identity.get("pipeline")
+    return str(value) if isinstance(value, str) and value else None
 
 
 def _run_workflow(run: Path) -> str | None:
-    """Resolve a run's workflow from frozen root metadata, with legacy fallback."""
-    run = Path(run)
-    manifest = run / "run-config" / "manifest.json"
-    if manifest.is_file():
-        try:
-            value = _json_load(manifest).get("workflow")
-            if isinstance(value, str) and value:
-                return value
-        except CLIError:
-            pass
-    workflow = run / "workflow.json"
-    if workflow.is_file():
-        try:
-            value = _json_load(workflow).get("workflow_id")
-            if isinstance(value, str) and value:
-                return value
-        except CLIError:
-            pass
-    return None
+    identity = _run_identity(run)
+    value = identity.get("workflow")
+    return str(value) if isinstance(value, str) and value else None
 
 
 def inspect_run(run: Path) -> dict[str, Any]:
-    """Delegate progress inspection to the workflow recorded for the run."""
     run = Path(run)
     pipeline = _run_pipeline(run)
     workflow_id = _run_workflow(run)
     if not pipeline or workflow_id not in SUPPORTED_RUN_WORKFLOWS:
         return {
-            "label": "Unrecognized",
-            "stage": "unknown",
-            "next": "inspect run",
-            "complete": False,
-            "pipeline": pipeline,
-            "mode": None,
+            "label": "Unrecognized", "stage": "unknown", "next": "inspect run",
+            "complete": False, "pipeline": pipeline, "mode": None,
         }
     step, self_executor, _registry = _workflow_modules(workflow_id)
     return self_executor.inspect_run(run) if pipeline == "self" else step.inspect_run(run)
 
-def _all_runs() -> list[tuple[str, Path, dict[str, Any]]]:
-    if not RUNS_DIR.is_dir():
-        return []
-    rows = []
-    for path in sorted(RUNS_DIR.iterdir(), key=lambda p: p.name.lower()):
-        if not path.is_dir():
-            continue
-        rows.append((path.name, path, inspect_run(path)))
-    return rows
+
+def corpus_core_blacklist_path() -> str:
+    from scripts.core import corpus as corpus_core
+    return str(corpus_core.DEFAULT_BLACKLIST)
 
 
 def _resolve_cul(name: str | None, corpus_doc, cards) -> tuple[dict, list[str]]:
-    """Resolve the requested profile, or the shipped default when none is named.
-
-    A missing default is not an error: it means an installation that predates the
-    corpus user layer, which keeps its historical permissive retrieval.
-    """
     from scripts.core import cul as cul_core
-
     warnings: list[str] = []
     requested = (name or "").strip() or cul_core.DEFAULT_PROFILE
     path = cul_core.profile_path(requested, cul_dir=CUL_DIR)
@@ -273,12 +251,11 @@ def _resolve_cul(name: str | None, corpus_doc, cards) -> tuple[dict, list[str]]:
                 f"no CUL profile at {path}; falling back to the deprecated {legacy.name}. "
                 "Run 'python scripts/cul.py new --cul default' to migrate."
             )
-            import json as _json
             raw = {
                 "schema_version": cul_core.SCHEMA_VERSION,
                 "profile": cul_core.DEFAULT_PROFILE,
                 "description": "Compatibility layer derived from legacy blacklist.json.",
-                "scope": _json.loads(legacy.read_text(encoding="utf-8")),
+                "scope": json.loads(legacy.read_text(encoding="utf-8")),
                 "amendments": {},
             }
             return cul_core.resolve_profile(
@@ -288,8 +265,7 @@ def _resolve_cul(name: str | None, corpus_doc, cards) -> tuple[dict, list[str]]:
     layer = cul_core.load_profile(path, corpus_document=corpus_doc, cards=cards, strict=False)
     if layer.get("stale"):
         raise CLIError(
-            f"CUL profile {requested!r} has stale amendment(s): "
-            + ", ".join(layer["stale"])
+            f"CUL profile {requested!r} has stale amendment(s): " + ", ".join(layer["stale"])
             + "\nThese were authored against corpus cards that have since changed. "
             "Review them in the card browser, or run: "
             f"python scripts/cul.py check --cul {requested}"
@@ -297,13 +273,7 @@ def _resolve_cul(name: str | None, corpus_doc, cards) -> tuple[dict, list[str]]:
     return layer, warnings
 
 
-def corpus_core_blacklist_path() -> str:
-    from scripts.core import corpus as corpus_core
-    return str(corpus_core.DEFAULT_BLACKLIST)
-
-
 def _legacy_settings_warnings(settings: dict[str, Any]) -> list[str]:
-    """Warn about terraced-era user keys without rewriting user-owned settings."""
     found: list[str] = []
     diagnosis = settings.get("diagnosis") or {}
     who5 = diagnosis.get("who5") or {} if isinstance(diagnosis, dict) else {}
@@ -311,7 +281,6 @@ def _legacy_settings_warnings(settings: dict[str, Any]) -> list[str]:
         found.append("diagnosis.who5.max_cmc_passes")
     if isinstance(diagnosis, dict) and "other" in diagnosis:
         found.append("diagnosis.other")
-
     reportability = settings.get("reportability") or {}
     domains = reportability.get("domains") or {} if isinstance(reportability, dict) else {}
     if isinstance(domains, dict):
@@ -326,15 +295,13 @@ def _legacy_settings_warnings(settings: dict[str, Any]) -> list[str]:
         germline = domains.get("germline") or {}
         if isinstance(germline, dict) and "germline_support" in germline:
             found.append("reportability.domains.germline.germline_support")
-
     prompts = settings.get("prompts") or {}
     if isinstance(prompts, dict) and "diagnosis_other" in prompts:
         found.append("prompts.diagnosis_other")
     if not found:
         return []
     return [
-        "config/settings.json contains legacy terraced-v6 key(s): "
-        + ", ".join(found)
+        "config/settings.json contains legacy terraced-v6 key(s): " + ", ".join(found)
         + ". The file was not modified; review it against config/settings.json.template before relying on custom behavior."
     ]
 
@@ -350,7 +317,6 @@ def _config_check(
     names: tuple[str, ...] = ()
     plans: dict[str, Any] = {}
     settings_path, settings_template, pipelines_dir = _workflow_config_paths(workflow_id)
-
     try:
         if workflow_id == CANONICAL_WORKFLOW and not settings_path.is_file():
             raise CLIError(f"settings file is missing: {settings_path}")
@@ -361,15 +327,13 @@ def _config_check(
         if workflow_id == CANONICAL_WORKFLOW and settings_path.is_file():
             warnings.extend(_legacy_settings_warnings(_json_load(settings_path)))
         selected = selected or str(settings.get("pipeline") or "self")
-        # Pipeline discovery must not validate unrelated YAML files. A user may keep
-        # additional/custom pipelines in config/pipelines; setup/config-check for an
-        # explicitly selected pipeline should fail only if that selected pipeline is
-        # unavailable or invalid.
         names = tuple(sorted(path.stem for path in pipelines_dir.glob("*.yaml")))
         if not names:
             raise CLIError(f"no pipeline YAML files found in {pipelines_dir}")
         if selected not in names:
-            raise CLIError(f"configured pipeline {selected!r} is unavailable; choose one of: {', '.join(names)}")
+            raise CLIError(
+                f"configured pipeline {selected!r} is unavailable; choose one of: {', '.join(names)}"
+            )
         selected_path = pipelines_dir / f"{selected}.yaml"
         try:
             plan = registry.load_yaml(selected_path)
@@ -385,28 +349,26 @@ def _config_check(
             errors.append(f"pipeline {selected!r} requires environment variable {env_name}")
     except Exception as exc:
         errors.append(str(exc))
-
     if not PANEL_SCOPE_PATH.is_file() or not PANEL_SCOPE_PATH.read_text(encoding="utf-8").strip():
         errors.append(f"NGS panel scope is missing or empty: {PANEL_SCOPE_PATH}")
-
     corpus_sha = None
     cul_layer = None
     try:
         from scripts.core import corpus as corpus_core
         from scripts.core import cul as cul_core
-        corpus_doc, _index, corpus_sha = corpus_core.load_corpus(corpus_core.DEFAULT_CORPUS, corpus_core.DEFAULT_INDEX)
+        corpus_doc, _index, corpus_sha = corpus_core.load_corpus(
+            corpus_core.DEFAULT_CORPUS, corpus_core.DEFAULT_INDEX
+        )
         cards = corpus_core.flatten(corpus_doc)
         cul_layer, cul_warnings = _resolve_cul(cul, corpus_doc, cards)
         warnings.extend(cul_warnings)
         cul_core.eligible_cards(cards, cul_layer, verbose=False)
     except Exception as exc:
         errors.append(f"corpus check failed: {exc}")
-
     workflow_dir = ROOT / "workflows" / ("proforma_v1" if workflow_id == CANONICAL_WORKFLOW else "terraced_v6")
     workflow_path = workflow_dir / "workflow.json"
     if not workflow_path.is_file():
         errors.append(f"{workflow_id} implementation is missing: {workflow_path}")
-
     try:
         from scripts.workflow_registry import load_registry
         workflow_registry = load_registry()
@@ -414,24 +376,16 @@ def _config_check(
             warnings.append(f"workflow registry default is not {CANONICAL_WORKFLOW}")
     except Exception as exc:
         errors.append(f"workflow registry check failed: {exc}")
-
     return {
-        "ok": not errors,
-        "workflow": workflow_id,
-        "pipeline": selected,
-        "pipelines": sorted(names),
-        "corpus_sha256": corpus_sha,
+        "ok": not errors, "workflow": workflow_id, "pipeline": selected,
+        "pipelines": sorted(names), "corpus_sha256": corpus_sha,
         "cul_profile": (cul_layer or {}).get("profile"),
         "cul_sha256": (cul_layer or {}).get("cul_sha256"),
-        "cul_layer": cul_layer,
-        "errors": errors,
-        "warnings": warnings,
+        "cul_layer": cul_layer, "errors": errors, "warnings": warnings,
     }
 
 
-def _ensure_config_ok(
-    workflow_id: str, pipeline: str | None, cul: str | None = None
-) -> dict[str, Any]:
+def _ensure_config_ok(workflow_id: str, pipeline: str | None, cul: str | None = None) -> dict[str, Any]:
     result = _config_check(workflow_id, pipeline, cul)
     if not result["ok"]:
         raise CLIError("configuration check failed:\n- " + "\n- ".join(result["errors"]))
@@ -439,8 +393,7 @@ def _ensure_config_ok(
 
 
 def _initialize_user_settings(workflow_id: str = CANONICAL_WORKFLOW) -> bool:
-    """Create one workflow's optional working settings once, never overwrite them."""
-    settings_path, settings_template, pipelines_dir = _workflow_config_paths(workflow_id)
+    settings_path, settings_template, _pipelines_dir = _workflow_config_paths(workflow_id)
     if settings_path.is_file():
         return False
     if not settings_template.is_file():
@@ -462,12 +415,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def _snapshot_run_config(
-    run: Path,
-    *,
-    run_id: str,
-    workflow_id: str,
-    mode: str,
-    pipeline: str,
+    run: Path, *, run_id: str, workflow_id: str, mode: str, pipeline: str,
     config_result: dict[str, Any],
 ) -> None:
     from scripts.core import cul as cul_core
@@ -476,7 +424,9 @@ def _snapshot_run_config(
     settings_path, settings_template, pipelines_dir = _workflow_config_paths(workflow_id)
     settings = _json_load(settings_path if settings_path.is_file() else settings_template)
     settings["pipeline"] = pipeline
-    (target / "settings.json").write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (target / "settings.json").write_text(
+        json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     pipeline_target = target / "pipelines"
     pipeline_target.mkdir()
     source_pipeline = pipelines_dir / f"{pipeline}.yaml"
@@ -487,29 +437,20 @@ def _snapshot_run_config(
     cul_layer = config_result.get("cul_layer") or cul_core.empty_layer()
     cul_core.freeze(cul_layer, target / "cul.json")
     manifest = {
-        "schema_version": 1,
-        "run_id": run_id,
-        "workflow": workflow_id,
-        "mode": mode,
-        "pipeline": pipeline,
+        "schema_version": 1, "run_id": run_id, "workflow": workflow_id,
+        "mode": mode, "pipeline": pipeline,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "nel_version": _version(),
-        "git_commit": _git_commit(),
+        "nel_version": _version(), "git_commit": _git_commit(),
         "corpus_sha256": config_result.get("corpus_sha256"),
-        "cul_profile": cul_layer.get("profile"),
-        "cul_sha256": cul_layer.get("cul_sha256"),
+        "cul_profile": cul_layer.get("profile"), "cul_sha256": cul_layer.get("cul_sha256"),
     }
-    (target / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (target / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def _bind_frozen_cul(config: Path, manifest: dict[str, Any]) -> dict[str, Any]:
-    """Publish the run's frozen corpus user layer to the workflow.
-
-    The layer is frozen at setup and re-verified here, so a mid-run edit to a
-    profile in ``config/cul/`` cannot change what an in-flight run retrieves.
-    """
     from scripts.core import cul as cul_core
-
     path = config / "cul.json"
     if not path.is_file():
         os.environ.pop(cul_core.ENV_ACTIVE_LAYER, None)
@@ -518,8 +459,7 @@ def _bind_frozen_cul(config: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     expected = manifest.get("cul_sha256")
     if expected and expected != layer.get("cul_sha256"):
         raise CLIError(
-            "frozen corpus user layer does not match the digest recorded at setup; "
-            "start a new run"
+            "frozen corpus user layer does not match the digest recorded at setup; start a new run"
         )
     os.environ[cul_core.ENV_ACTIVE_LAYER] = str(path.resolve())
     return layer
@@ -532,7 +472,6 @@ def _bind_run_config(run: Path):
     manifest_path = config / "manifest.json"
     if not settings.is_file() or not pipelines.is_dir() or not manifest_path.is_file():
         raise CLIError(f"run configuration snapshot is missing: {config}")
-
     manifest = _json_load(manifest_path)
     _bind_frozen_cul(config, manifest)
     expected_corpus = manifest.get("corpus_sha256")
@@ -550,6 +489,60 @@ def _bind_run_config(run: Path):
     if workflow_id not in SUPPORTED_RUN_WORKFLOWS:
         raise CLIError(f"unsupported or missing run workflow in {manifest_path}: {workflow_id!r}")
     return _configure_workflow(workflow_id, settings_path=settings, pipelines_dir=pipelines)
+
+
+def _write_identity_manifest(
+    run: Path, *, run_id: str, workflow_id: str, mode: str, pipeline: str,
+    batch_id: str | None = None, case_id: str | None = None, case_title: str | None = None,
+) -> None:
+    try:
+        run_layout.write_run_manifest(
+            run, run_id=run_id, workflow=workflow_id, mode=mode, pipeline=pipeline,
+            created_at=datetime.now(timezone.utc).isoformat(), batch_id=batch_id,
+            case_id=case_id, case_title=case_title,
+        )
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
+
+
+def _prepare_run_at(
+    run: Path, *, run_id: str, workflow_id: str, mode: str, pipeline: str,
+    config_result: dict[str, Any], case: Path | None = None, example: int | None = None,
+    validation_case_id: str | None = None, batch_id: str | None = None,
+    child_case_id: str | None = None, case_title: str | None = None,
+) -> int:
+    if run.exists():
+        raise CLIError(f"run already exists; refusing to overwrite: {run_id}")
+    run.parent.mkdir(parents=True, exist_ok=True)
+    step, self_executor, _registry = _configure_workflow(workflow_id)
+    argv = ["setup", "--mode", mode, "--work-dir", str(run)]
+    if pipeline != "self":
+        argv += ["--pipeline", pipeline]
+    if case is not None:
+        argv += ["--case-file", str(case)]
+    if example is not None:
+        argv += ["--example", str(example)]
+    if validation_case_id:
+        argv += ["--case-id", str(validation_case_id)]
+    captured = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(captured):
+            code = int((self_executor if pipeline == "self" else step).main(argv))
+        if code != 0:
+            shutil.rmtree(run, ignore_errors=True)
+            return code
+        _snapshot_run_config(
+            run, run_id=run_id, workflow_id=workflow_id, mode=mode,
+            pipeline=pipeline, config_result=config_result,
+        )
+        _write_identity_manifest(
+            run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
+            batch_id=batch_id, case_id=child_case_id, case_title=case_title,
+        )
+    except Exception:
+        shutil.rmtree(run, ignore_errors=True)
+        raise
+    return 0
 
 
 def _print_run_header(run_id: str, run: Path, status: dict[str, Any]) -> None:
@@ -584,297 +577,524 @@ def cmd_setup(args: argparse.Namespace) -> int:
         raise CLIError(f"{mode} setup requires --case-id <ID>")
     if mode not in _validation_modes(workflow_id) and args.case_id:
         raise CLIError("--case-id is valid only with a validation mode")
-
     if workflow_id == CANONICAL_WORKFLOW:
         _initialize_user_settings(CANONICAL_WORKFLOW)
     config_result = _ensure_config_ok(workflow_id, args.pipeline, getattr(args, "cul", None))
     pipeline = str(args.pipeline or config_result["pipeline"])
     if args.run_id:
         run_id = _validate_run_id(args.run_id)
-        run = _run_dir(run_id)
+        run = _top_dir(run_id)
         if run.exists():
             raise CLIError(f"run already exists; refusing to overwrite: {run_id}")
     else:
         base_id = _generated_run_id(mode, case=case, example=args.example, case_id=args.case_id)
-        run_id = base_id
-        run = _run_dir(run_id)
-        suffix = 2
+        run_id, run, suffix = base_id, _top_dir(base_id), 2
         while run.exists():
-            run_id = f"{base_id}-{suffix}"
-            run = _run_dir(run_id)
-            suffix += 1
+            run_id = f"{base_id}-{suffix}"; run = _top_dir(run_id); suffix += 1
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
-
-    step, self_executor, _registry = _configure_workflow(workflow_id)
-    argv = ["setup", "--mode", mode, "--work-dir", str(run)]
-    if pipeline != "self":
-        argv += ["--pipeline", pipeline]
-    if case is not None:
-        argv += ["--case-file", str(case)]
-    if args.example is not None:
-        argv += ["--example", str(args.example)]
-    if args.case_id:
-        argv += ["--case-id", str(args.case_id)]
-    captured = io.StringIO()
-    with contextlib.redirect_stdout(captured):
-        code = int((self_executor if pipeline == "self" else step).main(argv))
+    code = _prepare_run_at(
+        run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
+        config_result=config_result, case=case, example=args.example,
+        validation_case_id=args.case_id,
+    )
     if code != 0:
-        shutil.rmtree(run, ignore_errors=True)
         return code
-    try:
-        _snapshot_run_config(run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline, config_result=config_result)
-    except Exception:
-        shutil.rmtree(run, ignore_errors=True)
-        raise
     LATEST_PATH.write_text(run_id + "\n", encoding="utf-8")
-    status = inspect_run(run)
-    _print_run_header(run_id, run, status)
+    _print_run_header(run_id, run, inspect_run(run))
     return 0
 
 
 def _pathify(value: Any) -> Any:
-    if isinstance(value, Path):
-        return str(value.resolve())
-    if isinstance(value, dict):
-        return {str(k): _pathify(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_pathify(v) for v in value]
+    if isinstance(value, Path): return str(value.resolve())
+    if isinstance(value, dict): return {str(k): _pathify(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)): return [_pathify(v) for v in value]
     return value
 
 
 def _print_handoff(run_id: str, run: Path, stage: str, manifest: dict[str, Any]) -> int:
-    print(f"RUN_ID={run_id}")
-    print(f"RUN_DIR={run.resolve()}")
-    print("STATUS=handoff")
-    print(f"STAGE={stage}")
+    print(f"RUN_ID={run_id}"); print(f"RUN_DIR={run.resolve()}"); print("STATUS=handoff"); print(f"STAGE={stage}")
     output = manifest.get("output")
-    if output:
-        print(f"OUTPUT={Path(output).resolve() if isinstance(output, Path) else output}")
-    print("MANIFEST=")
-    print(json.dumps(_pathify(manifest), indent=2, ensure_ascii=False))
-    return 0
+    if output: print(f"OUTPUT={Path(output).resolve() if isinstance(output, Path) else output}")
+    print("MANIFEST="); print(json.dumps(_pathify(manifest), indent=2, ensure_ascii=False)); return 0
 
 
 def _reseat_cul(run: Path, profile: str) -> None:
-    """Replace a run's frozen corpus user layer, on explicit request only.
-
-    Changing the layer mid-run changes what later stages can retrieve while
-    earlier stages keep evidence drawn under the previous layer, so the swap is
-    recorded in the manifest and announced rather than performed quietly.
-    """
     from scripts.core import corpus as corpus_core
     from scripts.core import cul as cul_core
-
-    corpus_doc, _index, _digest = corpus_core.load_corpus(
-        corpus_core.DEFAULT_CORPUS, corpus_core.DEFAULT_INDEX
-    )
+    corpus_doc, _index, _digest = corpus_core.load_corpus(corpus_core.DEFAULT_CORPUS, corpus_core.DEFAULT_INDEX)
     cards = corpus_core.flatten(corpus_doc)
     layer, warnings = _resolve_cul(profile, corpus_doc, cards)
-    config = run / "run-config"
-    manifest_path = config / "manifest.json"
-    manifest = _json_load(manifest_path)
+    config = run / "run-config"; manifest_path = config / "manifest.json"; manifest = _json_load(manifest_path)
     previous = manifest.get("cul_profile")
-    if previous == layer["profile"] and manifest.get("cul_sha256") == layer["cul_sha256"]:
-        return
+    if previous == layer["profile"] and manifest.get("cul_sha256") == layer["cul_sha256"]: return
     cul_core.freeze(layer, config / "cul.json")
-    manifest["cul_profile"] = layer["profile"]
-    manifest["cul_sha256"] = layer["cul_sha256"]
+    manifest["cul_profile"] = layer["profile"]; manifest["cul_sha256"] = layer["cul_sha256"]
     history = list(manifest.get("cul_history") or [])
-    history.append({
-        "replaced_profile": previous,
-        "profile": layer["profile"],
-        "cul_sha256": layer["cul_sha256"],
-        "at": datetime.now(timezone.utc).isoformat(),
-    })
+    history.append({"replaced_profile": previous, "profile": layer["profile"], "cul_sha256": layer["cul_sha256"], "at": datetime.now(timezone.utc).isoformat()})
     manifest["cul_history"] = history
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    for warning in warnings:
-        print(f"WARNING={warning}")
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    for warning in warnings: print(f"WARNING={warning}")
     print(f"CUL_RESEATED={previous or 'none'} -> {layer['profile']}")
 
 
 def cmd_run(args: argparse.Namespace) -> int:
     run_id, run = _resolve_run(args.run_id)
     pipeline = _run_pipeline(run)
-    if not pipeline:
-        raise CLIError(f"cannot determine pipeline for run: {run_id}")
-    if getattr(args, "cul", None):
-        _reseat_cul(run, args.cul)
+    if not pipeline: raise CLIError(f"cannot determine pipeline for run: {run_id}")
+    if getattr(args, "cul", None): _reseat_cul(run, args.cul)
     step, self_executor, _registry = _bind_run_config(run)
     if pipeline == "self":
         result = self_executor.advance(run)
-        if result["status"] == "handoff":
-            return _print_handoff(run_id, run, result["stage"], result["manifest"])
-        status = self_executor.inspect_run(run)
-        _print_run_header(run_id, run, status)
-        for key, value in result.get("artifacts", {}).items():
-            print(f"{key}={value if value is not None else 'none'}")
+        if result["status"] == "handoff": return _print_handoff(run_id, run, result["stage"], result["manifest"])
+        status = self_executor.inspect_run(run); _print_run_header(run_id, run, status)
+        for key, value in result.get("artifacts", {}).items(): print(f"{key}={value if value is not None else 'none'}")
         return 0
+    code = int(step.main(["run", "--work-dir", str(run)])); _print_run_header(run_id, run, step.inspect_run(run)); return code
 
-    code = int(step.main(["run", "--work-dir", str(run)]))
-    _print_run_header(run_id, run, step.inspect_run(run))
-    return code
 
 def cmd_status(args: argparse.Namespace) -> int:
-    run_id, run = _resolve_run(args.run_id)
-    status = inspect_run(run)
-    if args.json:
-        print(json.dumps({"run_id": run_id, "run_dir": str(run.resolve()), **status}, indent=2, ensure_ascii=False))
-    else:
-        _print_run_header(run_id, run, status)
+    run_id, run = _resolve_run(args.run_id); status = inspect_run(run)
+    if args.json: print(json.dumps({"kind": "run", "run_id": run_id, "run_dir": str(run.resolve()), **status}, indent=2, ensure_ascii=False))
+    else: _print_run_header(run_id, run, status)
     return 0
+
+
+def _child_row(batch: run_layout.BatchLocation, child: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    case_id = str(child["case_id"]); ref = str(child["run_id"]); path = batch.path / case_id
+    run_status = inspect_run(path)
+    child_state = (state.get("children") or {}).get(case_id) or {}
+    return {
+        "kind": "batch-child", "run_id": ref, "batch_id": batch.batch_id,
+        "case_id": case_id, "case_title": child.get("title") or case_id,
+        "run_dir": str(path.resolve()), "batch_status": child_state.get("status", "prepared"),
+        "attempt_count": int(child_state.get("attempt_count") or 0), **run_status,
+    }
+
+
+def _aggregate_usage(child_paths: list[Path]) -> dict[str, Any] | None:
+    try:
+        from scripts import model_usage
+    except Exception:
+        return None
+    summaries = []
+    for path in child_paths:
+        try:
+            summary = model_usage.summarize(path / "logs" / "model-usage.json")
+        except Exception:
+            summary = None
+        if summary: summaries.append(summary)
+    if not summaries: return None
+    calls = retry = repair = duration = tokens = 0
+    cost_amount = 0.0; any_cost = False; complete_cost = True
+    for s in summaries:
+        calls += int(s.get("physical_calls") or 0); retry += int(s.get("retry_calls") or 0); repair += int(s.get("syntax_repair_calls") or 0); duration += int(s.get("duration_ms") or 0)
+        totals = s.get("totals") or {}; tokens += int(totals.get("total_tokens") or 0)
+        cost = s.get("cost") or {}; amount = cost.get("amount")
+        if amount is not None:
+            any_cost = True; cost_amount += float(amount); complete_cost = complete_cost and cost.get("complete") is not False
+        else: complete_cost = False
+    return {
+        "physical_calls": calls, "retry_calls": retry, "syntax_repair_calls": repair,
+        "duration_ms": duration, "totals": {"total_tokens": tokens},
+        "cost": {"amount": cost_amount if any_cost else None, "complete": complete_cost if any_cost else False},
+    }
+
+
+def _batch_elapsed_seconds(state: dict[str, Any]) -> float | None:
+    started = state.get("started_at")
+    if not isinstance(started, str) or not started:
+        return None
+    try:
+        start_dt = datetime.fromisoformat(started)
+        terminal = state.get("finished_at") or state.get("stopped_at")
+        end_dt = datetime.fromisoformat(terminal) if isinstance(terminal, str) and terminal else datetime.now(timezone.utc)
+        return max(0.0, (end_dt - start_dt).total_seconds())
+    except (TypeError, ValueError):
+        return None
+
+
+def batch_status(batch_id: str) -> dict[str, Any]:
+    batch = _resolve_batch(batch_id)
+    try: state = run_layout.load_batch_state(batch)
+    except run_layout.LayoutError as exc: raise _layout_error(exc) from exc
+    rows = [_child_row(batch, row, state) for row in batch.manifest.get("children", [])]
+    counts = {name: 0 for name in ("prepared", "running", "complete", "failed", "stopped")}
+    for row in rows:
+        status = str(row.get("batch_status") or "prepared")
+        if row.get("complete"): status = "complete"
+        if status not in counts: counts[status] = 0
+        counts[status] += 1
+    usage = _aggregate_usage([batch.path / str(row["case_id"]) for row in batch.manifest.get("children", [])])
+    return {
+        "kind": "batch", "batch_id": batch.batch_id, "run_id": batch.batch_id,
+        "run_dir": str(batch.path.resolve()), "workflow": batch.manifest.get("workflow"),
+        "mode": batch.manifest.get("mode"), "pipeline": batch.manifest.get("pipeline"),
+        "source": batch.manifest.get("source"), "max_parallel_cases": batch.manifest.get("max_parallel_cases", 1),
+        "status": state.get("status", "prepared"), "complete": state.get("status") == "complete",
+        "label": str(state.get("status", "prepared")).replace("_", " ").title(),
+        "stage": "complete" if state.get("status") == "complete" else "batch",
+        "counts": counts, "children": rows, "usage": usage,
+        "elapsed_seconds": _batch_elapsed_seconds(state),
+        "started_at": state.get("started_at"), "finished_at": state.get("finished_at"), "stopped_at": state.get("stopped_at"),
+    }
+
+
+def _all_entries() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for kind, path in run_layout.iter_top_level(RUNS_DIR):
+        if kind == "run":
+            try:
+                loc = run_layout.resolve_run(RUNS_DIR, path.name); status = inspect_run(loc.path)
+                rows.append({"kind": "run", "run_id": loc.run_id, "run_dir": str(loc.path.resolve()), **status})
+            except Exception as exc:
+                rows.append({"kind": "invalid", "run_id": path.name, "run_dir": str(path.resolve()), "label": "Invalid layout", "stage": "invalid", "complete": False, "detail": str(exc)})
+        elif kind == "batch":
+            try: rows.append(batch_status(path.name))
+            except Exception as exc: rows.append({"kind": "invalid", "run_id": path.name, "run_dir": str(path.resolve()), "label": "Invalid batch", "stage": "invalid", "complete": False, "detail": str(exc)})
+        else:
+            rows.append({"kind": "unsupported", "run_id": path.name, "run_dir": str(path.resolve()), "label": "Unsupported legacy layout", "stage": "unsupported", "complete": False, "detail": f"missing {run_layout.RUN_MANIFEST}/{run_layout.BATCH_MANIFEST}"})
+    return rows
 
 
 def cmd_runs(args: argparse.Namespace) -> int:
-    rows = _all_runs()
-    if args.incomplete:
-        rows = [row for row in rows if not row[2]["complete"]]
+    rows = _all_entries()
+    if args.incomplete: rows = [row for row in rows if not row.get("complete")]
     if args.json:
-        print(json.dumps([
-            {"run_id": rid, "run_dir": str(path.resolve()), **status}
-            for rid, path, status in rows
-        ], indent=2, ensure_ascii=False))
-        return 0
-    if not rows:
-        print("No runs found.")
-        return 0
+        print(json.dumps(rows, indent=2, ensure_ascii=False)); return 0
+    if not rows: print("No runs found."); return 0
     groups: OrderedDict[str, list[str]] = OrderedDict()
-    preferred = [
-        "Complete",
-        "At report synthesis",
-        "At evidence review",
-        "At germline",
-        "At biomarker",
-        "At treatment",
-        "At prognosis",
-        "At PTBG",
-        "At diagnosis",
-        "Setup only",
-        "Unrecognized",
-    ]
+    preferred = ["Complete", "Complete With Errors", "Running", "Stopped", "Prepared", "At report synthesis", "At evidence review", "At germline", "At biomarker", "At treatment", "At prognosis", "At PTBG", "At diagnosis", "Setup only", "Unsupported legacy layout", "Invalid layout", "Unrecognized"]
     for label in preferred:
-        names = [rid for rid, _path, status in rows if status["label"] == label]
-        if names:
-            groups[label] = names
+        names = [str(row["run_id"]) for row in rows if row.get("label") == label]
+        if names: groups[label] = names
+    leftovers = [str(row["run_id"]) for row in rows if not any(str(row["run_id"]) in v for v in groups.values())]
+    if leftovers: groups["Other"] = leftovers
     for label, names in groups.items():
-        print(f"{label}:")
-        for name in names:
-            print(f"- {name}")
-        print()
+        print(f"{label}:"); [print(f"- {name}") for name in names]; print()
     return 0
+
+
+def _pipeline_parallelism(pipeline: str, config_result: dict[str, Any]) -> int:
+    _step, _self_executor, registry = _configure_workflow(CANONICAL_WORKFLOW)
+    plan = registry.load(pipeline)
+    provider = plan.doc.get("provider") or {}
+    if provider.get("type") == "self":
+        raise CLIError("batch execution does not support the self pipeline; choose an unattended provider")
+    base = str(provider.get("base_url") or "")
+    env_name = str(provider.get("base_url_env") or "")
+    if env_name and os.environ.get(env_name, "").strip(): base = os.environ[env_name].strip()
+    try: host = (urlparse(base).hostname or "").lower()
+    except Exception: host = ""
+    execution = plan.doc.get("execution") or {}
+    value = execution.get("max_parallel_cases", DEFAULT_CLOUD_PARALLEL) if isinstance(execution, dict) else DEFAULT_CLOUD_PARALLEL
+    try: configured = int(value)
+    except (TypeError, ValueError) as exc: raise CLIError(f"pipeline execution.max_parallel_cases must be a positive integer; got {value!r}") from exc
+    if configured <= 0: raise CLIError("pipeline execution.max_parallel_cases must be greater than zero")
+    return 1 if host in LOCAL_HOSTS else configured
+
+
+def _unique_batch_path(requested: str | None, label: str) -> tuple[str, Path]:
+    if requested:
+        batch_id = _validate_run_id(requested); path = _top_dir(batch_id)
+        if path.exists(): raise CLIError(f"run already exists; refusing to overwrite: {batch_id}")
+        return batch_id, path
+    base = _generated_batch_id(label); batch_id, path, suffix = base, _top_dir(base), 2
+    while path.exists(): batch_id = f"{base}-{suffix}"; path = _top_dir(batch_id); suffix += 1
+    return batch_id, path
+
+
+def cmd_batch_setup(args: argparse.Namespace) -> int:
+    workflow_id = CANONICAL_WORKFLOW; mode = args.mode
+    if mode not in _supported_modes(workflow_id): raise CLIError(f"unsupported batch mode {mode!r}")
+    is_demo = mode == "nel-demo"
+    is_validation = mode in _validation_modes(workflow_id)
+    if mode == "ngs-report":
+        if args.case is None: raise CLIError("ngs-report batch setup requires --case <cases.md>")
+        if args.case_ids: raise CLIError("--case-ids is valid only with nel-demo or a validation mode")
+        source_path = args.case.expanduser().resolve()
+        if not source_path.is_file(): raise CLIError(f"batch case file not found: {source_path}")
+        source_text = source_path.read_text(encoding="utf-8")
+        try: parsed = run_layout.parse_case_markdown(source_text)
+        except run_layout.LayoutError as exc: raise _layout_error(exc) from exc
+        label = source_path.stem
+        source_doc = {"type": "freetext", "file": source_path.name, "case_count": len(parsed)}
+    elif is_demo or is_validation:
+        if args.case is not None: raise CLIError("--case is valid only with --mode ngs-report")
+        try: ids = run_layout.parse_case_ids(args.case_ids)
+        except run_layout.LayoutError as exc: raise _layout_error(exc) from exc
+        parsed = []
+        label = mode.removeprefix("nel-")
+        source_text = None
+        source_doc = {"type": "bundled", "series": mode, "case_ids": ids, "case_count": len(ids)}
+    else:
+        raise CLIError("batch setup supports ngs-report free text, nel-demo, and validation series")
+    _initialize_user_settings(CANONICAL_WORKFLOW)
+    config_result = _ensure_config_ok(CANONICAL_WORKFLOW, args.pipeline, getattr(args, "cul", None))
+    pipeline = str(args.pipeline or config_result["pipeline"])
+    if pipeline == "self": raise CLIError("batch setup requires an unattended provider; the self pipeline is not supported")
+    parallel = _pipeline_parallelism(pipeline, config_result)
+    batch_id, batch_dir = _unique_batch_path(args.run_id, label)
+    RUNS_DIR.mkdir(parents=True, exist_ok=True); batch_dir.mkdir()
+    children: list[dict[str, Any]] = []
+    created_at = datetime.now(timezone.utc).isoformat()
+    try:
+        if source_text is not None:
+            (batch_dir / run_layout.BATCH_SOURCE).write_text(source_text if source_text.endswith("\n") else source_text + "\n", encoding="utf-8")
+            for item in parsed:
+                logical = run_layout.child_run_ref(batch_id, item.case_id); child_dir = batch_dir / item.case_id
+                handle = tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8")
+                try:
+                    handle.write(item.text); handle.close()
+                    code = _prepare_run_at(
+                        child_dir, run_id=logical, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
+                        config_result=config_result, case=Path(handle.name), batch_id=batch_id,
+                        child_case_id=item.case_id, case_title=f"Case {item.title}",
+                    )
+                finally:
+                    try: os.unlink(handle.name)
+                    except OSError: pass
+                if code != 0: raise CLIError(f"failed to prepare {logical}")
+                children.append({"case_id": item.case_id, "title": f"Case {item.title}", "run_id": logical})
+        else:
+            for index, source_id in enumerate(ids, start=1):
+                case_id = f"{index:03d}-{_slug(source_id).lower()}"; logical = run_layout.child_run_ref(batch_id, case_id); child_dir = batch_dir / case_id
+                kwargs = {"example": int(source_id)} if is_demo else {"validation_case_id": source_id}
+                code = _prepare_run_at(
+                    child_dir, run_id=logical, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
+                    config_result=config_result, batch_id=batch_id, child_case_id=case_id,
+                    case_title=f"Case {source_id}", **kwargs,
+                )
+                if code != 0: raise CLIError(f"failed to prepare bundled case {source_id}")
+                children.append({"case_id": case_id, "title": f"Case {source_id}", "source_case_id": source_id, "run_id": logical})
+        manifest = {
+            "schema_version": run_layout.SCHEMA_VERSION, "kind": "batch", "batch_id": batch_id,
+            "workflow": workflow_id, "mode": mode, "pipeline": pipeline, "created_at": created_at,
+            "source": source_doc, "max_parallel_cases": parallel, "children": children,
+        }
+        run_layout.write_batch_manifest(batch_dir, manifest)
+        batch = run_layout.resolve_batch(RUNS_DIR, batch_id)
+        run_layout.write_batch_state(batch, run_layout.initial_batch_state(children, created_at=created_at))
+    except Exception:
+        shutil.rmtree(batch_dir, ignore_errors=True); raise
+    print(f"BATCH_ID={batch_id}"); print(f"BATCH_DIR={batch_dir.resolve()}"); print("STATUS=prepared"); print(f"CASES={len(children)}"); print(f"PIPELINE={pipeline}"); print(f"MAX_PARALLEL_CASES={parallel}")
+    return 0
+
+
+class _BatchRunner:
+    def __init__(self, batch: run_layout.BatchLocation, state: dict[str, Any]):
+        self.batch = batch; self.state = state; self.lock = threading.Lock(); self.stop_event = threading.Event(); self.active: dict[str, subprocess.Popen] = {}; self.previous_handlers: dict[int, Any] = {}
+
+    def install_signals(self):
+        def handler(_signum, _frame):
+            self.stop_event.set(); self._terminate_active()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            try: self.previous_handlers[sig] = signal.getsignal(sig); signal.signal(sig, handler)
+            except (ValueError, OSError): pass
+
+    def restore_signals(self):
+        for sig, old in self.previous_handlers.items():
+            try: signal.signal(sig, old)
+            except (ValueError, OSError): pass
+
+    def _save(self): run_layout.write_batch_state(self.batch, self.state)
+
+    def _terminate_active(self):
+        with self.lock: procs = list(self.active.values())
+        for proc in procs:
+            if proc.poll() is None:
+                try: proc.terminate()
+                except OSError: pass
+        for proc in procs:
+            if proc.poll() is None:
+                try: proc.wait(timeout=8)
+                except subprocess.TimeoutExpired:
+                    try: proc.kill()
+                    except OSError: pass
+
+    def run_child(self, row: dict[str, Any]) -> tuple[str, bool]:
+        case_id = str(row["case_id"]); ref = str(row["run_id"]); child_path = self.batch.path / case_id
+        if self.stop_event.is_set(): return case_id, False
+        with self.lock:
+            child_state = self.state["children"][case_id]; child_state["status"] = "running"; child_state["attempt_count"] = int(child_state.get("attempt_count") or 0) + 1; child_state["last_started_at"] = datetime.now(timezone.utc).isoformat(); self._save()
+        print(f"[batch] {row.get('title') or case_id} started (attempt {child_state['attempt_count']})", flush=True)
+        log_dir = child_path / "logs"; log_dir.mkdir(parents=True, exist_ok=True); log_path = log_dir / "batch-run.log"
+        argv = [sys.executable, "-u", str(ROOT / "nel.py"), "run", "--run-id", ref]
+        with open(log_path, "ab") as handle:
+            handle.write(("\n$ python nel.py run --run-id " + ref + "\n").encode())
+            handle.flush(); proc = subprocess.Popen(argv, cwd=str(ROOT), stdout=handle, stderr=subprocess.STDOUT, env=dict(os.environ))
+            with self.lock: self.active[case_id] = proc
+            code = proc.wait()
+            with self.lock: self.active.pop(case_id, None)
+        try: status = inspect_run(child_path)
+        except Exception: status = {"complete": False, "stage": "unknown"}
+        complete = code == 0 and bool(status.get("complete"))
+        now = datetime.now(timezone.utc).isoformat()
+        with self.lock:
+            child_state = self.state["children"][case_id]; child_state["last_exit_code"] = code; child_state["last_finished_at"] = now
+            if complete:
+                child_state["status"] = "complete"; child_state["last_failure_stage"] = None
+            elif self.stop_event.is_set():
+                child_state["status"] = "stopped"
+            else:
+                child_state["status"] = "failed"; child_state["last_failure_stage"] = str(status.get("stage") or "unknown")
+            self._save()
+        label = "complete" if complete else ("stopped" if self.stop_event.is_set() else f"failed at {status.get('stage') or 'unknown'}")
+        print(f"[batch] {row.get('title') or case_id} {label}", flush=True)
+        return case_id, complete
+
+
+def _selected_batch_children(batch: run_layout.BatchLocation, state: dict[str, Any]) -> list[dict[str, Any]]:
+    parent = str(state.get("status") or "prepared")
+    if parent == "complete": return []
+    if parent == "running": raise CLIError(f"batch {batch.batch_id} is already running")
+    children = batch.manifest.get("children", [])
+    child_state = state.get("children") or {}
+    if parent == "complete_with_errors":
+        return [row for row in children if (child_state.get(str(row["case_id"])) or {}).get("status") == "failed"]
+    if parent == "stopped":
+        return [row for row in children if (child_state.get(str(row["case_id"])) or {}).get("status") != "complete"]
+    return list(children)
+
+
+def cmd_batch_run(args: argparse.Namespace) -> int:
+    batch = _resolve_batch(args.run_id)
+    try: state = run_layout.load_batch_state(batch)
+    except run_layout.LayoutError as exc: raise _layout_error(exc) from exc
+    selected = _selected_batch_children(batch, state)
+    if not selected:
+        if state.get("status") == "complete": print(f"BATCH_ID={batch.batch_id}\nSTATUS=complete\nDETAIL=batch already complete"); return 0
+        raise CLIError("batch has no failed/incomplete children eligible for restart")
+    state["status"] = "running"; state["started_at"] = datetime.now(timezone.utc).isoformat(); state["finished_at"] = None; state["stopped_at"] = None
+    run_layout.write_batch_state(batch, state)
+    workers = max(1, int(batch.manifest.get("max_parallel_cases") or 1)); runner = _BatchRunner(batch, state); runner.install_signals()
+    print(f"BATCH_ID={batch.batch_id}"); print(f"STATUS=running"); print(f"SELECTED_CASES={len(selected)}"); print(f"MAX_PARALLEL_CASES={workers}", flush=True)
+    try:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="nel-batch") as pool:
+            futures = []
+            for row in selected:
+                if runner.stop_event.is_set(): break
+                futures.append(pool.submit(runner.run_child, row))
+            for future in as_completed(futures):
+                try: future.result()
+                except Exception as exc:
+                    print(f"[batch] worker error: {exc}", file=sys.stderr, flush=True)
+                    runner.stop_event.set()
+        if runner.stop_event.is_set():
+            for row in selected:
+                case_id = str(row["case_id"]); c = state["children"][case_id]
+                if c.get("status") in {"prepared", "running"}: c["status"] = "stopped"
+            state["status"] = "stopped"; state["stopped_at"] = datetime.now(timezone.utc).isoformat(); final_code = 130
+        else:
+            statuses = [str((state.get("children") or {}).get(str(row["case_id"]), {}).get("status")) for row in batch.manifest.get("children", [])]
+            if statuses and all(value == "complete" for value in statuses): state["status"] = "complete"; final_code = 0
+            elif any(value == "failed" for value in statuses): state["status"] = "complete_with_errors"; final_code = 1
+            else: state["status"] = "stopped"; final_code = 1
+            state["finished_at"] = datetime.now(timezone.utc).isoformat()
+        run_layout.write_batch_state(batch, state)
+    finally:
+        runner.restore_signals()
+    print(f"STATUS={state['status']}"); return final_code
+
+
+def cmd_batch_status(args: argparse.Namespace) -> int:
+    doc = batch_status(args.run_id)
+    if args.json: print(json.dumps(doc, indent=2, ensure_ascii=False))
+    else:
+        counts = doc["counts"]; print(f"BATCH_ID={doc['batch_id']}"); print(f"BATCH_DIR={doc['run_dir']}"); print(f"STATUS={doc['status']}"); print(f"PIPELINE={doc.get('pipeline') or ''}"); print(f"MAX_PARALLEL_CASES={doc.get('max_parallel_cases') or 1}"); print(f"CASES={len(doc['children'])}"); print(f"COMPLETE={counts.get('complete',0)}"); print(f"FAILED={counts.get('failed',0)}"); print(f"RUNNING={counts.get('running',0)}"); print(f"PREPARED={counts.get('prepared',0)}"); print(f"STOPPED={counts.get('stopped',0)}")
+    return 0
+
+
+def cmd_delete(args: argparse.Namespace) -> int:
+    ref = str(args.run_id or "").strip()
+    if not ref: raise CLIError("delete requires --run-id")
+    try: batch_id, component = run_layout.split_run_ref(ref)
+    except run_layout.LayoutError as exc: raise _layout_error(exc) from exc
+    if batch_id is not None:
+        batch = _resolve_batch(batch_id); state = run_layout.load_batch_state(batch)
+        if state.get("status") == "running": raise CLIError(f"batch {batch_id} is running; stop it before deleting a child")
+        children = list(batch.manifest.get("children", [])); target = next((row for row in children if row.get("case_id") == component), None)
+        if target is None: raise CLIError(f"batch {batch_id} does not contain case {component}")
+        if len(children) <= 1: raise CLIError("cannot delete the last child; delete the batch instead")
+        shutil.rmtree(batch.path / component)
+        batch.manifest["children"] = [row for row in children if row.get("case_id") != component]; run_layout.write_batch_manifest(batch.path, batch.manifest)
+        state.get("children", {}).pop(component, None); run_layout.write_batch_state(batch.path, state)
+        print(f"DELETED={ref}"); return 0
+    path = _top_dir(component)
+    if not path.is_dir(): raise CLIError(f"run not found: {component}")
+    kind = run_layout.classify_top_level(path)
+    if kind == "batch":
+        batch = _resolve_batch(component); state = run_layout.load_batch_state(batch)
+        if state.get("status") == "running": raise CLIError(f"batch {component} is running; stop it before deletion")
+    elif kind == "run":
+        run_layout.resolve_run(RUNS_DIR, component)
+    elif kind in {"unsupported", "invalid"}:
+        # Legacy/invalid run folders are unsupported operationally but remain
+        # deliberately deletable so pre-manifest development runs can be cleaned up.
+        pass
+    else:
+        raise CLIError(f"unrecognized run layout: {component}")
+    shutil.rmtree(path)
+    try:
+        if LATEST_PATH.read_text(encoding="utf-8").strip() == component: LATEST_PATH.unlink()
+    except OSError: pass
+    print(f"DELETED={component}"); return 0
 
 
 def cmd_config_check(args: argparse.Namespace) -> int:
     workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
-    if workflow_id == CANONICAL_WORKFLOW:
-        _initialize_user_settings(CANONICAL_WORKFLOW)
+    if workflow_id == CANONICAL_WORKFLOW: _initialize_user_settings(CANONICAL_WORKFLOW)
     result = _config_check(workflow_id, args.pipeline, getattr(args, "cul", None))
-    if args.json:
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+    if args.json: print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
-        print(f"STATUS={'ok' if result['ok'] else 'error'}")
-        print(f"WORKFLOW={result['workflow']}")
-        if result.get("pipeline"):
-            print(f"PIPELINE={result['pipeline']}")
-        if result.get("corpus_sha256"):
-            print(f"CORPUS_SHA256={result['corpus_sha256']}")
-        if result.get("cul_profile"):
-            print(f"CUL_PROFILE={result['cul_profile']}")
-            print(f"CUL_SHA256={result['cul_sha256']}")
-        for warning in result["warnings"]:
-            print(f"WARNING={warning}")
-        for error in result["errors"]:
-            print(f"ERROR={error}")
+        print(f"STATUS={'ok' if result['ok'] else 'error'}"); print(f"WORKFLOW={result['workflow']}")
+        if result.get("pipeline"): print(f"PIPELINE={result['pipeline']}")
+        if result.get("corpus_sha256"): print(f"CORPUS_SHA256={result['corpus_sha256']}")
+        if result.get("cul_profile"): print(f"CUL_PROFILE={result['cul_profile']}"); print(f"CUL_SHA256={result['cul_sha256']}")
+        for warning in result["warnings"]: print(f"WARNING={warning}")
+        for error in result["errors"]: print(f"ERROR={error}")
     return 0 if result["ok"] else 1
 
 
 def cmd_pipelines(args: argparse.Namespace) -> int:
     workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
-    if workflow_id == CANONICAL_WORKFLOW:
-        _initialize_user_settings(CANONICAL_WORKFLOW)
-    _ensure_config_ok(workflow_id, None)
-    _step, _self_executor, registry = _configure_workflow(workflow_id)
-    for name in registry.names():
-        print(f"{name}: {registry.descriptions()[name]}")
+    if workflow_id == CANONICAL_WORKFLOW: _initialize_user_settings(CANONICAL_WORKFLOW)
+    _ensure_config_ok(workflow_id, None); _step, _self_executor, registry = _configure_workflow(workflow_id)
+    for name in registry.names(): print(f"{name}: {registry.descriptions()[name]}")
     return 0
 
 
 def cmd_ui(args: argparse.Namespace) -> int:
-    """Serve the optional local browser interface.
-
-    The import is deferred so every other command is unaffected when ``ui/`` is
-    absent, which is the case in the skill release archive.
-    """
-    if str(ROOT) not in sys.path:
-        sys.path.insert(0, str(ROOT))
     try:
-        from ui import server
+        from ui import batch_server as server
     except ImportError as exc:
         raise CLIError(f"the browser interface is not installed in this checkout: {exc}") from exc
     return int(server.serve(port=args.port, open_browser=not args.no_browser))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    sub = parser.add_subparsers(dest="command", required=True)
-
-    init = sub.add_parser("init", help="create canonical settings from the shipped template if missing")
-    init.add_argument("--legacy", action="store_true", help="initialize workflow-local terraced-v6 settings instead")
-    init.set_defaults(func=cmd_init)
-
-    setup = sub.add_parser("setup", help="create a new root run; canonical proforma-v1 unless --legacy")
-    setup.add_argument("--legacy", action="store_true", help="create a terraced-v6 legacy run with workflow-local settings/pipelines")
-    setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report")
-    setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report")
-    setup.add_argument("--pipeline", help="pipeline name for the selected canonical/legacy workflow")
-    setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json")
-    setup.add_argument("--run-id", help="stable filesystem-safe run identifier")
-    setup.add_argument("--example", type=int, help="demo example number")
-    setup.add_argument("--case-id", help="validation case identifier")
-    setup.set_defaults(func=cmd_setup)
-
-    run = sub.add_parser("run", help="continue one run; defaults to runs/LATEST")
-    run.add_argument("--run-id")
-    run.add_argument("--cul", help="override the frozen corpus user layer for this invocation")
-    run.set_defaults(func=cmd_run)
-
-    status = sub.add_parser("status", help="show artifact-derived status for one run")
-    status.add_argument("--run-id")
-    status.add_argument("--json", action="store_true")
-    status.set_defaults(func=cmd_status)
-
-    runs = sub.add_parser("runs", help="survey runs/ and group runs by progress")
-    runs.add_argument("--incomplete", action="store_true", help="show incomplete runs only")
-    runs.add_argument("--json", action="store_true")
-    runs.set_defaults(func=cmd_runs)
-
-    check = sub.add_parser("config-check", help="validate canonical configuration and corpus integrity")
-    check.add_argument("--legacy", action="store_true", help="validate terraced-v6 workflow-local settings/pipelines")
-    check.add_argument("--pipeline")
-    check.add_argument("--cul")
-    check.add_argument("--json", action="store_true")
-    check.set_defaults(func=cmd_config_check)
-
-    pipelines = sub.add_parser("pipelines", help="list canonical pipeline configurations")
-    pipelines.add_argument("--legacy", action="store_true", help="list terraced-v6 workflow-local pipelines")
-    pipelines.set_defaults(func=cmd_pipelines)
-
-    ui = sub.add_parser("ui", help="serve the local browser interface on this machine")
-    ui.add_argument("--port", type=int, default=8765, help="first port to try")
-    ui.add_argument("--no-browser", action="store_true", help="do not open a browser window")
-    ui.set_defaults(func=cmd_ui)
+    parser = argparse.ArgumentParser(description=__doc__); sub = parser.add_subparsers(dest="command", required=True)
+    init = sub.add_parser("init", help="create canonical settings from the shipped template if missing"); init.add_argument("--legacy", action="store_true", help="initialize workflow-local terraced-v6 settings instead"); init.set_defaults(func=cmd_init)
+    setup = sub.add_parser("setup", help="create a new single-case root run; canonical proforma-v1 unless --legacy")
+    setup.add_argument("--legacy", action="store_true", help="create a terraced-v6 legacy run with workflow-local settings/pipelines"); setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report"); setup.add_argument("--pipeline", help="pipeline name for the selected canonical/legacy workflow"); setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json"); setup.add_argument("--run-id", help="stable filesystem-safe run identifier"); setup.add_argument("--example", type=int, help="demo example number"); setup.add_argument("--case-id", help="validation case identifier"); setup.set_defaults(func=cmd_setup)
+    run = sub.add_parser("run", help="continue one single/child run; defaults to runs/LATEST"); run.add_argument("--run-id"); run.add_argument("--cul", help="override the frozen corpus user layer for this invocation"); run.set_defaults(func=cmd_run)
+    status = sub.add_parser("status", help="show artifact-derived status for one single/child run"); status.add_argument("--run-id"); status.add_argument("--json", action="store_true"); status.set_defaults(func=cmd_status)
+    runs = sub.add_parser("runs", help="survey manifested single runs and batches"); runs.add_argument("--incomplete", action="store_true"); runs.add_argument("--json", action="store_true"); runs.set_defaults(func=cmd_runs)
+    delete = sub.add_parser("delete", help="delete a single run, a batch, or one batch child"); delete.add_argument("--run-id", required=True); delete.set_defaults(func=cmd_delete)
+    batch = sub.add_parser("batch", help="prepare, run/resume, or inspect a batch"); batch_sub = batch.add_subparsers(dest="batch_command", required=True)
+    bsetup = batch_sub.add_parser("setup", help="prepare a free-text or validation batch"); bsetup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); bsetup.add_argument("--case", type=Path, help="markdown file containing '# Case <title>' sections"); bsetup.add_argument("--case-ids", help="comma-delimited validation case IDs, e.g. 1,2,5"); bsetup.add_argument("--pipeline"); bsetup.add_argument("--cul"); bsetup.add_argument("--run-id", help="stable filesystem-safe batch identifier"); bsetup.set_defaults(func=cmd_batch_setup)
+    brun = batch_sub.add_parser("run", help="run/resume a batch; failed finished children resume from workflow checkpoints"); brun.add_argument("--run-id", required=True); brun.set_defaults(func=cmd_batch_run)
+    bstatus = batch_sub.add_parser("status", help="show batch and child status"); bstatus.add_argument("--run-id", required=True); bstatus.add_argument("--json", action="store_true"); bstatus.set_defaults(func=cmd_batch_status)
+    check = sub.add_parser("config-check", help="validate canonical configuration and corpus integrity"); check.add_argument("--legacy", action="store_true", help="validate terraced-v6 workflow-local settings/pipelines"); check.add_argument("--pipeline"); check.add_argument("--cul"); check.add_argument("--json", action="store_true"); check.set_defaults(func=cmd_config_check)
+    pipelines = sub.add_parser("pipelines", help="list canonical pipeline configurations"); pipelines.add_argument("--legacy", action="store_true", help="list terraced-v6 workflow-local pipelines"); pipelines.set_defaults(func=cmd_pipelines)
+    ui = sub.add_parser("ui", help="serve the local browser interface on this machine"); ui.add_argument("--port", type=int, default=8765, help="first port to try"); ui.add_argument("--no-browser", action="store_true", help="do not open a browser window"); ui.set_defaults(func=cmd_ui)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    try:
-        return int(args.func(args))
-    except (CLIError, OSError, ValueError, KeyError) as exc:
-        print(f"nel failed: {exc}", file=sys.stderr)
-        return 1
+    try: return int(args.func(args))
+    except (CLIError, run_layout.LayoutError, OSError, ValueError, KeyError) as exc:
+        print(f"nel failed: {exc}", file=sys.stderr); return 1
 
 
 if __name__ == "__main__":

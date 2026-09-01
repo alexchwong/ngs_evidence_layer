@@ -11,6 +11,7 @@ ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidenc
 _PROVIDER_ROUTING_LIST_FIELDS=('order','only','ignore')
 _PROVIDER_ROUTING_BOOL_FIELDS=('allow_fallbacks','require_parameters')
 _PROVIDER_ROUTING_FIELDS=set(_PROVIDER_ROUTING_LIST_FIELDS+_PROVIDER_ROUTING_BOOL_FIELDS)
+_EXECUTION_FIELDS={'max_parallel_cases'}
 def configure(root:Path|str|None=None):
     global ROOT
     ROOT=Path(root).expanduser().resolve() if root is not None else HERE/'pipelines'
@@ -33,6 +34,15 @@ def _validate_provider_routing(value:Any,label:str)->None:
         if not isinstance(items,list) or not items or any(not isinstance(item,str) or not item.strip() for item in items): raise ValueError(f'{label}.{field} must be a non-empty list of strings')
     for field in _PROVIDER_ROUTING_BOOL_FIELDS:
         if field in value and not isinstance(value[field],bool): raise ValueError(f'{label}.{field} must be boolean')
+def _validate_execution(value:Any)->None:
+    if value is None: return
+    if not isinstance(value,dict): raise ValueError('execution must be a mapping')
+    unknown=set(value)-_EXECUTION_FIELDS
+    if unknown: raise ValueError(f'execution has unsupported field(s): {", ".join(sorted(unknown))}')
+    if 'max_parallel_cases' in value:
+        limit=value['max_parallel_cases']
+        if not isinstance(limit,int) or isinstance(limit,bool) or limit<=0:
+            raise ValueError('execution.max_parallel_cases must be a positive integer')
 def _validate_aliases(doc:dict[str,Any])->None:
     aliases=doc.get('model_aliases'); roles=doc.get('model_roles')
     if not isinstance(aliases,dict) or not aliases: raise ValueError('model_aliases must be a non-empty mapping')
@@ -57,6 +67,7 @@ def load_yaml(path:Path)->PipelinePlan:
     meta=doc['pipeline']
     if 'id' in meta: raise ValueError(f'pipeline.id is obsolete; rename the YAML file instead: {path}')
     if meta.get('version')!=1: raise ValueError('pipeline.version must be 1')
+    _validate_execution(doc.get('execution'))
     provider=doc.get('provider'); models=doc.get('models')
     if not isinstance(provider,dict) or provider.get('type') not in {'self','openai-compatible'}: raise ValueError('provider.type must be self or openai-compatible')
     if provider['type']=='self':
