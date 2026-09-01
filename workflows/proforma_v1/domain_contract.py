@@ -7,7 +7,6 @@ Framework selection itself is never deterministic: prognosis may return zero,
 one, or several applicable frameworks.
 """
 from __future__ import annotations
-
 from dataclasses import dataclass, field
 
 import json
@@ -22,7 +21,6 @@ _CATEGORY_FIELD = {
     "biomarker": "mrd_status",
     "germline": "bucket",
 }
-
 
 @dataclass(frozen=True)
 class DomainContract:
@@ -56,7 +54,6 @@ def from_spec(spec: stage_spec.StageSpec) -> DomainContract:
 def _from_spec(stage: str) -> DomainContract:
     return from_spec(stage_spec.load(stage))
 
-
 CONTRACTS = {name: _from_spec(name) for name in stage_spec.domains()}
 PROGNOSIS = CONTRACTS["prognosis"]
 TREATMENT = CONTRACTS["treatment"]
@@ -87,7 +84,7 @@ def _prognosis_skeleton(variant_ids, registry, disease) -> str:
         "## For each variant, `framework_effects` contains only effects explicitly defined by one of the named frameworks. Use [] when the variant is not classified by any named framework.",
         "## `other_evidence_effect` may use any prognostic evidence explicitly applicable to the same disease, whether or not the gene belongs to a named framework.",
         "## Framework effects and other evidence are independent evidence channels and may legitimately have different prognostic directions; preserve each source-specific direction rather than forcing concordance.",
-        "## One row per supplied variant, in order. Do not add, remove or reorder rows.",
+        "## One row per supplied variant, in order. Do not add, remove or reorder rows. When no variants are supplied, return classification: [].",
     ]
     lines += ["", "```yaml", f"applicable_disease: {json.dumps(str(disease), ensure_ascii=False)}"]
     lines += [
@@ -97,8 +94,11 @@ def _prognosis_skeleton(variant_ids, registry, disease) -> str:
         "    reason: \"<one concise proposition supporting framework applicability and, when tier is populated, the tier assignment; use prognostic_frameworks: [] when none can be identified>\"",
         "    evidence_card_tags: [\"[card:0123456789ab]\"]  # exact supplied supporting cards; [] if none",
         "  # Add another item for each additional applicable framework.",
-        "classification:",
     ]
+    if variant_ids:
+        lines.append("classification:")
+    else:
+        lines.append("classification: []")
     for vid in variant_ids:
         gene = _gene(registry, vid) or "<deterministically injected gene>"
         lines += [
@@ -123,7 +123,6 @@ def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_diseas
     disease = applicable_disease or "<authoritative WHO5 schema_disease>"
     if c.domain == "prognosis":
         return _prognosis_skeleton(ordered, registry or {}, disease)
-
     category = c.category_field or "bucket"
     choices = "|".join(c.buckets)
     lines = [f"## Return exactly this YAML for the {c.label} proforma, and nothing else.", ""]
@@ -131,16 +130,16 @@ def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_diseas
         lines.append("## `applicable_disease` is deterministic and must remain the supplied authoritative WHO5 disease.")
     if c.multi_row:
         lines.append(
-            "## Every supplied variant must appear at least once. Add a row only for a second, genuinely distinct implication. Do not change any `variant` value."
+            "## Every supplied variant must appear at least once. Add a row only for a second, genuinely distinct implication. Do not change any `variant` value. When no variants are supplied, return classification: []."
         )
     else:
-        lines.append("## One row per variant, in order. Do not add, remove or reorder rows, and do not change any `variant` value.")
+        lines.append("## One row per variant, in order. Do not add, remove or reorder rows, and do not change any `variant` value. When no variants are supplied, return classification: [].")
     for line in c.guidance:
         lines.append(f"## {line}")
     lines += ["", "```yaml"]
     if c.domain in {"treatment", "biomarker"}:
         lines.append(f"applicable_disease: {json.dumps(str(disease), ensure_ascii=False)}")
-    lines.append("classification:")
+    lines.append("classification:" if ordered else "classification: []")
     for vid in ordered:
         lines.append(f"  - variant: {vid}")
         if c.domain in {"treatment", "biomarker"}:
@@ -159,7 +158,6 @@ def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_diseas
 
 def normalize_model_output(text: str, c: DomainContract, registry: dict, applicable_disease: str | None):
     """Inject deterministic disease/gene identity without repairing clinical reasoning.
-
     Returns ``(yaml_text, transform_records)``. Unknown variant IDs are left alone
     so ordinary validation can reject them.
     """
@@ -272,7 +270,6 @@ def pivot(doc: dict, c: DomainContract) -> dict:
                     "evidence_card_tags": [],
                 })
         return out
-
     out = {bucket: [] for bucket in c.buckets}
     if c.domain in {"treatment", "biomarker"}:
         out["applicable_disease"] = doc.get("applicable_disease")
