@@ -47,7 +47,7 @@ python nel.py batch status --run-id <batch-id>
 
 ## Bundled batches
 
-The browser uses an explicit compact **Batch** toggle for both **Freetext** and **Examples**. With Batch mode off, the existing single-case selector is used. With Batch mode on, one bundled series is selected and its cases are shown as checkboxes; changing series clears the selection. The preview has its own selector so each checked source case can be inspected before preparation. Demo and validation series both use comma-delimited `--case-ids` in the CLI.
+The browser uses an explicit compact **Batch** toggle for both **Freetext** and **Examples**. With Batch mode off, the existing single-case selector is used. With Batch mode on, one bundled series is selected and its cases are chosen from a compact multi-select dropdown with tickboxes; the closed control shows the selected-case count and the dropdown stays open while ticking multiple cases. Changing series clears the selection. The preview has its own selector so each selected source case can be inspected before preparation. Demo and validation series both use comma-delimited `--case-ids` in the CLI.
 
 Validation example:
 
@@ -93,6 +93,6 @@ Folders without `run.json` or `batch.json` are not runnable or resumable. They r
 
 ## Browser batch navigation and progress
 
-A prepared or running batch remains expandable in the left run tree. The batch view also provides synchronized case dropdowns in the middle navigation row and the Case pane; choosing a child in either selector updates the Case, Report and Dissent views. Active children are shown as one progress row per concurrent case. The segmented rail is stage-based and uses the workflow stage list exposed by the backend rather than estimating elapsed-time percentages. Selecting an active progress row opens that child.
+A prepared or running batch remains expandable in the left run tree. The Case pane contains the single canonical batch-case selector; choosing a child updates the Case, Report and Dissent views. Clicking a left-tree child or active progress row updates the same selector. Active children are shown as one progress row per concurrent case. Single-case runs use the same component as one labelled progress row. The segmented rail is stage-based and uses the workflow stage list exposed by the backend rather than estimating elapsed-time percentages; the current workflow phase is shown explicitly beside the rail.
 
-The left run tree scrolls independently. While any child of a running batch is selected, the primary execution control still targets the batch parent and remains **Stop batch**.
+The left run tree scrolls independently and uses compact typography aligned with the reading panes. While any child of a running batch is selected, the primary execution control still targets the batch parent and remains **Stop batch**.
