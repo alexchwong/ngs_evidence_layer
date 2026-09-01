@@ -355,12 +355,17 @@ def initial_batch_state(children: list[dict[str, Any]], *, created_at: str) -> d
         "started_at": None,
         "finished_at": None,
         "stopped_at": None,
+        "blocked_at": None,
+        "blocked_reason": None,
         "children": {
             str(row["case_id"]): {
                 "status": "prepared",
                 "attempt_count": 0,
                 "last_exit_code": None,
                 "last_failure_stage": None,
+                "retry_eligible": False,
+                "failure_class": None,
+                "blocked_reason": None,
                 "last_started_at": None,
                 "last_finished_at": None,
             }

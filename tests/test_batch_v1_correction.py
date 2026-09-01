@@ -63,8 +63,17 @@ class BatchV1CorrectionTests(unittest.TestCase):
         self.assertIn("Preparing…", page)
         self.assertIn("Resume batch", page)
         self.assertIn("legacy layout · cleanup only", page)
+        self.assertIn('id="batchCaseSelect"', page)
+        self.assertIn('id="casePaneSelect"', page)
+        self.assertIn('id="batchPreviewCaseSelect"', page)
+        self.assertIn('id="batchProgress"', page)
+        self.assertIn("# Case 1", page)
+        self.assertIn(">Freetext</button>", page)
+        self.assertIn('id="sourceBundled">Examples</button>', page)
+        self.assertIn("target=r?.kind==='batch-child'?batchOwnerRow(r):r", page)
         self.assertNotIn("batch-v1.js", server)
         self.assertIn('batch_mode = bool(payload.get("batch_mode"))', server)
+        self.assertIn('run_ref = str(batch_id)', server)
 
 
 

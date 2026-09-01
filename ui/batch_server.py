@@ -184,9 +184,12 @@ def runs_list() -> list[dict[str, Any]]:
             total = len(parent.get("children") or [])
             complete = int(counts.get("complete") or 0)
             failed = int(counts.get("failed") or 0)
+            blocked = int(counts.get("blocked") or 0)
             label = f"{complete}/{total} complete"
             if failed:
                 label += f" · {failed} failed"
+            if blocked or parent.get("status") == "blocked":
+                label += " · blocked"
             parent["label"] = label
             parent["archived"] = False
         flat.append(parent)
@@ -263,8 +266,11 @@ def _batch_summary_markdown(batch_id: str) -> str:
         f"- Complete: **{counts.get('complete', 0)}**",
         f"- Running: **{counts.get('running', 0)}**",
         f"- Failed: **{counts.get('failed', 0)}**",
+        f"- Blocked: **{counts.get('blocked', 0)}**",
         f"- Pending/stopped: **{counts.get('prepared', 0) + counts.get('stopped', 0)}**",
     ]
+    if doc.get("blocked_reason"):
+        lines.append(f"- Block reason: **{doc.get('blocked_reason')}**")
     elapsed = doc.get("elapsed_seconds")
     if elapsed is not None:
         lines.append(f"- Elapsed: **{float(elapsed):.1f}s**")
@@ -272,7 +278,7 @@ def _batch_summary_markdown(batch_id: str) -> str:
         lines.append(f"- Aggregate cost: **${float(cost):.4f}**")
     lines += ["", "## Cases", ""]
     for child in doc.get("children") or []:
-        marker = {"complete": "✓", "failed": "!", "running": "●", "stopped": "■"}.get(
+        marker = {"complete": "✓", "failed": "!", "running": "●", "blocked": "⊘", "stopped": "■"}.get(
             str(child.get("batch_status") or ""), "○"
         )
         title = str(child.get("case_title") or child.get("case_id") or "case")
@@ -425,7 +431,9 @@ def action_run(payload: dict[str, Any]) -> dict[str, Any]:
     run_ref = str(payload.get("run_id") or "").strip()
     kind = _top_kind(run_ref)
     if kind == "batch-child":
-        raise base.UIError("retry/resume a batch child from its batch parent in batch v1", 409)
+        batch_id, _case_id = run_layout.split_run_ref(run_ref)
+        run_ref = str(batch_id)
+        kind = "batch"
     if kind in {"legacy", "invalid"}:
         raise base.UIError("legacy/invalid run folders are cleanup-only; delete them or prepare a new run", 409)
     if kind == "run":
@@ -444,7 +452,8 @@ def action_run(payload: dict[str, Any]) -> dict[str, Any]:
 def action_stop(payload: dict[str, Any]) -> dict[str, Any]:
     run_ref = str(payload.get("run_id") or "").strip()
     if _top_kind(run_ref) == "batch-child":
-        raise base.UIError("stop the batch parent; individual child cancellation is deferred from v1", 409)
+        batch_id, _case_id = run_layout.split_run_ref(run_ref)
+        run_ref = str(batch_id)
     return base.REGISTRY.stop(run_ref)
 
 

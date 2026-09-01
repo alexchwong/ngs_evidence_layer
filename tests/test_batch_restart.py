@@ -43,6 +43,20 @@ class BatchRestartSelectionTests(unittest.TestCase):
         )
         self.assertEqual([row["case_id"] for row in selected], ["002-b"])
 
+
+    def test_complete_with_errors_skips_non_retryable_provider_failure(self):
+        state = self._state("complete_with_errors", ["complete", "failed", "complete"])
+        state["children"]["002-b"]["retry_eligible"] = False
+        selected = nel._selected_batch_children(self.batch, state)
+        self.assertEqual(selected, [])
+
+    def test_blocked_restarts_all_noncomplete_children_after_user_resume(self):
+        selected = nel._selected_batch_children(
+            self.batch,
+            self._state("blocked", ["complete", "blocked", "prepared"]),
+        )
+        self.assertEqual([row["case_id"] for row in selected], ["002-b", "003-c"])
+
     def test_stopped_restarts_every_noncomplete_child(self):
         selected = nel._selected_batch_children(
             self.batch,

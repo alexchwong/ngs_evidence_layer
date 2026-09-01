@@ -47,7 +47,7 @@ python nel.py batch status --run-id <batch-id>
 
 ## Bundled batches
 
-The browser uses an explicit **Batch mode** toggle for both free text and bundled cases. With Batch mode off, the existing single-case selector is used. With Batch mode on, one bundled series is selected and its cases are shown as checkboxes; changing series clears the selection. Demo and validation series both use comma-delimited `--case-ids` in the CLI.
+The browser uses an explicit compact **Batch** toggle for both **Freetext** and **Examples**. With Batch mode off, the existing single-case selector is used. With Batch mode on, one bundled series is selected and its cases are shown as checkboxes; changing series clears the selection. The preview has its own selector so each checked source case can be inspected before preparation. Demo and validation series both use comma-delimited `--case-ids` in the CLI.
 
 Validation example:
 
@@ -76,14 +76,23 @@ python nel.py batch setup \
 
 Each case is a separate `nel.py run` subprocess and keeps its own logs and checkpoints.
 
-## Failure and resume
+## Failure, blocking and resume
 
-A child failure does not stop other children. A finished batch with failures is `complete_with_errors`.
+A terminal case/workflow failure after its normal validation/repair budget is exhausted is marked `failed` and `retry_eligible`. It does not stop other independent children. A finished batch containing these failures is `complete_with_errors`.
 
-Running that batch again selects only children whose batch state is `failed`. The same child run folder is reused and ordinary `nel.py run` is invoked. The clinical workflow remains authoritative for checkpoint validation and therefore resumes from its existing failed checkpoint rather than the batch scheduler guessing which upstream artifacts are reusable.
+Running a `complete_with_errors` batch again selects only retry-eligible failed children. The same child run folder is reused and ordinary `nel.py run` is invoked. The clinical workflow remains authoritative for checkpoint validation and therefore resumes from its existing failed checkpoint rather than the batch scheduler guessing which upstream artifacts are reusable.
 
-A stopped batch resumes every non-complete child. A complete batch has no work to restart.
+Provider/infrastructure failures are different. Failure to reach LM Studio/OpenRouter, authentication/service errors, rate limiting and equivalent provider outages mark the batch `blocked`; they do not consume or create case-level retry eligibility. Provider preflight blocks before any child starts. If provider failure is detected during execution, new children stop being scheduled and affected active children preserve their existing checkpoint state. After connectivity is restored, **Resume batch** continues non-complete children.
+
+A user-stopped batch likewise resumes every non-complete child. A complete batch has no work to restart.
 
 ## Legacy development runs
 
 Folders without `run.json` or `batch.json` are not runnable or resumable. They remain visible in `nel.py runs` and in the browser as cleanup-only legacy folders, and may be deleted normally.
+
+
+## Browser batch navigation and progress
+
+A prepared or running batch remains expandable in the left run tree. The batch view also provides synchronized case dropdowns in the middle navigation row and the Case pane; choosing a child in either selector updates the Case, Report and Dissent views. Active children are shown as one progress row per concurrent case. The segmented rail is stage-based and uses the workflow stage list exposed by the backend rather than estimating elapsed-time percentages. Selecting an active progress row opens that child.
+
+The left run tree scrolls independently. While any child of a running batch is selected, the primary execution control still targets the batch parent and remains **Stop batch**.

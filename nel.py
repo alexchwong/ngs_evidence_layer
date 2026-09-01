@@ -24,11 +24,13 @@ import sys
 import tempfile
 import threading
 from collections import OrderedDict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 RUNS_DIR = ROOT / "runs"
@@ -667,7 +669,10 @@ def _child_row(batch: run_layout.BatchLocation, child: dict[str, Any], state: di
         "kind": "batch-child", "run_id": ref, "batch_id": batch.batch_id,
         "case_id": case_id, "case_title": child.get("title") or case_id,
         "run_dir": str(path.resolve()), "batch_status": child_state.get("status", "prepared"),
-        "attempt_count": int(child_state.get("attempt_count") or 0), **run_status,
+        "attempt_count": int(child_state.get("attempt_count") or 0),
+        "retry_eligible": bool(child_state.get("retry_eligible")),
+        "failure_class": child_state.get("failure_class"),
+        "blocked_reason": child_state.get("blocked_reason"), **run_status,
     }
 
 
@@ -706,7 +711,7 @@ def _batch_elapsed_seconds(state: dict[str, Any]) -> float | None:
         return None
     try:
         start_dt = datetime.fromisoformat(started)
-        terminal = state.get("finished_at") or state.get("stopped_at")
+        terminal = state.get("finished_at") or state.get("stopped_at") or state.get("blocked_at")
         end_dt = datetime.fromisoformat(terminal) if isinstance(terminal, str) and terminal else datetime.now(timezone.utc)
         return max(0.0, (end_dt - start_dt).total_seconds())
     except (TypeError, ValueError):
@@ -718,7 +723,7 @@ def batch_status(batch_id: str) -> dict[str, Any]:
     try: state = run_layout.load_batch_state(batch)
     except run_layout.LayoutError as exc: raise _layout_error(exc) from exc
     rows = [_child_row(batch, row, state) for row in batch.manifest.get("children", [])]
-    counts = {name: 0 for name in ("prepared", "running", "complete", "failed", "stopped")}
+    counts = {name: 0 for name in ("prepared", "running", "complete", "failed", "blocked", "stopped")}
     for row in rows:
         status = str(row.get("batch_status") or "prepared")
         if row.get("complete"): status = "complete"
@@ -736,6 +741,7 @@ def batch_status(batch_id: str) -> dict[str, Any]:
         "counts": counts, "children": rows, "usage": usage,
         "elapsed_seconds": _batch_elapsed_seconds(state),
         "started_at": state.get("started_at"), "finished_at": state.get("finished_at"), "stopped_at": state.get("stopped_at"),
+        "blocked_at": state.get("blocked_at"), "blocked_reason": state.get("blocked_reason"),
     }
 
 
@@ -792,6 +798,96 @@ def _pipeline_parallelism(pipeline: str, config_result: dict[str, Any]) -> int:
     if configured <= 0: raise CLIError("pipeline execution.max_parallel_cases must be greater than zero")
     return 1 if host in LOCAL_HOSTS else configured
 
+
+
+def _pipeline_provider(pipeline: str) -> dict[str, Any]:
+    _step, _self_executor, registry = _configure_workflow(CANONICAL_WORKFLOW)
+    plan = registry.load(pipeline)
+    provider = dict(plan.doc.get("provider") or {})
+    base = str(provider.get("base_url") or "").strip()
+    env_name = str(provider.get("base_url_env") or "").strip()
+    if env_name and os.environ.get(env_name, "").strip():
+        base = os.environ[env_name].strip()
+    provider["resolved_base_url"] = base.rstrip("/")
+    return provider
+
+
+def _provider_preflight(pipeline: str) -> str | None:
+    """Return a blocking provider/configuration reason, or ``None`` when reachable.
+
+    Batch restart eligibility is reserved for terminal workflow failures. A provider
+    outage must therefore be detected before child work starts whenever possible.
+    OpenAI-compatible profiles are probed through ``/models`` with the configured
+    session/environment key; an HTTP/network failure blocks the batch without
+    consuming case retry eligibility.
+    """
+    provider = _pipeline_provider(pipeline)
+    if provider.get("type") == "self":
+        return "the self pipeline cannot run unattended batches"
+    base = str(provider.get("resolved_base_url") or "")
+    if not base:
+        return f"provider profile {pipeline!r} has no base URL"
+    headers = {"Accept": "application/json"}
+    key_env = str(provider.get("api_key_env") or "").strip()
+    key = os.environ.get(key_env, "").strip() if key_env else ""
+    if provider.get("api_key_required") is True and key_env and not key:
+        return f"provider profile {pipeline!r} requires {key_env}, but no key is available"
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    request = Request(f"{base}/models", headers=headers, method="GET")
+    try:
+        with urlopen(request, timeout=8) as response:
+            status = int(getattr(response, "status", 200) or 200)
+            if status >= 400:
+                return f"provider {pipeline!r} is unavailable (HTTP {status} from {base}/models)"
+    except HTTPError as exc:
+        return f"provider {pipeline!r} is unavailable (HTTP {exc.code} from {base}/models)"
+    except (URLError, TimeoutError, OSError) as exc:
+        reason = getattr(exc, "reason", None) or exc
+        return f"cannot connect to provider {pipeline!r} at {base}: {reason}"
+    return None
+
+
+_PROVIDER_BLOCK_PATTERNS = (
+    "connection refused", "connection reset", "connection error",
+    "failed to establish a new connection", "remote end closed connection",
+    "network is unreachable", "temporary failure in name resolution",
+    "name or service not known", "could not connect", "timed out",
+    "timeout while connecting", "unauthorized", "forbidden", "invalid api key",
+    "authentication failed", "rate limit", "too many requests", "service unavailable",
+    "bad gateway", "gateway timeout", "no model loaded", "model is not loaded",
+    "unknown model", "http 401", "http 403", "http 429", "http 500", "http 502",
+    "http 503", "http 504", "http error 401", "http error 403", "http error 429",
+    "http error 500", "http error 502", "http error 503", "http error 504",
+)
+
+
+def _tail_text(path: Path, limit: int = 65536) -> str:
+    if not path.is_file():
+        return ""
+    try:
+        size = path.stat().st_size
+        with path.open("rb") as handle:
+            handle.seek(max(0, size - limit))
+            return handle.read(limit).decode("utf-8", errors="replace")
+    except OSError:
+        return ""
+
+
+def _provider_failure_reason(child_path: Path, pipeline: str) -> str | None:
+    text = "\n".join([
+        _tail_text(child_path / "logs" / "batch-run.log"),
+        _tail_text(child_path / "logs" / "workflow.log"),
+    ])
+    lower = text.lower()
+    matched = next((pattern for pattern in _PROVIDER_BLOCK_PATTERNS if pattern in lower), None)
+    if not matched:
+        return None
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    detail = next((line for line in reversed(lines) if matched in line.lower()), matched)
+    if len(detail) > 320:
+        detail = detail[-320:]
+    return f"provider interruption for {pipeline}: {detail}"
 
 def _unique_batch_path(requested: str | None, label: str) -> tuple[str, Path]:
     if requested:
@@ -882,125 +978,295 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
 
 class _BatchRunner:
     def __init__(self, batch: run_layout.BatchLocation, state: dict[str, Any]):
-        self.batch = batch; self.state = state; self.lock = threading.Lock(); self.stop_event = threading.Event(); self.active: dict[str, subprocess.Popen] = {}; self.previous_handlers: dict[int, Any] = {}
+        self.batch = batch
+        self.state = state
+        self.lock = threading.Lock()
+        self.stop_event = threading.Event()
+        self.block_event = threading.Event()
+        self.block_reason: str | None = None
+        self.active: dict[str, subprocess.Popen] = {}
+        self.previous_handlers: dict[int, Any] = {}
+
+    @property
+    def halted(self) -> bool:
+        return self.stop_event.is_set() or self.block_event.is_set()
 
     def install_signals(self):
         def handler(_signum, _frame):
-            self.stop_event.set(); self._terminate_active()
+            self.stop_event.set()
+            self._terminate_active()
         for sig in (signal.SIGTERM, signal.SIGINT):
-            try: self.previous_handlers[sig] = signal.getsignal(sig); signal.signal(sig, handler)
-            except (ValueError, OSError): pass
+            try:
+                self.previous_handlers[sig] = signal.getsignal(sig)
+                signal.signal(sig, handler)
+            except (ValueError, OSError):
+                pass
 
     def restore_signals(self):
         for sig, old in self.previous_handlers.items():
-            try: signal.signal(sig, old)
-            except (ValueError, OSError): pass
+            try:
+                signal.signal(sig, old)
+            except (ValueError, OSError):
+                pass
 
-    def _save(self): run_layout.write_batch_state(self.batch, self.state)
+    def _save(self):
+        run_layout.write_batch_state(self.batch, self.state)
 
-    def _terminate_active(self):
-        with self.lock: procs = list(self.active.values())
-        for proc in procs:
-            if proc.poll() is None:
-                try: proc.terminate()
-                except OSError: pass
-        for proc in procs:
-            if proc.poll() is None:
-                try: proc.wait(timeout=8)
-                except subprocess.TimeoutExpired:
-                    try: proc.kill()
-                    except OSError: pass
-
-    def run_child(self, row: dict[str, Any]) -> tuple[str, bool]:
-        case_id = str(row["case_id"]); ref = str(row["run_id"]); child_path = self.batch.path / case_id
-        if self.stop_event.is_set(): return case_id, False
+    def _terminate_active(self, *, exclude: str | None = None):
         with self.lock:
-            child_state = self.state["children"][case_id]; child_state["status"] = "running"; child_state["attempt_count"] = int(child_state.get("attempt_count") or 0) + 1; child_state["last_started_at"] = datetime.now(timezone.utc).isoformat(); self._save()
+            procs = [(case_id, proc) for case_id, proc in self.active.items() if case_id != exclude]
+        for _case_id, proc in procs:
+            if proc.poll() is None:
+                try:
+                    proc.terminate()
+                except OSError:
+                    pass
+        for _case_id, proc in procs:
+            if proc.poll() is None:
+                try:
+                    proc.wait(timeout=8)
+                except subprocess.TimeoutExpired:
+                    try:
+                        proc.kill()
+                    except OSError:
+                        pass
+
+    def block_provider(self, reason: str, *, source_case: str) -> None:
+        with self.lock:
+            if self.block_event.is_set():
+                return
+            self.block_reason = str(reason)
+            self.block_event.set()
+            self.state["blocked_reason"] = self.block_reason
+            self.state["blocked_at"] = datetime.now(timezone.utc).isoformat()
+            self._save()
+        print(f"[batch] provider blocked: {self.block_reason}", file=sys.stderr, flush=True)
+        self._terminate_active(exclude=source_case)
+
+    def run_child(self, row: dict[str, Any]) -> tuple[str, str]:
+        case_id = str(row["case_id"])
+        ref = str(row["run_id"])
+        child_path = self.batch.path / case_id
+        if self.halted:
+            return case_id, "not-started"
+        with self.lock:
+            child_state = self.state["children"][case_id]
+            child_state["status"] = "running"
+            child_state["attempt_count"] = int(child_state.get("attempt_count") or 0) + 1
+            child_state["last_started_at"] = datetime.now(timezone.utc).isoformat()
+            child_state["blocked_reason"] = None
+            self._save()
         print(f"[batch] {row.get('title') or case_id} started (attempt {child_state['attempt_count']})", flush=True)
-        log_dir = child_path / "logs"; log_dir.mkdir(parents=True, exist_ok=True); log_path = log_dir / "batch-run.log"
+        log_dir = child_path / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / "batch-run.log"
         argv = [sys.executable, "-u", str(ROOT / "nel.py"), "run", "--run-id", ref]
         with open(log_path, "ab") as handle:
             handle.write(("\n$ python nel.py run --run-id " + ref + "\n").encode())
-            handle.flush(); proc = subprocess.Popen(argv, cwd=str(ROOT), stdout=handle, stderr=subprocess.STDOUT, env=dict(os.environ))
-            with self.lock: self.active[case_id] = proc
+            handle.flush()
+            proc = subprocess.Popen(argv, cwd=str(ROOT), stdout=handle, stderr=subprocess.STDOUT, env=dict(os.environ))
+            with self.lock:
+                self.active[case_id] = proc
             code = proc.wait()
-            with self.lock: self.active.pop(case_id, None)
-        try: status = inspect_run(child_path)
-        except Exception: status = {"complete": False, "stage": "unknown"}
+            with self.lock:
+                self.active.pop(case_id, None)
+        try:
+            status = inspect_run(child_path)
+        except Exception:
+            status = {"complete": False, "stage": "unknown"}
         complete = code == 0 and bool(status.get("complete"))
+        provider_reason = None if complete or self.stop_event.is_set() else _provider_failure_reason(child_path, str(self.batch.manifest.get("pipeline") or "provider"))
+        if provider_reason and not self.block_event.is_set():
+            self.block_provider(provider_reason, source_case=case_id)
         now = datetime.now(timezone.utc).isoformat()
         with self.lock:
-            child_state = self.state["children"][case_id]; child_state["last_exit_code"] = code; child_state["last_finished_at"] = now
+            child_state = self.state["children"][case_id]
+            child_state["last_exit_code"] = code
+            child_state["last_finished_at"] = now
             if complete:
-                child_state["status"] = "complete"; child_state["last_failure_stage"] = None
+                child_state["status"] = "complete"
+                child_state["last_failure_stage"] = None
+                child_state["retry_eligible"] = False
+                child_state["failure_class"] = None
+                child_state["blocked_reason"] = None
+                outcome = "complete"
             elif self.stop_event.is_set():
                 child_state["status"] = "stopped"
+                child_state["retry_eligible"] = False
+                child_state["failure_class"] = "stopped"
+                outcome = "stopped"
+            elif provider_reason or self.block_event.is_set():
+                child_state["status"] = "blocked"
+                child_state["retry_eligible"] = False
+                child_state["failure_class"] = "provider"
+                child_state["blocked_reason"] = provider_reason or self.block_reason
+                outcome = "blocked"
             else:
-                child_state["status"] = "failed"; child_state["last_failure_stage"] = str(status.get("stage") or "unknown")
+                child_state["status"] = "failed"
+                child_state["last_failure_stage"] = str(status.get("stage") or "unknown")
+                child_state["retry_eligible"] = True
+                child_state["failure_class"] = "workflow"
+                child_state["blocked_reason"] = None
+                outcome = "failed"
             self._save()
-        label = "complete" if complete else ("stopped" if self.stop_event.is_set() else f"failed at {status.get('stage') or 'unknown'}")
+        label = outcome if outcome != "failed" else f"failed at {status.get('stage') or 'unknown'}"
         print(f"[batch] {row.get('title') or case_id} {label}", flush=True)
-        return case_id, complete
+        return case_id, outcome
 
 
 def _selected_batch_children(batch: run_layout.BatchLocation, state: dict[str, Any]) -> list[dict[str, Any]]:
     parent = str(state.get("status") or "prepared")
-    if parent == "complete": return []
-    if parent == "running": raise CLIError(f"batch {batch.batch_id} is already running")
+    if parent == "complete":
+        return []
+    if parent == "running":
+        raise CLIError(f"batch {batch.batch_id} is already running")
     children = batch.manifest.get("children", [])
     child_state = state.get("children") or {}
     if parent == "complete_with_errors":
-        return [row for row in children if (child_state.get(str(row["case_id"])) or {}).get("status") == "failed"]
-    if parent == "stopped":
+        return [
+            row for row in children
+            if (child_state.get(str(row["case_id"])) or {}).get("status") == "failed"
+            and (child_state.get(str(row["case_id"])) or {}).get("retry_eligible") is not False
+        ]
+    if parent in {"stopped", "blocked"}:
         return [row for row in children if (child_state.get(str(row["case_id"])) or {}).get("status") != "complete"]
     return list(children)
 
 
 def cmd_batch_run(args: argparse.Namespace) -> int:
     batch = _resolve_batch(args.run_id)
-    try: state = run_layout.load_batch_state(batch)
-    except run_layout.LayoutError as exc: raise _layout_error(exc) from exc
+    try:
+        state = run_layout.load_batch_state(batch)
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
     selected = _selected_batch_children(batch, state)
     if not selected:
-        if state.get("status") == "complete": print(f"BATCH_ID={batch.batch_id}\nSTATUS=complete\nDETAIL=batch already complete"); return 0
-        raise CLIError("batch has no failed/incomplete children eligible for restart")
-    state["status"] = "running"; state["started_at"] = datetime.now(timezone.utc).isoformat(); state["finished_at"] = None; state["stopped_at"] = None
+        if state.get("status") == "complete":
+            print(f"BATCH_ID={batch.batch_id}\nSTATUS=complete\nDETAIL=batch already complete")
+            return 0
+        raise CLIError("batch has no retry-eligible failed/incomplete children")
+
+    pipeline = str(batch.manifest.get("pipeline") or "")
+    provider_reason = _provider_preflight(pipeline)
+    if provider_reason:
+        state["status"] = "blocked"
+        state["blocked_at"] = datetime.now(timezone.utc).isoformat()
+        state["blocked_reason"] = provider_reason
+        state["finished_at"] = None
+        run_layout.write_batch_state(batch, state)
+        print(f"BATCH_ID={batch.batch_id}")
+        print("STATUS=blocked")
+        print(f"BLOCKED_REASON={provider_reason}")
+        return 2
+
+    state["status"] = "running"
+    state["started_at"] = datetime.now(timezone.utc).isoformat()
+    state["finished_at"] = None
+    state["stopped_at"] = None
+    state["blocked_at"] = None
+    state["blocked_reason"] = None
     run_layout.write_batch_state(batch, state)
-    workers = max(1, int(batch.manifest.get("max_parallel_cases") or 1)); runner = _BatchRunner(batch, state); runner.install_signals()
-    print(f"BATCH_ID={batch.batch_id}"); print(f"STATUS=running"); print(f"SELECTED_CASES={len(selected)}"); print(f"MAX_PARALLEL_CASES={workers}", flush=True)
+    workers = max(1, int(batch.manifest.get("max_parallel_cases") or 1))
+    runner = _BatchRunner(batch, state)
+    runner.install_signals()
+    print(f"BATCH_ID={batch.batch_id}")
+    print("STATUS=running")
+    print(f"SELECTED_CASES={len(selected)}")
+    print(f"MAX_PARALLEL_CASES={workers}", flush=True)
     try:
+        pending = iter(selected)
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="nel-batch") as pool:
-            futures = []
-            for row in selected:
-                if runner.stop_event.is_set(): break
-                futures.append(pool.submit(runner.run_child, row))
-            for future in as_completed(futures):
-                try: future.result()
-                except Exception as exc:
-                    print(f"[batch] worker error: {exc}", file=sys.stderr, flush=True)
-                    runner.stop_event.set()
+            futures: dict[Any, dict[str, Any]] = {}
+
+            def submit_next() -> bool:
+                if runner.halted:
+                    return False
+                try:
+                    row = next(pending)
+                except StopIteration:
+                    return False
+                futures[pool.submit(runner.run_child, row)] = row
+                return True
+
+            for _ in range(workers):
+                if not submit_next():
+                    break
+            while futures:
+                done, _pending_futures = wait(tuple(futures), return_when=FIRST_COMPLETED)
+                for future in done:
+                    row = futures.pop(future)
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        case_id = str(row["case_id"])
+                        with runner.lock:
+                            child_state = state["children"][case_id]
+                            child_state["status"] = "failed"
+                            child_state["retry_eligible"] = False
+                            child_state["failure_class"] = "runner"
+                            child_state["last_failure_stage"] = "batch-runner"
+                            runner._save()
+                        print(f"[batch] worker error for {case_id}: {exc}", file=sys.stderr, flush=True)
+                        runner.stop_event.set()
+                        runner._terminate_active()
+                while len(futures) < workers and not runner.halted and submit_next():
+                    pass
+
         if runner.stop_event.is_set():
             for row in selected:
-                case_id = str(row["case_id"]); c = state["children"][case_id]
-                if c.get("status") in {"prepared", "running"}: c["status"] = "stopped"
-            state["status"] = "stopped"; state["stopped_at"] = datetime.now(timezone.utc).isoformat(); final_code = 130
+                case_id = str(row["case_id"])
+                c = state["children"][case_id]
+                if c.get("status") in {"prepared", "running"}:
+                    c["status"] = "stopped"
+                    c["retry_eligible"] = False
+                    c["failure_class"] = "stopped"
+            state["status"] = "stopped"
+            state["stopped_at"] = datetime.now(timezone.utc).isoformat()
+            final_code = 130
+        elif runner.block_event.is_set():
+            for row in selected:
+                case_id = str(row["case_id"])
+                c = state["children"][case_id]
+                if c.get("status") == "running":
+                    c["status"] = "blocked"
+                    c["retry_eligible"] = False
+                    c["failure_class"] = "provider"
+                    c["blocked_reason"] = runner.block_reason
+            state["status"] = "blocked"
+            state["blocked_at"] = state.get("blocked_at") or datetime.now(timezone.utc).isoformat()
+            state["blocked_reason"] = runner.block_reason or state.get("blocked_reason")
+            state["finished_at"] = None
+            final_code = 2
         else:
-            statuses = [str((state.get("children") or {}).get(str(row["case_id"]), {}).get("status")) for row in batch.manifest.get("children", [])]
-            if statuses and all(value == "complete" for value in statuses): state["status"] = "complete"; final_code = 0
-            elif any(value == "failed" for value in statuses): state["status"] = "complete_with_errors"; final_code = 1
-            else: state["status"] = "stopped"; final_code = 1
+            statuses = [
+                str((state.get("children") or {}).get(str(row["case_id"]), {}).get("status"))
+                for row in batch.manifest.get("children", [])
+            ]
+            if statuses and all(value == "complete" for value in statuses):
+                state["status"] = "complete"
+                final_code = 0
+            elif any(value == "failed" for value in statuses):
+                state["status"] = "complete_with_errors"
+                final_code = 1
+            else:
+                state["status"] = "stopped"
+                final_code = 1
             state["finished_at"] = datetime.now(timezone.utc).isoformat()
         run_layout.write_batch_state(batch, state)
     finally:
         runner.restore_signals()
-    print(f"STATUS={state['status']}"); return final_code
+    print(f"STATUS={state['status']}")
+    if state.get("blocked_reason"):
+        print(f"BLOCKED_REASON={state['blocked_reason']}")
+    return final_code
 
 
 def cmd_batch_status(args: argparse.Namespace) -> int:
     doc = batch_status(args.run_id)
     if args.json: print(json.dumps(doc, indent=2, ensure_ascii=False))
     else:
-        counts = doc["counts"]; print(f"BATCH_ID={doc['batch_id']}"); print(f"BATCH_DIR={doc['run_dir']}"); print(f"STATUS={doc['status']}"); print(f"PIPELINE={doc.get('pipeline') or ''}"); print(f"MAX_PARALLEL_CASES={doc.get('max_parallel_cases') or 1}"); print(f"CASES={len(doc['children'])}"); print(f"COMPLETE={counts.get('complete',0)}"); print(f"FAILED={counts.get('failed',0)}"); print(f"RUNNING={counts.get('running',0)}"); print(f"PREPARED={counts.get('prepared',0)}"); print(f"STOPPED={counts.get('stopped',0)}")
+        counts = doc["counts"]; print(f"BATCH_ID={doc['batch_id']}"); print(f"BATCH_DIR={doc['run_dir']}"); print(f"STATUS={doc['status']}"); print(f"PIPELINE={doc.get('pipeline') or ''}"); print(f"MAX_PARALLEL_CASES={doc.get('max_parallel_cases') or 1}"); print(f"CASES={len(doc['children'])}"); print(f"COMPLETE={counts.get('complete',0)}"); print(f"FAILED={counts.get('failed',0)}"); print(f"RUNNING={counts.get('running',0)}"); print(f"PREPARED={counts.get('prepared',0)}"); print(f"STOPPED={counts.get('stopped',0)}"); print(f"BLOCKED={counts.get('blocked',0)}");
+        if doc.get("blocked_reason"): print(f"BLOCKED_REASON={doc['blocked_reason']}")
     return 0
 
 
