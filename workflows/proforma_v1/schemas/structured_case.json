@@ -17,6 +17,13 @@
       "type": "string",
       "minLength": 1
     },
+    "diagnosis_status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "progress"
+      ]
+    },
     "detected_variants_summary": {
       "type": "string",
       "minLength": 1

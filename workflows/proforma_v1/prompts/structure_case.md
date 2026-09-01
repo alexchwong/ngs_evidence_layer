@@ -4,6 +4,7 @@ Return JSON only using exactly this shape:
 ```json
 {
   "provisional_disease": "short source-faithful provisional morphologic disease description",
+  "diagnosis_status": "new|progress",
   "morphologic_diagnosis_origin": "supplied|inferred",
   "bootstrap_cmcs": ["one or more exact allowed CMC values"],
   "variants": [
@@ -17,11 +18,18 @@ Return JSON only using exactly this shape:
   ]
 }
 ```
+Diagnosis-status rules:
+- Return `diagnosis_status: new` for a diagnostic work-up in which the current specimen is being used to establish the disease diagnosis.
+- Return `diagnosis_status: progress` when the case explicitly describes a follow-up, progress, response, restaging, post-treatment, or surveillance specimen for an established prior haematological disease.
+- For `progress`, preserve the explicitly supplied established disease as `provisional_disease` even when the current marrow shows treatment response or remission. Current morphology, blast percentage, molecular clearance, and other response findings belong in `case_facts`; they do not replace the underlying disease label.
+- For `progress`, preserve any new findings that may indicate progression or transformation. Do not force the current findings to remain unchanged merely because a prior disease is established; WHO5/ICC decide downstream whether the disease has progressed or transformed.
+- If `diagnosis_status` is not available in a legacy structured case, downstream core treats it as `new`.
 Morphologic diagnosis rules:
-- Only an explicit supplied diagnostic label counts as a morphologic/pathologic diagnosis. Copy that label source-faithfully into `provisional_disease` and return `morphologic_diagnosis_origin: supplied`.
+- For `new`, only an explicit supplied diagnostic label counts as a morphologic/pathologic diagnosis. Copy that label source-faithfully into `provisional_disease` and return `morphologic_diagnosis_origin: supplied`.
+- For `progress`, an explicitly supplied established prior diagnosis is the disease context and may populate `provisional_disease`; return `morphologic_diagnosis_origin: supplied` for that supplied disease context even when the current specimen is described only by response/status morphology.
 - Descriptive marrow or tissue findings are not diagnoses. For example, statements such as normal trilineage hematopoiesis, left-shifted granulopoiesis, dysplasia descriptions, cellularity, blast percentages, or other observations remain `case_facts` unless the case separately supplies an explicit diagnostic label.
-- If no morphologic/pathologic diagnosis is explicitly supplied, return `provisional_disease: "No morphologic diagnosis supplied"` and `morphologic_diagnosis_origin: inferred`. Do not invent a provisional disease label from descriptive morphology, cytopenias, other nonspecific laboratory findings, or NGS findings. Molecular refinement occurs downstream.
-- `bootstrap_cmcs` are retrieval scaffolds, not diagnoses. When there is no explicit morphologic diagnosis, morphology is explicitly normal or non-diagnostic, no NGS variants are detected, and current cytogenetic/other molecular findings are absent, normal, pending, unavailable, not performed, or otherwise non-diagnostic, use `no_haematological_malignancy` as the bootstrap CMC. This is an internal no-established-diagnosis routing sentinel; it does not assert that a myeloid neoplasm has been excluded.
+- For `new`, if no morphologic/pathologic diagnosis is explicitly supplied, return `provisional_disease: "No morphologic diagnosis supplied"` and `morphologic_diagnosis_origin: inferred`. Do not invent a provisional disease label from descriptive morphology, cytopenias, other nonspecific laboratory findings, or NGS findings. Molecular refinement occurs downstream.
+- `bootstrap_cmcs` are retrieval scaffolds, not diagnoses. For `new`, when there is no explicit morphologic diagnosis, morphology is explicitly normal or non-diagnostic, no NGS variants are detected, and current cytogenetic/other molecular findings are absent, normal, pending, unavailable, not performed, or otherwise non-diagnostic, use `no_haematological_malignancy` as the bootstrap CMC. This is an internal no-established-diagnosis routing sentinel; it does not assert that a myeloid neoplasm has been excluded. Do not use this sentinel merely because a `progress` specimen is in remission or molecularly negative.
 For `variants`:
 - preserve every reported NGS variant;
 - when the case explicitly states that no NGS variants were detected, or gives an equivalent unequivocal negative NGS result, return `variants: []` and state that no NGS variants were detected in `detected_variants_summary`;

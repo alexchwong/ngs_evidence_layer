@@ -6,7 +6,6 @@ variant: the canonical workflow ID (``v01``, ``v02``, ...).  Source-case IDs
 registry artifact on disk and are never rendered into a model prompt.
 
 This module owns two responsibilities:
-
 1. **Namespace hygiene** — strip the source ``variant_id`` from anything a model
    sees, and never emit the raw structured case (which carries ``V1``) next to a
    canonical registry.
@@ -15,7 +14,6 @@ This module owns two responsibilities:
    and the complete diagnosis object.  For a low-active-parameter model that is
    instruction dilution: the stage's own task competes with several thousand
    tokens of upstream reasoning it cannot act on.
-
 Nothing here calls a model, validates an artifact, or makes a clinical decision.
 Each function is a pure transform and is directly testable with a literal dict.
 """
@@ -24,17 +22,14 @@ from __future__ import annotations
 import json
 
 import yaml
-
 # Fields of the structured case that a downstream stage may ask for.  ``variants``
 # is deliberately absent: the canonical registry is the only variant view a
 # downstream model is given.
-CASE_FIELDS = ("provisional_disease", "morphologic_diagnosis_origin", "case_facts", "detected_variants_summary", "ngs_result_completeness", "ngs_no_variants_detected")
-
+CASE_FIELDS = ("provisional_disease", "diagnosis_status", "morphologic_diagnosis_origin", "case_facts", "detected_variants_summary", "ngs_result_completeness", "ngs_no_variants_detected")
 # Default projections per stage family.  These are the reviewable trim decisions;
 # widening one is a one-line change here rather than an edit to step.py.
-DIAGNOSIS_CASE_FIELDS = ("provisional_disease", "morphologic_diagnosis_origin", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
+DIAGNOSIS_CASE_FIELDS = ("provisional_disease", "diagnosis_status", "morphologic_diagnosis_origin", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
 DOMAIN_CASE_FIELDS = ("provisional_disease", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
-
 # Domain (PTBG) stages classify variants.  They need to know *what* the disease
 # was called, not the diagnostic argument for it.  Dropping the free-text
 # `reason` paragraphs from the three diagnosis objects is the single largest
@@ -48,7 +43,6 @@ def _yaml(doc) -> str:
 
 def canonical_registry(reg: dict) -> dict:
     """Return the variant registry with source-case IDs removed.
-
     ``reg`` is keyed by canonical ID and each row carries ``variant_id`` (the
     ``V1``-style source ID) for provenance.  That field must never reach a model:
     it is the identifier the deterministic validators reject, and a model shown
@@ -69,14 +63,21 @@ def registry_context(reg: dict) -> str:
 
 def case_projection(case: dict, *, fields=CASE_FIELDS) -> dict:
     """Return only the requested structured-case fields.
-
     ``variants`` is never included.  Callers that need variant identity supply
     ``registry_context`` alongside this projection.
+
+    Legacy structured cases predate ``diagnosis_status``.  When a caller asks
+    for that field and it is absent, project ``new`` so old saved runs retain the
+    pre-existing de-novo diagnostic behaviour rather than failing or entering a
+    progress-marrow branch accidentally.
     """
     unknown = [f for f in fields if f not in CASE_FIELDS]
     if unknown:
         raise ValueError(f"unknown structured-case projection field(s): {unknown}")
-    return {f: case.get(f) for f in fields if f in (case or {})}
+    out = {f: case.get(f) for f in fields if f in (case or {})}
+    if "diagnosis_status" in fields and "diagnosis_status" not in out:
+        out["diagnosis_status"] = "new"
+    return out
 
 
 def case_context(case: dict, *, fields=CASE_FIELDS) -> str:
@@ -86,7 +87,6 @@ def case_context(case: dict, *, fields=CASE_FIELDS) -> str:
 
 def diagnosis_projection(diagnosis: dict, *, fields=DOMAIN_DIAGNOSIS_FIELDS) -> dict:
     """Return the primary framework diagnoses reduced to the requested fields.
-
     ``relationship`` is always retained: it is one token and it is the only part
     of the diagnosis object a downstream stage cannot re-derive.
     """
@@ -110,7 +110,6 @@ def diagnosis_context(diagnosis: dict, *, fields=DOMAIN_DIAGNOSIS_FIELDS) -> str
 
 def assert_canonical(text: str, *, source_ids) -> None:
     """Fail loudly if a source-case ID reached a model-facing prompt.
-
     This is a development guard, not a validator: it protects the invariant that
     the ``V1``/``v01`` collision cannot silently return via a new prompt block.
     """

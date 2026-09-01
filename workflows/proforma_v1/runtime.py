@@ -7,18 +7,15 @@ from scripts import vocab
 from validation.scripts.bundled_cases import is_bundled_mode, retrieve_case_input
 from scripts.core.validated_model_task import ValidationIssue, fail
 from workflows.proforma_v1 import layout
-
 HERE=Path(__file__).resolve().parent; REPO_ROOT=HERE.parents[1]
 WHO5_EXCLUDED_SCHEMA_DISEASES={'MDS/AML'}
 HEADINGS={'**Diagnosis**':'diagnosis','**Prognosis**':'prognosis','**Treatment Implications**':'treatment','**MRD**':'biomarker','**Germline**':'germline'}
 DOMAIN_HEADINGS={v:k for k,v in HEADINGS.items()}
 WHO5_LEGACY_FIELDS=('schema_disease','diagnosis','diagnostic_effect','variants','reason')
-
 def legacy_who_view(who:dict|None)->dict:
     """Project a WHO model artifact to the pre-variant-assessment workflow contract."""
     row=who or {}
     return {field:row.get(field) for field in WHO5_LEGACY_FIELDS}
-
 def concurrent_pathology_from_who(who:dict|None)->list[dict]:
     """Project WHO variant assessments into non-routing concurrent-pathology signals."""
     out=[]
@@ -31,7 +28,6 @@ def concurrent_pathology_from_who(who:dict|None)->list[dict]:
             'reason':row.get('reason'),
         })
     return out
-
 def authoritative_who_assessment_source(who1:dict|None,who2:dict|None,who1_commit:dict|None)->dict|None:
     """Return the raw authoritative WHO artifact for non-routing variant assessment use.
 
@@ -43,7 +39,6 @@ def authoritative_who_assessment_source(who1:dict|None,who2:dict|None,who1_commi
     if (who1_commit or {}).get('fallback'):
         return None
     return who1
-
 def setup_assets(work_dir:Path,*,mode:str,case_id:str|None=None,example:int|None=None)->None:
     work=Path(work_dir); layout.ensure_dirs(work)
     panel_root=work/'ngs-panel-scope.md'; panel_out=layout.setup(work,'ngs-panel-scope.md',existing=False)
@@ -59,12 +54,10 @@ def setup_assets(work_dir:Path,*,mode:str,case_id:str|None=None,example:int|None
         p=layout.input(work,'case.md',existing=False); payload=text.rstrip()+'\n'
         if p.exists() and p.read_text(encoding='utf-8')!=payload: raise ValueError(f'{p} exists with different bundled case content')
         p.write_text(payload,encoding='utf-8')
-
 def read_json(path:Path)->dict:
     d=json.loads(Path(path).read_text(encoding='utf-8'))
     if not isinstance(d,dict): raise ValueError(f'expected JSON object: {path}')
     return d
-
 def _type_name(v):
     if v is None: return 'null'
     if isinstance(v,bool): return 'boolean'
@@ -77,7 +70,6 @@ def _type_name(v):
 
 def _preview(v,limit=180):
     text=repr(v); return text if len(text)<=limit else text[:limit-3]+'...'
-
 def _single_mapping_list(v): return isinstance(v,list) and len(v)==1 and isinstance(v[0],dict)
 def _single_scalar_mapping(v):
     if not isinstance(v,dict) or len(v)!=1:return False
@@ -86,7 +78,6 @@ def _single_scalar_mapping(v):
     return scalar(k) and scalar(val)
 def _scalar_string_repairable(v): return _single_scalar_mapping(v) or isinstance(v,(bool,int,float)) or (isinstance(v,list) and len(v)==1 and isinstance(v[0],str))
 def _bool_repairable(v): return isinstance(v,str) and v.strip().lower() in {'true','false','yes','no'}
-
 def parse_yaml_mapping(text:str,context='YAML')->dict:
     try:d=yaml.safe_load(text)
     except yaml.YAMLError as exc: raise ValueError(f'{context}: invalid YAML: {exc}') from exc
@@ -94,14 +85,12 @@ def parse_yaml_mapping(text:str,context='YAML')->dict:
         safe=_single_mapping_list(d)
         fail(context,[ValidationIssue(context,f'expected mapping; received {_type_name(d)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required top-level mapping; this value cannot be safely repaired by syntax-only reserialization',repair_class='serialization' if safe else 'content',received=_preview(d),expected='mapping/object')])
     return d
-
 def _exact(issues,row,expected,path=''):
     if not isinstance(row,dict): return
     missing=sorted(set(expected)-set(row)); extra=sorted(set(row)-set(expected))
     if missing or extra:
         issues.append(ValidationIssue(path or 'root',f'missing fields {missing}; unexpected fields {extra}',f'return exactly {sorted(expected)}',repair_class='content',received=str(sorted(row)),expected=str(sorted(expected))))
 def _nonempty(v): return isinstance(v,str) and bool(v.strip())
-
 def normalize_case_variant_descriptions(case:dict)->dict:
     """Preserve detailed variant text while enforcing a gene-prefixed description."""
     for row in case.get('variants') or []:
@@ -112,7 +101,6 @@ def normalize_case_variant_descriptions(case:dict)->dict:
             gene=gene.strip(); desc=desc.strip()
             row['description']=desc if desc.startswith(gene) else f'{gene} {desc}'
     return case
-
 def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)->str:
     try:d=json.loads(text)
     except json.JSONDecodeError as exc: raise ValueError(f'structured case: invalid JSON: {exc}') from exc
@@ -121,7 +109,14 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
         safe=_single_mapping_list(d)
         issues.append(ValidationIssue('structured case',f'expected object; received {_type_name(d)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required top-level object from the case-structure proforma',repair_class='serialization' if safe else 'content',received=_preview(d),expected='object'))
         d={}
-    _exact(issues,d,{'provisional_disease','morphologic_diagnosis_origin','bootstrap_cmcs','variants','detected_variants_summary','ngs_result_completeness','ngs_no_variants_detected','case_facts'})
+    case_fields={'provisional_disease','morphologic_diagnosis_origin','bootstrap_cmcs','variants','detected_variants_summary','ngs_result_completeness','ngs_no_variants_detected','case_facts'}
+    # diagnosis_status was added after existing run artifacts were already in use.
+    # Accept its absence for legacy saved cases, but reject every other unexpected field.
+    expected=case_fields|({'diagnosis_status'} if 'diagnosis_status' in d else set())
+    _exact(issues,d,expected)
+    diagnosis_status=d.get('diagnosis_status','new')
+    if diagnosis_status not in {'new','progress'}:
+        issues.append(ValidationIssue('diagnosis_status',f'expected new or progress; received {_preview(diagnosis_status)}','use new for a diagnostic work-up and progress for a follow-up/response/progression specimen with an established prior disease',repair_class='content',received=_preview(diagnosis_status),expected="'new' or 'progress'"))
     provisional=d.get('provisional_disease')
     if not _nonempty(provisional):
         cls='serialization' if _scalar_string_repairable(provisional) else 'content'
@@ -199,9 +194,6 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
                 cls='serialization' if _scalar_string_repairable(value) else 'content'
                 issues.append(ValidationIssue(f'{path}.{f}',f'expected non-empty string; received {_type_name(value)}','quote/reserialize the existing value as one string without changing its words' if cls=='serialization' else 'return non-empty source-faithful text',repair_class=cls,received=_preview(value),expected='non-empty string'))
     fail('structured case',issues); return 'structured case validated'
-
-
-
 def parse_ngs_panel_genes(text:str)->list[str]:
     """Return the configured gene-level NGS panel scope in source order."""
     genes=re.findall(r"^- `([A-Z0-9]+)`\s*$",str(text),flags=re.MULTILINE)
@@ -211,10 +203,8 @@ def parse_ngs_panel_genes(text:str)->list[str]:
         duplicates=sorted({gene for gene in genes if genes.count(gene)>1})
         raise ValueError(f'NGS panel scope contains duplicate gene entries: {duplicates}')
     return genes
-
 def materialize_ngs_no_variants_detected(case:dict,panel_scope_text:str)->dict:
     """Deterministically expand complete panel negatives from detected NGS genes.
-
     This does not make a clinical inference beyond the configured assay contract:
     the resulting genes are negative only for the variant classes covered by the
     panel scope. Explicitly incomplete results never receive panel-wide negatives.
@@ -224,14 +214,12 @@ def materialize_ngs_no_variants_detected(case:dict,panel_scope_text:str)->dict:
     case['ngs_no_variants_detected']=[gene for gene in panel if gene not in detected] if case.get('ngs_result_completeness')=='complete' else []
     return case
 
-
 def case_genes(case:dict)->list[str]:
     out=[]
     for row in case.get('variants') or []:
         g=row.get('gene')
         if isinstance(g,str) and g not in out: out.append(g)
     return out
-
 def derive_cmcs(doc:dict)->list[str]:
     disease=doc.get("schema_disease")
     cmc=vocab.preferred_case_major_category(disease)
@@ -240,7 +228,6 @@ def derive_cmcs(doc:dict)->list[str]:
     if not cmc:
         raise ValueError(f"WHO5 schema disease {disease!r} has no deterministic preferred CMC mapping")
     return [cmc]
-
 def has_cmc_expansion(previous:list[str], proposed:list[str])->bool:
     """Return True only when proposed routing adds a CMC absent from bootstrap."""
     prior=set(previous or [])
@@ -251,7 +238,6 @@ def ensure_sentence(text:str)->str:
     if not text:
         return ""
     return text if text[-1] in ".!?" else text+"."
-
 def normalize_dx(text:str)->str:
     text=re.sub(r"\s+"," ",str(text or "").strip()).casefold()
     text=re.sub(r"[^a-z0-9]+"," ",text)
