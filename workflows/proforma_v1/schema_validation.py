@@ -3,7 +3,6 @@
 Every validator accumulates issues and raises once, so a single repair turn
 carries every defect the model must fix. None of these call a model, implement
 retry behaviour, or track stagnation — that is the runner's job.
-
 The four PTBG proformas are not implemented here: their contract lives in
 `domain_contract.py`, which owns the bucket vocabulary that used to be repeated
 across this module, `step._consolidate_rows`, `step._elements` and the
@@ -39,10 +38,52 @@ def _validate_who5_legacy_doc(doc, *, allowed_diseases, valid_variants, ctx):
         doc.get("schema_disease"), allowed_diseases, "schema_disease", label="schema disease"
     )
     problems += iss.text_field(doc.get("diagnosis"), "diagnosis")
-    problems += iss.enum_field(doc.get("diagnostic_effect"), ("unchanged", "refined", "superseded"), "diagnostic_effect", label="diagnostic effect")
+    problems += iss.enum_field(
+        doc.get("diagnostic_effect"),
+        ("unchanged", "refined", "superseded"),
+        "diagnostic_effect",
+        label="diagnostic effect",
+    )
     _, variant_issues = iss.id_list(doc.get("variants"), "variants", valid_variants, allow_empty=True)
     problems += variant_issues
     problems += iss.text_field(doc.get("reason"), "reason")
+    return problems
+
+
+def _validate_variant_assessments(rows, *, valid_variants, path="variant_assessments"):
+    problems = []
+    expected = sorted(valid_variants)
+    problems += iss.one_row_per_id(rows, expected, id_field="variant_id", path=path)
+    if isinstance(rows, list):
+        for i, row in enumerate(rows):
+            if not isinstance(row, dict):
+                continue
+            row_path = f"{path}[{i}]"
+            problems += iss.exact_keys(
+                row, {"variant_id", "classification", "other_pathology", "reason"}, row_path
+            )
+            classification = row.get("classification")
+            problems += iss.enum_field(
+                classification,
+                WHO5_VARIANT_CLASSIFICATIONS,
+                f"{row_path}.classification",
+                label="diagnostic classification",
+            )
+            other = row.get("other_pathology")
+            if classification == "diagnostic_for_other_pathology":
+                problems += iss.text_field(other, f"{row_path}.other_pathology")
+            elif classification in WHO5_VARIANT_CLASSIFICATIONS and other is not None:
+                problems.append(
+                    ValidationIssue(
+                        f"{row_path}.other_pathology",
+                        "must be null unless classification is diagnostic_for_other_pathology",
+                        "set other_pathology to null without changing the classification",
+                        repair_class="content",
+                        received=iss.preview(other),
+                        expected="null",
+                    )
+                )
+            problems += iss.text_field(row.get("reason"), f"{row_path}.reason")
     return problems
 
 
@@ -63,56 +104,37 @@ def validate_who5_diagnosis(text, *, allowed_diseases, valid_variants):
     problems += _validate_who5_legacy_doc(
         doc, allowed_diseases=allowed_diseases, valid_variants=valid_variants, ctx=ctx
     )
-
-    rows = doc.get("variant_assessments")
-    expected = sorted(valid_variants)
-    problems += iss.one_row_per_id(rows, expected, id_field="variant_id", path="variant_assessments")
-    if isinstance(rows, list):
-        for i, row in enumerate(rows):
-            if not isinstance(row, dict):
-                continue
-            path = f"variant_assessments[{i}]"
-            problems += iss.exact_keys(
-                row, {"variant_id", "classification", "other_pathology", "reason"}, path
-            )
-            classification = row.get("classification")
-            problems += iss.enum_field(
-                classification, WHO5_VARIANT_CLASSIFICATIONS, f"{path}.classification",
-                label="diagnostic classification"
-            )
-            other = row.get("other_pathology")
-            if classification == "diagnostic_for_other_pathology":
-                problems += iss.text_field(other, f"{path}.other_pathology")
-            elif classification in WHO5_VARIANT_CLASSIFICATIONS and other is not None:
-                problems.append(
-                    ValidationIssue(
-                        f"{path}.other_pathology",
-                        "must be null unless classification is diagnostic_for_other_pathology",
-                        "set other_pathology to null without changing the classification",
-                        repair_class="content",
-                        received=iss.preview(other),
-                        expected="null",
-                    )
-                )
-            problems += iss.text_field(row.get("reason"), f"{path}.reason")
-
+    problems += _validate_variant_assessments(
+        doc.get("variant_assessments"), valid_variants=valid_variants
+    )
     fail(ctx, problems)
     return "WHO5 diagnosis valid"
 
 
 def validate_icc_diagnosis(text, *, valid_variants):
     ctx = "ICC diagnosis"
-    doc, problems = _parsed(text, ctx, {"diagnosis", "diagnostic_effect", "variants", "reason"})
+    doc, problems = _parsed(
+        text, ctx, {"diagnosis", "diagnostic_effect", "variants", "reason", "variant_assessments"}
+    )
     problems += iss.text_field(doc.get("diagnosis"), "diagnosis")
-    problems += iss.enum_field(doc.get("diagnostic_effect"), ("unchanged", "refined", "superseded"), "diagnostic_effect", label="diagnostic effect")
+    problems += iss.enum_field(
+        doc.get("diagnostic_effect"),
+        ("unchanged", "refined", "superseded"),
+        "diagnostic_effect",
+        label="diagnostic effect",
+    )
     _, variant_issues = iss.id_list(doc.get("variants"), "variants", valid_variants, allow_empty=True)
     problems += variant_issues
     problems += iss.text_field(doc.get("reason"), "reason")
+    problems += _validate_variant_assessments(
+        doc.get("variant_assessments"), valid_variants=valid_variants
+    )
     fail(ctx, problems)
     return "ICC diagnosis valid"
 
 
 # --- PTBG owner proformas (flat one-row-per-variant contract) ----------------
+
 
 def validate_domain(text, domain, valid_variants, *, registry=None, authoritative_disease=None):
     context = {
@@ -140,6 +162,7 @@ def validate_germline(text, valid):
 
 
 # --- batch stages ------------------------------------------------------------
+
 
 def validate_evidence_match_batch(text, items):
     ctx = "evidence match"
@@ -229,9 +252,12 @@ def validate_evidence_audit_batch(text, items):
             duplicates = sorted({x for x in seen if x is not None and seen.count(x) > 1})
             if missing or unexpected or duplicates:
                 parts = []
-                if missing: parts.append(f"missing {missing}")
-                if unexpected: parts.append(f"unexpected {unexpected}")
-                if duplicates: parts.append(f"duplicate {duplicates}")
+                if missing:
+                    parts.append(f"missing {missing}")
+                if unexpected:
+                    parts.append(f"unexpected {unexpected}")
+                if duplicates:
+                    parts.append(f"duplicate {duplicates}")
                 problems.append(
                     ValidationIssue(
                         f"{path}.card_audits",
@@ -246,9 +272,15 @@ def validate_evidence_audit_batch(text, items):
                 if not isinstance(audit, dict):
                     continue
                 apath = f"{path}.card_audits[{j}]"
-                problems += iss.exact_keys(audit, {"card_tag", "card_is_element_of_reason", "risk", "comments"}, apath)
-                problems += iss.bool_field(audit.get("card_is_element_of_reason"), f"{apath}.card_is_element_of_reason")
-                problems += iss.enum_field(audit.get("risk"), ("none", "warning"), f"{apath}.risk", label="risk level")
+                problems += iss.exact_keys(
+                    audit, {"card_tag", "card_is_element_of_reason", "risk", "comments"}, apath
+                )
+                problems += iss.bool_field(
+                    audit.get("card_is_element_of_reason"), f"{apath}.card_is_element_of_reason"
+                )
+                problems += iss.enum_field(
+                    audit.get("risk"), ("none", "warning"), f"{apath}.risk", label="risk level"
+                )
                 comments = audit.get("comments")
                 if not isinstance(comments, list) or any(not isinstance(x, str) for x in comments):
                     problems.append(
@@ -261,7 +293,9 @@ def validate_evidence_audit_batch(text, items):
                             expected="list of strings",
                         )
                     )
-                elif (audit.get("card_is_element_of_reason") is False or audit.get("risk") == "warning") and not any(x.strip() for x in comments):
+                elif (
+                    audit.get("card_is_element_of_reason") is False or audit.get("risk") == "warning"
+                ) and not any(x.strip() for x in comments):
                     problems.append(
                         ValidationIssue(
                             f"{apath}.comments",
@@ -278,9 +312,9 @@ def validate_evidence_audit_batch(text, items):
 
 # --- writer stages -----------------------------------------------------------
 
+
 def validate_report_source_blocks(blocks):
     """Validate deterministic source blocks before any report model call.
-
     Missing runtime state is a workflow error, not something the report model
     can repair. Keep this check separate from report-write output validation so
     callers fail before sending ``blocks: null`` or another malformed source.

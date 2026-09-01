@@ -9,17 +9,19 @@ Using only the supplied ICC authority cards, decide whether the NGS findings and
 The WHO5 diagnosis is supplied only as context. Do not alter it and do not write a separate WHO5/ICC comparison.
 Rules:
 - Return one ICC diagnosis only.
+- The variant registry is the authoritative list of detected variants. Assess every registry variant exactly once in `variant_assessments`; when empty, return `variant_assessments: []`.
 - `diagnostic_effect` must be exactly `unchanged`, `refined`, or `superseded` relative to the starting morphologic diagnosis.
-- `variants` contains only variant IDs that materially contribute to the ICC diagnosis update; it may be empty.
+- `variants` contains only variant IDs that materially contribute to the ICC diagnosis update; it may be empty and does not indicate NGS negativity.
 - A negative NGS result does not invalidate a supplied morphologic diagnosis. When no NGS variants are detected and no supplied cytogenetic or other molecular abnormality changes the diagnosis, retain the supplied morphologic diagnosis unchanged.
 - For `diagnosis_status: progress`, treatment response must not downgrade the established disease entity. Reduced blasts, morphologic remission, improved counts, or disappearance/non-detection of a previously diagnostic molecular abnormality after therapy describe current disease/response status; they do not convert AML to MDS, MDS to CCUS, an established neoplasm to `no_haematological_malignancy`, or otherwise move the disease backwards to a lesser entity. Retain the established disease and describe the current treated/response state concisely in `reason`.
 - For `diagnosis_status: progress`, negative NGS — including loss of a previously detected disease-defining variant — is a current molecular response/MRD observation and must not be used to retrospectively criticize or invalidate the established diagnosis.
 - `progress` protects against treatment-related downgrading; it does not freeze the established disease label at its original level of specificity. Classify the underlying disease using all supplied disease-defining information that remains valid for classification, whether documented at the original diagnosis or in the current specimen. Historical diagnostic molecular/cytogenetic findings may therefore refine the established disease even when they are no longer detected after therapy; for example, established AML may be refined to AML-MR when supplied diagnostic-phase findings meet the relevant criteria.
 - `progress` also does not block genuine progression or transformation. Current findings may supersede, up-stage, or transform the established disease when the supplied classification authority supports that change; for example, a prior MPN with a current blast percentage meeting blast-phase criteria may be classified as blast-phase/transformed disease.
 - Treat supplied cytogenetic, FISH, rearrangement, copy-number, PCR, and other non-NGS molecular abnormalities independently of NGS variant status. When such an abnormality is diagnostically defining or refining under ICC, integrate it into the diagnosis even when `variants` is empty.
-- For `diagnosis_status: new`, when no morphologic diagnosis was supplied (`morphologic_diagnosis_origin: inferred`), no NGS variants are detected, and no supplied cytogenetic/other molecular finding currently establishes or refines a diagnosis — including when those studies are absent, normal, pending, unavailable, not performed, or otherwise non-diagnostic — do not manufacture a myeloid neoplasm from descriptive marrow findings or cytopenias. Return `diagnosis: "No myeloid neoplasm established from supplied findings"`, `diagnostic_effect: unchanged`, and `variants: []`. The `reason` must state that the result does not exclude a myeloid neoplasm, that clinical/morphologic correlation is required, and that any explicitly pending diagnostic study remains pending.
+- For `diagnosis_status: new`, when no morphologic diagnosis was supplied (`morphologic_diagnosis_origin: inferred`), no NGS variants are detected, and no supplied cytogenetic/other molecular finding currently establishes or refines a diagnosis — including when those studies are absent, normal, pending, unavailable, not performed, or otherwise non-diagnostic — do not manufacture a myeloid neoplasm from descriptive marrow findings or cytopenias. Return `diagnosis: "No myeloid neoplasm established from supplied findings"`, `diagnostic_effect: unchanged`, `variants: []`, and `variant_assessments: []`. The `reason` must state that the result does not exclude a myeloid neoplasm, that clinical/morphologic correlation is required, and that any explicitly pending diagnostic study remains pending.
+- `variant_assessments` uses the same classifications as WHO5: `diagnostic_for_primary`, `nonspecific`, or `diagnostic_for_other_pathology`; `other_pathology` is null unless the last is used.
 - Use deterministic finite-gene-set membership supplied by core when present.
-- `ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
+- `genes_without_detected_ngs_variants` lists genes without detected SNV, short insertion/deletion, or short-range complex variants within validated NGS assay scope; do not extend that result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
 - Do not claim an unlisted variant satisfies a closed molecular criterion.
 - `reason` is one concise patient-level proposition about the molecular/cytogenetic effect on diagnosis. Do not relitigate morphology.
 Return YAML only:
@@ -28,4 +30,9 @@ diagnosis: "<ICC diagnosis>"
 diagnostic_effect: "<unchanged|refined|superseded>"
 variants: [v01]
 reason: "<one concise reason>"
+variant_assessments:
+  - variant_id: v01
+    classification: "<diagnostic_for_primary|nonspecific|diagnostic_for_other_pathology>"
+    other_pathology: null
+    reason: "<one concise variant-level reason>"
 ```

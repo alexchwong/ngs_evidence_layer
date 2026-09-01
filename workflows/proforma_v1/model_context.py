@@ -82,7 +82,10 @@ def case_projection(case: dict, *, fields=CASE_FIELDS) -> dict:
 
 def case_context(case: dict, *, fields=CASE_FIELDS) -> str:
     """Render a structured-case projection as a model-facing JSON block."""
-    return json.dumps(case_projection(case, fields=fields), indent=2, ensure_ascii=False)
+    doc = case_projection(case, fields=fields)
+    if fields == DIAGNOSIS_CASE_FIELDS and "ngs_no_variants_detected" in doc:
+        doc["genes_without_detected_ngs_variants"] = doc.pop("ngs_no_variants_detected")
+    return json.dumps(doc, indent=2, ensure_ascii=False)
 
 
 def diagnosis_projection(diagnosis: dict, *, fields=DOMAIN_DIAGNOSIS_FIELDS) -> dict:

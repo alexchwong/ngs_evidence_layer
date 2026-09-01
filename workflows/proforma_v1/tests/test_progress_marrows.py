@@ -1,7 +1,11 @@
 import json
+
+import pytest
+import yaml
+from jsonschema import Draft202012Validator
 from pathlib import Path
 
-from workflows.proforma_v1 import model_context, runtime
+from workflows.proforma_v1 import model_context, runtime, schema_validation
 
 
 HERE = Path(__file__).resolve().parents[1]
@@ -87,3 +91,77 @@ def test_demo4_progress_remission_does_not_block_aml_mr_refinement_from_diagnost
         assert "even when they are no longer detected after therapy" in text
         assert "established AML may be refined to AML-MR" in text
         assert "treatment response must not downgrade the established disease entity" in text
+
+
+
+
+def test_who5_assesses_primary_effects_before_freezing_diagnosis_and_concurrent_pathology():
+    text = _prompt("diagnosis_who5.md")
+    first = text.index("For each detected variant, first assess")
+    combine = text.index("Then combine those conclusions")
+    final = text.index("After the primary WHO5 diagnosis is fixed")
+    assert first < combine < final
+    assert "Complete and freeze that primary WHO5 decision before performing the variant assessments" not in text
+    assert "consider only variants that did not contribute to the primary diagnosis" in text
+    assert "Mere occurrence in another disease is insufficient" in text
+
+
+def test_diagnosis_context_renames_negative_gene_list_without_changing_case_schema():
+    case = _structured_case(diagnosis_status="progress")
+    case["ngs_no_variants_detected"] = ["NPM1", "FLT3"]
+    rendered = json.loads(model_context.case_context(case, fields=model_context.DIAGNOSIS_CASE_FIELDS))
+    assert rendered["genes_without_detected_ngs_variants"] == ["NPM1", "FLT3"]
+    assert "ngs_no_variants_detected" not in rendered
+    projected = model_context.case_projection(case, fields=model_context.DIAGNOSIS_CASE_FIELDS)
+    assert projected["ngs_no_variants_detected"] == ["NPM1", "FLT3"]
+
+
+def _icc_yaml(variant_ids):
+    rows = "\n".join(
+        f"  - variant_id: {vid}\n    classification: nonspecific\n    other_pathology: null\n    reason: assessed"
+        for vid in variant_ids
+    )
+    return (
+        "diagnosis: AML\n"
+        "diagnostic_effect: unchanged\n"
+        "variants: []\n"
+        "reason: no ICC refinement\n"
+        "variant_assessments:\n"
+        f"{rows}\n"
+    )
+
+
+def test_icc_validator_requires_exact_variant_registry_coverage():
+    assert schema_validation.validate_icc_diagnosis(
+        _icc_yaml(["v01", "v02"]), valid_variants={"v01", "v02"}
+    ) == "ICC diagnosis valid"
+    with pytest.raises(Exception):
+        schema_validation.validate_icc_diagnosis(
+            _icc_yaml(["v01"]), valid_variants={"v01", "v02"}
+        )
+
+
+def test_icc_prompt_distinguishes_detected_from_diagnosis_contributing_variants():
+    text = _prompt("diagnosis_icc.md")
+    assert "variant registry is the authoritative list of detected variants" in text
+    assert "Assess every registry variant exactly once" in text
+    assert "may be empty and does not indicate NGS negativity" in text
+    assert "variant_assessments:" in text
+    assert "genes_without_detected_ngs_variants" in text
+
+
+def test_previous_generic_source_only_strengtheners_removed():
+    for name in ("diagnosis_who5.md", "diagnosis_icc.md"):
+        text = _prompt(name)
+        assert "Summarize and apply only" not in text
+        assert "Do not use outside medical knowledge" not in text
+        assert "Do not infer diagnostic relationships absent from the cards" not in text
+
+
+def test_icc_artifact_passes_json_schema_and_exact_variant_coverage():
+    text = _icc_yaml(["v01", "v02", "v03", "v04"])
+    schema = json.loads((SCHEMAS / "diagnosis.json").read_text(encoding="utf-8"))
+    Draft202012Validator(schema).validate(yaml.safe_load(text))
+    assert schema_validation.validate_icc_diagnosis(
+        text, valid_variants={"v01", "v02", "v03", "v04"}
+    ) == "ICC diagnosis valid"
