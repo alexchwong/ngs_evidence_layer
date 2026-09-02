@@ -4,13 +4,11 @@
 End users interact with this file, root configuration, and ``runs/`` only. New
 runs use ``workflows/proforma_v1``. The previous terraced-v6 workflow is available
 only through an explicit ``--legacy`` setup/configuration path or a frozen run manifest.
-
 Run layout is explicit: single runs require ``run.json``; batch roots require
 ``batch.json`` and contain manifested child runs. Legacy unmanifested run folders
 are intentionally unsupported.
 """
 from __future__ import annotations
-
 import argparse
 import contextlib
 import io
@@ -31,7 +29,6 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
-
 ROOT = Path(__file__).resolve().parent
 RUNS_DIR = ROOT / "runs"
 LATEST_PATH = RUNS_DIR / "LATEST"
@@ -50,9 +47,10 @@ RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 CANONICAL_WORKFLOW = "proforma-v1"
 LEGACY_WORKFLOW = "terraced-v6"
 SUPPORTED_RUN_WORKFLOWS = {CANONICAL_WORKFLOW, LEGACY_WORKFLOW}
+PROFORMA_WORKFLOW_DIR = ROOT / "workflows" / "proforma_v1" / "workflow"
+DEFAULT_WORKFLOW_DEFINITION = "default"
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 DEFAULT_CLOUD_PARALLEL = 4
-
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from scripts import run_layout
@@ -65,7 +63,6 @@ class CLIError(RuntimeError):
 def _layout_error(exc: Exception) -> CLIError:
     return CLIError(str(exc))
 
-
 def _json_load(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -77,7 +74,6 @@ def _json_load(path: Path) -> dict[str, Any]:
         raise CLIError(f"expected JSON object: {path}")
     return value
 
-
 def _git_commit() -> str | None:
     try:
         result = subprocess.run(
@@ -88,14 +84,12 @@ def _git_commit() -> str | None:
         return None
     return result.stdout.strip() or None
 
-
 def _version() -> str | None:
     try:
         value = VERSION_PATH.read_text(encoding="utf-8").strip()
     except OSError:
         return None
     return value or None
-
 
 def _workflow_modules(workflow_id: str = CANONICAL_WORKFLOW):
     if workflow_id == CANONICAL_WORKFLOW:
@@ -106,13 +100,37 @@ def _workflow_modules(workflow_id: str = CANONICAL_WORKFLOW):
         raise CLIError(f"unsupported run workflow: {workflow_id}")
     return step, self_executor, pipeline_registry
 
-
 def _workflow_config_paths(workflow_id: str) -> tuple[Path, Path, Path]:
     if workflow_id == CANONICAL_WORKFLOW:
         return SETTINGS_PATH, SETTINGS_TEMPLATE_PATH, PIPELINES_DIR
     if workflow_id == LEGACY_WORKFLOW:
         return LEGACY_SETTINGS_PATH, LEGACY_SETTINGS_TEMPLATE_PATH, LEGACY_PIPELINES_DIR
     raise CLIError(f"unsupported run workflow: {workflow_id}")
+
+def _workflow_definitions() -> tuple[str, ...]:
+    return tuple(
+        sorted(
+            path.stem
+            for path in PROFORMA_WORKFLOW_DIR.glob("*.yaml")
+            if path.is_file() and RUN_ID_RE.fullmatch(path.stem)
+        )
+    )
+
+
+def _resolve_workflow_definition(value: str | None) -> tuple[str, Path]:
+    name = str(value or DEFAULT_WORKFLOW_DEFINITION).strip()
+    if not RUN_ID_RE.fullmatch(name):
+        raise CLIError(
+            "workflow definition must be a filename stem using letters, numbers, dot, underscore or hyphen"
+        )
+    path = PROFORMA_WORKFLOW_DIR / f"{name}.yaml"
+    if not path.is_file():
+        available = _workflow_definitions()
+        raise CLIError(
+            f"unknown workflow definition {name!r}; available: "
+            + (", ".join(available) if available else "none")
+        )
+    return name, path.resolve()
 
 
 def _configure_workflow(
@@ -126,7 +144,6 @@ def _configure_workflow(
     step.configure_runtime(settings_path=settings_path, pipelines_dir=pipelines_dir)
     return step, self_executor, pipeline_registry
 
-
 def _supported_modes(workflow_id: str = CANONICAL_WORKFLOW) -> tuple[str, ...]:
     step, _self_executor, _registry = _workflow_modules(workflow_id)
     return tuple(step.supported_modes())
@@ -134,7 +151,6 @@ def _supported_modes(workflow_id: str = CANONICAL_WORKFLOW) -> tuple[str, ...]:
 
 def _validation_modes(workflow_id: str = CANONICAL_WORKFLOW) -> set[str]:
     return {mode for mode in _supported_modes(workflow_id) if mode.startswith("nel-validate")}
-
 
 def _validate_run_id(value: str) -> str:
     try:
@@ -145,7 +161,6 @@ def _validate_run_id(value: str) -> str:
 
 def _slug(value: str) -> str:
     return run_layout.slug(value)
-
 
 def _generated_run_id(mode: str, *, case: Path | None, example: int | None, case_id: str | None) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -159,7 +174,6 @@ def _generated_run_id(mode: str, *, case: Path | None, example: int | None, case
         label = mode
     return f"{stamp}-{_slug(label)}"
 
-
 def _generated_batch_id(label: str) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"batch-{stamp}-{_slug(label)}"
@@ -167,7 +181,6 @@ def _generated_batch_id(label: str) -> str:
 
 def _top_dir(run_id: str) -> Path:
     return RUNS_DIR / _validate_run_id(run_id)
-
 
 def _latest_run_id() -> str:
     try:
@@ -181,7 +194,6 @@ def _latest_run_id() -> str:
         raise CLIError(f"LATEST is invalid: {exc}") from exc
     return run_id
 
-
 def _resolve_run(run_id: str | None) -> tuple[str, Path]:
     ref = str(run_id).strip() if run_id else _latest_run_id()
     try:
@@ -189,7 +201,6 @@ def _resolve_run(run_id: str | None) -> tuple[str, Path]:
     except run_layout.LayoutError as exc:
         raise _layout_error(exc) from exc
     return location.run_id, location.path
-
 
 def _resolve_batch(batch_id: str) -> run_layout.BatchLocation:
     try:
@@ -204,7 +215,6 @@ def _run_identity(run: Path) -> dict[str, Any]:
     except run_layout.LayoutError as exc:
         raise _layout_error(exc) from exc
 
-
 def _run_pipeline(run: Path) -> str | None:
     identity = _run_identity(run)
     value = identity.get("pipeline")
@@ -217,6 +227,13 @@ def _run_workflow(run: Path) -> str | None:
     return str(value) if isinstance(value, str) and value else None
 
 
+def _run_workflow_definition(run: Path) -> str | None:
+    if _run_workflow(run) != CANONICAL_WORKFLOW:
+        return None
+    manifest = _json_load(Path(run) / "run-config" / "manifest.json")
+    value = manifest.get("workflow_definition")
+    return str(value) if isinstance(value, str) and value else DEFAULT_WORKFLOW_DEFINITION
+
 def inspect_run(run: Path) -> dict[str, Any]:
     run = Path(run)
     pipeline = _run_pipeline(run)
@@ -227,13 +244,15 @@ def inspect_run(run: Path) -> dict[str, Any]:
             "complete": False, "pipeline": pipeline, "mode": None,
         }
     step, self_executor, _registry = _workflow_modules(workflow_id)
-    return self_executor.inspect_run(run) if pipeline == "self" else step.inspect_run(run)
-
+    status = self_executor.inspect_run(run) if pipeline == "self" else step.inspect_run(run)
+    status = dict(status)
+    if workflow_id == CANONICAL_WORKFLOW:
+        status["workflow_definition"] = _run_workflow_definition(run)
+    return status
 
 def corpus_core_blacklist_path() -> str:
     from scripts.core import corpus as corpus_core
     return str(corpus_core.DEFAULT_BLACKLIST)
-
 
 def _resolve_cul(name: str | None, corpus_doc, cards) -> tuple[dict, list[str]]:
     from scripts.core import cul as cul_core
@@ -274,7 +293,6 @@ def _resolve_cul(name: str | None, corpus_doc, cards) -> tuple[dict, list[str]]:
         )
     return layer, warnings
 
-
 def _legacy_settings_warnings(settings: dict[str, Any]) -> list[str]:
     found: list[str] = []
     diagnosis = settings.get("diagnosis") or {}
@@ -306,7 +324,6 @@ def _legacy_settings_warnings(settings: dict[str, Any]) -> list[str]:
         "config/settings.json contains legacy terraced-v6 key(s): " + ", ".join(found)
         + ". The file was not modified; review it against config/settings.json.template before relying on custom behavior."
     ]
-
 
 def _config_check(
     workflow_id: str = CANONICAL_WORKFLOW,
@@ -386,13 +403,11 @@ def _config_check(
         "cul_layer": cul_layer, "errors": errors, "warnings": warnings,
     }
 
-
 def _ensure_config_ok(workflow_id: str, pipeline: str | None, cul: str | None = None) -> dict[str, Any]:
     result = _config_check(workflow_id, pipeline, cul)
     if not result["ok"]:
         raise CLIError("configuration check failed:\n- " + "\n- ".join(result["errors"]))
     return result
-
 
 def _initialize_user_settings(workflow_id: str = CANONICAL_WORKFLOW) -> bool:
     settings_path, settings_template, _pipelines_dir = _workflow_config_paths(workflow_id)
@@ -404,7 +419,6 @@ def _initialize_user_settings(workflow_id: str = CANONICAL_WORKFLOW) -> bool:
     shutil.copyfile(settings_template, settings_path)
     return True
 
-
 def cmd_init(args: argparse.Namespace) -> int:
     workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
     created = _initialize_user_settings(workflow_id)
@@ -415,10 +429,9 @@ def cmd_init(args: argparse.Namespace) -> int:
     print(f"PIPELINES={pipelines_dir.resolve()}")
     return 0
 
-
 def _snapshot_run_config(
     run: Path, *, run_id: str, workflow_id: str, mode: str, pipeline: str,
-    config_result: dict[str, Any],
+    config_result: dict[str, Any], workflow_definition: str | None = None,
 ) -> None:
     from scripts.core import cul as cul_core
     target = run / "run-config"
@@ -446,10 +459,11 @@ def _snapshot_run_config(
         "corpus_sha256": config_result.get("corpus_sha256"),
         "cul_profile": cul_layer.get("profile"), "cul_sha256": cul_layer.get("cul_sha256"),
     }
+    if workflow_id == CANONICAL_WORKFLOW:
+        manifest["workflow_definition"] = workflow_definition or DEFAULT_WORKFLOW_DEFINITION
     (target / "manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-
 
 def _bind_frozen_cul(config: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     from scripts.core import cul as cul_core
@@ -465,7 +479,6 @@ def _bind_frozen_cul(config: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         )
     os.environ[cul_core.ENV_ACTIVE_LAYER] = str(path.resolve())
     return layer
-
 
 def _bind_run_config(run: Path):
     config = run / "run-config"
@@ -492,7 +505,6 @@ def _bind_run_config(run: Path):
         raise CLIError(f"unsupported or missing run workflow in {manifest_path}: {workflow_id!r}")
     return _configure_workflow(workflow_id, settings_path=settings, pipelines_dir=pipelines)
 
-
 def _write_identity_manifest(
     run: Path, *, run_id: str, workflow_id: str, mode: str, pipeline: str,
     batch_id: str | None = None, case_id: str | None = None, case_title: str | None = None,
@@ -506,18 +518,23 @@ def _write_identity_manifest(
     except run_layout.LayoutError as exc:
         raise _layout_error(exc) from exc
 
-
 def _prepare_run_at(
     run: Path, *, run_id: str, workflow_id: str, mode: str, pipeline: str,
     config_result: dict[str, Any], case: Path | None = None, example: int | None = None,
     validation_case_id: str | None = None, batch_id: str | None = None,
     child_case_id: str | None = None, case_title: str | None = None,
+    workflow_definition: str | None = None,
 ) -> int:
     if run.exists():
         raise CLIError(f"run already exists; refusing to overwrite: {run_id}")
     run.parent.mkdir(parents=True, exist_ok=True)
     step, self_executor, _registry = _configure_workflow(workflow_id)
     argv = ["setup", "--mode", mode, "--work-dir", str(run)]
+    if workflow_id == CANONICAL_WORKFLOW:
+        workflow_definition, workflow_path = _resolve_workflow_definition(workflow_definition)
+        argv += ["--workflow", str(workflow_path)]
+    elif workflow_definition is not None:
+        raise CLIError("--workflow is valid only for proforma-v1; omit it with --legacy")
     if pipeline != "self":
         argv += ["--pipeline", pipeline]
     if case is not None:
@@ -536,6 +553,7 @@ def _prepare_run_at(
         _snapshot_run_config(
             run, run_id=run_id, workflow_id=workflow_id, mode=mode,
             pipeline=pipeline, config_result=config_result,
+            workflow_definition=workflow_definition,
         )
         _write_identity_manifest(
             run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
@@ -546,7 +564,6 @@ def _prepare_run_at(
         raise
     return 0
 
-
 def _print_run_header(run_id: str, run: Path, status: dict[str, Any]) -> None:
     print(f"RUN_ID={run_id}")
     print(f"RUN_DIR={run.resolve()}")
@@ -556,10 +573,16 @@ def _print_run_header(run_id: str, run: Path, status: dict[str, Any]) -> None:
         print(f"NEXT={status['next']}")
     if status.get("pipeline"):
         print(f"PIPELINE={status['pipeline']}")
-
+    if status.get("workflow_definition"):
+        print(f"WORKFLOW_DEFINITION={status['workflow_definition']}")
 
 def cmd_setup(args: argparse.Namespace) -> int:
     workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
+    if workflow_id == LEGACY_WORKFLOW and getattr(args, "workflow", None) is not None:
+        raise CLIError("--workflow is valid only for proforma-v1; omit it with --legacy")
+    workflow_definition = None
+    if workflow_id == CANONICAL_WORKFLOW:
+        workflow_definition, _workflow_path = _resolve_workflow_definition(getattr(args, "workflow", None))
     mode = args.mode
     if mode not in _supported_modes(workflow_id):
         raise CLIError(
@@ -597,7 +620,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     code = _prepare_run_at(
         run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
         config_result=config_result, case=case, example=args.example,
-        validation_case_id=args.case_id,
+        validation_case_id=args.case_id, workflow_definition=workflow_definition,
     )
     if code != 0:
         return code
@@ -605,20 +628,17 @@ def cmd_setup(args: argparse.Namespace) -> int:
     _print_run_header(run_id, run, inspect_run(run))
     return 0
 
-
 def _pathify(value: Any) -> Any:
     if isinstance(value, Path): return str(value.resolve())
     if isinstance(value, dict): return {str(k): _pathify(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)): return [_pathify(v) for v in value]
     return value
 
-
 def _print_handoff(run_id: str, run: Path, stage: str, manifest: dict[str, Any]) -> int:
     print(f"RUN_ID={run_id}"); print(f"RUN_DIR={run.resolve()}"); print("STATUS=handoff"); print(f"STAGE={stage}")
     output = manifest.get("output")
     if output: print(f"OUTPUT={Path(output).resolve() if isinstance(output, Path) else output}")
     print("MANIFEST="); print(json.dumps(_pathify(manifest), indent=2, ensure_ascii=False)); return 0
-
 
 def _reseat_cul(run: Path, profile: str) -> None:
     from scripts.core import corpus as corpus_core
@@ -638,7 +658,6 @@ def _reseat_cul(run: Path, profile: str) -> None:
     for warning in warnings: print(f"WARNING={warning}")
     print(f"CUL_RESEATED={previous or 'none'} -> {layer['profile']}")
 
-
 def cmd_run(args: argparse.Namespace) -> int:
     run_id, run = _resolve_run(args.run_id)
     pipeline = _run_pipeline(run)
@@ -648,18 +667,16 @@ def cmd_run(args: argparse.Namespace) -> int:
     if pipeline == "self":
         result = self_executor.advance(run)
         if result["status"] == "handoff": return _print_handoff(run_id, run, result["stage"], result["manifest"])
-        status = self_executor.inspect_run(run); _print_run_header(run_id, run, status)
+        status = self_executor.inspect_run(run); _print_run_header(run_id, run, {**status, "workflow_definition": _run_workflow_definition(run)})
         for key, value in result.get("artifacts", {}).items(): print(f"{key}={value if value is not None else 'none'}")
         return 0
-    code = int(step.main(["run", "--work-dir", str(run)])); _print_run_header(run_id, run, step.inspect_run(run)); return code
-
+    code = int(step.main(["run", "--work-dir", str(run)])); _print_run_header(run_id, run, inspect_run(run)); return code
 
 def cmd_status(args: argparse.Namespace) -> int:
     run_id, run = _resolve_run(args.run_id); status = inspect_run(run)
     if args.json: print(json.dumps({"kind": "run", "run_id": run_id, "run_dir": str(run.resolve()), **status}, indent=2, ensure_ascii=False))
     else: _print_run_header(run_id, run, status)
     return 0
-
 
 def _child_row(batch: run_layout.BatchLocation, child: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
     case_id = str(child["case_id"]); ref = str(child["run_id"]); path = batch.path / case_id
@@ -674,7 +691,6 @@ def _child_row(batch: run_layout.BatchLocation, child: dict[str, Any], state: di
         "failure_class": child_state.get("failure_class"),
         "blocked_reason": child_state.get("blocked_reason"), **run_status,
     }
-
 
 def _aggregate_usage(child_paths: list[Path]) -> dict[str, Any] | None:
     try:
@@ -704,7 +720,6 @@ def _aggregate_usage(child_paths: list[Path]) -> dict[str, Any] | None:
         "cost": {"amount": cost_amount if any_cost else None, "complete": complete_cost if any_cost else False},
     }
 
-
 def _batch_elapsed_seconds(state: dict[str, Any]) -> float | None:
     started = state.get("started_at")
     if not isinstance(started, str) or not started:
@@ -716,7 +731,6 @@ def _batch_elapsed_seconds(state: dict[str, Any]) -> float | None:
         return max(0.0, (end_dt - start_dt).total_seconds())
     except (TypeError, ValueError):
         return None
-
 
 def batch_status(batch_id: str) -> dict[str, Any]:
     batch = _resolve_batch(batch_id)
@@ -733,6 +747,7 @@ def batch_status(batch_id: str) -> dict[str, Any]:
     return {
         "kind": "batch", "batch_id": batch.batch_id, "run_id": batch.batch_id,
         "run_dir": str(batch.path.resolve()), "workflow": batch.manifest.get("workflow"),
+        "workflow_definition": batch.manifest.get("workflow_definition") or DEFAULT_WORKFLOW_DEFINITION,
         "mode": batch.manifest.get("mode"), "pipeline": batch.manifest.get("pipeline"),
         "source": batch.manifest.get("source"), "max_parallel_cases": batch.manifest.get("max_parallel_cases", 1),
         "status": state.get("status", "prepared"), "complete": state.get("status") == "complete",
@@ -743,7 +758,6 @@ def batch_status(batch_id: str) -> dict[str, Any]:
         "started_at": state.get("started_at"), "finished_at": state.get("finished_at"), "stopped_at": state.get("stopped_at"),
         "blocked_at": state.get("blocked_at"), "blocked_reason": state.get("blocked_reason"),
     }
-
 
 def _all_entries() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -761,7 +775,6 @@ def _all_entries() -> list[dict[str, Any]]:
             rows.append({"kind": "unsupported", "run_id": path.name, "run_dir": str(path.resolve()), "label": "Unsupported legacy layout", "stage": "unsupported", "complete": False, "detail": f"missing {run_layout.RUN_MANIFEST}/{run_layout.BATCH_MANIFEST}"})
     return rows
 
-
 def cmd_runs(args: argparse.Namespace) -> int:
     rows = _all_entries()
     if args.incomplete: rows = [row for row in rows if not row.get("complete")]
@@ -778,7 +791,6 @@ def cmd_runs(args: argparse.Namespace) -> int:
     for label, names in groups.items():
         print(f"{label}:"); [print(f"- {name}") for name in names]; print()
     return 0
-
 
 def _pipeline_parallelism(pipeline: str, config_result: dict[str, Any]) -> int:
     _step, _self_executor, registry = _configure_workflow(CANONICAL_WORKFLOW)
@@ -798,8 +810,6 @@ def _pipeline_parallelism(pipeline: str, config_result: dict[str, Any]) -> int:
     if configured <= 0: raise CLIError("pipeline execution.max_parallel_cases must be greater than zero")
     return 1 if host in LOCAL_HOSTS else configured
 
-
-
 def _pipeline_provider(pipeline: str) -> dict[str, Any]:
     _step, _self_executor, registry = _configure_workflow(CANONICAL_WORKFLOW)
     plan = registry.load(pipeline)
@@ -811,10 +821,8 @@ def _pipeline_provider(pipeline: str) -> dict[str, Any]:
     provider["resolved_base_url"] = base.rstrip("/")
     return provider
 
-
 def _provider_preflight(pipeline: str) -> str | None:
     """Return a blocking provider/configuration reason, or ``None`` when reachable.
-
     Batch restart eligibility is reserved for terminal workflow failures. A provider
     outage must therefore be detected before child work starts whenever possible.
     OpenAI-compatible profiles are probed through ``/models`` with the configured
@@ -847,7 +855,6 @@ def _provider_preflight(pipeline: str) -> str | None:
         return f"cannot connect to provider {pipeline!r} at {base}: {reason}"
     return None
 
-
 _PROVIDER_BLOCK_PATTERNS = (
     "connection refused", "connection reset", "connection error",
     "failed to establish a new connection", "remote end closed connection",
@@ -861,7 +868,6 @@ _PROVIDER_BLOCK_PATTERNS = (
     "http error 500", "http error 502", "http error 503", "http error 504",
 )
 
-
 def _tail_text(path: Path, limit: int = 65536) -> str:
     if not path.is_file():
         return ""
@@ -872,7 +878,6 @@ def _tail_text(path: Path, limit: int = 65536) -> str:
             return handle.read(limit).decode("utf-8", errors="replace")
     except OSError:
         return ""
-
 
 def _provider_failure_reason(child_path: Path, pipeline: str) -> str | None:
     text = "\n".join([
@@ -898,9 +903,9 @@ def _unique_batch_path(requested: str | None, label: str) -> tuple[str, Path]:
     while path.exists(): batch_id = f"{base}-{suffix}"; path = _top_dir(batch_id); suffix += 1
     return batch_id, path
 
-
 def cmd_batch_setup(args: argparse.Namespace) -> int:
     workflow_id = CANONICAL_WORKFLOW; mode = args.mode
+    workflow_definition, _workflow_path = _resolve_workflow_definition(getattr(args, "workflow", None))
     if mode not in _supported_modes(workflow_id): raise CLIError(f"unsupported batch mode {mode!r}")
     is_demo = mode == "nel-demo"
     is_validation = mode in _validation_modes(workflow_id)
@@ -945,6 +950,7 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
                         child_dir, run_id=logical, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
                         config_result=config_result, case=Path(handle.name), batch_id=batch_id,
                         child_case_id=item.case_id, case_title=f"Case {item.title}",
+                        workflow_definition=workflow_definition,
                     )
                 finally:
                     try: os.unlink(handle.name)
@@ -958,13 +964,14 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
                 code = _prepare_run_at(
                     child_dir, run_id=logical, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
                     config_result=config_result, batch_id=batch_id, child_case_id=case_id,
-                    case_title=f"Case {source_id}", **kwargs,
+                    case_title=f"Case {source_id}", workflow_definition=workflow_definition, **kwargs,
                 )
                 if code != 0: raise CLIError(f"failed to prepare bundled case {source_id}")
                 children.append({"case_id": case_id, "title": f"Case {source_id}", "source_case_id": source_id, "run_id": logical})
         manifest = {
             "schema_version": run_layout.SCHEMA_VERSION, "kind": "batch", "batch_id": batch_id,
-            "workflow": workflow_id, "mode": mode, "pipeline": pipeline, "created_at": created_at,
+            "workflow": workflow_id, "workflow_definition": workflow_definition,
+            "mode": mode, "pipeline": pipeline, "created_at": created_at,
             "source": source_doc, "max_parallel_cases": parallel, "children": children,
         }
         run_layout.write_batch_manifest(batch_dir, manifest)
@@ -972,9 +979,8 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
         run_layout.write_batch_state(batch, run_layout.initial_batch_state(children, created_at=created_at))
     except Exception:
         shutil.rmtree(batch_dir, ignore_errors=True); raise
-    print(f"BATCH_ID={batch_id}"); print(f"BATCH_DIR={batch_dir.resolve()}"); print("STATUS=prepared"); print(f"CASES={len(children)}"); print(f"PIPELINE={pipeline}"); print(f"MAX_PARALLEL_CASES={parallel}")
+    print(f"BATCH_ID={batch_id}"); print(f"BATCH_DIR={batch_dir.resolve()}"); print("STATUS=prepared"); print(f"CASES={len(children)}"); print(f"PIPELINE={pipeline}"); print(f"WORKFLOW_DEFINITION={workflow_definition}"); print(f"MAX_PARALLEL_CASES={parallel}")
     return 0
-
 
 class _BatchRunner:
     def __init__(self, batch: run_layout.BatchLocation, state: dict[str, Any]):
@@ -986,7 +992,6 @@ class _BatchRunner:
         self.block_reason: str | None = None
         self.active: dict[str, subprocess.Popen] = {}
         self.previous_handlers: dict[int, Any] = {}
-
     @property
     def halted(self) -> bool:
         return self.stop_event.is_set() or self.block_event.is_set()
@@ -1001,7 +1006,6 @@ class _BatchRunner:
                 signal.signal(sig, handler)
             except (ValueError, OSError):
                 pass
-
     def restore_signals(self):
         for sig, old in self.previous_handlers.items():
             try:
@@ -1011,7 +1015,6 @@ class _BatchRunner:
 
     def _save(self):
         run_layout.write_batch_state(self.batch, self.state)
-
     def _terminate_active(self, *, exclude: str | None = None):
         with self.lock:
             procs = [(case_id, proc) for case_id, proc in self.active.items() if case_id != exclude]
@@ -1030,7 +1033,6 @@ class _BatchRunner:
                         proc.kill()
                     except OSError:
                         pass
-
     def block_provider(self, reason: str, *, source_case: str) -> None:
         with self.lock:
             if self.block_event.is_set():
@@ -1042,7 +1044,6 @@ class _BatchRunner:
             self._save()
         print(f"[batch] provider blocked: {self.block_reason}", file=sys.stderr, flush=True)
         self._terminate_active(exclude=source_case)
-
     def run_child(self, row: dict[str, Any]) -> tuple[str, str]:
         case_id = str(row["case_id"])
         ref = str(row["run_id"])
@@ -1113,7 +1114,6 @@ class _BatchRunner:
         print(f"[batch] {row.get('title') or case_id} {label}", flush=True)
         return case_id, outcome
 
-
 def _selected_batch_children(batch: run_layout.BatchLocation, state: dict[str, Any]) -> list[dict[str, Any]]:
     parent = str(state.get("status") or "prepared")
     if parent == "complete":
@@ -1132,7 +1132,6 @@ def _selected_batch_children(batch: run_layout.BatchLocation, state: dict[str, A
         return [row for row in children if (child_state.get(str(row["case_id"])) or {}).get("status") != "complete"]
     return list(children)
 
-
 def cmd_batch_run(args: argparse.Namespace) -> int:
     batch = _resolve_batch(args.run_id)
     try:
@@ -1145,7 +1144,6 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
             print(f"BATCH_ID={batch.batch_id}\nSTATUS=complete\nDETAIL=batch already complete")
             return 0
         raise CLIError("batch has no retry-eligible failed/incomplete children")
-
     pipeline = str(batch.manifest.get("pipeline") or "")
     provider_reason = _provider_preflight(pipeline)
     if provider_reason:
@@ -1158,7 +1156,6 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
         print("STATUS=blocked")
         print(f"BLOCKED_REASON={provider_reason}")
         return 2
-
     state["status"] = "running"
     state["started_at"] = datetime.now(timezone.utc).isoformat()
     state["finished_at"] = None
@@ -1177,7 +1174,6 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
         pending = iter(selected)
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="nel-batch") as pool:
             futures: dict[Any, dict[str, Any]] = {}
-
             def submit_next() -> bool:
                 if runner.halted:
                     return False
@@ -1187,7 +1183,6 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
                     return False
                 futures[pool.submit(runner.run_child, row)] = row
                 return True
-
             for _ in range(workers):
                 if not submit_next():
                     break
@@ -1211,7 +1206,6 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
                         runner._terminate_active()
                 while len(futures) < workers and not runner.halted and submit_next():
                     pass
-
         if runner.stop_event.is_set():
             for row in selected:
                 case_id = str(row["case_id"])
@@ -1260,15 +1254,13 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
         print(f"BLOCKED_REASON={state['blocked_reason']}")
     return final_code
 
-
 def cmd_batch_status(args: argparse.Namespace) -> int:
     doc = batch_status(args.run_id)
     if args.json: print(json.dumps(doc, indent=2, ensure_ascii=False))
     else:
-        counts = doc["counts"]; print(f"BATCH_ID={doc['batch_id']}"); print(f"BATCH_DIR={doc['run_dir']}"); print(f"STATUS={doc['status']}"); print(f"PIPELINE={doc.get('pipeline') or ''}"); print(f"MAX_PARALLEL_CASES={doc.get('max_parallel_cases') or 1}"); print(f"CASES={len(doc['children'])}"); print(f"COMPLETE={counts.get('complete',0)}"); print(f"FAILED={counts.get('failed',0)}"); print(f"RUNNING={counts.get('running',0)}"); print(f"PREPARED={counts.get('prepared',0)}"); print(f"STOPPED={counts.get('stopped',0)}"); print(f"BLOCKED={counts.get('blocked',0)}");
+        counts = doc["counts"]; print(f"BATCH_ID={doc['batch_id']}"); print(f"BATCH_DIR={doc['run_dir']}"); print(f"STATUS={doc['status']}"); print(f"PIPELINE={doc.get('pipeline') or ''}"); print(f"WORKFLOW_DEFINITION={doc.get('workflow_definition') or DEFAULT_WORKFLOW_DEFINITION}"); print(f"MAX_PARALLEL_CASES={doc.get('max_parallel_cases') or 1}"); print(f"CASES={len(doc['children'])}"); print(f"COMPLETE={counts.get('complete',0)}"); print(f"FAILED={counts.get('failed',0)}"); print(f"RUNNING={counts.get('running',0)}"); print(f"PREPARED={counts.get('prepared',0)}"); print(f"STOPPED={counts.get('stopped',0)}"); print(f"BLOCKED={counts.get('blocked',0)}");
         if doc.get("blocked_reason"): print(f"BLOCKED_REASON={doc['blocked_reason']}")
     return 0
-
 
 def cmd_delete(args: argparse.Namespace) -> int:
     ref = str(args.run_id or "").strip()
@@ -1305,7 +1297,6 @@ def cmd_delete(args: argparse.Namespace) -> int:
     except OSError: pass
     print(f"DELETED={component}"); return 0
 
-
 def cmd_config_check(args: argparse.Namespace) -> int:
     workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
     if workflow_id == CANONICAL_WORKFLOW: _initialize_user_settings(CANONICAL_WORKFLOW)
@@ -1320,7 +1311,6 @@ def cmd_config_check(args: argparse.Namespace) -> int:
         for error in result["errors"]: print(f"ERROR={error}")
     return 0 if result["ok"] else 1
 
-
 def cmd_pipelines(args: argparse.Namespace) -> int:
     workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
     if workflow_id == CANONICAL_WORKFLOW: _initialize_user_settings(CANONICAL_WORKFLOW)
@@ -1328,33 +1318,30 @@ def cmd_pipelines(args: argparse.Namespace) -> int:
     for name in registry.names(): print(f"{name}: {registry.descriptions()[name]}")
     return 0
 
-
 def cmd_ui(args: argparse.Namespace) -> int:
     try:
-        from ui import batch_server as server
+        from ui import workflow_server as server
     except ImportError as exc:
         raise CLIError(f"the browser interface is not installed in this checkout: {exc}") from exc
     return int(server.serve(port=args.port, open_browser=not args.no_browser))
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__); sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="create canonical settings from the shipped template if missing"); init.add_argument("--legacy", action="store_true", help="initialize workflow-local terraced-v6 settings instead"); init.set_defaults(func=cmd_init)
     setup = sub.add_parser("setup", help="create a new single-case root run; canonical proforma-v1 unless --legacy")
-    setup.add_argument("--legacy", action="store_true", help="create a terraced-v6 legacy run with workflow-local settings/pipelines"); setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report"); setup.add_argument("--pipeline", help="pipeline name for the selected canonical/legacy workflow"); setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json"); setup.add_argument("--run-id", help="stable filesystem-safe run identifier"); setup.add_argument("--example", type=int, help="demo example number"); setup.add_argument("--case-id", help="validation case identifier"); setup.set_defaults(func=cmd_setup)
+    setup.add_argument("--legacy", action="store_true", help="create a terraced-v6 legacy run with workflow-local settings/pipelines"); setup.add_argument("--workflow", help="proforma-v1 workflow definition name from workflows/proforma_v1/workflow/<name>.yaml (default: default)"); setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report"); setup.add_argument("--pipeline", help="pipeline name for the selected canonical/legacy workflow"); setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json"); setup.add_argument("--run-id", help="stable filesystem-safe run identifier"); setup.add_argument("--example", type=int, help="demo example number"); setup.add_argument("--case-id", help="validation case identifier"); setup.set_defaults(func=cmd_setup)
     run = sub.add_parser("run", help="continue one single/child run; defaults to runs/LATEST"); run.add_argument("--run-id"); run.add_argument("--cul", help="override the frozen corpus user layer for this invocation"); run.set_defaults(func=cmd_run)
     status = sub.add_parser("status", help="show artifact-derived status for one single/child run"); status.add_argument("--run-id"); status.add_argument("--json", action="store_true"); status.set_defaults(func=cmd_status)
     runs = sub.add_parser("runs", help="survey manifested single runs and batches"); runs.add_argument("--incomplete", action="store_true"); runs.add_argument("--json", action="store_true"); runs.set_defaults(func=cmd_runs)
     delete = sub.add_parser("delete", help="delete a single run, a batch, or one batch child"); delete.add_argument("--run-id", required=True); delete.set_defaults(func=cmd_delete)
     batch = sub.add_parser("batch", help="prepare, run/resume, or inspect a batch"); batch_sub = batch.add_subparsers(dest="batch_command", required=True)
-    bsetup = batch_sub.add_parser("setup", help="prepare a free-text or validation batch"); bsetup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); bsetup.add_argument("--case", type=Path, help="markdown file containing '# Case <title>' sections"); bsetup.add_argument("--case-ids", help="comma-delimited validation case IDs, e.g. 1,2,5"); bsetup.add_argument("--pipeline"); bsetup.add_argument("--cul"); bsetup.add_argument("--run-id", help="stable filesystem-safe batch identifier"); bsetup.set_defaults(func=cmd_batch_setup)
+    bsetup = batch_sub.add_parser("setup", help="prepare a free-text or validation batch"); bsetup.add_argument("--workflow", help="proforma-v1 workflow definition name from workflows/proforma_v1/workflow/<name>.yaml (default: default)"); bsetup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); bsetup.add_argument("--case", type=Path, help="markdown file containing '# Case <title>' sections"); bsetup.add_argument("--case-ids", help="comma-delimited validation case IDs, e.g. 1,2,5"); bsetup.add_argument("--pipeline"); bsetup.add_argument("--cul"); bsetup.add_argument("--run-id", help="stable filesystem-safe batch identifier"); bsetup.set_defaults(func=cmd_batch_setup)
     brun = batch_sub.add_parser("run", help="run/resume a batch; failed finished children resume from workflow checkpoints"); brun.add_argument("--run-id", required=True); brun.set_defaults(func=cmd_batch_run)
     bstatus = batch_sub.add_parser("status", help="show batch and child status"); bstatus.add_argument("--run-id", required=True); bstatus.add_argument("--json", action="store_true"); bstatus.set_defaults(func=cmd_batch_status)
     check = sub.add_parser("config-check", help="validate canonical configuration and corpus integrity"); check.add_argument("--legacy", action="store_true", help="validate terraced-v6 workflow-local settings/pipelines"); check.add_argument("--pipeline"); check.add_argument("--cul"); check.add_argument("--json", action="store_true"); check.set_defaults(func=cmd_config_check)
     pipelines = sub.add_parser("pipelines", help="list canonical pipeline configurations"); pipelines.add_argument("--legacy", action="store_true", help="list terraced-v6 workflow-local pipelines"); pipelines.set_defaults(func=cmd_pipelines)
     ui = sub.add_parser("ui", help="serve the local browser interface on this machine"); ui.add_argument("--port", type=int, default=8765, help="first port to try"); ui.add_argument("--no-browser", action="store_true", help="do not open a browser window"); ui.set_defaults(func=cmd_ui)
     return parser
-
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
