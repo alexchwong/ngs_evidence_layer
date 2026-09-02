@@ -9,10 +9,9 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["evidence_id", "card_tag", "decision", "reason"],
+        "required": ["dispute_id", "decision", "reason"],
         "properties": {
-          "evidence_id": {"type": "string", "minLength": 1},
-          "card_tag": {"type": "string", "pattern": "^\\[card:[0-9a-f]{12}\\]$"},
+          "dispute_id": {"type": "string", "pattern": "^D[0-9]{4}$"},
           "decision": {"type": "string", "enum": ["include", "exclude"]},
           "reason": {"type": "string", "minLength": 1}
         }

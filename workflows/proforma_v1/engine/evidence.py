@@ -114,7 +114,6 @@ def extract_claims(*, owner: str, artifact: Any, declarations: list[dict] | tupl
 
 def audit_targets(claim: dict, assigned_card_tags: list[str] | tuple[str, ...]) -> list[str]:
     """Audit only cards positively assigned to this fact.
-
     False-negative rescue belongs to later evidence-match passes, not to the
     auditor. This keeps the audit surface bounded to matcher-selected cards.
     """
@@ -128,7 +127,6 @@ def audit_targets(claim: dict, assigned_card_tags: list[str] | tuple[str, ...]) 
 
 def merge_match_passes(items: list[dict], pass_docs: list[dict]) -> tuple[dict, list[str]]:
     """Merge sequential match passes, retrying only facts that remain at zero.
-
     The first non-empty selection for an evidence item becomes final. Later
     passes are allowed to contain only items still unresolved at zero cards.
     Returns ``(final_doc, zero_evidence_ids)`` in original item order.
@@ -197,21 +195,87 @@ def compare(*, claim: dict, assigned_card_tags: list[str] | tuple[str, ...], aud
     return {"agreed_include": agreed, "disputes": disputes}
 
 
+def adjudication_disputes(disputes: list[dict] | tuple[dict, ...]) -> list[dict]:
+    """Return canonical disputes with stable, deterministic adjudication IDs."""
+    return [dict(dispute, dispute_id=f"D{index:04d}") for index, dispute in enumerate(disputes, 1)]
+
+
+def _validate_adjudication_decision(row: dict, *, index: int) -> None:
+    if row.get("decision") not in {"include", "exclude"}:
+        raise EvidenceError(f"adjudications[{index}].decision must be include or exclude")
+    if not isinstance(row.get("reason"), str) or not row["reason"].strip():
+        raise EvidenceError(f"adjudications[{index}].reason must be non-empty")
+
+
 def validate_adjudication(doc: Any, disputes: list[dict] | tuple[dict, ...]) -> Any:
+    """Validate model-owned adjudication answers and restore canonical identity.
+
+    New model output owns only ``dispute_id``, ``decision`` and ``reason``. The
+    immutable evidence/card identity and canonical order are restored here from
+    the supplied dispute list. Legacy full-row artifacts are accepted on read
+    and canonicalised as well so existing runs remain consumable.
+    """
     if not isinstance(doc, dict) or set(doc) != {"adjudications"} or not isinstance(doc["adjudications"], list):
         raise EvidenceError("adjudication must contain exactly an adjudications list")
-    expected = [(d.get("evidence_id"), d.get("card_tag")) for d in disputes]
-    actual = []
-    for i, row in enumerate(doc["adjudications"]):
-        if not isinstance(row, dict):
-            raise EvidenceError(f"adjudications[{i}] must be a mapping")
-        if set(row) != {"evidence_id", "card_tag", "decision", "reason"}:
-            raise EvidenceError(f"adjudications[{i}] has invalid fields")
-        if row["decision"] not in {"include", "exclude"}:
-            raise EvidenceError(f"adjudications[{i}].decision must be include or exclude")
-        if not isinstance(row["reason"], str) or not row["reason"].strip():
-            raise EvidenceError(f"adjudications[{i}].reason must be non-empty")
-        actual.append((row.get("evidence_id"), row.get("card_tag")))
-    if actual != expected:
-        raise EvidenceError(f"adjudication pairs/order must match disputes exactly; expected {expected}, got {actual}")
+
+    canonical_disputes = adjudication_disputes(disputes)
+    by_id = {row["dispute_id"]: row for row in canonical_disputes}
+    by_pair = {(row.get("evidence_id"), row.get("card_tag")): row for row in canonical_disputes}
+    answers: dict[str, dict] = {}
+    rows = doc["adjudications"]
+
+    new_fields = {"dispute_id", "decision", "reason"}
+    legacy_fields = {"evidence_id", "card_tag", "decision", "reason"}
+    row_shapes = {frozenset(row) for row in rows if isinstance(row, dict)}
+    if any(not isinstance(row, dict) for row in rows):
+        index = next(i for i, row in enumerate(rows) if not isinstance(row, dict))
+        raise EvidenceError(f"adjudications[{index}] must be a mapping")
+
+    if not rows or row_shapes <= {frozenset(new_fields)}:
+        for i, row in enumerate(rows):
+            if set(row) != new_fields:
+                raise EvidenceError(f"adjudications[{i}] has invalid fields")
+            dispute_id = str(row["dispute_id"])
+            if dispute_id not in by_id:
+                raise EvidenceError(f"adjudications[{i}] has unknown dispute_id {dispute_id!r}")
+            if dispute_id in answers:
+                raise EvidenceError(f"adjudications[{i}] duplicates dispute_id {dispute_id!r}")
+            _validate_adjudication_decision(row, index=i)
+            answers[dispute_id] = row
+    elif row_shapes <= {frozenset(legacy_fields)}:
+        # Backward-compatible read path for adjudication artifacts produced by
+        # earlier devel revisions. Identity/order are still canonicalised here.
+        for i, row in enumerate(rows):
+            if set(row) != legacy_fields:
+                raise EvidenceError(f"adjudications[{i}] has invalid fields")
+            pair = (row.get("evidence_id"), row.get("card_tag"))
+            dispute = by_pair.get(pair)
+            if dispute is None:
+                raise EvidenceError(f"adjudications[{i}] has unknown evidence/card pair {pair!r}")
+            dispute_id = dispute["dispute_id"]
+            if dispute_id in answers:
+                raise EvidenceError(f"adjudications[{i}] duplicates evidence/card pair {pair!r}")
+            _validate_adjudication_decision(row, index=i)
+            answers[dispute_id] = row
+    else:
+        raise EvidenceError("adjudication rows must use one consistent model or legacy field shape")
+
+    missing = [row["dispute_id"] for row in canonical_disputes if row["dispute_id"] not in answers]
+    if missing:
+        raise EvidenceError(f"adjudication is missing dispute_id(s): {missing}")
+
+    canonical_rows = []
+    for dispute in canonical_disputes:
+        answer = answers[dispute["dispute_id"]]
+        canonical_rows.append({
+            "evidence_id": dispute.get("evidence_id"),
+            "card_tag": dispute.get("card_tag"),
+            "decision": answer["decision"],
+            "reason": answer["reason"],
+        })
+
+    # Mutate the parsed object so every existing consumer sees the deterministic
+    # full-row representation without needing workflow-specific glue code.
+    doc.clear()
+    doc["adjudications"] = canonical_rows
     return doc
