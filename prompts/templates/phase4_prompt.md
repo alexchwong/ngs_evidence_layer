@@ -62,7 +62,7 @@ Propose one concise human-readable nickname from metadata/title, preferably an e
 Ask the user to confirm or replace it. `FINALIZE` confirms the most recently proposed nickname if no replacement was supplied. A Phase 2R handoff does not finalize the nickname; retain the current proposed/user-supplied value in conversation for when Phase 4 resumes.
 ### Failed-card adjudication
 
-Direct Phase 4 card adjudication is limited to cards the active Phase 3 review marked `fail`.
+Direct Phase 4 **semantic card adjudication** is limited to cards the active Phase 3 review marked `fail`. This restriction does **not** apply to evidence-only source-fidelity repair required because deterministic verbatim validation against `paper.md` failed.
 
 For each failed card show:
 1. exact `card_id`;
@@ -74,9 +74,21 @@ For each failed card show:
 Phase 4 may directly `retain`, `modify`, `delete`, or, when resolving a failed card by split/replacement, `add` replacement cards. Every direct decision must be explicitly supplied or approved by the user. Suggestions are never decisions.
 For every direct `modify` or `add`, the Phase 4 decision ledger must contain the complete revised card and complete paired evidence **alongside** the user's `decision` and concise `user_instruction`. A `delete` or `retain` decision records the user instruction but no replacement card/evidence. A direct Phase 4 `add` must also record `related_card_id` identifying the Phase 3-failed card whose adjudication requires the replacement/addition.
 Evidence repair of a Phase 3-failed card belongs in that direct Phase 4 `modify` or replacement/split decision. Do not encode a failed-card evidence repair as a `phase2r_request`.
+
+### Evidence-only verbatim repair exception
+
+If deterministic validation reports that an evidence fragment is not a verbatim/source-faithful match to `paper.md`, Phase 4 may repair that evidence directly **regardless of whether Phase 3 marked the card `pass` or `fail`**. This is an evidence-only source-fidelity repair, not semantic card adjudication and not Phase 2R work.
+
+For this exception:
+- preserve the card fields and interpretation unchanged;
+- change only the minimum evidence fields required to replace the defective fragment(s) with source-verbatim text from `paper.md` and keep the evidence bundle internally valid;
+- rerun the deterministic source gate after the repair; and
+- do not send the card through Phase 2R or another Phase 3 cycle solely because its evidence failed verbatim validation.
+
+The repaired evidence must still support the existing interpretation. If no source-verbatim evidence can support that interpretation without changing its clinical meaning, the problem is substantive rather than source-fidelity-only: use normal Phase 4 adjudication for a Phase 3-failed card, or Phase 2R for a Phase 3-passed card.
 ### Passed cards and Phase 2R
 
-A card that Phase 3 passed is not directly editable in Phase 4. If the user wants to modify or delete a passed card, or add a new card unrelated to resolution of a Phase 3 failure, route the request through **Phase 2R**.
+A card that Phase 3 passed is not directly editable in Phase 4 **except for the evidence-only verbatim repair exception above**. If the user wants to modify or delete a passed card, change its interpretation or other semantic fields, or add a new card unrelated to resolution of a Phase 3 failure, route the request through **Phase 2R**.
 A Phase 2R request must never target a card the active Phase 3 review marked `fail`. Phase 2R remains reserved for passed-card changes and genuinely unrelated additions; it is not a repair path for a failed card merely because the failed content originated in Phase 2.
 
 Phase 4 must not refuse such a request and must not require finalization/acceptance first. Discuss the requested change sufficiently to capture the user's intent, then ask the user to send `PHASE2R` on its own line when ready for handoff.
@@ -134,8 +146,8 @@ For final `audit.results`, include exactly one pass entry for every resulting ca
 Do not record the user's discussion on cards. The separate Phase 4 decision ledger preserves the authorization record.
 ## Step 3 — apply agreed decisions and deterministic output gate
 Construct the requested output only from the current validated inputs and the user's explicit decisions. Before running the deterministic gate, ensure the candidate reflects these required invariants:
-- every direct Phase 4 card decision concerns a Phase 3-failed card, except replacement `add` operations that resolve such a failure;
-- no Phase 3-passed card is directly changed in Phase 4; requested changes to passed cards/new unrelated cards appear only as Phase 2R requests;
+- every direct Phase 4 **semantic** card decision concerns a Phase 3-failed card, except replacement `add` operations that resolve such a failure;
+- a Phase 3-passed card may differ only through the evidence-only verbatim repair exception above; its card fields and interpretation must remain unchanged; all other requested changes to passed cards/new unrelated cards appear only as Phase 2R requests;
 - no `phase2r_request` targets a card the active Phase 3 review marked `fail`;
 - every direct add/modify decision contains the complete revised card/evidence alongside the explicit user decision/instruction;
 - no final card/evidence difference exists without an authorized ledger decision;
@@ -173,5 +185,5 @@ python validation_bundle/scripts/phase_validation/phase4.py \
   [--phase2r-decisions <matching-phase2r-decisions-file>] \
   --final paper.final.json
 ```
-A non-zero exit means the product is invalid. In particular, validation must reject every unapproved card addition, modification, deletion, or evidence change. A source-fidelity failure in evidence authored or changed by an authorised Phase 4 decision is a Phase 4 output-boundary defect: repair that evidence directly against `paper.md` within the user's already-agreed substantive decision and rerun. Do not send the failed card to Phase 2R or Phase 3 merely because an earlier version originated in Phase 2. Repair only within the user's already-agreed decisions and rerun. If repair requires a new substantive decision, resume Step 2 interactivity and obtain explicit approval first.
+A non-zero exit means the product is invalid. In particular, validation must reject every unapproved substantive card addition, modification, deletion, or evidence change. A source-fidelity failure against `paper.md` is a Phase 4 output-boundary defect even when Phase 3 passed that card: repair only the defective evidence directly against `paper.md`, preserve the card fields and interpretation unchanged, and rerun. This evidence-only verbatim repair does not require Phase 2R or another Phase 3 cycle. If the available source-verbatim evidence cannot support the existing interpretation without a substantive change, stop treating it as an evidence-only repair and use the normal Phase 4/Phase 2R semantic-change rules above.
 The final action before returning `paper.final.json` must be a successful run of this validator on the exact finalized decision ledger and final package. Do not edit `paper.final.json` after the successful run. Do not edit the decision ledger after the successful run. Return exactly the Phase 4 decision ledger and `paper.final.json`.

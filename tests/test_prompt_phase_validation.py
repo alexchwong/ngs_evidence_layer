@@ -84,3 +84,14 @@ def test_phase4_owns_source_failures_for_phase4_authored_evidence():
     assert "--source paper.md" in rendered
     assert "Phase 4 output-boundary defect" in rendered
     assert "Do not send the failed card to Phase 2R or Phase 3" in rendered
+
+
+def test_phase4_allows_evidence_only_verbatim_repair_on_passed_cards():
+    rendered = build_prompts.render(4)
+    assert "Direct Phase 4 **semantic card adjudication** is limited" in rendered
+    assert "evidence-only source-fidelity repair" in rendered
+    assert "regardless of whether Phase 3 marked the card `pass` or `fail`" in rendered
+    assert "except for the evidence-only verbatim repair exception above" in rendered
+    assert "preserve the card fields and interpretation unchanged" in rendered
+    assert "does not require Phase 2R or another Phase 3 cycle" in rendered
+    assert "Direct Phase 4 card adjudication is limited to cards the active Phase 3 review marked `fail`." not in rendered
