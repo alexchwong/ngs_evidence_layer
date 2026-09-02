@@ -11,7 +11,6 @@ PHASE_MARKERS = {
     4: "PHASE4_VALIDATION_BUNDLE",
 }
 
-
 def test_only_phases_with_validators_embed_phase_specific_markers():
     for phase, marker in PHASE_MARKERS.items():
         template = (
@@ -22,7 +21,6 @@ def test_only_phases_with_validators_embed_phase_specific_markers():
         template = path.read_text(encoding="utf-8")
         assert "_VALIDATION_BUNDLE}}" not in template
 
-
 def test_validation_bundles_match_workflow_boundaries():
     phase1 = build_prompts.render(1)
     phase2 = build_prompts.render(2)
@@ -32,7 +30,6 @@ def test_validation_bundles_match_workflow_boundaries():
     validator2 = (ROOT / "scripts" / "phase_validation" / "phase2.py").read_text(encoding="utf-8").rstrip()
     validator2_state = (ROOT / "scripts" / "phase_validation" / "phase2_state.py").read_text(encoding="utf-8").rstrip()
     validator4 = (ROOT / "scripts" / "phase_validation" / "phase4.py").read_text(encoding="utf-8").rstrip()
-
     assert validator1 in phase1
     assert validator2 not in phase1
     assert validator4 not in phase1
@@ -45,7 +42,6 @@ def test_validation_bundles_match_workflow_boundaries():
     assert validator4 not in phase2
 
     assert "<!-- BEGIN VERBATIM scripts/phase_validation/" not in phase3
-
     assert validator4 in phase4
     assert validator1 not in phase4
     assert validator2 not in phase4
@@ -59,3 +55,32 @@ def test_phase4_entry_validates_phase3_product_with_phase4_validator():
     assert (
         "validation_bundle/scripts/phase_validation/phase4.py --review-only" in entry
     )
+
+
+def test_phase2_output_boundary_validates_evidence_against_paper():
+    rendered = build_prompts.render(2)
+    assert "--source paper.md" in rendered
+    assert "final action" in rendered.lower()
+    assert "successful" in rendered.lower()
+
+
+def test_phase4_failed_card_evidence_repairs_stay_in_phase4():
+    rendered = build_prompts.render(4)
+    assert (
+        "The fact that the defective evidence originated in Phase 2 does not make the repair Phase 2R work"
+        in rendered
+    )
+    assert (
+        "A Phase 2R request must never target a card the active Phase 3 review marked `fail`"
+        in rendered
+    )
+    assert (
+        "Do not encode a failed-card evidence repair as a `phase2r_request`" in rendered
+    )
+
+
+def test_phase4_owns_source_failures_for_phase4_authored_evidence():
+    rendered = build_prompts.render(4)
+    assert "--source paper.md" in rendered
+    assert "Phase 4 output-boundary defect" in rendered
+    assert "Do not send the failed card to Phase 2R or Phase 3" in rendered
