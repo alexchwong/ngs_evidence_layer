@@ -112,6 +112,14 @@ class RunInventoryTests(unittest.TestCase):
     def _run(self, root: Path, pipeline: str) -> Path:
         run = root / "run"
         run.mkdir()
+        nel.run_layout.write_run_manifest(
+            run,
+            run_id="run",
+            workflow="terraced-v6",
+            mode="ngs-report",
+            pipeline=pipeline,
+            created_at="2026-01-01T00:00:00+00:00",
+        )
         (run / "case.md").write_text("case\n", encoding="utf-8")
         (run / "workflow.json").write_text(
             json.dumps({

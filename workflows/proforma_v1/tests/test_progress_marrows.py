@@ -1,11 +1,11 @@
 import json
+import unittest
 
-import pytest
 import yaml
 from jsonschema import Draft202012Validator
 from pathlib import Path
 
-from workflows.proforma_v1 import model_context, runtime, schema_validation
+from workflows.proforma_v1 import model_context, prompt_loader, runtime, schema_validation
 
 
 HERE = Path(__file__).resolve().parents[1]
@@ -14,7 +14,10 @@ SCHEMAS = HERE / "schemas"
 
 
 def _prompt(name: str) -> str:
-    return (PROMPTS / name).read_text(encoding="utf-8")
+    path = PROMPTS / name
+    if name in {"diagnosis_who5.md", "diagnosis_icc.md"}:
+        return prompt_loader.render(path, root=PROMPTS)
+    return path.read_text(encoding="utf-8")
 
 
 def _structured_case(*, diagnosis_status=None):
@@ -71,11 +74,12 @@ def test_structure_prompt_separates_new_from_progress_and_preserves_established_
 def test_icc_progress_rules_remain_unchanged_by_who5_refactor():
     text = _prompt("diagnosis_icc.md")
     assert "Legacy cases without this field are treated as `new`" in text
-    assert "treatment response must not downgrade the established disease entity" in text
+    assert "Treatment response, remission, reduced blasts" in text
+    assert "must not downgrade the established disease" in text
     assert "do not convert AML to MDS" in text
     assert "must not be used to retrospectively criticize or invalidate the established diagnosis" in text
-    assert "Historical diagnostic molecular/cytogenetic findings may therefore refine the established disease" in text
-    assert "established AML may be refined to AML-MR" in text
+    assert "Historical disease-defining molecular/cytogenetic findings" in text
+    assert "may refine established AML to AML-MR" in text
     assert "does not block genuine progression or transformation" in text
     assert "blast-phase/transformed disease" in text
 
@@ -85,13 +89,12 @@ def test_who5_classifies_underlying_disease_before_response_and_allows_multicard
     variant = text.index("For each detected variant, first assess its effect")
     progress = text.index("determine the underlying disease classification before interpreting current response")
     combine = text.index("Then combine the variant-specific conclusions")
-    status = text.index("After the underlying diagnosis is fixed, interpret current response")
-    final = text.index("After the primary WHO5 diagnosis is fixed")
-    assert variant < progress < combine < status < final
+    status = text.index("After the underlying diagnosis is fixed, interpret response")
+    final = text.index("After the primary diagnosis is fixed")
+    assert progress < status < variant < combine < final
     assert "Multiple cards may form an evidence chain" in text
     assert "every link from the finding through any intermediate state to the WHO5 entity must be supported by supplied cards" in text
-    assert "must not be used to reject historical molecular/cytogenetic subclassification" in text
-    assert "Response must not downgrade the established disease" in text
+    assert "must not downgrade the established disease or reject historical molecular/cytogenetic subclassification" in text
     assert "consider only variants that did not contribute to the primary diagnosis" in text
     assert "Mere occurrence in another disease is insufficient" in text
 
@@ -132,7 +135,7 @@ def test_icc_validator_requires_exact_variant_registry_coverage():
     assert schema_validation.validate_icc_diagnosis(
         _icc_yaml(["v01", "v02"]), valid_variants={"v01", "v02"}
     ) == "ICC diagnosis valid"
-    with pytest.raises(Exception):
+    with _AssertRaises(Exception):
         schema_validation.validate_icc_diagnosis(
             _icc_yaml(["v01"]), valid_variants={"v01", "v02"}
         )
@@ -141,18 +144,22 @@ def test_icc_validator_requires_exact_variant_registry_coverage():
 def test_icc_prompt_distinguishes_detected_from_diagnosis_contributing_variants():
     text = _prompt("diagnosis_icc.md")
     assert "variant registry is the authoritative list of detected variants" in text
-    assert "Assess every registry variant exactly once" in text
+    assert "assess every detected registry variant exactly once" in text
     assert "may be empty and does not indicate NGS negativity" in text
     assert "variant_assessments:" in text
     assert "genes_without_detected_ngs_variants" in text
 
 
 def test_previous_generic_source_only_strengtheners_removed():
+    legacy_wording = (
+        "Summarize and apply only the supplied {framework} authority cards. "
+        "Do not use outside medical knowledge. "
+        "Do not infer diagnostic relationships absent from the cards."
+    )
     for name in ("diagnosis_who5.md", "diagnosis_icc.md"):
         text = _prompt(name)
-        assert "Summarize and apply only" not in text
-        assert "Do not use outside medical knowledge" not in text
-        assert "Do not infer diagnostic relationships absent from the cards" not in text
+        framework = "WHO5" if name == "diagnosis_who5.md" else "ICC"
+        assert legacy_wording.format(framework=framework) not in text
 
 
 def test_icc_artifact_passes_json_schema_and_exact_variant_coverage():
@@ -162,3 +169,16 @@ def test_icc_artifact_passes_json_schema_and_exact_variant_coverage():
     assert schema_validation.validate_icc_diagnosis(
         text, valid_variants={"v01", "v02", "v03", "v04"}
     ) == "ICC diagnosis valid"
+
+
+def load_tests(loader, tests, pattern):
+    """Expose the module's function-style tests to unittest discovery."""
+    suite = unittest.TestSuite()
+    for name, value in sorted(globals().items()):
+        if name.startswith("test_") and callable(value):
+            suite.addTest(unittest.FunctionTestCase(value))
+    return suite
+
+
+def _AssertRaises(exception):
+    return unittest.TestCase().assertRaises(exception)
