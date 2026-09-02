@@ -6,13 +6,13 @@ YAMLs without duplicating workflow execution logic in the UI.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlparse
-
 from ui import batch_server as batch
 base = batch.base
 _BATCH_BOOTSTRAP = batch.bootstrap
@@ -20,6 +20,7 @@ _BATCH_LIST_PIPELINES = batch.list_pipelines
 WORKFLOW_DIR = base.ROOT / "workflows" / "proforma_v1" / "workflow"
 DEFAULT_WORKFLOW = "default"
 OPENROUTER_MODELS_PATH = base.ROOT / "config" / "openrouter_models.json"
+MODEL_ACTIVITY_DIR = base.ROOT / ".nel-ui" / "activity"
 OPENROUTER_CATEGORIES = {
     "Fast / Cheap",
     "High Quality",
@@ -27,7 +28,19 @@ OPENROUTER_CATEGORIES = {
 }
 
 PROVIDER_CLASSES = {"lmstudio", "openrouter", "other"}
+REASONING_LEVELS = ("default", "none", "minimal", "low", "medium", "high", "xhigh")
+LMSTUDIO_REASONING_LEVELS = ("default", "low", "medium", "high")
+LMSTUDIO_MIN_VERSION = "0.3.29"
 
+_BASE_CHILD_ENV = base.child_env
+def _ui_child_env() -> dict[str, str]:
+    """Opt UI-launched provider processes into transient live streaming."""
+    env = _BASE_CHILD_ENV()
+    env["NEL_MODEL_STREAM"] = "1"
+    env["NEL_MODEL_ACTIVITY_DIR"] = str(MODEL_ACTIVITY_DIR)
+    return env
+
+base.child_env = _ui_child_env
 
 def _infer_provider_class(name: str, doc: dict[str, Any] | None = None, base_url: str = "") -> str:
     """Return the UI provider class without requiring a profile migration."""
@@ -50,7 +63,6 @@ def _infer_provider_class(name: str, doc: dict[str, Any] | None = None, base_url
         return "lmstudio"
     return "other"
 
-
 def list_pipelines() -> list[dict[str, Any]]:
     """Annotate existing profiles with a provider class for UI filtering."""
     rows = _BATCH_LIST_PIPELINES()
@@ -69,16 +81,62 @@ def list_pipelines() -> list[dict[str, Any]]:
         )
     return rows
 
+def _apply_role_reasoning(doc: dict[str, Any], payload: dict[str, Any]) -> None:
+    """Copy optional UI reasoning settings into model_roles after base composition."""
+    roles_in = payload.get("roles") or {}
+    roles_doc = doc.get("model_roles") or {}
+    if not isinstance(roles_in, dict) or not isinstance(roles_doc, dict):
+        return
+    for role, target in roles_doc.items():
+        if not isinstance(target, dict):
+            continue
+        source = roles_in.get(role) or {}
+        if not isinstance(source, dict):
+            continue
+        effort = str(source.get("reasoning") or "default").strip().lower()
+        if effort not in REASONING_LEVELS:
+            raise base.UIError(
+                f"role {role} reasoning must be one of: {', '.join(REASONING_LEVELS)}"
+            )
+        target["reasoning"] = effort
+
+
+def _validate_provider_reasoning(doc: dict[str, Any], provider_class: str) -> None:
+    rows = doc.get("model_roles") or {}
+    if not isinstance(rows, dict):
+        return
+    for role, row in rows.items():
+        if not isinstance(row, dict):
+            continue
+        effort = str(row.get("reasoning") or "default").strip().lower()
+        if provider_class == "openrouter":
+            allowed = REASONING_LEVELS
+        elif provider_class == "lmstudio":
+            allowed = LMSTUDIO_REASONING_LEVELS
+        else:
+            allowed = ("default",)
+        if effort not in allowed:
+            if provider_class == "lmstudio":
+                raise base.UIError(
+                    f"role {role} reasoning {effort!r} is not supported for LM Studio; "
+                    f"choose one of: {', '.join(allowed)}. "
+                    f"NEL supports LM Studio {LMSTUDIO_MIN_VERSION}+ via /v1/responses."
+                )
+            raise base.UIError(
+                f"role {role} reasoning must be Default for provider class {provider_class}"
+            )
+
 
 def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
-    """Save a profile with explicit provider-class metadata when edited in the UI."""
+    """Save a profile with provider class and optional per-role reasoning effort."""
     name, doc = base.compose_pipeline(payload)
+    _apply_role_reasoning(doc, payload)
     requested = str(payload.get("provider_class") or "").strip().lower()
     provider_class = requested if requested in PROVIDER_CLASSES else _infer_provider_class(name, doc)
+    _validate_provider_reasoning(doc, provider_class)
     pipeline_meta = doc.setdefault("pipeline", {})
     if isinstance(pipeline_meta, dict):
         pipeline_meta["provider_class"] = provider_class
-
     # Preserve batch execution policy just as batch_server.save_pipeline does.
     try:
         existing = base.read_pipeline(name)
@@ -89,11 +147,8 @@ def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
         doc["execution"] = {"max_parallel_cases": execution["max_parallel_cases"]}
     else:
         doc["execution"] = {"max_parallel_cases": batch._execution_limit(doc)}
-
     saved = base.save_pipeline(name, doc, overwrite=bool(payload.get("overwrite")))
     return {"name": name, "path": str(saved), "pipelines": list_pipelines()}
-
-
 
 def workflow_definitions() -> list[dict[str, str]]:
     rows = [
@@ -105,7 +160,6 @@ def workflow_definitions() -> list[dict[str, str]]:
         raise base.UIError(f"no proforma-v1 workflow YAML files found in {WORKFLOW_DIR}", 500)
     return rows
 
-
 def _workflow_name(payload: dict[str, Any]) -> str:
     name = str(payload.get("workflow") or DEFAULT_WORKFLOW).strip()
     available = {row["id"] for row in workflow_definitions()}
@@ -116,14 +170,15 @@ def _workflow_name(payload: dict[str, Any]) -> str:
         )
     return name
 
-
 def bootstrap() -> dict[str, Any]:
     doc = _BATCH_BOOTSTRAP()
     doc["pipelines"] = list_pipelines()
     doc["workflows"] = workflow_definitions()
     doc["default_workflow"] = DEFAULT_WORKFLOW
+    doc["reasoning_levels"] = list(REASONING_LEVELS)
+    doc["lmstudio_reasoning_levels"] = list(LMSTUDIO_REASONING_LEVELS)
+    doc["lmstudio_min_version"] = LMSTUDIO_MIN_VERSION
     return doc
-
 
 def openrouter_models() -> dict[str, Any]:
     try:
@@ -155,11 +210,8 @@ def openrouter_models() -> dict[str, Any]:
         clean.append({"id": model_id, "name": name, "category": category})
     return {"version": int(doc.get("version") or 1), "models": clean}
 
-
-
 def openrouter_model_providers(base_url: str, model: str, api_key_env: str) -> dict[str, Any]:
     """Return provider endpoint slugs available for one OpenRouter model.
-
     OpenRouter routing is model-specific.  The endpoint ``tag`` is the exact
     value accepted by provider.order/only/ignore, including variants such as
     ``deepinfra/turbo``.  Secrets remain server-side.
@@ -243,7 +295,6 @@ def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
     cul = str(payload.get("cul") or "").strip()
     if cul:
         args += ["--cul", cul]
-
     supplied = str(payload.get("run_id") or "").strip()
     run_id = base.check_run_id(supplied) if supplied else base.generated_run_id(label)
     if base.run_dir(run_id).exists():
@@ -283,7 +334,6 @@ def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
             except OSError:
                 pass
         raise
-
 
 def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
     workflow = _workflow_name(payload)
@@ -358,7 +408,6 @@ def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
                 pass
         raise
 
-
 # Handler methods in batch_server resolve these names in the batch_server module.
 batch.list_pipelines = list_pipelines
 batch.bootstrap = bootstrap
@@ -366,10 +415,11 @@ batch.save_pipeline = save_pipeline
 batch.action_setup = action_setup
 
 _PROVIDER_MODELS_SCRIPT = '<script src="/assets/provider-models.js"></script>'
-
+_ROLE_REASONING_SCRIPT = '<script src="/assets/role-reasoning.js"></script>'
+_MODEL_ACTIVITY_SCRIPT = '<script src="/assets/model-activity.js"></script>'
 
 def _serve_page_with_provider_models(self) -> None:
-    """Serve the existing page and append provider/model UI enhancements."""
+    """Serve the existing page and append provider/model and activity UI enhancements."""
     if not batch.secrets.compare_digest(self._param("t"), batch.Handler.token):
         return self._text(
             "This page needs the session address printed in the terminal that started nel.py ui.\n",
@@ -379,17 +429,38 @@ def _serve_page_with_provider_models(self) -> None:
         text = batch.PAGE.read_text(encoding="utf-8")
     except OSError:
         return self._text(f"{batch.PAGE.relative_to(base.ROOT)} is missing\n", 500)
-    if _PROVIDER_MODELS_SCRIPT not in text:
-        text = text.replace("</body>", f"{_PROVIDER_MODELS_SCRIPT}\n</body>", 1)
+    for script in (_PROVIDER_MODELS_SCRIPT, _ROLE_REASONING_SCRIPT, _MODEL_ACTIVITY_SCRIPT):
+        if script not in text:
+            text = text.replace("</body>", f"{script}\n</body>", 1)
     body = text.replace("__NEL_TOKEN__", batch.Handler.token).encode("utf-8")
     self._send(200, "text/html; charset=utf-8", body)
 
-
 batch.Handler._serve_page = _serve_page_with_provider_models
 
-_BATCH_HANDLE = batch.Handler._handle
+def _model_activity_path(run_ref: str) -> Path | None:
+    kind = batch._top_kind(run_ref)
+    if kind not in {"run", "batch-child"}:
+        return None
+    # Resolve the run as a validation/containment check before deriving the
+    # transient session filename. No run path is exposed to the browser.
+    batch._run_location(run_ref)
+    digest = hashlib.sha256(run_ref.encode("utf-8")).hexdigest()
+    return MODEL_ACTIVITY_DIR / f"{digest}.jsonl"
 
+def model_activity(run_ref: str, offset: int) -> dict[str, Any]:
+    path = _model_activity_path(run_ref)
+    if path is None:
+        return {"offset": 0, "text": "", "size": 0}
+    return batch._read_offset(path, offset)
+
+_BATCH_HANDLE = batch.Handler._handle
 def _handle_with_provider_models(self, path: str, method: str) -> Any:
+    if method == "GET" and path == "/api/model-activity":
+        try:
+            offset = int(self._param("offset", "0"))
+        except ValueError:
+            offset = 0
+        return model_activity(self._param("run"), offset)
     if method == "GET" and path == "/api/openrouter-models":
         return openrouter_models()
     if method == "GET" and path == "/api/openrouter-providers":
@@ -402,6 +473,19 @@ def _handle_with_provider_models(self, path: str, method: str) -> Any:
 
 batch.Handler._handle = _handle_with_provider_models
 
+def _clear_model_activity() -> None:
+    """Remove transient provider reasoning/output from the local UI session."""
+    MODEL_ACTIVITY_DIR.mkdir(parents=True, exist_ok=True)
+    for path in MODEL_ACTIVITY_DIR.glob("*.jsonl"):
+        try:
+            path.unlink()
+        except OSError:
+            pass
 
 def serve(port: int = 8765, open_browser: bool = True) -> int:
-    return int(batch.serve(port=port, open_browser=open_browser))
+    # Model reasoning/output is UI-session state, not a run/provenance artifact.
+    _clear_model_activity()
+    try:
+        return int(batch.serve(port=port, open_browser=open_browser))
+    finally:
+        _clear_model_activity()

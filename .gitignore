@@ -16,7 +16,6 @@ venv/
 /temp/
 /evidence/
 /runs/
-
 # Browser interface state: per-run console logs and the transient copy of a
 # pasted clinical case. Both are recreated on demand and neither is a deliverable.
 /.nel-ui/
@@ -33,7 +32,6 @@ venv/
 step2.json
 bundle.json
 block.md
-
 # Workflow-local user configuration. Copy the repository-shipped `.template`
 # files to these paths, then customise the local copies as needed.
 /workflows/categorical_v1/models.json
@@ -41,8 +39,6 @@ block.md
 /workflows/terraced_v1/models.json
 /workflows/terraced_v1/questions.yaml
 /workflows/terraced_v1/settings.json
-
-
 # User-owned public runtime configuration. Shipped pipeline defaults remain tracked;
 # copy one to another filename for machine/provider-specific model choices.
 /config/settings.json

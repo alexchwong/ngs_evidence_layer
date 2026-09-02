@@ -18,6 +18,7 @@ class Binding:
     api_key: str = ""
     timeout_s: float = 900.0
     provider_routing: dict[str, Any] | None = None
+    reasoning: str = "default"
 
     @property
     def profile(self) -> str:
@@ -33,5 +34,6 @@ class Binding:
             return f"{self.role}: pipeline={self.pipeline} provider=self"
         return (
             f"{self.role}: pipeline={self.pipeline} provider={self.kind} model={self.model} "
-            f"base_url={self.base_url} temperature={self.temperature} max_tokens={self.max_tokens}"
+            f"base_url={self.base_url} temperature={self.temperature} max_tokens={self.max_tokens} "
+            f"reasoning={self.reasoning}"
         )

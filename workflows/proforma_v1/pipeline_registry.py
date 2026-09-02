@@ -8,6 +8,7 @@ import yaml
 from workflows.proforma_v1.model_binding import Binding
 HERE=Path(__file__).resolve().parent; ROOT=HERE/'pipelines'
 ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication','report_write','preservation_check','syntax_repair')
+REASONING_LEVELS=('default','none','minimal','low','medium','high','xhigh')
 _PROVIDER_ROUTING_LIST_FIELDS=('order','only','ignore')
 _PROVIDER_ROUTING_BOOL_FIELDS=('allow_fallbacks','require_parameters')
 _PROVIDER_ROUTING_FIELDS=set(_PROVIDER_ROUTING_LIST_FIELDS+_PROVIDER_ROUTING_BOOL_FIELDS)
@@ -24,6 +25,8 @@ def _validate_role_rows(rows:Any,label:str)->None:
     for role,row in rows.items():
         if not isinstance(row,dict) or not isinstance(row.get('model'),str) or not row['model'].strip(): raise ValueError(f'{label}.{role}.model must be non-empty')
         if not isinstance(row.get('max_tokens'),int) or isinstance(row.get('max_tokens'),bool) or row['max_tokens']<=0: raise ValueError(f'{label}.{role}.max_tokens must be positive')
+        reasoning=row.get('reasoning','default')
+        if not isinstance(reasoning,str) or reasoning not in REASONING_LEVELS: raise ValueError(f'{label}.{role}.reasoning must be one of {list(REASONING_LEVELS)}')
 def _validate_provider_routing(value:Any,label:str)->None:
     if not isinstance(value,dict): raise ValueError(f'{label} must be a mapping')
     unknown=set(value)-_PROVIDER_ROUTING_FIELDS
@@ -98,16 +101,17 @@ def _resolved_row(plan:PipelinePlan,role:str)->tuple[dict[str,Any],dict[str,Any]
 def binding(plan:PipelinePlan,role:str)->Binding:
     if role not in ROLES: raise ValueError(f'unknown model role {role!r}')
     provider=plan.doc['provider']; row,provider_routing=_resolved_row(plan,role); kind=provider['type']
-    if kind=='self': return Binding(pipeline=plan.pipeline_id,role=role,kind='self',model='self',temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']))
+    reasoning=str(row.get('reasoning','default'))
+    if kind=='self': return Binding(pipeline=plan.pipeline_id,role=role,kind='self',model='self',temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']),reasoning=reasoning)
     base=str(provider.get('base_url') or ''); env=str(provider.get('base_url_env') or '')
     if env and os.environ.get(env,'').strip(): base=os.environ[env].strip()
     if not base: raise ValueError(f'pipeline {plan.pipeline_id!r} has no provider base_url')
     api_env=str(provider.get('api_key_env') or '')
-    return Binding(pipeline=plan.pipeline_id,role=role,kind='openai-compatible',model=str(row['model']),temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']),base_url=base.rstrip('/'),base_url_env=env,api_key_env=api_env,api_key=os.environ.get(api_env,'') if api_env else '',timeout_s=float(provider.get('timeout_s',900)),provider_routing=provider_routing)
+    return Binding(pipeline=plan.pipeline_id,role=role,kind='openai-compatible',model=str(row['model']),temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']),base_url=base.rstrip('/'),base_url_env=env,api_key_env=api_env,api_key=os.environ.get(api_env,'') if api_env else '',timeout_s=float(provider.get('timeout_s',900)),provider_routing=provider_routing,reasoning=reasoning)
 def describe(plan):
     lines=[f'provider: {plan.doc["provider"]["type"]}','models:']
     for role in ROLES:
         row,routing=_resolved_row(plan,role)
         suffix=f' provider={routing}' if routing else ''
-        lines.append(f'  {role}: {row["model"]} max_tokens={row["max_tokens"]} temperature={row.get("temperature",0)}{suffix}')
+        lines.append(f'  {role}: {row["model"]} max_tokens={row["max_tokens"]} temperature={row.get("temperature",0)} reasoning={row.get("reasoning","default")}{suffix}')
     return lines
