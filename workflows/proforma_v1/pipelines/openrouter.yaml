@@ -1,6 +1,8 @@
 pipeline:
   version: 1
   description: Proforma-v1 OpenRouter pipeline.
+execution:
+  max_parallel_cases: 4
 provider:
   type: openai-compatible
   base_url: https://openrouter.ai/api/v1
@@ -10,7 +12,6 @@ provider:
   api_key_required: true
 model_aliases:
   default: qwen/qwen3-coder-next
-
   # Example: pin a model to a specific OpenRouter provider with no fallback:
   # groq_only:
   #   model: openai/gpt-oss-20b

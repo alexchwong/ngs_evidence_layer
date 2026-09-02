@@ -1,6 +1,8 @@
 pipeline:
   version: 1
   description: Proforma-v1 local LM Studio OpenAI-compatible pipeline.
+execution:
+  max_parallel_cases: 1
 provider:
   type: openai-compatible
   base_url: http://localhost:1234/v1

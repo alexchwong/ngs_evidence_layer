@@ -7,7 +7,7 @@
   "message_sha256": "d25df44c27741df60ce0b14d85625265c7f3c9e89f2cb75a581ff3d0f1de1dec",
   "response_sha256": "94b6e37d9e92f5c6296c563cfd681f7b144c702ec41e0a2a20e8c05dfc07fa7d",
   "context_sha256": "f0f7d3a62a9e62ec15dbaaf20ddf5eb73513aa724d9e932abfb4ad4cfccae6a6",
-  "prompt_sha256": "2d17ac0c2fa1c997a28c4cdf7dadf49ea17a55a31943afa752554e2ad78edbf9",
-  "schema_sha256": "b26be9834963408324ec9e15b018481adb0ab36d2b5d0ebf5697fb46e5cfc64f",
+  "prompt_sha256": "77cb81126fd83599db1ea7c7b525552bc1292d6d9e62c9f253aba063b0cfc392",
+  "schema_sha256": "6697ad02ecebf2edc3cbc4382247dd7114b8935a09b3409f68fe9685e037eac7",
   "stage_spec_sha256": "8c66059a62f4c24fca474623092589eb14f8d3cc4a40da7e520c4425b51ee1e5"
 }
