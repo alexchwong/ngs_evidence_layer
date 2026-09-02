@@ -1,0 +1,4 @@
+- Use the structured case's `diagnosis_status` to determine how to interpret the starting disease context. Legacy cases without this field are treated as `new`.
+- For `new`, use the structured case's provisional morphologic diagnosis as the starting diagnosis and apply the new-diagnosis rules below.
+- For `progress`, the structured case's `provisional_disease` is the established underlying disease context. The current specimen assesses response, persistence, progression, or transformation; it is not a de-novo opportunity to downgrade the established disease.
+- `morphologic_diagnosis_origin` supplies the provenance of the starting diagnosis; do not change that provenance.

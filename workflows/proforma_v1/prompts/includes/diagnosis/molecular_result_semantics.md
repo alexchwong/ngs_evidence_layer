@@ -1,0 +1,5 @@
+- A negative NGS result does not invalidate a supplied morphologic diagnosis. When no NGS variants are detected and no supplied cytogenetic or other molecular abnormality changes the diagnosis, retain the supplied morphologic diagnosis unchanged.
+- Treat supplied cytogenetic, FISH, rearrangement, copy-number, PCR, and other non-NGS molecular abnormalities independently of NGS variant status. When such an abnormality is diagnostically defining or refining under the active classification framework, integrate it into the diagnosis even when `variants` is empty.
+- Use deterministic finite-gene-set membership supplied by core when present.
+- `genes_without_detected_ngs_variants` lists genes without detected SNV, short insertion/deletion, or short-range complex variants within validated NGS assay scope; do not extend that result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
+- Do not claim an unlisted variant satisfies a closed molecular criterion.

@@ -10,6 +10,9 @@
     "variant_assessments"
   ],
   "properties": {
+    "schema_disease": {
+      "const": "no_haematological_malignancy"
+    },
     "diagnosis": {
       "type": "string",
       "minLength": 1
