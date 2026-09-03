@@ -5,6 +5,7 @@
   "required": [
     "provisional_disease",
     "morphologic_diagnosis_origin",
+    "patient_age",
     "bootstrap_cmcs",
     "variants",
     "detected_variants_summary",
@@ -19,13 +20,14 @@
     },
     "diagnosis_status": {
       "type": "string",
-      "enum": [
-        "new",
-        "progress"
-      ]
+      "enum": ["new", "progress"]
     },
-    "detected_variants_summary": {
+    "morphologic_diagnosis_origin": {
       "type": "string",
+      "enum": ["supplied", "inferred"]
+    },
+    "patient_age": {
+      "type": ["string", "null"],
       "minLength": 1
     },
     "bootstrap_cmcs": {
@@ -44,7 +46,9 @@
         "required": [
           "variant_id",
           "gene",
-          "description"
+          "description",
+          "event_type",
+          "vaf"
         ],
         "properties": {
           "variant_id": {
@@ -58,16 +62,32 @@
           "description": {
             "type": "string",
             "minLength": 1
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "sequence_variant",
+              "fusion",
+              "copy_number",
+              "structural_variant",
+              "other",
+              "unknown"
+            ]
+          },
+          "vaf": {
+            "type": ["string", "null"],
+            "minLength": 1
           }
         }
       }
     },
+    "detected_variants_summary": {
+      "type": "string",
+      "minLength": 1
+    },
     "ngs_result_completeness": {
       "type": "string",
-      "enum": [
-        "complete",
-        "incomplete"
-      ]
+      "enum": ["complete", "incomplete"]
     },
     "ngs_no_variants_detected": {
       "type": "array",
@@ -83,11 +103,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "fact_id",
-          "kind",
-          "value"
-        ],
+        "required": ["fact_id", "kind", "value"],
         "properties": {
           "fact_id": {
             "type": "string",
@@ -103,13 +119,6 @@
           }
         }
       }
-    },
-    "morphologic_diagnosis_origin": {
-      "type": "string",
-      "enum": [
-        "supplied",
-        "inferred"
-      ]
     }
   }
 }

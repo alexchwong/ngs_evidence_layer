@@ -12,6 +12,7 @@ WHO5_EXCLUDED_SCHEMA_DISEASES={'MDS/AML'}
 HEADINGS={'**Diagnosis**':'diagnosis','**Prognosis**':'prognosis','**Treatment Implications**':'treatment','**MRD**':'biomarker','**Germline**':'germline'}
 DOMAIN_HEADINGS={v:k for k,v in HEADINGS.items()}
 WHO5_LEGACY_FIELDS=('schema_disease','diagnosis','diagnostic_effect','variants','reason')
+EVENT_TYPES={'sequence_variant','fusion','copy_number','structural_variant','other','unknown'}
 def legacy_who_view(who:dict|None)->dict:
     """Project a WHO model artifact to the pre-variant-assessment workflow contract."""
     row=who or {}
@@ -30,7 +31,6 @@ def concurrent_pathology_from_who(who:dict|None)->list[dict]:
     return out
 def authoritative_who_assessment_source(who1:dict|None,who2:dict|None,who1_commit:dict|None)->dict|None:
     """Return the raw authoritative WHO artifact for non-routing variant assessment use.
-
     A rejected WHO1 routing change falls back to supplied morphology. Its raw WHO1
     interpretation must not create concurrent-pathology report propositions.
     """
@@ -67,7 +67,6 @@ def _type_name(v):
     if isinstance(v,int): return 'integer'
     if isinstance(v,float): return 'number'
     return type(v).__name__
-
 def _preview(v,limit=180):
     text=repr(v); return text if len(text)<=limit else text[:limit-3]+'...'
 def _single_mapping_list(v): return isinstance(v,list) and len(v)==1 and isinstance(v[0],dict)
@@ -109,7 +108,7 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
         safe=_single_mapping_list(d)
         issues.append(ValidationIssue('structured case',f'expected object; received {_type_name(d)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return the required top-level object from the case-structure proforma',repair_class='serialization' if safe else 'content',received=_preview(d),expected='object'))
         d={}
-    case_fields={'provisional_disease','morphologic_diagnosis_origin','bootstrap_cmcs','variants','detected_variants_summary','ngs_result_completeness','ngs_no_variants_detected','case_facts'}
+    case_fields={'provisional_disease','morphologic_diagnosis_origin','patient_age','bootstrap_cmcs','variants','detected_variants_summary','ngs_result_completeness','ngs_no_variants_detected','case_facts'}
     # diagnosis_status was added after existing run artifacts were already in use.
     # Accept its absence for legacy saved cases, but reject every other unexpected field.
     expected=case_fields|({'diagnosis_status'} if 'diagnosis_status' in d else set())
@@ -125,6 +124,10 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
     origin=d.get('morphologic_diagnosis_origin')
     if origin not in {'supplied','inferred'}:
         issues.append(ValidationIssue('morphologic_diagnosis_origin',f'expected supplied or inferred; received {_preview(origin)}','use supplied only when the case explicitly states the morphologic/pathologic diagnosis; otherwise use inferred',repair_class='content',received=_preview(origin),expected="'supplied' or 'inferred'"))
+    age=d.get('patient_age')
+    if age is not None and not _nonempty(age):
+        cls='serialization' if _scalar_string_repairable(age) else 'content'
+        issues.append(ValidationIssue('patient_age',f'expected source-faithful non-empty string or null; received {_type_name(age)}','quote/reserialize the supplied age as one string without changing it' if cls=='serialization' else 'return the explicitly supplied age source-faithfully, or null when age was not supplied',repair_class=cls,received=_preview(age),expected='non-empty string or null'))
     cmcs=d.get('bootstrap_cmcs')
     if not isinstance(cmcs,list):
         safe=isinstance(cmcs,str)
@@ -139,22 +142,29 @@ def validate_case_text(text:str,*,require_gene_prefixed_description:bool=False)-
     variants=d.get('variants')
     if not isinstance(variants,list):
         safe=isinstance(variants,dict)
-        issues.append(ValidationIssue('variants',f'expected list; received {_type_name(variants)}','wrap the existing single variant object in a JSON list without changing it' if safe else 'return every detected variant as a list of variant objects in case order',repair_class='serialization' if safe else 'content',received=_preview(variants),expected='list of variant objects')); variants=[]
+        issues.append(ValidationIssue('variants',f'expected list; received {_type_name(variants)}','wrap the existing single variant object in a JSON list without changing it' if safe else 'return every detected molecular finding as a list of variant objects in case order',repair_class='serialization' if safe else 'content',received=_preview(variants),expected='list of variant objects')); variants=[]
     for i,row in enumerate(variants,1):
         path=f'variants[{i-1}]'
         if not isinstance(row,dict):
             safe=_single_mapping_list(row)
-            issues.append(ValidationIssue(path,f'expected object; received {_type_name(row)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one variant object with variant_id, gene, and description',repair_class='serialization' if safe else 'content',received=_preview(row),expected='object')); continue
-        _exact(issues,row,{'variant_id','gene','description'},path)
+            issues.append(ValidationIssue(path,f'expected object; received {_type_name(row)}','remove the extra one-item list wrapper without changing fields or values' if safe else 'return one variant object with variant_id, gene, description, event_type, and vaf',repair_class='serialization' if safe else 'content',received=_preview(row),expected='object')); continue
+        _exact(issues,row,{'variant_id','gene','description','event_type','vaf'},path)
         if row.get('variant_id')!=f'V{i}': issues.append(ValidationIssue(f'{path}.variant_id',f'received {row.get("variant_id")!r}',f'use sequential stable ID V{i}',repair_class='content'))
         gene=row.get('gene')
         if not _nonempty(gene) or gene!=gene.upper(): issues.append(ValidationIssue(f'{path}.gene',f'invalid gene {gene!r}','use uppercase reported gene symbol',repair_class='content'))
         desc=row.get('description')
         if not _nonempty(desc):
             cls='serialization' if _scalar_string_repairable(desc) else 'content'
-            issues.append(ValidationIssue(f'{path}.description',f'expected non-empty string; received {_type_name(desc)}','quote/reserialize the existing description as one string without changing its words' if cls=='serialization' else 'preserve complete variant description',repair_class=cls,received=_preview(desc),expected='non-empty string'))
+            issues.append(ValidationIssue(f'{path}.description',f'expected non-empty string; received {_type_name(desc)}','quote/reserialize the existing description as one string without changing its words' if cls=='serialization' else 'preserve complete molecular finding description',repair_class=cls,received=_preview(desc),expected='non-empty string'))
         elif require_gene_prefixed_description and isinstance(gene,str) and gene.strip() and not desc.strip().startswith(gene.strip()):
-            issues.append(ValidationIssue(f'{path}.description',f'description does not begin with gene {gene!r}',f'prefix the unchanged detailed variant description with exact gene {gene!r}',repair_class='content',received=_preview(desc),expected=f'{gene} + complete reported variant description'))
+            issues.append(ValidationIssue(f'{path}.description',f'description does not begin with gene {gene!r}',f'prefix the unchanged detailed molecular finding description with exact gene {gene!r}',repair_class='content',received=_preview(desc),expected=f'{gene} + complete reported molecular finding description'))
+        event_type=row.get('event_type')
+        if event_type not in EVENT_TYPES:
+            issues.append(ValidationIssue(f'{path}.event_type',f'expected a closed molecular event type; received {_preview(event_type)}',f'use exactly one of {sorted(EVENT_TYPES)} from the supplied molecular description; use unknown when the case does not permit classification',repair_class='content',received=_preview(event_type),expected=str(sorted(EVENT_TYPES))))
+        vaf=row.get('vaf')
+        if vaf is not None and not _nonempty(vaf):
+            cls='serialization' if _scalar_string_repairable(vaf) else 'content'
+            issues.append(ValidationIssue(f'{path}.vaf',f'expected source-faithful non-empty string or null; received {_type_name(vaf)}','quote/reserialize the supplied VAF as one string without changing it' if cls=='serialization' else 'return the explicitly supplied VAF source-faithfully, or null when VAF was not supplied',repair_class=cls,received=_preview(vaf),expected='non-empty string or null'))
     summary=d.get('detected_variants_summary')
     if not _nonempty(summary):
         cls='serialization' if _scalar_string_repairable(summary) else 'content'
@@ -213,7 +223,6 @@ def materialize_ngs_no_variants_detected(case:dict,panel_scope_text:str)->dict:
     detected={row.get('gene') for row in case.get('variants') or [] if isinstance(row,dict) and isinstance(row.get('gene'),str)}
     case['ngs_no_variants_detected']=[gene for gene in panel if gene not in detected] if case.get('ngs_result_completeness')=='complete' else []
     return case
-
 def case_genes(case:dict)->list[str]:
     out=[]
     for row in case.get('variants') or []:
@@ -232,7 +241,6 @@ def has_cmc_expansion(previous:list[str], proposed:list[str])->bool:
     """Return True only when proposed routing adds a CMC absent from bootstrap."""
     prior=set(previous or [])
     return any(cmc not in prior for cmc in (proposed or []))
-
 def ensure_sentence(text:str)->str:
     text=" ".join(str(text or "").split()).strip()
     if not text:

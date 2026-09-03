@@ -797,7 +797,13 @@ def stage_structure(work,profile,*,prompt_text=None):
     case=runtime.materialize_ngs_no_variants_detected(case,_read(layout.setup(work,'ngs-panel-scope.md')))
     _write(out,json.dumps(case,indent=2,ensure_ascii=False)+'\n')
     runtime.validate_case_text(_read(out),require_gene_prefixed_description=True)
-    reg={f'v{i:02d}':{'variant_id':row['variant_id'],'gene':row['gene'],'description':row['description']} for i,row in enumerate(case.get('variants') or [],1)}
+    reg={f'v{i:02d}':{
+        'variant_id':row['variant_id'],
+        'gene':row['gene'],
+        'description':row['description'],
+        'event_type':row['event_type'],
+        'vaf':row['vaf'],
+    } for i,row in enumerate(case.get('variants') or [],1)}
     _write(_variants_path(work),yaml.safe_dump({'variants':reg},sort_keys=False,allow_unicode=True,width=110)); return case,reg
 
 def stage_corpus(work):
@@ -1088,12 +1094,14 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile,*,prom
     valid=set(reg); disease=diagnosis['who5']['schema_disease']; genes=runtime.case_genes(case); cards=_draw_domain_cards(eligible,domain,genes,[disease]); _log_ptbg_retrieval(work,eligible,domain,genes,disease,cards); tag_by_id=card_identity.tag_by_id(manifest)
     contract=contract_override or domain_contract.contract(domain)
     owner_card_tags=[f"[card:{tag_by_id[c['card_id']]}]" for c in cards]
+    registry_fields=model_context.GERMLINE_REGISTRY_FIELDS if domain=='germline' else model_context.DEFAULT_REGISTRY_FIELDS
+    case_fields=model_context.GERMLINE_CASE_FIELDS if domain=='germline' else model_context.DOMAIN_CASE_FIELDS
     out=_existing_or_new(work,f'{domain}_state','proforma.yaml')
     # The output contract is the final block of the prompt: recency matters
     # disproportionately for a low-active-parameter model.
     prompt=((prompt_text if prompt_text is not None else _prompt(domain))
-        +'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```'
-        +'\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DOMAIN_CASE_FIELDS)+'\n```'
+        +'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg,fields=registry_fields)+'```'
+        +'\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=case_fields)+'\n```'
         +'\n\n# Authoritative framework diagnoses\n```yaml\n'+model_context.diagnosis_context(diagnosis)+'```'
         +'\n\n# Candidate evidence cards\n'+_render_cards(cards,tag_by_id)
         +'\n\n'+domain_contract.skeleton(contract,sorted(reg),registry=reg,applicable_disease=disease))

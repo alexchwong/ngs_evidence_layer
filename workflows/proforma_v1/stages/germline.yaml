@@ -8,6 +8,7 @@ inputs:
   registry: canonical
   case:
   - provisional_disease
+  - patient_age
   - case_facts
   - ngs_result_completeness
   - ngs_no_variants_detected
@@ -34,10 +35,6 @@ rules:
   field: classification
   id_field: variant
   source: registry
-- rule: enum
-  field: classification[].bucket
-  values_from: buckets
-  label: bucket
 transforms:
 - consolidate_parallel_variant_rows
 reportability:
@@ -48,4 +45,6 @@ retries:
   content: 2
   serialization: 3
 guidance:
-- Every conclusion must integrate the molecular result with the supplied clinical context, not the molecular result alone.
+- Determine corpus-bounded germline eligibility before detailed reasoning; do not create eligibility from pretrained knowledge.
+- Every eligible conclusion must complete the event, age, VAF, personal-history, family-history, and phenotype assessments before integration.
+- Missing clinical information is not supportive evidence, and no universal age or VAF threshold is permitted.

@@ -1,5 +1,4 @@
 """Model-facing PTBG contracts and deterministic projection for proforma-v1.
-
 The owner outputs stay variant-centric.  Python injects deterministic identity
 (`applicable_disease` and, where shown, `gene`) and projects the model-facing
 rows into the bucketed internal shape consumed by evidence resolution/reporting.
@@ -14,7 +13,6 @@ import json
 import yaml
 
 from workflows.proforma_v1 import stage_spec
-
 
 _CATEGORY_FIELD = {
     "treatment": "treatment_category",
@@ -32,7 +30,6 @@ class DomainContract:
     multi_row: bool = False
     extra_keys: tuple[str, ...] = ()
     guidance: tuple[str, ...] = field(default_factory=tuple)
-
     @property
     def category_field(self) -> str | None:
         return _CATEGORY_FIELD.get(self.domain)
@@ -50,7 +47,6 @@ def from_spec(spec: stage_spec.StageSpec) -> DomainContract:
         guidance=spec.guidance,
     )
 
-
 def _from_spec(stage: str) -> DomainContract:
     return from_spec(stage_spec.load(stage))
 
@@ -67,11 +63,17 @@ def contract(domain: str) -> DomainContract:
     except KeyError:
         raise ValueError(f"unknown proforma-v1 domain {domain!r}") from None
 
-
 def _gene(registry, vid):
     row = (registry or {}).get(vid) or {}
     return row.get("gene") if isinstance(row, dict) else None
 
+def _event_type(registry, vid):
+    row = (registry or {}).get(vid) or {}
+    return row.get("event_type") if isinstance(row, dict) else None
+
+def _vaf(registry, vid):
+    row = (registry or {}).get(vid) or {}
+    return row.get("vaf") if isinstance(row, dict) else None
 
 def _prognosis_skeleton(variant_ids, registry, disease) -> str:
     lines = [
@@ -116,6 +118,69 @@ def _prognosis_skeleton(variant_ids, registry, disease) -> str:
     lines += ["```"]
     return "\n".join(lines)
 
+def _germline_skeleton(c, variant_ids, registry) -> str:
+    """Render the germline reasoning worksheet with observed source facts prefilled."""
+    lines = [
+        "## Return exactly this YAML for the germline proforma, and nothing else.",
+        "",
+        "## One row per supplied molecular finding, in order. Do not add, remove or reorder rows, and do not change any `variant` value.",
+        "## `gene`, `observed_event_type`, and `observed_vaf` are source identities supplied by the structured case. Do not reinterpret them here.",
+        "## Determine `eligibility` only from the supplied germline evidence cards. Pretrained knowledge cannot create eligibility.",
+        "## Use `assess` only when supplied germline evidence establishes a relevant inherited-predisposition association for the finding's gene and molecular mechanism.",
+        "## Otherwise use `skip_no_predisposition_evidence`, set the detailed worksheet and `bucket` to null, use `evidence_card_tags: []`, and give a concise skip reason.",
+        "## For every `assess` row, complete every worksheet field before assigning the final bucket.",
+        "## Each worksheet status must be one of: supportive, consistent, discordant, not_supplied, not_assessable.",
+        "## Status is directional: supportive increases suspicion; consistent is neutral; discordant weighs against suspicion even when germline predisposition remains possible.",
+        "## The status must agree with its reason. Do not use `consistent` merely because germline predisposition remains possible.",
+        "## Evidence-card assignments must copy supplied owner card tags verbatim, including the complete `[card:...]` wrapper; never emit the bare internal identifier.",
+        "## Missing information is `not_supplied`, never supportive or consistent. Do not apply a universal age or VAF threshold.",
+    ]
+    for line in c.guidance:
+        lines.append(f"## {line}")
+    lines += ["", "```yaml"]
+    if not variant_ids:
+        lines.append("classification: []")
+    else:
+        lines.append("classification:")
+    for vid in variant_ids:
+        gene = _gene(registry, vid) or "<deterministically injected gene>"
+        event_type = _event_type(registry, vid) or "<deterministically injected event type>"
+        observed_vaf = _vaf(registry, vid)
+        vaf_yaml = "null" if observed_vaf is None else json.dumps(str(observed_vaf), ensure_ascii=False)
+        lines += [
+            f"  - variant: {vid}",
+            f"    gene: {gene}",
+            f"    observed_event_type: {event_type}",
+            f"    observed_vaf: {vaf_yaml}",
+            "    eligibility: <assess|skip_no_predisposition_evidence>",
+            "    predisposition_evidence:",
+            "      mechanism: \"<inherited-predisposition mechanism supported by supplied germline evidence>\"",
+            "      evidence_card_tags: [\"<copy an exact supplied owner card tag verbatim, including its [card:...] wrapper>\"]",
+            "    event_compatibility:",
+            "      status: <supportive|consistent|discordant|not_supplied|not_assessable>",
+            "      reason: \"<concise event-compatibility assessment>\"",
+            "    age:",
+            "      status: <supportive|consistent|discordant|not_supplied|not_assessable>",
+            "      reason: \"<concise age assessment>\"",
+            "    vaf:",
+            "      status: <supportive|consistent|discordant|not_supplied|not_assessable>",
+            "      reason: \"<concise VAF assessment>\"",
+            "    personal_history:",
+            "      status: <supportive|consistent|discordant|not_supplied|not_assessable>",
+            "      reason: \"<concise personal-history assessment>\"",
+            "    family_history:",
+            "      status: <supportive|consistent|discordant|not_supplied|not_assessable>",
+            "      reason: \"<concise family-history assessment>\"",
+            "    phenotype:",
+            "      status: <supportive|consistent|discordant|not_supplied|not_assessable>",
+            "      reason: \"<concise phenotype assessment>\"",
+            "    bucket: <germline_suspicious|germline_against|germline_uncertain>",
+            "    reason: \"<one concise integrated germline proposition after completing the worksheet>\"",
+            "    evidence_card_tags: [\"<copy an exact supplied owner card tag verbatim, including its [card:...] wrapper>\"]",
+            "    # For skip_no_predisposition_evidence: set predisposition_evidence, event_compatibility, age, vaf, personal_history, family_history, phenotype, and bucket to null; set evidence_card_tags: [].",
+        ]
+    lines.append("```")
+    return "\n".join(lines)
 
 def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_disease=None) -> str:
     """Render the exact model-facing owner artifact with deterministic identities prefilled."""
@@ -123,6 +188,8 @@ def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_diseas
     disease = applicable_disease or "<authoritative WHO5 schema_disease>"
     if c.domain == "prognosis":
         return _prognosis_skeleton(ordered, registry or {}, disease)
+    if c.domain == "germline":
+        return _germline_skeleton(c, ordered, registry or {})
     category = c.category_field or "bucket"
     choices = "|".join(c.buckets)
     lines = [f"## Return exactly this YAML for the {c.label} proforma, and nothing else.", ""]
@@ -155,9 +222,8 @@ def skeleton(c: DomainContract, variant_ids, *, registry=None, applicable_diseas
     lines.append("```")
     return "\n".join(lines)
 
-
 def normalize_model_output(text: str, c: DomainContract, registry: dict, applicable_disease: str | None):
-    """Inject deterministic disease/gene identity without repairing clinical reasoning.
+    """Inject deterministic disease/source identity without repairing clinical reasoning.
     Returns ``(yaml_text, transform_records)``. Unknown variant IDs are left alone
     so ordinary validation can reject them.
     """
@@ -177,7 +243,7 @@ def normalize_model_output(text: str, c: DomainContract, registry: dict, applica
                 "to": applicable_disease,
             })
         doc["applicable_disease"] = applicable_disease
-    if c.domain in {"prognosis", "treatment", "biomarker"}:
+    if c.domain in {"prognosis", "treatment", "biomarker", "germline"}:
         rows = doc.get("classification")
         if isinstance(rows, list):
             for i, row in enumerate(rows):
@@ -195,6 +261,26 @@ def normalize_model_output(text: str, c: DomainContract, registry: dict, applica
                         "to": gene,
                     })
                 row["gene"] = gene
+                if c.domain == "germline":
+                    event_type = _event_type(registry, vid)
+                    observed_vaf = _vaf(registry, vid)
+                    if event_type is not None and row.get("observed_event_type") != event_type:
+                        records.append({
+                            "transform": "inject_observed_event_type",
+                            "path": f"classification[{i}].observed_event_type",
+                            "from": row.get("observed_event_type"),
+                            "to": event_type,
+                        })
+                    if event_type is not None:
+                        row["observed_event_type"] = event_type
+                    if row.get("observed_vaf") != observed_vaf:
+                        records.append({
+                            "transform": "inject_observed_vaf",
+                            "path": f"classification[{i}].observed_vaf",
+                            "from": row.get("observed_vaf"),
+                            "to": observed_vaf,
+                        })
+                    row["observed_vaf"] = observed_vaf
     if c.domain == "prognosis":
         rows = doc.get("classification")
         if isinstance(rows, list):
@@ -211,7 +297,6 @@ def normalize_model_output(text: str, c: DomainContract, registry: dict, applica
                 row["other_evidence_reason"] = None
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=110), records
 
-
 def validate(text: str, c: DomainContract, context: dict, *, spec=None) -> str:
     from workflows.proforma_v1 import stage_validation, stage_spec as stage_spec_module
     if spec is None:
@@ -219,13 +304,11 @@ def validate(text: str, c: DomainContract, context: dict, *, spec=None) -> str:
     structural = spec.path.resolve().parent == stage_spec_module.STAGE_ROOT.resolve()
     return stage_validation.validate_spec(spec,text,context,structural=structural)
 
-
 def _base_entry(row):
     entry = {"variants": [row.get("variant")], "reason": row.get("reason"), "evidence_card_tags": list(row.get("evidence_card_tags") or [])}
     if row.get("gene"):
         entry["gene"] = row.get("gene")
     return entry
-
 
 def pivot(doc: dict, c: DomainContract) -> dict:
     """Project model-facing variant rows into the stable internal bucket shape."""
@@ -287,7 +370,6 @@ def pivot(doc: dict, c: DomainContract) -> dict:
     for key in c.extra_keys:
         out[key] = doc.get(key)
     return out
-
 
 def render_pivoted(doc: dict, c: DomainContract) -> str:
     return yaml.safe_dump(pivot(doc, c), sort_keys=False, allow_unicode=True, width=110)
