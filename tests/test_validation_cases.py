@@ -1,9 +1,11 @@
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import load_registry, load_workflow_metadata
+from validation.scripts.package_marking import package_marking_bundle
 from validation.scripts.bundled_cases import (
     bundled_modes,
     case_source_path,
@@ -22,7 +24,14 @@ class BundledCaseRegistryTests(unittest.TestCase):
     def test_expected_public_suites_are_registered(self):
         self.assertEqual(
             set(bundled_modes()),
-            {"nel-demo", "nel-validate", "nel-validate-function", "nel-validate-brief", "nel-validate-dual"},
+            {
+                "nel-demo",
+                "nel-validate",
+                "nel-validate-function",
+                "nel-validate-brief",
+                "nel-validate-dual",
+                "nel-validate-dublin",
+            },
         )
         self.assertTrue(is_validation_mode("nel-validate"))
         self.assertFalse(is_validation_mode("nel-demo"))
@@ -30,6 +39,13 @@ class BundledCaseRegistryTests(unittest.TestCase):
     def test_dual_suite_has_six_standalone_cases(self):
         self.assertEqual(list_case_ids("nel-validate-dual"), ("1", "2", "3", "4", "5", "6"))
         self.assertEqual(case_source_path("nel-validate-dual"), ROOT / "validation" / "validate_dual.md")
+
+    def test_dublin_suite_has_ten_standalone_cases(self):
+        self.assertEqual(list_case_ids("nel-validate-dublin"), tuple(str(number) for number in range(1, 11)))
+        self.assertEqual(
+            case_source_path("nel-validate-dublin"),
+            ROOT / "validation" / "validation_dublin.md",
+        )
 
     def test_demo_is_one_file_with_six_cases_and_marking_criteria(self):
         self.assertEqual(list_case_ids("nel-demo"), ("1", "2", "3", "4", "5", "6"))
@@ -66,6 +82,8 @@ class BundledCaseRegistryTests(unittest.TestCase):
     def test_standalone_suite_rejects_variant_selector(self):
         with self.assertRaises(KeyError):
             retrieve_case_input("nel-validate-brief", "8A")
+        with self.assertRaises(KeyError):
+            retrieve_case_input("nel-validate-dublin", "1A")
 
     def test_marking_bundle_names_are_centralised(self):
         self.assertEqual(marking_bundle_filename("nel-validate", "1A"), "nel-validation-1A.zip")
@@ -81,8 +99,29 @@ class BundledCaseRegistryTests(unittest.TestCase):
             marking_bundle_filename("nel-validate-dual", "1"),
             "nel-validation-dual-1.zip",
         )
+        self.assertEqual(
+            marking_bundle_filename("nel-validate-dublin", "1"),
+            "nel-validation-dublin-1.zip",
+        )
         with self.assertRaises(ValueError):
             marking_bundle_filename("nel-demo", "1")
+
+    def test_dublin_marking_bundle_uses_registered_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "report-final.md"
+            report.write_text("# Report\n", encoding="utf-8")
+            output = package_marking_bundle("nel-validate-dublin", "1", report)
+            self.assertEqual(output.name, "nel-validation-dublin-1.zip")
+            with zipfile.ZipFile(output) as archive:
+                self.assertEqual(
+                    archive.namelist(),
+                    ["marking-prompt.md", "validation-case.md", "report-final.md"],
+                )
+                case = archive.read("validation-case.md").decode("utf-8")
+                prompt = archive.read("marking-prompt.md").decode("utf-8")
+            self.assertIn("FLT3-ITD", case)
+            self.assertNotIn("Marking criteria", case)
+            self.assertIn("familial platelet disorder", prompt)
 
     def test_demo_marking_materialisation_requires_completed_report(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -131,6 +170,7 @@ class WorkflowBundledCaseRegressionTests(unittest.TestCase):
                 "nel-validate-function": "1H",
                 "nel-validate-brief": "8",
                 "nel-validate-dual": "1",
+                "nel-validate-dublin": "1",
             }
             for mode, selector in validation_examples.items():
                 if mode in supported:
@@ -148,6 +188,17 @@ class WorkflowBundledCaseRegressionTests(unittest.TestCase):
             else:
                 self.assertNotIn("nel-validate-dual", supported, workflow_id)
 
+    def test_dublin_validation_is_supported_by_proforma_and_terraced_v6(self):
+        registry = load_registry()
+        supporting = set()
+        for workflow_id, row in registry["workflows"].items():
+            if not row.get("enabled", True):
+                continue
+            supported = set(load_workflow_metadata(workflow_id, registry).get("supported_modes") or [])
+            if "nel-validate-dublin" in supported:
+                supporting.add(workflow_id)
+        self.assertEqual(supporting, {"proforma-v1", "terraced-v6"})
+
     def test_workflow_code_and_docs_have_no_bundled_asset_sources_or_legacy_registry_constants(self):
         forbidden = (
             "VALIDATION_CASE_FILES",
@@ -161,6 +212,7 @@ class WorkflowBundledCaseRegressionTests(unittest.TestCase):
             "case_functional.md",
             "validation_brief.md",
             "validate_dual.md",
+            "validation_dublin.md",
             "from validation.cases",
             "validation.package_marking",
         )

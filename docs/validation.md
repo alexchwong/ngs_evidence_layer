@@ -50,3 +50,19 @@ Example:
 python nel.py setup --mode nel-validate-dual --case-id 1 --run-id dual-1
 python nel.py run --run-id dual-1
 ```
+
+## Dublin molecular-haematology validation
+
+`nel-validate-dublin` uses `validation/validation_dublin.md` and contains cases `1` through `10`. It covers diagnostic integration and refinement, concurrent diagnoses, prognosis, therapy, MRD, germline predisposition, and disease-specific molecular prognostic frameworks.
+
+The suite is available in both the canonical `proforma-v1` workflow and legacy `terraced-v6`:
+
+```bash
+python nel.py setup --mode nel-validate-dublin --case-id 1 --run-id dublin-1
+python nel.py run --run-id dublin-1
+
+python nel.py setup --legacy --mode nel-validate-dublin --case-id 1 --run-id legacy-dublin-1
+python nel.py run --run-id legacy-dublin-1
+```
+
+Only clinical information is supplied during report generation. The task and case-specific marking criteria remain evaluator-only until `report-final.md` is complete.

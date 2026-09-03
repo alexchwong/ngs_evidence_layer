@@ -37,6 +37,8 @@ A clean run therefore uses seven routine model passes; evidence disagreement add
 
 Set up the run with `self.py setup` using the same modes as staged v6. For an interactive `ngs-report`, first place the user's case verbatim in a temporary case file and pass it with `--case-file`.
 
+For Dublin validation case `N`, use `python workflows/terraced_v6/self.py setup --mode nel-validate-dublin --case-id N`. The root facade equivalent is `python nel.py setup --legacy --mode nel-validate-dublin --case-id N`.
+
 Choose the setup work-location argument once:
 
 - supplied directory: `--work-dir <supplied-directory>`;

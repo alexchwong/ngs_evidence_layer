@@ -151,6 +151,7 @@ def _bundled_suites() -> list[dict[str, Any]]:
         "nel-validate-function": "Validation — function",
         "nel-validate-brief": "Validation — brief",
         "nel-validate-dual": "Validation — dual pathology",
+        "nel-validate-dublin": "Validation — Dublin",
     }
     for mode, cases in base.validation_cases().items():
         rows.append({"mode": mode, "label": labels.get(mode, mode), "cases": list(cases)})

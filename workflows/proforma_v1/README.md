@@ -56,6 +56,7 @@ Canonical root setup supports:
 - `nel-validate-function`
 - `nel-validate-brief`
 - `nel-validate-dual`
+- `nel-validate-dublin`
 
 For example:
 
@@ -65,6 +66,9 @@ python nel.py run --run-id brief-1
 
 python nel.py setup --mode nel-validate-dual --case-id 1 --pipeline lmstudio --run-id dual-1
 python nel.py run --run-id dual-1
+
+python nel.py setup --mode nel-validate-dublin --case-id 1 --pipeline lmstudio --run-id dublin-1
+python nel.py run --run-id dublin-1
 ```
 
 ## Canonical configuration ownership

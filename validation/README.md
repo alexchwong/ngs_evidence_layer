@@ -7,12 +7,13 @@ Bundled demo and validation cases are centralised under this folder.
 - `case_functional.md` — function-targeted suite used by `nel-validate-function`.
 - `validation_brief.md` — consolidated regression suite used by `nel-validate-brief`.
 - `validate_dual.md` — six-case dual-pathology suite used by `nel-validate-dual`.
+- `validation_dublin.md` — ten-case molecular-haematology suite used by `nel-validate-dublin`.
 - `case_functional_manifest.md` — evaluator/developer-only index; never a runtime model input.
 - `mark_validation_report.md` — template used for external validation marking bundles.
 - `scripts/bundled_cases.py` — single source of truth for public mode → suite mapping, retrieval, selectors, and marking bundle names.
 - `scripts/package_marking.py` — deterministic post-report marking ZIP builder.
 - `scripts/retrieve_cli.py` — CLI wrapper around the same central retrieval API.
-- `devel.md` — development contract for future case additions and workflow integration.
+- `DEVEL.md` — developer guide for adding cases and integrating future suites.
 
 ## Retrieval
 
@@ -24,6 +25,7 @@ python validation/scripts/retrieve_cli.py case 1A --mode nel-validate
 python validation/scripts/retrieve_cli.py case 1A --mode nel-validate-function
 python validation/scripts/retrieve_cli.py case 8 --mode nel-validate-brief
 python validation/scripts/retrieve_cli.py case 1 --mode nel-validate-dual
+python validation/scripts/retrieve_cli.py case 1 --mode nel-validate-dublin
 ```
 
 List selectors:
@@ -32,6 +34,7 @@ List selectors:
 python validation/scripts/retrieve_cli.py list --mode nel-demo
 python validation/scripts/retrieve_cli.py list --mode nel-validate-brief
 python validation/scripts/retrieve_cli.py list --mode nel-validate-dual
+python validation/scripts/retrieve_cli.py list --mode nel-validate-dublin
 ```
 
 Marking criteria are intentionally a separate post-report operation:

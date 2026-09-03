@@ -15,7 +15,10 @@ Terraced v6 is the simplified prototype derived from v5. It deliberately removes
 
 ```bash
 python workflows/terraced_v6/self.py setup \
-  --mode nel-validate-brief --case-id 1
+  --mode nel-validate-dublin --case-id 1
+
+python nel.py setup --legacy \
+  --mode nel-validate-dublin --case-id 1 --pipeline self --run-id legacy-dublin-1
 ```
 
 For native self, setup creates a unique system temporary directory by default. Add `--project` (the CLI form of exact `->project`) to create it under `<repo-root>/temp/`, or use `--work-dir <path>` for an explicit directory. The existing staged `step.py` work-directory behaviour is unchanged.
@@ -42,7 +45,7 @@ The existing `step.py` engine remains available for non-self pipelines:
 ```bash
 python workflows/terraced_v6/step.py pipelines
 python workflows/terraced_v6/step.py pipeline-check --pipeline lmstudio
-python workflows/terraced_v6/step.py setup --mode nel-validate-brief --case-id 1 --pipeline lmstudio
+python workflows/terraced_v6/step.py setup --mode nel-validate-dublin --case-id 1 --pipeline lmstudio
 python workflows/terraced_v6/step.py run --work-dir <printed-work-dir>
 ```
 

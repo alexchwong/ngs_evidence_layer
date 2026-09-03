@@ -23,13 +23,7 @@ validation/__init__.py
 validation/scripts/__init__.py
 validation/scripts/bundled_cases.py
 validation/scripts/package_marking.py
-validation/mark_validation_report.md
-validation/demo.md
-validation/case_summary.md
-validation/case_functional.md
-validation/case_functional_manifest.md
-validation/validation_brief.md
-validation/validate_dual.md
+:(glob)validation/*.md
 workflows/__init__.py
 workflows/common.py
 workflows/registry.json

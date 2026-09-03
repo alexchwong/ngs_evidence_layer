@@ -170,6 +170,22 @@ class DiscoveryTests(unittest.TestCase):
     def test_dual_suite_present(self):
         self.assertTrue(server.validation_cases().get("nel-validate-dual"))
 
+    def test_dublin_suite_present(self):
+        self.assertEqual(
+            server.validation_cases().get("nel-validate-dublin"),
+            [str(number) for number in range(1, 11)],
+        )
+
+    def test_dublin_suite_has_batch_ui_label(self):
+        from ui import batch_server
+
+        dublin = next(
+            row for row in batch_server._bundled_suites()
+            if row["mode"] == "nel-validate-dublin"
+        )
+        self.assertEqual(dublin["label"], "Validation — Dublin")
+        self.assertEqual(dublin["cases"], [str(number) for number in range(1, 11)])
+
     def test_demo_examples(self):
         examples = server.demo_examples()
         self.assertTrue(examples)
@@ -193,6 +209,9 @@ class DiscoveryTests(unittest.TestCase):
 
     def test_modes_include_dual(self):
         self.assertIn("nel-validate-dual", server.modes())
+
+    def test_modes_include_dublin(self):
+        self.assertIn("nel-validate-dublin", server.modes())
 
     def test_roles_include_adjudication(self):
         self.assertIn("evidence_adjudication", server.roles())

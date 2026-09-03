@@ -272,6 +272,7 @@ Check the legacy configuration or create a new legacy run with `--legacy`:
 ```bash
 python nel.py config-check --legacy --pipeline lmstudio
 python nel.py setup --legacy --mode nel-demo --example 1 --pipeline lmstudio --run-id legacy-demo-1
+python nel.py setup --legacy --mode nel-validate-dublin --case-id 1 --pipeline lmstudio --run-id legacy-dublin-1
 ```
 
 Legacy setup reads `workflows/terraced_v6/settings.json` when present (otherwise its local template) and `workflows/terraced_v6/pipelines/`. To create a workflow-local editable settings file, run `python nel.py init --legacy`. After setup, resume normally with `python nel.py run --run-id <id>`; the frozen run manifest selects the executor, so `--legacy` is not used on `run` or `status`.
@@ -286,6 +287,7 @@ python nel.py setup --mode nel-validate --case-id 1A --pipeline lmstudio --run-i
 python nel.py setup --mode nel-validate-function --case-id 1A --pipeline lmstudio --run-id function-1A
 python nel.py setup --mode nel-validate-brief --case-id 1 --pipeline lmstudio --run-id brief-1
 python nel.py setup --mode nel-validate-dual --case-id 1 --pipeline lmstudio --run-id dual-1
+python nel.py setup --mode nel-validate-dublin --case-id 1 --pipeline lmstudio --run-id dublin-1
 ```
 
 Then execute the prepared run:

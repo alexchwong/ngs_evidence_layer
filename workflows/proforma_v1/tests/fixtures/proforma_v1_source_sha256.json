@@ -1,8 +1,8 @@
 {
   ".gitignore": "02f15edd65c534207c78ec72cfa1fefffbd9477d8468090c182f8660aa9b6b24",
   "DEVEL.md": "7ba55a4b9e8035df7d01f2ef7778ee37e451ce770bc97bd4756f211dde15b950",
-  "README.md": "3106208fb6d5015c6be187b57a55f7230d032c1b81c3778b0113a989dcfb6a2f",
-  "SKILL.md": "1166e4a3d3acf47b13141064bcb4014175d26a5852525a94b8d5e59c088ffd0d",
+  "README.md": "bcc3baae852f70ee1d0c18a6d55972ee8a1704adc2303c5c9f96342f48180fbe",
+  "SKILL.md": "5841a0d6bdaf9bf62e0b25122ddfd975ea2c13ed7f2720f1069f2e437bc0a7f7",
   "card_identity.py": "71a4e0587d4f650e1aa8b9858372c03ea771e01d4205865c90ef9cc8b1eab510",
   "devel_sync.py": "92da252c2ad85eef7327360dc92149d13c5fee155ade1b8c05ac306b9b7cac8f",
   "domain_contract.py": "9947026c49c7ef962df192a18a606fdb738d7acdc106ebb5fcfbf40c4c1c286b",
@@ -272,7 +272,7 @@
   "tests/test_phase3.py": "f2913779d251bd2e57b12863e4d5aa25d951803637260cdcb4fae489b8740d47",
   "tests/test_progress_marrows.py": "e2670c30acb6f0b833c3416b993a34d92b068f0acc1b0bee4f1d349c62633875",
   "trace.py": "fb1775ef94ee5a9f6927e971307685ca5a0531bbde172fd56d8b6603db8f92a8",
-  "workflow.json": "e9ba8ba6b63a5c3429ec5d95d6ec8b13a9f557c88264067a176c6372c244f7e5",
+  "workflow.json": "7c42d89943b45b2085020bed0571043e54c705f40f02dc19d7058b9a84e751e1",
   "workflow/README.md": "dcd900bc5d9dbcad5e53822bd30c918ca0459ef6297e8e2e2b1b39df879dc649",
   "workflow/default.yaml": "53ae75ac5d81c73153f5a897261fac8fc9ea51161afe8bd020bf320f9e4bd4d0"
 }

@@ -43,11 +43,11 @@ python workflows/proforma_v1/self.py setup \
   [--work-dir <dir> | --project]
 ```
 
-For a bundled dual-pathology validation case:
+For bundled validation cases, including the Dublin suite:
 
 ```bash
 python workflows/proforma_v1/self.py setup \
-  --mode nel-validate-dual \
+  --mode nel-validate-dublin \
   --case-id 1
 ```
 Bundled validation setup exposes only the selected clinical case. Evaluator-only `NEL task` and `Marking criteria` content must not be retrieved or read before `report-final.md` is complete.

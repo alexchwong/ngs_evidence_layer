@@ -37,6 +37,9 @@ _SUITES: dict[str, SuiteSpec] = {
     "nel-validate-dual": SuiteSpec(
         "nel-validate-dual", "validate_dual.md", "nel-validation-dual", "--case-id"
     ),
+    "nel-validate-dublin": SuiteSpec(
+        "nel-validate-dublin", "validation_dublin.md", "nel-validation-dublin", "--case-id"
+    ),
 }
 _CASE_ID_RE = re.compile(r"(\d+)([A-Z]?)")
 

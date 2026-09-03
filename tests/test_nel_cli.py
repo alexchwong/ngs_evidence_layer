@@ -28,6 +28,39 @@ class ConfigBootstrapTests(unittest.TestCase):
 
 
 class LegacyFacadeTests(unittest.TestCase):
+    def test_dublin_mode_is_exposed_by_canonical_and_legacy_workflows(self):
+        self.assertIn("nel-validate-dublin", nel._supported_modes(nel.CANONICAL_WORKFLOW))
+        self.assertIn("nel-validate-dublin", nel._supported_modes(nel.LEGACY_WORKFLOW))
+        setup = nel.build_parser()._subparsers._group_actions[0].choices["setup"]
+        mode_action = next(action for action in setup._actions if action.dest == "mode")
+        self.assertIn("nel-validate-dublin", mode_action.choices)
+
+    def test_root_facade_sets_up_dublin_with_canonical_and_legacy_workflows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runs = Path(tmp) / "runs"
+            latest = runs / "LATEST"
+            with patch.object(nel, "RUNS_DIR", runs), patch.object(nel, "LATEST_PATH", latest):
+                canonical_code = nel.main([
+                    "setup", "--mode", "nel-validate-dublin", "--case-id", "1",
+                    "--pipeline", "self", "--run-id", "dublin-canonical",
+                ])
+                legacy_code = nel.main([
+                    "setup", "--legacy", "--mode", "nel-validate-dublin", "--case-id", "1",
+                    "--pipeline", "self", "--run-id", "dublin-legacy",
+                ])
+            self.assertEqual(canonical_code, 0)
+            self.assertEqual(legacy_code, 0)
+            for run_id, workflow in (
+                ("dublin-canonical", "proforma-v1"),
+                ("dublin-legacy", "terraced-v6"),
+            ):
+                manifest = json.loads((runs / run_id / "run-config" / "manifest.json").read_text(encoding="utf-8"))
+                self.assertEqual(manifest["workflow"], workflow)
+                self.assertEqual(manifest["mode"], "nel-validate-dublin")
+                case = next((runs / run_id).rglob("case.md")).read_text(encoding="utf-8")
+                self.assertIn("NPM1", case)
+                self.assertNotIn("Marking criteria", case)
+
     def test_legacy_config_uses_workflow_local_settings_and_pipelines(self):
         settings, template, pipelines = nel._workflow_config_paths(nel.LEGACY_WORKFLOW)
         self.assertEqual(settings, nel.ROOT / "workflows" / "terraced_v6" / "settings.json")

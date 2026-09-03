@@ -144,6 +144,7 @@ def _bundled_suites(server) -> list[dict[str, Any]]:
         "nel-validate-function": "Validation — functional",
         "nel-validate-brief": "Validation — brief",
         "nel-validate-dual": "Validation — dual pathology",
+        "nel-validate-dublin": "Validation — Dublin",
     }
     supported = set(server.modes())
     rows: list[dict[str, Any]] = []

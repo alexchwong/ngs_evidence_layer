@@ -58,6 +58,7 @@ nel-validate ID          -> python nel.py setup --mode nel-validate --case-id ID
 nel-validate-function ID -> python nel.py setup --mode nel-validate-function --case-id ID
 nel-validate-brief ID    -> python nel.py setup --mode nel-validate-brief --case-id ID
 nel-validate-dual ID     -> python nel.py setup --mode nel-validate-dual --case-id ID
+nel-validate-dublin ID   -> python nel.py setup --mode nel-validate-dublin --case-id ID
 ```
 Then use the same repeated `python nel.py run --run-id <id>` loop. Do not read expected results or marking criteria before report generation completes.
 ## Existing runs

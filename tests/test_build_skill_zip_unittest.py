@@ -21,6 +21,12 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertTrue(resolved)
         self.assertIn("validation/case_functional_manifest.md", resolved)
 
+    def test_release_manifest_includes_validation_suites_and_developer_guide(self):
+        patterns = read_patterns(DEFAULT_MANIFEST)
+        self.assertIn(":(glob)validation/*.md", patterns)
+        self.assertTrue((REPOSITORY_ROOT / "validation" / "validation_dublin.md").is_file())
+        self.assertTrue((REPOSITORY_ROOT / "validation" / "DEVEL.md").is_file())
+
     def test_unmatched_pattern_reports_clear_error(self):
         pattern = "validation/does-not-exist.md"
 
