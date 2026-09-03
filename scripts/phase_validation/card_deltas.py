@@ -16,7 +16,6 @@ def _load_json(path):
 
 DECISION_SCHEMA = _load_json(SCHEMA_DIR / "card_decision_schema.json")
 
-
 def schema_errors(ledger, label="decision ledger"):
     errors = sorted(
         Draft202012Validator(DECISION_SCHEMA, format_checker=FormatChecker()).iter_errors(ledger),
@@ -26,7 +25,6 @@ def schema_errors(ledger, label="decision ledger"):
         f"{label} schema: {'/'.join(str(p) for p in error.absolute_path) or '<root>'}: {error.message}"
         for error in errors
     ]
-
 
 def index_package(package):
     cards = {card["card_id"]: card for card in package.get("cards", []) if isinstance(card, dict) and "card_id" in card}
@@ -41,13 +39,20 @@ def changed_card_ids(ledger):
         if item.get("decision") in {"add", "modify"}
     ]
 
-
 def deleted_card_ids(ledger):
     return [
         item["card_id"]
         for item in ledger.get("card_decisions", [])
         if item.get("decision") == "delete"
     ]
+
+
+def _is_phase4_evidence_only_modify(item, cards):
+    """Return True when Phase 4 preserves the complete card and changes evidence only."""
+    if item.get("decision") != "modify":
+        return False
+    card_id = item.get("card_id")
+    return card_id in cards and item.get("card") == cards[card_id]
 
 
 def validate_ledger_against_baseline(ledger, baseline, *, stage=None, allowed_direct_ids=None):
@@ -62,7 +67,6 @@ def validate_ledger_against_baseline(ledger, baseline, *, stage=None, allowed_di
         errors.append("decision ledger paper_id does not match baseline package")
     if ledger.get("baseline_round") != baseline.get("round"):
         errors.append("decision ledger baseline_round does not match baseline package round")
-
     cards, evidence = index_package(baseline)
     seen = set()
     added = set()
@@ -76,7 +80,15 @@ def validate_ledger_against_baseline(ledger, baseline, *, stage=None, allowed_di
             errors.append(f"{label}: card_id appears in more than one decision")
         seen.add(card_id)
         if allowed_direct_ids is not None and decision in {"modify", "delete", "retain"} and card_id not in allowed_direct_ids:
-            errors.append(f"{label}: Phase 4 may directly modify/delete only a Phase 3-failed card; route this card through Phase 2R")
+            evidence_only_repair = (
+                stage == "phase4" and _is_phase4_evidence_only_modify(item, cards)
+            )
+            if not evidence_only_repair:
+                errors.append(
+                    f"{label}: Phase 4 may directly modify/delete/retain only a Phase 3-failed card; "
+                    "a Phase 3-passed card may be modified only for evidence-only source-fidelity repair "
+                    "with the card unchanged; otherwise route this card through Phase 2R"
+                )
         if decision == "add":
             if card_id in cards or card_id in added:
                 errors.append(f"{label}: add card_id already exists in baseline")
@@ -101,7 +113,6 @@ def validate_ledger_against_baseline(ledger, baseline, *, stage=None, allowed_di
                 errors.append(f"{label}: modify decision does not change card or evidence")
     return errors
 
-
 def apply_card_decisions(baseline, ledger):
     """Return a deep-copied package with exactly the ledger's card/evidence deltas applied."""
     result = copy.deepcopy(baseline)
@@ -109,14 +120,12 @@ def apply_card_decisions(baseline, ledger):
     evidence = list(result.get("evidence", []))
     card_positions = {card["card_id"]: index for index, card in enumerate(cards)}
     evidence_positions = {item["card_id"]: index for index, item in enumerate(evidence)}
-
     delete_ids = {item["card_id"] for item in ledger.get("card_decisions", []) if item["decision"] == "delete"}
     if delete_ids:
         cards = [card for card in cards if card.get("card_id") not in delete_ids]
         evidence = [item for item in evidence if item.get("card_id") not in delete_ids]
         card_positions = {card["card_id"]: index for index, card in enumerate(cards)}
         evidence_positions = {item["card_id"]: index for index, item in enumerate(evidence)}
-
     for item in ledger.get("card_decisions", []):
         decision = item["decision"]
         card_id = item["card_id"]
@@ -128,11 +137,9 @@ def apply_card_decisions(baseline, ledger):
             evidence.append(copy.deepcopy(item["evidence"]))
             card_positions[card_id] = len(cards) - 1
             evidence_positions[card_id] = len(evidence) - 1
-
     result["cards"] = cards
     result["evidence"] = evidence
     return result
-
 
 def validate_package_delta(baseline, output, ledger, *, stage=None, allowed_direct_ids=None):
     errors = validate_ledger_against_baseline(
@@ -146,7 +153,6 @@ def validate_package_delta(baseline, output, ledger, *, stage=None, allowed_dire
     if output.get("evidence") != expected.get("evidence"):
         errors.append("evidence diff does not exactly match the user-authorized decision ledger")
     return errors
-
 
 def apply_publication_type_decision(package, ledger):
     result = copy.deepcopy(package)
