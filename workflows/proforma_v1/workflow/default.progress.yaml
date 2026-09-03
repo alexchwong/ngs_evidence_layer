@@ -1,0 +1,56 @@
+version: 1
+phases:
+  - id: preparation
+    label: Preparation
+    steps:
+      - structure
+      - corpus
+
+  - id: diagnosis
+    label: Diagnosis
+    steps:
+      - diagnosis.who1
+      - diagnosis.who1.routing_change
+      - diagnosis.who1.evidence.assignment
+      - diagnosis.who1.evidence.audit
+      - diagnosis.who1.evidence.adjudication
+      - diagnosis.who1.commit
+      - diagnosis.who2
+      - diagnosis.icc
+      - diagnosis.finalize
+
+  - id: prognosis
+    label: Prognosis
+    steps:
+      - prognosis
+
+  - id: treatment
+    label: Treatment
+    steps:
+      - treatment
+
+  - id: biomarker
+    label: Biomarker
+    steps:
+      - biomarker
+
+  - id: germline
+    label: Germline
+    steps:
+      - germline
+
+  - id: evidence
+    label: Evidence
+    steps:
+      - evidence.assignment
+      - evidence.audit
+      - evidence.adjudication
+      - evidence.finalize
+
+  - id: report
+    label: Report
+    steps:
+      - report.blocks
+      - report.write
+      - report.preservation
+      - report.finalize

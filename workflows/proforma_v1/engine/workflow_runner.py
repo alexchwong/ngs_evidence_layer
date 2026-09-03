@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from workflows.proforma_v1.engine.context import WorkflowContext
+from workflows.proforma_v1.engine.workflow_progress import WorkflowProgress
 
 
 def _dig(value: Any, path: str) -> Any:
@@ -54,17 +55,27 @@ class WorkflowRunner:
         self.workflow = workflow
         self.executor = executor
         self.trace = trace
+        # Construction validates the workflow-specific progress presentation plan
+        # before an executor can make a model call.
+        self.progress = WorkflowProgress(workflow)
+
+    def _bind_progress(self, context: WorkflowContext) -> None:
+        self.progress.bind(context)
 
     def _record(self, step, status: str, **fields):
         if self.trace is not None:
             self.trace.record(step.id, step.type, status, dependencies=list(step.needs), **fields)
 
     def _step_done(self, context: WorkflowContext, step_id: str) -> bool:
+        self._bind_progress(context)
         if step_id in context.completed:
+            if self.progress.status(step_id) not in {"completed", "skipped"}:
+                self.progress.update(step_id, "completed", reason="already_complete")
             return True
         complete = getattr(self.executor, "is_complete", None)
         if callable(complete) and complete(step_id, context):
             context.completed.add(step_id)
+            self.progress.update(step_id, "completed", reason="artifact_complete")
             return True
         return False
 
@@ -149,6 +160,7 @@ class WorkflowRunner:
                     context.put("feedback_values", fb)
                 invalid = self._descendants_through(review["target"], step.id)
                 context.completed.difference_update(invalid)
+                self.progress.invalidate(invalid)
                 invalidate = getattr(self.executor, "invalidate", None)
                 if callable(invalidate):
                     invalidate(invalid, context)
@@ -172,45 +184,69 @@ class WorkflowRunner:
         raise RuntimeError(f"review {step.id!r} has no executable on_fail policy")
 
     def _execute_one(self, step, context: WorkflowContext) -> RunResult | None:
+        self._bind_progress(context)
         if not executor_enabled(step, context.executor):
             context.completed.add(step.id)
+            self.progress.update(step.id, "skipped", reason="executor_disabled")
             self._record(step, "skipped", reason="executor_disabled", executor=context.executor)
             return None
         if not condition_applies(step.when, context):
             context.completed.add(step.id)
+            self.progress.update(step.id, "skipped", reason="condition_false")
             self._record(step, "skipped", reason="condition_false", executor=context.executor)
             return None
-
         group_steps = self._ready_group(step, context)
         if len(group_steps) > 1 and hasattr(self.executor, "execute_group"):
-            result = self.executor.execute_group(group_steps, context) or {}
+            for member in group_steps:
+                self.progress.update(member.id, "running", coalesced_group=(member.execution or {}).get("self_group"))
+            try:
+                result = self.executor.execute_group(group_steps, context) or {}
+            except Exception as exc:
+                for member in group_steps:
+                    self.progress.update(member.id, "failed", error=str(exc))
+                raise
             status = result.get("status", "complete")
             if status == "handoff":
                 for member in group_steps:
                     self._record(member, "handoff", executor=context.executor, coalesced_group=(member.execution or {}).get("self_group"))
                 return RunResult("handoff", step.id, result.get("handoff"))
             if status not in {"complete", "skipped"}:
+                for member in group_steps:
+                    self.progress.update(member.id, "failed", error=f"invalid executor status {status!r}")
                 raise RuntimeError(f"executor returned invalid group status {status!r}")
+            progress_status = "completed" if status == "complete" else "skipped"
             for member in group_steps:
                 context.completed.add(member.id)
+                self.progress.update(member.id, progress_status, reason=result.get("reason"))
                 self._record(member, status, executor=context.executor, coalesced_group=(member.execution or {}).get("self_group"), reason=result.get("reason"))
             return None
 
-        result = self.executor.execute(step, context) or {}
-        status = result.get("status", "complete")
-        if status in {"complete", "skipped"}:
-            if status == "complete" and step.review and not self._review_passed(step, context, result):
+        self.progress.update(step.id, "running")
+        try:
+            result = self.executor.execute(step, context) or {}
+            status = result.get("status", "complete")
+            if status in {"complete", "skipped"}:
+                if status == "complete" and step.review and not self._review_passed(step, context, result):
+                    context.completed.add(step.id)
+                    self.progress.update(step.id, "completed", reason="review_failed")
+                    return self._handle_review_failure(step, context, result)
                 context.completed.add(step.id)
-                return self._handle_review_failure(step, context, result)
-            context.completed.add(step.id)
-            self._record(step, status, reason=result.get("reason"), executor=context.executor, coalesced_group=result.get("coalesced_group"))
-            return None
-        if status == "handoff":
-            self._record(step, "handoff", executor=context.executor)
-            return RunResult("handoff", step.id, result.get("handoff"))
-        raise RuntimeError(f"executor returned invalid status {status!r} for {step.id!r}")
+                progress_status = "completed" if status == "complete" else "skipped"
+                self.progress.update(step.id, progress_status, reason=result.get("reason"))
+                self._record(step, status, reason=result.get("reason"), executor=context.executor, coalesced_group=result.get("coalesced_group"))
+                return None
+            if status == "handoff":
+                self._record(step, "handoff", executor=context.executor)
+                return RunResult("handoff", step.id, result.get("handoff"))
+            raise RuntimeError(f"executor returned invalid status {status!r} for {step.id!r}")
+        except Exception as exc:
+            # A review feedback cycle intentionally returns pending above; only
+            # true exceptions reach this marker.
+            self.progress.update(step.id, "failed", error=str(exc))
+            raise
 
     def advance(self, context: WorkflowContext) -> RunResult:
+        self._bind_progress(context)
         forced = context.get("forced_route")
         if forced:
             context.put("forced_route", None)
@@ -220,7 +256,6 @@ class WorkflowRunner:
             routed = self._execute_one(step, context)
             if routed:
                 return routed
-
         for step in self.workflow.steps:
             if self._step_done(context, step.id):
                 continue
