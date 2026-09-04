@@ -3,11 +3,11 @@
   "stage": "germline",
   "operation_id": "germline",
   "accepted": false,
-  "message": "germline failed validation with 2 issue(s):\n1. classification[0]\n   Problem: missing ['evidence_card_tags', 'therapy'].\n   Required fix: return exactly the keys ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant']\n2. classification[1]\n   Problem: missing ['evidence_card_tags', 'therapy'].\n   Required fix: return exactly the keys ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['bucket', 'evidence_card_tags', 'reason', 'therapy', 'variant']",
-  "message_sha256": "ff0d7ef88770a14e9603d0ff45815d1a49a63157ee0935cc31e2c54df61a195f",
+  "message": "germline failed validation with 2 issue(s):\n1. classification[0]\n   Problem: missing ['age', 'eligibility', 'event_compatibility', 'evidence_card_tags', 'family_history', 'gene', 'observed_event_type', 'observed_vaf', 'personal_history', 'phenotype', 'predisposition_evidence', 'vaf'].\n   Required fix: return exactly the keys ['age', 'bucket', 'eligibility', 'event_compatibility', 'evidence_card_tags', 'family_history', 'gene', 'observed_event_type', 'observed_vaf', 'personal_history', 'phenotype', 'predisposition_evidence', 'reason', 'vaf', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['age', 'bucket', 'eligibility', 'event_compatibility', 'evidence_card_tags', 'family_history', 'gene', 'observed_event_type', 'observed_vaf', 'personal_history', 'phenotype', 'predisposition_evidence', 'reason', 'vaf', 'variant']\n2. classification[1]\n   Problem: missing ['age', 'eligibility', 'event_compatibility', 'evidence_card_tags', 'family_history', 'gene', 'observed_event_type', 'observed_vaf', 'personal_history', 'phenotype', 'predisposition_evidence', 'vaf'].\n   Required fix: return exactly the keys ['age', 'bucket', 'eligibility', 'event_compatibility', 'evidence_card_tags', 'family_history', 'gene', 'observed_event_type', 'observed_vaf', 'personal_history', 'phenotype', 'predisposition_evidence', 'reason', 'vaf', 'variant'].\n   Received: ['bucket', 'reason', 'variant']\n   Expected: ['age', 'bucket', 'eligibility', 'event_compatibility', 'evidence_card_tags', 'family_history', 'gene', 'observed_event_type', 'observed_vaf', 'personal_history', 'phenotype', 'predisposition_evidence', 'reason', 'vaf', 'variant']",
+  "message_sha256": "4a27d9e5a68dfe48f212ff2e28e5235644077976d7f47243fc93527ac0fd8571",
   "response_sha256": "0cb636dc572d1892c815673cdae588b4f8337c04cfae8b4d2c8873f4d11229cf",
   "context_sha256": "2f1330dfb0eae8e66570f03f82bfb6a74f0a1be1c49f918f270b15dec06701f8",
-  "prompt_sha256": "6ade6a2e728f821598b506eefbfdc9a2656c9ae970b82412ec1a0f952eb76a00",
-  "schema_sha256": "4fd0a650f6731d50168279082c22a884331fb29db2cd9e7518c134874bb3dcc8",
-  "stage_spec_sha256": "629a856c650fe086b8f66cb23d0743c65b501bea98b1dbd0eefc539dfaefd9b0"
+  "prompt_sha256": "c0654d461f047b5cb2073b294971841acec3ce2e730c5c921384c5d2a82fddfc",
+  "schema_sha256": "23e30d3e409895e344ac67c99f615c0730cdb6f4e1fccffa70925b0475f105f6",
+  "stage_spec_sha256": "5b006afbc58fdbc35049d9adada6e9c41d3a176e68ee38f9d4e4854f2dfe03c1"
 }

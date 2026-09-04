@@ -43,6 +43,8 @@ def load_progress_plan(workflow) -> dict[str, Any]:
     human-readable phases.  If it is absent, every logical workflow step becomes
     its own phase, so progress remains workflow-derived rather than hardcoded.
     """
+    if not getattr(workflow, "source", None):
+        return _fallback_plan(workflow)
     path = progress_definition_path(workflow)
     if not path.is_file():
         return _fallback_plan(workflow)
@@ -102,6 +104,9 @@ class WorkflowProgress:
 
     def __init__(self, workflow):
         self.workflow = workflow
+        self.workflow_id = getattr(workflow, "workflow_id", None)
+        self.workflow_source = getattr(workflow, "source", None)
+        self.workflow_sha256 = getattr(workflow, "source_sha256", None)
         self.plan = load_progress_plan(workflow)
         self._status = {step.id: "pending" for step in workflow.steps}
         self._details: dict[str, dict[str, Any]] = {}
@@ -129,9 +134,9 @@ class WorkflowProgress:
             return
         if not isinstance(doc, dict):
             return
-        if doc.get("workflow_id") != self.workflow.workflow_id:
+        if doc.get("workflow_id") != self.workflow_id:
             return
-        if doc.get("workflow_sha256") != self.workflow.source_sha256:
+        if doc.get("workflow_sha256") != self.workflow_sha256:
             return
         rows = doc.get("steps") or []
         for row in rows:
@@ -199,9 +204,9 @@ class WorkflowProgress:
 
         return {
             "schema_version": SCHEMA_VERSION,
-            "workflow_id": self.workflow.workflow_id,
-            "workflow_definition": str(self.workflow.source),
-            "workflow_sha256": self.workflow.source_sha256,
+            "workflow_id": self.workflow_id,
+            "workflow_definition": str(self.workflow_source) if self.workflow_source is not None else None,
+            "workflow_sha256": self.workflow_sha256,
             "progress_definition": self.plan.get("source"),
             "executor": self._executor,
             "complete": complete,

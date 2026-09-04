@@ -24,6 +24,7 @@ def _structured_case(*, diagnosis_status=None):
     case = {
         "provisional_disease": "Acute myeloid leukaemia with NPM1 mutation",
         "morphologic_diagnosis_origin": "supplied",
+        "patient_age": None,
         "bootstrap_cmcs": ["AML"],
         "variants": [],
         "detected_variants_summary": "No NGS variants were detected.",

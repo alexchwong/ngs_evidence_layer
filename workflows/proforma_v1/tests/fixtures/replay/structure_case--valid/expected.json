@@ -5,9 +5,9 @@
   "accepted": true,
   "message": "structured case valid",
   "message_sha256": "5d7b5c0acb7990f22bab86da7d2f2e432ad73c1348cc1fc850d874941f91bb19",
-  "response_sha256": "3fbdedb726d447026e69fd88ac27fb802845a5528f18171c70ce654c542530b3",
+  "response_sha256": "6ff44bb968149d3db2cfd41573d6df037eecf0c12d361d228049166ecb9e56d6",
   "context_sha256": "e783a19d4d3f75254fd9d01c22ae91701954c8309591c79551deb6bef29359a9",
-  "prompt_sha256": "0bba9e5f2bbf8778992428b985d5bee74f26e2df280858837407426516df9db5",
-  "schema_sha256": "2b54d26433f138f922a430133ac1f145300a49febfeec5f84ed84231951890a3",
+  "prompt_sha256": "15d2b7afb3a08fd0f82341ba548cf7f570561a8de7d34ce07bf5cf0edfd40ff3",
+  "schema_sha256": "ff646f82fd70556a0185c9e17ec0ff80941625da398d512e8baba09d8a73110c",
   "stage_spec_sha256": "9f7e86a7d16032b88269a0ed6951eb4b8dc3db02ea0b9f2538a2165cb8fb509f"
 }

@@ -432,7 +432,7 @@ class Phase2BResumeTests(unittest.TestCase):
         skill = (HERE / "SKILL.md").read_text(encoding="utf-8")
         readme = (HERE / "workflow" / "README.md").read_text(encoding="utf-8")
         self.assertIn("python -m unittest discover", devel)
-        self.assertIn("self.py run again immediately", skill)
+        self.assertIn("nel.py run --run-id <run-id> again immediately", skill)
         self.assertNotIn("## Self pass topology", skill)
         self.assertIn("Semantic audit feedback", readme)
 

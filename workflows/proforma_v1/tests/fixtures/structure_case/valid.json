@@ -1,6 +1,8 @@
 {
   "provisional_disease": "Myelodysplastic neoplasm",
+  "diagnosis_status": "new",
   "morphologic_diagnosis_origin": "supplied",
+  "patient_age": null,
   "bootstrap_cmcs": [
     "MDS"
   ],
@@ -8,7 +10,9 @@
     {
       "variant_id": "V1",
       "gene": "SRSF2",
-      "description": "SRSF2 p.P95H"
+      "description": "SRSF2 p.P95H",
+      "event_type": "sequence_variant",
+      "vaf": null
     }
   ],
   "detected_variants_summary": "One variant was detected in SRSF2.",

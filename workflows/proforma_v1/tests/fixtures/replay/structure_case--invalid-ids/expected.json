@@ -3,11 +3,11 @@
   "stage": "structure_case",
   "operation_id": "structure",
   "accepted": false,
-  "message": "structured case failed validation with 3 issue(s):\n1. case_facts[0].fact_id\n   Problem: received 'F1'.\n   Required fix: use the sequential stable ID C1.\n   Received: F1\n   Expected: C1\n2. variants[0].gene\n   Problem: gene symbol 'srsf2' is not uppercase.\n   Required fix: use the uppercase reported gene symbol.\n   Received: srsf2\n   Expected: SRSF2\n3. variants[0].variant_id\n   Problem: received 'v01'.\n   Required fix: use the sequential stable ID V1.\n   Received: v01\n   Expected: V1",
-  "message_sha256": "be0f9aa1b21c10714a80a26a10f269a0b4317ad224ec41cfe24a81e5391debc4",
+  "message": "structured case failed validation with 5 issue(s):\n1. case_facts[0].fact_id\n   Problem: received 'F1'.\n   Required fix: use the sequential stable ID C1.\n   Received: F1\n   Expected: C1\n2. structured case\n   Problem: missing ['diagnosis_status', 'patient_age'].\n   Required fix: return exactly the keys ['bootstrap_cmcs', 'case_facts', 'detected_variants_summary', 'diagnosis_status', 'morphologic_diagnosis_origin', 'ngs_no_variants_detected', 'ngs_result_completeness', 'patient_age', 'provisional_disease', 'variants'].\n   Received: ['bootstrap_cmcs', 'case_facts', 'detected_variants_summary', 'morphologic_diagnosis_origin', 'ngs_no_variants_detected', 'ngs_result_completeness', 'provisional_disease', 'variants']\n   Expected: ['bootstrap_cmcs', 'case_facts', 'detected_variants_summary', 'diagnosis_status', 'morphologic_diagnosis_origin', 'ngs_no_variants_detected', 'ngs_result_completeness', 'patient_age', 'provisional_disease', 'variants']\n3. variants[0]\n   Problem: missing ['event_type', 'vaf'].\n   Required fix: return exactly the keys ['description', 'event_type', 'gene', 'vaf', 'variant_id'].\n   Received: ['description', 'gene', 'variant_id']\n   Expected: ['description', 'event_type', 'gene', 'vaf', 'variant_id']\n4. variants[0].gene\n   Problem: gene symbol 'srsf2' is not uppercase.\n   Required fix: use the uppercase reported gene symbol.\n   Received: srsf2\n   Expected: SRSF2\n5. variants[0].variant_id\n   Problem: received 'v01'.\n   Required fix: use the sequential stable ID V1.\n   Received: v01\n   Expected: V1",
+  "message_sha256": "0457bf624fc97a4bdb2de8160bae3c78008647d4dc7eae52f820855883f441f1",
   "response_sha256": "d64818d120260eafd96130a623a1c5b4af3cc2e9f38e50629e74bf562546a2ae",
   "context_sha256": "e783a19d4d3f75254fd9d01c22ae91701954c8309591c79551deb6bef29359a9",
-  "prompt_sha256": "0bba9e5f2bbf8778992428b985d5bee74f26e2df280858837407426516df9db5",
-  "schema_sha256": "2b54d26433f138f922a430133ac1f145300a49febfeec5f84ed84231951890a3",
+  "prompt_sha256": "15d2b7afb3a08fd0f82341ba548cf7f570561a8de7d34ce07bf5cf0edfd40ff3",
+  "schema_sha256": "ff646f82fd70556a0185c9e17ec0ff80941625da398d512e8baba09d8a73110c",
   "stage_spec_sha256": "9f7e86a7d16032b88269a0ed6951eb4b8dc3db02ea0b9f2538a2165cb8fb509f"
 }
