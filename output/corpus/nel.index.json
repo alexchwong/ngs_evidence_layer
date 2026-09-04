@@ -28,6 +28,7 @@
       "dinardo-2020-genotype-specific-venetoclax",
       "drazer-2018-germline-vaf",
       "flt3-ras-gilteritinib-resistance",
+      "frebourg-2020-tp53-germline",
       "koster-2024-vexas-pdf",
       "liu-2025-germline-myeloid",
       "luque-paz-2023-blood-mpn",
@@ -736,6 +737,10 @@
       "drazer-2018-germline-vaf-C0010",
       "drazer-2018-germline-vaf-C0011",
       "drazer-2018-germline-vaf-C0012",
+      "frebourg-2020-tp53-germline-C0002",
+      "frebourg-2020-tp53-germline-C0013",
+      "frebourg-2020-tp53-germline-C0038",
+      "frebourg-2020-tp53-germline-C0039",
       "khoury-2022-leukemia-36-1703-C0132",
       "khoury-2022-leukemia-36-1703-C0133",
       "khoury-2022-leukemia-36-1703-C0135",
@@ -3702,6 +3707,7 @@
       "d-hner-2024-blood-144-2169-C0012",
       "d-hner-2024-blood-144-2169-C0013",
       "d-hner-2024-blood-144-2169-C0021",
+      "frebourg-2020-tp53-germline-C0013",
       "khoury-2022-leukemia-36-1703-C0001",
       "khoury-2022-leukemia-36-1703-C0002",
       "khoury-2022-leukemia-36-1703-C0003",
@@ -4054,6 +4060,9 @@
       "flt3-ras-gilteritinib-resistance-C0007",
       "flt3-ras-gilteritinib-resistance-C0008",
       "flt3-ras-gilteritinib-resistance-C0009",
+      "frebourg-2020-tp53-germline-C0002",
+      "frebourg-2020-tp53-germline-C0038",
+      "frebourg-2020-tp53-germline-C0039",
       "khoury-2022-leukemia-36-1703-C0006",
       "khoury-2022-leukemia-36-1703-C0012",
       "khoury-2022-leukemia-36-1703-C0027",
@@ -6997,6 +7006,10 @@
       "drazer-2018-germline-vaf-C0004",
       "drazer-2018-germline-vaf-C0006",
       "drazer-2018-germline-vaf-C0008",
+      "frebourg-2020-tp53-germline-C0002",
+      "frebourg-2020-tp53-germline-C0013",
+      "frebourg-2020-tp53-germline-C0038",
+      "frebourg-2020-tp53-germline-C0039",
       "khoury-2022-leukemia-36-1703-C0036",
       "khoury-2022-leukemia-36-1703-C0039",
       "khoury-2022-leukemia-36-1703-C0044",
@@ -7206,7 +7219,8 @@
       "khoury-2022-leukemia-36-1703"
     ],
     "guideline": [
-      "cloos-2026-blood-147-1147"
+      "cloos-2026-blood-147-1147",
+      "frebourg-2020-tp53-germline"
     ],
     "narrative review": [
       "koster-2024-vexas-pdf",
@@ -7264,6 +7278,7 @@
     "2020": [
       "bernard-2020-tp53-mds",
       "dinardo-2020-genotype-specific-venetoclax",
+      "frebourg-2020-tp53-germline",
       "kraft-godley-2020-germline-guide",
       "tefferi-2020-mipss-et-pv"
     ],
@@ -17531,6 +17546,50 @@
       "input_id": "f087d1de-30e8-5f1a-a509-9f26aa458133",
       "publication_key": "flt3-ras-gilteritinib-resistance"
     },
+    "frebourg-2020-tp53-germline-C0002": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "62766a8b-cf89-584f-bd95-448334967bb4",
+      "publication_key": "frebourg-2020-tp53-germline"
+    },
+    "frebourg-2020-tp53-germline-C0013": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "guideline criterion",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "62766a8b-cf89-584f-bd95-448334967bb4",
+      "publication_key": "frebourg-2020-tp53-germline"
+    },
+    "frebourg-2020-tp53-germline-C0038": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "62766a8b-cf89-584f-bd95-448334967bb4",
+      "publication_key": "frebourg-2020-tp53-germline"
+    },
+    "frebourg-2020-tp53-germline-C0039": {
+      "category": "germline",
+      "disease_ancestors": [],
+      "diseases": [],
+      "evidence_tier": "restated secondary",
+      "genes": [
+        "TP53"
+      ],
+      "input_id": "62766a8b-cf89-584f-bd95-448334967bb4",
+      "publication_key": "frebourg-2020-tp53-germline"
+    },
     "guglielmelli-2017-mipss70-pmf-C0001": {
       "category": "prognosis",
       "disease_ancestors": [
@@ -23363,14 +23422,14 @@
       "publication_key": "xie-2024-ccrs-ccus"
     }
   },
-  "corpus_sha256": "3972d13f42339cc979c329ac6bb108ddfecd7461e437050bd9b365e78e520414",
+  "corpus_sha256": "8930c19417e6da5492cf059e7436e71fde1aa900a67cf0ff791cf2e3ffc4b51d",
   "counts": {
-    "cards": 1071,
-    "census_entries": 2427,
-    "completed_papers": 32,
+    "cards": 1075,
+    "census_entries": 2467,
+    "completed_papers": 33,
     "rejected_papers": 0
   },
-  "generated_at": "2026-09-03T03:06:07.815169+00:00",
+  "generated_at": "2026-09-04T06:52:22.123200+00:00",
   "index_version": "1.4",
   "papers": {
     "alaggio-2022-leukemia-who5-lymphoid": {
@@ -24833,6 +24892,29 @@
       "latest_accepted_in_version": "0.3.1",
       "paper_nickname": "ADMIRAL Gilteritinib Molecular Resistance 2022",
       "publication_key": "flt3-ras-gilteritinib-resistance",
+      "status": "completed"
+    },
+    "frebourg-2020-tp53-germline": {
+      "acceptance_version_history": [
+        "0.3.1"
+      ],
+      "accepted_in_version": "0.3.1",
+      "card_ids": [
+        "frebourg-2020-tp53-germline-C0002",
+        "frebourg-2020-tp53-germline-C0013",
+        "frebourg-2020-tp53-germline-C0038",
+        "frebourg-2020-tp53-germline-C0039"
+      ],
+      "cards": 4,
+      "census_entries": 40,
+      "citation_display": "Frebourg T, Bajalica Lagercrantz S, Oliveira C, Magenheim R, Evans DG. Guidelines for the Li–Fraumeni and heritable TP53-related cancer syndromes. European Journal of Human Genetics. 2020;28(10):1379-1386.",
+      "diseases": [],
+      "genes": [
+        "TP53"
+      ],
+      "latest_accepted_in_version": "0.3.1",
+      "paper_nickname": "ERN GENTURIS TP53 Guidelines 2020",
+      "publication_key": "frebourg-2020-tp53-germline",
       "status": "completed"
     },
     "guglielmelli-2017-mipss70-pmf": {

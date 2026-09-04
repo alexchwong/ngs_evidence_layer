@@ -1,12 +1,12 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 1071,
-    "census_entries": 2427,
-    "completed_papers": 32,
+    "cards": 1075,
+    "census_entries": 2467,
+    "completed_papers": 33,
     "rejected_papers": 0
   },
-  "generated_at": "2026-09-03T03:06:07.815169+00:00",
+  "generated_at": "2026-09-04T06:52:22.123200+00:00",
   "publications": [
     {
       "document": {
@@ -7360,6 +7360,138 @@
         "markdown_sha256": "3ac9bfdc5626dcf6a1afdb04799d87354ca2e3560c46d18a84fa4404c23be23e",
         "source_filename": "Barbui_2015_revised_IPSET_thrombosis_ET.pdf",
         "source_sha256": "3dbdecfbb3be1294c8ae6098adfef4182d63697f6073dbaf8ac82f3bab6779d0",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
+            "card_id": "frebourg-2020-tp53-germline-C0002",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Absence of a familial cancer history should not preclude germline TP53 testing.",
+            "locator": "Introduction > From Li–Fraumeni syndrome to heritable TP53-related cancers, paragraph 2",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "frebourg-2020-tp53-germline-C0013",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "According to the ERN GENTURIS modified Chompret criteria, germline TP53 testing is recommended when a patient has a TP53 core tumour before age 46 years and at least one first- or second-degree relative has a TP53 core tumour before age 56 years.",
+            "locator": "Recommendations > Cancer patients who should be tested for germline disease-causing TP53 > Recommendation 1, Familial presentation",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "frebourg-2020-tp53-germline-C0038",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "Li–Fraumeni syndrome associated with germline TP53 alterations is characterised by strong familial aggregation of cancers, early-onset tumours, and a wide tumour spectrum.",
+            "locator": "Introduction > From Li–Fraumeni syndrome to heritable TP53-related cancers, paragraph 1",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "frebourg-2020-tp53-germline-C0039",
+            "category": "germline",
+            "disease_ancestors": [],
+            "diseases": [],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "TP53"
+            ],
+            "interpretation": "The core cancer spectrum of TP53-associated Li–Fraumeni syndrome comprises soft-tissue sarcoma, osteosarcoma, adrenocortical carcinoma, central nervous system tumours, and very early-onset female breast cancer occurring before age 31 years.",
+            "locator": "Introduction > From Li–Fraumeni syndrome to heritable TP53-related cancers, paragraph 1",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 40,
+        "citation": {
+          "authors": [
+            "Frebourg T",
+            "Bajalica Lagercrantz S",
+            "Oliveira C",
+            "Magenheim R",
+            "Evans DG"
+          ],
+          "citation_incomplete": [],
+          "display": "Frebourg T, Bajalica Lagercrantz S, Oliveira C, Magenheim R, Evans DG. Guidelines for the Li–Fraumeni and heritable TP53-related cancer syndromes. European Journal of Human Genetics. 2020;28(10):1379-1386.",
+          "doi": "10.1038/s41431-020-0638-4",
+          "issue": "10",
+          "journal": "European Journal of Human Genetics",
+          "pages": "1379-1386",
+          "title": "Guidelines for the Li–Fraumeni and heritable TP53-related cancer syndromes",
+          "volume": "28",
+          "year": 2020
+        },
+        "diseases_covered": [],
+        "extraction_date": "2026-09-04",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "TP53"
+        ],
+        "paper_nickname": "ERN GENTURIS TP53 Guidelines 2020",
+        "publication_key": "frebourg-2020-tp53-germline",
+        "publication_type": "guideline"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 3,
+          "audit_date": "2026-09-04",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "frebourg-2020-tp53-germline-C0038",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "frebourg-2020-tp53-germline-C0039",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "frebourg-2020-tp53-germline-C0002",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "frebourg-2020-tp53-germline-C0013",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 4,
+          "census_claims": 40,
+          "census_entries": 40,
+          "ratio": 0.1
+        },
+        "input_id": "62766a8b-cf89-584f-bd95-448334967bb4",
+        "markdown_sha256": "45ab659d32b4584979863cb5d3d828699ed857a6ea79370d7f7e1a3dd908fe73",
+        "source_filename": "Frebourg-2020-TP53-germline.pdf",
+        "source_sha256": "aaa26effd03feef7f64b1bf97974691abdbfb4345ce01c4346e05b54db98f742",
         "warnings": []
       }
     },
