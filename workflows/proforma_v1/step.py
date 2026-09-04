@@ -14,7 +14,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import read_workflow_state, write_workflow_state
 from validation.scripts.package_marking import package_marking_bundle
 from validation.scripts.bundled_cases import is_validation_mode, write_demo_marking_criteria_after_report
-from workflows.proforma_v1 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
+from workflows.proforma_v1 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, model_observability, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 from workflows.proforma_v1.engine.context import WorkflowContext
 from workflows.proforma_v1.engine import schema_validation as generic_schema_validation
 from workflows.proforma_v1.engine import bindings as workflow_bindings, prompt_renderer as workflow_prompt_renderer, artifacts as workflow_artifacts
@@ -168,6 +168,11 @@ def _record_usage(work,call_id,model,attempt,usage,*,role=None,provider=None,dur
 def _usage_summary(work): return model_usage.summarize(_usage_path(work))
 def _print_usage(work):
     for line in model_usage.format_status_lines(_usage_summary(work)): _status(line)
+
+def _refresh_model_operation_index(work):
+    workflow=_ACTIVE_COMPILED_WORKFLOW
+    steps=[step.id for step in workflow.steps] if workflow is not None else []
+    return model_observability.build_model_operation_index(work,workflow_steps=steps)
 
 def _risk_path(work): return layout.logs(work)/'risk_log.yaml'
 def _risk_doc(work):
@@ -352,29 +357,54 @@ def _render_bundle(call_id,messages,output,error=None):
     out += ['## Output','',f'Write only the requested artifact to: `{output}`','Do not modify any other file.','']
     return '\n'.join(out)
 
-def _syntax_callback(work,binding,call_id,total_attempts):
+def _syntax_callback(work,binding,call_id,total_attempts,*,call_root=None,parent_attempt=None):
+    observed_paths={}
     def repair(prompt,attempt):
-        sid=f'{call_id}-syntax-{attempt}'; root=layout.model_step_dir(work,sid,existing=False); out=root/'output.txt'; _write(root/'prompt.md',prompt)
+        sid=f'{call_id}-syntax-{attempt}'; legacy_root=layout.model_step_dir(work,sid,existing=False)
+        messages=[{'role':'system','content':syntax_repair.SYNTAX_REPAIR_SYSTEM_PROMPT},{'role':'user','content':prompt}]
+        nested_root=Path(call_root) if call_root is not None else legacy_root
+        nested_parent=parent_attempt if call_root is not None else None
+        observed_attempt=attempt
+        if nested_parent is not None:
+            repairs=model_observability.attempt_dir(nested_root,nested_parent)/'syntax_repairs'
+            while (repairs/f'{observed_attempt:02d}'/'call.json').is_file() and (repairs/f'{observed_attempt:02d}'/'prompt.md').read_text(encoding='utf-8')!=prompt:
+                observed_attempt+=1
+        observed=model_observability.begin_attempt(
+            nested_root,observed_attempt,parent_attempt=nested_parent,messages=messages,prompt=prompt,
+            metadata={'logical_operation':_logical_operation_id(call_id),'call_id':sid,'parent_call_id':call_id,
+                      'call_kind':'syntax_repair','role':'syntax_repair','provider':_provider_name(binding),'model':binding.model},
+        )
+        observed_paths[attempt]=observed
+        model_observability.mirror_legacy_syntax_view(observed,legacy_root); _refresh_model_operation_index(work)
+        out=legacy_root/'output.txt'
         _status(f'  {call_id}: syntax-only repair {attempt}/{total_attempts}')
         if binding.is_self:
-            if out.is_file(): return _read(out)
-            raise Handoff(sid,root/'prompt.md',out)
+            if out.is_file():
+                text=_read(out); model_observability.write_raw_output(observed,text); model_observability.finish_attempt(observed,status='running'); _refresh_model_operation_index(work); return text
+            raise Handoff(sid,legacy_root/'prompt.md',out)
         logical_id=_logical_operation_id(call_id)
         started=time.perf_counter()
         try: comp=model_client.complete_messages(binding,[{'role':'system','content':syntax_repair.SYNTAX_REPAIR_SYSTEM_PROMPT},{'role':'user','content':prompt}])
         except model_client.TruncatedCompletion as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
             _record_usage(work,sid,binding.model,attempt,exc.usage,role='syntax_repair',provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=exc.generation_id); text=exc.content
+            model_observability.write_raw_output(observed,text); model_observability.write_reasoning(observed,exc.reasoning)
+            model_observability.finish_attempt(observed,status='truncated',duration_ms=duration_ms,usage=exc.usage,generation_id=exc.generation_id,reasoning_details=exc.reasoning_details,reasoning_available=bool(exc.reasoning))
         except RuntimeError as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
             _record_usage(work,sid,binding.model,attempt,None,role='syntax_repair',provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',error=exc)
+            model_observability.finish_attempt(observed,status='provider_error',duration_ms=duration_ms,error=str(exc)); _refresh_model_operation_index(work)
             raise StepFailure(str(exc)) from exc
         else:
             duration_ms=round((time.perf_counter()-started)*1000)
             if isinstance(comp,model_client.Completion): text=comp.content; usage=comp.usage
             else: text=comp; usage=None
             _record_usage(work,sid,binding.model,attempt,usage,role='syntax_repair',provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=comp.generation_id if isinstance(comp,model_client.Completion) else None)
-        _write(out,text.rstrip()+'\n'); return text
+            model_observability.write_raw_output(observed,text)
+            if isinstance(comp,model_client.Completion): model_observability.write_reasoning(observed,comp.reasoning)
+            model_observability.finish_attempt(observed,status='running',duration_ms=duration_ms,usage=usage,generation_id=comp.generation_id if isinstance(comp,model_client.Completion) else None,reasoning_details=comp.reasoning_details if isinstance(comp,model_client.Completion) else None,reasoning_available=bool(comp.reasoning) if isinstance(comp,model_client.Completion) else False)
+        model_observability.mirror_legacy_syntax_view(observed,legacy_root); _refresh_model_operation_index(work); return text
+    repair.observed_paths=observed_paths
     return repair
 
 
@@ -403,6 +433,18 @@ def _archive_failed_syntax_attempts(work, call_id, attempts):
         _write(out, '\n'.join(body))
 
 
+def _record_parser_syntax_attempts(work,call_root,parent_attempt,attempts,observed_paths=None):
+    if call_root is None or parent_attempt is None: return
+    for attempt in attempts or ():
+        failure=attempt.parser_error or attempt.preservation_error or attempt.validation_error
+        observed=(observed_paths or {}).get(attempt.index) or model_observability.syntax_attempt_dir(call_root,parent_attempt,attempt.index)
+        model_observability.write_validation(observed,accepted=not bool(failure),detail=failure)
+        metadata=json.loads(_read(observed/'call.json')) if (observed/'call.json').is_file() else {}
+        if metadata.get('status') not in {'truncated','provider_error'}:
+            model_observability.finish_attempt(observed,status='rejected' if failure else 'accepted',validation_error=failure)
+    _refresh_model_operation_index(work)
+
+
 def _serialization_feedback(exc):
     """Return all representation-only validation defects, or None.
 
@@ -416,19 +458,22 @@ def _serialization_feedback(exc):
     return '\n'.join(issue.render(i) for i,issue in enumerate(serial,1))
 
 
-def _prepare_structured(work,raw,fmt,call_id,syntax_binding,*,syntax_attempts):
+def _prepare_structured(work,raw,fmt,call_id,syntax_binding,*,syntax_attempts,call_root=None,parent_attempt=None):
     if not fmt: return model_client.strip_code_fence(raw)
+    repair_callback=_syntax_callback(work,syntax_binding,call_id,syntax_attempts,call_root=call_root,parent_attempt=parent_attempt)
     try:
         result=syntax_repair.repair_structured_output(
             raw,
             format_name=fmt,
-            model_repair=_syntax_callback(work,syntax_binding,call_id,syntax_attempts),
+            model_repair=repair_callback,
             model_attempts=syntax_attempts,
         )
         _archive_failed_syntax_attempts(work,call_id,result.model_attempts)
+        _record_parser_syntax_attempts(work,call_root,parent_attempt,result.model_attempts,repair_callback.observed_paths)
     except Handoff: raise
     except syntax_repair.SyntaxRepairExhausted as exc:
         _archive_failed_syntax_attempts(work,call_id,exc.attempts)
+        _record_parser_syntax_attempts(work,call_root,parent_attempt,exc.attempts,repair_callback.observed_paths)
         detail=(
             f'model operation {call_id} produced {fmt.upper()} that remained unparsable after '
             f'{syntax_attempts} syntax-only repair attempt(s): {exc.parser_error}'
@@ -498,52 +543,67 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
     """
     logical_id=_logical_operation_id(call_id)
     model_attempt=0
+    current_attempt=None
+    syntax_paths={}
     def call_model(messages):
-        nonlocal model_attempt
+        nonlocal model_attempt,current_attempt
         model_attempt+=1
+        current_attempt=model_observability.begin_attempt(
+            root,model_attempt,messages=messages,prompt=_render_bundle(call_id,messages,output),
+            metadata={'logical_operation':logical_id,'call_id':call_id,'call_kind':'model','role':role,
+                      'provider':_provider_name(binding),'model':binding.model},
+        )
         _write(root/'messages.json',json.dumps(messages,indent=2,ensure_ascii=False)+'\n')
         _write(root/'prompt.md',_render_bundle(call_id,messages,output))
+        _refresh_model_operation_index(work)
         started=time.perf_counter()
         try: comp=model_client.complete_messages(binding,messages)
         except model_client.TruncatedCompletion as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
             _record_usage(work,call_id,binding.model,model_attempt,exc.usage,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,generation_id=exc.generation_id)
+            model_observability.write_raw_output(current_attempt,exc.content); model_observability.write_reasoning(current_attempt,exc.reasoning)
+            model_observability.finish_attempt(current_attempt,status='truncated',duration_ms=duration_ms,usage=exc.usage,generation_id=exc.generation_id,reasoning_details=exc.reasoning_details,reasoning_available=bool(exc.reasoning)); model_observability.sync_root_compatibility_view(root,current_attempt); _refresh_model_operation_index(work)
             return validated_model_task.Truncated(exc.content,max_tokens=exc.max_tokens)
         except RuntimeError as exc:
             duration_ms=round((time.perf_counter()-started)*1000)
             _record_usage(work,call_id,binding.model,model_attempt,None,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,error=exc)
+            model_observability.finish_attempt(current_attempt,status='provider_error',duration_ms=duration_ms,error=str(exc)); _refresh_model_operation_index(work)
             raise StepFailure(str(exc)) from exc
         duration_ms=round((time.perf_counter()-started)*1000)
         if isinstance(comp,model_client.Completion):
             _record_usage(work,call_id,binding.model,model_attempt,comp.usage,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,generation_id=comp.generation_id)
+            model_observability.write_raw_output(current_attempt,comp.content); model_observability.write_reasoning(current_attempt,comp.reasoning)
+            model_observability.finish_attempt(current_attempt,status='running',duration_ms=duration_ms,usage=comp.usage,generation_id=comp.generation_id,reasoning_details=comp.reasoning_details,reasoning_available=bool(comp.reasoning)); model_observability.sync_root_compatibility_view(root,current_attempt); _refresh_model_operation_index(work)
             return comp.content
         _record_usage(work,call_id,binding.model,model_attempt,None,role=role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id)
+        model_observability.write_raw_output(current_attempt,comp); model_observability.finish_attempt(current_attempt,status='running',duration_ms=duration_ms); model_observability.sync_root_compatibility_view(root,current_attempt); _refresh_model_operation_index(work)
         return comp
 
     def call_syntax(prompt,attempt):
-        sid=f'{call_id}-syntax-{attempt}'; sroot=layout.model_step_dir(work,sid,existing=False)
-        _write(sroot/'prompt.md',prompt)
-        if syntax_binding.is_self:
-            existing=sroot/'output.txt'
-            if existing.is_file(): return _read(existing)
-            raise Handoff(sid,sroot/'prompt.md',existing)
-        started=time.perf_counter()
-        try: comp=model_client.complete_messages(syntax_binding,[{'role':'system','content':syntax_repair.SYNTAX_REPAIR_SYSTEM_PROMPT},{'role':'user','content':prompt}])
-        except model_client.TruncatedCompletion as exc:
-            duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,sid,syntax_binding.model,attempt,exc.usage,role='syntax_repair',provider=_provider_name(syntax_binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=exc.generation_id)
-            return exc.content
-        except RuntimeError as exc:
-            duration_ms=round((time.perf_counter()-started)*1000)
-            _record_usage(work,sid,syntax_binding.model,attempt,None,role='syntax_repair',provider=_provider_name(syntax_binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',error=exc)
-            raise StepFailure(str(exc)) from exc
-        duration_ms=round((time.perf_counter()-started)*1000)
-        usage=comp.usage if isinstance(comp,model_client.Completion) else None
-        _record_usage(work,sid,syntax_binding.model,attempt,usage,role='syntax_repair',provider=_provider_name(syntax_binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind='syntax_repair',generation_id=comp.generation_id if isinstance(comp,model_client.Completion) else None)
-        return comp.content if isinstance(comp,model_client.Completion) else comp
+        callback=_syntax_callback(work,syntax_binding,call_id,_retry('syntax_repair_attempts'),call_root=root,parent_attempt=model_attempt)
+        result=callback(prompt,attempt); syntax_paths[attempt]=callback.observed_paths[attempt]; return result
 
     def record(attempt):
+        observed=model_observability.attempt_dir(root,attempt.index)
+        if (observed/'call.json').is_file():
+            model_observability.write_validation(observed,accepted=not bool(attempt.error),detail=attempt.error)
+            model_observability.finish_attempt(observed,status='rejected' if attempt.error else 'accepted',validation_error=attempt.error)
         if attempt.error: _write(layout.errors(work)/f'{call_id}-attempt-{attempt.index:02d}.txt',attempt.response.rstrip()+'\n\nVALIDATION:\n'+attempt.error+'\n')
+        _refresh_model_operation_index(work)
+
+    def record_syntax(attempt):
+        observed=syntax_paths.get(attempt.index) or model_observability.syntax_attempt_dir(root,model_attempt,attempt.index)
+        model_observability.write_validation(observed,accepted=not bool(attempt.error),detail=attempt.error)
+        model_observability.finish_attempt(observed,status='rejected' if attempt.error else 'accepted',validation_error=attempt.error)
+        _refresh_model_operation_index(work)
+
+    def write_output(text):
+        _write(output,text); _write(root/'accepted-output.txt',text)
+        if model_attempt < 1: return
+        observed=model_observability.attempt_dir(root,model_attempt)
+        model_observability.write_validation(observed,accepted=True)
+        model_observability.finish_attempt(observed,status='accepted')
+        model_observability.sync_root_compatibility_view(root,observed); _refresh_model_operation_index(work)
 
     return validated_model_task.TaskIO(
         call_model=call_model,
@@ -551,8 +611,9 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
         load_state=lambda key:_retry_entry(work,key),
         save_state=lambda key,value:_set_retry_entry(work,key,value),
         read_output=lambda:_read(output) if output.is_file() else None,
-        write_output=lambda text:(_write(output,text),_write(root/'accepted-output.txt',text)) and None,
+        write_output=write_output,
         record_attempt=record,
+        record_syntax_attempt=record_syntax,
         status=_status,
         is_self=binding.is_self,
     )
@@ -565,7 +626,7 @@ def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt
     messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
     if feedback: messages.append({'role':'user','content':feedback})
     def prepare(raw):
-        text=_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=_retry('syntax_repair_attempts')) if fmt else model_client.strip_code_fence(raw)
+        text=_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=_retry('syntax_repair_attempts'),call_root=root,parent_attempt=max(1,len(list((root/'attempts').glob('[0-9][0-9]'))) if (root/'attempts').is_dir() else 1)) if fmt else model_client.strip_code_fence(raw)
         return _sanitize_proforma_text(work,call_id,text) if mode=='proforma' and fmt=='yaml' else text
     request=validated_model_task.TaskRequest(
         task_id=call_id,

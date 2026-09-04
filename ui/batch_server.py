@@ -7,6 +7,7 @@ through the root ``nel.py`` facade.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import secrets
@@ -334,15 +335,29 @@ def run_files(run_ref: str) -> list[dict[str, Any]]:
     return [{"path": p.relative_to(base_path).as_posix(), "size": p.stat().st_size} for p in paths]
 
 
-def read_run_file(run_ref: str, relative: str) -> dict[str, Any]:
+def read_run_file(run_ref: str, relative: str, *, offset: int = 0, limit: int = base.MAX_FILE_BYTES) -> dict[str, Any]:
     kind = _top_kind(run_ref)
     base_path = _batch_location(run_ref).path if kind == "batch" else _run_location(run_ref).path
     path = base.safe_child(base_path, relative)
     if not path.is_file():
         raise base.UIError(f"no such file in this run: {relative}", 404)
-    payload = _safe_read(path)
-    payload["path"] = relative
-    return payload
+    size = path.stat().st_size
+    offset = max(0, min(int(offset), size))
+    limit = max(1, min(int(limit), base.MAX_FILE_BYTES))
+    with open(path, "rb") as handle:
+        handle.seek(offset)
+        data = handle.read(limit)
+    next_offset = offset + len(data)
+    return {
+        "exists": True,
+        "path": relative,
+        "size": size,
+        "offset": offset,
+        "next_offset": next_offset,
+        "truncated": next_offset < size,
+        "text": data.decode("utf-8", errors="replace"),
+        "data_base64": base64.b64encode(data).decode("ascii"),
+    }
 
 
 def _validate_pipeline(name: str) -> None:
@@ -560,7 +575,12 @@ class Handler(base.Handler):
             if path == "/api/files":
                 return {"files": run_files(self._param("run"))}
             if path == "/api/file":
-                return read_run_file(self._param("run"), self._param("path"))
+                try:
+                    offset = int(self._param("offset", "0"))
+                    limit = int(self._param("limit", str(base.MAX_FILE_BYTES)))
+                except ValueError as exc:
+                    raise base.UIError("file offset and limit must be integers") from exc
+                return read_run_file(self._param("run"), self._param("path"), offset=offset, limit=limit)
             if path == "/api/pipelines":
                 name, note = base.default_pipeline()
                 return {"pipelines": list_pipelines(), "default_pipeline": name, "default_pipeline_note": note}

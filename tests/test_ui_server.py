@@ -6,6 +6,7 @@ it is skipped when the runtime dependencies are unavailable.
 from __future__ import annotations
 
 import json
+import base64
 import os
 import shutil
 import sys
@@ -35,6 +36,7 @@ def _has_runtime_deps() -> bool:
 
 HAS_DEPS = _has_runtime_deps()
 requires_deps = unittest.skipUnless(HAS_DEPS, "jsonschema and PyYAML are required")
+UI_HTML = (ROOT / "ui" / "index.html").read_text(encoding="utf-8")
 
 
 def _valid_payload(name="ui-test", roles=None):
@@ -120,6 +122,65 @@ class TokenTests(unittest.TestCase):
     def test_unknown_api_endpoint(self):
         status, _ = self._get("/api/nope", token=server.Handler.token)
         self.assertEqual(status, 404)
+
+
+class ModelViewerStaticTests(unittest.TestCase):
+    def test_models_tab_and_progressive_selectors_exist(self):
+        self.assertIn('id="modelsTab"', UI_HTML)
+        self.assertIn('id="modelsView"', UI_HTML)
+        self.assertIn('for="modelPhaseSelect">Model phase', UI_HTML)
+        self.assertIn('for="modelCallSelect">Call', UI_HTML)
+        self.assertIn('for="modelAttemptSelect">Attempt', UI_HTML)
+        self.assertIn("calls.length>1?'':'hidden'", UI_HTML)
+        self.assertIn("attempts.length>1?'':'hidden'", UI_HTML)
+
+    def test_attempt_viewer_has_required_order(self):
+        output = UI_HTML.index("modelSection('Model output'")
+        thinking = UI_HTML.index("modelSection('Model thinking'")
+        prompt = UI_HTML.index('>Prompt input</span>')
+        validation = UI_HTML.index("modelSection('Validation'")
+        repairs = UI_HTML.index('Syntax repairs (${t.repairs.length})')
+        self.assertLess(output, thinking)
+        self.assertLess(thinking, prompt)
+        self.assertLess(prompt, validation)
+        self.assertLess(validation, repairs)
+
+    def test_legacy_reasoning_copy_and_exact_read_contracts_exist(self):
+        self.assertIn("Legacy run: per-attempt history was not recorded.", UI_HTML)
+        self.assertIn("Reasoning was not provided by this model/provider.", UI_HTML)
+        self.assertIn("data-copy-model", UI_HTML)
+        self.assertIn("navigator.clipboard.writeText(value)", UI_HTML)
+        self.assertIn("data_base64", UI_HTML)
+        self.assertIn("new TextDecoder('utf-8').decode(all)", UI_HTML)
+        self.assertIn("user-select:text", UI_HTML)
+
+    def test_polling_preserves_valid_explicit_attempt_selection(self):
+        self.assertIn(
+            "if(!attempts.some(x=>Number(x.attempt)===Number(state.modelAttempt)))",
+            UI_HTML,
+        )
+        self.assertIn("if(state.midMode==='models')tasks.push(loadModels())", UI_HTML)
+
+    def test_polling_preserves_model_view_scroll_and_expansion_state(self):
+        self.assertIn("function captureModelViewState()", UI_HTML)
+        self.assertIn("saved=captureModelViewState()", UI_HTML)
+        self.assertIn("restoreModelViewState(saved)", UI_HTML)
+        self.assertIn("scrollKey=`${state.modelOperation}|${state.modelCall}|${state.modelAttempt}|${key}`", UI_HTML)
+        self.assertIn("|${state.modelAttempt}|prompt`)}", UI_HTML)
+        self.assertIn("|${state.modelAttempt}|${prefix}`)}", UI_HTML)
+        self.assertIn("box.scrollTop=saved.outer||0", UI_HTML)
+        self.assertIn("el.scrollTop=prior.nearBottom?el.scrollHeight:prior.scrollTop", UI_HTML)
+        self.assertIn("el.open=!!saved.repairs[el.dataset.repairKey]", UI_HTML)
+
+    def test_unchanged_model_poll_does_not_replace_dom(self):
+        self.assertIn("if(signature===state.modelTextSignature)return", UI_HTML)
+        self.assertIn("signature!==state.modelIndexSignature||selection!==selected", UI_HTML)
+        self.assertIn("state.modelIndexSignature=signature;renderModels()", UI_HTML)
+
+    def test_copy_all_uses_raw_source_values_not_rendered_html(self):
+        self.assertIn("=== MODEL OUTPUT ===\\n${output||''}", UI_HTML)
+        self.assertIn("=== MODEL THINKING ===\\n${reasoning||", UI_HTML)
+        self.assertIn("copyRaw(bundle,e.currentTarget)", UI_HTML)
 
 
 # ------------------------------------------------------------------- paths
@@ -493,6 +554,20 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(doc["text"], "clinical text\n")
         with self.assertRaises(server.UIError):
             server.read_run_file("r6", "../../etc/passwd")
+
+    def test_read_run_file_chunks_reconstruct_exact_multibyte_text(self):
+        run = self._make_run("r7")
+        expected = ("αβγ clinical reasoning\n" * 8).encode("utf-8")
+        (run / "large.txt").write_bytes(expected)
+        chunks = []
+        offset = 0
+        while offset < len(expected):
+            doc = server.read_run_file("r7", "large.txt", offset=offset, limit=7)
+            chunks.append(base64.b64decode(doc["data_base64"]))
+            self.assertEqual(doc["offset"], offset)
+            offset = doc["next_offset"]
+        self.assertEqual(b"".join(chunks), expected)
+        self.assertFalse(doc["truncated"])
 
     def test_sweep_case_files(self):
         server.case_path("orphan").write_text("stale\n", encoding="utf-8")

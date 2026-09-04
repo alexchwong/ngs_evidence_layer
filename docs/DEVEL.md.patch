@@ -1,0 +1,62 @@
+--- a/docs/DEVEL.md
++++ b/docs/DEVEL.md
+@@
+-This file is for repository maintenance. End-user reporting is documented in `../README.md`;
+-paper ingestion is documented in `docs/ingest.md`.
++This file is for repository maintenance. End-user reporting is documented in `../README.md`;
++paper ingestion is documented in `ingest.md`.
+@@
+-# Regenerate runtime JSON after editing output/corpus/blacklist.yaml.
+-python scripts/build_blacklist.py
++# Validate the shipped corpus user layer after editing config/cul/default.json.
++python scripts/cul.py check --cul default
++
++# Regenerate deprecated blacklist compatibility JSON only after intentional legacy-policy changes.
++python scripts/build_blacklist.py
+@@
+-- [Regenerate the blacklist](#regenerate-the-blacklist)
++- [Maintain corpus user layers](#maintain-corpus-user-layers)
+@@
+-## Regenerate the blacklist
+-
+-`output/corpus/blacklist.yaml` is the human-edited canonical card eligibility policy.
+-Runtime retrieval does not parse YAML; it reads the committed generated artefact:
+-
+-```text
+-output/corpus/blacklist.json
+-```
+-
+-After every blacklist YAML edit, regenerate the JSON from the repository root:
+-
+-```bash
+-python scripts/build_blacklist.py
+-```
+-Do not edit `blacklist.json` directly. Commit it with the corresponding YAML change and
+-inspect the generated diff before running tests. `--source` and `--output` are available
+-for development fixtures or alternate paths.
++## Maintain corpus user layers
++
++`config/cul/*.json` is the human-edited retrieval and amendment layer. The shipped
++`config/cul/default.json` preserves the default retrieval scope and is resolved and
++frozen at run setup. Validate an edited profile with:
++
++```bash
++python scripts/cul.py check --cul <profile>
++```
++
++Use `python scripts/cul.py list`, `new`, `diff`, `apply`, or `--edit` for normal CUL
++maintenance. See [`cul.md`](cul.md) for the profile contract and editor workflow.
++
++`output/corpus/blacklist.yaml` and `output/corpus/blacklist.json` are deprecated
++compatibility assets. Runtime retrieval uses the active CUL profile and falls back to
++the legacy blacklist only when no profile is available in legacy/direct contexts. If
++that compatibility snapshot is intentionally changed, edit the YAML and regenerate
++the JSON with `python scripts/build_blacklist.py`; never edit `blacklist.json` directly.
+@@
+-6. Check `README.md`, `docs/ingest.md`, and `docs/DEVEL.md` still match current user/developer commands.
++6. Check `README.md`, `docs/ingest.md`, `docs/cul.md`, `docs/workflows.md`, `docs/validation.md`, and `docs/DEVEL.md` still match current commands.
+@@
+ - `README.md` — end-user installation, configuration, run management, and reporting;
+ - `docs/corpus.md` — current corpus contents;
++- `docs/cul.md` — corpus user-layer configuration and editor workflow;
+ - `docs/ingest.md` — corpus-curation workflow;

@@ -228,12 +228,21 @@ class TaskIO:
     write_output: Callable[[str], None]
     call_syntax_model: Callable[[str, int], str] | None = None
     record_attempt: Callable[[Any], None] = lambda attempt: None
+    record_syntax_attempt: Callable[[Any], None] = lambda attempt: None
     status: Callable[[str], None] = lambda message: None
     is_self: bool = False
 
 
 @dataclass
 class Attempt:
+    task_id: str
+    index: int
+    response: str
+    error: str | None = None
+
+
+@dataclass
+class SyntaxAttempt:
     task_id: str
     index: int
     response: str
@@ -301,11 +310,18 @@ def _validate(request: TaskRequest, io: TaskIO, candidate: str) -> tuple[str, st
         io.status(f"  {request.task_id}: serialization repair {attempt}/{request.budgets.serialization}")
         repaired = _prepare(request, io.call_syntax_model(prompt, attempt))
         try:
-            return repaired, request.validate(repaired)
+            message = request.validate(repaired)
         except ValidationFailure as exc:
             serial = _serialization_issues(exc)
+            io.record_syntax_attempt(SyntaxAttempt(request.task_id, attempt, repaired, str(exc)))
             if not serial:
                 raise
+        except Exception as exc:
+            io.record_syntax_attempt(SyntaxAttempt(request.task_id, attempt, repaired, str(exc)))
+            raise
+        else:
+            io.record_syntax_attempt(SyntaxAttempt(request.task_id, attempt, repaired))
+            return repaired, message
     raise ValidationFailure(request.task_id, serial)
 
 

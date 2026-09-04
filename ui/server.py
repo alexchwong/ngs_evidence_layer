@@ -13,6 +13,7 @@ Binding is the literal loopback address; there is no host option.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -1006,19 +1007,26 @@ def run_files(run_id: str) -> list[dict[str, Any]]:
     return rows
 
 
-def read_run_file(run_id: str, relative: str) -> dict[str, Any]:
+def read_run_file(run_id: str, relative: str, *, offset: int = 0, limit: int = MAX_FILE_BYTES) -> dict[str, Any]:
     base = run_dir(run_id)
     path = safe_child(base, relative)
     if not path.is_file():
         raise UIError(f"no such file in this run: {relative}", 404)
     size = path.stat().st_size
+    offset = max(0, min(int(offset), size))
+    limit = max(1, min(int(limit), MAX_FILE_BYTES))
     with open(path, "rb") as handle:
-        data = handle.read(MAX_FILE_BYTES)
+        handle.seek(offset)
+        data = handle.read(limit)
+    next_offset = offset + len(data)
     return {
         "path": relative,
         "size": size,
-        "truncated": size > MAX_FILE_BYTES,
+        "offset": offset,
+        "next_offset": next_offset,
+        "truncated": next_offset < size,
         "text": data.decode("utf-8", errors="replace"),
+        "data_base64": base64.b64encode(data).decode("ascii"),
     }
 
 
@@ -1265,7 +1273,15 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/files":
                 return {"files": run_files(check_run_id(self._param("run")))}
             if path == "/api/file":
-                return read_run_file(check_run_id(self._param("run")), self._param("path"))
+                try:
+                    offset = int(self._param("offset", "0"))
+                    limit = int(self._param("limit", str(MAX_FILE_BYTES)))
+                except ValueError as exc:
+                    raise UIError("file offset and limit must be integers") from exc
+                return read_run_file(
+                    check_run_id(self._param("run")), self._param("path"),
+                    offset=offset, limit=limit,
+                )
             if path == "/api/pipelines":
                 name, note = default_pipeline()
                 return {

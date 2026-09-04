@@ -115,6 +115,7 @@ class ModelActivityStreamingTests(unittest.TestCase):
                 [{"role": "user", "content": "x"}],
             )
         self.assertEqual(result.content, "answer")
+        self.assertEqual(result.reasoning, "think ")
         self.assertEqual(result.generation_id, "resp-1")
         self.assertEqual(result.usage["total_tokens"], 5)
         events = self._events()
@@ -132,6 +133,7 @@ class ModelActivityStreamingTests(unittest.TestCase):
         with mock.patch.object(model_client.urllib.request, "urlopen", return_value=_Response(lines=lines)):
             result = model_client.complete_messages(_binding(reasoning="high"), [{"role": "user", "content": "x"}])
         self.assertEqual(result.content, "answer")
+        self.assertEqual(result.reasoning, "think ")
         self.assertEqual(result.generation_id, "gen-1")
         self.assertEqual(result.usage["total_tokens"], 5)
         events = self._events()
@@ -236,6 +238,7 @@ class ModelActivityStreamingTests(unittest.TestCase):
             row.get("text", "") for row in self._events() if row["event"] == "reasoning"
         )
         self.assertEqual(reasoning, "The model ")
+        self.assertEqual(result.reasoning, "The model ")
 
     def test_reasoning_alias_fallbacks_remain_supported(self):
         self.assertEqual(model_client._reasoning_fragment({"reasoning": "a"}), "a")
@@ -287,6 +290,8 @@ class ModelActivityStreamingTests(unittest.TestCase):
                 [{"role": "user", "content": "x"}],
             )
         self.assertEqual(result.content, "final")
+        self.assertEqual(result.reasoning, "summary")
+        self.assertEqual(result.reasoning_details[0]["type"], "reasoning")
         self.assertEqual(seen["url"], "http://localhost:1234/v1/responses")
         self.assertEqual(seen["payload"]["reasoning"], {"effort": "medium"})
 

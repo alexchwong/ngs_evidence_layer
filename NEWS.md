@@ -1,4 +1,14 @@
 # NEWS
+## 0.3.1
+- Added a local browser interface for run setup, provider profiles, workflow-aware progress, reports, files, dissent, usage, and themes.
+- Added CLI and browser batch execution with selectable cases, stopping, case switching, and persistent per-case consoles.
+- Added selectable `proforma-v1` workflow definitions, frozen with prepared runs for reproducible alternate proforma workflows.
+- Added per-model reasoning controls and richer OpenRouter and LM Studio provider configuration.
+- Added persisted model prompts, outputs, reasoning traces, retries, token use, runtime, and cost for auditability.
+- Expanded the corpus from 19 to 32 publications across germline, MPN, CCUS, VEXAS, mastocytosis, CMML, LGL, and B-ALL.
+- Added `nel-validate-dublin` and strengthened diagnosis, germline, concurrent-pathology, and negative-NGS handling across validation workflows.
+- Added `somatic mutation-associated syndrome` retrieval support for mutation-defined systemic syndromes including VEXAS.
+- Strengthened ingestion evidence-block fidelity checks and Phase 4 evidence-only repair under deterministic safeguards.
 ## 0.3.0
 - `proforma-v1` is now canonical; `terraced-v6` remains available through `--legacy` for reproducibility.
 - Added evidence-gated WHO routing, concurrent-pathology reporting, PTBG owner proformas, and audited/adjudicated evidence resolution.
@@ -19,7 +29,6 @@
 - Added a standalone three-pane CUL editor with rule controls, exemptions, profile switching, and corpus-aware card editing.
 - The card browser remains read-only; `--full` adds accepted evidence without depending on archived packages.
 - CUL evidence-tier editing now validates against the ingestion schema enumeration.
-
 ## 0.2.5
 - Added root `nel.py` setup, run, status, configuration checks, and run inventory for the then-current product workflow.
 - Moved user-editable settings and provider pipelines to root configuration while leaving the then-current implementation files unchanged.
@@ -123,7 +132,7 @@
 ## 0.1.5
 - Added automatic, manual, full-report, and report-only workflows.
 - Manual mode now allows users to review and correct the integrated diagnosis.
-- Diagnosis evidence can now be found from disease context even when no variants are detected.
+- Diagnosis evidence can be found from disease context even when no variants are detected.
 - Evidence lookup can include selected related diseases while preserving the original disease context.
 - Added support for cases with no stated haematological malignancy and no detected variants.
 - Reports now separate evidence drafting from final formatting.
@@ -132,7 +141,6 @@
 - Temporary working folders are now created automatically in the system temporary location.
 - Simplified the skill instructions and divided complex stages into smaller steps.
 ## 0.1.4
-
 - Improved multi-part evidence gathering for ingest phases 2 and 3
 - Each ingest phase deterministically audits json prior to output and completion
 - Updated corpus now includes ELN 2022/2024, ELN-DAVID 2025, IPSET, CHRS, Cpss-Mol and MIPPS70V2
@@ -140,42 +148,26 @@
 - Corpus includes WHO5, ICC and IPSS-M paper
 - Allowed multi-part quoting, introduced as evidence bundles (`contiguous_text`, `composite_text`, `table_relation`) using verbatim, role-tagged fragments mapped via `support_map`.
 - Changed Phase 3 to emit one complete pass/fail review per card, including failure type, defensibility, guidance, and quote restatement for failures; mandatory audit checks added.
-- Added Phase 4 human adjudication as the sole creator of `paper.final.json` and
-  removed the Phase 3 to Phase 2 rework loop.
+- Changed Phase 4 human adjudication as the sole creator of `paper.final.json` and removed the Phase 3 to Phase 2 rework loop.
 - Changed validation to focus only on the final json. Errors in upstream jsons return warnings
 - Separated exact card diseases from corpus-broadening `disease_ancestors` derived from a cycle-checked umbrella graph.
-- Extended the disease vocabulary to 1.2 with `MPN`, `MDS/MPN`, `MPN blast phase`,
-  `acute leukaemia of ambiguous lineage`, `histiocytic/dendritic neoplasm`, and
-  `haematological malignancy, other`, and re-parented the affected families.
+- Extended the disease vocabulary to 1.2 with `MPN`, `MDS/MPN`, `MPN blast phase`, `acute leukaemia of ambiguous lineage`, `histiocytic/dendritic neoplasm`, and `haematological malignancy, other`, and re-parented the affected families.
 - `publication_type` limited to 6 categorical possibilities.
-- Added `publication_type_verified_by_phase3` and removed `escalates_to` from cards,
-  the index, and retrieval
+- Added `publication_type_verified_by_phase3` and removed `escalates_to` from cards, the index, and retrieval
 - Added `scripts/transport.py` to move private corpus files between computers
 - Optimized `SKILL.md` as a four-step workflow, returning a evidence.md containing evidence cards.
 ## 0.1.2
-- Added deterministic, content-addressed PDF-to-Markdown ingestion with locked
-  OpenDataLoader settings and atomic publication.
-- Added DOI detection, Crossref resolution, model-assisted DOI recovery, and a
-  batch-atomic manual citation worksheet.
+- Added deterministic, content-addressed PDF-to-Markdown ingestion with locked OpenDataLoader settings and atomic publication.
+- Added DOI detection, Crossref resolution, model-assisted DOI recovery, and a batch-atomic manual citation worksheet.
 - Made JSONL the canonical input index and added a synchronized read-only CSV view.
-- Made the human-readable publication key the operator-facing work-folder identity
-  and card-ID prefix while retaining the content-derived paper UUID internally.
-- Moved publication-type assignment and justification into Phase 1, propagation into
-  Phase 2, and independent audit into Phase 3.
-- Hardened all model phases with exclusive output contracts and mandatory pre-output
-  gates; strengthened Phase 2 qualifier, quote, and independent-utility checks, and
-  added bounded Phase 3 reviewer suggestions for rejected packages.
-- Added stable acceptance timestamps and changed duplicate publication keys at
-  incorporation from fatal errors to deterministic per-paper rejection.
-- Replaced escalation-candidate selection with evidence-bounded diagnostic
-  adjudication over structured case facts and all gene-matched diagnosis cards.
-  Adjudication now separates a source-supported diagnostic label from the major
-  disease category used for deterministic downstream filtering, and fails closed
-  when required facts are missing or criteria are unmet.
-- Updated rendering to expose adjudication status, the downstream filter disease,
-  any supported diagnostic label, and the cards driving a changed major category.
-- Bumped all working and accepted schemas; prior in-flight artefacts require
-  re-ingestion rather than migration.
+- Made the human-readable publication key the operator-facing work-folder identity and card-ID prefix while retaining the content-derived paper UUID internally.
+- Moved publication-type assignment and justification into Phase 1, propagation into Phase 2, and independent audit into Phase 3.
+- Hardened all model phases with exclusive output contracts and mandatory pre-output gates; strengthened Phase 2 qualifier, quote, and independent-utility checks, and added bounded Phase 3 reviewer suggestions for rejected packages.
+- Added stable acceptance timestamps and changed duplicate publication keys at incorporation from fatal errors to deterministic per-paper rejection.
+- Replaced escalation-candidate selection with evidence-bounded diagnostic adjudication over structured case facts and all gene-matched diagnosis cards.
+  Adjudication now separates a source-supported diagnostic label from the major disease category used for deterministic downstream filtering, and fails closed when required facts are missing or criteria are unmet.
+- Updated rendering to expose adjudication status, the downstream filter disease, any supported diagnostic label, and the cards driving a changed major category.
+- Bumped all working and accepted schemas; prior in-flight artefacts require re-ingestion rather than migration.
 ## 0.1.1
 - Replaced central phase queues with independent `work/<paper-id>/` folder state.
 - Moved complete, generated phase instructions to committed `prompts/` data.
@@ -185,7 +177,6 @@
 - Added per-paper incorporation rejection while keeping global identity collisions fatal.
 - Separated private input, work, acceptance, and archive data from shipped `output/` artefacts.
 ## 0.1.0
-
 Initial release of the corpus-grounded evidence layer for myeloid NGS interpretation.
 - Publication selection - Identifies the next indexed publication and ingestion phase to process.
 - Phased ingestion - Prepares and accepts bounded census, extraction, and independent audit handoffs.

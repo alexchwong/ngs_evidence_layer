@@ -38,6 +38,8 @@ class Completion:
     content: str
     usage: dict[str, object] | None = None
     generation_id: str | None = None
+    reasoning: str | None = None
+    reasoning_details: object | None = None
 
 
 class TruncatedCompletion(RuntimeError):
@@ -47,11 +49,15 @@ class TruncatedCompletion(RuntimeError):
         max_tokens: int,
         usage: dict[str, object] | None = None,
         generation_id: str | None = None,
+        reasoning: str | None = None,
+        reasoning_details: object | None = None,
     ):
         self.content = content
         self.max_tokens = max_tokens
         self.usage = usage
         self.generation_id = generation_id
+        self.reasoning = reasoning
+        self.reasoning_details = reasoning_details
         super().__init__(f"provider truncated output at max_tokens={max_tokens}")
 
 
@@ -331,6 +337,7 @@ def _complete_chat_nonstreaming(
         message = choice["message"]
         content = message["content"]
         reasoning = _reasoning_fragment(message) if isinstance(message, dict) else ""
+        reasoning_details = message.get("reasoning_details") if isinstance(message, dict) else None
         finish_reason = choice.get("finish_reason")
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(f"malformed provider completion: {body[:600]}") from exc
@@ -350,8 +357,11 @@ def _complete_chat_nonstreaming(
             transport="chat/completions",
         )
     if finish_reason == "length":
-        raise TruncatedCompletion(content, binding.max_tokens, usage, generation_id)
-    return Completion(content, usage, generation_id)
+        raise TruncatedCompletion(
+            content, binding.max_tokens, usage, generation_id,
+            reasoning or None, reasoning_details,
+        )
+    return Completion(content, usage, generation_id, reasoning or None, reasoning_details)
 
 
 def _responses_output(document: dict[str, Any]) -> str:
@@ -391,6 +401,14 @@ def _responses_reasoning(document: dict[str, Any]) -> str:
     return "".join(parts)
 
 
+def _responses_reasoning_details(document: dict[str, Any]) -> list[dict[str, Any]] | None:
+    output = document.get("output")
+    if not isinstance(output, list):
+        return None
+    details = [item for item in output if isinstance(item, dict) and item.get("type") == "reasoning"]
+    return details or None
+
+
 def _responses_finish_reason(document: dict[str, Any]) -> str | None:
     status = str(document.get("status") or "").strip().lower()
     details = document.get("incomplete_details")
@@ -422,6 +440,7 @@ def _complete_responses_nonstreaming(
     document, body = _read_json_response(binding, request, transport=transport)
     content = _responses_output(document)
     reasoning = _responses_reasoning(document)
+    reasoning_details = _responses_reasoning_details(document)
     if not content.strip():
         raise RuntimeError(f"provider returned an empty completion: {body[:600]}")
     usage = _usage(document)
@@ -439,10 +458,13 @@ def _complete_responses_nonstreaming(
             transport="responses",
         )
     if _responses_is_truncated(document):
-        raise TruncatedCompletion(content, binding.max_tokens, usage, generation_id)
+        raise TruncatedCompletion(
+            content, binding.max_tokens, usage, generation_id,
+            reasoning or None, reasoning_details,
+        )
     if str(document.get("status") or "").strip().lower() in {"failed", "cancelled"}:
         raise RuntimeError(f"LM Studio response ended with status {document.get('status')!r}")
-    return Completion(content, usage, generation_id)
+    return Completion(content, usage, generation_id, reasoning or None, reasoning_details)
 
 
 def _complete_nonstreaming(
@@ -576,6 +598,8 @@ def _complete_chat_streaming(
     saw_event = False
     saw_done = False
     content_parts: list[str] = []
+    reasoning_parts: list[str] = []
+    reasoning_details: list[object] = []
     usage: dict[str, object] | None = None
     generation_id: str | None = None
     finish_reason: str | None = None
@@ -618,7 +642,11 @@ def _complete_chat_streaming(
                     delta = {}
                 reasoning = _reasoning_fragment(delta)
                 if reasoning:
+                    reasoning_parts.append(reasoning)
                     activity.reasoning(reasoning)
+                details = delta.get("reasoning_details")
+                if isinstance(details, list):
+                    reasoning_details.extend(details)
                 output = _text_fragment(delta.get("content"))
                 if output:
                     content_parts.append(output)
@@ -646,8 +674,14 @@ def _complete_chat_streaming(
         transport="chat/completions",
     )
     if finish_reason == "length":
-        raise TruncatedCompletion(content, binding.max_tokens, usage, generation_id)
-    return Completion(content, usage, generation_id)
+        raise TruncatedCompletion(
+            content, binding.max_tokens, usage, generation_id,
+            "".join(reasoning_parts) or None, reasoning_details or None,
+        )
+    return Completion(
+        content, usage, generation_id,
+        "".join(reasoning_parts) or None, reasoning_details or None,
+    )
 
 
 def _responses_event_reasoning(document: dict[str, Any]) -> str:
@@ -671,6 +705,7 @@ def _complete_responses_streaming(
     response = _open_stream(binding, request, transport=transport)
     saw_event = False
     content_parts: list[str] = []
+    reasoning_parts: list[str] = []
     usage: dict[str, object] | None = None
     generation_id: str | None = None
     final_response: dict[str, Any] | None = None
@@ -700,6 +735,7 @@ def _complete_responses_streaming(
                 else:
                     reasoning = _responses_event_reasoning(document)
                     if reasoning:
+                        reasoning_parts.append(reasoning)
                         activity.reasoning(reasoning)
                 nested = document.get("response")
                 if isinstance(nested, dict):
@@ -728,9 +764,11 @@ def _complete_responses_streaming(
         content = _responses_output(final_response)
         if content:
             activity.output(content)
-        reasoning = _responses_reasoning(final_response)
-        if reasoning and not activity.reasoning_exposed:
-            activity.reasoning(reasoning)
+    if final_response is not None and not reasoning_parts:
+        final_reasoning = _responses_reasoning(final_response)
+        if final_reasoning:
+            reasoning_parts.append(final_reasoning)
+            activity.reasoning(final_reasoning)
     if not content.strip():
         raise RuntimeError("provider returned an empty completion")
     finish_reason = _responses_finish_reason(final_response or {})
@@ -742,10 +780,18 @@ def _complete_responses_streaming(
         transport="responses",
     )
     if final_response is not None and _responses_is_truncated(final_response):
-        raise TruncatedCompletion(content, binding.max_tokens, usage, generation_id)
+        raise TruncatedCompletion(
+            content, binding.max_tokens, usage, generation_id,
+            "".join(reasoning_parts) or None,
+            _responses_reasoning_details(final_response),
+        )
     if final_response is not None and str(final_response.get("status") or "").lower() == "failed":
         raise RuntimeError("LM Studio response failed")
-    return Completion(content, usage, generation_id)
+    return Completion(
+        content, usage, generation_id,
+        "".join(reasoning_parts) or None,
+        _responses_reasoning_details(final_response or {}),
+    )
 
 
 def _complete_streaming(
