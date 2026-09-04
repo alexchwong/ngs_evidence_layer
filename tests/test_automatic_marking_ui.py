@@ -149,3 +149,10 @@ def test_progress_header_and_phase_text_can_wrap_without_displacing_controls():
     assert "flex-wrap:wrap;min-width:0}.tabbar" in page
     assert ".attempt{font-family:var(--mono);font-size:10px;color:var(--muted);flex:1 0 100%" in page
     assert ".progress-phase{font:10px/1.25 var(--mono);color:var(--muted);min-width:0;white-space:normal" in page
+
+def test_prepared_batch_becomes_startable_without_reselection():
+    page = (ROOT / "ui" / "index.html").read_text(encoding="utf-8")
+    assert "const wasPending=currentRow()?.kind==='pending'" in page
+    assert "if(wasPending&&state.selected&&!isActive(state.selected)){await refreshRuns(state.selected)}" in page
+    assert "await refreshRuns(d.run_id);renderRunButton()" in page
+

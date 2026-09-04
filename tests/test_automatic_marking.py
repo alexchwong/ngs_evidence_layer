@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 import json
+import inspect
+import tempfile
+import unittest
+from contextlib import ExitStack
 from pathlib import Path
-
-import pytest
+from unittest import mock
 
 from validation.scripts import package_marking as marking
+
+
+class _MonkeyPatch:
+    def __init__(self, stack: ExitStack):
+        self._stack = stack
+
+    def setattr(self, target, name, value):
+        self._stack.enter_context(mock.patch.object(target, name, value))
 
 
 def _valid_minimal_marking() -> str:
@@ -54,7 +65,7 @@ def test_automatic_prompt_fails_before_touching_evaluator_inputs(monkeypatch, tm
         "retrieve_marking_criteria",
         lambda *_args: (_ for _ in ()).throw(AssertionError("criteria were touched too early")),
     )
-    with pytest.raises(FileNotFoundError):
+    with unittest.TestCase().assertRaises(FileNotFoundError):
         marking.render_automatic_marking_prompt("nel-validate", "1", report)
 
 
@@ -71,7 +82,7 @@ def test_marking_validator_requires_exact_criterion_set_and_legal_rubrics(monkey
     assert valid["rubrics"]["R2"]["category"] == "not applicable"
 
     bad = _valid_minimal_marking().replace('"R1C1"', '"R1C2"')
-    with pytest.raises(marking.MarkingValidationError, match="criterion_results mismatch"):
+    with unittest.TestCase().assertRaisesRegex(marking.MarkingValidationError, "criterion_results mismatch"):
         marking.validate_marking_output("nel-validate-test", "1", bad)
 
 
@@ -307,3 +318,23 @@ def test_marking_incomplete_batch_selects_only_unresolved_markers(monkeypatch, t
     )
     selected = nel._selected_batch_children(batch, state)
     assert [row["case_id"] for row in selected] == ["002"]
+
+
+def load_tests(_loader, _tests, _pattern):
+    suite = unittest.TestSuite()
+    functions = [
+        value for name, value in globals().items()
+        if name.startswith("test_") and inspect.isfunction(value)
+    ]
+    for function in functions:
+        def run_test(function=function):
+            with ExitStack() as stack:
+                kwargs = {}
+                parameters = inspect.signature(function).parameters
+                if "monkeypatch" in parameters:
+                    kwargs["monkeypatch"] = _MonkeyPatch(stack)
+                if "tmp_path" in parameters:
+                    kwargs["tmp_path"] = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+                function(**kwargs)
+        suite.addTest(unittest.FunctionTestCase(run_test, description=function.__name__))
+    return suite

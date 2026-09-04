@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ROLES = {
     "structure", "diagnosis", "ptbg", "evidence_match", "evidence_audit",
     "evidence_adjudication", "report_write", "preservation_check", "syntax_repair",
+    "marking",
 }
 
 

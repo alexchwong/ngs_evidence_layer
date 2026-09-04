@@ -1,13 +1,24 @@
 from __future__ import annotations
 
 import json
+import inspect
+import tempfile
+import unittest
+from contextlib import ExitStack
 from pathlib import Path
 from types import SimpleNamespace
-
-import pytest
+from unittest import mock
 
 from validation.scripts import package_marking as contract
 from workflows.proforma_v1 import automatic_marking, layout, model_observability, step as staged
+
+
+class _MonkeyPatch:
+    def __init__(self, stack: ExitStack):
+        self._stack = stack
+
+    def setattr(self, target, name, value):
+        self._stack.enter_context(mock.patch.object(target, name, value))
 
 
 def _prep(tmp_path: Path):
@@ -30,7 +41,7 @@ def test_self_marking_handoff_is_recorded_in_model_observability(monkeypatch, tm
     )
     monkeypatch.setattr(staged, "_profile", lambda *_args: SimpleNamespace(is_self=True, model="self"))
     monkeypatch.setattr(staged, "_refresh_model_operation_index", lambda *_args: None)
-    with pytest.raises(staged.Handoff):
+    with unittest.TestCase().assertRaises(staged.Handoff):
         automatic_marking._self_handoff(tmp_path, prep, binding=SimpleNamespace(is_self=True, model="self"))
     root = layout.model_step_dir(tmp_path, prep["call_id"], existing=True)
     meta = json.loads((root / "attempts" / "01" / "call.json").read_text(encoding="utf-8"))
@@ -52,7 +63,7 @@ def test_self_invalid_marking_preserves_attempt_one_and_hands_off_attempt_two(mo
     monkeypatch.setattr(staged, "_profile", lambda *_args: SimpleNamespace(is_self=True, model="self"))
     monkeypatch.setattr(staged, "_refresh_model_operation_index", lambda *_args: None)
     monkeypatch.setattr(staged, "_retry", lambda _name: 2)
-    with pytest.raises(staged.Handoff):
+    with unittest.TestCase().assertRaises(staged.Handoff):
         automatic_marking._self_handoff(tmp_path, prep, binding=SimpleNamespace(is_self=True, model="self"))
     Path(prep["output"]).write_text("bad marking", encoding="utf-8")
     monkeypatch.setattr(
@@ -60,7 +71,7 @@ def test_self_invalid_marking_preserves_attempt_one_and_hands_off_attempt_two(mo
         "complete_automatic_marking",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(contract.MarkingValidationError("bad")),
     )
-    with pytest.raises(staged.Handoff):
+    with unittest.TestCase().assertRaises(staged.Handoff):
         automatic_marking._self_handoff(tmp_path, prep, binding=SimpleNamespace(is_self=True, model="self"))
     root = layout.model_step_dir(tmp_path, prep["call_id"], existing=True)
     first = json.loads((root / "attempts" / "01" / "call.json").read_text(encoding="utf-8"))
@@ -139,12 +150,12 @@ def test_self_pending_handoff_replay_does_not_overwrite_attempt_metadata(monkeyp
     )
     monkeypatch.setattr(staged, "_profile", lambda *_args: SimpleNamespace(is_self=True, model="self"))
     monkeypatch.setattr(staged, "_refresh_model_operation_index", lambda *_args: None)
-    with pytest.raises(staged.Handoff):
+    with unittest.TestCase().assertRaises(staged.Handoff):
         automatic_marking._self_handoff(tmp_path, prep, binding=SimpleNamespace(is_self=True, model="self"))
     root = layout.model_step_dir(tmp_path, prep["call_id"], existing=True)
     call_path = root / "attempts" / "01" / "call.json"
     before = call_path.read_text(encoding="utf-8")
-    with pytest.raises(staged.Handoff):
+    with unittest.TestCase().assertRaises(staged.Handoff):
         automatic_marking._self_handoff(tmp_path, prep, binding=SimpleNamespace(is_self=True, model="self"))
     assert call_path.read_text(encoding="utf-8") == before
 
@@ -165,8 +176,28 @@ def test_binding_failure_records_marking_failed(monkeypatch, tmp_path):
     monkeypatch.setattr(automatic_marking, "_state", lambda _work: (prep["suite"], prep["case"]))
     monkeypatch.setattr(contract, "prepare_automatic_marking", lambda *_args: dict(prep))
     monkeypatch.setattr(staged, "_profile", lambda *_args: (_ for _ in ()).throw(ValueError("missing marking role")))
-    with pytest.raises(ValueError, match="missing marking role"):
+    with unittest.TestCase().assertRaisesRegex(ValueError, "missing marking role"):
         automatic_marking.run(tmp_path, profile="old-profile")
     status = contract.read_marking_status(tmp_path)
     assert status["status"] == "failed"
     assert "missing marking role" in status["error"]
+
+
+def load_tests(_loader, _tests, _pattern):
+    suite = unittest.TestSuite()
+    functions = [
+        value for name, value in globals().items()
+        if name.startswith("test_") and inspect.isfunction(value)
+    ]
+    for function in functions:
+        def run_test(function=function):
+            with ExitStack() as stack:
+                kwargs = {}
+                parameters = inspect.signature(function).parameters
+                if "monkeypatch" in parameters:
+                    kwargs["monkeypatch"] = _MonkeyPatch(stack)
+                if "tmp_path" in parameters:
+                    kwargs["tmp_path"] = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+                function(**kwargs)
+        suite.addTest(unittest.FunctionTestCase(run_test, description=function.__name__))
+    return suite

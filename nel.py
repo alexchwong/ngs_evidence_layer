@@ -236,9 +236,9 @@ def _run_workflow_definition(run: Path) -> str | None:
 
 def _marking_state(run: Path) -> dict[str, Any]:
     """Return non-blocking automatic-marking state for a canonical run."""
-    if _run_workflow(run) != CANONICAL_WORKFLOW:
-        return {"applicable": False, "status": "not_applicable"}
     try:
+        if _run_workflow(run) != CANONICAL_WORKFLOW:
+            return {"applicable": False, "status": "not_applicable"}
         from validation.scripts.package_marking import inspect_marking
         return inspect_marking(run)
     except Exception as exc:
