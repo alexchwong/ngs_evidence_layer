@@ -19,6 +19,18 @@ The filename is not part of the public contract. The current canonical files ret
 
 `validation/DEVEL.md` defines the complete schema and the mandatory fairness rules for authoring marking criteria. In particular, every RnCm criterion must be independently testable and must not combine multiple scorable obligations.
 
+## Automatic validation marking
+
+Canonical `nel-validate-*` runs are automatically marked after `report-final.md` exists. The marker uses the frozen pipeline's `marking` model role and the same canonical criteria/prompt used by external marking. `nel-demo` is not automatically marked.
+
+Automatic marking is a non-clinical sidecar: failure or staleness does not invalidate the completed clinical report. A later `nel.py run` may retry marking without regenerating the report. Current marking is bound to the SHA-256 of `report-final.md` and writes `marking.md` plus normalized `marking.json`.
+
+The validation layer owns prompt rendering, response validation, hash binding and deterministic marking artifacts only. Model execution belongs to `workflows/proforma_v1/automatic_marking.py`, so validation code does not import or call workflow/provider executors.
+
+For Dublin, the model still marks RxCy only. F1-F9 is generated deterministically afterwards into `functional.json` using `validation/docs/dublin_functional_criteria.md` and `validation/scripts/score_functional_dublin.py`.
+
+Validation batches mark each child independently and deterministically aggregate them into `batch-marking.md` and `batch-marking.json`; there is no batch-marking LLM. See `validation/docs/automatic_marking.md` for the complete artifact/status contract.
+
 ## External validation marking
 
 `validation/scripts/package_marking.py` builds the post-report external-marking ZIP. It retrieves both the frozen clinical case and the evaluator criteria through the central registry interface. The ZIP contains only:

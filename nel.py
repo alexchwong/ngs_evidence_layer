@@ -234,6 +234,17 @@ def _run_workflow_definition(run: Path) -> str | None:
     value = manifest.get("workflow_definition")
     return str(value) if isinstance(value, str) and value else DEFAULT_WORKFLOW_DEFINITION
 
+def _marking_state(run: Path) -> dict[str, Any]:
+    """Return non-blocking automatic-marking state for a canonical run."""
+    if _run_workflow(run) != CANONICAL_WORKFLOW:
+        return {"applicable": False, "status": "not_applicable"}
+    try:
+        from validation.scripts.package_marking import inspect_marking
+        return inspect_marking(run)
+    except Exception as exc:
+        return {"applicable": False, "status": "unavailable", "error": str(exc)}
+
+
 def inspect_run(run: Path) -> dict[str, Any]:
     run = Path(run)
     pipeline = _run_pipeline(run)
@@ -248,6 +259,7 @@ def inspect_run(run: Path) -> dict[str, Any]:
     status = dict(status)
     if workflow_id == CANONICAL_WORKFLOW:
         status["workflow_definition"] = _run_workflow_definition(run)
+        status["marking"] = _marking_state(run)
     return status
 
 def corpus_core_blacklist_path() -> str:
@@ -575,6 +587,9 @@ def _print_run_header(run_id: str, run: Path, status: dict[str, Any]) -> None:
         print(f"PIPELINE={status['pipeline']}")
     if status.get("workflow_definition"):
         print(f"WORKFLOW_DEFINITION={status['workflow_definition']}")
+    marking = status.get("marking") or {}
+    if marking.get("applicable"):
+        print(f"MARKING_STATUS={marking.get('status') or 'pending'}")
 
 def cmd_setup(args: argparse.Namespace) -> int:
     workflow_id = LEGACY_WORKFLOW if getattr(args, "legacy", False) else CANONICAL_WORKFLOW
@@ -658,6 +673,29 @@ def _reseat_cul(run: Path, profile: str) -> None:
     for warning in warnings: print(f"WARNING={warning}")
     print(f"CUL_RESEATED={previous or 'none'} -> {layer['profile']}")
 
+def _automatic_validation_marking(run: Path, pipeline: str, step) -> tuple[str, Any | None]:
+    """Run non-blocking post-report validation marking for canonical proforma-v1 runs."""
+    if _run_workflow(run) != CANONICAL_WORKFLOW or not (Path(run) / "report-final.md").is_file():
+        return "not_applicable", None
+    from workflows.proforma_v1 import automatic_marking
+    try:
+        result = automatic_marking.run(run, profile=pipeline)
+    except step.Handoff as handoff:
+        manifest = {
+            "pass": "validation_marking",
+            "phase": "validation_marking",
+            "note": "The clinical report is already complete. Complete this evaluator-only marking handoff; marking failure does not invalidate the report.",
+            "prompt": handoff.prompt,
+            "output": handoff.output,
+            "inputs": {"report": Path(run) / "report-final.md", "case": Path(run) / "case.md"},
+        }
+        return "handoff", {"stage": "validation_marking", "manifest": manifest}
+    except Exception as exc:
+        print(f"WARNING=automatic validation marking failed; clinical report remains complete: {exc}", file=sys.stderr)
+        return "failed", exc
+    return str(result.get("status") or "complete"), result
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     run_id, run = _resolve_run(args.run_id)
     pipeline = _run_pipeline(run)
@@ -667,10 +705,20 @@ def cmd_run(args: argparse.Namespace) -> int:
     if pipeline == "self":
         result = self_executor.advance(run)
         if result["status"] == "handoff": return _print_handoff(run_id, run, result["stage"], result["manifest"])
+        if result.get("status") == "complete":
+            marking_status, marking = _automatic_validation_marking(run, pipeline, step)
+            if marking_status == "handoff":
+                return _print_handoff(run_id, run, marking["stage"], marking["manifest"])
+            if marking_status in {"complete", "failed"}: print(f"MARKING_STATUS={marking_status}")
         status = self_executor.inspect_run(run); _print_run_header(run_id, run, {**status, "workflow_definition": _run_workflow_definition(run)})
         for key, value in result.get("artifacts", {}).items(): print(f"{key}={value if value is not None else 'none'}")
         return 0
-    code = int(step.main(["run", "--work-dir", str(run)])); _print_run_header(run_id, run, inspect_run(run)); return code
+    code = int(step.main(["run", "--work-dir", str(run)]))
+    if code == 0:
+        marking_status, _marking = _automatic_validation_marking(run, pipeline, step)
+        if marking_status in {"complete", "failed"}: print(f"MARKING_STATUS={marking_status}")
+    _print_run_header(run_id, run, inspect_run(run))
+    return code
 
 def cmd_status(args: argparse.Namespace) -> int:
     run_id, run = _resolve_run(args.run_id); status = inspect_run(run)
@@ -720,6 +768,185 @@ def _aggregate_usage(child_paths: list[Path]) -> dict[str, Any] | None:
         "cost": {"amount": cost_amount if any_cost else None, "complete": complete_cost if any_cost else False},
     }
 
+def _write_if_changed(path: Path, text: str) -> Path:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_file():
+        try:
+            if path.read_text(encoding="utf-8") == text:
+                return path
+        except OSError:
+            pass
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8")
+    temporary.replace(path)
+    return path
+
+
+def _batch_marking_markdown(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Batch validation marking",
+        "",
+        f"- Suite: `{payload.get('suite')}`",
+        f"- Marked: {payload.get('marked', 0)}/{payload.get('total', 0)}",
+        f"- Status: `{payload.get('status')}`",
+        "",
+        "## Per-case marking",
+        "",
+        "| Case | Marking | R1 | R2 | R3 | R4 | R5 |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for case in payload.get("cases") or []:
+        rubrics = case.get("rubrics") or {}
+        label = str(case.get("source_case_id") or case.get("case_id") or "")
+        cells = [str((rubrics.get(f"R{i}") or {}).get("category") or "—") for i in range(1, 6)]
+        lines.append(
+            "| " + " | ".join([label, str(case.get("marking_status") or "pending"), *cells]) + " |"
+        )
+    lines += ["", "## Criterion failure modes", "", "| Failure mode | Count |", "|---|---:|"]
+    for mode in ("partial", "omitted", "contradicted"):
+        lines.append(f"| {mode} | {int((payload.get('criterion_failure_modes') or {}).get(mode, 0))} |")
+    criterion_counts = payload.get("criterion_failure_counts") or {}
+    if criterion_counts:
+        lines += ["", "## Failed criteria", "", "| Criterion | Total | Partial | Omitted | Contradicted |", "|---|---:|---:|---:|---:|"]
+        for criterion_id in sorted(criterion_counts):
+            row = criterion_counts[criterion_id] or {}
+            lines.append(
+                f"| {criterion_id} | {int(row.get('total') or 0)} | {int(row.get('partial') or 0)} | "
+                f"{int(row.get('omitted') or 0)} | {int(row.get('contradicted') or 0)} |"
+            )
+
+    functional = payload.get("functional") or {}
+    if functional:
+        definitions = functional.get("function_definitions") or {}
+        lines += ["", "## Dublin F1–F9 per case", ""]
+        function_ids = [f"F{i}" for i in range(1, 10)]
+        lines.append("| Case | " + " | ".join(function_ids) + " |")
+        lines.append("|---|" + "---|" * len(function_ids))
+        case_functional = functional.get("cases") or {}
+        for case in payload.get("cases") or []:
+            key = str(case.get("case_id") or "")
+            score = case_functional.get(key) or {}
+            funcs = score.get("functions") or {}
+            values = [str((funcs.get(fid) or {}).get("result") or "—") for fid in function_ids]
+            label = str(case.get("source_case_id") or key)
+            lines.append("| " + " | ".join([label, *values]) + " |")
+        lines += ["", "## Dublin F1–F9 aggregate", "", "| Function | Met | Applicable | Proportion |", "|---|---:|---:|---:|"]
+        aggregate = functional.get("aggregate") or {}
+        for fid in function_ids:
+            row = aggregate.get(fid) or {}
+            proportion = row.get("proportion")
+            proportion_text = "—" if proportion is None else f"{float(proportion):.3f}"
+            description = str(definitions.get(fid) or "").strip()
+            label = f"{fid} — {description}" if description else fid
+            lines.append(f"| {label} | {int(row.get('met') or 0)} | {int(row.get('applicable') or 0)} | {proportion_text} |")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _aggregate_batch_marking(batch: run_layout.BatchLocation, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Deterministically aggregate child marking; never invoke a batch marking model."""
+    mode = str(batch.manifest.get("mode") or "")
+    try:
+        from validation.scripts.bundled_cases import is_validation_mode
+    except Exception:
+        is_validation_mode = lambda value: str(value).startswith("nel-validate")
+    json_path = batch.path / "batch-marking.json"
+    markdown_path = batch.path / "batch-marking.md"
+    if not is_validation_mode(mode):
+        json_path.unlink(missing_ok=True)
+        markdown_path.unlink(missing_ok=True)
+        return {"applicable": False, "status": "not_applicable", "marked": 0, "total": 0}
+
+    from validation.scripts.package_marking import load_marking_payload
+
+    manifest_rows = {str(item.get("case_id")): item for item in batch.manifest.get("children", [])}
+    rubric_categories = {f"R{i}": {} for i in range(1, 6)}
+    failure_modes = {"partial": 0, "omitted": 0, "contradicted": 0}
+    criterion_failure_counts: dict[str, dict[str, int]] = {}
+    cases: list[dict[str, Any]] = []
+    marked = 0
+    dublin_scores: dict[str, dict[str, Any]] = {}
+    dublin_mode = mode == "nel-validate-dublin"
+
+    for row in rows:
+        case_id = str(row.get("case_id") or "")
+        spec = manifest_rows.get(case_id) or {}
+        marking = dict(row.get("marking") or {})
+        item: dict[str, Any] = {
+            "case_id": case_id,
+            "source_case_id": spec.get("source_case_id") or marking.get("case") or case_id,
+            "title": row.get("case_title") or spec.get("title") or case_id,
+            "run_id": row.get("run_id"),
+            "clinical_complete": bool(row.get("complete")),
+            "marking_status": marking.get("status") or "pending",
+        }
+        child_path = batch.path / case_id
+        payload = load_marking_payload(child_path) if item["marking_status"] == "complete" else None
+        if payload is not None:
+            marked += 1
+            item["rubrics"] = payload.get("rubrics") or {}
+            item["criterion_results"] = payload.get("criterion_results") or {}
+            for rubric, outcome in item["rubrics"].items():
+                category = str((outcome or {}).get("category") or "")
+                if rubric in rubric_categories and category:
+                    rubric_categories[rubric][category] = rubric_categories[rubric].get(category, 0) + 1
+            for criterion_id, outcome in item["criterion_results"].items():
+                if isinstance(outcome, dict) and outcome.get("met") is False:
+                    failure = outcome.get("failure_mode")
+                    if failure in failure_modes:
+                        failure_modes[failure] += 1
+                        bucket = criterion_failure_counts.setdefault(criterion_id, {"total": 0, "partial": 0, "omitted": 0, "contradicted": 0})
+                        bucket["total"] += 1
+                        bucket[failure] += 1
+            if dublin_mode:
+                try:
+                    from validation.scripts.score_functional_dublin import score_case
+                    marking_text = (child_path / "marking.md").read_text(encoding="utf-8")
+                    dublin_scores[case_id] = score_case(str(item["source_case_id"]), marking_text)
+                except Exception as exc:
+                    item["functional_error"] = str(exc)
+        cases.append(item)
+
+    total = len(rows)
+    aggregate_status = "complete" if total and marked == total else "partial" if marked else "pending"
+    payload: dict[str, Any] = {
+        "schema_version": 1,
+        "suite": mode,
+        "status": aggregate_status,
+        "marked": marked,
+        "total": total,
+        "complete": bool(total and marked == total),
+        "rubric_categories": rubric_categories,
+        "criterion_failure_modes": failure_modes,
+        "criterion_failure_counts": criterion_failure_counts,
+        "cases": cases,
+    }
+    if dublin_mode:
+        from validation.scripts.score_functional_dublin import aggregate, load_spec
+        spec = load_spec()
+        payload["functional"] = {
+            "function_definitions": spec.functions,
+            "cases": dublin_scores,
+            "aggregate": aggregate(dublin_scores, spec),
+        }
+
+    rendered = json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+    _write_if_changed(json_path, rendered)
+    _write_if_changed(markdown_path, _batch_marking_markdown(payload))
+    return {
+        "applicable": True,
+        "status": aggregate_status,
+        "marked": marked,
+        "total": total,
+        "complete": bool(total and marked == total),
+        "artifacts": {"markdown": str(markdown_path), "json": str(json_path)},
+        "criterion_failure_modes": failure_modes,
+        "criterion_failure_counts": criterion_failure_counts,
+        "rubric_categories": rubric_categories,
+        "functional": payload.get("functional"),
+    }
+
+
 def _batch_elapsed_seconds(state: dict[str, Any]) -> float | None:
     started = state.get("started_at")
     if not isinstance(started, str) or not started:
@@ -744,16 +971,21 @@ def batch_status(batch_id: str) -> dict[str, Any]:
         if status not in counts: counts[status] = 0
         counts[status] += 1
     usage = _aggregate_usage([batch.path / str(row["case_id"]) for row in batch.manifest.get("children", [])])
+    marking = _aggregate_batch_marking(batch, rows)
+    stored_status = str(state.get("status") or "prepared")
+    operational_status = stored_status
+    if stored_status in {"complete", "marking_incomplete"} and marking.get("applicable"):
+        operational_status = "complete" if marking.get("complete") else "marking_incomplete"
     return {
         "kind": "batch", "batch_id": batch.batch_id, "run_id": batch.batch_id,
         "run_dir": str(batch.path.resolve()), "workflow": batch.manifest.get("workflow"),
         "workflow_definition": batch.manifest.get("workflow_definition") or DEFAULT_WORKFLOW_DEFINITION,
         "mode": batch.manifest.get("mode"), "pipeline": batch.manifest.get("pipeline"),
         "source": batch.manifest.get("source"), "max_parallel_cases": batch.manifest.get("max_parallel_cases", 1),
-        "status": state.get("status", "prepared"), "complete": state.get("status") == "complete",
-        "label": str(state.get("status", "prepared")).replace("_", " ").title(),
-        "stage": "complete" if state.get("status") == "complete" else "batch",
-        "counts": counts, "children": rows, "usage": usage,
+        "status": operational_status, "stored_status": stored_status, "complete": operational_status == "complete",
+        "label": operational_status.replace("_", " ").title(),
+        "stage": "complete" if operational_status == "complete" else "validation_marking" if operational_status == "marking_incomplete" else "batch",
+        "counts": counts, "children": rows, "usage": usage, "marking": marking,
         "elapsed_seconds": _batch_elapsed_seconds(state),
         "started_at": state.get("started_at"), "finished_at": state.get("finished_at"), "stopped_at": state.get("stopped_at"),
         "blocked_at": state.get("blocked_at"), "blocked_reason": state.get("blocked_reason"),
@@ -782,7 +1014,7 @@ def cmd_runs(args: argparse.Namespace) -> int:
         print(json.dumps(rows, indent=2, ensure_ascii=False)); return 0
     if not rows: print("No runs found."); return 0
     groups: OrderedDict[str, list[str]] = OrderedDict()
-    preferred = ["Complete", "Complete With Errors", "Running", "Stopped", "Prepared", "At report synthesis", "At evidence review", "At germline", "At biomarker", "At treatment", "At prognosis", "At PTBG", "At diagnosis", "Setup only", "Unsupported legacy layout", "Invalid layout", "Unrecognized"]
+    preferred = ["Complete", "Marking Incomplete", "Complete With Errors", "Running", "Stopped", "Prepared", "At report synthesis", "At evidence review", "At germline", "At biomarker", "At treatment", "At prognosis", "At PTBG", "At diagnosis", "Setup only", "Unsupported legacy layout", "Invalid layout", "Unrecognized"]
     for label in preferred:
         names = [str(row["run_id"]) for row in rows if row.get("label") == label]
         if names: groups[label] = names
@@ -1114,22 +1346,36 @@ class _BatchRunner:
         print(f"[batch] {row.get('title') or case_id} {label}", flush=True)
         return case_id, outcome
 
+def _child_needs_marking_retry(batch: run_layout.BatchLocation, row: dict[str, Any], state: dict[str, Any]) -> bool:
+    case_id = str(row["case_id"])
+    child_state = (state.get("children") or {}).get(case_id) or {}
+    if child_state.get("status") != "complete":
+        return False
+    marking = _marking_state(batch.path / case_id)
+    return bool(marking.get("applicable")) and marking.get("status") in {"pending", "failed", "stale"}
+
+
 def _selected_batch_children(batch: run_layout.BatchLocation, state: dict[str, Any]) -> list[dict[str, Any]]:
     parent = str(state.get("status") or "prepared")
-    if parent == "complete":
-        return []
     if parent == "running":
         raise CLIError(f"batch {batch.batch_id} is already running")
-    children = batch.manifest.get("children", [])
+    children = list(batch.manifest.get("children", []))
     child_state = state.get("children") or {}
+    marking_retries = [row for row in children if _child_needs_marking_retry(batch, row, state)]
+    if parent in {"complete", "marking_incomplete"}:
+        return marking_retries
     if parent == "complete_with_errors":
-        return [
+        clinical_retries = [
             row for row in children
             if (child_state.get(str(row["case_id"])) or {}).get("status") == "failed"
             and (child_state.get(str(row["case_id"])) or {}).get("retry_eligible") is not False
         ]
+        seen = {str(row["case_id"]) for row in clinical_retries}
+        return clinical_retries + [row for row in marking_retries if str(row["case_id"]) not in seen]
     if parent in {"stopped", "blocked"}:
-        return [row for row in children if (child_state.get(str(row["case_id"])) or {}).get("status") != "complete"]
+        clinical = [row for row in children if (child_state.get(str(row["case_id"])) or {}).get("status") != "complete"]
+        seen = {str(row["case_id"]) for row in clinical}
+        return clinical + [row for row in marking_retries if str(row["case_id"]) not in seen]
     return list(children)
 
 def cmd_batch_run(args: argparse.Namespace) -> int:
@@ -1140,8 +1386,17 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
         raise _layout_error(exc) from exc
     selected = _selected_batch_children(batch, state)
     if not selected:
-        if state.get("status") == "complete":
+        doc = batch_status(batch.batch_id)
+        if doc.get("status") == "complete":
+            if state.get("status") != "complete":
+                state["status"] = "complete"
+                state["finished_at"] = state.get("finished_at") or datetime.now(timezone.utc).isoformat()
+                run_layout.write_batch_state(batch, state)
+            marking = doc.get("marking") or {}
             print(f"BATCH_ID={batch.batch_id}\nSTATUS=complete\nDETAIL=batch already complete")
+            if marking.get("applicable"):
+                print(f"MARKED={marking.get('marked', 0)}/{marking.get('total', 0)}")
+                print(f"MARKING_STATUS={marking.get('status') or 'pending'}")
             return 0
         raise CLIError("batch has no retry-eligible failed/incomplete children")
     pipeline = str(batch.manifest.get("pipeline") or "")
@@ -1237,21 +1492,38 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
                 for row in batch.manifest.get("children", [])
             ]
             if statuses and all(value == "complete" for value in statuses):
-                state["status"] = "complete"
-                final_code = 0
+                rows = [_child_row(batch, row, state) for row in batch.manifest.get("children", [])]
+                marking = _aggregate_batch_marking(batch, rows)
+                if marking.get("applicable") and not marking.get("complete"):
+                    state["status"] = "marking_incomplete"
+                    state["finished_at"] = None
+                    final_code = 0
+                else:
+                    state["status"] = "complete"
+                    state["finished_at"] = datetime.now(timezone.utc).isoformat()
+                    final_code = 0
             elif any(value == "failed" for value in statuses):
                 state["status"] = "complete_with_errors"
+                state["finished_at"] = datetime.now(timezone.utc).isoformat()
                 final_code = 1
             else:
                 state["status"] = "stopped"
+                state["finished_at"] = datetime.now(timezone.utc).isoformat()
                 final_code = 1
-            state["finished_at"] = datetime.now(timezone.utc).isoformat()
         run_layout.write_batch_state(batch, state)
     finally:
         runner.restore_signals()
     print(f"STATUS={state['status']}")
     if state.get("blocked_reason"):
         print(f"BLOCKED_REASON={state['blocked_reason']}")
+    try:
+        final_doc = batch_status(batch.batch_id)
+        marking = final_doc.get("marking") or {}
+        if marking.get("applicable"):
+            print(f"MARKED={marking.get('marked', 0)}/{marking.get('total', 0)}")
+            print(f"MARKING_STATUS={marking.get('status') or 'pending'}")
+    except Exception as exc:
+        print(f"WARNING=batch marking aggregation failed: {exc}", file=sys.stderr)
     return final_code
 
 def cmd_batch_status(args: argparse.Namespace) -> int:
@@ -1260,6 +1532,10 @@ def cmd_batch_status(args: argparse.Namespace) -> int:
     else:
         counts = doc["counts"]; print(f"BATCH_ID={doc['batch_id']}"); print(f"BATCH_DIR={doc['run_dir']}"); print(f"STATUS={doc['status']}"); print(f"PIPELINE={doc.get('pipeline') or ''}"); print(f"WORKFLOW_DEFINITION={doc.get('workflow_definition') or DEFAULT_WORKFLOW_DEFINITION}"); print(f"MAX_PARALLEL_CASES={doc.get('max_parallel_cases') or 1}"); print(f"CASES={len(doc['children'])}"); print(f"COMPLETE={counts.get('complete',0)}"); print(f"FAILED={counts.get('failed',0)}"); print(f"RUNNING={counts.get('running',0)}"); print(f"PREPARED={counts.get('prepared',0)}"); print(f"STOPPED={counts.get('stopped',0)}"); print(f"BLOCKED={counts.get('blocked',0)}");
         if doc.get("blocked_reason"): print(f"BLOCKED_REASON={doc['blocked_reason']}")
+        marking = doc.get("marking") or {}
+        if marking.get("applicable"):
+            print(f"MARKED={marking.get('marked', 0)}/{marking.get('total', 0)}")
+            print(f"MARKING_STATUS={marking.get('status') or 'pending'}")
     return 0
 
 def cmd_delete(args: argparse.Namespace) -> int:
@@ -1320,7 +1596,7 @@ def cmd_pipelines(args: argparse.Namespace) -> int:
 
 def cmd_ui(args: argparse.Namespace) -> int:
     try:
-        from ui import workflow_server as server
+        from ui import marking_server as server
     except ImportError as exc:
         raise CLIError(f"the browser interface is not installed in this checkout: {exc}") from exc
     return int(server.serve(port=args.port, open_browser=not args.no_browser))

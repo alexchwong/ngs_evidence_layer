@@ -201,6 +201,7 @@ checks that coverage.
 - `ptbg` — model role used by prognosis/treatment/biomarker/germline operations.
 - `report_write` — report-writer model role.
 - `preservation_check` — report-preservation model role.
+- `marking` — evaluator-only post-report model role. It is not a clinical workflow step and must not receive marking criteria before `report-final.md` exists.
 
 ### Registered deterministic transforms used by the default workflow
 
@@ -230,6 +231,7 @@ owned by the artifact/layout adapters.
 ## Core assets
 
 - `step.py` — orchestration, evidence model calls, reportability, deterministic block assembly, dissent.
+- `automatic_marking.py` — post-report provider/native-self marking execution. It owns model execution and observability only; validation contract/persistence remain in `validation/scripts/package_marking.py`.
 - `evidence_resolution.py` — pure shared policy for cumulative semantic evidence retries, rejected-card exclusion, and diagnosis/PTBG exhaustion behavior.
 - `prognosis_report.py` — pure deterministic post-evidence prognosis aggregation. It groups same-framework/same-direction findings for report composition and suppresses only fully overlapping accepted-card restatements; it never changes the owner proforma or performs clinical inference.
 - `model_context.py` — canonical downstream model context. Owns the rule that model prompts expose only `v01`-style IDs, and the per-stage projections that decide how much of the case/diagnosis each stage reads.
@@ -265,6 +267,21 @@ python workflows/proforma_v1/devel_sync.py --check
 
 The sync manages only `config/settings.json.template` and shipped pipeline filenames. It never modifies `config/settings.json` or removes custom pipeline YAMLs.
 
+## Automatic validation marking
+
+Automatic marking is deliberately **outside** `workflow/default.yaml`: it is a non-clinical sidecar that starts only after `report-final.md` exists. Clinical workflow completion is therefore independent of marker success.
+
+Ownership is strict:
+
+- `validation/scripts/package_marking.py` owns canonical evaluator prompt rendering, R1-R5/RxCy validation, report SHA-256 binding, marking status inspection, deterministic artifact persistence and external marking ZIP packaging. It must not import workflow executors or provider clients.
+- `workflows/proforma_v1/automatic_marking.py` owns provider/native-self model execution and observability for the `marking` role.
+- root `nel.py` decides when to invoke the sidecar and exposes its non-blocking status to CLI/batch/UI callers.
+
+For native self, every marking handoff creates a normal `model_steps/.../attempts/NN` record before returning control to the host. Invalid responses are recorded as rejected attempts and a repair handoff uses the next attempt number. If the task budget is exhausted, marking becomes `failed` but the clinical report remains complete. A later `nel.py run` allocates a fresh logical marking call ID and preserves the exhausted call root.
+
+A changed `report-final.md` makes prior marking stale by SHA-256. Current `marking.md`/`marking.json` are never reused against different report bytes. Dublin F1-F9 translation is deterministic and must remain downstream of the RxCy marker response.
+
+The canonical pipeline role must be added first under `workflows/proforma_v1/pipelines/`; run `devel_sync.py` to update root shipped copies. Do not independently edit both locations.
 
 ## Model-facing card rendering
 
@@ -441,6 +458,8 @@ Three behaviours are load-bearing and must survive any future change:
 `tests/test_runner.py` pins all three. Test 8 drives a three-invocation
 self-handoff, which is the only test that reaches the process boundary where
 resume bugs actually appear. Run it before trusting any change to the runner.
+
+Automatic validation marking has a separate native-self sidecar adapter because it is post-workflow. Its self attempts must still use the same `model_steps/.../attempts/` observability layout and must preserve rejected attempts across repair handoffs and fresh post-failure retries.
 
 ## Syntax repair and the preservation check
 

@@ -32,6 +32,10 @@ models:
     model: self
     temperature: 0.0
     max_tokens: 131072
+  marking:
+    model: self
+    temperature: 0.0
+    max_tokens: 131072
   syntax_repair:
     model: self
     temperature: 0.0

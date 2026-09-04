@@ -159,9 +159,15 @@ Do not add backwards-compatible parsing for obsolete Markdown shapes. Migrate th
 
 ## Marking and leakage boundary
 
-`validation/scripts/package_marking.py` remains the deterministic post-report packaging utility. It obtains cases and criteria through the central registry interface; it does not own case discovery.
+`validation/scripts/package_marking.py` remains the deterministic post-report packaging and marking-contract utility. It obtains cases and criteria through the central registry interface; it does not own case discovery or model/provider execution.
 
 Before report completion, runtime code may retrieve only the selected case summary. Marking criteria are evaluator-only and must remain unavailable to report-generation prompts. `nel-demo` remains a separate bundled demonstration asset and is not part of the validation case registry.
+
+Automatic validation marking is a post-report sidecar. Its validation-layer responsibilities are limited to rendering the canonical evaluator prompt, validating the R1-R5/RxCy response contract, binding results to the SHA-256 of `report-final.md`, persisting `marking.md`/`marking.json`, and deterministic Dublin `functional.json` translation. Provider and native-self execution belong to `workflows/proforma_v1/automatic_marking.py`.
+
+Clinical completion and marking completion are independent. Marker failure does not invalidate `report-final.md`. A later `nel.py run` may retry failed or stale marking without regenerating the clinical report. Fresh retries must preserve prior `model_steps` attempt history rather than overwrite it.
+
+For Dublin, the marking model evaluates RxCy only. F1-F9 are calculated deterministically from `validation/docs/dublin_functional_criteria.md`; do not duplicate that mapping in prompts, Python constants, or validation case metadata.
 
 ## Focused tests
 
@@ -169,6 +175,7 @@ Run:
 
 ```bash
 python -m unittest tests.test_validation_cases tests.test_package_marking
+python -m pytest tests/test_automatic_marking.py tests/test_automatic_marking_execution.py tests/test_automatic_marking_ui.py
 ```
 
 The registry test suite must include a temporary arbitrary canonical Markdown suite and prove that discovery works without changing production mappings.
