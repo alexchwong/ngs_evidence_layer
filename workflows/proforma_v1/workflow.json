@@ -10,13 +10,9 @@
   "pipeline": "pipelines/self.yaml",
   "supported_modes": [
     "ngs-report",
-    "nel-demo",
-    "nel-validate",
-    "nel-validate-function",
-    "nel-validate-brief",
-    "nel-validate-dual",
-    "nel-validate-dublin"
+    "nel-demo"
   ],
+  "validation_case_registry": true,
   "status": "accepted",
   "architecture": "declarative-workflow-shared-executors-blocking-who1-gate-ptbg-owner-evidence-rescue-audit-adjudication",
   "phase": 3

@@ -49,6 +49,7 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 ## Contents
 
 - [Reporting workflow architecture](#reporting-workflow-architecture)
+- [Validation case authoring](#validation-case-authoring)
 - [Regenerate ingestion prompts](#regenerate-ingestion-prompts)
 - [Regenerate the blacklist](#regenerate-the-blacklist)
 - [Run tests](#run-tests)
@@ -94,6 +95,18 @@ name, or branch on a workflow. Retrieval, rendering, adjudication, report-audit 
 other behaviour that can differ between pipelines belongs in `workflows/<workflow>/`.
 This keeps workflow changes isolated while retaining one implementation of corpus, tag,
 citation and provenance invariants.
+
+## Validation case authoring
+
+Canonical validation-suite format and fair-marking rules are defined in
+[`../validation/DEVEL.md`](../validation/DEVEL.md).
+
+Adding a validation suite must require only:
+
+1. adding one canonical Markdown file under `validation/`;
+2. running `python validation/case_registry.py check`.
+
+Do not add suite-specific Python mappings, workflow-mode lists, UI mappings, or SKILL registrations.
 
 ## Regenerate ingestion prompts
 

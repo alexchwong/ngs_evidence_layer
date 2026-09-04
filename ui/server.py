@@ -125,9 +125,11 @@ def version() -> str:
 
 def modes() -> list[str]:
     try:
-        doc = json.loads(WORKFLOW_JSON.read_text(encoding="utf-8"))
+        _ensure_root_on_path()
+        from scripts.workflow_registry import load_workflow_metadata
+        doc = load_workflow_metadata(WORKFLOW_ID)
         value = doc.get("supported_modes")
-    except (OSError, json.JSONDecodeError, TypeError):
+    except Exception:
         return ["ngs-report"]
     if not isinstance(value, list) or not value:
         return ["ngs-report"]

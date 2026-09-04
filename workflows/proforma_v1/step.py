@@ -11,7 +11,7 @@ if str(REPO_ROOT) not in sys.path: sys.path.insert(0,str(REPO_ROOT))
 from scripts.core import citations, corpus, cul, retrieval as core_retrieval, syntax_repair, validated_model_task
 from scripts import model_usage
 from scripts.setup_workflow import setup_workflow
-from scripts.workflow_registry import read_workflow_state, write_workflow_state
+from scripts.workflow_registry import load_workflow_metadata, read_workflow_state, write_workflow_state
 from validation.scripts.package_marking import package_marking_bundle
 from validation.scripts.bundled_cases import is_validation_mode, write_demo_marking_criteria_after_report
 from workflows.proforma_v1 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, model_observability, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
@@ -37,10 +37,10 @@ def configure_runtime(*,settings_path=None,pipelines_dir=None,cul_path=None):
 CUL_LAYER=None
 EXIT_OK=0; EXIT_FAILURE=1; EXIT_HANDOFF=10
 def supported_modes():
-    doc=json.loads(WORKFLOW_PATH.read_text(encoding='utf-8'))
+    doc=load_workflow_metadata(WORKFLOW_ID)
     modes=doc.get('supported_modes') or []
     if not isinstance(modes,list) or not modes or any(not isinstance(x,str) or not x for x in modes):
-        raise ValueError(f'invalid supported_modes in {WORKFLOW_PATH}')
+        raise ValueError(f'invalid supported_modes for {WORKFLOW_ID}')
     return tuple(modes)
 _EXECUTION_STARTED_AT=None
 _ACTIVE_COMPILED_WORKFLOW=None

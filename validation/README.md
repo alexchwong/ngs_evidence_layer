@@ -1,58 +1,32 @@
 # Validation assets
 
-Bundled demo and validation cases are centralised under this folder.
+Validation suites are self-registering canonical Markdown files under this directory. `validation/case_registry.py` discovers them from their front matter and supplies cases and evaluator-only marking criteria to runtime callers.
 
-- `demo.md` — the six repository demonstration cases, each with clinical information, an NEL task, and marking criteria.
-- `case_summary.md` — general validation suite used by `nel-validate`.
-- `case_functional.md` — function-targeted suite used by `nel-validate-function`.
-- `validation_brief.md` — consolidated regression suite used by `nel-validate-brief`.
-- `validate_dual.md` — six-case dual-pathology suite used by `nel-validate-dual`.
-- `validation_dublin.md` — ten-case molecular-haematology suite used by `nel-validate-dublin`.
-- `case_functional_manifest.md` — evaluator/developer-only index; never a runtime model input.
-- `mark_validation_report.md` — template used for external validation marking bundles.
-- `scripts/bundled_cases.py` — single source of truth for public mode → suite mapping, retrieval, selectors, and marking bundle names.
-- `scripts/package_marking.py` — deterministic post-report marking ZIP builder.
-- `scripts/retrieve_cli.py` — CLI wrapper around the same central retrieval API.
-- `DEVEL.md` — developer guide for adding cases and integrating future suites.
-
-## Retrieval
-
-Clinical content only:
+A new validation suite requires no Python mapping: add a canonical `.md` file, then run:
 
 ```bash
-python validation/scripts/retrieve_cli.py case 1 --mode nel-demo
-python validation/scripts/retrieve_cli.py case 1A --mode nel-validate
-python validation/scripts/retrieve_cli.py case 1A --mode nel-validate-function
-python validation/scripts/retrieve_cli.py case 8 --mode nel-validate-brief
-python validation/scripts/retrieve_cli.py case 1 --mode nel-validate-dual
-python validation/scripts/retrieve_cli.py case 1 --mode nel-validate-dublin
+python validation/case_registry.py check
+python validation/case_registry.py list
 ```
 
-List selectors:
+Use the public suite value and case ID with the reporting workflow, for example:
 
 ```bash
-python validation/scripts/retrieve_cli.py list --mode nel-demo
-python validation/scripts/retrieve_cli.py list --mode nel-validate-brief
-python validation/scripts/retrieve_cli.py list --mode nel-validate-dual
-python validation/scripts/retrieve_cli.py list --mode nel-validate-dublin
+python nel.py setup --mode <registered-validation-suite> --case-id <case-id> --pipeline self
 ```
 
-Marking criteria are intentionally a separate post-report operation:
+The filename is not part of the public contract. The current canonical files retain the existing public suite IDs while using one strict standalone-case format.
 
-```bash
-python validation/scripts/retrieve_cli.py MC 1A --mode nel-validate
-```
-
-Workflow setup must not use the `MC` action.
+`validation/DEVEL.md` defines the complete schema and the mandatory fairness rules for authoring marking criteria. In particular, every RnCm criterion must be independently testable and must not combine multiple scorable obligations.
 
 ## External validation marking
 
-After `report-final.md` exists:
+`validation/scripts/package_marking.py` builds the post-report external-marking ZIP. It retrieves both the frozen clinical case and the evaluator criteria through the central registry interface. The ZIP contains only:
 
-```bash
-python validation/scripts/package_marking.py 1A \
-  --mode nel-validate \
-  --report <work-dir>/report-final.md
-```
+- `marking-prompt.md`
+- `validation-case.md`
+- `report-final.md`
 
-The canonical output name is selected by `bundled_cases.py`. The ZIP contains exactly `marking-prompt.md`, `validation-case.md`, and `report-final.md`. Full debug packaging remains separate.
+Do not expose marking criteria to the report-generation workflow before `report-final.md` is complete.
+
+`nel-demo` remains a separate demonstration asset and is intentionally outside the validation-suite registry.

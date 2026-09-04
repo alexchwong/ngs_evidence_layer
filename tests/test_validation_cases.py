@@ -3,242 +3,245 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import load_registry, load_workflow_metadata
+from validation import case_registry
+from validation.scripts import bundled_cases
 from validation.scripts.package_marking import package_marking_bundle
-from validation.scripts.bundled_cases import (
-    bundled_modes,
-    case_source_path,
-    is_validation_mode,
-    list_case_ids,
-    marking_bundle_filename,
-    retrieve_case_input,
-    retrieve_marking_criteria,
-    write_demo_marking_criteria_after_report,
-)
 
 ROOT = Path(__file__).resolve().parents[1]
+VALIDATION_ROOT = ROOT / "validation"
 
 
-class BundledCaseRegistryTests(unittest.TestCase):
-    def test_expected_public_suites_are_registered(self):
-        self.assertEqual(
-            set(bundled_modes()),
-            {
-                "nel-demo",
-                "nel-validate",
-                "nel-validate-function",
-                "nel-validate-brief",
-                "nel-validate-dual",
-                "nel-validate-dublin",
-            },
-        )
-        self.assertTrue(is_validation_mode("nel-validate"))
-        self.assertFalse(is_validation_mode("nel-demo"))
+CANONICAL_TEMP_SUITE = """---
+schema_version: 1
+suite: nel-validate-registry-test
+title: Registry test suite
+---
 
-    def test_dual_suite_has_six_standalone_cases(self):
-        self.assertEqual(list_case_ids("nel-validate-dual"), ("1", "2", "3", "4", "5", "6"))
-        self.assertEqual(case_source_path("nel-validate-dual"), ROOT / "validation" / "validate_dual.md")
+# Registry test suite
 
-    def test_dublin_suite_has_ten_standalone_cases(self):
-        self.assertEqual(list_case_ids("nel-validate-dublin"), tuple(str(number) for number in range(1, 11)))
-        self.assertEqual(
-            case_source_path("nel-validate-dublin"),
-            ROOT / "validation" / "validation_dublin.md",
-        )
+## Case alpha — Test case
 
-    def test_demo_is_one_file_with_six_cases_and_marking_criteria(self):
-        self.assertEqual(list_case_ids("nel-demo"), ("1", "2", "3", "4", "5", "6"))
-        self.assertEqual(case_source_path("nel-demo"), ROOT / "validation" / "demo.md")
-        for selector in list_case_ids("nel-demo"):
-            clinical = retrieve_case_input("nel-demo", selector)
-            criteria = retrieve_marking_criteria("nel-demo", selector)
-            self.assertTrue(clinical.strip())
-            self.assertTrue(criteria.strip())
-            self.assertNotIn("Marking criteria", clinical)
-            self.assertNotIn("NEL task", clinical)
+### Case summary
 
-    def test_all_registered_production_selectors_retrieve_clinical_and_marking_content(self):
-        for mode in bundled_modes():
-            selectors = list_case_ids(mode)
-            self.assertTrue(selectors, mode)
-            for selector in selectors:
+Synthetic clinical input that is safe to expose to the report workflow.
+
+### Marking criteria
+
+#### R1 — Diagnosis and classification
+
+- **R1C1.** State the synthetic expected diagnosis.
+- **R1C2.** State the synthetic diagnostic limitation.
+
+#### R5 — Possible germline flagging
+
+- **R5C1.** Recommend constitutional confirmation when indicated.
+"""
+
+
+class ValidationCaseRegistryTests(unittest.TestCase):
+    def test_all_registered_validation_suites_pass_canonical_parser(self):
+        suites = case_registry.discover_suites()
+        self.assertTrue(suites)
+        for mode, suite in suites.items():
+            with self.subTest(mode=mode):
+                self.assertEqual(suite.suite, mode)
+                self.assertTrue(suite.cases)
+                self.assertEqual(case_registry.parse_suite(suite.path), suite)
+
+    def test_registered_cases_separate_clinical_input_from_marking_criteria(self):
+        for mode in sorted(case_registry.validation_modes()):
+            for selector in case_registry.list_case_ids(mode):
                 with self.subTest(mode=mode, selector=selector):
-                    clinical = retrieve_case_input(mode, selector)
-                    criteria = retrieve_marking_criteria(mode, selector)
+                    clinical = case_registry.retrieve_case_input(mode, selector)
+                    criteria = case_registry.retrieve_marking_criteria(mode, selector)
                     self.assertTrue(clinical.strip())
                     self.assertTrue(criteria.strip())
-                    self.assertNotIn("## NEL task", clinical)
-                    self.assertNotIn("## Marking criteria", clinical)
-                    self.assertNotIn("### NEL task", clinical)
-                    self.assertNotIn("### Marking criteria", clinical)
+                    self.assertNotIn("Marking criteria", clinical)
+                    self.assertNotIn("NEL task", clinical)
+                    self.assertNotIn("RnCm", clinical)
 
-    def test_shared_stem_variant_retrieval_preserves_stem(self):
-        stem = retrieve_case_input("nel-validate", "1")
-        variant = retrieve_case_input("nel-validate", "1A")
-        self.assertTrue(variant.startswith(stem))
-        self.assertGreater(len(variant), len(stem))
-
-    def test_standalone_suite_rejects_variant_selector(self):
-        with self.assertRaises(KeyError):
-            retrieve_case_input("nel-validate-brief", "8A")
-        with self.assertRaises(KeyError):
-            retrieve_case_input("nel-validate-dublin", "1A")
-
-    def test_marking_bundle_names_are_centralised(self):
-        self.assertEqual(marking_bundle_filename("nel-validate", "1A"), "nel-validation-1A.zip")
-        self.assertEqual(
-            marking_bundle_filename("nel-validate-function", "1H"),
-            "nel-validation-function-1H.zip",
-        )
-        self.assertEqual(
-            marking_bundle_filename("nel-validate-brief", "8"),
-            "nel-validation-brief-8.zip",
-        )
-        self.assertEqual(
-            marking_bundle_filename("nel-validate-dual", "1"),
-            "nel-validation-dual-1.zip",
-        )
-        self.assertEqual(
-            marking_bundle_filename("nel-validate-dublin", "1"),
-            "nel-validation-dublin-1.zip",
-        )
-        with self.assertRaises(ValueError):
-            marking_bundle_filename("nel-demo", "1")
-
-    def test_dublin_marking_bundle_uses_registered_source(self):
+    def test_drop_in_markdown_registers_without_python_mapping(self):
         with tempfile.TemporaryDirectory() as tmp:
-            report = Path(tmp) / "report-final.md"
-            report.write_text("# Report\n", encoding="utf-8")
-            output = package_marking_bundle("nel-validate-dublin", "1", report)
-            self.assertEqual(output.name, "nel-validation-dublin-1.zip")
-            with zipfile.ZipFile(output) as archive:
-                self.assertEqual(
-                    archive.namelist(),
-                    ["marking-prompt.md", "validation-case.md", "report-final.md"],
-                )
-                case = archive.read("validation-case.md").decode("utf-8")
-                prompt = archive.read("marking-prompt.md").decode("utf-8")
-            self.assertIn("FLT3-ITD", case)
-            self.assertNotIn("Marking criteria", case)
-            self.assertIn("familial platelet disorder", prompt)
-
-    def test_demo_marking_materialisation_requires_completed_report(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp = Path(tmp)
-            output = tmp / "demo-expected.md"
-            report = tmp / "report-final.md"
-            with self.assertRaises(ValueError):
-                write_demo_marking_criteria_after_report(1, report_path=report, output_path=output)
-            report.write_text("\n", encoding="utf-8")
-            with self.assertRaises(ValueError):
-                write_demo_marking_criteria_after_report(1, report_path=report, output_path=output)
-            report.write_text("# Report\n", encoding="utf-8")
-            write_demo_marking_criteria_after_report(1, report_path=report, output_path=output)
-            self.assertEqual(output.read_text(encoding="utf-8").strip(), retrieve_marking_criteria("nel-demo", 1))
-
-
-class WorkflowBundledCaseRegressionTests(unittest.TestCase):
-    def _assert_setup_case(self, workflow_id: str, mode: str, *, example=None, case_id=None):
-        with tempfile.TemporaryDirectory() as tmp:
-            work = setup_workflow(
-                workflow=workflow_id,
-                mode=mode,
-                work_dir=Path(tmp) / "run",
-                example=example,
-                case_id=case_id,
+            root = Path(tmp)
+            path = root / "anything.md"
+            path.write_text(CANONICAL_TEMP_SUITE, encoding="utf-8")
+            suites = case_registry.discover_suites(root)
+            self.assertEqual(set(suites), {"nel-validate-registry-test"})
+            self.assertEqual(
+                case_registry.list_case_ids("nel-validate-registry-test", root),
+                ("alpha",),
             )
-            cases = list(work.rglob("case.md"))
-            self.assertEqual(len(cases), 1, f"{workflow_id} {mode}: {cases}")
-            selector = example if mode == "nel-demo" else case_id
-            expected = retrieve_case_input(mode, selector).rstrip() + "\n"
-            self.assertEqual(cases[0].read_text(encoding="utf-8"), expected)
-            self.assertFalse(list(work.rglob("demo-expected.md")), "marking criteria leaked during setup")
+            self.assertIn(
+                "Synthetic clinical input",
+                case_registry.retrieve_case_input("nel-validate-registry-test", "alpha", root),
+            )
+            self.assertIn(
+                "R5C1",
+                case_registry.retrieve_marking_criteria("nel-validate-registry-test", "alpha", root),
+            )
 
-    def test_every_workflow_uses_same_demo_and_validation_retrieval(self):
-        registry = load_registry()
-        for workflow_id, row in registry["workflows"].items():
-            if not row.get("enabled", True):
-                continue
-            metadata = load_workflow_metadata(workflow_id, registry)
-            supported = set(metadata.get("supported_modes") or [])
-            if "nel-demo" in supported:
-                with self.subTest(workflow=workflow_id, mode="nel-demo"):
-                    self._assert_setup_case(workflow_id, "nel-demo", example=1)
-            validation_examples = {
-                "nel-validate": "1A",
-                "nel-validate-function": "1H",
-                "nel-validate-brief": "8",
-                "nel-validate-dual": "1",
-                "nel-validate-dublin": "1",
-            }
-            for mode, selector in validation_examples.items():
-                if mode in supported:
-                    with self.subTest(workflow=workflow_id, mode=mode):
-                        self._assert_setup_case(workflow_id, mode, case_id=selector)
+    def test_filename_does_not_define_suite_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "unrelated-filename.md").write_text(CANONICAL_TEMP_SUITE, encoding="utf-8")
+            suite = case_registry.suite_spec("nel-validate-registry-test", root)
+            self.assertEqual(suite.path.name, "unrelated-filename.md")
 
-    def test_dual_validation_is_proforma_only(self):
-        registry = load_registry()
-        for workflow_id, row in registry["workflows"].items():
-            if not row.get("enabled", True):
-                continue
-            supported = set(load_workflow_metadata(workflow_id, registry).get("supported_modes") or [])
-            if workflow_id == "proforma-v1":
-                self.assertIn("nel-validate-dual", supported)
-            else:
-                self.assertNotIn("nel-validate-dual", supported, workflow_id)
+    def test_duplicate_suite_ids_fail_registration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "one.md").write_text(CANONICAL_TEMP_SUITE, encoding="utf-8")
+            (root / "two.md").write_text(CANONICAL_TEMP_SUITE, encoding="utf-8")
+            with self.assertRaises(case_registry.RegistryError):
+                case_registry.discover_suites(root)
 
-    def test_dublin_validation_is_supported_by_proforma_and_terraced_v6(self):
-        registry = load_registry()
-        supporting = set()
-        for workflow_id, row in registry["workflows"].items():
-            if not row.get("enabled", True):
-                continue
-            supported = set(load_workflow_metadata(workflow_id, registry).get("supported_modes") or [])
-            if "nel-validate-dublin" in supported:
-                supporting.add(workflow_id)
-        self.assertEqual(supporting, {"proforma-v1", "terraced-v6"})
-
-    def test_workflow_code_and_docs_have_no_bundled_asset_sources_or_legacy_registry_constants(self):
-        forbidden = (
-            "VALIDATION_CASE_FILES",
-            "VALIDATION_MODES",
-            "MARKING_PREFIX",
-            "DEMO_EXAMPLES",
-            "demo_paths",
-            "examples/cases",
-            "examples/expected",
-            "case_summary.md",
-            "case_functional.md",
-            "validation_brief.md",
-            "validate_dual.md",
-            "validation_dublin.md",
-            "from validation.cases",
-            "validation.package_marking",
+    def test_noncanonical_case_sections_fail(self):
+        bad = CANONICAL_TEMP_SUITE.replace(
+            "### Marking criteria",
+            "### NEL task\n\nHidden evaluator hint.\n\n### Marking criteria",
         )
-        offenders = []
-        for path in (ROOT / "workflows").rglob("*"):
-            if not path.is_file() or path.suffix not in {".py", ".md"}:
-                continue
-            text = path.read_text(encoding="utf-8")
-            for token in forbidden:
-                if token in text:
-                    offenders.append(f"{path.relative_to(ROOT)}: {token}")
-        self.assertEqual(offenders, [])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad.md"
+            path.write_text(bad, encoding="utf-8")
+            with self.assertRaises(case_registry.RegistryError):
+                case_registry.parse_suite(path)
 
-    def test_every_runtime_setup_hook_calls_central_case_retrieval(self):
+    def test_malformed_or_nonsequential_criteria_fail(self):
+        bad = CANONICAL_TEMP_SUITE.replace("R1C2", "R1C3")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad.md"
+            path.write_text(bad, encoding="utf-8")
+            with self.assertRaises(case_registry.RegistryError):
+                case_registry.parse_suite(path)
+
+    def test_wrong_rubric_heading_fails(self):
+        bad = CANONICAL_TEMP_SUITE.replace(
+            "#### R1 — Diagnosis and classification",
+            "#### R1 — Prognosis",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad.md"
+            path.write_text(bad, encoding="utf-8")
+            with self.assertRaises(case_registry.RegistryError):
+                case_registry.parse_suite(path)
+
+    def test_bundled_case_api_is_registry_facade_for_validation(self):
+        self.assertEqual(bundled_cases.validation_modes(), case_registry.validation_modes())
+        for mode in sorted(case_registry.validation_modes()):
+            with self.subTest(mode=mode):
+                self.assertEqual(bundled_cases.list_case_ids(mode), case_registry.list_case_ids(mode))
+                first = case_registry.list_case_ids(mode)[0]
+                self.assertEqual(
+                    bundled_cases.retrieve_case_input(mode, first),
+                    case_registry.retrieve_case_input(mode, first),
+                )
+                self.assertEqual(
+                    bundled_cases.retrieve_marking_criteria(mode, first),
+                    case_registry.retrieve_marking_criteria(mode, first),
+                )
+
+    def test_demo_remains_outside_validation_registry(self):
+        self.assertIn("nel-demo", bundled_cases.bundled_modes())
+        self.assertNotIn("nel-demo", case_registry.validation_modes())
+        self.assertFalse(bundled_cases.is_validation_mode("nel-demo"))
+
+    def test_bundle_filename_is_derived_from_suite_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "suite.md").write_text(CANONICAL_TEMP_SUITE, encoding="utf-8")
+            self.assertEqual(
+                case_registry.marking_bundle_filename(
+                    "nel-validate-registry-test", "alpha", root
+                ),
+                "nel-validation-registry-test-alpha.zip",
+            )
+
+
+class ProformaValidationDiscoveryTests(unittest.TestCase):
+    def test_proforma_metadata_expands_registry_validation_modes(self):
         registry = load_registry()
-        missing = []
-        for workflow_id, row in registry["workflows"].items():
-            if not row.get("enabled", True):
-                continue
-            metadata = load_workflow_metadata(workflow_id, registry)
-            runtime_name = (metadata.get("entrypoints") or {}).get("runtime")
-            if not runtime_name:
-                continue
-            package = metadata["python_package"].replace(".", "/")
-            path = ROOT / package / f"{runtime_name}.py"
-            text = path.read_text(encoding="utf-8")
-            if "nel-demo" in set(metadata.get("supported_modes") or []) and "retrieve_case_input" not in text:
-                missing.append(str(path.relative_to(ROOT)))
-        self.assertEqual(missing, [])
+        metadata = load_workflow_metadata("proforma-v1", registry)
+        supported = set(metadata.get("supported_modes") or [])
+        self.assertTrue(case_registry.validation_modes().issubset(supported))
+        self.assertIn("ngs-report", supported)
+        self.assertIn("nel-demo", supported)
+
+    def test_proforma_workflow_json_contains_no_named_validation_suites(self):
+        text = (ROOT / "workflows" / "proforma_v1" / "workflow.json").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('"validation_case_registry": true', text)
+        self.assertNotIn('"nel-validate-', text)
+        self.assertNotIn('"nel-validate"', text)
+
+    def test_real_drop_in_suite_is_visible_through_proforma_metadata(self):
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".md",
+            prefix="registry-test-",
+            dir=VALIDATION_ROOT,
+            encoding="utf-8",
+            delete=False,
+        ) as handle:
+            handle.write(CANONICAL_TEMP_SUITE)
+            path = Path(handle.name)
+        try:
+            # 1. Direct registry discovery
+            self.assertIn("nel-validate-registry-test", case_registry.validation_modes())
+            # 2. Workflow metadata expansion
+            metadata = load_workflow_metadata("proforma-v1")
+            self.assertIn("nel-validate-registry-test", metadata["supported_modes"])
+            # 3. Compatibility facade
+            self.assertIn("nel-validate-registry-test", bundled_cases.validation_modes())
+            # 4. Canonical workflow boundary
+            from workflows.proforma_v1 import step as proforma_step
+            self.assertIn("nel-validate-registry-test", proforma_step.supported_modes())
+            # 5. Root CLI boundary
+            import nel
+            self.assertIn("nel-validate-registry-test", nel._supported_modes())
+            # 6. Root parser choices
+            parser = nel.build_parser()
+            setup_parser = parser._subparsers._group_actions[0].choices["setup"]
+            mode_action = next(action for action in setup_parser._actions if action.dest == "mode")
+            self.assertIn("nel-validate-registry-test", mode_action.choices)
+            # 7. UI discovery
+            from ui import server as ui_server
+            ui_cases = ui_server.validation_cases()
+            self.assertIn("nel-validate-registry-test", ui_cases)
+            self.assertEqual(ui_cases["nel-validate-registry-test"], ["alpha"])
+            # 8. Batch UI discovery
+            from ui import batch_server
+            bundled_rows = batch_server._bundled_suites()
+            registry_row = next(row for row in bundled_rows if row["mode"] == "nel-validate-registry-test")
+            self.assertEqual(registry_row["label"], "nel-validate-registry-test")
+            self.assertEqual(registry_row["cases"], ["alpha"])
+        finally:
+            path.unlink(missing_ok=True)
+
+
+class MarkingBundleRegistryTests(unittest.TestCase):
+    def test_every_validation_suite_can_build_post_report_bundle(self):
+        for mode in sorted(case_registry.validation_modes()):
+            selector = case_registry.list_case_ids(mode)[0]
+            with self.subTest(mode=mode, selector=selector), tempfile.TemporaryDirectory() as tmp:
+                report = Path(tmp) / "report-final.md"
+                report.write_text("# Report\n", encoding="utf-8")
+                output = package_marking_bundle(mode, selector, report)
+                with zipfile.ZipFile(output) as archive:
+                    self.assertEqual(
+                        archive.namelist(),
+                        ["marking-prompt.md", "validation-case.md", "report-final.md"],
+                    )
+                    case = archive.read("validation-case.md").decode("utf-8")
+                    prompt = archive.read("marking-prompt.md").decode("utf-8")
+                self.assertEqual(case.strip(), case_registry.retrieve_case_input(mode, selector).strip())
+                self.assertNotIn("Marking criteria", case)
+                self.assertIn(
+                    case_registry.retrieve_marking_criteria(mode, selector).strip(),
+                    prompt,
+                )
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,24 +1,14 @@
-# NEL brief validation set — consolidated clinical regression suite
-
-## Purpose
-
-This 10-case suite consolidates the highest-yield behavioural tests from the general and function-targeted validation sets into fewer end-to-end clinical regression cases.
-
-NEL is asked to explain how supplied clinicomorphological information and molecular findings confirm, change, exclude or qualify diagnosis, prognosis, actionability, MRD interpretation and possible germline predisposition. Marking criteria are evaluator-only and must not be supplied to NEL before `report-final.md` is complete.
-
-## Design conventions
-
-- WHO-5 is primary. ICC is reported when it produces a materially different classification.
-- Molecular findings must not replace missing clinicopathological criteria unless the classification explicitly permits molecular definition at the supplied blast threshold.
-- Bulk tumour VAF must not be used to infer germline status, phase, mutation order, shared clonality or an unobserved second hit.
-- Complete prognostic scores are not required when necessary inputs are absent; report only supported molecular contributions or limitations.
-- Disease-specific treatment and MRD claims must remain specific to the supplied disease, alteration and clinical setting.
-
+---
+schema_version: 1
+suite: nel-validate-brief
+title: NEL brief validation set — consolidated clinical regression suite
 ---
 
-# Case 1 — NPM1-mutated AML arising from an MDS-range presentation
+# NEL brief validation set — consolidated clinical regression suite
 
-## Clinical information
+## Case 1 — NPM1-mutated AML arising from an MDS-range presentation
+
+### Case summary
 
 Cytopenias and marrow dysplasia are present. Marrow blasts are 12%. Provisional diagnosis: **myelodysplastic neoplasm with increased blasts-2 (MDS-IB2)**.
 
@@ -26,23 +16,32 @@ Cytopenias and marrow dysplasia are present. Marrow blasts are 12%. Provisional 
 
 **Cytogenetics:** Normal.
 
-## NEL task
+### Marking criteria
 
-Recognise molecular escalation from the provisional MDS diagnosis to NPM1-mutated AML, apply the WHO-5/ICC blast-threshold rules and ELN risk category, report the FLT3-TKD treatment implication, and select the preferred molecular MRD target.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** Refine the WHO-5 diagnosis to **AML with mutated NPM1**.
+- **R1C2.** State that the NPM1-defined WHO-5 entity is not restricted by the conventional 20% blast threshold.
+- **R1C3.** State the corresponding ICC **AML with mutated NPM1**.
+- **R1C4.** State that the supplied 12% blast count exceeds the ICC minimum for this entity.
 
-- **R1C1:** Refine the WHO-5 diagnosis to **AML with mutated NPM1** despite the 12% marrow blast count; the NPM1-defined WHO-5 entity is not restricted by the conventional 20% blast threshold.
-- **R1C2:** State the corresponding ICC **AML with mutated NPM1** because the supplied 12% blast count exceeds the ICC minimum for this entity.
-- **R2C1:** Assign **ELN 2022 favourable risk** in the supplied setting without an adverse-risk defining finding; FLT3-TKD does not displace the NPM1 favourable-risk assignment.
-- **R3C1:** State that FLT3 D835Y is an actionable FLT3-TKD alteration in the appropriate AML treatment setting, with treatment phase and approval/access qualified where relevant.
-- **R4C1:** Identify the exact NPM1 type A mutation as the preferred dedicated high-sensitivity molecular MRD target.
+#### R2 — Prognostic interpretation
 
----
+- **R2C1.** Assign **ELN 2022 favourable risk** in the supplied setting without an adverse-risk defining finding.
+- **R2C2.** State that FLT3-TKD does not displace the NPM1 favourable-risk assignment.
 
-# Case 2 — AML with myelodysplasia-related and clonal-haematopoiesis-associated mutations
+#### R3 — Clinical actionability
 
-## Clinical information
+- **R3C1.** State that FLT3 D835Y is an actionable FLT3-TKD alteration in the appropriate AML treatment setting.
+- **R3C2.** Qualify FLT3-directed treatment by treatment phase and approval or access where relevant.
+
+#### R4 — MRD interpretation
+
+- **R4C1.** Identify the exact NPM1 type A mutation as the preferred dedicated high-sensitivity molecular MRD target.
+
+## Case 2 — AML with myelodysplasia-related and clonal-haematopoiesis-associated mutations
+
+### Case summary
 
 Pancytopenia. Marrow shows 30% myeloid blasts. Provisional diagnosis: **acute myeloid leukaemia (AML)**.
 
@@ -50,22 +49,25 @@ Pancytopenia. Marrow shows 30% myeloid blasts. Provisional diagnosis: **acute my
 
 **Cytogenetics:** Normal.
 
-## NEL task
+### Marking criteria
 
-Recognise AML with myelodysplasia-related gene mutations, distinguish the qualifying lesions from common clonal-haematopoiesis-associated mutations, apply ELN 2022, and avoid promoting these mutations to stand-alone AML MRD markers.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** State **AML, myelodysplasia-related** on the basis of qualifying myelodysplasia-related gene mutation(s), including SRSF2 and ASXL1.
+- **R1C2.** Do not describe DNMT3A as a lesion that establishes the AML-MR entity.
+- **R1C3.** Do not describe TET2 as a lesion that establishes the AML-MR entity.
 
-- **R1C1:** State **AML, myelodysplasia-related** on the basis of qualifying myelodysplasia-related gene mutation(s), including SRSF2 and ASXL1.
-- **R1C2:** Do not describe DNMT3A or TET2 as the lesions that establish the AML-MR entity; they support clonality but are not the qualifying AML-MR gene mutations in this case.
-- **R2C1:** Assign **ELN 2022 adverse risk** because of the qualifying myelodysplasia-related gene mutation(s).
-- **R4C1:** Do not treat SRSF2, ASXL1, DNMT3A or TET2 as validated stand-alone AML MRD markers.
+#### R2 — Prognostic interpretation
 
----
+- **R2C1.** Assign **ELN 2022 adverse risk** because of the qualifying myelodysplasia-related gene mutation(s).
 
-# Case 3 — Isolated FLT3-ITD AML
+#### R4 — MRD interpretation
 
-## Clinical information
+- **R4C1.** Do not treat the detected SRSF2, ASXL1, DNMT3A or TET2 variants as validated stand-alone AML MRD markers.
+
+## Case 3 — Isolated FLT3-ITD AML
+
+### Case summary
 
 Pancytopenia. Marrow shows 30% myeloid blasts. Provisional diagnosis: **acute myeloid leukaemia (AML)**.
 
@@ -75,22 +77,32 @@ Pancytopenia. Marrow shows 30% myeloid blasts. Provisional diagnosis: **acute my
 
 No adverse-risk defining lesion is supplied.
 
-## NEL task
+### Marking criteria
 
-Preserve AML, apply the current ELN interpretation of isolated FLT3-ITD without using allelic ratio, report disease-specific treatment actionability, and state the AML MRD role and limitations of FLT3-ITD.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** Preserve **AML**.
+- **R1C2.** State that FLT3-ITD does not independently define a different WHO-5 AML entity.
 
-- **R1C1:** Preserve **AML**. FLT3-ITD does not independently define a different WHO-5 AML entity.
-- **R2C1:** Assign **ELN 2022 intermediate risk** in the absence of an adverse-risk lesion; do not use FLT3-ITD allelic ratio for ELN 2022 risk assignment.
-- **R3C1:** Report FLT3-mutated AML as therapeutically actionable, with the treatment setting qualified.
-- **R4C1:** Recognise FLT3-ITD as a validated high-sensitivity molecular MRD target in AML while respecting timepoint/assay-specific guidance and limitations of using it as the sole follow-up marker.
+#### R2 — Prognostic interpretation
 
----
+- **R2C1.** Assign **ELN 2022 intermediate risk** in the absence of an adverse-risk lesion.
+- **R2C2.** Do not use FLT3-ITD allelic ratio for ELN 2022 risk assignment.
 
-# Case 4 — PML::RARA-positive acute promyelocytic leukaemia
+#### R3 — Clinical actionability
 
-## Clinical information
+- **R3C1.** Report FLT3-mutated AML as therapeutically actionable.
+- **R3C2.** Qualify FLT3-directed treatment by treatment setting.
+
+#### R4 — MRD interpretation
+
+- **R4C1.** Recognise FLT3-ITD as a validated high-sensitivity molecular MRD target in AML.
+- **R4C2.** Qualify FLT3-ITD MRD interpretation by relevant timepoint and assay guidance.
+- **R4C3.** State the limitations of using FLT3-ITD as the sole follow-up marker.
+
+## Case 4 — PML::RARA-positive acute promyelocytic leukaemia
+
+### Case summary
 
 Pancytopenia. Marrow shows 30% abnormal promyelocytes/blasts. Provisional diagnosis: **acute myeloid leukaemia (AML)**.
 
@@ -98,21 +110,25 @@ Pancytopenia. Marrow shows 30% abnormal promyelocytes/blasts. Provisional diagno
 
 **NGS:** `FLT3` internal tandem duplication, NM_004119.3:c.1773_1793dup, VAF 32%; `KRAS` NM_004985.5:c.35G>A, p.(Gly12Asp), VAF 4%.
 
-## NEL task
+### Marking criteria
 
-Integrate the defining non-NGS fusion result, apply diagnostic precedence, report its immediate disease-specific treatment significance, and prioritise the correct MRD marker over secondary NGS variants.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** Refine the diagnosis to **acute promyelocytic leukaemia with PML::RARA**.
+- **R1C2.** Give PML::RARA diagnostic precedence over FLT3-ITD and low-level KRAS.
 
-- **R1C1:** Refine the diagnosis to **acute promyelocytic leukaemia with PML::RARA**. PML::RARA takes diagnostic precedence over FLT3-ITD and low-level KRAS.
-- **R3C1:** Recognise that PML::RARA has an immediate disease-specific treatment implication even though it was detected outside the NGS assay.
-- **R4C1:** Identify `PML::RARA` as the preferred leukaemia-specific molecular follow-up target; FLT3-ITD or KRAS must not replace it as the principal MRD marker.
+#### R3 — Clinical actionability
 
----
+- **R3C1.** Recognise that PML::RARA has an immediate disease-specific treatment implication.
 
-# Case 5 — Single bZIP CEBPA mutation
+#### R4 — MRD interpretation
 
-## Clinical information
+- **R4C1.** Identify `PML::RARA` as the preferred leukaemia-specific molecular follow-up target.
+- **R4C2.** Do not replace PML::RARA with FLT3-ITD or KRAS as the principal MRD marker.
+
+## Case 5 — Single bZIP CEBPA mutation
+
+### Case summary
 
 Pancytopenia. Marrow shows 30% myeloid blasts. Provisional diagnosis: **acute myeloid leukaemia (AML)**.
 
@@ -122,21 +138,24 @@ Pancytopenia. Marrow shows 30% myeloid blasts. Provisional diagnosis: **acute my
 
 No second pathogenic `CEBPA` variant is detected.
 
-## NEL task
+### Marking criteria
 
-Recognise that a single explicitly in-frame bZIP CEBPA mutation is sufficient for the CEBPA-defined AML entity and favourable ELN category, without requiring biallelic CEBPA mutation or inventing a routine stand-alone molecular MRD strategy.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** State **AML with CEBPA mutation / bZIP in-frame CEBPA-mutated AML**.
+- **R1C2.** State that a second CEBPA mutation is not required when the single mutation is explicitly an in-frame bZIP mutation.
 
-- **R1C1:** State **AML with CEBPA mutation / bZIP in-frame CEBPA-mutated AML**. A second CEBPA mutation is not required when the single mutation is explicitly an in-frame bZIP mutation.
-- **R2C1:** Assign **ELN 2022 favourable risk** on the basis of the in-frame bZIP CEBPA mutation in the supplied setting.
-- **R4C1:** Do not present routine detection/clearance of this CEBPA variant as an established stand-alone molecular MRD strategy.
+#### R2 — Prognostic interpretation
 
----
+- **R2C1.** Assign **ELN 2022 favourable risk** on the basis of the in-frame bZIP CEBPA mutation in the supplied setting.
 
-# Case 6 — High-blast MDS with SF3B1 and adverse IPSS-M contributors
+#### R4 — MRD interpretation
 
-## Clinical information
+- **R4C1.** Do not present routine detection or clearance of this CEBPA variant as an established stand-alone molecular MRD strategy.
+
+## Case 6 — High-blast MDS with SF3B1 and adverse IPSS-M contributors
+
+### Case summary
 
 Cytopenias and marrow dysplasia are present. Marrow blasts are 12%. Provisional diagnosis: **myelodysplastic neoplasm with increased blasts-2 (MDS-IB2)**.
 
@@ -144,22 +163,26 @@ Cytopenias and marrow dysplasia are present. Marrow blasts are 12%. Provisional 
 
 **Cytogenetics:** Normal.
 
-## NEL task
+### Marking criteria
 
-Respect the high-blast WHO-5 diagnosis rather than allowing SF3B1 to force a low-blast entity, report the materially different ICC classification, and describe the mixed molecular prognostic contributions without constructing an incomplete IPSS-M score.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** State **WHO-5 MDS-IB2**.
+- **R1C2.** State that 12% marrow blasts preclude the low-blast SF3B1-defined WHO-5 entity.
+- **R1C3.** State the materially different ICC **MDS/AML with myelodysplasia-related gene mutation(s)**.
+- **R1C4.** Identify SF3B1 as a qualifying myelodysplasia-related gene in this blast range.
+- **R1C5.** Identify EZH2 as a qualifying myelodysplasia-related gene in this blast range.
 
-- **R1C1:** State **WHO-5 MDS-IB2**, not MDS with low blasts and SF3B1 mutation, because the supplied 12% marrow blasts preclude the low-blast SF3B1-defined entity.
-- **R1C2:** State the materially different ICC **MDS/AML with myelodysplasia-related gene mutation(s)**; SF3B1 and EZH2 are qualifying myelodysplasia-related genes in this blast range.
-- **R2C1:** Recognise the favourable SF3B1 molecular contribution and adverse CBL/EZH2 contributions within IPSS-M rather than assigning all detected genes the same direction of effect.
-- **R2C2:** Do not fabricate a complete IPSS-M category when all required non-molecular inputs are not supplied.
+#### R2 — Prognostic interpretation
 
----
+- **R2C1.** Recognise the favourable SF3B1 molecular contribution within IPSS-M.
+- **R2C2.** Recognise the adverse CBL molecular contribution within IPSS-M.
+- **R2C3.** Recognise the adverse EZH2 molecular contribution within IPSS-M.
+- **R2C4.** Do not fabricate a complete IPSS-M category when all required inputs are not supplied.
 
-# Case 7 — MDS with mutation-plus-deletion TP53 architecture
+## Case 7 — MDS with mutation-plus-deletion TP53 architecture
 
-## Clinical information
+### Case summary
 
 Cytopenias and marrow dysplasia are present. Marrow blasts are 12%. Provisional diagnosis: **myelodysplastic neoplasm with increased blasts-2 (MDS-IB2)**.
 
@@ -169,22 +192,25 @@ The NGS assay is tumour-only. No constitutional specimen has been tested.
 
 **Cytogenetics/FISH:** del(17p) involving `TP53`.
 
-## NEL task
+### Marking criteria
 
-Integrate the observed TP53 mutation and cytogenetic second hit, apply the materially different WHO-5 and ICC classifications and adverse molecular interpretation, while avoiding an unsupported germline inference from tumour VAF.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** State **WHO-5 MDS with biallelic TP53 inactivation**.
+- **R1C2.** State that TP53 mutation plus deletion of the TP53 locus establishes multi-hit or biallelic architecture.
+- **R1C3.** State the materially different ICC entity **MDS/AML with mutated TP53**.
 
-- **R1C1:** State **WHO-5 MDS with biallelic TP53 inactivation** because the TP53 mutation plus deletion of the TP53 locus establishes a multi-hit/biallelic architecture.
-- **R1C2:** State the materially different ICC entity **MDS/AML with mutated TP53**.
-- **R2C1:** Report TP53 multi-hit status as the dominant adverse molecular feature as per IPSS-M.
-- **R5C1:** Do not infer constitutional TP53 status from the approximately 50% tumour-only VAF; germline status remains unestablished unless separately confirmed.
+#### R2 — Prognostic interpretation
 
----
+- **R2C1.** Report TP53 multi-hit status as the dominant adverse molecular feature within IPSS-M.
 
-# Case 8 — BCR::ABL1-positive AML-range presentation with an ANKRD26 germline flag
+#### R5 — Possible germline flagging
 
-## Clinical information
+- **R5C1.** Do not infer constitutional TP53 status from the approximately 50% tumour-only VAF.
+
+## Case 8 — BCR::ABL1-positive AML-range presentation with an ANKRD26 germline flag
+
+### Case summary
 
 Pancytopenia. Marrow shows 30% myeloid blasts. Provisional diagnosis: **acute myeloid leukaemia (AML)**.
 
@@ -198,23 +224,27 @@ The NGS assay is tumour-only. No constitutional specimen has been tested.
 
 **NGS:** `ANKRD26` NM_014915.3:c.-128G>A, VAF 51%. No other pathogenic or likely pathogenic SNV/short-indel finding is detected.
 
-## NEL task
+### Marking criteria
 
-Recognise the BCR::ABL1-positive AML-range presentation while retaining CML blast phase as an important competing diagnosis requiring historical correlation. Independently recognise the characteristic ANKRD26 5′ UTR germline-predisposition signal and subtle family history without allowing tumour-only VAF to establish constitutional status.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** State that the current 30% blast presentation with BCR::ABL1 satisfies the blast requirement for **AML with BCR::ABL1** if this represents de novo AML.
+- **R1C2.** Report **possible CML blast phase**.
+- **R1C3.** Recommend correlation with historical blood counts and prior evidence of chronic-phase CML.
+- **R1C4.** Do not treat the BCR::ABL1 fusion alone as proof of de novo AML.
+- **R1C5.** Do not downgrade the significance of BCR::ABL1 because routine SNV or indel testing did not identify another acquired AML-defining mutation.
 
-- **R1C1:** State that the current 30% blast presentation with BCR::ABL1 satisfies the blast requirement for **AML with BCR::ABL1** if this represents de novo AML.
-- **R1C2:** Explicitly report **possible CML blast phase** and recommend correlation with historical blood counts and prior evidence of chronic-phase CML; the BCR::ABL1 fusion alone must not be treated as proof of de novo AML.
-- **R1C3:** Do not downgrade the significance of BCR::ABL1 because routine SNV/indel testing did not identify an acquired AML-defining mutation; the fusion was established by separate testing.
-- **R5C1:** Flag **suspected/possible germline ANKRD26 predisposition**, recognising the characteristic 5′ UTR variant architecture together with the family history; do not call the tumour-only 51% VAF definitively constitutional.
-- **R5C2:** State that confirmed germline ANKRD26 predisposition is relevant to inherited platelet disorder/myeloid-neoplasm predisposition and recommend constitutional confirmation using an appropriate non-haematopoietic specimen with genetic counselling; family/donor implications remain conditional pending confirmation.
+#### R5 — Possible germline flagging
 
----
+- **R5C1.** Flag **suspected or possible germline ANKRD26 predisposition** from the characteristic 5′ UTR variant architecture and family history.
+- **R5C2.** Do not call the tumour-only 51% VAF definitively constitutional.
+- **R5C3.** State the relevance of confirmed germline ANKRD26 predisposition to inherited platelet disorder or myeloid-neoplasm predisposition.
+- **R5C4.** Recommend constitutional confirmation using an appropriate non-haematopoietic specimen.
+- **R5C5.** Recommend genetic counselling.
 
-# Case 9 — Proliferative CMML/MPN differential with a RAS-pathway-heavy genotype
+## Case 9 — Proliferative CMML/MPN differential with a RAS-pathway-heavy genotype
 
-## Clinical information
+### Case summary
 
 Leukocytosis and splenomegaly are present. WCC is 15.0 × 10^9/L. Monocytes are 2.25 × 10^9/L and 15% of the WCC on repeated measurements over 4 months. Reactive causes of monocytosis have been excluded.
 
@@ -222,22 +252,25 @@ A marrow aspirate is haemodilute and the trephine is insufficient for definitive
 
 **NGS:** `SRSF2` NM_003016.5:c.284C>A, p.(Pro95His), VAF 42%; `TET2` NM_001127208.3:c.1132_1133del, p.(Gly378CysfsTer11), VAF 45%; `NRAS` NM_002524.5:c.35G>A, p.(Gly12Asp), VAF 18%; `CBL` NM_005188.4:c.1111T>C, p.(Tyr371His), VAF 24%; `PTPN11` NM_002834.5:c.226G>A, p.(Glu76Lys), VAF 11%; `NF1` NM_001042492.3:c.2041C>T, p.(Arg681Ter), VAF 16%.
 
-## NEL task
+### Marking criteria
 
-Use the persistent qualifying monocytosis and clonal, RAS-pathway-heavy genotype to identify CMML as the leading diagnostic consideration while respecting missing marrow/exclusion information. Recognise the proliferative context without treating the signalling mutations as independently diagnostic or importing disease-specific prognostic frameworks before the disease is established.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** State that CMML is a leading or major diagnostic consideration.
+- **R1C2.** Do not present CMML as fully established while required clinicopathological classification or exclusion information remains incomplete.
+- **R1C3.** State that SRSF2 and TET2 support a clonal myeloid process.
+- **R1C4.** State that the NRAS, CBL, PTPN11 and NF1 RAS-pathway genotype supports proliferative biology.
+- **R1C5.** Do not treat the detected mutations as independently diagnostic of CMML or a canonical MPN.
+- **R1C6.** Recognise the **proliferative CMML context** from WCC >13 × 10^9/L if discussing CMML phenotype.
+- **R1C7.** Do not invent a blast-based subgroup when reliable marrow or blast information is unavailable.
 
-- **R1C1:** State that the persistent absolute and relative monocytosis plus clonal findings make **CMML a leading/major diagnostic consideration**, but do not present the diagnosis as fully established while required clinicopathological classification/exclusion information remains incomplete.
-- **R1C2:** State that SRSF2/TET2 support a clonal myeloid process and that the NRAS/CBL/PTPN11/NF1 RAS-pathway genotype supports proliferative biology; none of these mutations independently establishes CMML or a canonical MPN diagnosis.
-- **R1C3:** Recognise the **proliferative CMML context** from WCC >13 × 10^9/L if discussing CMML phenotype, but do not invent a blast-based subgroup when reliable marrow/blast information is unavailable.
-- **R2C1:** Do not apply PMF-specific, MDS-specific or other disease-specific prognostic interpretation merely because individual detected genes occur in those frameworks before the final disease context is established.
+#### R2 — Prognostic interpretation
 
----
+- **R2C1.** Do not apply a disease-specific prognostic framework before the final disease context is established.
 
-# Case 10 — Borderline non-MDS cytopenia with DDX41 second-event architecture
+## Case 10 — Borderline non-MDS cytopenia with DDX41 second-event architecture
 
-## Clinical information
+### Case summary
 
 Persistent pancytopenia. Marrow shows mild/borderline trilineage dysplasia that is insufficient for a morphological diagnosis of MDS. Blasts are not increased. Provisional diagnosis: **CCUS**.
 
@@ -249,13 +282,19 @@ The NGS assay is tumour-only. No constitutional specimen has been tested.
 
 **Cytogenetics:** Normal.
 
-## NEL task
+### Marking criteria
 
-Preserve the non-MDS clinicomorphological boundary, recognise possible germline DDX41 predisposition and the characteristic lower-VAF second-event architecture, and avoid unsupported phase, clonality or constitutional claims from bulk tumour sequencing.
+#### R1 — Diagnosis and classification
 
-## Marking criteria
+- **R1C1.** Do not upgrade the borderline marrow findings to MDS.
+- **R1C2.** Recognise the lower-VAF DDX41 R525H as an acquired clonal marker compatible with CCUS in the supplied context.
+- **R1C3.** Treat the near-heterozygous truncating DDX41 variant as potentially constitutional rather than definitively acquired.
 
-- **R1C1:** Do not upgrade the borderline marrow findings to MDS. The lower-VAF DDX41 R525H provides an acquired clonal marker compatible with CCUS in the supplied cytopenic non-MDS context, while the near-heterozygous truncating DDX41 variant remains potentially constitutional.
-- **R5C1:** Report **suspected/possible germline DDX41 predisposition** based on the loss-of-function variant, lower-VAF recurrent DDX41 second-event architecture and family history; VAF alone is insufficient.
-- **R5C2:** Do not state that the two DDX41 variants are proven to be in trans, on different clones, or that the 48% allele is definitively constitutional from bulk tumour sequencing.
-- **R5C3:** Recommend constitutional confirmation using an appropriate non-haematopoietic specimen and genetic counselling, with donor/family implications expressed conditionally pending confirmation.
+#### R5 — Possible germline flagging
+
+- **R5C1.** Report **suspected or possible germline DDX41 predisposition** from the loss-of-function variant, second-event architecture and family history.
+- **R5C2.** Do not determine germline origin from VAF alone.
+- **R5C3.** Do not state that the two DDX41 variants are proven to be in trans.
+- **R5C4.** Do not state that the two DDX41 variants are proven to be on different clones.
+- **R5C5.** Recommend constitutional confirmation using an appropriate non-haematopoietic specimen.
+- **R5C6.** Recommend genetic counselling.

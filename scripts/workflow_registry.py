@@ -18,10 +18,6 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict:
     if data.get("schema_version") != 1 or not isinstance(data.get("workflows"), dict):
         raise ValueError(f"invalid workflow registry: {path}")
 
-    # A source checkout can retain legacy/development workflow registrations, while
-    # a stripped release may ship only the canonical workflow plus explicitly supported
-    # compatibility implementations. Treat registered workflows whose implementation
-    # directory is absent as disabled so release routing cannot select unshipped code.
     for row in data["workflows"].values():
         relative = row.get("path") if isinstance(row, dict) else None
         if isinstance(relative, str) and not (REPO_ROOT / relative).is_dir():
@@ -67,6 +63,15 @@ def load_workflow_metadata(workflow_id: str, registry: dict | None = None) -> di
         )
     if data.get("schema_version") != 1:
         raise ValueError(f"unsupported workflow metadata schema in {path}")
+
+    # A workflow can opt into every canonical validation suite without listing
+    # individual modes. New valid suite Markdown then becomes available to root CLI,
+    # UI, setup and SKILL execution through this one metadata boundary.
+    if data.get("validation_case_registry") is True:
+        from validation.case_registry import validation_modes
+
+        base = list(data.get("supported_modes") or [])
+        data["supported_modes"] = list(dict.fromkeys([*base, *sorted(validation_modes())]))
     return data
 
 
@@ -114,8 +119,6 @@ def write_workflow_state(
         "workflow_id": workflow_id,
         "mode": mode,
     }
-    # Additive and optional. Persisting it means a resumed work directory keeps
-    # its binding without the caller repeating flags on every later command.
     profile = model_profile if model_profile is not None else existing_profile
     if profile:
         payload["model_profile"] = profile

@@ -20,6 +20,7 @@ output/corpus/nel.corpus.json
 output/corpus/nel.index.json
 output/corpus/blacklist.json
 validation/__init__.py
+validation/case_registry.py
 validation/scripts/__init__.py
 validation/scripts/bundled_cases.py
 validation/scripts/package_marking.py

@@ -1,68 +1,31 @@
 # Validation suites
 
-NEL exposes the canonical `proforma-v1` validation modes through the root `nel.py` CLI. Marking criteria are withheld until report generation is complete.
+NEL exposes canonical `proforma-v1` validation suites through the root `nel.py` CLI. Validation-suite registration is data-driven: canonical Markdown files under `validation/` declare their public suite ID and cases, and `validation/case_registry.py` discovers them automatically.
 
-## Standard validation
-
-Use `nel-validate` with one of the legacy validation-suite case IDs:
-
-`1A`, `1B`, `1C`, `1D`, `1E`; `2A`, `2B`, `2C`, `2D`, `2E`;
-`3A`, `3B`, `3C`, `3D`; `4A`, `4B`, `4C`, `4D`; `5A`, `5B`, `5C`, `5D`.
-
-Example:
+List the currently registered suites and case IDs with:
 
 ```bash
-python nel.py setup --mode nel-validate --case-id 1A --run-id validate-1A
-python nel.py run --run-id validate-1A
+python validation/case_registry.py list
 ```
 
-The source cases are in `validation/case_summary.md`.
-
-## Function-targeted validation
-
-`nel-validate-function` uses `validation/case_functional.md`.
-
-Available IDs are `1A`-`1H` (AML), `2A`-`2G` (MDS with 12% blasts), `3A`-`3G`
-(thrombocytosis/leukocytosis without marrow), and `4A`-`4D` (miscellaneous).
-
-`validation/case_functional_manifest.md` documents the reporting function isolated by each functional case. It is evaluator/developer-only and is never supplied to the report-generation model or included in the external marking ZIP.
-
-## Brief regression suite
-
-`nel-validate-brief` uses `validation/validation_brief.md` and contains cases `1` through `10`. It is intended for high-yield end-to-end regression rather than exhaustive gene/disease content coverage.
-
-Example:
+Run any discovered case with:
 
 ```bash
-python nel.py setup --mode nel-validate-brief --case-id 1 --run-id brief-1
-python nel.py run --run-id brief-1
+python nel.py setup \
+  --mode <registered-validation-suite> \
+  --case-id <case-id> \
+  --run-id <run-id>
+python nel.py run --run-id <run-id>
 ```
 
-For a `self` pipeline, repeat `python nel.py run --run-id <id>` after completing each returned model handoff until `STATUS=complete`.
+For a `self` pipeline, repeat `python nel.py run --run-id <run-id>` after completing each returned model handoff until `STATUS=complete`.
 
-## Dual-pathology validation
+The filename that contains a suite is not part of the public runtime contract. Dropping a new canonical validation Markdown file into `validation/` makes it available to canonical `proforma-v1`, root `nel.py`, the UI, and the root SKILL path without adding a Python mapping.
 
-`nel-validate-dual` uses `validation/validate_dual.md` and contains cases `1` through `6`. These cases test discordance between the morphological diagnosis and a molecular finding suggesting a concurrent pathology.
+Only the case's `### Case summary` is supplied during report generation. `### Marking criteria` are evaluator-only and must remain unavailable to report-generation models until `report-final.md` is complete.
 
-Example:
+After report completion, `validation/scripts/package_marking.py` builds the external-marking bundle through the same central registry. The bundle contains the candidate report, standalone validation case, and rendered marking prompt.
 
-```bash
-python nel.py setup --mode nel-validate-dual --case-id 1 --run-id dual-1
-python nel.py run --run-id dual-1
-```
+For the canonical Markdown schema, strict structural rules, and fair-marking requirements—including the prohibition on compound criteria—see [`../validation/DEVEL.md`](../validation/DEVEL.md).
 
-## Dublin molecular-haematology validation
-
-`nel-validate-dublin` uses `validation/validation_dublin.md` and contains cases `1` through `10`. It covers diagnostic integration and refinement, concurrent diagnoses, prognosis, therapy, MRD, germline predisposition, and disease-specific molecular prognostic frameworks.
-
-The suite is available in both the canonical `proforma-v1` workflow and legacy `terraced-v6`:
-
-```bash
-python nel.py setup --mode nel-validate-dublin --case-id 1 --run-id dublin-1
-python nel.py run --run-id dublin-1
-
-python nel.py setup --legacy --mode nel-validate-dublin --case-id 1 --run-id legacy-dublin-1
-python nel.py run --run-id legacy-dublin-1
-```
-
-Only clinical information is supplied during report generation. The task and case-specific marking criteria remain evaluator-only until `report-final.md` is complete.
+`nel-demo` is a separate demonstration asset and is intentionally outside the validation-suite registry. Legacy `terraced-v6` retains only its explicitly supported historical validation modes; automatic registry expansion applies to canonical `proforma-v1`.
