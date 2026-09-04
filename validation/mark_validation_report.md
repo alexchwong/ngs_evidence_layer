@@ -29,7 +29,6 @@ Examples include:
 - Correct diagnosis but omission of a required material WHO-5/ICC divergence.
 - Correct prognostic category but omission of a required molecular driver or limitation.
 - Correct treatment implication stated without a required qualification concerning disease phase, access or uncertainty.
-- Correct possible-germline flag without recommending constitutional confirmation.
 
 ### Omission error
 
@@ -162,13 +161,37 @@ Do not calculate points, percentages, averages or a single overall category.
 
 ### Possible-germline rules
 
-Apply these rules only when R5 contains case-specific criteria:
+Apply R5 only against the supplied case-specific criteria.
 
-- Require wording such as **possible**, **suspected** or **presumed germline**.
-- Require constitutional confirmation using an appropriate validated non-haematopoietic specimen and, where specified, genetic counselling or donor review.
-- Do not accept a definitive germline call from tumour-only sequencing.
-- Do not require germline flagging merely because a VAF is near 50%; the recognised gene, variant and personal phenotype must provide the case-specific trigger.
-- Do not require assertions about phase, shared clonality or which allele is constitutional unless directly demonstrated.
+- Assess possible germline origin and a named germline predisposition syndrome as distinct conclusions when both are specified.
+- Do not introduce additional requirements for constitutional confirmation, genetic counselling, donor assessment, family testing or other management unless explicitly present in the case-specific criteria.
+- Do not require germline flagging merely because a VAF is near 50%; apply only the trigger defined by the case-specific criteria.
+
+### Machine-readable criterion results
+
+After the five rubric sections, return one fenced JSON block containing the outcome of every case-specific RnCm criterion and no other criteria.
+
+Use exactly this shape:
+
+```json
+{
+  "criterion_results": {
+    "R1C1": {"met": true, "failure_mode": null},
+    "R1C2": {"met": false, "failure_mode": "omitted"}
+  }
+}
+```
+
+Rules:
+
+- Include every case-specific RnCm criterion exactly once.
+- Do not include criteria that are not present in the embedded case-specific marking criteria.
+- `met` must be a JSON boolean.
+- `failure_mode` must be `null` when `met` is `true`.
+- When `met` is `false`, `failure_mode` must be exactly one of `"partial"`, `"omitted"`, or `"contradicted"`.
+- `partial` means the atomic criterion is materially but incompletely satisfied.
+- The JSON block is a machine-readable restatement of the criterion assessment; it must not introduce new clinical requirements.
+- Do not emit F1-F9 functional scores. Functional scoring is performed deterministically downstream.
 
 ## Required output format
 
@@ -198,5 +221,7 @@ Apply these rules only when R5 contains case-specific criteria:
 ### R5 — Possible germline flagging
 [Use the same fields.]
 ```
+
+After the five rubric sections, append the required `criterion_results` JSON block.
 
 Always return all five rubric sections. Do not produce a numeric total, convert categories into points or assign an overall pass/fail result.

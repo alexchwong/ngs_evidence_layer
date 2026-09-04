@@ -16,6 +16,16 @@ def test_render_marking_prompt_embeds_case_and_criteria_without_evidence_input()
     assert "`evidence.md` —" not in rendered
 
 
+def test_marking_prompt_requires_machine_readable_criterion_results_without_functional_scores():
+    rendered = render_marking_prompt("nel-validate-dublin", "1")
+    assert '"criterion_results"' in rendered
+    assert '"met": true' in rendered
+    assert '"failure_mode": null' in rendered
+    assert "Do not emit F1-F9 functional scores." in rendered
+    assert "Require constitutional confirmation" not in rendered
+    assert "without recommending constitutional confirmation" not in rendered
+
+
 def test_package_contains_only_external_marking_inputs_and_uses_canonical_name():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)

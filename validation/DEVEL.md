@@ -103,6 +103,8 @@ Each criterion must also be:
 - **wording-neutral**: equivalent clinically correct wording must satisfy it;
 - **output-focused**: it must not require the model to "understand", "consider", or expose chain-of-thought reasoning.
 
+Do not add defensive criteria solely for plausible model errors that are already handled as commission errors by the marking framework. Every case-specific criterion must test an intended clinical capability of that case.
+
 Do not create criteria solely to reward repetition of supplied values. Do not score formatting, sentence order, verbosity, exact phrases, or stylistic preferences unless the validation suite explicitly tests a report-format contract.
 
 Negative criteria are appropriate only when the absence or limitation itself is a clinically material reporting requirement. Do not create hidden "trap" criteria merely to punish an anticipated error; material false statements are already commission errors under the marking framework.
