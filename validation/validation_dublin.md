@@ -25,7 +25,7 @@ Molecular testing identifies:
 #### R1 — Diagnosis and classification
 
 - **R1C1.** State that the diagnosis is AML with NPM1 mutation under both WHO5 and ICC criteria.
-- **R1C2.** State that NPM1 is the entity-defining molecular abnormality that refines the diagnosis from AML to AML with NPM1 mutation; FLT3-ITD is a co-occurring abnormality.
+- **R1C2.** State that NPM1 is the entity-defining molecular abnormality that refines the diagnosis to AML with NPM1 mutation.
 
 #### R2 — Prognostic interpretation
 
@@ -33,7 +33,7 @@ Molecular testing identifies:
 
 #### R3 — Clinical actionability
 
-- **R3C1.** State that FLT3-ITD is therapeutically actionable in AML and supports use of FLT3-directed therapy in an appropriate treatment setting.
+- **R3C1.** State that FLT3-ITD is therapeutically actionable in AML and supports FLT3-directed therapy in an appropriate treatment setting.
 
 #### R4 — MRD interpretation
 
@@ -41,8 +41,8 @@ Molecular testing identifies:
 
 #### R5 — Possible germline flagging
 
-- **R5C1.** State that the RUNX1 NM_001754.5:c.496C>T p.(Arg166Ter) variant at 48% VAF is suspicious for germline origin in the context of lifelong thrombocytopenia and the compatible family history.
-- **R5C2.** State that the clinical and molecular findings are consistent with RUNX1-associated familial platelet disorder with predisposition to myeloid malignancy.
+- **R5C1.** State that the RUNX1 NM_001754.5:c.496C>T p.(Arg166Ter) variant is suspicious for germline origin.
+- **R5C2.** State that the personal and family history is consistent with RUNX1-associated familial platelet disorder with predisposition to myeloid malignancy.
 
 ## Case 2
 
@@ -59,8 +59,8 @@ Molecular/cytogenetic testing demonstrates:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the diagnosis is acute promyelocytic leukaemia with PML::RARA.
-- **R1C2.** State that PML::RARA is the disease-defining abnormality for the APL; FLT3-ITD is a co-occurring abnormality.
+- **R1C1.** State that the diagnosis is acute promyelocytic leukaemia with PML::RARA under both WHO5 and ICC criteria.
+- **R1C2.** State that PML::RARA is the disease-defining abnormality for the APL.
 
 #### R3 — Clinical actionability
 
@@ -87,9 +87,9 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the AML diagnosis is AML with RUNX1::RUNX1T1 (core-binding-factor AML).
+- **R1C1.** State that the AML diagnosis is AML with RUNX1::RUNX1T1 under both WHO5 and ICC criteria.
 - **R1C2.** State that RUNX1::RUNX1T1 is the entity-defining abnormality for the AML.
-- **R1C3.** State that the separate dense aberrant mast-cell infiltrate together with KIT NM_000222.3:c.2447A>T p.(Asp816Val) establishes concurrent systemic mastocytosis associated with the AML.
+- **R1C3.** State that the separate aberrant mast-cell infiltrate together with KIT NM_000222.3:c.2447A>T p.(Asp816Val) raises suspicion for concurrent systemic mastocytosis.
 
 #### R2 — Prognostic interpretation
 
@@ -119,18 +119,17 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the MDS has a TP53 NM_000546.6:c.743G>A p.(Arg248Gln) mutation together with del(17p) involving the other TP53 locus.
-- **R1C2.** State that the TP53 mutation plus del(17p) constitutes biallelic or multi-hit TP53 involvement.
+- **R1C1.** State that the WHO5 diagnosis is MDS with biallelic TP53 inactivation.
+- **R1C2.** State that the ICC diagnosis is MDS with mutated TP53.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that multi-hit TP53 is a major adverse prognostic finding in MDS.
-- **R2C2.** State that multi-hit TP53 is the adverse TP53 molecular variable relevant to IPSS-M in this case.
+- **R2C1.** State that biallelic/multi-hit TP53 is an adverse molecular variable in IPSS-M.
 
 #### R5 — Possible germline flagging
 
-- **R5C1.** State that the DDX41 NM_016222.4:c.415_418dup p.(Asp140delinsGlyTer) variant at 49% VAF is suspicious for germline origin in the context of the family history, and that DDX41 p.(Arg525His) at 7% VAF is compatible with an acquired second hit.
-- **R5C2.** State that the DDX41 findings are consistent with DDX41-associated germline predisposition to myeloid neoplasms.
+- **R5C1.** State that the DDX41 NM_016222.4:c.415_418dup p.(Asp140delinsGlyTer) variant is suspicious for germline origin.
+- **R5C2.** State that the family history and DDX41 findings are consistent with DDX41-associated germline predisposition to myeloid neoplasms.
 
 ## Case 5
 
@@ -149,14 +148,12 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the myeloid diagnosis is MDS with isolated del(5q), with SF3B1 NM_012433.4:c.2098A>G p.(Lys700Glu) as a co-occurring mutation.
-- **R1C2.** State that isolated del(5q) takes classification precedence over the SF3B1-defined MDS entity in this case.
-- **R1C3.** State that the separate characteristic B-cell population together with BRAF NM_004333.6:c.1799T>A p.(Val600Glu) supports a concurrent diagnosis of classic hairy-cell leukaemia.
+- **R1C1.** State that the diagnosis is MDS with low blasts and isolated 5q deletion under WHO5 and MDS with del(5q) under ICC.
+- **R1C2.** State that the separate characteristic B-cell population together with BRAF NM_004333.6:c.1799T>A p.(Val600Glu) raises suspicion for concurrent classic hairy-cell leukaemia.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that SF3B1 mutation is associated with a more favourable prognostic influence in the MDS component.
-- **R2C2.** State that SF3B1 is a favourable molecular variable within IPSS-M.
+- **R2C1.** State that SF3B1 with del(5q) corresponds to the less-favourable SF3B1-with-5q context in IPSS-M rather than the more favourable isolated SF3B1 molecular group.
 
 ## Case 6
 
@@ -174,13 +171,13 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the established primary myelofibrosis has a CALR type-1 driver mutation with adverse ASXL1 and U2AF1 Q157 co-mutations.
+- **R1C1.** State that the CALR type-1 mutation is a driver abnormality consistent with the established primary myelofibrosis diagnosis.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that the overall molecular profile contains adverse prognostic features despite the favourable CALR type-1 driver because ASXL1 and U2AF1 Q157 are adverse co-mutations.
+- **R2C1.** State that the overall molecular profile has adverse prognostic features despite the favourable CALR type-1 driver because ASXL1 and U2AF1 Q157 are adverse co-mutations.
 - **R2C2.** State that CALR type-1 or type-1-like status is a favourable molecular variable in the relevant MIPSS70+ framework.
-- **R2C3.** State that ASXL1 mutation is an adverse or high-molecular-risk variable in the relevant MIPSS70+ framework.
+- **R2C3.** State that ASXL1 mutation is an adverse molecular variable in the relevant MIPSS70+ framework.
 - **R2C4.** State that U2AF1 Q157 mutation is an adverse molecular variable in MIPSS70+ v2.0.
 
 ## Case 7
@@ -200,17 +197,17 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the current haematological diagnosis is MDS with increased blasts-1, with monosomy 7 and ASXL1 mutation as acquired disease abnormalities.
+- **R1C1.** State that the WHO5 diagnosis is MDS with increased blasts-1 (MDS-IB1) and the ICC diagnosis is MDS with excess blasts (MDS-EB); monosomy 7 is an MDS-defining cytogenetic abnormality rather than a separate named MDS subtype.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that the acquired MDS abnormalities, including monosomy 7 and ASXL1 mutation, confer adverse prognostic significance.
-- **R2C2.** State that ASXL1 is an adverse acquired molecular variable within IPSS-M.
+- **R2C1.** State that monosomy 7 contributes adverse cytogenetic risk in IPSS-M.
+- **R2C2.** State that ASXL1 is an adverse molecular variable in IPSS-M.
 
 #### R5 — Possible germline flagging
 
-- **R5C1.** State that GATA2 NM_032638.5:c.1061C>T p.(Thr354Met) at 48% VAF is suspicious for germline origin given the young age, monocytopenia, severe viral warts, atypical mycobacterial infection and compatible family history.
-- **R5C2.** State that the clinical and molecular findings are consistent with GATA2 deficiency / GATA2-associated germline predisposition to myeloid malignancy.
+- **R5C1.** State that GATA2 NM_032638.5:c.1061C>T p.(Thr354Met) is suspicious for germline origin.
+- **R5C2.** State that the clinical phenotype and family history are consistent with GATA2 deficiency / GATA2-associated germline predisposition to myeloid malignancy.
 
 ## Case 8
 
@@ -228,14 +225,13 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the established CMML contains ASXL1 and NRAS mutations as part of the myeloid disease.
-- **R1C2.** State that MYD88 NM_002468.4:c.794T>C p.(Leu265Pro), the IgM paraprotein and the separate clonal lymphoplasmacytic B-cell population support a concurrent lymphoplasmacytic neoplasm, most consistent with LPL/WM.
+- **R1C1.** State that the diagnosis is chronic myelomonocytic leukaemia under both WHO5 and ICC criteria.
+- **R1C2.** State that MYD88 NM_002468.4:c.794T>C p.(Leu265Pro), the IgM paraprotein and the separate clonal lymphoplasmacytic B-cell population raise suspicion for a concurrent lymphoplasmacytic neoplasm / Waldenström macroglobulinaemia.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that the CMML molecular profile is prognostically adverse because it includes ASXL1 and NRAS mutations.
-- **R2C2.** State that ASXL1 is an adverse molecular variable used by CPSS-Mol.
-- **R2C3.** State that NRAS is an adverse molecular variable used by CPSS-Mol.
+- **R2C1.** State that ASXL1 is an adverse molecular variable used by CPSS-Mol.
+- **R2C2.** State that NRAS is an adverse molecular variable used by CPSS-Mol.
 
 ## Case 9
 
@@ -254,16 +250,15 @@ Cytogenetics: 46,XY[20].
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that SRSF2 is the myelodysplasia-related defining mutation in this AML and that IDH2 p.(Arg172Lys) is a co-occurring mutation.
-- **R1C2.** State that the WHO5 diagnosis is AML, myelodysplasia-related because SRSF2 is a myelodysplasia-related defining mutation.
+- **R1C1.** State that the WHO5 diagnosis is AML, myelodysplasia-related because SRSF2 is a myelodysplasia-related defining mutation.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** Assign ELN 2024 Less-Intensive favourable risk to this patient in the supplied less-intensive treatment setting.
+- **R2C1.** Assign ELN 2022 adverse risk because SRSF2 is an adverse-risk myelodysplasia-related gene mutation in this setting.
 
 #### R3 — Clinical actionability
 
-- **R3C1.** State that IDH2 NM_002168.4:c.515G>A p.(Arg172Lys) is therapeutically actionable and supports consideration of IDH2-directed therapy such as enasidenib in an appropriate treatment setting.
+- **R3C1.** State that IDH2 NM_002168.4:c.515G>A p.(Arg172Lys) is therapeutically actionable and supports IDH2-directed therapy in an appropriate treatment setting.
 
 ## Case 10
 
@@ -281,10 +276,9 @@ Cytogenetics: 46,XY[20]; FISH negative for 17p deletion.
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the diagnosis remains myelodysplastic neoplasm with low blasts and multilineage dysplasia, with a single TP53 NM_000546.6:c.524G>A p.(Arg175His) mutation.
-- **R1C2.** State that the TP53 finding is single-hit or monoallelic on the supplied data because there is one TP53 mutation and no detected del(17p) or copy-neutral loss of heterozygosity.
+- **R1C1.** State that the WHO5 diagnosis is MDS with low blasts (MDS-LB).
+- **R1C2.** State that the ICC diagnosis is MDS, NOS with multilineage dysplasia, demonstrating a WHO5/ICC terminology difference in this case.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that this monoallelic TP53 state has a less adverse prognostic implication than TP53 multi-hit disease and does not carry the major adverse effect associated with TP53 multi-hit disease.
-- **R2C2.** State that IPSS-M should apply the monoallelic TP53 state rather than the TP53 multi-hit variable in this case.
+- **R2C1.** State that the monoallelic TP53 state does not confer the adverse TP53 multi-hit prognostic effect used by IPSS-M.

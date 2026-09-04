@@ -40,9 +40,8 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     },
     "10": {
       "R1C1": "F1",
-      "R1C2": "F2",
-      "R2C1": "F4",
-      "R2C2": "F9"
+      "R1C2": "F1",
+      "R2C1": "F9"
     },
     "2": {
       "R1C1": "F1",
@@ -58,19 +57,16 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
       "R4C1": "F6"
     },
     "4": {
-      "R1C1": "F1",
+      "R1C1": "F2",
       "R1C2": "F2",
-      "R2C1": "F4",
-      "R2C2": "F9",
+      "R2C1": "F9",
       "R5C1": "F7",
       "R5C2": "F8"
     },
     "5": {
-      "R1C1": "F1",
-      "R1C2": "F2",
-      "R1C3": "F3",
-      "R2C1": "F4",
-      "R2C2": "F9"
+      "R1C1": "F2",
+      "R1C2": "F3",
+      "R2C1": "F9"
     },
     "6": {
       "R1C1": "F1",
@@ -81,7 +77,7 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     },
     "7": {
       "R1C1": "F1",
-      "R2C1": "F4",
+      "R2C1": "F9",
       "R2C2": "F9",
       "R5C1": "F7",
       "R5C2": "F8"
@@ -89,13 +85,11 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     "8": {
       "R1C1": "F1",
       "R1C2": "F3",
-      "R2C1": "F4",
-      "R2C2": "F9",
-      "R2C3": "F9"
+      "R2C1": "F9",
+      "R2C2": "F9"
     },
     "9": {
-      "R1C1": "F1",
-      "R1C2": "F2",
+      "R1C1": "F2",
       "R2C1": "F4",
       "R3C1": "F5"
     }
