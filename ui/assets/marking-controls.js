@@ -70,17 +70,6 @@
     button.addEventListener('click', markSelected);
   }
 
-  function installActionError() {
-    if ($('providerActionError')) return;
-    const actions = document.querySelector('.run-actions');
-    if (!actions) return;
-    const box = document.createElement('div');
-    box.id = 'providerActionError';
-    box.className = 'notice error';
-    box.hidden = true;
-    actions.insertAdjacentElement('beforebegin', box);
-  }
-
   function selectedRef() {
     return document.querySelector('#runsList .run-row.selected')?.title || '';
   }
@@ -121,36 +110,14 @@
     }
   }
 
-  function applyRunButton(status) {
-    const button = $('runBtn');
-    if (!button || !clinicalComplete(status)) return;
-    button.classList.remove('danger');
-    button.disabled = true;
-    button.textContent = status.kind === 'batch' ? 'Batch complete' : 'Run complete';
-  }
-
-  function applyProgressPolicy(status, markingActive = false) {
-    if (!status || status.validation_marking !== false) return;
-    const markingStatus = String(status?.marking?.status || 'pending');
-    if (markingActive || markingStatus !== 'pending') return;
-    const box = $('progressRows');
-    if (!box) return;
-    box.querySelectorAll('.progress-seg[title="Marking"]').forEach(node => node.remove());
-    box.querySelectorAll('.progress-phase').forEach(node => {
-      if (/^Marking(?:\b| )/i.test(node.textContent || '')) node.textContent = 'Complete';
-    });
-  }
-
   function applyMarkButton(status, markingActive, ownerClinicalComplete = true) {
     const button = $('markBtn');
     if (!button) return;
     const actionable = ownerClinicalComplete && markingActionable(status);
-    const validation = profileValidationState();
     button.hidden = !actionable && !markingActive;
-    button.disabled = !!markingActive || validation.checking || !validation.valid;
+    button.disabled = !!markingActive;
     if (markingActive) button.textContent = 'Marking…';
-    else button.textContent = ['partial', 'failed', 'stale'].includes(String(status?.marking?.status || '')) ? 'Retry marking' : 'Mark';
-    button.title = (!markingActive && (validation.checking || !validation.valid)) ? validation.detail : '';
+    else button.textContent = ['partial', 'failed', 'stale'].includes(String(status?.marking?.status || '')) ? 'Retry marking' : 'Mark validation';
   }
 
   async function markSelected() {
@@ -217,32 +184,47 @@
         return;
       }
       const doc = await api(`/api/status?run=${encodeURIComponent(ref)}`);
+      if (ref !== selectedRef()) return;
       const status = doc.available ? doc.status : null;
       if (!status) return;
       const changed = ref !== lastSelected;
       lastSelected = ref;
       lastStatus = status;
       if (changed || force) await restoreFrozenProfile(String(status.pipeline || ''));
+      if (ref !== selectedRef()) return;
       const active = await runnerMarkingActive(ref);
+      if (ref !== selectedRef()) return;
       let executionStatus = status;
       const owner = ownerRef(ref);
       if (owner && owner !== ref) {
         try {
           const parent = await api(`/api/status?run=${encodeURIComponent(owner)}`);
+          if (ref !== selectedRef()) return;
           if (parent.available && parent.status) executionStatus = parent.status;
         } catch (_) {
           // Keep the child status; the base UI will refresh the parent control.
         }
       }
-      applyRunButton(executionStatus);
+      if (ref !== selectedRef()) return;
       applyMarkButton(status, active, clinicalComplete(executionStatus));
-      applyProgressPolicy(status, active);
-      if (executionStatus !== status) applyProgressPolicy(executionStatus, active);
     } catch (_) {
       // The base interface owns status errors; do not duplicate them here.
     } finally {
       refreshing = false;
     }
+  }
+
+  function installStabilityStyles() {
+    if ($('nelUiStabilityStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'nelUiStabilityStyles';
+    style.textContent = `
+      .model-activity-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center!important;gap:4px 10px!important}
+      .model-activity-title{grid-column:1;grid-row:1;min-width:0}
+      .model-activity-tabs{grid-column:2;grid-row:1;justify-self:end;min-width:max-content}
+      .model-activity-meta{grid-column:1/-1;grid-row:2;min-width:0!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;word-break:break-word}
+    `;
+    document.head.appendChild(style);
   }
 
   function installKeyDialogPolicy() {
@@ -262,49 +244,23 @@
     dialog.dataset.nelManualOnly = '1';
   }
 
-  function profileValidationState() {
+  function gatePrepare() {
+    const button = $('prepareBtn');
+    if (!button) return;
     const status = $('profileStatus');
     const text = String(status?.textContent || '').trim();
     const valid = text === 'Valid' || text.startsWith('Valid ');
     const checking = !text || text.startsWith('Checking');
-    return {
-      valid,
-      checking,
-      text,
-      detail: String(status?.title || text || 'Waiting for profile validation.').trim(),
-    };
-  }
-
-  function gateProviderActions() {
-    const validation = profileValidationState();
-    const error = $('providerActionError');
-    const invalid = !validation.checking && !validation.valid;
-    if (error) {
-      error.hidden = !invalid;
-      error.textContent = invalid ? `Provider unavailable: ${validation.detail}` : '';
+    if (setupBusy || checking || !valid) {
+      button.disabled = true;
+      button.dataset.nelProfileGate = '1';
+      if (!setupBusy) button.title = text || 'Waiting for profile validation.';
+      return;
     }
-
-    const prepare = $('prepareBtn');
-    if (prepare) {
-      prepare.disabled = setupBusy || validation.checking || !validation.valid;
-      prepare.title = (!setupBusy && (validation.checking || !validation.valid)) ? validation.detail : '';
-    }
-
-    const run = $('runBtn');
-    if (run && !run.classList.contains('danger')) {
-      if (validation.checking || !validation.valid) {
-        if (/^(Start|Resume)/.test(run.textContent || '')) run.disabled = true;
-        run.title = validation.detail;
-      } else {
-        if (/^(Start|Resume)/.test(run.textContent || '')) run.disabled = false;
-        run.title = '';
-      }
-    }
-
-    const mark = $('markBtn');
-    if (mark && !mark.hidden && mark.textContent !== 'Marking…') {
-      mark.disabled = validation.checking || !validation.valid;
-      mark.title = (validation.checking || !validation.valid) ? validation.detail : '';
+    if (button.dataset.nelProfileGate === '1') {
+      button.disabled = false;
+      button.title = '';
+      delete button.dataset.nelProfileGate;
     }
   }
 
@@ -361,21 +317,16 @@
   }
 
   installFetchPolicy();
+  installStabilityStyles();
   installKeyDialogPolicy();
   installMarkingChoice();
   installMarkButton();
-  installActionError();
   wireChoiceUpdates();
 
   setInterval(() => {
     updateMarkingChoice();
-    gateProviderActions();
+    gatePrepare();
     fixMarkingMessage();
     refreshSelected(false);
-    if (lastStatus) {
-      applyProgressPolicy(lastStatus);
-      const ref = selectedRef();
-      if (!ref.includes(':')) applyRunButton(lastStatus);
-    }
   }, 700);
 })();
