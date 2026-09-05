@@ -87,6 +87,71 @@ def _validate_variant_assessments(rows, *, valid_variants, path="variant_assessm
     return problems
 
 
+def _validate_who5_internal_consistency(doc):
+    """Validate deterministic cross-field WHO5 invariants only."""
+    problems = []
+    primary = doc.get("variants")
+    primary_ids = set(primary) if isinstance(primary, list) else set()
+    rows = doc.get("variant_assessments")
+    if isinstance(rows, list):
+        by_id = {
+            row.get("variant_id"): (i, row)
+            for i, row in enumerate(rows)
+            if isinstance(row, dict) and isinstance(row.get("variant_id"), str)
+        }
+        for variant_id in primary_ids:
+            found = by_id.get(variant_id)
+            if found is None:
+                continue
+            i, row = found
+            if row.get("classification") != "diagnostic_for_primary":
+                problems.append(
+                    ValidationIssue(
+                        f"variant_assessments[{i}].classification",
+                        f"{variant_id} is listed in variants as materially contributing to the WHO5 diagnosis but is not classified diagnostic_for_primary",
+                        "make variants and variant_assessments agree on whether this variant contributes to the primary diagnosis",
+                        repair_class="content",
+                        received=iss.preview(row.get("classification")),
+                        expected="diagnostic_for_primary",
+                    )
+                )
+        for i, row in enumerate(rows):
+            if not isinstance(row, dict):
+                continue
+            variant_id = row.get("variant_id")
+            if row.get("classification") == "diagnostic_for_primary" and variant_id not in primary_ids:
+                problems.append(
+                    ValidationIssue(
+                        f"variant_assessments[{i}].classification",
+                        f"{variant_id} is classified diagnostic_for_primary but is absent from variants",
+                        "include every diagnostic_for_primary variant in variants, or correct the classification if it does not materially contribute",
+                        repair_class="content",
+                        received="diagnostic_for_primary",
+                        expected="classification consistent with variants",
+                    )
+                )
+
+    effect = doc.get("diagnostic_effect")
+    reason = " ".join(str(doc.get("reason") or "").lower().split())
+    contradiction = False
+    if effect == "refined":
+        contradiction = any(cue in reason for cue in ("not refined", "does not refine", "doesn't refine"))
+    elif effect == "superseded":
+        contradiction = any(cue in reason for cue in ("not superseded", "does not supersede", "doesn't supersede"))
+    if contradiction:
+        problems.append(
+            ValidationIssue(
+                "reason",
+                f"reason explicitly contradicts diagnostic_effect={effect}",
+                "make diagnosis, diagnostic_effect and reason state one internally consistent conclusion",
+                repair_class="content",
+                received=iss.preview(doc.get("reason")),
+                expected=f"a reason consistent with diagnostic_effect={effect}",
+            )
+        )
+    return problems
+
+
 def validate_who5_legacy_diagnosis(text, *, allowed_diseases, valid_variants):
     """Validate the five-field WHO view used by existing downstream workflow steps."""
     ctx = "WHO5 diagnosis"
@@ -107,6 +172,7 @@ def validate_who5_diagnosis(text, *, allowed_diseases, valid_variants):
     problems += _validate_variant_assessments(
         doc.get("variant_assessments"), valid_variants=valid_variants
     )
+    problems += _validate_who5_internal_consistency(doc)
     fail(ctx, problems)
     return "WHO5 diagnosis valid"
 

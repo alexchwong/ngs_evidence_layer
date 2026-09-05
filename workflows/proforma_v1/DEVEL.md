@@ -35,7 +35,7 @@ checks that coverage.
   the compiler rejects members that depend on one another.
 - `evidence_policies` — registry of evidence-policy prompt/role bundles.
 - `literature_support` — ordinary reportable-claim evidence policy.
-- `diagnosis_complete_support` — stricter WHO1 routing-change evidence policy.
+- `diagnosis_complete_support` — stricter WHO1 diagnostic-change evidence policy.
 - `assignment` — matcher configuration inside an evidence policy.
 - `audit` — auditor configuration inside an evidence policy.
 - `adjudication` — adjudicator configuration inside an evidence policy.
@@ -49,13 +49,14 @@ checks that coverage.
 - `diagnosis.who1.routing_change` — deterministically assess whether WHO1 would
   materially change schema disease/diagnosis/routing CMCs.
 - `diagnosis.who1.evidence.assignment` — blocking diagnostic evidence matching for
-  a routing-changing WHO1 proposal.
+  a WHO1 proposal that changes routing or claims a diagnostic refinement/supersession.
 - `diagnosis.who1.evidence.audit` — blocking audit of WHO1's positively assigned
   diagnostic cards.
 - `diagnosis.who1.evidence.adjudication` — blocking, cropped adjudication of
   unresolved WHO1 evidence disagreements.
-- `diagnosis.who1.commit` — commit the supported WHO1 routing state, or deterministic
-  fallback when the routing-changing proposal is unsupported.
+- `diagnosis.who1.commit` — commit the supported WHO1 diagnostic state, or deterministic
+  fallback when a review-required proposal is unsupported. Existing routing artifact
+  paths and handler names remain stable for run compatibility.
 - `diagnosis.who2` — optional WHO5 reconsideration pass, gated by the Phase 3
   `reconsider_after_cmc_expansion` setting and routing state.
 - `diagnosis.icc` — ICC diagnosis using the accepted WHO routing context.
@@ -157,8 +158,11 @@ checks that coverage.
 
 - `when` — condition block controlling whether a logical operation is required.
 - `predicate` — allow-listed runtime boolean predicate name.
-- `who1_routing_changed` — true when the WHO1 proposal materially changes routing;
-  gates the blocking WHO1 evidence triplet.
+- `who1_routing_changed` — compatibility-named predicate used by the shipped workflow.
+  It is true when WHO1 requires blocking diagnostic evidence review: either routing
+  materially changes or `diagnostic_effect` is `refined`/`superseded`. The persisted
+  routing-change artifact separately records `routing_changed`, `diagnostic_changed`,
+  and `requires_evidence_review`.
 - `who2_required` — true only when WHO2 reconsideration is enabled and required by
   the accepted routing/CMC state.
 - `review` — bounded semantic feedback policy attached to an audit/review step.
@@ -206,10 +210,12 @@ checks that coverage.
 ### Registered deterministic transforms used by the default workflow
 
 - `load_corpus` — load/filter corpus cards and create the runtime card manifest.
-- `assess_who1_routing_change` — compare WHO1 proposal with the pre-WHO1 routing
-  state and write the deterministic routing-change artifact.
-- `commit_who1_routing` — accept supported WHO1 routing or apply deterministic
-  fallback without leaking rejected routing state downstream.
+- `assess_who1_routing_change` — compare WHO1 with the pre-WHO1 state, keeping
+  routing change separate from diagnostic change while preserving `changed` as the
+  historical workflow gate for "evidence review required".
+- `commit_who1_routing` — compatibility-named transform that accepts a supported
+  WHO1 diagnostic state or applies deterministic fallback without leaking a rejected
+  diagnostic/routing state downstream.
 - `finalize_diagnosis` — assemble the authoritative diagnosis artifact.
   The primary WHO/ICC fields remain the only routing inputs; WHO `diagnostic_for_other_pathology` assessments become `concurrent_pathology` report candidates and never change CMC/PTBG routing.
 - `finalize_evidence` — commit evidence outcomes, suppression/dissent and metrics.
@@ -257,7 +263,6 @@ Prognosis report aggregation is therefore deliberately downstream of evidence re
 ## Validate workflow-local defaults
 
 `proforma_v1` is the promoted root workflow. Its settings template and shipped pipeline YAMLs are the source of truth for root workflow configuration. Run `python workflows/proforma_v1/devel_sync.py` after changing those defaults, then `--check` to verify no drift.
-
 Synchronize and validate the canonical shipped defaults with:
 
 ```bash

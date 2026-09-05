@@ -190,7 +190,7 @@ def accept_who(work: Path, *, pass_number: int) -> dict:
 
 
 def prepare_icc(work: Path, *, prompt: Path | None = None) -> dict:
-    """Prepare isolated ICC. WHO1 is validated for routing only and never exposed."""
+    """Prepare isolated ICC from the accepted WHO routing context."""
     work = Path(work)
     case, reg = load_case_registry(work)
     who1 = committed_who1(work, required=False) or accept_who(work, pass_number=1)
@@ -391,16 +391,20 @@ def assess_who1_routing_change(work: Path) -> dict:
     previous_cmcs = list(case.get("bootstrap_cmcs") or [])
     proposed_cmcs = runtime.derive_cmcs(who1)
     proposed_schema = who1.get("schema_disease")
-    # The blocking gate protects downstream routing, not diagnostic wording.
-    # A refinement such as AML -> AML-MR is not a routing change when the
-    # schema disease/CMC route remains AML.  If the provisional free text is
-    # not deterministically canonicalisable, only a CMC newly introduced by
-    # WHO5 counts as a routing change.  Bootstrap CMCs are retrieval scaffolds,
-    # so WHO5 may legitimately contract that list without changing diagnosis.
+    # Routing and diagnostic validity are separate concerns. A subtype
+    # refinement can leave the schema/CMC route unchanged while still requiring
+    # blocking evidence review before it is allowed to replace supplied
+    # morphology. ``changed`` remains the compatibility gate consumed by the
+    # shipped workflow and therefore means "evidence review required".
     schema_changed = previous_schema is not None and proposed_schema != previous_schema
-    changed = schema_changed or runtime.has_cmc_expansion(previous_cmcs, proposed_cmcs)
+    routing_changed = schema_changed or runtime.has_cmc_expansion(previous_cmcs, proposed_cmcs)
+    diagnostic_changed = who1.get("diagnostic_effect") in {"refined", "superseded"}
+    requires_evidence_review = bool(routing_changed or diagnostic_changed)
     doc = {
-        "changed": bool(changed),
+        "changed": requires_evidence_review,
+        "routing_changed": bool(routing_changed),
+        "diagnostic_changed": bool(diagnostic_changed),
+        "requires_evidence_review": requires_evidence_review,
         "previous": {
             "diagnosis": case.get("provisional_disease"),
             "schema_disease": previous_schema,
@@ -416,6 +420,25 @@ def assess_who1_routing_change(work: Path) -> dict:
     }
     write_yaml(_who1_routing_change_path(work, create=True), doc)
     return doc
+
+
+def _who1_review_proposition(who1: dict, case: dict) -> str:
+    case_facts = case.get("case_facts") or []
+    variant_observations = [
+        {k: row.get(k) for k in ("gene", "description", "event_type", "vaf") if row.get(k) is not None}
+        for row in (case.get("variants") or [])
+        if isinstance(row, dict)
+    ]
+    return (
+        f"Proposed WHO5 diagnosis: {who1.get('diagnosis')}. "
+        f"Diagnostic effect: {who1.get('diagnostic_effect')}. "
+        f"Supporting rationale: {who1.get('reason')}. "
+        f"Starting morphologic diagnosis: {case.get('provisional_disease')}. "
+        f"Relevant case facts: {json.dumps(case_facts, ensure_ascii=False)}. "
+        f"Variant observations: {json.dumps(variant_observations, ensure_ascii=False)}. "
+        f"NGS completeness: {case.get('ngs_result_completeness')}. "
+        f"Genes without detected NGS variants: {json.dumps(case.get('ngs_no_variants_detected') or [], ensure_ascii=False)}"
+    )
 
 
 def _who1_gate_state(work: Path, *, max_match_passes: int) -> dict:
@@ -434,9 +457,13 @@ def _who1_gate_state(work: Path, *, max_match_passes: int) -> dict:
     tag_by_id = card_identity.tag_by_id(manifest)
     item = {
         "evidence_id": "EWHO1",
-        "schema_id": "DX-WHO1-ROUTING",
-        "reason": who1.get("reason"),
-        "statement": f"WHO5 proposed routing diagnosis: {who1.get('diagnosis')}.",
+        "schema_id": "DX-WHO1-DIAGNOSIS",
+        # _fact_blocks renders ``reason`` as the fact shown to matcher/auditor.
+        # Include the actual proposed diagnosis/effect and patient facts so a
+        # correct rationale cannot validate a contradictory diagnosis field.
+        "reason": _who1_review_proposition(who1, case),
+        "model_reason": who1.get("reason"),
+        "statement": f"WHO5 proposed diagnosis: {who1.get('diagnosis')}.",
         "candidate_card_ids": [c["card_id"] for c in cards],
         "candidate_card_tags": [f"[card:{tag_by_id[c['card_id']]}]" for c in cards],
     }
@@ -528,7 +555,10 @@ def who1_evidence_disputes(work: Path) -> tuple[list[str], list[dict]]:
 
 def prepare_who1_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> dict:
     agreed,disputes=who1_evidence_disputes(work); crop=output_path(work,"diagnosis_who1_evidence_adjudication_input","disputes.yaml"); blind=[{"evidence_id":d["evidence_id"],"schema_id":d.get("schema_id"),"reason":d["reason"],"card_tag":d["card_tag"]} for d in disputes]; write_yaml(crop,{"disputes":blind})
-    if not disputes: return {"required":False,"disputes":crop,"output":_who1_gate_adjudication_path(work)}
+    if not disputes:
+        out=_who1_gate_adjudication_path(work, create=True)
+        write_yaml(out,{"adjudications":[]})
+        return {"required":False,"disputes":crop,"output":out}
     _all,_eligible,_digest,manifest=corpus_state(work); tag_by_id=card_identity.tag_by_id(manifest); id_by_tag={f"[card:{tag}]":cid for cid,tag in tag_by_id.items()}; by_id={c["card_id"]:c for c in _all}; ids=[]
     for row in disputes:
         cid=id_by_tag.get(row["card_tag"])
@@ -545,7 +575,7 @@ def commit_who1_routing(work: Path) -> dict:
         audit=accept_who1_evidence_audit(work); agreed,disputes=who1_evidence_disputes(work); accepted_tags.extend(agreed)
         if disputes:
             apath=_who1_gate_adjudication_path(work)
-            if not apath.is_file(): raise ValueError(f"WHO1 routing disagreement requires adjudication: {apath}")
+            if not apath.is_file(): raise ValueError(f"WHO1 diagnostic evidence disagreement requires adjudication: {apath}")
             adjud=read_yaml(apath); evidence_engine.validate_adjudication(adjud,disputes)
             accepted_tags.extend([r["card_tag"] for r in adjud.get("adjudications") or [] if r.get("decision")=="include"])
         rejected=not bool(accepted_tags)
@@ -553,15 +583,23 @@ def commit_who1_routing(work: Path) -> dict:
     fallback=False
     if rejected:
         if case.get("morphologic_diagnosis_origin") != "supplied":
-            raise ValueError("WHO1 routing change failed blocking evidence support and the starting diagnosis was inferred; no deterministic fallback diagnosis is available")
+            raise ValueError("WHO1 diagnostic change failed blocking evidence support and the starting diagnosis was inferred; no deterministic fallback diagnosis is available")
         fallback_schema=runtime.vocab.canonical_case_disease(case.get("provisional_disease"))
+        routing_changed=bool(change.get("routing_changed", change.get("changed")))
+        if not fallback_schema and not routing_changed:
+            previous_cmcs=list((change.get("previous") or {}).get("cmcs") or case.get("bootstrap_cmcs") or [])
+            proposed_schema=(change.get("proposed") or {}).get("schema_disease")
+            if proposed_schema and proposed_schema in previous_cmcs:
+                # Reuse only the already-established schema route. The rejected
+                # subtype/diagnostic wording is not imported into the fallback.
+                fallback_schema=proposed_schema
         if not fallback_schema:
-            raise ValueError("WHO1 routing change failed blocking evidence support and the supplied morphologic diagnosis cannot be deterministically mapped to a schema disease")
-        accepted_who1={"schema_disease":fallback_schema,"diagnosis":case.get("provisional_disease"),"diagnostic_effect":"unchanged","variants":[],"reason":"The supplied morphologic diagnosis is retained unchanged because the proposed WHO5 routing change did not pass blocking evidence review."}
+            raise ValueError("WHO1 diagnostic change failed blocking evidence support and the supplied morphologic diagnosis cannot be deterministically mapped to an existing schema route")
+        accepted_who1={"schema_disease":fallback_schema,"diagnosis":case.get("provisional_disease"),"diagnostic_effect":"unchanged","variants":[],"reason":"The supplied morphologic diagnosis is retained unchanged because the proposed WHO5 diagnostic change did not pass blocking evidence review."}
         fallback=True
         issue="who1-routing-evidence-rejected"
-        staged._semantic_dissent(work,issue_key=issue,stage="WHO1 blocking diagnostic evidence",reviewed_text=f"Proposed WHO5 diagnosis: {who1.get('diagnosis')}",dissent_reason="The routing-changing WHO1 proposal did not retain any card after blocking evidence review.",action_recommended="Retain the supplied morphologic routing state and prevent rejected WHO1 CMC/schema disease from reaching downstream retrieval.")
-        staged._semantic_dissent_address(work,issue_key=issue,stage="WHO1 routing commit",action="Reject proposed routing change and retain supplied morphology.",outcome=f"Committed routing diagnosis: {accepted_who1.get('diagnosis')}",status="resolved")
+        staged._semantic_dissent(work,issue_key=issue,stage="WHO1 blocking diagnostic evidence",reviewed_text=f"Proposed WHO5 diagnosis: {who1.get('diagnosis')}",dissent_reason="The WHO1 diagnostic proposal did not retain any card after blocking evidence review.",action_recommended="Retain the supplied morphologic diagnosis and prevent the rejected WHO1 diagnostic state from reaching downstream reporting or routing.")
+        staged._semantic_dissent_address(work,issue_key=issue,stage="WHO1 diagnostic commit",action="Reject proposed WHO1 diagnostic change and retain supplied morphology.",outcome=f"Committed WHO5 diagnosis: {accepted_who1.get('diagnosis')}",status="resolved")
     doc={"accepted":not rejected,"fallback":fallback,"accepted_who1":accepted_who1,"routing_cmcs":runtime.derive_cmcs(accepted_who1),"evidence_card_tags":accepted_tags,"routing_change":change}
     write_yaml(_who1_commit_path(work, create=True),doc); return doc
 
@@ -679,7 +717,7 @@ def _initial_evidence_state(
     elements = staged._elements(diagnosis, domains, case, contracts=contracts)
     tag_by_id = card_identity.tag_by_id(manifest)
     owner_assignment_domains = set(owner_assignment_domains or {"prognosis","treatment","biomarker","germline"})
-    # A supported routing-changing WHO1 decision already has blocking evidence.
+    # A supported WHO1 diagnostic change already has blocking evidence.
     # Reuse that evidence as owner provenance for the WHO5 reportable element.
     who1_commit_path=_who1_commit_path(work)
     who1_gate_tags=[]

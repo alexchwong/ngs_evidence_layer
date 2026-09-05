@@ -158,6 +158,60 @@ class Phase3WorkflowTests(unittest.TestCase):
         self.assertIn("decision: include",adjudicate)
         self.assertIn("reason:",adjudicate)
 
+    def test_who5_validator_rejects_primary_variant_that_is_not_diagnostic_for_primary(self):
+        doc={
+            "schema_disease":"MDS",
+            "diagnosis":"MDS with biallelic TP53 inactivation",
+            "diagnostic_effect":"superseded",
+            "variants":["v01"],
+            "reason":"The supplied molecular findings support the proposed WHO5 diagnosis.",
+            "variant_assessments":[{
+                "variant_id":"v01","classification":"nonspecific","other_pathology":None,
+                "reason":"The variant does not contribute to the primary diagnosis.",
+            }],
+        }
+        with self.assertRaisesRegex(ValueError,"diagnostic_for_primary"):
+            self_runtime.schema_validation.validate_who5_diagnosis(
+                yaml.safe_dump(doc,sort_keys=False),allowed_diseases={"MDS"},valid_variants={"v01"}
+            )
+
+    def test_who5_validator_rejects_reason_that_explicitly_denies_superseded_effect(self):
+        doc={
+            "schema_disease":"MDS",
+            "diagnosis":"MDS with biallelic TP53 inactivation",
+            "diagnostic_effect":"superseded",
+            "variants":[],
+            "reason":"The supplied diagnosis is not superseded by a more specific WHO5 entity.",
+            "variant_assessments":[],
+        }
+        with self.assertRaisesRegex(ValueError,"contradicts diagnostic_effect"):
+            self_runtime.schema_validation.validate_who5_diagnosis(
+                yaml.safe_dump(doc,sort_keys=False),allowed_diseases={"MDS"},valid_variants=set()
+            )
+
+    def test_who1_review_proposition_contains_diagnosis_effect_rationale_and_case_facts(self):
+        proposition=self_runtime._who1_review_proposition(
+            {
+                "diagnosis":"MDS with biallelic TP53 inactivation",
+                "diagnostic_effect":"superseded",
+                "reason":"biallelic criteria are met",
+            },
+            {
+                "provisional_disease":"MDS with low blasts",
+                "case_facts":["normal karyotype"],
+                "variants":[{"gene":"TP53","description":"p.Arg273His","event_type":"sequence_variant","vaf":"12%"}],
+                "ngs_result_completeness":"complete",
+                "ngs_no_variants_detected":["RUNX1"],
+            },
+        )
+        self.assertIn("MDS with biallelic TP53 inactivation",proposition)
+        self.assertIn("superseded",proposition)
+        self.assertIn("biallelic criteria are met",proposition)
+        self.assertIn("MDS with low blasts",proposition)
+        self.assertIn("TP53",proposition)
+        self.assertIn("12%",proposition)
+        self.assertIn("RUNX1",proposition)
+
     def test_who1_read_only_path_probes_do_not_create_intermediate_directories(self):
         with tempfile.TemporaryDirectory() as td:
             work=Path(td); layout.ensure_dirs(work)
@@ -175,7 +229,7 @@ class Phase3WorkflowTests(unittest.TestCase):
             after=sorted(p.name for p in (work/"intermediates").iterdir())
             self.assertEqual(after,before)
 
-    def test_aml_subtype_refinement_with_unchanged_aml_route_skips_who1_gate(self):
+    def test_aml_subtype_refinement_with_unchanged_aml_route_requires_who1_review(self):
         with tempfile.TemporaryDirectory() as td:
             work=Path(td); layout.ensure_dirs(work)
             case={
@@ -194,7 +248,10 @@ class Phase3WorkflowTests(unittest.TestCase):
                  patch.object(self_runtime,"accept_who",return_value=who1), \
                  patch.object(self_runtime.runtime,"derive_cmcs",return_value=["AML"]):
                 change=self_runtime.assess_who1_routing_change(work)
-            self.assertFalse(change["changed"])
+            self.assertTrue(change["changed"])
+            self.assertFalse(change["routing_changed"])
+            self.assertTrue(change["diagnostic_changed"])
+            self.assertTrue(change["requires_evidence_review"])
             self.assertEqual(change["previous"]["cmcs"],["AML"])
             self.assertEqual(change["proposed"]["cmcs"],["AML"])
 
@@ -220,6 +277,9 @@ class Phase3WorkflowTests(unittest.TestCase):
             self.assertEqual(change["previous"]["cmcs"],["MDS","germline predisposition syndrome"])
             self.assertEqual(change["proposed"]["cmcs"],["MDS"])
             self.assertFalse(change["changed"])
+            self.assertFalse(change["routing_changed"])
+            self.assertFalse(change["diagnostic_changed"])
+            self.assertFalse(change["requires_evidence_review"])
 
     def test_new_cmc_still_triggers_who1_gate_after_multi_bootstrap(self):
         with tempfile.TemporaryDirectory() as td:
@@ -241,6 +301,9 @@ class Phase3WorkflowTests(unittest.TestCase):
                 change=self_runtime.assess_who1_routing_change(work)
             self.assertEqual(change["proposed"]["cmcs"],["AML"])
             self.assertTrue(change["changed"])
+            self.assertTrue(change["routing_changed"])
+            self.assertFalse(change["diagnostic_changed"])
+            self.assertTrue(change["requires_evidence_review"])
 
 
 
@@ -605,6 +668,49 @@ class Phase3WhoRoutingTests(unittest.TestCase):
             self.assertTrue(doc["accepted"]); self.assertFalse(doc["fallback"])
             self.assertEqual(doc["accepted_who1"]["schema_disease"],"AML")
             self.assertIn("AML",doc["routing_cmcs"])
+
+    def test_supported_same_route_refinement_commits_after_evidence_review(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case={"provisional_disease":"MDS","morphologic_diagnosis_origin":"supplied","bootstrap_cmcs":["MDS"]}
+            who1={"schema_disease":"MDS","diagnosis":"MDS with low blasts and SF3B1 mutation","diagnostic_effect":"refined","variants":["v01"],"reason":"supported"}
+            change={
+                "changed":True,"routing_changed":False,"diagnostic_changed":True,"requires_evidence_review":True,
+                "previous":{"schema_disease":"MDS","cmcs":["MDS"]},
+                "proposed":{"schema_disease":"MDS","cmcs":["MDS"]},
+            }
+            patches=self._patch_common(case,who1,change,["[card:aaaaaaaaaaaa]"])
+            with patches[0],patches[1],patches[2],patches[3],patches[4],patches[5]:
+                doc=self_runtime.commit_who1_routing(work)
+            self.assertTrue(doc["accepted"]); self.assertFalse(doc["fallback"])
+            self.assertEqual(doc["accepted_who1"]["diagnosis"],who1["diagnosis"])
+            self.assertEqual(doc["routing_cmcs"],["MDS"])
+
+    def test_rejected_same_route_refinement_uses_existing_route_for_supplied_fallback(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case={
+                "provisional_disease":"myelodysplastic neoplasm with low blasts and multilineage dysplasia",
+                "morphologic_diagnosis_origin":"supplied","bootstrap_cmcs":["MDS"],
+            }
+            who1={
+                "schema_disease":"MDS","diagnosis":"MDS with biallelic TP53 inactivation",
+                "diagnostic_effect":"superseded","variants":["v01"],"reason":"unsupported",
+            }
+            change={
+                "changed":True,"routing_changed":False,"diagnostic_changed":True,"requires_evidence_review":True,
+                "previous":{"schema_disease":None,"cmcs":["MDS"]},
+                "proposed":{"schema_disease":"MDS","cmcs":["MDS"]},
+            }
+            patches=self._patch_common(case,who1,change,[])
+            with patches[0],patches[1],patches[2],patches[3],patches[4],patches[5], \
+                 patch.object(self_runtime.runtime.vocab,"canonical_case_disease",return_value=None), \
+                 patch.object(self_runtime.staged,"_semantic_dissent"),patch.object(self_runtime.staged,"_semantic_dissent_address"):
+                doc=self_runtime.commit_who1_routing(work)
+            self.assertFalse(doc["accepted"]); self.assertTrue(doc["fallback"])
+            self.assertEqual(doc["accepted_who1"]["schema_disease"],"MDS")
+            self.assertEqual(doc["accepted_who1"]["diagnosis"],case["provisional_disease"])
+            self.assertEqual(doc["routing_cmcs"],["MDS"])
 
     def test_no_routing_change_commits_who1_without_evidence_gate_artifacts(self):
         with tempfile.TemporaryDirectory() as td:

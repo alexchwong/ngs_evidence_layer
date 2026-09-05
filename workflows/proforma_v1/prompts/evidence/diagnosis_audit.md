@@ -1,8 +1,8 @@
-# WHO1 routing evidence audit
+# WHO1 diagnostic evidence audit
 
-Independently audit each supplied WHO1 routing fact/card pair. The card must be sufficient evidence for the routing-changing diagnostic proposition, not merely related to the disease or gene.
+Independently audit each supplied WHO1 diagnostic fact/card pair. The fact contains the proposed WHO5 diagnosis, diagnostic effect, supporting rationale, starting morphologic diagnosis, and relevant case facts. The card must genuinely support the relevant defining diagnostic criterion as applied to those facts, not merely be related to the disease or gene.
 
-Assess defining criteria, required thresholds, exclusions, precedence/supersession, finite gene-set membership, schema disease and derived routing consequence where applicable. Mark `card_is_element_of_reason: true` only when the card genuinely supports the relevant diagnostic criterion.
+Assess defining criteria, required thresholds, exclusions, precedence/supersession, finite gene-set membership, schema disease and derived routing consequence where applicable. Mark `card_is_element_of_reason: true` only when the card supports the complete proposed diagnostic proposition represented by the fact.
 
 Return exactly one audit for every supplied card and no others. Preserve the supplied evidence ID, card tag, and order exactly.
 

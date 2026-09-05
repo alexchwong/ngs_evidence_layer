@@ -1,8 +1,8 @@
-# WHO1 routing evidence adjudication
+# WHO1 diagnostic evidence adjudication
 
-For each disputed WHO1 routing fact/card pair, decide only whether the supplied card is sufficient support for the routing-changing diagnostic proposition under the diagnosis-complete-support policy.
+For each disputed WHO1 diagnostic fact/card pair, decide only whether the supplied card is sufficient support for the proposed WHO5 diagnostic proposition under the diagnosis-complete-support policy.
 
-Consider defining criteria, thresholds, exclusions, precedence/supersession, finite gene-set membership, schema disease and routing consequence where applicable. A defining criterion or threshold can support an exclusion when combined with a supplied case fact. Do not rewrite the diagnosis, introduce another card, or select evidence outside the disputed pair.
+Consider the supplied case facts together with defining criteria, thresholds, exclusions, precedence/supersession, finite gene-set membership, schema disease and routing consequence where applicable. A defining criterion or threshold can support an exclusion when combined with a supplied case fact. Do not rewrite the diagnosis, introduce another card, or select evidence outside the disputed pair.
 
 Dispute IDs are deterministic from the supplied dispute order: the first dispute is `D0001`, the second is `D0002`, and so on. Use those IDs only to identify your answers. Do not reproduce evidence IDs or card tags in the output. You may return the answer rows in any order. Return exactly one answer for every dispute ID; do not omit, duplicate, or invent IDs.
 
