@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import hashlib
 import json
 import re
@@ -621,6 +622,149 @@ def package_marking_bundle(
         _writestr(zf, "marking-prompt.md", marking_prompt)
         _writestr(zf, "validation-case.md", validation_case.rstrip() + "\n")
         _writestr(zf, "report-final.md", report)
+    return output
+
+
+
+BATCH_MARKING_BUNDLE = "validation-marking-bundle.zip"
+DUBLIN_FUNCTIONAL_SPEC = ROOT / "validation" / "docs" / "dublin_functional_criteria.md"
+
+
+def _batch_marking_instructions(mode: str, case_dirs: list[str]) -> str:
+    listing = "\n".join(f"- `{name}/`" for name in case_dirs)
+    return f"""# Batch validation marking instructions
+
+This ZIP contains independent validation cases from `{mode}`.
+
+## Required marking procedure
+
+1. Work on **one case directory at a time**.
+2. For that case, read only its `marking-prompt.md`, `validation-case.md`, and `report-final.md`.
+3. Complete and output that case's marking before opening or considering the next case.
+4. Then discard the prior case context and repeat for the next directory.
+
+Do **not** compare cases. Do not carry facts, diagnoses, expected answers, marking criteria,
+criterion outcomes, or reasoning from one case into another. Treat every directory as a fresh,
+independent marking task. Never use another case to infer or change the current case's result.
+
+## Case directories
+
+{listing}
+
+For each case, follow its `marking-prompt.md` exactly and keep the resulting marking associated
+with that case directory. A minimal instruction for ChatGPT is: **Follow MARKING_INSTRUCTIONS.md
+and mark each case individually.**
+"""
+
+
+def _isolated_case_prompt(mode: str, case_id: str, prompt_path: Path) -> str:
+    isolation = """# Case isolation rule
+
+This directory is one independent marking task. Do not inspect or use any other case in the batch
+while marking this case. Finish this case's marking before proceeding to another case, and do not
+carry information or reasoning between cases.
+
+"""
+    return isolation + render_marking_prompt(mode, case_id, prompt_path)
+
+
+def _dublin_scoring_instructions() -> str:
+    return """# Dublin F1-F9 scoring
+
+Calculate F1-F9 only **after every case has been marked independently**. Do not use F1-F9 scoring
+to influence the per-case marking.
+
+The canonical criterion-to-function mapping is in `dublin-functional-criteria.md`. For each case:
+
+1. Read the case's completed `criterion_results` object.
+2. Validate that it contains exactly the canonical RxCy criteria for that case.
+3. For each F1-F9 function with no mapped criteria in that case, record `not_applicable`.
+4. Otherwise record `met` only when **all** criteria mapped to that function have `met: true`;
+   record `not_met` if one or more mapped criteria failed.
+5. Preserve the failed criterion IDs and their `failure_mode` (`partial`, `omitted`, or
+   `contradicted`) for traceability.
+
+For batch aggregation, exclude `not_applicable` case/function pairs. For each function report:
+
+- `met`: number of applicable cases scored `met`;
+- `applicable`: number of applicable cases;
+- `proportion`: `met / applicable`, or null when no case is applicable.
+
+These rules reproduce the deterministic semantics of `validation/scripts/score_functional_dublin.py`.
+"""
+
+
+def package_batch_marking_bundle(
+    mode: str,
+    cases: list[dict[str, Any]],
+    batch_path: Path,
+    output_path: Path | None = None,
+    prompt_path: Path = DEFAULT_PROMPT,
+) -> Path | None:
+    """Create one self-contained external-marking ZIP for completed batch children.
+
+    Each child is deliberately packaged as an independent directory. Existing per-child marking
+    ZIPs are removed from batch children after their contents have been represented here; ordinary
+    single-run packaging is unchanged.
+    """
+    if not is_validation_mode(mode):
+        raise ValueError(f"unsupported validation mode for batch marking bundle: {mode!r}")
+    batch_path = Path(batch_path)
+    output = Path(output_path) if output_path is not None else batch_path / BATCH_MARKING_BUNDLE
+    prepared: list[tuple[str, str, str, str]] = []
+    obsolete_child_bundles: list[Path] = []
+    seen_dirs: set[str] = set()
+    for item in cases:
+        case_id = normalise_selector(mode, item.get("case_id"))
+        directory = str(item.get("directory") or "").strip()
+        if not directory or Path(directory).name != directory or directory in {".", ".."}:
+            raise ValueError(f"invalid batch case directory: {directory!r}")
+        if directory in seen_dirs:
+            raise ValueError(f"duplicate batch case directory: {directory}")
+        report_path = Path(item.get("report_path") or "")
+        report = _read_nonempty_report(report_path)
+        seen_dirs.add(directory)
+        validation_case = retrieve_case_input(mode, case_id).rstrip() + "\n"
+        prepared.append((directory, case_id, validation_case, report))
+        obsolete_child_bundles.append(report_path.parent / marking_bundle_filename(mode, case_id))
+
+    if not prepared:
+        output.unlink(missing_ok=True)
+        return None
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    case_dirs = [row[0] for row in prepared]
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as zf:
+        _writestr(zf, "MARKING_INSTRUCTIONS.md", _batch_marking_instructions(mode, case_dirs))
+        if mode == DUBLIN_MODE:
+            _writestr(zf, "F1-F9-SCORING.md", _dublin_scoring_instructions())
+            _writestr(
+                zf,
+                "dublin-functional-criteria.md",
+                DUBLIN_FUNCTIONAL_SPEC.read_text(encoding="utf-8"),
+            )
+        for directory, case_id, validation_case, report in prepared:
+            prefix = directory + "/"
+            _writestr(zf, prefix + "marking-prompt.md", _isolated_case_prompt(mode, case_id, prompt_path))
+            _writestr(zf, prefix + "validation-case.md", validation_case)
+            _writestr(zf, prefix + "report-final.md", report)
+    payload = buffer.getvalue()
+    try:
+        unchanged = output.is_file() and output.read_bytes() == payload
+    except OSError:
+        unchanged = False
+    if not unchanged:
+        temporary = output.with_name(output.name + ".tmp")
+        try:
+            temporary.write_bytes(payload)
+            temporary.replace(output)
+        finally:
+            temporary.unlink(missing_ok=True)
+    # A batch has one canonical deliverable. Remove historical child ZIPs only after
+    # the replacement batch bundle has been built successfully.
+    for child_bundle in obsolete_child_bundles:
+        child_bundle.unlink(missing_ok=True)
     return output
 
 

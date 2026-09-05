@@ -296,7 +296,14 @@ Then execute the prepared run:
 python nel.py run --run-id <run-id>
 ```
 
-See [`docs/validation.md`](docs/validation.md) for validation-suite case IDs.
+Validation marking is optional and is off by default for new runs. Add `--mark-validation` to setup to mark automatically after the clinical report completes, or mark a completed validation run later without rerunning the clinical workflow:
+
+```bash
+python nel.py setup --mode nel-validate-dublin --case-id 1 --pipeline lmstudio --run-id dublin-1 --mark-validation
+python nel.py mark --run-id dublin-1
+```
+
+The same `mark` command accepts a validation batch ID and marks only unresolved completed children. See [`docs/validation.md`](docs/validation.md) for validation-suite case IDs and marking-bundle behavior.
 
 ## CLI reference
 
@@ -307,12 +314,14 @@ python nel.py --help
 python nel.py init --help
 python nel.py setup --help
 python nel.py run --help
+python nel.py mark --help
 ```
 
 The public commands are:
 
 - `setup` — create a new run;
 - `run` — execute or resume a run;
+- `mark` — mark a completed validation run or batch without rerunning the clinical workflow;
 - `status` — inspect one run's artifact-derived status;
 - `runs` — survey existing runs;
 - `config-check` — validate configuration and corpus integrity;
@@ -335,11 +344,13 @@ binds `127.0.0.1` and cannot be exposed to other machines. Use `--port` to move 
 What it does:
 
 - prepares and runs free-text cases, the `nel-demo` examples and the `nel-validate*` suites;
+- keeps validation marking off by default, with an opt-in automatic-marking checkbox and a separate **Mark / Retry marking** action after clinical completion;
 - edits provider profiles: endpoint, model options, OpenRouter provider routing, and the assignment
   of options to workflow roles;
 - accepts a provider API key, held in server memory for the life of the process and injected into
-  each `nel.py` child. **Keys are never written to disk and are lost when the server stops.** Never
-  put a key in a pipeline YAML file;
+  each `nel.py` child. Selecting OpenRouter does not open the key dialog automatically; if the key
+  or profile is invalid, Prepare/Start/Mark stay disabled with a nearby error until corrected.
+  **Keys are never written to disk and are lost when the server stops.** Never put a key in a pipeline YAML file;
 - shows the live console, the terraced stage rail, token and cost accounting, the rendered report,
   and every intermediate file a run produced;
 - deletes a run, or archives it — archiving removes `case.md`, `intermediates/` and `model_steps/`

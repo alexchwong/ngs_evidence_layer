@@ -67,6 +67,38 @@ python nel.py batch setup \
   --pipeline lmstudio
 ```
 
+## Validation marking
+
+Automatic validation marking is optional and off by default for newly prepared batches. Enable it only when wanted:
+
+```bash
+python nel.py batch setup \
+  --mode nel-validate-dublin \
+  --case-ids 1,2,3 \
+  --pipeline openrouter \
+  --mark-validation
+```
+
+Whether marking is enabled or disabled is frozen into the batch and child run configuration. When it is disabled, the batch becomes clinically complete as soon as the clinical children are complete; unperformed marking does not turn it into `marking_incomplete`.
+
+Mark a completed validation batch later with:
+
+```bash
+python nel.py mark --run-id <batch-id>
+```
+
+Each eligible child is marked in a separate `nel.py mark` subprocess. This deliberately prevents evaluator context from carrying between validation cases.
+
+A validation batch has one external-marking deliverable at its root:
+
+```text
+runs/<batch-id>/validation-marking-bundle.zip
+```
+
+The ZIP is designed for direct upload to ChatGPT with a minimal instruction to follow `MARKING_INSTRUCTIONS.md`. It contains one isolated directory per completed case. Each case directory contains only its marking prompt, validation case and final report. Historical per-child validation ZIPs are removed after the batch bundle represents that child. Dublin bundles additionally contain `F1-F9-SCORING.md` and `dublin-functional-criteria.md`; F1-F9 are calculated only after all cases have been independently marked.
+
+The browser exposes the same behavior: marking is an opt-in checkbox during preparation and a separate **Mark** / **Retry marking** action after clinical completion.
+
 ## Parallelism
 
 `execution.max_parallel_cases` in the selected pipeline YAML is the batch concurrency ceiling. Shipped defaults are:
@@ -84,12 +116,11 @@ Running a `complete_with_errors` batch again selects only retry-eligible failed 
 
 Provider/infrastructure failures are different. Failure to reach LM Studio/OpenRouter, authentication/service errors, rate limiting and equivalent provider outages mark the batch `blocked`; they do not consume or create case-level retry eligibility. Provider preflight blocks before any child starts. If provider failure is detected during execution, new children stop being scheduled and affected active children preserve their existing checkpoint state. After connectivity is restored, **Resume batch** continues non-complete children.
 
-A user-stopped batch likewise resumes every non-complete child. A complete batch has no work to restart.
+A user-stopped batch likewise resumes every non-complete child. A complete batch has no clinical work to restart. Marking retries use the separate `mark` action rather than reopening clinical execution.
 
 ## Legacy development runs
 
 Folders without `run.json` or `batch.json` are not runnable or resumable. They remain visible in `nel.py runs` and in the browser as cleanup-only legacy folders, and may be deleted normally.
-
 
 ## Browser batch navigation and progress
 

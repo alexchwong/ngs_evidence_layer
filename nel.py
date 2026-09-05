@@ -234,6 +234,16 @@ def _run_workflow_definition(run: Path) -> str | None:
     value = manifest.get("workflow_definition")
     return str(value) if isinstance(value, str) and value else DEFAULT_WORKFLOW_DEFINITION
 
+def _validation_marking_enabled(run: Path) -> bool:
+    """Return the frozen policy; legacy manifests preserve their prior automatic behavior."""
+    if _run_workflow(run) != CANONICAL_WORKFLOW:
+        return False
+    try:
+        manifest = _json_load(Path(run) / "run-config" / "manifest.json")
+    except Exception:
+        return False
+    return manifest.get("validation_marking", True) is True
+
 def _marking_state(run: Path) -> dict[str, Any]:
     """Return non-blocking automatic-marking state for a canonical run."""
     try:
@@ -259,6 +269,7 @@ def inspect_run(run: Path) -> dict[str, Any]:
     status = dict(status)
     if workflow_id == CANONICAL_WORKFLOW:
         status["workflow_definition"] = _run_workflow_definition(run)
+        status["validation_marking"] = _validation_marking_enabled(run)
         status["marking"] = _marking_state(run)
     return status
 
@@ -444,6 +455,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 def _snapshot_run_config(
     run: Path, *, run_id: str, workflow_id: str, mode: str, pipeline: str,
     config_result: dict[str, Any], workflow_definition: str | None = None,
+    validation_marking: bool = False,
 ) -> None:
     from scripts.core import cul as cul_core
     target = run / "run-config"
@@ -466,6 +478,7 @@ def _snapshot_run_config(
     manifest = {
         "schema_version": 1, "run_id": run_id, "workflow": workflow_id,
         "mode": mode, "pipeline": pipeline,
+        "validation_marking": bool(validation_marking),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "nel_version": _version(), "git_commit": _git_commit(),
         "corpus_sha256": config_result.get("corpus_sha256"),
@@ -535,7 +548,7 @@ def _prepare_run_at(
     config_result: dict[str, Any], case: Path | None = None, example: int | None = None,
     validation_case_id: str | None = None, batch_id: str | None = None,
     child_case_id: str | None = None, case_title: str | None = None,
-    workflow_definition: str | None = None,
+    workflow_definition: str | None = None, validation_marking: bool = False,
 ) -> int:
     if run.exists():
         raise CLIError(f"run already exists; refusing to overwrite: {run_id}")
@@ -565,7 +578,7 @@ def _prepare_run_at(
         _snapshot_run_config(
             run, run_id=run_id, workflow_id=workflow_id, mode=mode,
             pipeline=pipeline, config_result=config_result,
-            workflow_definition=workflow_definition,
+            workflow_definition=workflow_definition, validation_marking=validation_marking,
         )
         _write_identity_manifest(
             run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
@@ -599,6 +612,11 @@ def cmd_setup(args: argparse.Namespace) -> int:
     if workflow_id == CANONICAL_WORKFLOW:
         workflow_definition, _workflow_path = _resolve_workflow_definition(getattr(args, "workflow", None))
     mode = args.mode
+    mark_validation = bool(getattr(args, "mark_validation", False))
+    if mark_validation and workflow_id != CANONICAL_WORKFLOW:
+        raise CLIError("--mark-validation is available only for canonical proforma-v1 validation runs")
+    if mark_validation and mode not in _validation_modes(workflow_id):
+        raise CLIError("--mark-validation is valid only with a validation mode")
     if mode not in _supported_modes(workflow_id):
         raise CLIError(
             f"mode {mode!r} is not supported by {workflow_id}; choose one of: "
@@ -636,6 +654,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
         run, run_id=run_id, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
         config_result=config_result, case=case, example=args.example,
         validation_case_id=args.case_id, workflow_definition=workflow_definition,
+        validation_marking=mark_validation,
     )
     if code != 0:
         return code
@@ -705,7 +724,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     if pipeline == "self":
         result = self_executor.advance(run)
         if result["status"] == "handoff": return _print_handoff(run_id, run, result["stage"], result["manifest"])
-        if result.get("status") == "complete":
+        if result.get("status") == "complete" and _validation_marking_enabled(run):
             marking_status, marking = _automatic_validation_marking(run, pipeline, step)
             if marking_status == "handoff":
                 return _print_handoff(run_id, run, marking["stage"], marking["manifest"])
@@ -714,11 +733,98 @@ def cmd_run(args: argparse.Namespace) -> int:
         for key, value in result.get("artifacts", {}).items(): print(f"{key}={value if value is not None else 'none'}")
         return 0
     code = int(step.main(["run", "--work-dir", str(run)]))
-    if code == 0:
+    if code == 0 and _validation_marking_enabled(run):
         marking_status, _marking = _automatic_validation_marking(run, pipeline, step)
         if marking_status in {"complete", "failed"}: print(f"MARKING_STATUS={marking_status}")
     _print_run_header(run_id, run, inspect_run(run))
     return code
+
+def _mark_single_run(run_id: str, run: Path) -> int:
+    status = inspect_run(run)
+    marking = status.get("marking") or {}
+    if not status.get("complete"):
+        raise CLIError("validation marking requires a clinically complete run")
+    if not marking.get("applicable"):
+        raise CLIError("marking is available only for canonical validation runs")
+    if marking.get("status") == "complete":
+        print(f"RUN_ID={run_id}")
+        print("STATUS=complete")
+        print("MARKING_STATUS=complete")
+        return 0
+    pipeline = _run_pipeline(run)
+    if not pipeline:
+        raise CLIError(f"cannot determine pipeline for run: {run_id}")
+    if pipeline != "self":
+        provider_reason = _provider_preflight(pipeline)
+        if provider_reason:
+            raise CLIError(provider_reason)
+    step, _self_executor, _registry = _bind_run_config(run)
+    marking_status, result = _automatic_validation_marking(run, pipeline, step)
+    if marking_status == "handoff":
+        return _print_handoff(run_id, run, result["stage"], result["manifest"])
+    refreshed = inspect_run(run)
+    _print_run_header(run_id, run, refreshed)
+    print(f"MARKING_STATUS={marking_status}")
+    return 0 if marking_status == "complete" else 1
+
+def _mark_batch(batch: run_layout.BatchLocation) -> int:
+    try:
+        state = run_layout.load_batch_state(batch)
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
+    pipeline = str(batch.manifest.get("pipeline") or "")
+    eligible: list[dict[str, Any]] = []
+    for row in batch.manifest.get("children", []):
+        case_id = str(row["case_id"])
+        child_state = (state.get("children") or {}).get(case_id) or {}
+        if child_state.get("status") != "complete":
+            continue
+        marking = _marking_state(batch.path / case_id)
+        if marking.get("applicable") and marking.get("status") in {"pending", "failed", "stale"}:
+            eligible.append(row)
+    if not eligible:
+        doc = batch_status(batch.batch_id)
+        marking = doc.get("marking") or {}
+        print(f"BATCH_ID={batch.batch_id}")
+        print(f"STATUS={doc.get('status') or 'complete'}")
+        print(f"MARKED={marking.get('marked', 0)}/{marking.get('total', 0)}")
+        print(f"MARKING_STATUS={marking.get('status') or 'pending'}")
+        return 0
+    provider_reason = _provider_preflight(pipeline)
+    if provider_reason:
+        raise CLIError(provider_reason)
+    failures = 0
+    for row in eligible:
+        ref = str(row["run_id"])
+        # Separate process per child deliberately prevents batch-to-batch model context leakage.
+        code = subprocess.call([sys.executable, "-u", str(ROOT / "nel.py"), "mark", "--run-id", ref])
+        if code != 0:
+            failures += 1
+    doc = batch_status(batch.batch_id)
+    marking = doc.get("marking") or {}
+    print(f"BATCH_ID={batch.batch_id}")
+    print(f"STATUS={doc.get('status') or 'complete'}")
+    print(f"MARKED={marking.get('marked', 0)}/{marking.get('total', 0)}")
+    print(f"MARKING_STATUS={marking.get('status') or 'pending'}")
+    return 1 if failures else 0
+
+def cmd_mark(args: argparse.Namespace) -> int:
+    run_ref = str(args.run_id or "").strip()
+    if not run_ref:
+        raise CLIError("mark requires --run-id")
+    try:
+        batch_id, _case_id = run_layout.split_run_ref(run_ref)
+    except run_layout.LayoutError as exc:
+        raise _layout_error(exc) from exc
+    if batch_id is not None:
+        run_id, run = _resolve_run(run_ref)
+        return _mark_single_run(run_id, run)
+    top = _top_dir(run_ref)
+    kind = run_layout.classify_top_level(top) if top.is_dir() else None
+    if kind == "batch":
+        return _mark_batch(_resolve_batch(run_ref))
+    run_id, run = _resolve_run(run_ref)
+    return _mark_single_run(run_id, run)
 
 def cmd_status(args: argparse.Namespace) -> int:
     run_id, run = _resolve_run(args.run_id); status = inspect_run(run)
@@ -855,6 +961,7 @@ def _aggregate_batch_marking(batch: run_layout.BatchLocation, rows: list[dict[st
     if not is_validation_mode(mode):
         json_path.unlink(missing_ok=True)
         markdown_path.unlink(missing_ok=True)
+        (batch.path / "validation-marking-bundle.zip").unlink(missing_ok=True)
         return {"applicable": False, "status": "not_applicable", "marked": 0, "total": 0}
 
     from validation.scripts.package_marking import load_marking_payload
@@ -930,6 +1037,17 @@ def _aggregate_batch_marking(batch: run_layout.BatchLocation, rows: list[dict[st
             "aggregate": aggregate(dublin_scores, spec),
         }
 
+    from validation.scripts.package_marking import package_batch_marking_bundle
+    bundle_cases = [
+        {
+            "case_id": str(item.get("source_case_id") or item.get("case_id") or ""),
+            "directory": str(item.get("case_id") or ""),
+            "report_path": batch.path / str(item.get("case_id") or "") / "report-final.md",
+        }
+        for item in cases if item.get("clinical_complete")
+    ]
+    bundle_path = package_batch_marking_bundle(mode, bundle_cases, batch.path)
+
     rendered = json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
     _write_if_changed(json_path, rendered)
     _write_if_changed(markdown_path, _batch_marking_markdown(payload))
@@ -939,7 +1057,10 @@ def _aggregate_batch_marking(batch: run_layout.BatchLocation, rows: list[dict[st
         "marked": marked,
         "total": total,
         "complete": bool(total and marked == total),
-        "artifacts": {"markdown": str(markdown_path), "json": str(json_path)},
+        "artifacts": {
+            "markdown": str(markdown_path), "json": str(json_path),
+            "bundle": str(bundle_path) if bundle_path is not None else None,
+        },
         "criterion_failure_modes": failure_modes,
         "criterion_failure_counts": criterion_failure_counts,
         "rubric_categories": rubric_categories,
@@ -973,14 +1094,19 @@ def batch_status(batch_id: str) -> dict[str, Any]:
     usage = _aggregate_usage([batch.path / str(row["case_id"]) for row in batch.manifest.get("children", [])])
     marking = _aggregate_batch_marking(batch, rows)
     stored_status = str(state.get("status") or "prepared")
+    automatic_marking = batch.manifest.get("validation_marking", True) is True
     operational_status = stored_status
-    if stored_status in {"complete", "marking_incomplete"} and marking.get("applicable"):
-        operational_status = "complete" if marking.get("complete") else "marking_incomplete"
+    if stored_status in {"complete", "marking_incomplete"}:
+        if automatic_marking and marking.get("applicable"):
+            operational_status = "complete" if marking.get("complete") else "marking_incomplete"
+        elif stored_status == "marking_incomplete":
+            operational_status = "complete"
     return {
         "kind": "batch", "batch_id": batch.batch_id, "run_id": batch.batch_id,
         "run_dir": str(batch.path.resolve()), "workflow": batch.manifest.get("workflow"),
         "workflow_definition": batch.manifest.get("workflow_definition") or DEFAULT_WORKFLOW_DEFINITION,
         "mode": batch.manifest.get("mode"), "pipeline": batch.manifest.get("pipeline"),
+        "validation_marking": automatic_marking,
         "source": batch.manifest.get("source"), "max_parallel_cases": batch.manifest.get("max_parallel_cases", 1),
         "status": operational_status, "stored_status": stored_status, "complete": operational_status == "complete",
         "label": operational_status.replace("_", " ").title(),
@@ -1141,6 +1267,9 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
     if mode not in _supported_modes(workflow_id): raise CLIError(f"unsupported batch mode {mode!r}")
     is_demo = mode == "nel-demo"
     is_validation = mode in _validation_modes(workflow_id)
+    mark_validation = bool(getattr(args, "mark_validation", False))
+    if mark_validation and not is_validation:
+        raise CLIError("--mark-validation is valid only with a validation mode")
     if mode == "ngs-report":
         if args.case is None: raise CLIError("ngs-report batch setup requires --case <cases.md>")
         if args.case_ids: raise CLIError("--case-ids is valid only with nel-demo or a validation mode")
@@ -1182,7 +1311,7 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
                         child_dir, run_id=logical, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
                         config_result=config_result, case=Path(handle.name), batch_id=batch_id,
                         child_case_id=item.case_id, case_title=f"Case {item.title}",
-                        workflow_definition=workflow_definition,
+                        workflow_definition=workflow_definition, validation_marking=mark_validation,
                     )
                 finally:
                     try: os.unlink(handle.name)
@@ -1196,7 +1325,8 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
                 code = _prepare_run_at(
                     child_dir, run_id=logical, workflow_id=workflow_id, mode=mode, pipeline=pipeline,
                     config_result=config_result, batch_id=batch_id, child_case_id=case_id,
-                    case_title=f"Case {source_id}", workflow_definition=workflow_definition, **kwargs,
+                    case_title=f"Case {source_id}", workflow_definition=workflow_definition,
+                    validation_marking=mark_validation, **kwargs,
                 )
                 if code != 0: raise CLIError(f"failed to prepare bundled case {source_id}")
                 children.append({"case_id": case_id, "title": f"Case {source_id}", "source_case_id": source_id, "run_id": logical})
@@ -1204,6 +1334,7 @@ def cmd_batch_setup(args: argparse.Namespace) -> int:
             "schema_version": run_layout.SCHEMA_VERSION, "kind": "batch", "batch_id": batch_id,
             "workflow": workflow_id, "workflow_definition": workflow_definition,
             "mode": mode, "pipeline": pipeline, "created_at": created_at,
+            "validation_marking": mark_validation,
             "source": source_doc, "max_parallel_cases": parallel, "children": children,
         }
         run_layout.write_batch_manifest(batch_dir, manifest)
@@ -1361,7 +1492,8 @@ def _selected_batch_children(batch: run_layout.BatchLocation, state: dict[str, A
         raise CLIError(f"batch {batch.batch_id} is already running")
     children = list(batch.manifest.get("children", []))
     child_state = state.get("children") or {}
-    marking_retries = [row for row in children if _child_needs_marking_retry(batch, row, state)]
+    automatic_marking = batch.manifest.get("validation_marking", True) is True
+    marking_retries = [row for row in children if _child_needs_marking_retry(batch, row, state)] if automatic_marking else []
     if parent in {"complete", "marking_incomplete"}:
         return marking_retries
     if parent == "complete_with_errors":
@@ -1494,7 +1626,7 @@ def cmd_batch_run(args: argparse.Namespace) -> int:
             if statuses and all(value == "complete" for value in statuses):
                 rows = [_child_row(batch, row, state) for row in batch.manifest.get("children", [])]
                 marking = _aggregate_batch_marking(batch, rows)
-                if marking.get("applicable") and not marking.get("complete"):
+                if batch.manifest.get("validation_marking", True) is True and marking.get("applicable") and not marking.get("complete"):
                     state["status"] = "marking_incomplete"
                     state["finished_at"] = None
                     final_code = 0
@@ -1605,13 +1737,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__); sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="create canonical settings from the shipped template if missing"); init.add_argument("--legacy", action="store_true", help="initialize workflow-local terraced-v6 settings instead"); init.set_defaults(func=cmd_init)
     setup = sub.add_parser("setup", help="create a new single-case root run; canonical proforma-v1 unless --legacy")
-    setup.add_argument("--legacy", action="store_true", help="create a terraced-v6 legacy run with workflow-local settings/pipelines"); setup.add_argument("--workflow", help="proforma-v1 workflow definition name from workflows/proforma_v1/workflow/<name>.yaml (default: default)"); setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report"); setup.add_argument("--pipeline", help="pipeline name for the selected canonical/legacy workflow"); setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json"); setup.add_argument("--run-id", help="stable filesystem-safe run identifier"); setup.add_argument("--example", type=int, help="demo example number"); setup.add_argument("--case-id", help="validation case identifier"); setup.set_defaults(func=cmd_setup)
+    setup.add_argument("--legacy", action="store_true", help="create a terraced-v6 legacy run with workflow-local settings/pipelines"); setup.add_argument("--workflow", help="proforma-v1 workflow definition name from workflows/proforma_v1/workflow/<name>.yaml (default: default)"); setup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); setup.add_argument("--case", type=Path, help="clinical case markdown for ngs-report"); setup.add_argument("--pipeline", help="pipeline name for the selected canonical/legacy workflow"); setup.add_argument("--cul", help="corpus user layer profile from config/cul/<name>.json"); setup.add_argument("--run-id", help="stable filesystem-safe run identifier"); setup.add_argument("--example", type=int, help="demo example number"); setup.add_argument("--case-id", help="validation case identifier"); setup.add_argument("--mark-validation", action="store_true", help="automatically mark a completed validation report (default: off)"); setup.set_defaults(func=cmd_setup)
     run = sub.add_parser("run", help="continue one single/child run; defaults to runs/LATEST"); run.add_argument("--run-id"); run.add_argument("--cul", help="override the frozen corpus user layer for this invocation"); run.set_defaults(func=cmd_run)
+    mark = sub.add_parser("mark", help="mark a completed validation run or batch without rerunning clinical workflow"); mark.add_argument("--run-id", required=True); mark.set_defaults(func=cmd_mark)
     status = sub.add_parser("status", help="show artifact-derived status for one single/child run"); status.add_argument("--run-id"); status.add_argument("--json", action="store_true"); status.set_defaults(func=cmd_status)
     runs = sub.add_parser("runs", help="survey manifested single runs and batches"); runs.add_argument("--incomplete", action="store_true"); runs.add_argument("--json", action="store_true"); runs.set_defaults(func=cmd_runs)
     delete = sub.add_parser("delete", help="delete a single run, a batch, or one batch child"); delete.add_argument("--run-id", required=True); delete.set_defaults(func=cmd_delete)
     batch = sub.add_parser("batch", help="prepare, run/resume, or inspect a batch"); batch_sub = batch.add_subparsers(dest="batch_command", required=True)
-    bsetup = batch_sub.add_parser("setup", help="prepare a free-text or validation batch"); bsetup.add_argument("--workflow", help="proforma-v1 workflow definition name from workflows/proforma_v1/workflow/<name>.yaml (default: default)"); bsetup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); bsetup.add_argument("--case", type=Path, help="markdown file containing '# Case <title>' sections"); bsetup.add_argument("--case-ids", help="comma-delimited validation case IDs, e.g. 1,2,5"); bsetup.add_argument("--pipeline"); bsetup.add_argument("--cul"); bsetup.add_argument("--run-id", help="stable filesystem-safe batch identifier"); bsetup.set_defaults(func=cmd_batch_setup)
+    bsetup = batch_sub.add_parser("setup", help="prepare a free-text or validation batch"); bsetup.add_argument("--workflow", help="proforma-v1 workflow definition name from workflows/proforma_v1/workflow/<name>.yaml (default: default)"); bsetup.add_argument("--mode", choices=_supported_modes(), default="ngs-report"); bsetup.add_argument("--case", type=Path, help="markdown file containing '# Case <title>' sections"); bsetup.add_argument("--case-ids", help="comma-delimited validation case IDs, e.g. 1,2,5"); bsetup.add_argument("--pipeline"); bsetup.add_argument("--cul"); bsetup.add_argument("--run-id", help="stable filesystem-safe batch identifier"); bsetup.add_argument("--mark-validation", action="store_true", help="automatically mark completed validation children (default: off)"); bsetup.set_defaults(func=cmd_batch_setup)
     brun = batch_sub.add_parser("run", help="run/resume a batch; failed finished children resume from workflow checkpoints"); brun.add_argument("--run-id", required=True); brun.set_defaults(func=cmd_batch_run)
     bstatus = batch_sub.add_parser("status", help="show batch and child status"); bstatus.add_argument("--run-id", required=True); bstatus.add_argument("--json", action="store_true"); bstatus.set_defaults(func=cmd_batch_status)
     check = sub.add_parser("config-check", help="validate canonical configuration and corpus integrity"); check.add_argument("--legacy", action="store_true", help="validate terraced-v6 workflow-local settings/pipelines"); check.add_argument("--pipeline"); check.add_argument("--cul"); check.add_argument("--json", action="store_true"); check.set_defaults(func=cmd_config_check)
