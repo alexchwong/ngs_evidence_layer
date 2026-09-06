@@ -2,8 +2,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import copy
+import json
+import re
+import sys
+from pathlib import Path
 from typing import Any
 
+from workflows.proforma_v1.engine import control_state
 from workflows.proforma_v1.engine.context import WorkflowContext
 from workflows.proforma_v1.engine.workflow_progress import WorkflowProgress
 
@@ -43,6 +49,96 @@ def executor_enabled(step, executor_name: str) -> bool:
     return cfg.get("enabled", True) is not False
 
 
+
+TERMINAL_WORKFLOW_EXIT_CODE = 3
+
+
+class TerminalWorkflowFailure(SystemExit):
+    """Non-retryable workflow failure after an explicit terminal review policy.
+
+    ``step.main`` catches ordinary ``Exception`` and maps it to exit 1.  A
+    ``SystemExit`` subclass deliberately bypasses that generic mapping so the
+    UI/CLI launcher can distinguish a persisted semantic terminal from a
+    transient/retryable run failure.
+    """
+
+    retryable = False
+
+    def __init__(self, message: str, *, reviewer: str | None = None):
+        self.message = str(message)
+        self.reviewer = reviewer
+        super().__init__(TERMINAL_WORKFLOW_EXIT_CODE)
+
+    def __str__(self) -> str:
+        return self.message
+
+
+def _jsonable_copy(value: Any) -> Any:
+    try:
+        return json.loads(json.dumps(value, ensure_ascii=False))
+    except Exception:
+        return copy.deepcopy(value)
+
+
+def _issue_paths(value: Any) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    out = []
+    for row in value.get("issues") or []:
+        if isinstance(row, dict) and isinstance(row.get("path"), str) and row["path"].strip():
+            out.append(row["path"].strip())
+    return out
+
+
+def _path_parent(path: str) -> str:
+    """Return the immediate object scope that owns one reported field defect."""
+    value = str(path or "$").strip() or "$"
+    if value == "$":
+        return "$"
+    # Remove one final '.field' or '[index]' segment.  If a validator points at
+    # an object itself (common for schema-required), allowing that object is the
+    # narrowest useful repair scope.
+    m = re.match(r"^(.*?)(?:\.[A-Za-z_][A-Za-z0-9_]*|\[[0-9]+\])$", value)
+    return (m.group(1) if m else value) or "$"
+
+
+def _join_path(base: str, key: Any) -> str:
+    if isinstance(key, int):
+        return f"{base}[{key}]"
+    name = str(key)
+    return f"{base}.{name}" if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) else f"{base}[{name!r}]"
+
+
+def _diff_paths(before: Any, after: Any, path: str = "$") -> list[str]:
+    if type(before) is not type(after):
+        return [path]
+    if isinstance(before, dict):
+        out = []
+        for key in sorted(set(before) | set(after), key=str):
+            child = _join_path(path, key)
+            if key not in before or key not in after:
+                out.append(child)
+            else:
+                out.extend(_diff_paths(before[key], after[key], child))
+        return out
+    if isinstance(before, list):
+        out = []
+        n = max(len(before), len(after))
+        for index in range(n):
+            child = _join_path(path, index)
+            if index >= len(before) or index >= len(after):
+                out.append(child)
+            else:
+                out.extend(_diff_paths(before[index], after[index], child))
+        return out
+    return [] if before == after else [path]
+
+
+def _within_scope(path: str, scope: str) -> bool:
+    if scope == "$":
+        return True
+    return path == scope or path.startswith(scope + ".") or path.startswith(scope + "[")
+
 @dataclass(frozen=True)
 class RunResult:
     status: str
@@ -67,17 +163,36 @@ class WorkflowRunner:
             self.trace.record(step.id, step.type, status, dependencies=list(step.needs), **fields)
 
     def _step_done(self, context: WorkflowContext, step_id: str) -> bool:
+        """Hydrate completion while respecting persisted terminal review state."""
         self._bind_progress(context)
+        step = self.workflow.step(step_id)
+        terminal = self._review_terminal(context, step_id) if step.review else None
+        if terminal:
+            action = terminal.get("action")
+            if action == "stop":
+                message = terminal.get("message") or f"review {step_id!r} is terminally failed"
+                self.progress.update(step_id, "failed", reason="review_terminal_stop", error=message)
+                self._raise_terminal(context, step_id, message)
+            self._restore_terminal_effects(step, context, terminal)
+            context.completed.add(step_id)
+            self.progress.update(step_id, "completed", reason=f"review_terminal_{action or 'continue'}")
+            return True
         if step_id in context.completed:
             if self.progress.status(step_id) not in {"completed", "skipped"}:
                 self.progress.update(step_id, "completed", reason="already_complete")
             return True
         complete = getattr(self.executor, "is_complete", None)
-        if callable(complete) and complete(step_id, context):
-            context.completed.add(step_id)
-            self.progress.update(step_id, "completed", reason="artifact_complete")
-            return True
-        return False
+        if not callable(complete) or not complete(step_id, context):
+            return False
+        if step.review:
+            artifact_name = (step.output or {}).get("artifact")
+            artifact = context.get(artifact_name) if artifact_name else None
+            if not self._review_passed(step, context, {"artifact": artifact}):
+                self.progress.update(step_id, "failed", reason="persisted_review_failed")
+                return False
+        context.completed.add(step_id)
+        self.progress.update(step_id, "completed", reason="artifact_complete")
+        return True
 
     def _ready(self, step, context: WorkflowContext) -> bool:
         return all(self._step_done(context, need) for need in step.needs)
@@ -131,16 +246,175 @@ class WorkflowRunner:
         invalid.add(reviewer_id)
         return invalid
 
+    def _append_review_event(self, context: WorkflowContext, **event) -> None:
+        events = list(context.get("review_events", []) or [])
+        events.append(event)
+        context.put("review_events", events)
+
+    def _set_redo_preservation(self, step, context: WorkflowContext, result: dict) -> None:
+        review = step.review or {}
+        target = self.workflow.step(review["target"])
+        artifact_name = (target.output or {}).get("artifact")
+        baseline = context.get(artifact_name) if artifact_name else None
+        review_artifact = result.get("artifact")
+        if review_artifact is None:
+            review_name = (step.output or {}).get("artifact")
+            review_artifact = context.get(review_name) if review_name else None
+        paths = _issue_paths(review_artifact)
+        if baseline is None or not paths:
+            return
+        scopes = sorted(set(_path_parent(path) for path in paths))
+        values = dict(context.get("redo_preservation", {}) or {})
+        values[step.id] = {
+            "reviewer": step.id,
+            "target": target.id,
+            "artifact": artifact_name,
+            "baseline": _jsonable_copy(baseline),
+            "issue_paths": paths,
+            "allowed_scopes": scopes,
+        }
+        context.put("redo_preservation", values)
+
+    def _preservation_issues(self, step, context: WorkflowContext) -> list[dict]:
+        values = context.get("redo_preservation", {}) or {}
+        record = values.get(step.id) if isinstance(values, dict) else None
+        if not isinstance(record, dict):
+            return []
+        artifact_name = record.get("artifact")
+        current = context.get(artifact_name) if artifact_name else None
+        baseline = record.get("baseline")
+        if current is None or baseline is None:
+            return []
+        scopes = [str(x) for x in record.get("allowed_scopes") or []]
+        unexpected = [path for path in _diff_paths(baseline, current) if not any(_within_scope(path, scope) for scope in scopes)]
+        return [
+            {
+                "code": "unexpected_redo_change",
+                "path": path,
+                "message": "semantic redo changed content outside the scope of the deterministic feedback",
+                "fix": "restore the prior value outside the reported repair scope; change unrelated clinical content only when the reported defect requires that same object to change",
+            }
+            for path in unexpected
+        ]
+
+    def _apply_preservation_review(self, step, context: WorkflowContext, result: dict) -> dict:
+        issues = self._preservation_issues(step, context)
+        if not issues:
+            if self._review_passed(step, context, result):
+                values = dict(context.get("redo_preservation", {}) or {})
+                if step.id in values:
+                    values.pop(step.id, None)
+                    context.put("redo_preservation", values)
+            return result
+        artifact = result.get("artifact")
+        if artifact is None:
+            artifact_name = (step.output or {}).get("artifact")
+            artifact = context.get(artifact_name) if artifact_name else None
+        if not isinstance(artifact, dict):
+            artifact = {}
+        merged = [*(artifact.get("issues") or []), *issues]
+        updated = dict(artifact)
+        updated["status"] = "fail"
+        updated["issue_count"] = len(merged)
+        updated["issues"] = merged
+        lines = [
+            f"The semantic redo changed {len(issues)} unrelated path{'s' if len(issues) != 1 else ''}. "
+            "Repair only within the objects named by the original deterministic feedback:"
+        ]
+        for index, issue in enumerate(issues, 1):
+            lines.append(f"{index}. {issue['path']}: {issue['message']}. {issue['fix']}.")
+        updated["feedback"] = "\n".join(lines) + "\n"
+        result = {**result, "artifact": updated}
+        artifact_name = (step.output or {}).get("artifact")
+        if artifact_name:
+            context.put(artifact_name, updated)
+        return result
+
+    def _raise_terminal(self, context: WorkflowContext, step_id: str, message: str) -> None:
+        path = Path(context.work) / "logs" / "workflow-failure.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({
+            "schema_version": 1,
+            "failure_class": "terminal_review",
+            "retryable": False,
+            "reviewer": step_id,
+            "message": str(message),
+            "exit_code": TERMINAL_WORKFLOW_EXIT_CODE,
+        }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        control_state.save(context)
+        print(f"proforma-v1 terminal failure: {message}", file=sys.stderr, flush=True)
+        raise TerminalWorkflowFailure(message, reviewer=step_id)
+
+    def _review_terminal(self, context: WorkflowContext, step_id: str) -> dict | None:
+        values = context.get("review_terminal", {}) or {}
+        row = values.get(step_id) if isinstance(values, dict) else None
+        if isinstance(row, str):
+            return {"action": row}
+        return row if isinstance(row, dict) else None
+
+    def _set_review_terminal(self, context: WorkflowContext, step, *, action: str, **fields) -> dict:
+        values = dict(context.get("review_terminal", {}) or {})
+        row = {
+            "action": action,
+            "target": (step.review or {}).get("target"),
+            **{key: value for key, value in fields.items() if value is not None},
+        }
+        values[step.id] = row
+        context.put("review_terminal", values)
+        return row
+
+    def _clear_review_terminals(self, context: WorkflowContext, step_ids) -> None:
+        values = dict(context.get("review_terminal", {}) or {})
+        changed = False
+        for step_id in step_ids:
+            if step_id in values:
+                values.pop(step_id, None)
+                changed = True
+        if changed:
+            context.put("review_terminal", values)
+
+    def _restore_terminal_effects(self, step, context: WorkflowContext, terminal: dict) -> None:
+        action = terminal.get("action")
+        target = terminal.get("target") or (step.review or {}).get("target")
+        if action == "continue_with_dissent":
+            context.put(f"{step.id}__dissent", True)
+        elif action == "suppress" and target:
+            context.put(f"{target}__suppressed", True)
+
+    def _complete_terminal_review(self, step, context: WorkflowContext, terminal: dict) -> None:
+        self._restore_terminal_effects(step, context, terminal)
+        context.completed.add(step.id)
+        self.progress.update(step.id, "completed", reason=f"review_terminal_{terminal.get('action')}")
+        self._record(
+            step, "complete", reason=f"review_terminal_{terminal.get('action')}",
+            executor=context.executor, review_terminal=terminal,
+        )
+
     def _handle_review_failure(self, step, context: WorkflowContext, result: dict) -> RunResult | None:
         review = step.review
         on_fail = review["on_fail"]
+
+        persisted = self._review_terminal(context, step.id)
+        if persisted:
+            if persisted.get("action") == "stop":
+                message = persisted.get("message") or f"review {step.id!r} is terminally failed"
+                self._raise_terminal(context, step.id, message)
+            self._complete_terminal_review(step, context, persisted)
+            control_state.save(context)
+            if persisted.get("action") == "route_to" and persisted.get("route_to"):
+                if not context.get("forced_route"):
+                    context.put("forced_route", persisted["route_to"])
+                return RunResult("pending", persisted["route_to"])
+            return None
+
         if on_fail.get("retry_target"):
-            cycles = context.get("review_cycles", {}) or {}
-            count = int(cycles.get(step.id, 0)) + 1
-            cycles[step.id] = count
-            context.put("review_cycles", cycles)
+            cycles = dict(context.get("review_cycles", {}) or {})
+            used_cycles = int(cycles.get(step.id, 0))
             max_cycles = int(on_fail["max_cycles"])
-            if count <= max_cycles:
+            if used_cycles < max_cycles:
+                count = used_cycles + 1
+                cycles[step.id] = count
+                context.put("review_cycles", cycles)
                 feedback = on_fail.get("feedback") or {}
                 if feedback:
                     source = feedback["from"]
@@ -158,29 +432,78 @@ class WorkflowRunner:
                     fb = dict(context.get("feedback_values", {}) or {})
                     fb[ref] = value
                     context.put("feedback_values", fb)
+                self._set_redo_preservation(step, context, result)
                 invalid = self._descendants_through(review["target"], step.id)
                 context.completed.difference_update(invalid)
+                self._clear_review_terminals(context, invalid)
                 self.progress.invalidate(invalid)
                 invalidate = getattr(self.executor, "invalidate", None)
                 if callable(invalidate):
                     invalidate(invalid, context)
-                self._record(step, "feedback", reason="review_failed_retry", target=review["target"], cycle=count)
+                self._append_review_event(
+                    context,
+                    reviewer=step.id,
+                    target=review["target"],
+                    cycle=count,
+                    max_cycles=max_cycles,
+                    action="retry",
+                    invalidated_steps=sorted(invalid),
+                )
+                self._record(
+                    step, "feedback", reason="review_failed_retry", target=review["target"],
+                    cycle=count, invalidated_steps=sorted(invalid),
+                )
+                control_state.save(context)
                 return RunResult("pending", review["target"])
+
             exhausted = on_fail.get("exhausted") or {"action": "stop"}
             action = exhausted.get("action", "stop")
+            message = (
+                f"review {step.id!r} failed after {max_cycles} feedback cycle(s)"
+                if action == "stop" else None
+            )
+            terminal = self._set_review_terminal(
+                context, step, action=action, cycle=used_cycles, max_cycles=max_cycles,
+                route_to=exhausted.get("route_to"), message=message,
+            )
+            self._append_review_event(
+                context,
+                reviewer=step.id,
+                target=review["target"],
+                cycle=used_cycles,
+                max_cycles=max_cycles,
+                action=f"exhausted:{action}",
+                invalidated_steps=[],
+            )
             if action == "stop":
-                raise RuntimeError(f"review {step.id!r} failed after {max_cycles} feedback cycle(s)")
+                self._raise_terminal(context, step.id, message)
             if action == "route_to":
-                context.put("forced_route", exhausted.get("route_to"))
+                route = exhausted.get("route_to")
+                context.put("forced_route", route)
             elif action == "suppress":
                 context.put(f"{review['target']}__suppressed", True)
             elif action == "continue_with_dissent":
                 context.put(f"{step.id}__dissent", True)
+            else:
+                raise RuntimeError(f"review {step.id!r} has unsupported exhausted action {action!r}")
+            self._complete_terminal_review(step, context, terminal)
+            control_state.save(context)
+            if action == "route_to" and exhausted.get("route_to"):
+                return RunResult("pending", exhausted["route_to"])
             return None
+
         if on_fail.get("route_to"):
-            context.put("forced_route", on_fail["route_to"])
-            self._record(step, "review_failed", reason="route_to", route_to=on_fail["route_to"])
-            return None
+            route = on_fail["route_to"]
+            terminal = self._set_review_terminal(context, step, action="route_to", route_to=route, cycle=0, max_cycles=0)
+            context.put("forced_route", route)
+            self._append_review_event(
+                context, reviewer=step.id, target=review.get("target"), cycle=0,
+                max_cycles=0, action=f"route_to:{route}", invalidated_steps=[],
+            )
+            self._complete_terminal_review(step, context, terminal)
+            self._record(step, "review_failed", reason="route_to", route_to=route)
+            control_state.save(context)
+            return RunResult("pending", route)
         raise RuntimeError(f"review {step.id!r} has no executable on_fail policy")
 
     def _execute_one(self, step, context: WorkflowContext) -> RunResult | None:
@@ -226,9 +549,10 @@ class WorkflowRunner:
             result = self.executor.execute(step, context) or {}
             status = result.get("status", "complete")
             if status in {"complete", "skipped"}:
+                if status == "complete" and step.review:
+                    result = self._apply_preservation_review(step, context, result)
                 if status == "complete" and step.review and not self._review_passed(step, context, result):
-                    context.completed.add(step.id)
-                    self.progress.update(step.id, "completed", reason="review_failed")
+                    self.progress.update(step.id, "failed", reason="review_failed")
                     return self._handle_review_failure(step, context, result)
                 context.completed.add(step.id)
                 progress_status = "completed" if status == "complete" else "skipped"
@@ -257,9 +581,14 @@ class WorkflowRunner:
             if routed:
                 return routed
         for step in self.workflow.steps:
-            if self._step_done(context, step.id):
+            if step.id in context.completed:
                 continue
+            # Dependencies must be valid before a persisted descendant artifact
+            # is allowed to hydrate as complete. This prevents stale descendants
+            # from bypassing a failed blocking review on resume.
             if not self._ready(step, context):
+                continue
+            if self._step_done(context, step.id):
                 continue
             result = self._execute_one(step, context)
             if result:
@@ -269,9 +598,22 @@ class WorkflowRunner:
         return RunResult("pending")
 
     def run_all(self, context: WorkflowContext) -> RunResult:
-        while True:
-            result = self.advance(context)
-            if result.status != "pending":
-                if result.status == "handoff":
-                    raise RuntimeError(f"provider/full runner cannot stop at self handoff {result.step_id!r}")
-                return result
+        # Provider runs are separate processes across nel.py outer retries. The
+        # same review budget/feedback state used by native-self must therefore
+        # be hydrated and saved here as well, including on failure.
+        control_state.hydrate(context)
+        try:
+            while True:
+                result = self.advance(context)
+                if result.status != "pending":
+                    if result.status == "handoff":
+                        raise RuntimeError(f"provider/full runner cannot stop at self handoff {result.step_id!r}")
+                    return result
+        finally:
+            control_state.save(context)
+            if self.trace is not None:
+                try:
+                    self.trace.write(Path(context.work) / "logs" / "workflow-trace.json")
+                except Exception:
+                    # Trace persistence must not mask the clinical/workflow error.
+                    pass

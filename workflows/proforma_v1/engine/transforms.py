@@ -37,14 +37,20 @@ def reasoning_delegated(value: Any, context: dict, params: dict) -> Any:
 def reasoning_diagnostic(name):
     def apply_reasoning_diagnostic(value: Any, context: dict, params: dict) -> Any:
         from workflows.proforma_v1 import reasoning_runtime
-        return reasoning_runtime.run_diagnostic_transform(name, context, params)
+        from workflows.proforma_v1 import reasoning_guards
+        reasoning_guards.before_diagnostic_transform(name, context, params)
+        result = reasoning_runtime.run_diagnostic_transform(name, context, params)
+        return reasoning_guards.after_diagnostic_transform(name, result, context, params)
     return apply_reasoning_diagnostic
 
 
 def reasoning_ptbg(name):
     def apply_reasoning_ptbg(value: Any, context: dict, params: dict) -> Any:
         from workflows.proforma_v1 import reasoning_runtime
-        return reasoning_runtime.run_ptbg_transform(name, context, params)
+        from workflows.proforma_v1 import reasoning_guards
+        reasoning_guards.before_ptbg_transform(name, context, params)
+        result = reasoning_runtime.run_ptbg_transform(name, context, params)
+        return reasoning_guards.after_ptbg_transform(name, result, context, params)
     return apply_reasoning_ptbg
 
 

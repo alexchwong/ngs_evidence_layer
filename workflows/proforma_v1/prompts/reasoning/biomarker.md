@@ -26,6 +26,9 @@ Rules:
 - Do not infer longitudinal persistence, clearance, assay sensitivity or MRD performance that is not supplied.
 - Use only supplied patient facts, source-facing variant IDs, authoritative diagnosis and reference material.
 - Do not cite or mention evidence cards. Evidence matching is separate.
+- Every atomic `reasoning` row must retain all six fields: `rule`, `case_fact_ids`, `variant_ids`, `assessment`, `supports_conclusion`, and `reason`.
+- `supports_conclusion: true` is valid only when that same row has `assessment: met`.
+- On a feedback redo, change only the object(s) implicated by the deterministic feedback unless correcting that object logically requires a linked field in the same object to change. Preserve unrelated biomarker decisions.
 
 ## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}

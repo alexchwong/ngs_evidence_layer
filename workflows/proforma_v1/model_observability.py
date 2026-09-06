@@ -4,12 +4,20 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
 SCHEMA_VERSION = 1
 INDEX_NAME = "model-operations.json"
+
+# One logical model task can be re-entered after a semantic review invalidates
+# its canonical artifact. The shared task runner numbers attempts from 1 on each
+# re-entry, so keep a process-local map from those logical attempt numbers to
+# append-only physical attempt directories. Historical attempt directories are
+# never overwritten.
+_ACTIVE_ATTEMPT_MAP: dict[tuple[str, int], int] = {}
 
 
 def _now() -> str:
@@ -46,8 +54,28 @@ def _read_json(path: Path) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _root_key(call_root: Path) -> str:
+    return str(Path(call_root).absolute())
+
+
+def _used_attempt_numbers(call_root: Path) -> list[int]:
+    attempts = Path(call_root) / "attempts"
+    if not attempts.is_dir():
+        return []
+    return sorted(
+        int(child.name)
+        for child in attempts.iterdir()
+        if child.is_dir() and child.name.isdigit()
+    )
+
+
+def _physical_attempt(call_root: Path, attempt: int) -> int:
+    return _ACTIVE_ATTEMPT_MAP.get((_root_key(call_root), int(attempt)), int(attempt))
+
+
 def attempt_dir(call_root: Path, attempt: int, *, create: bool = True) -> Path:
-    path = Path(call_root) / "attempts" / f"{int(attempt):02d}"
+    physical = _physical_attempt(call_root, attempt)
+    path = Path(call_root) / "attempts" / f"{physical:02d}"
     if create:
         path.mkdir(parents=True, exist_ok=True)
     return path
@@ -69,23 +97,45 @@ def begin_attempt(
     metadata: dict[str, Any],
     parent_attempt: int | None = None,
 ) -> Path:
-    path = (
-        syntax_attempt_dir(call_root, parent_attempt, attempt)
-        if parent_attempt is not None else attempt_dir(call_root, attempt)
-    )
+    logical_attempt = int(attempt)
+    if parent_attempt is None:
+        used = _used_attempt_numbers(call_root)
+        requested_path = Path(call_root) / "attempts" / f"{logical_attempt:02d}"
+        physical_attempt = max(used, default=0) + 1 if requested_path.exists() else logical_attempt
+        _ACTIVE_ATTEMPT_MAP[(_root_key(call_root), logical_attempt)] = physical_attempt
+        path = attempt_dir(call_root, logical_attempt)
+    else:
+        physical_attempt = logical_attempt
+        path = syntax_attempt_dir(call_root, parent_attempt, logical_attempt)
+
     _write_json(path / "messages.json", messages)
     _atomic_write(path / "prompt.md", prompt)
     document = {
         "schema_version": SCHEMA_VERSION,
         **metadata,
-        "attempt": int(attempt),
+        "attempt": int(physical_attempt),
         "status": "running",
         "started_at": metadata.get("started_at") or _now(),
         "accepted": False,
     }
+    if parent_attempt is None:
+        if physical_attempt != logical_attempt:
+            document["logical_attempt"] = logical_attempt
+            document["resumed_attempt"] = True
+        if logical_attempt > 1:
+            document["attempt_kind"] = "task_retry"
+        elif physical_attempt != logical_attempt:
+            document["attempt_kind"] = "semantic_redo"
+        else:
+            document["attempt_kind"] = "initial"
     if parent_attempt is not None:
-        document["parent_attempt"] = int(parent_attempt)
+        document["parent_attempt"] = _physical_attempt(call_root, parent_attempt)
+        document["attempt_kind"] = "syntax_repair"
     _write_json(path / "call.json", document)
+    if parent_attempt is None:
+        call_id = str(metadata.get("call_id") or metadata.get("logical_operation") or Path(call_root).name)
+        kind = document["attempt_kind"].replace("_", " ")
+        print(f"[model] {call_id}: {kind} · physical attempt {physical_attempt}", file=sys.stderr, flush=True)
     return path
 
 
@@ -157,6 +207,7 @@ def _attempt_row(path: Path, work: Path) -> dict[str, Any]:
         "attempt": int(metadata.get("attempt") or path.name),
         "status": metadata.get("status") or "running",
         "path": _relative(path, work),
+        "attempt_kind": metadata.get("attempt_kind") or ("semantic_redo" if metadata.get("resumed_attempt") else "initial"),
     }
     repairs = path / "syntax_repairs"
     row["syntax_repairs"] = [
@@ -186,9 +237,8 @@ def _call_rows(work: Path) -> list[tuple[dict[str, Any], dict[str, Any]]]:
         if metadata.get("call_kind", "model") != "model":
             continue
         attempt_rows = [_attempt_row(path, work) for path in paths]
-        status = "running" if any(row["status"] == "running" for row in attempt_rows) else (
-            "complete" if any(row["status"] == "accepted" for row in attempt_rows) else attempt_rows[-1]["status"]
-        )
+        latest_status = attempt_rows[-1]["status"]
+        status = "complete" if latest_status == "accepted" else latest_status
         rows.append((metadata, {
             "call_id": metadata.get("call_id") or root.name,
             "role": metadata.get("role"),
@@ -197,6 +247,36 @@ def _call_rows(work: Path) -> list[tuple[dict[str, Any], dict[str, Any]]]:
             "attempts": attempt_rows,
         }))
     return rows
+
+
+
+def invalidate_compatibility_view(work: Path, logical_operation: str) -> None:
+    """Clear only mutable root-level views for one invalidated logical model step.
+
+    Numeric attempt directories remain immutable audit history. The canonical
+    structured workflow artifact is removed separately by the executor.
+    """
+    roots = Path(work) / "model_steps"
+    if not roots.is_dir():
+        return
+    for root in roots.iterdir():
+        attempts = root / "attempts"
+        if not root.is_dir() or not attempts.is_dir():
+            continue
+        paths = [
+            child for child in sorted(attempts.iterdir())
+            if child.is_dir() and child.name.isdigit() and (child / "call.json").is_file()
+        ]
+        if not paths:
+            continue
+        metadata = _read_json(paths[-1] / "call.json")
+        if str(metadata.get("logical_operation") or "") != str(logical_operation):
+            continue
+        for name in ("accepted-output.txt", "validated.txt", "output.txt", "reasoning.md", "messages.json", "prompt.md"):
+            try:
+                (root / name).unlink()
+            except FileNotFoundError:
+                pass
 
 
 def _humanize(logical_id: str) -> str:

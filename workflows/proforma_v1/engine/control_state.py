@@ -1,11 +1,19 @@
-"""Persist executor-neutral workflow control state across native-self handoffs."""
+"""Persist executor-neutral workflow control state across run resumes and self handoffs."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
 _FILENAME = "workflow-control.json"
-_KEYS = ("review_cycles", "feedback_values", "forced_route")
+_KEYS = (
+    "review_cycles",
+    "feedback_values",
+    "forced_route",
+    "review_events",
+    "review_terminal",
+    "clinical_owner_redo_used",
+    "redo_preservation",
+)
 
 
 def path(work: Path) -> Path:

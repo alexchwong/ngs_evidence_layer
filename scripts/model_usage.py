@@ -112,6 +112,27 @@ def load_ledger(path: str | Path) -> dict[str, Any] | None:
     return doc
 
 
+def _physical_attempt(calls: list[dict[str, Any]], operation: str, call_kind: str, requested: int) -> int:
+    """Return an append-only attempt number for one physical operation.
+
+    Logical task runners restart numbering at 1 when a semantic review re-enters
+    a model step.  The usage ledger must instead follow the immutable physical
+    attempt history written under ``model_steps/.../attempts/NN``.
+    """
+    used = sorted(
+        int(row.get("attempt"))
+        for row in calls
+        if row.get("operation") == operation
+        and row.get("call_kind", "model") == call_kind
+        and isinstance(row.get("attempt"), int)
+        and not isinstance(row.get("attempt"), bool)
+        and int(row.get("attempt")) > 0
+    )
+    if requested > 0 and requested not in used and (not used or requested > max(used)):
+        return requested
+    return max(used, default=0) + 1
+
+
 def record_call(
     path: str | Path,
     operation: str,
@@ -130,6 +151,8 @@ def record_call(
     path = Path(path)
     doc = load_ledger(path) or _empty_ledger()
     calls = doc.setdefault("calls", [])
+    requested_attempt = int(attempt)
+    physical_attempt = _physical_attempt(calls, operation, call_kind, requested_attempt)
     row: dict[str, Any] = {
         "call_index": len(calls) + 1,
         "operation": operation,
@@ -138,10 +161,13 @@ def record_call(
         "role": role,
         "provider": provider,
         "model": model,
-        "attempt": attempt,
+        "attempt": physical_attempt,
         "duration_ms": duration_ms,
         "usage": usage,
     }
+    if physical_attempt != requested_attempt:
+        row["logical_attempt"] = requested_attempt
+        row["resumed_attempt"] = True
     if generation_id_value:
         row["generation_id"] = generation_id_value
     if error:

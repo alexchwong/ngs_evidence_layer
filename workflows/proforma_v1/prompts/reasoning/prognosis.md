@@ -41,7 +41,7 @@ variant_assessments:
 
 Rules:
 - First identify every preset framework that genuinely applies to the authoritative disease. Framework assessment is patient-level and independent of whether NGS variants were detected.
-- If the authoritative disease is MDS, assess `IPSS-M`; do not substitute a cohort association or variant-specific prognostic paper for IPSS-M.
+- If the authoritative disease is MDS, the framework name is exactly `IPSS-M`. Do not rename it to `MDS`, a study/cohort, or a variant-specific association on either the initial answer or a feedback redo.
 - Populate a framework tier only when it can be assigned from the supplied findings permitted by that framework. Otherwise use `tier: null`; framework applicability still remains.
 - Keep framework-derived effects separate from `other_evidence`. A non-framework adverse association must not be presented as a framework risk tier.
 - Every supplied variant must appear exactly once in `variant_assessments`, even when it has no prognostic effect.
@@ -50,7 +50,9 @@ Rules:
 - Use only supplied patient facts, source-facing variant IDs, authoritative diagnosis and supplied reference material.
 - Do not cite or mention evidence cards. Evidence matching is separate.
 - Keep each `rule` atomic and general; patient application belongs in `assessment` and `reason`.
-- `supports_conclusion: true` only when that reasoning point is met and genuinely supports the stated framework/effect conclusion.
+- Every atomic `reasoning` row anywhere in the artifact must retain all six fields: `rule`, `case_fact_ids`, `variant_ids`, `assessment`, `supports_conclusion`, and `reason`.
+- `supports_conclusion: true` is valid only when that same row has `assessment: met` and genuinely supports the stated framework/effect conclusion.
+- On a feedback redo, repair the reported object(s) only. Preserve framework names, variant effects, reasons and all unrelated reasoning rows unless the deterministic defect requires a change within that same object.
 
 ## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}

@@ -373,6 +373,12 @@ def run(request: TaskRequest, io: TaskIO) -> str:
 
     Raises `Suspend` when a response must come from outside the process, and
     `TaskFailed` when a budget is exhausted or the model is stagnating.
+
+    Model-call start logging deliberately lives in ``model_observability``. The
+    task-local attempt counter resets when a semantic workflow review re-enters
+    an accepted model step, whereas observability owns the append-only physical
+    attempt number and can distinguish a semantic redo from an ordinary task
+    retry. Serialization-repair status remains task-local and is emitted here.
     """
     state = io.load_state(request.task_id)
     attempts = request.budgets.rewrite + 1 if request.mode == "proforma" else request.budgets.content
@@ -422,9 +428,6 @@ def run(request: TaskRequest, io: TaskIO) -> str:
         raise Suspend(request.task_id, _messages(request, previous, feedback, mode), feedback)
 
     while index < attempts:
-        io.status(
-            f"  {request.task_id}: answering" if index == 0 else f"  {request.task_id}: attempt {index + 1}/{attempts}"
-        )
         completion = io.call_model(_messages(request, previous, feedback, mode))
         raw, truncation = _consume(request, io, completion)
         if truncation:

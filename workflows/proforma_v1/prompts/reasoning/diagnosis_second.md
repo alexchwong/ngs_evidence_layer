@@ -36,6 +36,9 @@ Rules:
 - `signal` means consideration is warranted but the supplied facts do not establish the diagnosis.
 - `none` means no concurrent diagnosis is proposed; no reasoning point needs to support a second-diagnosis conclusion.
 - Return exactly one variant assessment for every supplied variant.
+- Every atomic `reasoning` row must retain all six fields: `rule`, `case_fact_ids`, `variant_ids`, `assessment`, `supports_conclusion`, and `reason`.
+- `supports_conclusion: true` is valid only when that same row has `assessment: met`.
+- On a feedback redo, change only the object(s) implicated by the deterministic feedback unless correcting that object logically requires a linked field in the same object to change. Preserve all unrelated clinical decisions.
 
 ## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}

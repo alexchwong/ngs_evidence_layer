@@ -6,7 +6,9 @@ and injects a small browser extension without duplicating the main UI page.
 """
 from __future__ import annotations
 
+import inspect
 import json
+import subprocess
 import sys
 import threading
 from pathlib import Path
@@ -136,17 +138,155 @@ def action_mark(payload: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-# workflow_server owns setup construction. Thread-local argv injection lets this top
-# layer add the one frozen policy flag without copying that setup implementation.
 _SETUP_CONTEXT = threading.local()
 _REGISTRY_START = base.REGISTRY.start
 _WORKFLOW_ACTION_SETUP = batch.action_setup
+_TERMINAL_WORKFLOW_EXIT_CODE = 3
+_RUN_MAX_ATTEMPTS = 3
+_CHILD_SNAPSHOT = base._Child.snapshot
+
+
+def _child_snapshot_with_attempts(self) -> dict[str, Any]:
+    doc = _CHILD_SNAPSHOT(self)
+    doc["attempt"] = int(getattr(self, "attempt", 1) or 1)
+    doc["max_attempts"] = int(getattr(self, "max_attempts", 1) or 1)
+    doc["retry_pending"] = bool(getattr(self, "retry_pending", False))
+    return doc
+
+
+def _spawn_run_process(argv: list[str]):
+    return subprocess.Popen(
+        argv, cwd=str(base.ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        env=base.child_env(), bufsize=0,
+    )
+
+
+def _new_registry_child(proc, run_id: str, phase: str, exclusive: bool, cleanup, argv: list[str]):
+    """Construct whichever child class the layered UI has installed.
+
+    Older ``ui.server._Child`` does not accept ``argv``.  The retry compatibility
+    layer replaces it with ``RetryChild``, which requires keyword-only ``argv``.
+    Inspect the active class rather than bypassing or duplicating that layer.
+    """
+    params = inspect.signature(base._Child).parameters
+    if "argv" in params:
+        return base._Child(proc, run_id, phase, exclusive, cleanup, argv=list(argv))
+    return base._Child(proc, run_id, phase, exclusive, cleanup)
+
+
+def _terminal_failure_present(run_id: str) -> bool:
+    """Detect persisted non-retryable workflow failure for a run or batch child."""
+    root = base.RUNS_DIR / str(run_id)
+    candidates = [root / "logs" / "workflow-failure.json"]
+    if root.is_dir():
+        candidates.extend(path / "logs" / "workflow-failure.json" for path in root.iterdir() if path.is_dir())
+    for path in candidates:
+        doc = _json_file(path)
+        if isinstance(doc, dict) and doc.get("retryable") is False:
+            return True
+    return False
+
+
+def _pump_run_with_retry(registry, child, handle, argv: list[str]) -> None:
+    """Retry only ordinary exit-1 run failures; terminal reviews are final."""
+    code = None
+    try:
+        for attempt in range(1, child.max_attempts + 1):
+            child.attempt = attempt
+            child.retry_pending = False
+            handle.write(f"[nel-ui] run attempt {attempt}/{child.max_attempts}\n".encode("utf-8"))
+            handle.flush()
+            try:
+                while True:
+                    chunk = child.proc.stdout.read(1)
+                    if not chunk:
+                        break
+                    handle.write(chunk)
+                    handle.flush()
+            except (OSError, ValueError):
+                pass
+            code = child.proc.wait()
+            child.returncode = code
+            handle.write(f"\n[nel-ui] run attempt {attempt}/{child.max_attempts} finished with exit code {code}\n".encode("utf-8"))
+            handle.flush()
+
+            if code == 0:
+                break
+            if code == _TERMINAL_WORKFLOW_EXIT_CODE or _terminal_failure_present(child.run_id):
+                handle.write(b"[nel-ui] terminal workflow failure; outer retry suppressed\n")
+                handle.flush()
+                break
+            # Exit 1 is the ordinary resumable workflow/provider failure. Other
+            # codes (handoff, stop/signal, configuration, terminal) are not
+            # blindly re-executed by the UI launcher.
+            if code != 1 or attempt >= child.max_attempts:
+                break
+
+            child.retry_pending = True
+            handle.write(
+                f"[nel-ui] run failed; resuming the same run as attempt {attempt + 1}/{child.max_attempts}\n".encode("utf-8")
+            )
+            handle.flush()
+            try:
+                child.proc = _spawn_run_process(argv)
+            except OSError as exc:
+                code = 1
+                child.returncode = code
+                handle.write(f"[nel-ui] could not restart nel.py: {exc}\n".encode("utf-8"))
+                handle.flush()
+                break
+        child.retry_pending = False
+    finally:
+        child.returncode = code
+        try:
+            handle.close()
+        except (OSError, ValueError):
+            pass
+        for path in child.cleanup:
+            try:
+                Path(path).unlink()
+            except OSError:
+                pass
+
+
+def _start_run_with_terminal_policy(
+    argv: list[str], *, run_id: str, phase: str, exclusive: bool, cleanup=None
+) -> dict[str, Any]:
+    registry = base.REGISTRY
+    with registry._lock:
+        registry._admit(run_id, exclusive, phase)
+        path = base.console_path(run_id)
+        handle = open(path, "ab")
+        printable = " ".join(["nel.py", *argv[3:]])
+        handle.write(f"\n$ python {printable}\n".encode("utf-8"))
+        handle.flush()
+        try:
+            proc = _spawn_run_process(argv)
+        except OSError as exc:
+            handle.close()
+            raise base.UIError(f"could not start nel.py: {exc}", 500) from exc
+        child = _new_registry_child(proc, run_id, phase, exclusive, cleanup, argv)
+        child.attempt = 1
+        child.max_attempts = _RUN_MAX_ATTEMPTS
+        child.retry_pending = False
+        registry._children[run_id] = child
+        thread = threading.Thread(
+            target=_pump_run_with_retry, args=(registry, child, handle, list(argv)), daemon=True
+        )
+        thread.start()
+        return child.snapshot()
 
 
 def _registry_start_with_marking(argv: list[str], *args: Any, **kwargs: Any) -> dict[str, Any]:
     values = list(argv)
     if getattr(_SETUP_CONTEXT, "mark_validation", False) and "--mark-validation" not in values:
         values.append("--mark-validation")
+    phase = str(kwargs.get("phase") or "")
+    if phase == "run" and not args:
+        return _start_run_with_terminal_policy(
+            values, run_id=str(kwargs["run_id"]), phase=phase,
+            exclusive=bool(kwargs.get("exclusive")), cleanup=kwargs.get("cleanup"),
+        )
     return _REGISTRY_START(values, *args, **kwargs)
 
 
@@ -162,6 +302,7 @@ def _action_setup_with_marking(payload: dict[str, Any]) -> dict[str, Any]:
         _SETUP_CONTEXT.mark_validation = False
 
 
+base._Child.snapshot = _child_snapshot_with_attempts
 base.REGISTRY.start = _registry_start_with_marking
 batch.action_setup = _action_setup_with_marking
 
@@ -173,9 +314,6 @@ def _handle_with_marking(self, path: str, method: str) -> Any:
         return marking(self._param("run"))
     if method == "GET" and path == "/api/console":
         run_ref = str(self._param("run") or "").strip()
-        # During setup the transient console exists before run.json/batch.json.
-        # The batch-aware handler cannot classify that not-yet-materialised path,
-        # so read the registry-owned console directly while the setup child lives.
         if run_ref and ":" not in run_ref and base.REGISTRY.is_active(run_ref):
             try:
                 offset = int(self._param("offset", "0"))
@@ -188,7 +326,6 @@ def _handle_with_marking(self, path: str, method: str) -> Any:
 
 
 batch.Handler._handle = _handle_with_marking
-
 
 
 def _replace_required(text: str, old: str, new: str, label: str) -> str:
@@ -207,23 +344,68 @@ def _patch_page_text(text: str) -> str:
         ),
         (
             "function contentRunRef(){const r=currentRow();if(!r)return state.selected;if(r.kind==='batch')return state.selectedBatchChild||r.run_id;if(r.kind==='batch-child')return r.run_id;return state.selected}",
-            "function contentRunRef(){const r=currentRow();if(!r)return state.selected;if(r.kind==='batch')return state.selectedBatchChild||r.run_id;if(r.kind==='batch-child')return r.run_id;return state.selected}\nfunction selectedSnapshot(){return{generation:state.selectionGeneration,ref:contentRunRef()}}\nfunction selectedSnapshotCurrent(snapshot){return snapshot.generation===state.selectionGeneration&&snapshot.ref===contentRunRef()}\nfunction markingActiveFor(ref){const owner=String(ref||'').split(':')[0];return(state.runner?.children||[]).some(c=>c.run_id===owner&&c.active&&c.phase==='marking')}",
+            "function contentRunRef(){const r=currentRow();if(!r)return state.selected;if(r.kind==='batch')return state.selectedBatchChild||r.run_id;if(r.kind==='batch-child')return r.run_id;return state.selected}\nfunction selectedSnapshot(){return{generation:state.selectionGeneration,ref:contentRunRef()}}\nfunction selectedSnapshotCurrent(snapshot){return snapshot.generation===state.selectionGeneration&&snapshot.ref===contentRunRef()}\nfunction setSelectedRun(id){if(state.selected===id){setConsoleTarget(id);return}state.selectionGeneration+=1;setConsoleTarget(id);state.selected=id;const r=state.runs.find(x=>x.run_id===id);if(r?.kind==='batch-child')state.selectedBatchChild=id;else state.selectedBatchChild='';resetRunArtifacts()}\nfunction markingActiveFor(ref){const owner=String(ref||'').split(':')[0];return(state.runner?.children||[]).some(c=>c.run_id===owner&&c.active&&c.phase==='marking')}",
             "selection helpers",
         ),
         (
-            "function selectRun(id){if(state.selected===id)return;setConsoleTarget(id);state.selected=id;",
-            "function selectRun(id){if(state.selected===id){setConsoleTarget(id);return}state.selectionGeneration+=1;setConsoleTarget(id);state.selected=id;",
+            "function selectRun(id){if(state.selected===id)return;setConsoleTarget(id);state.selected=id;const r=state.runs.find(x=>x.run_id===id);if(r?.kind==='batch-child')state.selectedBatchChild=id;else state.selectedBatchChild='';resetRunArtifacts();renderRuns();syncBatchSelectors();renderProgress();renderRunButton();renderCase();renderReport();renderUsageView();pollSelected()}",
+            "function selectRun(id){if(state.selected===id){setConsoleTarget(id);return}setSelectedRun(id);renderRuns();syncBatchSelectors();renderProgress();renderRunButton();renderCase();renderReport();renderUsageView();pollSelected()}",
             "authoritative run selection",
         ),
         (
-            "async function prepareRun(){setMessage($('prepareMsg'));const payload=",
-            "async function prepareRun(){setMessage($('prepareMsg'));const payload=",
-            "prepare function",
+            "const d=await api('/api/setup',{method:'POST',body:payload});state.selected=d.run_id;state.case=",
+            "const d=await api('/api/setup',{method:'POST',body:payload});setSelectedRun(d.run_id);state.runner={...(state.runner||{}),children:[...(state.runner?.children||[]).filter(c=>c.run_id!==d.run_id),d]};state.runs=mergePendingRuns(state.runs||[]);renderRuns();renderRunButton();loadConsole();state.case=",
+            "canonical preparing selection",
         ),
         (
-            "const d=await api('/api/setup',{method:'POST',body:payload});state.selected=d.run_id;state.case=",
-            "const d=await api('/api/setup',{method:'POST',body:payload});state.selectionGeneration+=1;state.selected=d.run_id;setConsoleTarget(d.run_id);state.runner={...(state.runner||{}),children:[...(state.runner?.children||[]).filter(c=>c.run_id!==d.run_id),d]};state.runs=mergePendingRuns(state.runs||[]);renderRuns();renderRunButton();loadConsole();state.case=",
-            "immediate preparing row and console",
+            "async function refreshRuns(selectIf=''){try{state.runner=await api('/api/runner');const d=await api('/api/runs');state.runs=mergePendingRuns(d.runs||[]);if(selectIf)state.selected=selectIf;if(state.selected&&!state.runs.some(r=>r.run_id===state.selected)&&!isActive(state.selected))state.selected='';renderRuns();syncBatchSelectors();renderProgress();renderRunButton()}catch(e){setMessage($('prepareMsg'),e.message,true)}}",
+            "async function refreshRuns(){const snapshot=selectedSnapshot();try{const runner=await api('/api/runner'),d=await api('/api/runs');state.runner=runner;state.runs=mergePendingRuns(d.runs||[]);if(selectedSnapshotCurrent(snapshot)&&state.selected&&!state.runs.some(r=>r.run_id===state.selected)&&!isActive(state.selected)){state.selectionGeneration+=1;state.selected='';setConsoleTarget('');resetRunArtifacts()}renderRuns();syncBatchSelectors();renderProgress();renderRunButton()}catch(e){setMessage($('prepareMsg'),e.message,true)}}",
+            "selection-neutral run refresh",
+        ),
+        (
+            "await refreshRuns(d.run_id);",
+            "await refreshRuns();",
+            "prepare refresh selection neutrality",
+        ),
+        (
+            "await refreshRuns(state.selected);await pollRunner()",
+            "await refreshRuns();await pollRunner()",
+            "run action refresh selection neutrality",
+        ),
+        (
+            "await refreshRuns(state.selected)}else{renderRuns();renderRunButton()}",
+            "await refreshRuns()}else{renderRuns();renderRunButton()}",
+            "runner refresh selection neutrality",
+        ),
+        (
+            "if(Math.random()<.25)await refreshRuns(state.selected)",
+            "if(Math.random()<.25)await refreshRuns()",
+            "periodic refresh selection neutrality",
+        ),
+        (
+            "$('refreshRuns').addEventListener('click',()=>refreshRuns(state.selected));",
+            "$('refreshRuns').addEventListener('click',()=>refreshRuns());",
+            "manual refresh selection neutrality",
+        ),
+        (
+            "current=doc?.current_phase||c.stage||'setup'",
+            "current=doc?.execution_current_phase||doc?.current_phase||c.stage||'setup'",
+            "batch execution phase label",
+        ),
+        (
+            "current=doc?.current_phase||st?.stage||r.stage||'setup'",
+            "current=doc?.execution_current_phase||doc?.current_phase||st?.stage||r.stage||'setup'",
+            "single execution phase label",
+        ),
+        (
+            "return phases.map(phase=>{let cls='';if(phase.status==='completed')cls='done';else if(phase.status==='failed')cls='failed';else if(phase.status==='blocked')cls='blocked';else if(phase.status==='running'||phase.id===doc.current_phase)cls=blocked?'blocked':failed?'failed':'current';",
+            "return phases.map(phase=>{let cls='';if(phase.id===(doc.execution_current_phase||doc.current_phase)&&!clinicalComplete)cls=blocked?'blocked':failed?'failed':'current';else if(phase.status==='completed')cls='done';else if(phase.status==='failed')cls='failed';else if(phase.status==='blocked')cls='blocked';else if(phase.status==='running')cls=blocked?'blocked':failed?'failed':'current';",
+            "execution phase segment highlight",
+        ),
+        (
+            "const id=doc.current_phase||stage,hit=doc.phases.find(x=>x.id===id);",
+            "const id=doc.execution_current_phase||stage||doc.current_phase,hit=doc.phases.find(x=>x.id===id);",
+            "execution phase text",
         ),
         (
             "if(target.kind==='batch'){if(target.status==='complete'){btn.disabled=true;btn.textContent='Batch complete'}else if(target.status==='marking_incomplete'){btn.disabled=false;btn.textContent='Retry marking'}else{btn.disabled=false;btn.textContent=['complete_with_errors','stopped','blocked'].includes(target.status)?'Resume batch':'Start batch'}return}const marking=target.marking||{};if(target.complete||target.archived){if(!target.archived&&marking.applicable&&['pending','failed','stale'].includes(String(marking.status||'pending'))){btn.disabled=false;btn.textContent='Retry marking'}else{btn.disabled=true;btn.textContent=target.archived?'Archived':'Run complete'}}else{btn.disabled=false;btn.textContent='Start run'}",

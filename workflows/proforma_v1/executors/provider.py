@@ -16,7 +16,6 @@ def _reasoning_model_proxy(step):
 
 
 
-
 def _normalize_reasoning_output(step, context):
     from workflows.proforma_v1 import reasoning_runtime
     from workflows.proforma_v1.engine import artifacts as workflow_artifacts
@@ -109,6 +108,7 @@ class ProviderExecutor:
         workflow = context.get("workflow")
         if workflow is None:
             return
+        from workflows.proforma_v1 import model_observability
         from workflows.proforma_v1.engine import artifacts as workflow_artifacts
         for step_id in step_ids:
             try:
@@ -118,6 +118,11 @@ class ProviderExecutor:
             handler = (step.execution or {}).get("provider_handler")
             if handler in {"generic_transform", "reasoning_model", "reasoning_optional_model"}:
                 workflow_artifacts.generic_output_path(context.work, step, create=False).unlink(missing_ok=True)
+            if handler in {"reasoning_model", "reasoning_optional_model"}:
+                # Clear only mutable compatibility files. Numeric attempt
+                # directories are immutable audit history and must survive the
+                # semantic review retry.
+                model_observability.invalidate_compatibility_view(context.work, step_id)
 
     def execute(self, step, context):
         execution = step.execution or {}

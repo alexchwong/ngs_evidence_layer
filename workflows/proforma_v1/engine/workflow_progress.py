@@ -33,7 +33,7 @@ def load_progress_plan(workflow) -> dict[str, Any]:
     """Load and validate UI-only progress groups embedded in a workflow.
 
     ``presentation.progress_phases`` groups logical workflow steps into
-    human-readable UI phases.  Presentation metadata cannot affect execution.
+    human-readable UI phases. Presentation metadata cannot affect execution.
     If omitted, every logical step becomes its own phase so progress remains
     workflow-derived rather than hardcoded.
     """
@@ -136,7 +136,6 @@ class WorkflowProgress:
             step_id = row.get("id")
             status = row.get("status")
             if step_id in self._status and status in VALID_STATES:
-                # A stale running/failed marker must not block a resumable run.
                 self._status[step_id] = "pending" if status in {"running", "failed"} else status
 
     def status(self, step_id: str) -> str | None:
@@ -169,6 +168,14 @@ class WorkflowProgress:
         if changed:
             self.write()
 
+    def _phase_for_step(self, step_id: str | None) -> str | None:
+        if not step_id:
+            return None
+        for phase in self.plan["phases"]:
+            if step_id in phase["steps"]:
+                return phase["id"]
+        return None
+
     def snapshot(self) -> dict[str, Any]:
         step_rows = []
         for step in self.workflow.steps:
@@ -181,6 +188,7 @@ class WorkflowProgress:
         complete = bool(step_rows) and all(row["status"] in FINAL_STATES for row in step_rows)
         if execution_current_step is None and not complete:
             execution_current_step = next((row["id"] for row in step_rows if row["status"] not in FINAL_STATES), None)
+        execution_current_phase = self._phase_for_step(execution_current_step)
 
         if complete and self.plan["phases"]:
             self._visible_high_water_index = len(self.plan["phases"]) - 1
@@ -195,7 +203,6 @@ class WorkflowProgress:
                 status = "pending"
             phases.append({**phase, "status": status})
         visible_current_phase = self.plan["phases"][high]["id"] if self.plan["phases"] else None
-        current_step = execution_current_step
 
         return {
             "schema_version": SCHEMA_VERSION,
@@ -209,8 +216,9 @@ class WorkflowProgress:
             "visible_current_phase": visible_current_phase,
             "visible_high_water_phase": visible_current_phase,
             "visible_high_water_index": self._visible_high_water_index,
+            "execution_current_phase": execution_current_phase,
             "execution_current_step": execution_current_step,
-            "current_step": current_step,
+            "current_step": execution_current_step,
             "phases": phases,
             "steps": step_rows,
         }
