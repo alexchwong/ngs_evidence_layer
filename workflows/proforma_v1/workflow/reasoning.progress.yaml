@@ -1,0 +1,109 @@
+version: 1
+phases:
+- id: case_preparation
+  label: Case preparation
+  steps:
+  - structure
+  - corpus
+- id: diagnosis_owners
+  label: Diagnosis owners
+  steps:
+  - diagnosis.who.prepare
+  - diagnosis.who
+  - diagnosis.who.validate
+  - diagnosis.icc.prepare
+  - diagnosis.icc
+  - diagnosis.icc.validate
+  - diagnosis.second.prepare
+  - diagnosis.second
+  - diagnosis.second.validate
+  - diagnosis.registry
+- id: diagnosis_evidence_review
+  label: Diagnosis evidence review
+  steps:
+  - diagnosis.evidence.owner_assignments
+  - diagnosis.evidence.rescue.prepare
+  - diagnosis.evidence.assignment
+  - diagnosis.evidence.assignment.validate
+  - diagnosis.evidence.merge
+  - diagnosis.evidence.audit.prepare
+  - diagnosis.evidence.audit
+  - diagnosis.evidence.audit.validate
+  - diagnosis.evidence.disputes
+  - diagnosis.evidence.adjudication
+  - diagnosis.evidence.adjudication.validate
+  - diagnosis.evidence.finalize
+- id: diagnosis_reasoning_audit
+  label: Diagnosis reasoning audit
+  steps:
+  - diagnosis.reasoning.prepare
+  - diagnosis.reasoning.audit
+  - diagnosis.reasoning.audit.validate
+- id: diagnosis_finalization
+  label: Diagnosis finalization
+  steps:
+  - diagnosis.evaluate
+  - diagnosis.who.review
+  - diagnosis.icc.review
+  - diagnosis.second.review
+  - diagnosis.finalize
+- id: ptbg_owners
+  label: PTBG owners
+  steps:
+  - prognosis.prepare
+  - treatment.prepare
+  - biomarker.prepare
+  - germline.prepare
+  - prognosis
+  - treatment
+  - biomarker
+  - germline
+  - prognosis.validate
+  - treatment.validate
+  - biomarker.validate
+  - germline.validate
+  - ptbg.registry
+- id: ptbg_evidence_review
+  label: PTBG evidence review
+  steps:
+  - ptbg.evidence.owner_assignments
+  - ptbg.evidence.rescue.prepare
+  - ptbg.evidence.assignment
+  - ptbg.evidence.assignment.validate
+  - ptbg.evidence.merge
+  - ptbg.evidence.audit.prepare
+  - ptbg.evidence.audit
+  - ptbg.evidence.audit.validate
+  - ptbg.evidence.disputes
+  - ptbg.evidence.adjudication
+  - ptbg.evidence.adjudication.validate
+  - ptbg.evidence.finalize
+- id: ptbg_reasoning_audit
+  label: PTBG reasoning audit
+  steps:
+  - ptbg.reasoning.direct
+  - ptbg.reasoning.prepare
+  - ptbg.reasoning.audit
+  - ptbg.reasoning.audit.validate
+  - ptbg.evaluate
+- id: evidence_finalization
+  label: Evidence finalization
+  steps:
+  - prognosis.review
+  - treatment.review
+  - biomarker.review
+  - germline.review
+  - evidence.finalize
+  - decision.ledger
+- id: report_synthesis
+  label: Report synthesis
+  steps:
+  - report.blocks
+  - report.write
+  - dissent.summary
+- id: report_verification
+  label: Report verification
+  steps:
+  - dissent.summary.validate
+  - report.preservation
+  - report.finalize

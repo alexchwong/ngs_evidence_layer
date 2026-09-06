@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["derived_states", "criteria"],
+  "properties": {
+    "derived_states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["state_id", "status", "value", "case_fact_ids", "comments"],
+        "properties": {
+          "state_id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["supported", "unsupported", "indeterminate"]},
+          "value": {"type": ["string", "number", "boolean", "null"]},
+          "case_fact_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "comments": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion_id", "status", "case_fact_ids", "comments"],
+        "properties": {
+          "criterion_id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["met", "not_met", "unknown"]},
+          "case_fact_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "comments": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    }
+  }
+}

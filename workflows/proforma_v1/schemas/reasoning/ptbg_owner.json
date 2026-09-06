@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain",
+    "propositions"
+  ],
+  "properties": {
+    "domain": {
+      "enum": [
+        "prognosis",
+        "treatment",
+        "biomarker",
+        "germline"
+      ]
+    },
+    "propositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proposition_id",
+          "bucket",
+          "text",
+          "reason",
+          "variant_ids",
+          "reportable",
+          "rules",
+          "derived_states",
+          "applications",
+          "conclusion",
+          "framework",
+          "worksheet"
+        ],
+        "properties": {
+          "proposition_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bucket": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variant_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "reportable": {
+            "type": "boolean"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rule_id",
+                "statement",
+                "evidence_required",
+                "proposed_card_tags",
+                "direct_requirement"
+              ],
+              "properties": {
+                "rule_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_required": {
+                  "type": "boolean"
+                },
+                "proposed_card_tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\[card:[0-9a-f]{12}\\]$"
+                  },
+                  "uniqueItems": true
+                },
+                "direct_requirement": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "fact_kind",
+                        "expected_value"
+                      ],
+                      "properties": {
+                        "fact_kind": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "expected_value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "derived_states": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state_id",
+                "label",
+                "case_fact_ids",
+                "variant_ids",
+                "proposed_value",
+                "reason"
+              ],
+              "properties": {
+                "state_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "case_fact_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "variant_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "proposed_value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "application_id",
+                "rule_ids",
+                "case_fact_ids",
+                "state_ids",
+                "mode",
+                "direct_match",
+                "proposed_status",
+                "reason"
+              ],
+              "properties": {
+                "application_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rule_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "case_fact_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "state_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "mode": {
+                  "enum": [
+                    "direct",
+                    "semantic"
+                  ]
+                },
+                "direct_match": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "case_fact_id",
+                        "expected_value"
+                      ],
+                      "properties": {
+                        "case_fact_id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "expected_value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "proposed_status": {
+                  "enum": [
+                    "met",
+                    "not_met",
+                    "unknown"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "conclusion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operator",
+              "application_ids"
+            ],
+            "properties": {
+              "operator": {
+                "enum": [
+                  "all_of",
+                  "any_of"
+                ]
+              },
+              "application_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              }
+            }
+          },
+          "framework": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "applicability_application_id"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "applicability_application_id": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ]
+          },
+          "worksheet": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "factor",
+                "application_id",
+                "status",
+                "reason"
+              ],
+              "properties": {
+                "factor": {
+                  "enum": [
+                    "predisposition_evidence",
+                    "event_compatibility",
+                    "age",
+                    "vaf",
+                    "personal_history",
+                    "family_history",
+                    "phenotype"
+                  ]
+                },
+                "application_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "enum": [
+                    "supportive",
+                    "consistent",
+                    "discordant",
+                    "not_supplied",
+                    "not_assessable"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

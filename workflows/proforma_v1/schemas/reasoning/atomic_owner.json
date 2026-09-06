@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "authority",
+    "proposal",
+    "rules",
+    "derived_states",
+    "criteria",
+    "logic",
+    "root_id",
+    "reason"
+  ],
+  "properties": {
+    "authority": {
+      "enum": [
+        "who5",
+        "icc",
+        "second_diagnosis",
+        "prognosis",
+        "treatment",
+        "biomarker",
+        "germline"
+      ]
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_id", "label", "kind"],
+      "properties": {
+        "proposal_id": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1}
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "statement", "evidence_required"],
+        "properties": {
+          "rule_id": {"type": "string", "minLength": 1},
+          "statement": {"type": "string", "minLength": 1},
+          "evidence_required": {"type": "boolean"}
+        }
+      }
+    },
+    "derived_states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["state_id", "label", "case_fact_ids", "variant_ids", "proposed_value"],
+        "properties": {
+          "state_id": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "case_fact_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "variant_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "proposed_value": {
+            "type": ["string", "number", "boolean", "null"]
+          }
+        }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterion_id",
+          "rule_ids",
+          "case_fact_ids",
+          "variant_ids",
+          "state_ids",
+          "proposed_status"
+        ],
+        "properties": {
+          "criterion_id": {"type": "string", "minLength": 1},
+          "rule_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "case_fact_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "variant_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "state_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "proposed_status": {
+            "enum": ["met", "not_met", "unknown"]
+          }
+        }
+      }
+    },
+    "logic": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["logic_id", "operator", "members"],
+        "properties": {
+          "logic_id": {"type": "string", "minLength": 1},
+          "operator": {"enum": ["all_of", "any_of"]},
+          "members": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "root_id": {
+      "type": ["string", "null"]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

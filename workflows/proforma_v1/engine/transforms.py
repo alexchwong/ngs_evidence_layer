@@ -22,6 +22,32 @@ def delegated(value: Any, context: dict, params: dict) -> Any:
     return value
 
 
+def reasoning_delegated(value: Any, context: dict, params: dict) -> Any:
+    """Reasoning-workflow marker for a cloned deterministic boundary.
+
+    Phase 1 intentionally preserves the shipped default behaviour while giving
+    ``reasoning.yaml`` distinct transform identities. Later reasoning phases can
+    replace these markers with reasoning-specific implementations without
+    changing the transform names used by ``default.yaml``.
+    """
+    from workflows.proforma_v1 import reasoning_runtime
+    return reasoning_runtime.delegated_transform(value, context=context, params=params)
+
+
+def reasoning_diagnostic(name):
+    def apply_reasoning_diagnostic(value: Any, context: dict, params: dict) -> Any:
+        from workflows.proforma_v1 import reasoning_runtime
+        return reasoning_runtime.run_diagnostic_transform(name, context, params)
+    return apply_reasoning_diagnostic
+
+
+def reasoning_ptbg(name):
+    def apply_reasoning_ptbg(value: Any, context: dict, params: dict) -> Any:
+        from workflows.proforma_v1 import reasoning_runtime
+        return reasoning_runtime.run_ptbg_transform(name, context, params)
+    return apply_reasoning_ptbg
+
+
 REGISTRY = {
     "identity": identity,
     "load_corpus": delegated,
@@ -33,6 +59,52 @@ REGISTRY = {
     "derive_diagnostic_cmcs": derive_diagnostic_cmcs,
     "assess_who1_routing_change": delegated,
     "commit_who1_routing": delegated,
+    # ``reasoning.yaml`` owns separate deterministic transform identities so
+    # experimental reasoning semantics never require edits to default names.
+    "reasoning_load_corpus": reasoning_delegated,
+    "reasoning_finalize_evidence": reasoning_delegated,
+    "reasoning_report_blocks": reasoning_delegated,
+    "reasoning_finalize_report": reasoning_delegated,
+    "reasoning_prepare_diagnostic_owner": reasoning_diagnostic("reasoning_prepare_diagnostic_owner"),
+    "reasoning_validate_diagnostic_owner": reasoning_diagnostic("reasoning_validate_diagnostic_owner"),
+    "reasoning_build_diagnostic_registry": reasoning_diagnostic("reasoning_build_diagnostic_registry"),
+    "reasoning_collect_diagnostic_owner_assignments": reasoning_diagnostic("reasoning_collect_diagnostic_owner_assignments"),
+    "reasoning_prepare_diagnostic_rescue": reasoning_diagnostic("reasoning_prepare_diagnostic_rescue"),
+    "reasoning_validate_diagnostic_rescue": reasoning_diagnostic("reasoning_validate_diagnostic_rescue"),
+    "reasoning_merge_diagnostic_assignments": reasoning_diagnostic("reasoning_merge_diagnostic_assignments"),
+    "reasoning_prepare_diagnostic_evidence_audit": reasoning_diagnostic("reasoning_prepare_diagnostic_evidence_audit"),
+    "reasoning_validate_diagnostic_evidence_audit": reasoning_diagnostic("reasoning_validate_diagnostic_evidence_audit"),
+    "reasoning_build_diagnostic_disputes": reasoning_diagnostic("reasoning_build_diagnostic_disputes"),
+    "reasoning_validate_diagnostic_adjudication": reasoning_diagnostic("reasoning_validate_diagnostic_adjudication"),
+    "reasoning_finalize_diagnostic_evidence": reasoning_diagnostic("reasoning_finalize_diagnostic_evidence"),
+    "reasoning_prepare_diagnostic_reasoning_audit": reasoning_diagnostic("reasoning_prepare_diagnostic_reasoning_audit"),
+    "reasoning_validate_diagnostic_reasoning_audit": reasoning_diagnostic("reasoning_validate_diagnostic_reasoning_audit"),
+    "reasoning_evaluate_diagnoses": reasoning_diagnostic("reasoning_evaluate_diagnoses"),
+    "reasoning_owner_review": reasoning_diagnostic("reasoning_owner_review"),
+    "reasoning_finalize_atomic_diagnosis": reasoning_diagnostic("reasoning_finalize_atomic_diagnosis"),
+
+    "reasoning_prepare_ptbg_owner": reasoning_ptbg("reasoning_prepare_ptbg_owner"),
+    "reasoning_validate_ptbg_owner": reasoning_ptbg("reasoning_validate_ptbg_owner"),
+    "reasoning_build_ptbg_registry": reasoning_ptbg("reasoning_build_ptbg_registry"),
+    "reasoning_collect_ptbg_owner_assignments": reasoning_ptbg("reasoning_collect_ptbg_owner_assignments"),
+    "reasoning_prepare_ptbg_rescue": reasoning_ptbg("reasoning_prepare_ptbg_rescue"),
+    "reasoning_validate_ptbg_rescue": reasoning_ptbg("reasoning_validate_ptbg_rescue"),
+    "reasoning_merge_ptbg_assignments": reasoning_ptbg("reasoning_merge_ptbg_assignments"),
+    "reasoning_prepare_ptbg_evidence_audit": reasoning_ptbg("reasoning_prepare_ptbg_evidence_audit"),
+    "reasoning_validate_ptbg_evidence_audit": reasoning_ptbg("reasoning_validate_ptbg_evidence_audit"),
+    "reasoning_build_ptbg_disputes": reasoning_ptbg("reasoning_build_ptbg_disputes"),
+    "reasoning_validate_ptbg_adjudication": reasoning_ptbg("reasoning_validate_ptbg_adjudication"),
+    "reasoning_finalize_ptbg_evidence": reasoning_ptbg("reasoning_finalize_ptbg_evidence"),
+    "reasoning_evaluate_ptbg_direct_applications": reasoning_ptbg("reasoning_evaluate_ptbg_direct_applications"),
+    "reasoning_prepare_ptbg_reasoning_audit": reasoning_ptbg("reasoning_prepare_ptbg_reasoning_audit"),
+    "reasoning_validate_ptbg_reasoning_audit": reasoning_ptbg("reasoning_validate_ptbg_reasoning_audit"),
+    "reasoning_evaluate_ptbg": reasoning_ptbg("reasoning_evaluate_ptbg"),
+    "reasoning_ptbg_owner_review": reasoning_ptbg("reasoning_ptbg_owner_review"),
+    "reasoning_finalize_atomic_evidence": reasoning_ptbg("reasoning_finalize_atomic_evidence"),
+    "reasoning_build_decision_ledger": reasoning_ptbg("reasoning_build_decision_ledger"),
+    "reasoning_validate_dissent_summary": reasoning_ptbg("reasoning_validate_dissent_summary"),
+    "reasoning_report_blocks": reasoning_ptbg("reasoning_report_blocks"),
+    "reasoning_finalize_report": reasoning_ptbg("reasoning_finalize_report"),
 }
 
 

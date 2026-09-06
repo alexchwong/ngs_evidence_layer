@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adjudications"],
+  "properties": {
+    "adjudications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "card_tag", "supports_rule", "reason"],
+        "properties": {
+          "rule_id": {"type": "string", "minLength": 1},
+          "card_tag": {"type": "string", "pattern": "^\\[card:[0-9a-f]{12}\\]$"},
+          "supports_rule": {"type": "boolean"},
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

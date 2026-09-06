@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import json
+import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -22,6 +25,63 @@ class SyntaxParseError(ValueError):
             if self.column is not None:
                 where += f", column {self.column}"
         return f"{self.format_name} parser error{where}: {self.message}"
+
+
+class WrongStructuredArtifactError(ValueError):
+    """The model returned a document of the wrong kind, not damaged YAML/JSON.
+
+    This is intentionally distinct from :class:`SyntaxParseError`: converting a
+    Markdown reasoning document into a schema mapping would require adding,
+    deleting and reorganising informational content, which a syntax-only repair
+    model is forbidden to do.  Callers should return this failure to the
+    originating model instead of consuming the syntax-repair budget.
+    """
+
+    def __init__(self, format_name: str, reason: str):
+        self.format_name = str(format_name).upper()
+        self.reason = str(reason)
+        super().__init__(
+            f"wrong artifact type for {self.format_name}: {self.reason}. "
+            f"Regenerate the complete answer as the required single {self.format_name} artifact; "
+            "do not ask syntax repair to convert a prose/Markdown document into the schema."
+        )
+
+
+
+
+_REPAIR_OBSERVER: ContextVar[Any] = ContextVar("syntax_repair_observer", default=None)
+_CLASSIFY_WRONG_ARTIFACT: ContextVar[bool] = ContextVar("classify_wrong_structured_artifact", default=False)
+
+
+@contextmanager
+def classify_wrong_artifacts():
+    """Enable wrong-artifact classification for one reasoning output boundary."""
+    token = _CLASSIFY_WRONG_ARTIFACT.set(True)
+    try:
+        yield
+    finally:
+        _CLASSIFY_WRONG_ARTIFACT.reset(token)
+
+
+@contextmanager
+def observe_deterministic_repairs(callback):
+    """Observe deterministic cleanup performed inside one bounded caller context.
+
+    The hook is opt-in and context-local so shared/default workflows are unchanged.
+    Reasoning provider execution uses it to persist cleanup that occurs inside the
+    generic model runner before the reasoning executor can inspect the artifact.
+    """
+    token = _REPAIR_OBSERVER.set(callback)
+    try:
+        yield
+    finally:
+        _REPAIR_OBSERVER.reset(token)
+
+
+def _emit_repairs(repairs: list[str]) -> None:
+    callback = _REPAIR_OBSERVER.get()
+    if callback is not None and repairs:
+        callback(tuple(repairs))
 
 
 class SyntaxAdapter(Protocol):
@@ -51,8 +111,48 @@ def _fenced_block(text: str) -> str | None:
     return "\n".join(lines[start + 1 : end])
 
 
+_MD_HEADING_RE = re.compile(r"^\s{0,3}(#{1,6})\s+\S", re.MULTILINE)
+_MD_TABLE_SEPARATOR_RE = re.compile(
+    r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$",
+    re.MULTILINE,
+)
+_MD_DOCUMENT_SEPARATOR_RE = re.compile(r"^ {0,3}---\s*$", re.MULTILINE)
+
+
+def wrong_artifact_reason(text: str) -> str | None:
+    """Return a conservative reason when ``text`` is clearly a Markdown document.
+
+    A single ``# comment`` is legal YAML and is therefore never sufficient.
+    We require unmistakable document structure: Markdown subsection headings,
+    or a Markdown table associated with headings.  Fenced structured output is
+    excluded because deterministic cleanup can safely extract the fenced block.
+    """
+    raw = str(text or "")
+    if not raw.strip() or _fenced_block(raw) is not None:
+        return None
+    headings = list(_MD_HEADING_RE.finditer(raw))
+    subheadings = [match for match in headings if len(match.group(1)) >= 2]
+    if len(subheadings) >= 1 and len(headings) >= 2:
+        return "the response is a multi-section Markdown document rather than one structured mapping"
+    if headings and _MD_TABLE_SEPARATOR_RE.search(raw):
+        return "the response contains a Markdown table/document rather than one structured mapping"
+    separators = list(_MD_DOCUMENT_SEPARATOR_RE.finditer(raw))
+    if subheadings and separators:
+        return "the response uses Markdown document sections/separators rather than one structured mapping"
+    # A document separator in the middle of otherwise mapping-like material is
+    # also not a local YAML syntax defect: it represents more than one document.
+    # Do not classify a leading YAML ``---`` document marker this way.
+    mapping_line = re.compile(r"^\s*[\"']?[A-Za-z_][A-Za-z0-9_.-]*[\"']?\s*:", re.MULTILINE)
+    for separator in separators:
+        before = raw[: separator.start()]
+        after = raw[separator.end() :]
+        if mapping_line.search(before) and mapping_line.search(after):
+            return "the response contains multiple document sections rather than one structured mapping"
+    return None
+
+
 # A line that plausibly belongs to a YAML/JSON document rather than to prose.
-_STRUCTURAL_RE = __import__("re").compile(
+_STRUCTURAL_RE = re.compile(
     r"""^\s*(?:
           [-#]                       # list item or comment
         | [\[\]{}]                   # JSON punctuation
@@ -60,7 +160,7 @@ _STRUCTURAL_RE = __import__("re").compile(
         | \|                         # block scalar continuation
         | >                          #  "
     )""",
-    __import__("re").VERBOSE,
+    re.VERBOSE,
 )
 
 
@@ -84,7 +184,7 @@ def _strip_surrounding_prose(text: str) -> tuple[str, bool]:
     return "\n".join(lines[first : last + 1]), True
 
 
-def _common_cleanup(text: str) -> tuple[str, list[str]]:
+def _common_cleanup(text: str, *, format_name: str) -> tuple[str, list[str]]:
     """Apply only representation-only cleanup shared by structured formats."""
     repairs: list[str] = []
     candidate = text
@@ -109,6 +209,15 @@ def _common_cleanup(text: str) -> tuple[str, list[str]]:
         if block is not None:
             candidate = block
             repairs.append("extracted the fenced code block from surrounding prose")
+
+    # After any safely extractable fenced block has been handled, a wholesale
+    # Markdown document is not a syntax-repair problem.  Raise before parser
+    # repair so the originating model receives contract feedback instead.
+    reason = wrong_artifact_reason(candidate) if _CLASSIFY_WRONG_ARTIFACT.get() else None
+    if reason:
+        _emit_repairs(repairs)
+        raise WrongStructuredArtifactError(format_name, reason)
+
     if candidate.strip():
         trimmed, did = _strip_surrounding_prose(candidate)
         if did:
@@ -136,7 +245,7 @@ class YamlSyntaxAdapter:
             raise SyntaxParseError("YAML", problem, line, column) from exc
 
     def deterministic_cleanup(self, text: str) -> tuple[str, list[str]]:
-        candidate, repairs = _common_cleanup(text)
+        candidate, repairs = _common_cleanup(text, format_name=self.name)
         # YAML forbids tabs for indentation. Expanding leading indentation tabs
         # preserves the model's apparent nesting intent without touching scalar tabs.
         lines: list[str] = []
@@ -160,10 +269,7 @@ class YamlSyntaxAdapter:
         try:
             self.parse(candidate)
         except SyntaxParseError:
-            import json as _json
-            import re as _re
-
-            scalar_line = _re.compile(
+            scalar_line = re.compile(
                 r"^(?P<prefix>\s*(?:-\s+)?[^:#\n][^:\n]*:\s*)"
                 r"(?P<value>[^\n]+)$"
             )
@@ -181,7 +287,7 @@ class YamlSyntaxAdapter:
                     and stripped
                     and stripped[0] not in "'\"[{>|&*!"
                 ):
-                    quoted_lines.append(match.group("prefix") + _json.dumps(value))
+                    quoted_lines.append(match.group("prefix") + json.dumps(value))
                     quoted_any = True
                 else:
                     quoted_lines.append(line)
@@ -194,6 +300,7 @@ class YamlSyntaxAdapter:
                 else:
                     candidate = repaired
                     repairs.append("quoted YAML plain scalar containing colon-space")
+        _emit_repairs(repairs)
         return candidate, repairs
 
 
@@ -207,7 +314,9 @@ class JsonSyntaxAdapter:
             raise SyntaxParseError("JSON", exc.msg, exc.lineno, exc.colno) from exc
 
     def deterministic_cleanup(self, text: str) -> tuple[str, list[str]]:
-        return _common_cleanup(text)
+        candidate, repairs = _common_cleanup(text, format_name=self.name)
+        _emit_repairs(repairs)
+        return candidate, repairs
 
 
 def adapter_for(format_name: str) -> SyntaxAdapter:

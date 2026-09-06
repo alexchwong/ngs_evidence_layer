@@ -7,7 +7,9 @@ from typing import Any
 import yaml
 from workflows.proforma_v1.model_binding import Binding
 HERE=Path(__file__).resolve().parent; ROOT=HERE/'pipelines'
-ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication','report_write','preservation_check','marking','syntax_repair')
+CORE_ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication','report_write','preservation_check','marking','syntax_repair')
+OPTIONAL_ROLES=('reasoning_audit','dissent_summary')
+ROLES=CORE_ROLES+OPTIONAL_ROLES
 REASONING_LEVELS=('default','none','minimal','low','medium','high','xhigh')
 _PROVIDER_ROUTING_LIST_FIELDS=('order','only','ignore')
 _PROVIDER_ROUTING_BOOL_FIELDS=('allow_fallbacks','require_parameters')
@@ -21,7 +23,13 @@ def configure(root:Path|str|None=None):
 class PipelinePlan:
     pipeline_id:str; description:str; path:Path; doc:dict[str,Any]
 def _validate_role_rows(rows:Any,label:str)->None:
-    if not isinstance(rows,dict) or set(rows)!=set(ROLES): raise ValueError(f'{label} must map exactly {list(ROLES)}')
+    if not isinstance(rows,dict): raise ValueError(f'{label} must map exactly {list(CORE_ROLES)} with optional roles from {list(OPTIONAL_ROLES)}')
+    missing=set(CORE_ROLES)-set(rows); unknown=set(rows)-set(ROLES)
+    if missing or unknown:
+        detail=[]
+        if missing: detail.append('missing: '+', '.join(sorted(missing)))
+        if unknown: detail.append('unsupported: '+', '.join(sorted(unknown)))
+        raise ValueError(f'{label} must map exactly {list(CORE_ROLES)} with optional roles from {list(OPTIONAL_ROLES)} ({"; ".join(detail)})')
     for role,row in rows.items():
         if not isinstance(row,dict) or not isinstance(row.get('model'),str) or not row['model'].strip(): raise ValueError(f'{label}.{role}.model must be non-empty')
         if not isinstance(row.get('max_tokens'),int) or isinstance(row.get('max_tokens'),bool) or row['max_tokens']<=0: raise ValueError(f'{label}.{role}.max_tokens must be positive')
@@ -92,8 +100,11 @@ def load(name:str):
     return load_yaml(paths[name])
 def descriptions(): return {n:load(n).description for n in names()}
 def _resolved_row(plan:PipelinePlan,role:str)->tuple[dict[str,Any],dict[str,Any]|None]:
-    if 'model_roles' not in plan.doc: return plan.doc['models'][role],None
-    row=plan.doc['model_roles'][role]; alias=row['model']; entry=plan.doc['model_aliases'][alias]
+    rows=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
+    if role not in rows:
+        raise ValueError(f'pipeline {plan.pipeline_id!r} does not configure optional model role {role!r}')
+    if 'model_roles' not in plan.doc: return rows[role],None
+    row=rows[role]; alias=row['model']; entry=plan.doc['model_aliases'][alias]
     if isinstance(entry,str): model=entry; routing=None
     else: model=entry['model']; routing=entry.get('provider')
     resolved=dict(row); resolved['model']=model
@@ -110,7 +121,9 @@ def binding(plan:PipelinePlan,role:str)->Binding:
     return Binding(pipeline=plan.pipeline_id,role=role,kind='openai-compatible',model=str(row['model']),temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']),base_url=base.rstrip('/'),base_url_env=env,api_key_env=api_env,api_key=os.environ.get(api_env,'') if api_env else '',timeout_s=float(provider.get('timeout_s',900)),provider_routing=provider_routing,reasoning=reasoning)
 def describe(plan):
     lines=[f'provider: {plan.doc["provider"]["type"]}','models:']
+    rows=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
     for role in ROLES:
+        if role not in rows: continue
         row,routing=_resolved_row(plan,role)
         suffix=f' provider={routing}' if routing else ''
         lines.append(f'  {role}: {row["model"]} max_tokens={row["max_tokens"]} temperature={row.get("temperature",0)} reasoning={row.get("reasoning","default")}{suffix}')

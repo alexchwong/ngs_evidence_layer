@@ -53,3 +53,13 @@ model_roles:
     model: default
     temperature: 0.0
     max_tokens: 16384
+  reasoning_audit:
+    model: default
+    temperature: 0.0
+    max_tokens: 32768
+    reasoning: high
+  dissent_summary:
+    model: default
+    temperature: 0.0
+    max_tokens: 16384
+    reasoning: low

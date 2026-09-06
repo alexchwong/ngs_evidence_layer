@@ -1,0 +1,1444 @@
+version: 1
+workflow_id: proforma-v1
+self_groups:
+  ptbg_owners:
+    strategy: batch_ready
+  final_presentation:
+    strategy: batch_ready
+evidence_policies:
+  literature_support:
+    assignment:
+      role: evidence_match
+      prompt: prompts/evidence_match.md
+    audit:
+      role: evidence_audit
+      prompt: prompts/evidence_audit.md
+    adjudication:
+      role: evidence_adjudication
+      prompt: prompts/evidence_adjudicate.md
+steps:
+  structure:
+    type: model
+    role: structure
+    stage: structure_case
+    prompt: prompts/structure_case.md
+    inputs:
+      case_text:
+        from: run.case_text
+      panel_scope:
+        from: assets.ngs_panel_scope
+    output:
+      artifact: structured_case
+      format: json
+      schema: schemas/structured_case.json
+    checks:
+    - rule: sequential_ids
+      path: variants
+      field: variant_id
+      prefix: V
+    execution:
+      provider_handler: structure
+      self_handler: structure
+      self_mode: handoff
+  corpus:
+    type: transform
+    needs:
+    - structure
+    transform: reasoning_load_corpus
+    output:
+      artifact: corpus_state
+    execution:
+      provider_handler: corpus
+      self_handler: corpus
+      self_mode: deterministic
+  diagnosis.who.prepare:
+    type: transform
+    needs:
+    - corpus
+    transform: reasoning_prepare_diagnostic_owner
+    output:
+      artifact: diagnosis_who_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.who:
+    type: model
+    needs:
+    - diagnosis.who.prepare
+    role: diagnosis
+    prompt: prompts/reasoning/diagnosis_who.md
+    inputs:
+      owner_pack:
+        from: artifacts.diagnosis_who_pack
+      audit_feedback:
+        from: feedback.diagnosis.who
+        optional: true
+    output:
+      artifact: diagnosis_who_owner
+      format: yaml
+      schema: schemas/reasoning/diagnostic_owner.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  diagnosis.who.validate:
+    type: transform
+    needs:
+    - diagnosis.who
+    transform: reasoning_validate_diagnostic_owner
+    output:
+      artifact: diagnosis_who_owner_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnosis_who_owner_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.icc.prepare:
+    type: transform
+    needs:
+    - corpus
+    transform: reasoning_prepare_diagnostic_owner
+    output:
+      artifact: diagnosis_icc_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.icc:
+    type: model
+    needs:
+    - diagnosis.icc.prepare
+    role: diagnosis
+    prompt: prompts/reasoning/diagnosis_icc.md
+    inputs:
+      owner_pack:
+        from: artifacts.diagnosis_icc_pack
+      audit_feedback:
+        from: feedback.diagnosis.icc
+        optional: true
+    output:
+      artifact: diagnosis_icc_owner
+      format: yaml
+      schema: schemas/reasoning/diagnostic_owner.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  diagnosis.icc.validate:
+    type: transform
+    needs:
+    - diagnosis.icc
+    transform: reasoning_validate_diagnostic_owner
+    output:
+      artifact: diagnosis_icc_owner_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.icc
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnosis_icc_owner_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.second.prepare:
+    type: transform
+    needs:
+    - corpus
+    transform: reasoning_prepare_diagnostic_owner
+    output:
+      artifact: diagnosis_second_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.second:
+    type: model
+    needs:
+    - diagnosis.second.prepare
+    role: diagnosis
+    prompt: prompts/reasoning/diagnosis_second.md
+    inputs:
+      owner_pack:
+        from: artifacts.diagnosis_second_pack
+      audit_feedback:
+        from: feedback.diagnosis.second
+        optional: true
+    output:
+      artifact: diagnosis_second_owner
+      format: yaml
+      schema: schemas/reasoning/diagnostic_owner.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  diagnosis.second.validate:
+    type: transform
+    needs:
+    - diagnosis.second
+    transform: reasoning_validate_diagnostic_owner
+    output:
+      artifact: diagnosis_second_owner_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.second
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnosis_second_owner_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.registry:
+    type: transform
+    needs:
+    - diagnosis.who.validate
+    - diagnosis.icc.validate
+    - diagnosis.second.validate
+    transform: reasoning_build_diagnostic_registry
+    output:
+      artifact: diagnostic_atomic_registry
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.evidence.owner_assignments:
+    type: transform
+    needs:
+    - diagnosis.registry
+    transform: reasoning_collect_diagnostic_owner_assignments
+    output:
+      artifact: diagnostic_owner_assignments
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.evidence.rescue.prepare:
+    type: transform
+    needs:
+    - diagnosis.evidence.owner_assignments
+    transform: reasoning_prepare_diagnostic_rescue
+    output:
+      artifact: diagnostic_rescue_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.evidence.assignment:
+    type: model
+    needs:
+    - diagnosis.evidence.rescue.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/diagnostic_evidence_rescue.md
+    inputs:
+      rescue_items:
+        from: artifacts.diagnostic_rescue_items
+      audit_feedback:
+        from: feedback.diagnosis.evidence.assignment
+        optional: true
+    output:
+      artifact: diagnostic_rescue_assignments
+      format: yaml
+      schema: schemas/reasoning/diagnostic_evidence_assignment.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: diagnostic_rescue_items
+  diagnosis.evidence.assignment.validate:
+    type: transform
+    needs:
+    - diagnosis.evidence.assignment
+    transform: reasoning_validate_diagnostic_rescue
+    output:
+      artifact: diagnostic_rescue_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.evidence.assignment
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_rescue_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.evidence.merge:
+    type: transform
+    needs:
+    - diagnosis.evidence.assignment.validate
+    transform: reasoning_merge_diagnostic_assignments
+    output:
+      artifact: diagnostic_assignments
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.evidence.audit.prepare:
+    type: transform
+    needs:
+    - diagnosis.evidence.merge
+    transform: reasoning_prepare_diagnostic_evidence_audit
+    output:
+      artifact: diagnostic_evidence_audit_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.evidence.audit:
+    type: model
+    needs:
+    - diagnosis.evidence.audit.prepare
+    role: evidence_audit
+    prompt: prompts/reasoning/diagnostic_evidence_audit.md
+    inputs:
+      audit_items:
+        from: artifacts.diagnostic_evidence_audit_items
+      audit_feedback:
+        from: feedback.diagnosis.evidence.audit
+        optional: true
+    output:
+      artifact: diagnostic_evidence_audit
+      format: yaml
+      schema: schemas/reasoning/diagnostic_evidence_audit.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: diagnostic_evidence_audit_items
+  diagnosis.evidence.audit.validate:
+    type: transform
+    needs:
+    - diagnosis.evidence.audit
+    transform: reasoning_validate_diagnostic_evidence_audit
+    output:
+      artifact: diagnostic_evidence_audit_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.evidence.audit
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_evidence_audit_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.evidence.disputes:
+    type: transform
+    needs:
+    - diagnosis.evidence.audit.validate
+    transform: reasoning_build_diagnostic_disputes
+    output:
+      artifact: diagnostic_evidence_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.evidence.adjudication:
+    type: model
+    needs:
+    - diagnosis.evidence.disputes
+    role: evidence_adjudication
+    prompt: prompts/reasoning/diagnostic_evidence_adjudicate.md
+    inputs:
+      disputes:
+        from: artifacts.diagnostic_evidence_disputes
+      audit_feedback:
+        from: feedback.diagnosis.evidence.adjudication
+        optional: true
+    output:
+      artifact: diagnostic_evidence_adjudication
+      format: yaml
+      schema: schemas/reasoning/diagnostic_evidence_adjudication.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: diagnostic_evidence_disputes
+  diagnosis.evidence.adjudication.validate:
+    type: transform
+    needs:
+    - diagnosis.evidence.adjudication
+    transform: reasoning_validate_diagnostic_adjudication
+    output:
+      artifact: diagnostic_evidence_adjudication_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.evidence.adjudication
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_evidence_adjudication_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.evidence.finalize:
+    type: transform
+    needs:
+    - diagnosis.evidence.adjudication.validate
+    transform: reasoning_finalize_diagnostic_evidence
+    output:
+      artifact: diagnostic_evidence_decisions
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.reasoning.prepare:
+    type: transform
+    needs:
+    - diagnosis.evidence.finalize
+    transform: reasoning_prepare_diagnostic_reasoning_audit
+    output:
+      artifact: diagnostic_reasoning_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.reasoning.audit:
+    type: model
+    needs:
+    - diagnosis.reasoning.prepare
+    role: reasoning_audit
+    prompt: prompts/reasoning/diagnostic_reasoning_audit.md
+    inputs:
+      reasoning_items:
+        from: artifacts.diagnostic_reasoning_items
+      audit_feedback:
+        from: feedback.diagnosis.reasoning.audit
+        optional: true
+    output:
+      artifact: diagnostic_reasoning_audit
+      format: yaml
+      schema: schemas/reasoning/reasoning_audit.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: diagnostic_reasoning_items
+  diagnosis.reasoning.audit.validate:
+    type: transform
+    needs:
+    - diagnosis.reasoning.audit
+    transform: reasoning_validate_diagnostic_reasoning_audit
+    output:
+      artifact: diagnostic_reasoning_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.reasoning.audit
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_reasoning_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.evaluate:
+    type: transform
+    needs:
+    - diagnosis.reasoning.audit.validate
+    transform: reasoning_evaluate_diagnoses
+    output:
+      artifact: diagnostic_evaluation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.who.review:
+    type: transform
+    needs:
+    - diagnosis.evaluate
+    transform: reasoning_owner_review
+    output:
+      artifact: diagnostic_who_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_who_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  diagnosis.icc.review:
+    type: transform
+    needs:
+    - diagnosis.evaluate
+    transform: reasoning_owner_review
+    output:
+      artifact: diagnostic_icc_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.icc
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_icc_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  diagnosis.second.review:
+    type: transform
+    needs:
+    - diagnosis.evaluate
+    transform: reasoning_owner_review
+    output:
+      artifact: diagnostic_second_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.second
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_second_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  diagnosis.finalize:
+    type: transform
+    needs:
+    - diagnosis.who.review
+    - diagnosis.icc.review
+    - diagnosis.second.review
+    transform: reasoning_finalize_atomic_diagnosis
+    output:
+      artifact: diagnosis
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  prognosis.prepare:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: reasoning_prepare_ptbg_owner
+    output:
+      artifact: prognosis_reasoning_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  treatment.prepare:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: reasoning_prepare_ptbg_owner
+    output:
+      artifact: treatment_reasoning_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  biomarker.prepare:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: reasoning_prepare_ptbg_owner
+    output:
+      artifact: biomarker_reasoning_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  germline.prepare:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: reasoning_prepare_ptbg_owner
+    output:
+      artifact: germline_reasoning_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  prognosis:
+    type: model
+    needs:
+    - prognosis.prepare
+    role: ptbg
+    prompt: prompts/reasoning/prognosis.md
+    inputs:
+      owner_pack:
+        from: artifacts.prognosis_reasoning_pack
+      audit_feedback:
+        from: feedback.prognosis
+        optional: true
+    output:
+      artifact: prognosis_reasoning_owner
+      format: yaml
+      schema: schemas/reasoning/ptbg_owner.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_group: ptbg_owners
+      self_mode: handoff
+  treatment:
+    type: model
+    needs:
+    - treatment.prepare
+    role: ptbg
+    prompt: prompts/reasoning/treatment.md
+    inputs:
+      owner_pack:
+        from: artifacts.treatment_reasoning_pack
+      audit_feedback:
+        from: feedback.treatment
+        optional: true
+    output:
+      artifact: treatment_reasoning_owner
+      format: yaml
+      schema: schemas/reasoning/ptbg_owner.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_group: ptbg_owners
+      self_mode: handoff
+  biomarker:
+    type: model
+    needs:
+    - biomarker.prepare
+    role: ptbg
+    prompt: prompts/reasoning/biomarker.md
+    inputs:
+      owner_pack:
+        from: artifacts.biomarker_reasoning_pack
+      audit_feedback:
+        from: feedback.biomarker
+        optional: true
+    output:
+      artifact: biomarker_reasoning_owner
+      format: yaml
+      schema: schemas/reasoning/ptbg_owner.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_group: ptbg_owners
+      self_mode: handoff
+  germline:
+    type: model
+    needs:
+    - germline.prepare
+    role: ptbg
+    prompt: prompts/reasoning/germline.md
+    inputs:
+      owner_pack:
+        from: artifacts.germline_reasoning_pack
+      audit_feedback:
+        from: feedback.germline
+        optional: true
+    output:
+      artifact: germline_reasoning_owner
+      format: yaml
+      schema: schemas/reasoning/ptbg_owner.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_group: ptbg_owners
+      self_mode: handoff
+  prognosis.validate:
+    type: transform
+    needs:
+    - prognosis
+    transform: reasoning_validate_ptbg_owner
+    output:
+      artifact: prognosis_reasoning_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.prognosis_reasoning_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  treatment.validate:
+    type: transform
+    needs:
+    - treatment
+    transform: reasoning_validate_ptbg_owner
+    output:
+      artifact: treatment_reasoning_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.treatment_reasoning_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  biomarker.validate:
+    type: transform
+    needs:
+    - biomarker
+    transform: reasoning_validate_ptbg_owner
+    output:
+      artifact: biomarker_reasoning_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.biomarker_reasoning_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  germline.validate:
+    type: transform
+    needs:
+    - germline
+    transform: reasoning_validate_ptbg_owner
+    output:
+      artifact: germline_reasoning_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.germline_reasoning_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  ptbg.registry:
+    type: transform
+    needs:
+    - prognosis.validate
+    - treatment.validate
+    - biomarker.validate
+    - germline.validate
+    transform: reasoning_build_ptbg_registry
+    output:
+      artifact: ptbg_atomic_registry
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.evidence.owner_assignments:
+    type: transform
+    needs:
+    - ptbg.registry
+    transform: reasoning_collect_ptbg_owner_assignments
+    output:
+      artifact: ptbg_owner_assignments
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.evidence.rescue.prepare:
+    type: transform
+    needs:
+    - ptbg.evidence.owner_assignments
+    transform: reasoning_prepare_ptbg_rescue
+    output:
+      artifact: ptbg_rescue_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.evidence.assignment:
+    type: model
+    needs:
+    - ptbg.evidence.rescue.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/ptbg_evidence_rescue.md
+    inputs:
+      rescue_items:
+        from: artifacts.ptbg_rescue_items
+      audit_feedback:
+        from: feedback.ptbg.evidence.assignment
+        optional: true
+    output:
+      artifact: ptbg_rescue_assignments
+      format: yaml
+      schema: schemas/reasoning/diagnostic_evidence_assignment.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: ptbg_rescue_items
+  ptbg.evidence.assignment.validate:
+    type: transform
+    needs:
+    - ptbg.evidence.assignment
+    transform: reasoning_validate_ptbg_rescue
+    output:
+      artifact: ptbg_rescue_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: ptbg.evidence.assignment
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.ptbg_rescue_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  ptbg.evidence.merge:
+    type: transform
+    needs:
+    - ptbg.evidence.assignment.validate
+    transform: reasoning_merge_ptbg_assignments
+    output:
+      artifact: ptbg_assignments
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.evidence.audit.prepare:
+    type: transform
+    needs:
+    - ptbg.evidence.merge
+    transform: reasoning_prepare_ptbg_evidence_audit
+    output:
+      artifact: ptbg_evidence_audit_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.evidence.audit:
+    type: model
+    needs:
+    - ptbg.evidence.audit.prepare
+    role: evidence_audit
+    prompt: prompts/reasoning/ptbg_evidence_audit.md
+    inputs:
+      audit_items:
+        from: artifacts.ptbg_evidence_audit_items
+      audit_feedback:
+        from: feedback.ptbg.evidence.audit
+        optional: true
+    output:
+      artifact: ptbg_evidence_audit
+      format: yaml
+      schema: schemas/reasoning/diagnostic_evidence_audit.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: ptbg_evidence_audit_items
+  ptbg.evidence.audit.validate:
+    type: transform
+    needs:
+    - ptbg.evidence.audit
+    transform: reasoning_validate_ptbg_evidence_audit
+    output:
+      artifact: ptbg_evidence_audit_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: ptbg.evidence.audit
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.ptbg_evidence_audit_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  ptbg.evidence.disputes:
+    type: transform
+    needs:
+    - ptbg.evidence.audit.validate
+    transform: reasoning_build_ptbg_disputes
+    output:
+      artifact: ptbg_evidence_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.evidence.adjudication:
+    type: model
+    needs:
+    - ptbg.evidence.disputes
+    role: evidence_adjudication
+    prompt: prompts/reasoning/ptbg_evidence_adjudicate.md
+    inputs:
+      disputes:
+        from: artifacts.ptbg_evidence_disputes
+      audit_feedback:
+        from: feedback.ptbg.evidence.adjudication
+        optional: true
+    output:
+      artifact: ptbg_evidence_adjudication
+      format: yaml
+      schema: schemas/reasoning/diagnostic_evidence_adjudication.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: ptbg_evidence_disputes
+  ptbg.evidence.adjudication.validate:
+    type: transform
+    needs:
+    - ptbg.evidence.adjudication
+    transform: reasoning_validate_ptbg_adjudication
+    output:
+      artifact: ptbg_evidence_adjudication_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: ptbg.evidence.adjudication
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.ptbg_evidence_adjudication_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  ptbg.evidence.finalize:
+    type: transform
+    needs:
+    - ptbg.evidence.adjudication.validate
+    transform: reasoning_finalize_ptbg_evidence
+    output:
+      artifact: ptbg_evidence_decisions
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.reasoning.direct:
+    type: transform
+    needs:
+    - ptbg.evidence.finalize
+    transform: reasoning_evaluate_ptbg_direct_applications
+    output:
+      artifact: ptbg_direct_applications
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.reasoning.prepare:
+    type: transform
+    needs:
+    - ptbg.reasoning.direct
+    transform: reasoning_prepare_ptbg_reasoning_audit
+    output:
+      artifact: ptbg_reasoning_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.reasoning.audit:
+    type: model
+    needs:
+    - ptbg.reasoning.prepare
+    role: reasoning_audit
+    prompt: prompts/reasoning/ptbg_reasoning_audit.md
+    inputs:
+      reasoning_items:
+        from: artifacts.ptbg_reasoning_items
+      audit_feedback:
+        from: feedback.ptbg.reasoning.audit
+        optional: true
+    output:
+      artifact: ptbg_reasoning_audit
+      format: yaml
+      schema: schemas/reasoning/reasoning_audit.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      has_items:
+        artifact: ptbg_reasoning_items
+  ptbg.reasoning.audit.validate:
+    type: transform
+    needs:
+    - ptbg.reasoning.audit
+    transform: reasoning_validate_ptbg_reasoning_audit
+    output:
+      artifact: ptbg_reasoning_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: ptbg.reasoning.audit
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.ptbg_reasoning_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  ptbg.evaluate:
+    type: transform
+    needs:
+    - ptbg.reasoning.audit.validate
+    transform: reasoning_evaluate_ptbg
+    output:
+      artifact: ptbg_evaluation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  prognosis.review:
+    type: transform
+    needs:
+    - ptbg.evaluate
+    transform: reasoning_ptbg_owner_review
+    output:
+      artifact: prognosis_reasoning_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.prognosis_reasoning_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  treatment.review:
+    type: transform
+    needs:
+    - ptbg.evaluate
+    transform: reasoning_ptbg_owner_review
+    output:
+      artifact: treatment_reasoning_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.treatment_reasoning_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  biomarker.review:
+    type: transform
+    needs:
+    - ptbg.evaluate
+    transform: reasoning_ptbg_owner_review
+    output:
+      artifact: biomarker_reasoning_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.biomarker_reasoning_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  germline.review:
+    type: transform
+    needs:
+    - ptbg.evaluate
+    transform: reasoning_ptbg_owner_review
+    output:
+      artifact: germline_reasoning_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.germline_reasoning_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  evidence.finalize:
+    type: transform
+    needs:
+    - prognosis.review
+    - treatment.review
+    - biomarker.review
+    - germline.review
+    transform: reasoning_finalize_atomic_evidence
+    output:
+      artifact: evidence_enriched
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  decision.ledger:
+    type: transform
+    needs:
+    - evidence.finalize
+    transform: reasoning_build_decision_ledger
+    output:
+      artifact: decision_ledger
+      format: yaml
+      schema: schemas/reasoning/decision_ledger.json
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  report.blocks:
+    type: transform
+    needs:
+    - decision.ledger
+    transform: reasoning_report_blocks
+    output:
+      artifact: report_blocks
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  report.write:
+    type: render/report
+    needs:
+    - report.blocks
+    role: report_write
+    stage: report_write
+    prompt: prompts/report_write.md
+    output:
+      artifact: report_draft
+      format: yaml
+      schema: schemas/report_write.json
+    execution:
+      provider_handler: report_write
+      self_handler: report_write
+      self_group: final_presentation
+      self_mode: handoff
+  dissent.summary:
+    type: model
+    needs:
+    - report.blocks
+    role: dissent_summary
+    prompt: prompts/reasoning/dissent_summary.md
+    inputs:
+      decision_ledger:
+        from: artifacts.decision_ledger
+    output:
+      artifact: dissent_summary
+      format: yaml
+      schema: schemas/reasoning/dissent_summary.json
+    execution:
+      provider_handler: reasoning_optional_model
+      self_handler: reasoning_optional_model
+      self_group: final_presentation
+      self_mode: handoff
+  dissent.summary.validate:
+    type: transform
+    needs:
+    - dissent.summary
+    transform: reasoning_validate_dissent_summary
+    output:
+      artifact: dissent_summary_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  report.preservation:
+    type: model
+    needs:
+    - report.write
+    role: preservation_check
+    stage: report_preservation
+    prompt: prompts/report_preservation.md
+    output:
+      artifact: report_preservation
+      format: yaml
+      schema: schemas/report_preservation.json
+    execution:
+      provider_handler: report_preservation
+      self_handler: report_preservation
+      self_mode: handoff
+      self:
+        enabled: false
+  report.finalize:
+    type: transform
+    needs:
+    - report.preservation
+    - dissent.summary.validate
+    transform: reasoning_finalize_report
+    output:
+      artifact: final_report
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic

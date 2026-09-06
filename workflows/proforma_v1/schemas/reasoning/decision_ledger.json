@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decisions", "facts_considered", "counts"],
+  "properties": {
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["decision_id", "kind", "domain", "owner", "proposition", "disposition", "case_fact_ids", "variant_ids", "rules", "reason"],
+        "properties": {
+          "decision_id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["diagnosis", "proposition", "derived_state"]},
+          "domain": {"type": "string", "minLength": 1},
+          "owner": {"type": "string", "minLength": 1},
+          "proposition": {"type": "string", "minLength": 1},
+          "disposition": {"enum": ["kept", "revised", "dropped", "unresolved", "not_reportable"]},
+          "case_fact_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "variant_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rule_id", "statement", "supported", "accepted_card_tags"],
+              "properties": {
+                "rule_id": {"type": "string", "minLength": 1},
+                "statement": {"type": "string", "minLength": 1},
+                "supported": {"type": "boolean"},
+                "accepted_card_tags": {"type": "array", "items": {"type": "string", "pattern": "^\\[card:[0-9a-f]{12}\\]$"}, "uniqueItems": true}
+              }
+            }
+          },
+          "reason": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "facts_considered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["fact_id"],
+        "properties": {"fact_id": {"type": "string", "minLength": 1}}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kept", "revised", "dropped", "unresolved", "not_reportable"],
+      "properties": {
+        "kept": {"type": "integer", "minimum": 0},
+        "revised": {"type": "integer", "minimum": 0},
+        "dropped": {"type": "integer", "minimum": 0},
+        "unresolved": {"type": "integer", "minimum": 0},
+        "not_reportable": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

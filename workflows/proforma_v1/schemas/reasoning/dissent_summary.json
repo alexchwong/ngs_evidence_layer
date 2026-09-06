@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "highlights"],
+  "properties": {
+    "summary": {"type": "string"},
+    "highlights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["decision_id", "disposition", "explanation"],
+        "properties": {
+          "decision_id": {"type": "string", "minLength": 1},
+          "disposition": {"enum": ["kept", "revised", "dropped", "unresolved", "not_reportable"]},
+          "explanation": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

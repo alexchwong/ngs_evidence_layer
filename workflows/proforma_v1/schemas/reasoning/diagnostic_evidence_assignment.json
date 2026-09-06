@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["assignments"],
+  "properties": {
+    "assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "card_tags"],
+        "properties": {
+          "rule_id": {"type": "string", "minLength": 1},
+          "card_tags": {"type": "array", "items": {"type": "string", "pattern": "^\\[card:[0-9a-f]{12}\\]$"}, "uniqueItems": true}
+        }
+      }
+    }
+  }
+}

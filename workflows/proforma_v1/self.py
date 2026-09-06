@@ -174,7 +174,44 @@ def _self_model_output_path(step_id: str, work: Path) -> Path | None:
     return None
 
 
+def _self_safe_serialization_cleanup(step_id: str, context: WorkflowContext) -> None:
+    """Apply shared deterministic YAML/JSON cleanup before native-self validation.
+
+    This is representation-only and deliberately does not enable the reasoning
+    wrong-artifact classifier; reasoning model artifacts are classified by
+    ``SelfExecutor``.  It also covers shared structure/report handoffs so a code
+    fence, indentation tab, or other unambiguous defect does not fail merely
+    because the selected provider is ``self``.
+    """
+    workflow = context.get('workflow')
+    if workflow is None:
+        return
+    try:
+        step = workflow.step(step_id)
+    except KeyError:
+        return
+    fmt = str((step.output or {}).get('format') or '').lower()
+    if fmt not in {'yaml', 'yml', 'json'}:
+        return
+    path = _self_model_output_path(step_id, context.work)
+    if path is None:
+        path = workflow_artifacts.generic_output_path(context.work, step, create=False)
+    if not path.is_file():
+        return
+    from scripts.core.syntax_repair.adapters import adapter_for
+    raw = path.read_text(encoding='utf-8')
+    cleaned, repairs = adapter_for(fmt).deterministic_cleanup(raw)
+    if cleaned != raw:
+        path.write_text(cleaned, encoding='utf-8')
+    if repairs:
+        staged._log_transforms(context.work, [
+            {'stage': step_id, 'transform': 'safe_serialization_cleanup', 'detail': message}
+            for message in repairs
+        ])
+
+
 def _self_declared_validate(step_id: str, context: WorkflowContext) -> None:
+    _self_safe_serialization_cleanup(step_id, context)
     workflow=context.get('workflow')
     if workflow is None: return
     try: step=workflow.step(step_id)
@@ -334,7 +371,7 @@ def _self_handlers():
         return _handoff('case_structure',decorate(_structure_manifest(ctx.work,prompt=step.prompt),step,ctx))
 
     def corpus(step, ctx):
-        sr.accept_structured_case(ctx.work); _self_declared_validate('structure',ctx); staged.stage_corpus(ctx.work)
+        _self_safe_serialization_cleanup('structure',ctx); sr.accept_structured_case(ctx.work); _self_declared_validate('structure',ctx); staged.stage_corpus(ctx.work)
         return {'status':'complete'}
 
     def who1(step, ctx):
@@ -455,6 +492,7 @@ def _self_handlers():
         return _handoff('report_synthesis',decorate(sr.prepare_report(ctx.work,prompt=step.prompt),step,ctx))
 
     def report_preservation(step, ctx):
+        _self_safe_serialization_cleanup('report.write',ctx)
         return _handoff('report_preservation',decorate(sr.prepare_report_preservation(ctx.work,prompt=step.prompt),step,ctx))
 
     def report_finalize(step, ctx):
@@ -531,6 +569,13 @@ def advance(work: Path, *, workflow_path=None) -> dict:
     control_state.hydrate(context)
     for candidate in workflow.steps:
         if candidate.type not in {'model','evidence_review','evidence_adjudication','render/report'}:
+            continue
+        # Reasoning artifacts must be hydrated by SelfExecutor.is_complete(),
+        # which applies the shared deterministic serialization cleanup, preserves
+        # malformed/wrong-artifact failures as validation data, and logs safe
+        # repairs. Direct yaml.safe_load here would crash resume before that
+        # reasoning-aware boundary can run.
+        if (candidate.execution or {}).get('self_handler') in {'reasoning_model','reasoning_optional_model'}:
             continue
         if _self_model_output_path(candidate.id,work) is not None:
             continue
