@@ -1,0 +1,50 @@
+stage: germline
+version: 1
+type: domain_proforma
+role: ptbg
+label: germline
+prompt: default_reviewed/germline.md
+inputs:
+  registry: canonical
+  case:
+  - provisional_disease
+  - patient_age
+  - case_facts
+  - ngs_result_completeness
+  - ngs_no_variants_detected
+  diagnosis:
+    roles:
+    - who5
+    fields:
+    - schema_disease
+    - diagnosis
+    - variants
+  cards:
+    category: germline
+output:
+  path: germline_state/proforma.yaml
+  format: yaml
+  schema: default_reviewed/germline.json
+buckets:
+- germline_suspicious
+- germline_against
+- germline_uncertain
+rules:
+- rule: one_row_per_id
+  field: classification
+  id_field: variant
+  source: registry
+transforms:
+- consolidate_parallel_variant_rows
+reportability:
+  germline_suspicious: true
+  germline_against: false
+  germline_uncertain: false
+retries:
+  content: 2
+  serialization: 3
+guidance:
+- Determine corpus-bounded germline eligibility before detailed reasoning; do not create eligibility from pretrained knowledge.
+- Every eligible conclusion must complete the event, age, VAF, personal-history, family-history, and phenotype assessments before integration.
+- Missing clinical information is not supportive evidence, and no universal age or VAF threshold is permitted.
+- Evidence assignment is downstream; leave all evidence-card tag lists empty.

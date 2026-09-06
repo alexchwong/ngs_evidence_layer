@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Default-reviewed clinical coherence audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "issues", "feedback"],
+  "properties": {
+    "status": {"enum": ["pass", "fail"]},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["domain", "path", "message", "fix"],
+        "properties": {
+          "domain": {"enum": ["diagnosis", "prognosis", "treatment", "biomarker", "germline"]},
+          "path": {"type": "string", "minLength": 1},
+          "message": {"type": "string", "minLength": 1},
+          "fix": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "feedback": {"type": ["string", "null"], "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "pass"}}, "required": ["status"]},
+      "then": {"properties": {"issues": {"maxItems": 0}, "feedback": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "fail"}}, "required": ["status"]},
+      "then": {"properties": {"issues": {"minItems": 1}, "feedback": {"type": "string", "minLength": 1}}}
+    }
+  ]
+}

@@ -17,6 +17,88 @@ def derive_diagnostic_cmcs(value: Any, context: dict, params: dict) -> Any:
     return runtime.derive_cmcs(value or {})
 
 
+
+def _reviewed_text_coherence_flags(diagnosis: Any) -> list[dict[str, str]]:
+    """Conservative text-only flags; never infer a replacement diagnosis."""
+    import re
+    flags: list[dict[str, str]] = []
+    if not isinstance(diagnosis, dict):
+        return flags
+    stop = {"a", "an", "and", "with", "without", "of", "the", "in", "for", "to", "by"}
+    for authority in ("who5", "icc"):
+        row = diagnosis.get(authority)
+        if not isinstance(row, dict):
+            continue
+        label = str(row.get("diagnosis") or "")
+        reason = str(row.get("reason") or "")
+        tokens = [t for t in re.findall(r"[a-z0-9]+", label.lower()) if len(t) > 2 and t not in stop]
+        lower = reason.lower()
+        for token in tokens:
+            patterns = (rf"\bnot\s+{re.escape(token)}\b", rf"\bwithout\s+{re.escape(token)}\b")
+            if any(re.search(pattern, lower) for pattern in patterns):
+                flags.append({
+                    "code": "negated_diagnosis_term",
+                    "path": f"diagnosis.{authority}.reason",
+                    "message": f"diagnosis label contains {token!r} but the reason explicitly negates that same term",
+                })
+                break
+    return flags
+
+def default_reviewed_clinical_packet(value: Any, context: dict, params: dict) -> Any:
+    """Freeze the clinically relevant default-proforma state for one audit call.
+
+    This is deliberately a projection, not a clinical inference.  Native-self
+    resumes in a fresh process between frontier handoffs, so this boundary must
+    be able to hydrate the established default artifacts from disk rather than
+    relying on transient context alone.  No card filtering or clinical rewrite
+    occurs here.
+    """
+    from pathlib import Path
+    from workflows.proforma_v1 import self_runtime as sr
+
+    ctx = context.get("__workflow_context__") if isinstance(context, dict) else None
+    get = ctx.get if ctx is not None and hasattr(ctx, "get") else context.get
+    work = Path(context.get("__work__") or getattr(ctx, "work", "."))
+
+    case = get("case")
+    diagnosis = get("diagnosis")
+    domains = get("domains") or {}
+    assignments = get("evidence_assignments")
+    audits = get("evidence_audits")
+    adjudication = get("evidence_adjudication")
+
+    # The provider runner normally carries these objects in memory. Native-self
+    # does not, because each handoff is resumed by a new process. Hydrate only
+    # missing values from the canonical files already required upstream.
+    if case is None:
+        case, _registry = sr.load_case_registry(work)
+    if diagnosis is None:
+        diagnosis = sr.finalize_diagnosis(work)
+    if not domains:
+        domains = sr.load_domains(work)
+
+    def read_if_present(group: str, name: str):
+        path = sr.output_path(work, group, name)
+        return sr.read_yaml(path) if path.is_file() else None
+
+    if assignments is None:
+        assignments = read_if_present("evidence_matches", "self-resolution.yaml")
+    if audits is None:
+        audits = read_if_present("evidence_audits", "self-audit.yaml")
+    if adjudication is None:
+        adjudication = read_if_present("evidence_adjudication", "adjudication.yaml")
+
+    return {
+        "structured_case": case,
+        "diagnosis": diagnosis,
+        "deterministic_coherence_flags": _reviewed_text_coherence_flags(diagnosis),
+        "domains": domains,
+        "evidence_assignments": assignments,
+        "evidence_audits": audits,
+        "evidence_adjudication": adjudication,
+    }
+
+
 def delegated(value: Any, context: dict, params: dict) -> Any:
     """Marker for transforms still implemented by the v6-compatible handler."""
     return value
@@ -65,6 +147,7 @@ REGISTRY = {
     "derive_diagnostic_cmcs": derive_diagnostic_cmcs,
     "assess_who1_routing_change": delegated,
     "commit_who1_routing": delegated,
+    "default_reviewed_clinical_packet": default_reviewed_clinical_packet,
     # ``reasoning.yaml`` owns separate deterministic transform identities so
     # experimental reasoning semantics never require edits to default names.
     "reasoning_load_corpus": reasoning_delegated,
