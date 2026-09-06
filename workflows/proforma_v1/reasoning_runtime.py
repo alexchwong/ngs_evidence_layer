@@ -554,6 +554,37 @@ def _case_fact_registry(case: dict) -> dict[str, dict]:
     return out
 
 
+def _source_label_for_card(card: dict) -> str | None:
+    """Return a deterministic FirstAuthor et al., YEAR label from card metadata.
+
+    Prefer explicit citation metadata when present; fall back to the canonical
+    publication/card key.  This is presentation metadata only and never model
+    generated.
+    """
+    import re
+    if not isinstance(card, dict):
+        return None
+    author = card.get("first_author") or card.get("author") or card.get("authors")
+    if isinstance(author, list) and author:
+        author = author[0]
+    if isinstance(author, str) and author.strip():
+        author = author.strip().split(",", 1)[0].split()[0]
+    else:
+        author = None
+    year = card.get("year") or card.get("publication_year")
+    if year is not None:
+        m = re.search(r"(?:19|20)\d{2}", str(year))
+        year = m.group(0) if m else None
+    if author and year:
+        return f"{author} et al., {year}"
+    key = str(card.get("publication_key") or card.get("card_id") or "")
+    m = re.search(r"(?:^|/)([A-Za-z][A-Za-z-]*)-((?:19|20)\d{2})(?:-|$)", key)
+    if m:
+        surname = m.group(1).replace("-", " ").title().replace(" ", "-")
+        return f"{surname} et al., {m.group(2)}"
+    return None
+
+
 def _candidate_card_envelope(cards: list[dict], manifest: dict) -> list[dict]:
     from workflows.proforma_v1 import card_identity
 
@@ -987,11 +1018,20 @@ def prepare_diagnostic_reasoning_audit(context: dict, params: dict) -> dict:
     evidence = ctx.get("diagnostic_evidence_decisions") or {}
     support = evidence.get("rule_support") or {}
     packs = {a: ctx.get(_owner_pack_key(a)) or {} for a in DIAGNOSTIC_AUTHORITIES}
+    # Owners reason with source-facing IDs (V1, V2, ...), while the compiled
+    # graph deliberately uses canonical internal IDs (v01, v02, ...).  The
+    # reasoning auditor therefore needs the canonical registry, not the
+    # model-facing owner-pack projection.
+    try:
+        from workflows.proforma_v1 import self_runtime as sr
+        _case, internal_variants = sr.load_case_registry(_work(context))
+    except Exception:
+        internal_variants = {}
     items = []
     for authority in DIAGNOSTIC_AUTHORITIES:
         owner = _read_owner_artifact(ctx, authority)
         facts = packs[authority].get("case_fact_registry") or {}
-        variants = packs[authority].get("variant_registry") or {}
+        variants = internal_variants
         states = {s.get("state_id"): s for s in owner.get("derived_states") or []}
         for state in states.values():
             items.append({
@@ -1783,7 +1823,11 @@ def _accepted_card_rows(ctx, tags: list[str]) -> list[dict]:
     out=[]
     for tag in tags:
         card=catalog.get(tag) or {}; cid=card.get("card_id")
-        if cid: out.append({"card_tag":tag,"card_id":cid})
+        if cid:
+            row={"card_tag":tag,"card_id":cid}
+            label=card.get("source_label") or _source_label_for_card(card)
+            if label: row["source_label"]=label
+            out.append(row)
     return out
 
 
@@ -2056,3 +2100,1370 @@ def run_ptbg_transform(name: str, context: dict, params: dict) -> Any:
     try: fn=dispatch[name]
     except KeyError as exc: raise ValueError(f"unknown reasoning PTBG/provenance transform {name!r}") from exc
     return fn(context,params)
+
+# ---------------------------------------------------------------------------
+# Phase 4: judgement-separated reasoning architecture
+# Models reason first; evidence matching is a separate judgement; Python owns
+# all internal identifiers, graph objects, reference aliases and serialization.
+# ---------------------------------------------------------------------------
+
+_DIAGNOSTIC_REASONING_KEYS = {
+    "who5": "diagnosis_who_reasoning",
+    "icc": "diagnosis_icc_reasoning",
+    "second_diagnosis": "diagnosis_second_reasoning",
+}
+_DIAGNOSTIC_EM_KEYS = {
+    "who5": "diagnosis_who_evidence_match",
+    "icc": "diagnosis_icc_evidence_match",
+    "second_diagnosis": "diagnosis_second_evidence_match",
+}
+_DIAGNOSTIC_EM_ITEM_KEYS = {
+    "who5": "diagnosis_who_evidence_match_items",
+    "icc": "diagnosis_icc_evidence_match_items",
+    "second_diagnosis": "diagnosis_second_evidence_match_items",
+}
+_PTBG_REASONING_KEYS = {domain: f"{domain}_reasoning" for domain in PTBG_DOMAINS}
+_PTBG_EM_KEYS = {domain: f"{domain}_evidence_match" for domain in PTBG_DOMAINS}
+_PTBG_EM_ITEM_KEYS = {domain: f"{domain}_evidence_match_items" for domain in PTBG_DOMAINS}
+
+
+def _reference_material(cards: list[dict]) -> list[dict]:
+    """Project corpus cards to clinical content with all evidence identifiers removed."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    for card in cards:
+        if not isinstance(card, dict):
+            continue
+        text = None
+        for key in ("interpretation", "claim", "evidence_text", "scope", "notes"):
+            value = card.get(key)
+            if isinstance(value, str) and value.strip():
+                text = value.strip()
+                break
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        row = {"text": text}
+        for key in ("diseases", "genes", "framework", "frameworks"):
+            value = card.get(key)
+            if value not in (None, "", [], {}):
+                row[key] = value
+        out.append(row)
+    return out
+
+
+def _source_variant_registry(internal_registry: dict) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    for internal_id, row in (internal_registry or {}).items():
+        if not isinstance(row, dict):
+            continue
+        source_id = str(row.get("variant_id") or "").strip() or str(internal_id)
+        projected = {k: v for k, v in row.items() if k != "variant_id"}
+        projected["variant_id"] = source_id
+        out[source_id] = projected
+    return out
+
+
+def _variant_aliases(internal_registry: dict) -> tuple[dict[str, str], dict[str, str]]:
+    internal_by_source: dict[str, str] = {}
+    source_by_internal: dict[str, str] = {}
+    for internal_id, row in (internal_registry or {}).items():
+        source_id = str((row or {}).get("variant_id") or "").strip() or str(internal_id)
+        if source_id in internal_by_source and internal_by_source[source_id] != internal_id:
+            raise ValueError(f"source variant ID {source_id!r} resolves to more than one internal variant")
+        internal_by_source[source_id] = str(internal_id)
+        source_by_internal[str(internal_id)] = source_id
+    return internal_by_source, source_by_internal
+
+
+def _diagnostic_cards_for(authority: str, work: Path) -> tuple[dict, dict, list[dict], dict]:
+    from workflows.proforma_v1 import runtime, self_runtime as sr, step as staged
+    case, registry = sr.load_case_registry(work)
+    _all_cards, eligible, _digest, manifest = sr.corpus_state(work)
+    genes = runtime.case_genes(case)
+    history = list(case.get("bootstrap_cmcs") or [])
+    if authority == "who5":
+        cards = staged._diagnostic_cards(eligible, genes, history, "who5")
+    elif authority == "icc":
+        cards = staged._diagnostic_cards(eligible, genes, history, "icc")
+    elif authority == "second_diagnosis":
+        who_cards = staged._diagnostic_cards(eligible, genes, history, "who5")
+        icc_cards = staged._diagnostic_cards(eligible, genes, history, "icc")
+        cards = list({c.get("card_id"): c for c in [*who_cards, *icc_cards] if c.get("card_id")}.values())
+    else:
+        raise ValueError(f"unsupported diagnostic authority {authority!r}")
+    return case, registry, cards, manifest
+
+
+def prepare_diagnostic_reasoning(context: dict, params: dict) -> dict:
+    authority = str(params.get("authority") or _authority_from_step(str(params.get("step_id") or "")))
+    case, registry, cards, _manifest = _diagnostic_cards_for(authority, _work(context))
+    return {
+        "authority": authority,
+        "structured_case": case,
+        "case_fact_registry": _case_fact_registry(case),
+        "variant_registry": _source_variant_registry(registry),
+        "reference_material": _reference_material(cards),
+        "instructions": {
+            "patient_facts_are_immutable": True,
+            "clinical_reasoning_only": True,
+            "evidence_matching_is_separate": True,
+            "internal_graph_is_python_owned": True,
+        },
+    }
+
+
+def _diagnostic_reasoning(ctx, authority: str) -> dict:
+    value = ctx.get(_DIAGNOSTIC_REASONING_KEYS[authority])
+    return value if isinstance(value, dict) else {}
+
+
+def _simple_reasoning_issues(document: dict, *, authority: str, case: dict, internal_registry: dict) -> list[AuditIssue]:
+    issues = _contract_issues(document, "diagnostic_reasoning.json") if isinstance(document, dict) else [
+        AuditIssue("missing_reasoning_output", "$", "clinical reasoning output is missing", "return the complete clinical reasoning YAML mapping")
+    ]
+    if not isinstance(document, dict):
+        return issues
+    if document.get("authority") != authority:
+        issues.append(AuditIssue("wrong_authority", "$.authority", f"returned {document.get('authority')!r}, expected {authority!r}", f"set authority to {authority!r}"))
+    facts = set(_case_fact_registry(case))
+    internal_by_source, _ = _variant_aliases(internal_registry)
+    source_variants = set(internal_by_source)
+    diagnosis = document.get("diagnosis") or {}
+    if authority in {"who5", "icc"} and diagnosis.get("status") != "established":
+        issues.append(AuditIssue("invalid_primary_status", "$.diagnosis.status", "WHO5/ICC diagnosis status must be established", "set status to established"))
+    if authority == "who5" and not isinstance(diagnosis.get("schema_disease"), str):
+        issues.append(AuditIssue("missing_who_schema_disease", "$.diagnosis.schema_disease", "WHO5 requires a schema disease", "return the supported WHO5 schema disease"))
+    assessments = diagnosis.get("variant_assessments") or []
+    assessed = [row.get("variant_id") for row in assessments if isinstance(row, dict)]
+    for source in sorted(source_variants - set(assessed)):
+        issues.append(AuditIssue("missing_variant_assessment", "$.diagnosis.variant_assessments", f"no assessment was returned for supplied variant {source}", "return one assessment for every supplied variant"))
+    for source in sorted(set(assessed) - source_variants):
+        issues.append(AuditIssue("unknown_variant_assessment", "$.diagnosis.variant_assessments", f"assessment references unknown source variant {source}", "use the supplied source-facing variant IDs"))
+    for source in sorted({x for x in assessed if x and assessed.count(x) > 1}):
+        issues.append(AuditIssue("duplicate_variant_assessment", "$.diagnosis.variant_assessments", f"variant {source} is assessed more than once", "return exactly one assessment per variant"))
+    supporting = 0
+    for i, row in enumerate(document.get("reasoning") or []):
+        if not isinstance(row, dict):
+            continue
+        for j, fid in enumerate(row.get("case_fact_ids") or []):
+            if fid not in facts:
+                issues.append(AuditIssue("unknown_case_fact_id", f"$.reasoning[{i}].case_fact_ids[{j}]", f"case fact {fid!r} was not supplied", "reference only supplied C... fact IDs"))
+        for j, vid in enumerate(row.get("variant_ids") or []):
+            if vid not in source_variants:
+                issues.append(AuditIssue("unknown_variant_id", f"$.reasoning[{i}].variant_ids[{j}]", f"source variant {vid!r} was not supplied", "reference only supplied source-facing variant IDs such as V1"))
+        if row.get("supports_conclusion") is True:
+            supporting += 1
+            if row.get("assessment") != "met":
+                issues.append(AuditIssue("non_supporting_conclusion_item", f"$.reasoning[{i}].supports_conclusion", f"this conclusion-supporting reasoning point has assessment {row.get('assessment')!r}, not met", "phrase the supporting proposition so it is met when it supports the proposed conclusion, or set supports_conclusion to false"))
+    requires_root = diagnosis.get("diagnostic_effect") in {"refined", "superseded"} or (authority == "second_diagnosis" and diagnosis.get("status") == "established")
+    if requires_root and not supporting:
+        issues.append(AuditIssue("missing_conclusion_basis", "$.reasoning", "the diagnosis changes/establishes a diagnosis but no reasoning point is marked as supporting the conclusion", "mark the minimal defining reasoning point(s) with supports_conclusion: true"))
+    return issues
+
+def validate_diagnostic_reasoning_v2(context: dict, params: dict) -> dict:
+    authority = str(params.get("authority") or _authority_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    case, registry, _cards, _manifest = _diagnostic_cards_for(authority, _work(context))
+    output = _diagnostic_reasoning(ctx, authority)
+    issues = _simple_reasoning_issues(output, authority=authority, case=case, internal_registry=registry)
+    return {"authority": authority, "status": "pass" if not issues else "fail", "issue_count": len(issues), "feedback": render_feedback(issues), "issues": [x.__dict__ for x in issues]}
+
+
+def prepare_diagnostic_evidence_match(context: dict, params: dict) -> list[dict]:
+    authority = str(params.get("authority") or _authority_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    owner = _diagnostic_reasoning(ctx, authority)
+    _case, _registry, cards, manifest = _diagnostic_cards_for(authority, _work(context))
+    envelope = _candidate_card_envelope(cards, manifest)
+    return [
+        {
+            "authority": authority,
+            "reasoning_id": f"R{i}",
+            "rule": row.get("rule"),
+            "candidate_cards": envelope,
+        }
+        for i, row in enumerate(owner.get("reasoning") or [], 1) if isinstance(row, dict)
+    ]
+
+def _validate_simple_em(output: Any, match_items: list[dict]) -> list[AuditIssue]:
+    issues = _contract_issues(output, "evidence_match.json") if isinstance(output, dict) else [
+        AuditIssue("missing_evidence_match", "$", "evidence matching output is missing", "return one assignment row for each supplied reasoning item")
+    ]
+    if not isinstance(output, dict):
+        return issues
+    expected = {str(row.get("reasoning_id")): row for row in match_items}
+    seen: set[str] = set()
+    for i, row in enumerate(output.get("assignments") or []):
+        if not isinstance(row, dict):
+            continue
+        rid = str(row.get("reasoning_id") or "")
+        if rid not in expected:
+            issues.append(AuditIssue("unknown_reasoning_id", f"$.assignments[{i}].reasoning_id", f"unexpected reasoning ID {rid!r}", "match only the supplied reasoning items")); continue
+        if rid in seen:
+            issues.append(AuditIssue("duplicate_reasoning_assignment", f"$.assignments[{i}].reasoning_id", f"reasoning item {rid} appears more than once", "return exactly one assignment row per reasoning item"))
+        seen.add(rid)
+        allowed = {c.get("card_tag") for c in expected[rid].get("candidate_cards") or [] if isinstance(c, dict)}
+        for j, tag in enumerate(row.get("card_tags") or []):
+            if tag not in allowed:
+                issues.append(AuditIssue("card_outside_owner_envelope", f"$.assignments[{i}].card_tags[{j}]", f"card {tag!r} is outside the supplied candidate envelope", "use only supplied card tags"))
+    for rid in sorted(set(expected) - seen):
+        issues.append(AuditIssue("missing_reasoning_assignment", "$.assignments", f"no evidence assignment was returned for {rid}", "return one row for this reasoning item; use card_tags: [] if no supplied card supports it"))
+    return issues
+
+
+def validate_diagnostic_evidence_match(context: dict, params: dict) -> dict:
+    authority = str(params.get("authority") or _authority_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    items = ctx.get(_DIAGNOSTIC_EM_ITEM_KEYS[authority]) or []
+    output = ctx.get(_DIAGNOSTIC_EM_KEYS[authority]) or {}
+    issues = _validate_simple_em(output, items)
+    return {"authority": authority, "status": "pass" if not issues else "fail", "issue_count": len(issues), "feedback": render_feedback(issues), "issues": [x.__dict__ for x in issues]}
+
+
+def _compile_diagnostic_owner(authority: str, reasoning: dict, internal_registry: dict) -> dict:
+    prefix = _AUTHORITY_PREFIX[authority]
+    internal_by_source, _ = _variant_aliases(internal_registry)
+    diagnosis = reasoning.get("diagnosis") or {}
+    rows = [x for x in reasoning.get("reasoning") or [] if isinstance(x, dict)]
+    rules = []
+    criteria = []
+    supporting_criteria = []
+    for i, row in enumerate(rows, 1):
+        rule_id = f"{prefix}RULE-{i:03d}"
+        criterion_id = f"{prefix}CRITERION-{i:03d}"
+        rules.append({"rule_id": rule_id, "statement": row.get("rule"), "evidence_required": True, "evidence_card_tags": []})
+        criteria.append({
+            "criterion_id": criterion_id,
+            "rule_ids": [rule_id],
+            "case_fact_ids": list(row.get("case_fact_ids") or []),
+            "variant_ids": [internal_by_source[x] for x in row.get("variant_ids") or []],
+            "state_ids": [],
+            "proposed_status": row.get("assessment"),
+        })
+        if row.get("supports_conclusion") is True:
+            supporting_criteria.append(criterion_id)
+    conclusion = reasoning.get("conclusion") or {}
+    logic = []
+    if len(supporting_criteria) == 1:
+        root_id = supporting_criteria[0]
+    elif len(supporting_criteria) > 1:
+        root_id = f"{prefix}LOGIC-001"
+        logic.append({"logic_id": root_id, "operator": conclusion.get("operator") or "all_of", "members": supporting_criteria})
+    else:
+        root_id = None
+    assessments = []
+    for row in diagnosis.get("variant_assessments") or []:
+        source = row.get("variant_id")
+        assessments.append({
+            "variant_id": internal_by_source[source],
+            "classification": row.get("classification"),
+            "other_pathology": row.get("other_pathology"),
+            "reason": row.get("reason"),
+        })
+    if authority in {"who5", "icc"}:
+        diagnostic_variants = [x["variant_id"] for x in assessments if x.get("classification") == "diagnostic_for_primary"]
+        kind = "diagnosis"
+        status = "established"
+    else:
+        diagnostic_variants = [x["variant_id"] for x in assessments if x.get("classification") == "diagnostic_for_other_pathology"]
+        kind = "second_diagnosis"
+        status = diagnosis.get("status")
+        if status == "none":
+            diagnostic_variants = []
+    owner = {
+        "authority": authority,
+        "proposal": {
+            "proposal_id": f"{prefix}PROPOSAL-001",
+            "label": diagnosis.get("label"),
+            "kind": kind,
+            "schema_disease": diagnosis.get("schema_disease"),
+            "diagnostic_effect": diagnosis.get("diagnostic_effect"),
+            "variant_ids": diagnostic_variants,
+            "variant_assessments": assessments,
+            "status": status,
+        },
+        "rules": rules,
+        "derived_states": [],
+        "criteria": criteria,
+        "logic": logic,
+        "root_id": root_id,
+        "reason": reasoning.get("reason"),
+    }
+    problems = _contract_issues(owner, "diagnostic_owner.json")
+    if problems:
+        raise ValueError("Python diagnostic compiler produced an invalid internal owner artifact:\n" + render_feedback(problems))
+    return owner
+
+def compile_diagnostic_reasoning(context: dict, params: dict) -> dict:
+    authority = str(params.get("authority") or _authority_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    _case, registry, _cards, _manifest = _diagnostic_cards_for(authority, _work(context))
+    return _compile_diagnostic_owner(authority, _diagnostic_reasoning(ctx, authority), registry)
+
+
+def _diag_atomic_rule_map(ctx, authority: str) -> dict[str, str]:
+    reasoning = _diagnostic_reasoning(ctx, authority)
+    owner = _read_owner_artifact(ctx, authority)
+    atomic = [x for x in owner.get("rules") or [] if isinstance(x, dict)]
+    return {f"R{i}": str(rule.get("rule_id")) for i, rule in enumerate(atomic, 1)}
+
+def merge_diagnostic_evidence_matches(context: dict, params: dict) -> dict:
+    ctx = _workflow_context(context)
+    pairs = []
+    unassigned = []
+    for authority in DIAGNOSTIC_AUTHORITIES:
+        mapping = _diag_atomic_rule_map(ctx, authority)
+        items = {x.get("reasoning_id"): x for x in (ctx.get(_DIAGNOSTIC_EM_ITEM_KEYS[authority]) or [])}
+        output = ctx.get(_DIAGNOSTIC_EM_KEYS[authority]) or {"assignments": []}
+        assigned_atomic: set[str] = set()
+        for row in output.get("assignments") or []:
+            rid = row.get("reasoning_id"); atomic = mapping.get(rid); item = items.get(rid) or {}
+            if not atomic:
+                continue
+            cards = {c.get("card_tag"): c for c in item.get("candidate_cards") or [] if isinstance(c, dict)}
+            for tag in row.get("card_tags") or []:
+                if tag in cards:
+                    assigned_atomic.add(atomic)
+                    rule = next((r for r in _read_owner_artifact(ctx, authority).get("rules") or [] if r.get("rule_id") == atomic), {})
+                    pairs.append({"authority": authority, "rule_id": atomic, "statement": rule.get("statement"), "card_tag": tag, "card": cards[tag], "source": "evidence_match"})
+        for atomic in mapping.values():
+            if atomic not in assigned_atomic:
+                unassigned.append(atomic)
+    return {"pairs": pairs, "unassigned_rule_ids": unassigned}
+
+
+def diagnostic_em_audit_review(context: dict, params: dict) -> dict:
+    """Route only demonstrably bad card assignments back to the matching pass."""
+    authority = str(params.get("authority") or _authority_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    mapping = _diag_atomic_rule_map(ctx, authority)
+    atomic_to_simple = {v: k for k, v in mapping.items()}
+    audit = ctx.get("diagnostic_evidence_audit") or {}
+    bad = [row for row in audit.get("audits") or [] if row.get("rule_id") in atomic_to_simple and row.get("supports_rule") is False]
+    issues = [
+        AuditIssue(
+            "unsupported_card_assignment", f"$.assignments.{atomic_to_simple.get(row.get('rule_id'))}",
+            f"Evidence auditor rejected {row.get('card_tag')} for {atomic_to_simple.get(row.get('rule_id'))}: {'; '.join(row.get('comments') or []) or 'card does not support the stated rule'}",
+            "rematch this unchanged reasoning rule using only genuinely supporting supplied cards; use [] if none support it",
+        ) for row in bad
+    ]
+    return {"authority": authority, "status": "pass" if not issues else "fail", "feedback": render_feedback(issues), "issues": [x.__dict__ for x in issues]}
+
+
+def _ptbg_cards_for(domain: str, context: dict) -> tuple[dict, dict, list[dict], dict, dict]:
+    ctx = _workflow_context(context)
+    work = _work(context)
+    from workflows.proforma_v1 import runtime, self_runtime as sr, step as staged
+    case, registry = sr.load_case_registry(work)
+    _all_cards, eligible, _digest, manifest = sr.corpus_state(work)
+    diagnosis = ctx.get("diagnosis") or {}
+    disease = ((diagnosis.get("who5") or {}).get("schema_disease") if isinstance(diagnosis, dict) else None)
+    if not disease:
+        path = sr.output_path(work, "diagnosis", "diagnosis-final.yaml")
+        if path.is_file():
+            diagnosis = sr.read_yaml(path)
+            disease = (diagnosis.get("who5") or {}).get("schema_disease")
+    if not disease:
+        raise ValueError(f"{domain} reasoning requires an authoritative WHO5 schema disease")
+    cards = staged._draw_domain_cards(eligible, domain, runtime.case_genes(case), [disease])
+    return case, registry, cards, manifest, diagnosis
+
+
+def prepare_ptbg_reasoning(context: dict, params: dict) -> dict:
+    domain = str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or "")))
+    case, registry, cards, _manifest, diagnosis = _ptbg_cards_for(domain, context)
+    return {
+        "domain": domain,
+        "structured_case": case,
+        "case_fact_registry": _case_fact_registry(case),
+        "variant_registry": _source_variant_registry(registry),
+        "authoritative_diagnosis": {
+            "who5": diagnosis.get("who5") or {},
+            "icc": diagnosis.get("icc") or {},
+            "concurrent_pathology": list(diagnosis.get("concurrent_pathology") or []),
+        },
+        "reference_material": _reference_material(cards),
+        "instructions": {
+            "patient_facts_are_immutable": True,
+            "clinical_reasoning_only": True,
+            "evidence_matching_is_separate": True,
+            "internal_graph_is_python_owned": True,
+        },
+    }
+
+
+def _ptbg_reasoning(ctx, domain: str) -> dict:
+    value = ctx.get(_PTBG_REASONING_KEYS[domain])
+    return value if isinstance(value, dict) else {}
+
+
+def _simple_ptbg_issues(document: dict, *, domain: str, case: dict, internal_registry: dict) -> list[AuditIssue]:
+    issues = _contract_issues(document, "ptbg_reasoning.json") if isinstance(document, dict) else [AuditIssue("missing_reasoning_output", "$", "clinical reasoning output is missing", "return the complete clinical reasoning YAML mapping")]
+    if not isinstance(document, dict):
+        return issues
+    if document.get("domain") != domain:
+        issues.append(AuditIssue("wrong_ptbg_domain", "$.domain", f"returned {document.get('domain')!r}, expected {domain!r}", f"set domain to {domain!r}"))
+    facts = set(_case_fact_registry(case)); internal_by_source, _ = _variant_aliases(internal_registry); sources = set(internal_by_source)
+    for pi, prop in enumerate(document.get("propositions") or []):
+        if not isinstance(prop, dict):
+            continue
+        base = f"$.propositions[{pi}]"
+        for vi, vid in enumerate(prop.get("variant_ids") or []):
+            if vid not in sources:
+                issues.append(AuditIssue("unknown_variant_id", f"{base}.variant_ids[{vi}]", f"source variant {vid!r} was not supplied", "reference only source-facing supplied variants"))
+        supporting = 0
+        for ri, row in enumerate(prop.get("reasoning") or []):
+            if not isinstance(row, dict):
+                continue
+            for fid in row.get("case_fact_ids") or []:
+                if fid not in facts:
+                    issues.append(AuditIssue("unknown_case_fact_id", f"{base}.reasoning[{ri}].case_fact_ids", f"case fact {fid!r} was not supplied", "reference only supplied C... fact IDs"))
+            for vid in row.get("variant_ids") or []:
+                if vid not in sources:
+                    issues.append(AuditIssue("unknown_variant_id", f"{base}.reasoning[{ri}].variant_ids", f"source variant {vid!r} was not supplied", "reference only source-facing supplied variants"))
+            if row.get("supports_conclusion") is True:
+                supporting += 1
+                if row.get("assessment") != "met":
+                    issues.append(AuditIssue("non_supporting_conclusion_item", f"{base}.reasoning[{ri}].supports_conclusion", f"this conclusion-supporting reasoning point has assessment {row.get('assessment')!r}, not met", "phrase the supporting proposition so it is met when it supports the proposition, or set supports_conclusion to false"))
+        if prop.get("reportable") and not supporting:
+            issues.append(AuditIssue("reportable_without_reasoning", f"{base}.reasoning", "reportable proposition has no reasoning point marked as supporting its conclusion", "mark the minimal supporting reasoning point(s) with supports_conclusion: true"))
+        if domain == "germline" and prop.get("bucket") not in {"germline_suspicious", "germline_against", "germline_uncertain"}:
+            issues.append(AuditIssue("invalid_germline_bucket", f"{base}.bucket", f"unsupported germline bucket {prop.get('bucket')!r}", "use germline_suspicious, germline_against or germline_uncertain"))
+    return issues
+
+def validate_ptbg_reasoning_v2(context: dict, params: dict) -> dict:
+    domain = str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    case, registry, _cards, _manifest, _diagnosis = _ptbg_cards_for(domain, context)
+    issues = _simple_ptbg_issues(_ptbg_reasoning(ctx, domain), domain=domain, case=case, internal_registry=registry)
+    return {"domain": domain, "status": "pass" if not issues else "fail", "issue_count": len(issues), "feedback": render_feedback(issues), "issues": [x.__dict__ for x in issues]}
+
+
+def prepare_ptbg_evidence_match(context: dict, params: dict) -> list[dict]:
+    return prepare_ptbg_evidence_match_v2(context, params)
+
+def validate_ptbg_evidence_match(context: dict, params: dict) -> dict:
+    domain = str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    items = ctx.get(_PTBG_EM_ITEM_KEYS[domain]) or []
+    output = ctx.get(_PTBG_EM_KEYS[domain]) or {}
+    issues = _validate_simple_em(output, items)
+    return {
+        "domain": domain,
+        "status": "pass" if not issues else "fail",
+        "issue_count": len(issues),
+        "feedback": render_feedback(issues),
+        "issues": [x.__dict__ for x in issues],
+    }
+
+
+def _ptbg_flat_rows(reasoning: dict):
+    rows=[]
+    n=0
+    for pi, prop in enumerate(reasoning.get("propositions") or [],1):
+        for local in prop.get("reasoning") or []:
+            if not isinstance(local,dict): continue
+            n+=1; rows.append((f"R{n}",pi,local))
+    return rows
+
+
+def prepare_ptbg_evidence_match_v2(context: dict, params: dict) -> list[dict]:
+    domain = str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    reasoning = _ptbg_reasoning(ctx, domain)
+    _case, _registry, cards, manifest, _diagnosis = _ptbg_cards_for(domain, context)
+    envelope = _candidate_card_envelope(cards, manifest)
+    return [
+        {
+            "domain": domain,
+            "proposition_index": pi,
+            "reasoning_id": flat_id,
+            "rule": row.get("rule"),
+            "candidate_cards": envelope,
+        }
+        for flat_id, pi, row in _ptbg_flat_rows(reasoning)
+    ]
+
+def _compile_ptbg_owner(domain: str, reasoning: dict, internal_registry: dict) -> dict:
+    prefix = PTBG_PREFIX[domain]
+    internal_by_source, _ = _variant_aliases(internal_registry)
+    propositions = []
+    for pi, prop in enumerate(reasoning.get("propositions") or [], 1):
+        pid = f"{prefix}PROPOSITION-{pi:03d}"
+        local_rows = [x for x in prop.get("reasoning") or [] if isinstance(x, dict)]
+        rules = []
+        apps = []
+        supporting_apps = []
+        for ri, row in enumerate(local_rows, 1):
+            rule_id = f"{prefix}RULE-{pi:03d}-{ri:03d}"
+            app_id = f"{prefix}APPLICATION-{pi:03d}-{ri:03d}"
+            rules.append({"rule_id": rule_id, "statement": row.get("rule"), "evidence_required": True, "proposed_card_tags": [], "direct_requirement": None})
+            apps.append({"application_id": app_id, "rule_ids": [rule_id], "case_fact_ids": list(row.get("case_fact_ids") or []), "state_ids": [], "mode": "semantic", "direct_match": None, "proposed_status": row.get("assessment"), "reason": row.get("reason")})
+            if row.get("supports_conclusion") is True:
+                supporting_apps.append(app_id)
+        framework_name = prop.get("framework")
+        propositions.append({
+            "proposition_id": pid,
+            "bucket": prop.get("bucket"),
+            "text": prop.get("text"),
+            "reason": prop.get("reason"),
+            "variant_ids": [internal_by_source[x] for x in prop.get("variant_ids") or []],
+            "reportable": bool(prop.get("reportable")),
+            "rules": rules,
+            "derived_states": [],
+            "applications": apps,
+            "conclusion": {"operator": (prop.get("conclusion") or {}).get("operator") or "all_of", "application_ids": supporting_apps},
+            "framework": ({"name": framework_name, "applicability_application_id": supporting_apps[0]} if framework_name and supporting_apps else None),
+            "worksheet": [],
+        })
+    owner = {"domain": domain, "propositions": propositions}
+    problems = _contract_issues(owner, "ptbg_owner.json")
+    if problems:
+        raise ValueError("Python PTBG compiler produced an invalid internal owner artifact:\n" + render_feedback(problems))
+    return owner
+
+def compile_ptbg_reasoning(context: dict, params: dict) -> dict:
+    domain=str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or ""))); _case,registry,_cards,_manifest,_diagnosis=_ptbg_cards_for(domain,context); ctx=_workflow_context(context)
+    return _compile_ptbg_owner(domain,_ptbg_reasoning(ctx,domain),registry)
+
+
+def _ptbg_atomic_rule_map(ctx,domain:str) -> dict[str,str]:
+    reasoning=_ptbg_reasoning(ctx,domain); owner=_ptbg_owner({"__workflow_context__":ctx},domain); mapping={}; flat=_ptbg_flat_rows(reasoning); atomic=[]
+    for prop in owner.get("propositions") or []: atomic.extend(prop.get("rules") or [])
+    for (flat_id,_pi,_row),rule in zip(flat,atomic): mapping[flat_id]=rule.get("rule_id")
+    return mapping
+
+
+def merge_ptbg_evidence_matches(context: dict, params: dict) -> dict:
+    ctx=_workflow_context(context); pairs=[]; by_rule={}
+    for domain in PTBG_DOMAINS:
+        mapping=_ptbg_atomic_rule_map(ctx,domain); items={x.get("reasoning_id"):x for x in ctx.get(_PTBG_EM_ITEM_KEYS[domain]) or []}; output=ctx.get(_PTBG_EM_KEYS[domain]) or {"assignments":[]}
+        for row in output.get("assignments") or []:
+            rid=row.get("reasoning_id"); atomic=mapping.get(rid); item=items.get(rid) or {}; cards={c.get("card_tag"):c for c in item.get("candidate_cards") or [] if isinstance(c,dict)}
+            if not atomic: continue
+            by_rule.setdefault(atomic,[])
+            for tag in row.get("card_tags") or []:
+                if tag in cards and tag not in by_rule[atomic]: by_rule[atomic].append(tag); pairs.append({"rule_id":atomic,"card_tag":tag,"source":"evidence_match"})
+    registry=ctx.get("ptbg_atomic_registry") or {}
+    for rule in registry.get("rules") or []: by_rule.setdefault(rule.get("rule_id"),[])
+    return {"pairs":pairs,"card_tags_by_rule":by_rule}
+
+
+def ptbg_em_audit_review(context: dict, params: dict) -> dict:
+    domain=str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or ""))); ctx=_workflow_context(context); mapping=_ptbg_atomic_rule_map(ctx,domain); atomic_to_simple={v:k for k,v in mapping.items()}; audit=ctx.get("ptbg_evidence_audit") or {}
+    bad=[row for row in audit.get("audits") or [] if row.get("rule_id") in atomic_to_simple and row.get("supports_rule") is False]
+    issues=[AuditIssue("unsupported_card_assignment",f"$.assignments.{atomic_to_simple.get(row.get('rule_id'))}",f"Evidence auditor rejected {row.get('card_tag')} for {atomic_to_simple.get(row.get('rule_id'))}: {'; '.join(row.get('comments') or []) or 'card does not support the stated rule'}","rematch this unchanged reasoning rule using only genuinely supporting supplied cards; use [] if none support it") for row in bad]
+    return {"domain":domain,"status":"pass" if not issues else "fail","feedback":render_feedback(issues),"issues":[x.__dict__ for x in issues]}
+
+
+# Preserve the Phase-3 evaluators but rewrite owner-facing feedback so retries
+# never expose internal graph IDs.
+_phase3_evaluate_diagnoses = evaluate_diagnoses
+_phase3_ptbg_owner_review = ptbg_owner_review
+_phase3_build_decision_ledger = build_decision_ledger
+
+
+def evaluate_diagnoses_v2(context: dict, params: dict) -> dict:
+    result = _phase3_evaluate_diagnoses(context, params)
+    ctx = _workflow_context(context)
+    for authority in DIAGNOSTIC_AUTHORITIES:
+        if (result.get("owner_status") or {}).get(authority) == "pass":
+            continue
+        owner = _diagnostic_reasoning(ctx, authority)
+        atomic = _read_owner_artifact(ctx, authority)
+        simple_rows = [x for x in owner.get("reasoning") or [] if isinstance(x, dict)]
+        mapping = {c.get("criterion_id"): (f"R{i}", simple) for i, (c, simple) in enumerate(zip(atomic.get("criteria") or [], simple_rows), 1) if isinstance(c, dict)}
+        problems = []
+        detail = (result.get("detail") or {}).get(authority) or {}
+        crit_status = detail.get("criterion_status") or {}
+        for criterion in atomic.get("criteria") or []:
+            cid = criterion.get("criterion_id")
+            status = crit_status.get(cid, "unknown")
+            if status != "met":
+                rid, simple = mapping.get(cid, ("reasoning item", {}))
+                problems.append(f"{rid}: patient applicability was {status} for rule: {simple.get('rule')}. Reassess this clinical reasoning point from the supplied facts.")
+        evidence = (ctx.get("diagnostic_evidence_decisions") or {}).get("rule_support") or {}
+        for i, (rule, simple) in enumerate(zip(atomic.get("rules") or [], simple_rows), 1):
+            if not evidence.get(rule.get("rule_id"), False):
+                problems.append(f"R{i}: no supplied evidence survived audit for rule: {simple.get('rule')}. Revise or remove this unsupported clinical rule; do not invent evidence.")
+        if not problems:
+            problems = ["The proposed diagnosis did not survive the grouped evidence/reasoning audit. Reassess the minimal reasoning supporting the conclusion."]
+        result.setdefault("feedback", {})[authority] = "Clinical reasoning requires revision. Fix the following without changing supplied patient facts:\n- " + "\n- ".join(dict.fromkeys(problems)) + "\n"
+    return result
+
+def ptbg_owner_review_v2(context: dict, params: dict) -> dict:
+    raw=_phase3_ptbg_owner_review(context,params)
+    if raw.get("status")=="pass": return raw
+    domain=str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or ""))); ctx=_workflow_context(context); reasoning=_ptbg_reasoning(ctx,domain); eval_rows=(ctx.get("ptbg_evaluation") or {}).get("by_domain",{}).get(domain,[]) or []
+    problems=[]
+    for simple,erow in zip(reasoning.get("propositions") or [],eval_rows):
+        if erow.get("disposition") in {"dropped","unresolved"}: problems.append(f"Proposition '{simple.get('text')}': {erow.get('reason')} Reassess its clinical reasoning and patient applicability.")
+    if not problems: problems=["One or more propositions did not survive the grouped PTBG evidence/reasoning audit."]
+    issues=[AuditIssue("unsupported_ptbg_proposition",f"$.{domain}",p,"revise the clinical reasoning only; evidence matching will run separately") for p in problems]
+    return {"status":"fail","feedback":render_feedback(issues),"issues":[x.__dict__ for x in issues]}
+
+
+def build_decision_ledger_v2(context: dict, params: dict) -> dict:
+    """Give the existing ledger builder the canonical internal variant registry."""
+    ctx=_workflow_context(context); work=_work(context)
+    try:
+        from workflows.proforma_v1 import self_runtime as sr
+        _case,internal=sr.load_case_registry(work)
+    except Exception:
+        internal={}
+    saved={}
+    keys=[_owner_pack_key(a) for a in DIAGNOSTIC_AUTHORITIES]+[_ptbg_pack_key(d) for d in PTBG_DOMAINS]
+    for key in keys:
+        pack=ctx.get(key)
+        if isinstance(pack,dict): saved[key]=pack.get("variant_registry"); pack["variant_registry"]=internal
+    try: return _phase3_build_decision_ledger(context,params)
+    finally:
+        for key,value in saved.items():
+            pack=ctx.get(key)
+            if isinstance(pack,dict): pack["variant_registry"]=value
+
+
+def _accepted_card_rows_v2(ctx, tags: list[str]) -> list[dict]:
+    catalog={}
+    for key in [*_DIAGNOSTIC_EM_ITEM_KEYS.values(), *_PTBG_EM_ITEM_KEYS.values()]:
+        for item in ctx.get(key) or []:
+            for card in item.get("candidate_cards") or [] if isinstance(item,dict) else []:
+                if isinstance(card,dict) and card.get("card_tag"): catalog.setdefault(card["card_tag"],card)
+    out=[]
+    for tag in tags:
+        card=catalog.get(tag) or {}; cid=card.get("card_id")
+        if cid: out.append({"card_tag":tag,"card_id":cid})
+    return out
+
+# Global lookup by finalization/ledger functions resolves this latest definition.
+_accepted_card_rows = _accepted_card_rows_v2
+
+
+# Final dispatchers for the judgement-separated workflow. Phase-3 names remain
+# available for old reasoning artifacts, but the new workflow uses only these
+# v2 transforms for owner/EM preparation and compilation.
+_phase3_run_diagnostic_transform = run_diagnostic_transform
+_phase3_run_ptbg_transform = run_ptbg_transform
+
+def run_diagnostic_transform(name: str, context: dict, params: dict) -> Any:
+    dispatch={
+        "reasoning_prepare_diagnostic_reasoning":prepare_diagnostic_reasoning,
+        "reasoning_validate_diagnostic_reasoning_v2":validate_diagnostic_reasoning_v2,
+        "reasoning_prepare_diagnostic_evidence_match":prepare_diagnostic_evidence_match,
+        "reasoning_validate_diagnostic_evidence_match":validate_diagnostic_evidence_match,
+        "reasoning_compile_diagnostic_reasoning":compile_diagnostic_reasoning,
+        "reasoning_merge_diagnostic_evidence_matches":merge_diagnostic_evidence_matches,
+        "reasoning_diagnostic_em_audit_review":diagnostic_em_audit_review,
+        "reasoning_evaluate_diagnoses_v2":evaluate_diagnoses_v2,
+    }
+    if name in dispatch: return dispatch[name](context,params)
+    return _phase3_run_diagnostic_transform(name,context,params)
+
+
+def run_ptbg_transform(name: str, context: dict, params: dict) -> Any:
+    dispatch={
+        "reasoning_prepare_ptbg_reasoning":prepare_ptbg_reasoning,
+        "reasoning_validate_ptbg_reasoning_v2":validate_ptbg_reasoning_v2,
+        "reasoning_prepare_ptbg_evidence_match_v2":prepare_ptbg_evidence_match_v2,
+        "reasoning_validate_ptbg_evidence_match":validate_ptbg_evidence_match,
+        "reasoning_compile_ptbg_reasoning":compile_ptbg_reasoning,
+        "reasoning_merge_ptbg_evidence_matches":merge_ptbg_evidence_matches,
+        "reasoning_ptbg_em_audit_review":ptbg_em_audit_review,
+        "reasoning_ptbg_owner_review_v2":ptbg_owner_review_v2,
+        "reasoning_build_decision_ledger_v2":build_decision_ledger_v2,
+    }
+    if name in dispatch: return dispatch[name](context,params)
+    return _phase3_run_ptbg_transform(name,context,params)
+
+# ===========================================================================
+# Reasoning workflow hardening: domain contracts, conclusion coherence,
+# compact evidence matching and concise report synthesis.
+# ===========================================================================
+
+_PTBG_REASONING_SCHEMAS = {
+    "prognosis": "prognosis_reasoning.json",
+    "treatment": "treatment_reasoning.json",
+    "biomarker": "biomarker_reasoning.json",
+    "germline": "germline_reasoning.json",
+}
+_PTBG_BUCKET_REPORTABLE = {
+    "prognosis": {
+        "framework_favorable": True, "framework_adverse": True, "framework_neutral": True,
+        "other_evidence_favorable": True, "other_evidence_adverse": True,
+        "other_evidence_neutral": True, "no_prognostic_evidence": False,
+        "framework_assessment": True,
+    },
+    "treatment": {"drug_target": True, "drug_sensitive": True, "drug_resistant": True, "no_drug_implication": False},
+    "biomarker": {"mrd_marker": True, "not_mrd_marker": False},
+    "germline": {"germline_suspicious": True, "germline_against": False, "germline_uncertain": False},
+}
+_PROGNOSTIC_FRAMEWORK_PRESET = {
+    "AML": ("ELN 2022 genetic risk classification",),
+    "MDS": ("IPSS-M",),
+    "CMML": ("CPSS-Mol",),
+    "Primary myelofibrosis": ("MIPSS70", "MIPSS70-plus", "MIPSS70+ v2.0"),
+    "Post-PV/post-ET myelofibrosis": ("MYSEC-PM",),
+    "Essential thrombocythaemia": ("MIPSS-ET", "revised IPSET-thrombosis"),
+    "Polycythaemia vera": ("MIPSS-PV",),
+    "CHIP/CCUS": ("CHRS",),
+}
+
+
+def _source_label_for_card(card: dict) -> str | None:
+    """Return a deterministic FirstAuthor et al., YEAR label from card metadata.
+
+    Prefer explicit citation metadata when present; fall back to the canonical
+    publication/card key.  This is presentation metadata only and never model
+    generated.
+    """
+    import re
+    if not isinstance(card, dict):
+        return None
+    author = card.get("first_author") or card.get("author") or card.get("authors")
+    if isinstance(author, list) and author:
+        author = author[0]
+    if isinstance(author, str) and author.strip():
+        author = author.strip().split(",", 1)[0].split()[0]
+    else:
+        author = None
+    year = card.get("year") or card.get("publication_year")
+    if year is not None:
+        m = re.search(r"(?:19|20)\d{2}", str(year))
+        year = m.group(0) if m else None
+    if author and year:
+        return f"{author} et al., {year}"
+    key = str(card.get("publication_key") or card.get("card_id") or "")
+    m = re.search(r"(?:^|/)([A-Za-z][A-Za-z-]*)-((?:19|20)\d{2})(?:-|$)", key)
+    if m:
+        surname = m.group(1).replace("-", " ").title().replace(" ", "-")
+        return f"{surname} et al., {m.group(2)}"
+    return None
+
+
+def _candidate_card_envelope(cards: list[dict], manifest: dict) -> list[dict]:
+    """Compact model-facing evidence envelope.
+
+    The canonical full card remains persisted in corpus/card artifacts.  EM does
+    not need a second embedded copy of it; sending that copy was the dominant
+    source of prompt-token duplication in reasoning runs.
+    """
+    from workflows.proforma_v1 import card_identity
+    tag_by_id = card_identity.tag_by_id(manifest)
+    out = []
+    for card in cards:
+        cid = card.get("card_id")
+        token = tag_by_id.get(cid)
+        if not token:
+            continue
+        row = {"card_tag": f"[card:{token}]", "card_id": cid}
+        source_label = _source_label_for_card(card)
+        if source_label:
+            row["source_label"] = source_label
+        text = None
+        for key in ("interpretation", "claim", "evidence_text", "scope", "notes"):
+            value = card.get(key)
+            if isinstance(value, str) and value.strip():
+                text = value.strip(); break
+        if text:
+            row["text"] = text
+        for key in ("disease", "diseases", "gene", "genes", "framework", "frameworks"):
+            value = card.get(key)
+            if value not in (None, "", [], {}):
+                row[key] = value
+        out.append(row)
+    return out
+
+
+def _em_pack(items: list[dict], envelope: list[dict]) -> dict:
+    """Cards appear once per EM call rather than once per reasoning item."""
+    return {"items": items, "candidate_cards": envelope}
+
+
+def _em_items(pack: Any) -> list[dict]:
+    if isinstance(pack, dict):
+        return [x for x in (pack.get("items") or []) if isinstance(x, dict)]
+    return [x for x in (pack or []) if isinstance(x, dict)]
+
+
+def _em_cards(pack: Any) -> list[dict]:
+    if isinstance(pack, dict):
+        return [x for x in (pack.get("candidate_cards") or []) if isinstance(x, dict)]
+    # Backward-compatible read of old repeated-envelope artifacts.
+    for row in pack or []:
+        if isinstance(row, dict) and isinstance(row.get("candidate_cards"), list):
+            return [x for x in row.get("candidate_cards") or [] if isinstance(x, dict)]
+    return []
+
+
+def prepare_diagnostic_evidence_match(context: dict, params: dict) -> dict:
+    authority = str(params.get("authority") or _authority_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context)
+    owner = _diagnostic_reasoning(ctx, authority)
+    _case, _registry, cards, manifest = _diagnostic_cards_for(authority, _work(context))
+    items = [{"authority": authority, "reasoning_id": f"R{i}", "rule": row.get("rule")}
+             for i, row in enumerate(owner.get("reasoning") or [], 1) if isinstance(row, dict)]
+    return _em_pack(items, _candidate_card_envelope(cards, manifest))
+
+
+def _validate_simple_em(output: Any, match_pack: Any) -> list[AuditIssue]:
+    issues = _contract_issues(output, "evidence_match.json") if isinstance(output, dict) else [
+        AuditIssue("missing_evidence_match", "$", "evidence matching output is missing", "return one assignment row for each supplied reasoning item")
+    ]
+    if not isinstance(output, dict):
+        return issues
+    items = _em_items(match_pack); cards = _em_cards(match_pack)
+    allowed = {c.get("card_tag") for c in cards}
+    expected = {str(row.get("reasoning_id")): row for row in items}
+    seen = set()
+    for i, row in enumerate(output.get("assignments") or []):
+        if not isinstance(row, dict):
+            continue
+        rid = str(row.get("reasoning_id") or "")
+        if rid not in expected:
+            issues.append(AuditIssue("unknown_reasoning_id", f"$.assignments[{i}].reasoning_id", f"unexpected reasoning ID {rid!r}", "match only supplied reasoning items")); continue
+        if rid in seen:
+            issues.append(AuditIssue("duplicate_reasoning_assignment", f"$.assignments[{i}].reasoning_id", f"reasoning item {rid} appears more than once", "return exactly one assignment row per reasoning item"))
+        seen.add(rid)
+        for j, tag in enumerate(row.get("card_tags") or []):
+            if tag not in allowed:
+                issues.append(AuditIssue("card_outside_owner_envelope", f"$.assignments[{i}].card_tags[{j}]", f"card {tag!r} is outside the supplied candidate envelope", "use only supplied card tags"))
+    for rid in sorted(set(expected) - seen):
+        issues.append(AuditIssue("missing_reasoning_assignment", "$.assignments", f"no evidence assignment was returned for {rid}", "return one row for this reasoning item; use card_tags: [] if no supplied card supports it"))
+    return issues
+
+
+def _authoritative_disease(context: dict) -> str | None:
+    ctx = _workflow_context(context)
+    diagnosis = ctx.get("diagnosis") or {}
+    return ((diagnosis.get("who5") or {}).get("schema_disease") if isinstance(diagnosis, dict) else None)
+
+
+def _reasoning_points_for_domain(reasoning: dict, domain: str):
+    """Yield (flat_id, proposition_key, reasoning_point, conclusion metadata)."""
+    n = 0
+    if domain == "prognosis":
+        for fi, fw in enumerate(reasoning.get("frameworks") or [], 1):
+            for row in fw.get("reasoning") or []:
+                if isinstance(row, dict):
+                    n += 1; yield f"R{n}", f"framework:{fi}", row, {"kind":"framework","framework":fw}
+        for vi, va in enumerate(reasoning.get("variant_assessments") or [], 1):
+            for ei, fx in enumerate(va.get("framework_effects") or [], 1):
+                for row in fx.get("reasoning") or []:
+                    if isinstance(row, dict):
+                        n += 1; yield f"R{n}", f"variant:{vi}:framework:{ei}", row, {"kind":"framework_effect","variant":va,"effect":fx}
+            other = va.get("other_evidence") or {}
+            for row in other.get("reasoning") or []:
+                if isinstance(row, dict):
+                    n += 1; yield f"R{n}", f"variant:{vi}:other", row, {"kind":"other_evidence","variant":va,"other":other}
+    elif domain == "treatment":
+        for vi, va in enumerate(reasoning.get("variant_assessments") or [], 1):
+            for ii, imp in enumerate(va.get("implications") or [], 1):
+                for row in imp.get("reasoning") or []:
+                    if isinstance(row, dict):
+                        n += 1; yield f"R{n}", f"variant:{vi}:implication:{ii}", row, {"kind":"treatment","variant":va,"implication":imp}
+    elif domain == "biomarker":
+        for vi, va in enumerate(reasoning.get("variant_assessments") or [], 1):
+            for row in va.get("reasoning") or []:
+                if isinstance(row, dict):
+                    n += 1; yield f"R{n}", f"variant:{vi}", row, {"kind":"biomarker","variant":va}
+    elif domain == "germline":
+        for vi, va in enumerate(reasoning.get("variant_assessments") or [], 1):
+            for row in va.get("reasoning") or []:
+                if isinstance(row, dict):
+                    n += 1; yield f"R{n}", f"variant:{vi}", row, {"kind":"germline","variant":va}
+
+
+def _simple_ptbg_issues(document: dict, *, domain: str, case: dict, internal_registry: dict) -> list[AuditIssue]:
+    schema_name = _PTBG_REASONING_SCHEMAS[domain]
+    issues = _contract_issues(document, schema_name) if isinstance(document, dict) else [AuditIssue("missing_reasoning_output", "$", "clinical reasoning output is missing", "return the complete clinical reasoning YAML mapping")]
+    if not isinstance(document, dict):
+        return issues
+    facts = set(_case_fact_registry(case)); internal_by_source, _ = _variant_aliases(internal_registry); sources = set(internal_by_source)
+    if document.get("domain") != domain:
+        issues.append(AuditIssue("wrong_ptbg_domain", "$.domain", f"returned {document.get('domain')!r}, expected {domain!r}", f"set domain to {domain!r}"))
+
+    # Exhaustive variant coverage is a deterministic completeness invariant.
+    assessments = document.get("variant_assessments") or []
+    assessed = [x.get("variant_id") for x in assessments if isinstance(x, dict)]
+    for source in sorted(sources - set(assessed)):
+        issues.append(AuditIssue("missing_variant_assessment", "$.variant_assessments", f"no {domain} assessment was returned for supplied variant {source}", "return one assessment for every supplied variant"))
+    for source in sorted(set(assessed) - sources):
+        issues.append(AuditIssue("unknown_variant_id", "$.variant_assessments", f"assessment references unknown source variant {source}", "use only supplied source-facing variant IDs"))
+    for source in sorted({x for x in assessed if x and assessed.count(x)>1}):
+        issues.append(AuditIssue("duplicate_variant_assessment", "$.variant_assessments", f"variant {source} appears more than once", "return exactly one variant assessment; treatment may contain multiple implications inside that assessment"))
+
+    for flat_id, prop_key, row, _meta in _reasoning_points_for_domain(document, domain):
+        for fid in row.get("case_fact_ids") or []:
+            if fid not in facts:
+                issues.append(AuditIssue("unknown_case_fact_id", f"$.{prop_key}.{flat_id}.case_fact_ids", f"case fact {fid!r} was not supplied", "reference only supplied C... fact IDs"))
+        for vid in row.get("variant_ids") or []:
+            if vid not in sources:
+                issues.append(AuditIssue("unknown_variant_id", f"$.{prop_key}.{flat_id}.variant_ids", f"source variant {vid!r} was not supplied", "reference only supplied source-facing variants"))
+        if row.get("supports_conclusion") is True and row.get("assessment") != "met":
+            issues.append(AuditIssue("non_supporting_conclusion_item", f"$.{prop_key}.{flat_id}.supports_conclusion", "conclusion-supporting reasoning is not met", "set supports_conclusion true only for met reasoning that genuinely supports the conclusion"))
+
+    if domain == "prognosis":
+        disease = _authoritative_disease({"__workflow_context__": type("_", (), {"get": lambda self,k,d=None: None})()}) if False else None
+        # Use the caller's authoritative disease when available via case bootstrap; validation wrapper adds exact preset check below.
+        framework_names = [x.get("name") for x in document.get("frameworks") or [] if isinstance(x, dict) and x.get("applicable")]
+        for va in assessments:
+            for fx in va.get("framework_effects") or [] if isinstance(va, dict) else []:
+                if fx.get("framework") not in framework_names:
+                    issues.append(AuditIssue("unknown_framework_effect", "$.variant_assessments.framework_effects", f"framework effect names {fx.get('framework')!r}, which is not an applicable selected framework", "use an exact applicable framework name or remove this framework effect"))
+            other = va.get("other_evidence") or {}
+            if other.get("effect") == "no_evidence" and other.get("reason") not in (None, ""):
+                issues.append(AuditIssue("reason_for_no_evidence", "$.variant_assessments.other_evidence.reason", "no_evidence should not carry a positive prognostic reason", "use reason: null for no_evidence"))
+    elif domain == "treatment":
+        for va in assessments:
+            implications = va.get("implications") or [] if isinstance(va, dict) else []
+            cats = [x.get("category") for x in implications if isinstance(x, dict)]
+            if "no_drug_implication" in cats and len(cats) > 1:
+                issues.append(AuditIssue("exclusive_no_drug_implication", "$.variant_assessments.implications", "no_drug_implication is combined with a positive treatment implication", "use no_drug_implication alone or remove it"))
+            for imp in implications:
+                if not isinstance(imp, dict): continue
+                positive = imp.get("category") in {"drug_target","drug_sensitive","drug_resistant"}
+                if positive and not str(imp.get("therapy") or "").strip():
+                    issues.append(AuditIssue("missing_therapy", "$.variant_assessments.implications.therapy", "positive treatment implication has no named therapy", "name the therapy associated with this implication"))
+                if imp.get("category") == "no_drug_implication" and imp.get("therapy") is not None:
+                    issues.append(AuditIssue("therapy_on_no_implication", "$.variant_assessments.implications.therapy", "no_drug_implication must not name a therapy", "use therapy: null"))
+    elif domain == "germline":
+        for va in assessments:
+            if not isinstance(va, dict): continue
+            if va.get("eligibility") == "skip_no_predisposition_evidence":
+                if va.get("bucket") is not None:
+                    issues.append(AuditIssue("bucket_on_skipped_germline", "$.variant_assessments.bucket", "skipped germline finding has a bucket", "use bucket: null when eligibility is skip_no_predisposition_evidence"))
+            else:
+                factors=[va.get(k) for k in ("event_compatibility","age","vaf","personal_history","family_history","phenotype")]
+                if any(x is None for x in factors):
+                    issues.append(AuditIssue("incomplete_germline_worksheet", "$.variant_assessments", "eligible germline assessment does not complete every required patient-specific factor", "complete event compatibility, age, VAF, personal history, family history and phenotype"))
+    return issues
+
+
+def validate_ptbg_reasoning_v2(context: dict, params: dict) -> dict:
+    domain = str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or "")))
+    ctx = _workflow_context(context); case, registry, _cards, _manifest, _diagnosis = _ptbg_cards_for(domain, context)
+    doc = _ptbg_reasoning(ctx, domain)
+    issues = _simple_ptbg_issues(doc, domain=domain, case=case, internal_registry=registry)
+    if domain == "prognosis":
+        disease = _authoritative_disease(context)
+        required = set(_PROGNOSTIC_FRAMEWORK_PRESET.get(str(disease), ())) if disease != "no_haematological_malignancy" else set()
+        selected = {x.get("name") for x in doc.get("frameworks") or [] if isinstance(x, dict) and x.get("applicable") is True}
+        for name in sorted(required - selected):
+            issues.append(AuditIssue("missing_required_prognostic_framework", "$.frameworks", f"authoritative disease {disease!r} requires assessment of prognostic framework {name!r}", f"include {name!r} and assess applicability/tier from supplied findings; use tier: null if a tier cannot be assigned"))
+        allowed=set(sum((list(v) for v in _PROGNOSTIC_FRAMEWORK_PRESET.values()), []))
+        for i, row in enumerate(doc.get("frameworks") or []):
+            if isinstance(row,dict) and row.get("name") not in allowed:
+                issues.append(AuditIssue("unknown_prognostic_framework", f"$.frameworks[{i}].name", f"{row.get('name')!r} is not an accepted framework", "use only the accepted disease-to-framework preset"))
+    return {"domain":domain,"status":"pass" if not issues else "fail","issue_count":len(issues),"feedback":render_feedback(issues),"issues":[x.__dict__ for x in issues]}
+
+
+def prepare_ptbg_evidence_match_v2(context: dict, params: dict) -> dict:
+    domain = str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or "")))
+    ctx=_workflow_context(context); reasoning=_ptbg_reasoning(ctx,domain)
+    _case,_registry,cards,manifest,_diagnosis=_ptbg_cards_for(domain,context)
+    items=[{"domain":domain,"reasoning_id":rid,"rule":row.get("rule")} for rid,_key,row,_meta in _reasoning_points_for_domain(reasoning,domain)]
+    return _em_pack(items,_candidate_card_envelope(cards,manifest))
+
+
+def _ptbg_flat_rows(reasoning: dict, domain: str | None = None):
+    domain = domain or str(reasoning.get("domain") or "")
+    return [(rid, key, row) for rid,key,row,_meta in _reasoning_points_for_domain(reasoning,domain)]
+
+
+def _ptbg_proposition_specs(reasoning: dict, domain: str):
+    """Clinical conclusions projected to generic internal proposition specs.
+
+    Reportability is deterministic from the domain/category; the model never
+    owns that policy decision.
+    """
+    specs=[]
+    if domain=="prognosis":
+        for fi,fw in enumerate(reasoning.get("frameworks") or [],1):
+            if not isinstance(fw,dict) or not fw.get("applicable"): continue
+            tier=fw.get("tier")
+            text=f"{fw.get('name')}" + (f" risk tier: {tier}" if tier else " is the applicable prognostic framework")
+            specs.append({"key":f"framework:{fi}","bucket":"framework_assessment","text":text,"reason":fw.get("reason"),"variant_ids":[],"framework":fw.get("name"),"reasoning":fw.get("reasoning") or [],"reportable":True})
+        for vi,va in enumerate(reasoning.get("variant_assessments") or [],1):
+            vid=va.get("variant_id")
+            for ei,fx in enumerate(va.get("framework_effects") or [],1):
+                effect=fx.get("effect"); bucket=f"framework_{effect}"
+                specs.append({"key":f"variant:{vi}:framework:{ei}","bucket":bucket,"text":fx.get("reason"),"reason":fx.get("reason"),"variant_ids":[vid],"framework":fx.get("framework"),"reasoning":fx.get("reasoning") or [],"reportable":True})
+            other=va.get("other_evidence") or {}; effect=other.get("effect")
+            bucket="no_prognostic_evidence" if effect=="no_evidence" else f"other_evidence_{effect}"
+            specs.append({"key":f"variant:{vi}:other","bucket":bucket,"text":other.get("reason") or f"No disease-applicable prognostic evidence identified for {vid}","reason":other.get("reason") or "No disease-applicable prognostic evidence was identified.","variant_ids":[vid],"framework":None,"reasoning":other.get("reasoning") or [],"reportable":bool(_PTBG_BUCKET_REPORTABLE[domain].get(bucket,False))})
+    elif domain=="treatment":
+        for vi,va in enumerate(reasoning.get("variant_assessments") or [],1):
+            vid=va.get("variant_id")
+            for ii,imp in enumerate(va.get("implications") or [],1):
+                therapy=imp.get("therapy"); text=(f"{therapy}: {imp.get('reason')}" if therapy else imp.get("reason"))
+                bucket=imp.get("category")
+                specs.append({"key":f"variant:{vi}:implication:{ii}","bucket":bucket,"text":text,"reason":imp.get("reason"),"variant_ids":[vid],"framework":None,"reasoning":imp.get("reasoning") or [],"reportable":bool(_PTBG_BUCKET_REPORTABLE[domain].get(bucket,False))})
+    elif domain=="biomarker":
+        for vi,va in enumerate(reasoning.get("variant_assessments") or [],1):
+            bucket=va.get("status"); specs.append({"key":f"variant:{vi}","bucket":bucket,"text":va.get("reason"),"reason":va.get("reason"),"variant_ids":[va.get("variant_id")],"framework":None,"reasoning":va.get("reasoning") or [],"reportable":bool(_PTBG_BUCKET_REPORTABLE[domain].get(bucket,False))})
+    elif domain=="germline":
+        for vi,va in enumerate(reasoning.get("variant_assessments") or [],1):
+            if va.get("eligibility")!="assess" or not va.get("bucket"): continue
+            bucket=va.get("bucket"); worksheet=[]
+            predisposition=va.get("predisposition_evidence")
+            if isinstance(predisposition,str) and predisposition.strip():
+                worksheet.append({"factor":"predisposition_evidence","status":"supportive","reason":predisposition.strip()})
+            for factor in ("event_compatibility","age","vaf","personal_history","family_history","phenotype"):
+                row=va.get(factor)
+                if isinstance(row,dict): worksheet.append({"factor":factor,"status":row.get("status"),"reason":row.get("reason")})
+            specs.append({"key":f"variant:{vi}","bucket":bucket,"text":va.get("reason"),"reason":va.get("reason"),"variant_ids":[va.get("variant_id")],"framework":None,"reasoning":va.get("reasoning") or [],"reportable":bool(_PTBG_BUCKET_REPORTABLE[domain].get(bucket,False)),"worksheet":worksheet})
+    return specs
+
+
+def _compile_ptbg_owner(domain: str, reasoning: dict, internal_registry: dict) -> dict:
+    prefix=PTBG_PREFIX[domain]; internal_by_source,_=_variant_aliases(internal_registry); propositions=[]
+    flat_counter=0
+    for pi,spec in enumerate(_ptbg_proposition_specs(reasoning,domain),1):
+        pid=f"{prefix}PROPOSITION-{pi:03d}"; rules=[]; apps=[]; supporting=[]
+        for ri,row in enumerate([x for x in spec.get("reasoning") or [] if isinstance(x,dict)],1):
+            flat_counter += 1
+            rule_id=f"{prefix}RULE-{pi:03d}-{ri:03d}"; app_id=f"{prefix}APPLICATION-{pi:03d}-{ri:03d}"
+            rules.append({"rule_id":rule_id,"statement":row.get("rule"),"evidence_required":True,"proposed_card_tags":[],"direct_requirement":None})
+            apps.append({"application_id":app_id,"rule_ids":[rule_id],"case_fact_ids":list(row.get("case_fact_ids") or []),"state_ids":[],"mode":"semantic","direct_match":None,"proposed_status":row.get("assessment"),"reason":row.get("reason")})
+            if row.get("supports_conclusion") is True: supporting.append(app_id)
+        worksheet=[]
+        for wi,row in enumerate([x for x in spec.get("worksheet") or [] if isinstance(x,dict)],1):
+            status=row.get("status"); aid=None
+            # Germline factor interpretation is already a clinical owner judgement.
+            # Python only gives supplied/interpretable factors a machine application ID;
+            # missing/unassessable factors remain explicitly null.
+            if row.get("factor") != "predisposition_evidence" and status not in {"not_supplied","not_assessable"}:
+                aid=f"{prefix}APPLICATION-{pi:03d}-F{wi:02d}"
+                apps.append({"application_id":aid,"rule_ids":[],"case_fact_ids":[],"state_ids":[],"mode":"semantic","direct_match":None,"proposed_status":"not_met" if status=="discordant" else "met","reason":row.get("reason")})
+            worksheet.append({"factor":row.get("factor"),"application_id":aid,"status":status,"reason":row.get("reason")})
+        variants=[internal_by_source[x] for x in spec.get("variant_ids") or [] if x in internal_by_source]
+        framework=spec.get("framework")
+        propositions.append({"proposition_id":pid,"bucket":spec.get("bucket"),"text":spec.get("text") or spec.get("reason"),"reason":spec.get("reason"),"variant_ids":variants,"reportable":bool(spec.get("reportable")),"rules":rules,"derived_states":[],"applications":apps,"conclusion":{"operator":"all_of","application_ids":supporting},"framework":({"name":framework,"applicability_application_id":supporting[0]} if framework and supporting else None),"worksheet":worksheet})
+    owner={"domain":domain,"propositions":propositions}; problems=_contract_issues(owner,"ptbg_owner.json")
+    if problems: raise ValueError("Python PTBG compiler produced an invalid internal owner artifact:\n"+render_feedback(problems))
+    return owner
+
+
+def _ptbg_atomic_rule_map(ctx, domain: str) -> dict[str,str]:
+    reasoning=_ptbg_reasoning(ctx,domain); owner=_ptbg_owner({"__workflow_context__":ctx},domain); mapping={}
+    flat=[rid for rid,_key,_row,_meta in _reasoning_points_for_domain(reasoning,domain)]; atomic=[]
+    for prop in owner.get("propositions") or []: atomic.extend(prop.get("rules") or [])
+    for rid,rule in zip(flat,atomic): mapping[rid]=rule.get("rule_id")
+    return mapping
+
+
+def merge_diagnostic_evidence_matches(context: dict, params: dict) -> dict:
+    ctx=_workflow_context(context); pairs=[]; by_rule={}
+    for authority in DIAGNOSTIC_AUTHORITIES:
+        mapping=_diagnostic_atomic_rule_map(ctx,authority); pack=ctx.get(_DIAGNOSTIC_EM_ITEM_KEYS[authority]) or {}; cards={c.get("card_tag"):c for c in _em_cards(pack)}
+        output=ctx.get(_DIAGNOSTIC_EM_KEYS[authority]) or {"assignments":[]}
+        for row in output.get("assignments") or []:
+            atomic=mapping.get(row.get("reasoning_id"));
+            if not atomic: continue
+            by_rule.setdefault(atomic,[])
+            for tag in row.get("card_tags") or []:
+                if tag in cards and tag not in by_rule[atomic]: by_rule[atomic].append(tag); pairs.append({"rule_id":atomic,"card_tag":tag,"source":"evidence_match"})
+    registry=ctx.get("diagnostic_atomic_registry") or {}
+    for rule in registry.get("rules") or []: by_rule.setdefault(rule.get("rule_id"),[])
+    return {"pairs":pairs,"card_tags_by_rule":by_rule}
+
+
+def merge_ptbg_evidence_matches(context: dict, params: dict) -> dict:
+    ctx=_workflow_context(context); pairs=[]; by_rule={}
+    for domain in PTBG_DOMAINS:
+        mapping=_ptbg_atomic_rule_map(ctx,domain); pack=ctx.get(_PTBG_EM_ITEM_KEYS[domain]) or {}; cards={c.get("card_tag"):c for c in _em_cards(pack)}
+        output=ctx.get(_PTBG_EM_KEYS[domain]) or {"assignments":[]}
+        for row in output.get("assignments") or []:
+            atomic=mapping.get(row.get("reasoning_id"));
+            if not atomic: continue
+            by_rule.setdefault(atomic,[])
+            for tag in row.get("card_tags") or []:
+                if tag in cards and tag not in by_rule[atomic]: by_rule[atomic].append(tag); pairs.append({"rule_id":atomic,"card_tag":tag,"source":"evidence_match"})
+    registry=ctx.get("ptbg_atomic_registry") or {}
+    for rule in registry.get("rules") or []: by_rule.setdefault(rule.get("rule_id"),[])
+    return {"pairs":pairs,"card_tags_by_rule":by_rule}
+
+
+def _accepted_card_rows_v2(ctx, tags: list[str]) -> list[dict]:
+    catalog={}
+    for key in [*_DIAGNOSTIC_EM_ITEM_KEYS.values(), *_PTBG_EM_ITEM_KEYS.values()]:
+        for card in _em_cards(ctx.get(key) or {}):
+            if card.get("card_tag"): catalog.setdefault(card["card_tag"],card)
+    return [{"card_tag":tag,"card_id":catalog[tag].get("card_id")} for tag in tags if tag in catalog and catalog[tag].get("card_id")]
+_accepted_card_rows = _accepted_card_rows_v2
+
+
+def prepare_diagnostic_reasoning_audit(context: dict, params: dict) -> list[dict]:
+    ctx=_workflow_context(context); registry=ctx.get("diagnostic_atomic_registry") or {}; evidence=ctx.get("diagnostic_evidence_decisions") or {}; support=evidence.get("rule_support") or {}
+    packs={a:ctx.get(_owner_pack_key(a)) or {} for a in DIAGNOSTIC_AUTHORITIES}
+    try:
+        from workflows.proforma_v1 import self_runtime as sr
+        _case,internal_variants=sr.load_case_registry(_work(context))
+    except Exception: internal_variants={}
+    items=[]
+    for authority in DIAGNOSTIC_AUTHORITIES:
+        owner=_read_owner_artifact(ctx,authority); facts=packs[authority].get("case_fact_registry") or {}; states={s.get("state_id"):s for s in owner.get("derived_states") or []}
+        for state in states.values():
+            items.append({"item_type":"derived_state","authority":authority,"state":state,"case_facts":[facts[x] for x in state.get("case_fact_ids") or [] if x in facts],"variants":{x:internal_variants[x] for x in state.get("variant_ids") or [] if x in internal_variants}})
+        for criterion in owner.get("criteria") or []:
+            approved=[rid for rid in criterion.get("rule_ids") or [] if support.get(rid)]
+            if len(approved)!=len(criterion.get("rule_ids") or []): continue
+            rules=[r for r in registry.get("rules") or [] if r.get("rule_id") in approved]
+            items.append({"item_type":"criterion","authority":authority,"criterion":criterion,"rules":rules,"case_facts":[facts[x] for x in criterion.get("case_fact_ids") or [] if x in facts],"variants":{x:internal_variants[x] for x in criterion.get("variant_ids") or [] if x in internal_variants},"derived_states":[states[x] for x in criterion.get("state_ids") or [] if x in states]})
+        simple=_diagnostic_reasoning(ctx,authority)
+        items.append({"item_type":"conclusion","authority":authority,"conclusion_id":authority,"proposed_conclusion":(owner.get("proposal") or {}).get("label"),"owner_reasoning":simple,"instruction":"Assess whether the proposed final conclusion follows from and is consistent with the owner's own reasoning."})
+    return items
+
+
+def _validate_reasoning_audit_with_conclusions(output: dict, prepared: list[dict], *, criterion_kind: str) -> list[AuditIssue]:
+    issues=_contract_issues(output,"reasoning_audit.json") if output else []
+    expected_states={x["state"]["state_id"] for x in prepared if x.get("item_type")=="derived_state"}
+    if criterion_kind=="criterion": expected_criteria={x["criterion"]["criterion_id"] for x in prepared if x.get("item_type")=="criterion"}
+    else: expected_criteria={x["application"]["application_id"] for x in prepared if x.get("item_type")=="application"}
+    expected_conclusions={x.get("conclusion_id") for x in prepared if x.get("item_type")=="conclusion"}
+    def check(rows,expected,field,base):
+        seen=set()
+        for i,row in enumerate(rows or []):
+            if not isinstance(row,dict): issues.append(AuditIssue("invalid_reasoning_row",f"$.{base}[{i}]","reasoning row is not a mapping",f"return a valid {base} row")); continue
+            value=row.get(field)
+            if value not in expected: issues.append(AuditIssue("unknown_reasoning_id",f"$.{base}[{i}].{field}",f"unexpected ID {value!r}","assess only supplied items")); continue
+            if value in seen: issues.append(AuditIssue("duplicate_reasoning_result",f"$.{base}[{i}].{field}",f"ID {value!r} appears more than once","return exactly one result per item"))
+            seen.add(value)
+        for missing in sorted(expected-seen): issues.append(AuditIssue("missing_reasoning_result",f"$.{base}",f"no result was returned for {missing}","assess this supplied item"))
+    if isinstance(output,dict):
+        check(output.get("derived_states") or [],expected_states,"state_id","derived_states")
+        check(output.get("criteria") or [],expected_criteria,"criterion_id","criteria")
+        check(output.get("conclusions") or [],expected_conclusions,"conclusion_id","conclusions")
+    return issues
+
+
+def validate_diagnostic_reasoning_audit(context: dict, params: dict) -> dict:
+    ctx=_workflow_context(context); prepared=ctx.get("diagnostic_reasoning_items") or []; output=ctx.get("diagnostic_reasoning_audit") or {}
+    issues=_validate_reasoning_audit_with_conclusions(output,prepared,criterion_kind="criterion")
+    return {"status":"pass" if not issues else "fail","issue_count":len(issues),"feedback":render_feedback(issues),"issues":[x.__dict__ for x in issues]}
+
+
+def prepare_ptbg_reasoning_audit(context: dict, params: dict) -> list[dict]:
+    ctx=_workflow_context(context); registry=ctx.get("ptbg_atomic_registry") or {}; evidence=ctx.get("ptbg_evidence_decisions") or {}; support=evidence.get("rule_support") or {}; facts=_ptbg_case_facts(ctx)
+    states={s.get("state_id"):s for s in registry.get("derived_states") or []}; rules={r.get("rule_id"):r for r in registry.get("rules") or []}; items=[]
+    for state in states.values(): items.append({"item_type":"derived_state","domain":state.get("domain"),"state":state,"case_facts":[facts[f] for f in state.get("case_fact_ids") or [] if f in facts]})
+    for app in registry.get("applications") or []:
+        rid_list=list(app.get("rule_ids") or [])
+        if app.get("mode")!="semantic" or not all(support.get(rid,False) for rid in rid_list): continue
+        items.append({"item_type":"application","domain":app.get("domain"),"application":app,"rules":[rules[r] for r in rid_list if r in rules],"case_facts":[facts[f] for f in app.get("case_fact_ids") or [] if f in facts],"derived_states":[states[s] for s in app.get("state_ids") or [] if s in states]})
+    for domain in PTBG_DOMAINS:
+        owner=_ptbg_owner({"__workflow_context__":ctx},domain); source=_ptbg_reasoning(ctx,domain)
+        for prop in owner.get("propositions") or []:
+            items.append({"item_type":"conclusion","domain":domain,"conclusion_id":prop.get("proposition_id"),"proposed_conclusion":{"bucket":prop.get("bucket"),"text":prop.get("text"),"framework":prop.get("framework"),"reportable":prop.get("reportable")},"owner_reasoning":source,"instruction":"Assess whether this final conclusion follows from and is consistent with the domain-specific clinical reasoning contract."})
+    return items
+
+
+def validate_ptbg_reasoning_audit(context: dict, params: dict) -> dict:
+    ctx=_workflow_context(context); prepared=ctx.get("ptbg_reasoning_items") or []; output=ctx.get("ptbg_reasoning_audit") or {}
+    issues=_validate_reasoning_audit_with_conclusions(output,prepared,criterion_kind="application")
+    return {"status":"pass" if not issues else "fail","issue_count":len(issues),"feedback":render_feedback(issues),"issues":[x.__dict__ for x in issues]}
+
+
+_phase3_evaluate_diagnoses_with_no_conclusion = _phase3_evaluate_diagnoses
+
+def evaluate_diagnoses_v2(context: dict, params: dict) -> dict:
+    result=_phase3_evaluate_diagnoses_with_no_conclusion(context,params); ctx=_workflow_context(context)
+    conclusion_rows={r.get("conclusion_id"):r for r in (ctx.get("diagnostic_reasoning_audit") or {}).get("conclusions") or [] if isinstance(r,dict)}
+    for authority in DIAGNOSTIC_AUTHORITIES:
+        crow=conclusion_rows.get(authority) or {}; coherent=crow.get("status")=="coherent"
+        if not coherent:
+            result.setdefault("owner_status",{})[authority]="fail"
+            comments="; ".join(crow.get("comments") or []) or "Final diagnosis was not confirmed coherent with the owner's audited reasoning."
+            result.setdefault("feedback",{})[authority]=f"Clinical conclusion requires revision. The final {authority} conclusion must follow from the reasoning. {comments}\n"
+            result.setdefault("detail",{}).setdefault(authority,{})["conclusion_status"]=crow.get("status","missing")
+        elif isinstance((result.get("detail") or {}).get(authority),dict):
+            result["detail"][authority]["conclusion_status"]="coherent"
+        if (result.get("owner_status") or {}).get(authority)=="pass": continue
+        # Preserve existing detailed feedback when failure is not solely coherence.
+        if authority in (result.get("feedback") or {}) and "Clinical conclusion requires revision" in result["feedback"][authority]: continue
+        owner=_diagnostic_reasoning(ctx,authority); atomic=_read_owner_artifact(ctx,authority); simple_rows=[x for x in owner.get("reasoning") or [] if isinstance(x,dict)]; mapping={c.get("criterion_id"):(f"R{i}",simple) for i,(c,simple) in enumerate(zip(atomic.get("criteria") or [],simple_rows),1) if isinstance(c,dict)}; problems=[]; detail=(result.get("detail") or {}).get(authority) or {}; crit_status=detail.get("criterion_status") or {}
+        for criterion in atomic.get("criteria") or []:
+            cid=criterion.get("criterion_id"); status=crit_status.get(cid,"unknown")
+            if status!="met": rid,simple=mapping.get(cid,("reasoning item",{})); problems.append(f"{rid}: patient applicability was {status} for rule: {simple.get('rule')}. Reassess this clinical reasoning point from the supplied facts.")
+        evidence=(ctx.get("diagnostic_evidence_decisions") or {}).get("rule_support") or {}
+        for i,(rule,simple) in enumerate(zip(atomic.get("rules") or [],simple_rows),1):
+            if not evidence.get(rule.get("rule_id"),False): problems.append(f"R{i}: no supplied evidence survived audit for rule: {simple.get('rule')}. Revise or remove this unsupported clinical rule; do not invent evidence.")
+        if problems: result.setdefault("feedback",{})[authority]="Clinical reasoning requires revision. Fix the following without changing supplied patient facts:\n- "+"\n- ".join(dict.fromkeys(problems))+"\n"
+    return result
+
+
+_phase3_evaluate_ptbg_no_conclusion = evaluate_ptbg
+
+def evaluate_ptbg(context: dict, params: dict) -> dict:
+    result=_phase3_evaluate_ptbg_no_conclusion(context,params); ctx=_workflow_context(context); conclusions={r.get("conclusion_id"):r for r in (ctx.get("ptbg_reasoning_audit") or {}).get("conclusions") or [] if isinstance(r,dict)}
+    for row in result.get("propositions") or []:
+        cid=row.get("proposition_id"); crow=conclusions.get(cid) or {}
+        if crow.get("status")!="coherent":
+            row["status"]="unknown"; row["disposition"]="dropped" if crow.get("status")=="incoherent" else "unresolved"; row["reason"]="Final clinical conclusion did not pass conclusion-coherence audit. " + ("; ".join(crow.get("comments") or []) or "Conclusion coherence was indeterminate.")
+    by_domain={d:[] for d in PTBG_DOMAINS}
+    for row in result.get("propositions") or []: by_domain.setdefault(row.get("domain"),[]).append(row)
+    result["by_domain"]=by_domain
+    return result
+
+
+def ptbg_owner_review_v2(context: dict, params: dict) -> dict:
+    domain=str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or ""))); ctx=_workflow_context(context); evaluation=ctx.get("ptbg_evaluation") or {}; rows=(evaluation.get("by_domain",{}) or {}).get(domain,[]); bad=[r for r in rows if r.get("disposition") in {"dropped","unresolved"}]
+    if not bad: return {"status":"pass","feedback":"","issues":[]}
+    issues=[]
+    for row in bad:
+        issues.append(AuditIssue("unsupported_ptbg_proposition",f"$.{domain}.{row.get('proposition_id')}",f"Proposition '{row.get('proposition_id')}' failed: {row.get('reason')}","revise the clinical conclusion/reasoning only; evidence matching will run separately"))
+    return {"status":"fail","feedback":render_feedback(issues),"issues":[x.__dict__ for x in issues]}
+
+
+def _diagnostic_atomic_rule_map(ctx,authority:str) -> dict[str,str]:
+    reasoning=_diagnostic_reasoning(ctx,authority); owner=_read_owner_artifact(ctx,authority); mapping={}; atomic=owner.get("rules") or []
+    for i,(simple,rule) in enumerate(zip([x for x in reasoning.get("reasoning") or [] if isinstance(x,dict)],atomic),1): mapping[f"R{i}"]=rule.get("rule_id")
+    return mapping
+
+
+def reasoning_report_blocks(context: dict, params: dict) -> list[dict]:
+    """Build report blocks from accepted conclusions, not audit narratives."""
+    ctx=_workflow_context(context); elements=ctx.get("evidence_enriched") or ctx.get("supported") or []; blocks=[]
+    diagnosis_components=[]
+    for el in elements:
+        if el.get("domain")!="diagnosis": continue
+        src=el.get("source") or {}; role="who5" if el.get("schema_id")=="DX-WHO5" else "icc" if el.get("schema_id")=="DX-ICC" else "concurrent_pathology"
+        tags=[e.get("card_tag") for e in el.get("evidence") or [] if e.get("card_tag")]
+        if role in {"who5","icc"}:
+            diagnosis=src.get("diagnosis")
+            framework="WHO5" if role=="who5" else "ICC"
+            diagnosis_components.append({"role":role,"diagnosis":diagnosis,"reason":f"The {framework} diagnosis is {diagnosis}.","variants":src.get("variants") or [],"card_tags":tags})
+        else:
+            pathology=src.get("other_pathology")
+            diagnosis_components.append({"role":role,"pathology":pathology,"reason":f"Concurrent pathology: {pathology}.","variants":el.get("variants") or [],"card_tags":tags})
+    if diagnosis_components: blocks.append({"block_id":"DX","domain":"diagnosis","components":diagnosis_components})
+    for el in elements:
+        if el.get("domain")=="diagnosis": continue
+        src=el.get("source") or {}
+        # PTBG report blocks contain the accepted clinical conclusion only.
+        concise=src.get("text") or src.get("reason") or el.get("reason")
+        evidence_rows=[e for e in el.get("evidence") or [] if isinstance(e,dict)]
+        if el.get("domain")=="prognosis" and str(el.get("bucket") or "").startswith("other_evidence_"):
+            labels=[]
+            for e in evidence_rows:
+                label=e.get("source_label")
+                if label and label not in labels: labels.append(label)
+            if labels:
+                # Non-framework prognosis must identify the supporting study;
+                # keep the prose concise and avoid dumping multiple authors.
+                concise=f"{labels[0]} reported: {concise}"
+                src=dict(src); src["source_label"]=labels[0]
+        blocks.append({"block_id":el.get("schema_id"),"domain":el.get("domain"),"components":[{"role":el.get("bucket"),"reason":concise,"variants":el.get("variants") or [],"source":src,"card_tags":[e.get("card_tag") for e in evidence_rows if e.get("card_tag")]}]})
+    work=_work(context)
+    try:
+        from workflows.proforma_v1 import self_runtime as sr, schema_validation
+        sr.write_yaml(sr.output_path(work,"report_blocks","report-blocks.yaml"),{"blocks":blocks}); schema_validation.validate_report_source_blocks(blocks)
+    except Exception: pass
+    ctx.put("blocks",blocks); return blocks
+
+
+def merge_diagnostic_evidence_matches(context: dict, params: dict) -> dict:
+    ctx=_workflow_context(context); pairs=[]; by_rule={}
+    for authority in DIAGNOSTIC_AUTHORITIES:
+        mapping=_diagnostic_atomic_rule_map(ctx,authority); pack=ctx.get(_DIAGNOSTIC_EM_ITEM_KEYS[authority]) or {}; cards={c.get("card_tag"):c for c in _em_cards(pack)}; owner=_read_owner_artifact(ctx,authority); rules={r.get("rule_id"):r for r in owner.get("rules") or []}
+        output=ctx.get(_DIAGNOSTIC_EM_KEYS[authority]) or {"assignments":[]}
+        for row in output.get("assignments") or []:
+            atomic=mapping.get(row.get("reasoning_id"));
+            if not atomic: continue
+            by_rule.setdefault(atomic,[])
+            for tag in row.get("card_tags") or []:
+                if tag in cards and tag not in by_rule[atomic]:
+                    by_rule[atomic].append(tag); pairs.append({"authority":authority,"rule_id":atomic,"statement":(rules.get(atomic) or {}).get("statement"),"card_tag":tag,"card":cards[tag],"source":"evidence_match"})
+    registry=ctx.get("diagnostic_atomic_registry") or {}
+    for rule in registry.get("rules") or []: by_rule.setdefault(rule.get("rule_id"),[])
+    return {"pairs":pairs,"card_tags_by_rule":by_rule,"unassigned_rule_ids":[rid for rid,tags in by_rule.items() if not tags]}
+
+
+def _ptbg_card_catalog(ctx) -> dict[str,dict]:
+    out={}
+    for domain in PTBG_DOMAINS:
+        for card in _em_cards(ctx.get(_PTBG_EM_ITEM_KEYS[domain]) or {}):
+            if card.get("card_tag"): out[card["card_tag"]]=card
+    return out
+
+
+def _owner_redo_state(ctx) -> dict:
+    value=ctx.get("clinical_owner_redo_used") or {}
+    return dict(value) if isinstance(value,dict) else {}
+
+
+def _consume_owner_redo(ctx, owner: str) -> bool:
+    """Return True once for each owner; false thereafter.
+
+    This makes the bounded clinical redo global to the owner rather than local
+    to each review node. Evidence-matcher retries have their own budget and do
+    not consume this clinical-owner budget.
+    """
+    state=_owner_redo_state(ctx)
+    if state.get(owner): return False
+    state[owner]=True; ctx.put("clinical_owner_redo_used",state); return True
+
+
+_prev_validate_diagnostic_reasoning_v2 = validate_diagnostic_reasoning_v2
+
+def validate_diagnostic_reasoning_v2(context: dict, params: dict) -> dict:
+    result=_prev_validate_diagnostic_reasoning_v2(context,params)
+    if result.get("status")!="pass":
+        authority=str(params.get("authority") or _authority_from_step(str(params.get("step_id") or ""))); _consume_owner_redo(_workflow_context(context),authority)
+    return result
+
+
+_prev_validate_ptbg_reasoning_v2 = validate_ptbg_reasoning_v2
+
+def validate_ptbg_reasoning_v2(context: dict, params: dict) -> dict:
+    result=_prev_validate_ptbg_reasoning_v2(context,params)
+    if result.get("status")!="pass":
+        domain=str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or ""))); _consume_owner_redo(_workflow_context(context),domain)
+    return result
+
+
+_prev_evaluate_diagnoses_v2 = evaluate_diagnoses_v2
+
+def evaluate_diagnoses_v2(context: dict, params: dict) -> dict:
+    result=_prev_evaluate_diagnoses_v2(context,params); ctx=_workflow_context(context)
+    for authority in DIAGNOSTIC_AUTHORITIES:
+        if (result.get("owner_status") or {}).get(authority)=="pass": continue
+        if not _consume_owner_redo(ctx,authority):
+            result.setdefault("redo_exhausted",{})[authority]=True
+    return result
+
+
+_prev_ptbg_owner_review_v2 = ptbg_owner_review_v2
+
+def ptbg_owner_review_v2(context: dict, params: dict) -> dict:
+    raw=_prev_ptbg_owner_review_v2(context,params)
+    if raw.get("status")=="pass": return raw
+    domain=str(params.get("domain") or _ptbg_domain_from_step(str(params.get("step_id") or ""))); ctx=_workflow_context(context)
+    if _consume_owner_redo(ctx,domain): return raw
+    # The evaluation already marks the proposition dropped/unresolved. Returning
+    # pass here means "no more clinical calls"; finalization carries the failed
+    # decision into dissent and suppresses it from the clinical report.
+    ctx.put(f"{domain}__redo_exhausted",True)
+    return {"status":"pass","feedback":raw.get("feedback","")+"\nClinical owner redo budget exhausted; preserve the failed proposition in dissent and do not call the owner again.","issues":raw.get("issues") or [],"redo_exhausted":True}
+
+
+def owner_review(context: dict, params: dict) -> dict:
+    authority=str(params.get("authority") or _authority_from_step(str(params.get("step_id") or ""))); ctx=_workflow_context(context); evaluation=ctx.get("diagnostic_evaluation") or {}; status=(evaluation.get("owner_status") or {}).get(authority,"fail"); feedback=(evaluation.get("feedback") or {}).get(authority,"Diagnostic evaluation did not produce feedback.\n")
+    if status=="pass": return {"authority":authority,"status":"pass","feedback":feedback}
+    if _consume_owner_redo(ctx,authority): return {"authority":authority,"status":"fail","feedback":feedback}
+    ctx.put(f"{authority}__redo_exhausted",True)
+    return {"authority":authority,"status":"pass","feedback":feedback+"\nClinical owner redo budget exhausted; preserve the failed proposal in dissent and use deterministic fallback/suppression.","redo_exhausted":True}
+
+# Test/lightweight-context compatible redo-state writers.
+def _ctx_store(ctx, key: str, value: Any) -> None:
+    put=getattr(ctx,"put",None)
+    if callable(put): put(key,value)
+    elif isinstance(ctx,dict): ctx[key]=value
+    else: setattr(ctx,key,value)
+
+
+def _consume_owner_redo(ctx, owner: str) -> bool:
+    state=_owner_redo_state(ctx)
+    if state.get(owner): return False
+    state[owner]=True; _ctx_store(ctx,"clinical_owner_redo_used",state); return True

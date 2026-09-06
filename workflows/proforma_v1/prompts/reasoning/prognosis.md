@@ -1,54 +1,58 @@
-# Prognosis owner — atomic reasoning
+# Prognosis — clinical reasoning
 
-## Output serialization contract
-Return exactly one YAML mapping conforming to the declared schema. Return YAML only: no Markdown headings, no tables, no prose outside the mapping, no code fence around the answer, and no `---` document separators. The example below shows serialization/shape only; replace placeholders with your actual answer.
+Reason only about prognosis. Do not match evidence cards and do not construct internal graph IDs.
+
+The accepted framework preset is authoritative:
+- AML: ELN 2022 genetic risk classification
+- AML treated with less-intensive therapy: ELN 2024 less-intensive genetic risk classification
+- MDS: IPSS-M
+- CMML: CPSS-Mol
+- Primary myelofibrosis: MIPSS70; MIPSS70-plus; MIPSS70+ v2.0
+- Post-PV/post-ET myelofibrosis: MYSEC-PM
+- Essential thrombocythaemia: MIPSS-ET
+- Polycythaemia vera: MIPSS-PV
+- Essential thrombocythaemia thrombosis risk: revised IPSET-thrombosis
+- CHIP/CCUS: CHRS
+
+Return one YAML mapping only:
 
 ```yaml
-domain: <prognosis|treatment|biomarker|germline>
-propositions:
-  - proposition_id: <stable proposition ID>
-    bucket: <domain bucket>
-    text: <reportable proposition>
-    reason: <reason>
-    variant_ids: []
-    reportable: true
-    rules:
-      - rule_id: <stable rule ID>
-        statement: <one atomic literature rule>
-        evidence_required: true
-        proposed_card_tags: []
-        direct_requirement: null
-    derived_states: []
-    applications:
-      - application_id: <stable application ID>
-        rule_ids: []
+domain: prognosis
+frameworks:
+  - name: <exact preset framework name>
+    applicable: true
+    tier: null
+    reason: <why the framework applies; if tier is populated, why that tier is established>
+    reasoning:
+      - rule: <atomic framework rule>
         case_fact_ids: []
-        state_ids: []
-        mode: semantic
-        direct_match: null
-        proposed_status: <met|not_met|unknown>
-        reason: <reason>
-    conclusion:
-      operator: all_of
-      application_ids: []
-    framework: null
-    worksheet: []
+        variant_ids: []
+        assessment: <met|not_met|unknown>
+        supports_conclusion: true
+        reason: <patient-specific application>
+variant_assessments:
+  - variant_id: V1
+    framework_effects: []
+    other_evidence:
+      effect: <favorable|adverse|neutral|no_evidence>
+      reason: null
+      reasoning: []
 ```
 
-Use only the supplied owner pack. Return prognosis propositions as atomic literature rules, patient-state applications and deterministic conclusion logic.
-
 Rules:
-- Patient facts are immutable. Reference supplied case_fact_ids and variant_ids only.
-- Separate framework applicability, framework rule, patient/derived state, rule application and final prognostic proposition.
-- Each literature rule may propose supporting card tags only from this owner's candidate-card envelope. Use [] when no supplied card supports the rule.
-- Every rule must set `direct_requirement`. Use null unless the literature rule itself states an exact fact kind and expected value that can be audited verbatim. A direct patient application is permitted only against that audited requirement.
-- Use a derived_state only when applicability requires semantic composition of supplied facts. Do not create a derived_state for a direct exact fact match.
-- `mode: direct` is allowed only with one explicit `direct_match` whose expected_value can be compared exactly with the supplied case fact. Otherwise use `mode: semantic` and `direct_match: null`.
-- For framework-based propositions populate `framework`; its applicability_application_id must reference an application in the same proposition.
-- Python will audit evidence, audit semantic applicability, and evaluate conclusion logic. Do not treat your proposed statuses as final.
-- Use `P-` prefixes for proposition, rule, state and application IDs.
+- First identify every preset framework that genuinely applies to the authoritative disease. Framework assessment is patient-level and independent of whether NGS variants were detected.
+- If the authoritative disease is MDS, assess `IPSS-M`; do not substitute a cohort association or variant-specific prognostic paper for IPSS-M.
+- Populate a framework tier only when it can be assigned from the supplied findings permitted by that framework. Otherwise use `tier: null`; framework applicability still remains.
+- Keep framework-derived effects separate from `other_evidence`. A non-framework adverse association must not be presented as a framework risk tier.
+- Every supplied variant must appear exactly once in `variant_assessments`, even when it has no prognostic effect.
+- When there are no supplied NGS variants, `variant_assessments: []` but disease-level framework assessment still occurs.
+- If the authoritative disease is `no_haematological_malignancy`, return `frameworks: []`.
+- Use only supplied patient facts, source-facing variant IDs, authoritative diagnosis and supplied reference material.
+- Do not cite or mention evidence cards. Evidence matching is separate.
+- Keep each `rule` atomic and general; patient application belongs in `assessment` and `reason`.
+- `supports_conclusion: true` only when that reasoning point is met and genuinely supports the stated framework/effect conclusion.
 
-## Deterministic feedback from a prior rejected owner attempt
+## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}
 
 ## Owner pack

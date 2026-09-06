@@ -1,27 +1,26 @@
-# Diagnostic patient-applicability reasoning audit
+# Diagnostic patient-applicability and conclusion-coherence audit
 
-## Output serialization contract
-Return exactly one YAML mapping conforming to the declared schema. Return YAML only: no Markdown headings, no tables, no prose outside the mapping, no code fence around the answer, and no `---` document separators. The example below shows serialization/shape only; replace placeholders with your actual answer.
+Return exactly one YAML mapping conforming to the declared schema. YAML only.
 
 ```yaml
-derived_states:
-  - state_id: <exact supplied state_id>
-    status: <supported|unsupported|indeterminate>
-    value: <audited value or null>
-    case_fact_ids: []
-    comments: []
+derived_states: []
 criteria:
   - criterion_id: <exact supplied criterion/application ID>
     status: <met|not_met|unknown>
     case_fact_ids: []
     comments: []
+conclusions:
+  - conclusion_id: <who5|icc|second_diagnosis>
+    status: <coherent|incoherent|indeterminate>
+    comments: []
 ```
 
-Use only the supplied evidence-approved rules and supplied patient facts/variants. Do not search for evidence and do not compare WHO against ICC.
-
-For every supplied derived state, determine whether the proposed value is supported by the cited patient facts. For every supplied criterion, determine whether this patient meets the evidence-approved rule. Return all results in one artifact.
-
-Do not evaluate the final Boolean root and do not choose the final diagnosis; Python does that after this audit.
+Use only supplied evidence-approved rules, patient facts/variants and the owner's fixed clinical reasoning.
+- Audit every supplied criterion for patient applicability.
+- Audit every supplied final owner conclusion for coherence with the owner's own audited reasoning.
+- A conclusion is `incoherent` when it contradicts, overstates or understates the reasoning. Example: reasoning excludes a defining subtype but the final diagnosis still names that subtype.
+- Do not search for evidence or compare WHO against ICC.
+- Do not choose a different diagnosis yourself. If incoherent, explain the contradiction so the originating owner can revise it.
 
 ## Deterministic feedback from a prior invalid reasoning-audit result
 {{ input.audit_feedback }}

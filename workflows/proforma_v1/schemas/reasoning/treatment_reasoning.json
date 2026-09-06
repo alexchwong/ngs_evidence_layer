@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain",
+    "variant_assessments"
+  ],
+  "properties": {
+    "domain": {
+      "const": "treatment"
+    },
+    "variant_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant_id",
+          "implications"
+        ],
+        "properties": {
+          "variant_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "implications": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "category",
+                "therapy",
+                "reason",
+                "reasoning"
+              ],
+              "properties": {
+                "category": {
+                  "enum": [
+                    "drug_target",
+                    "drug_sensitive",
+                    "drug_resistant",
+                    "no_drug_implication"
+                  ]
+                },
+                "therapy": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reasoning": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/reasoningPoint"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "reasoningPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "case_fact_ids",
+        "variant_ids",
+        "assessment",
+        "supports_conclusion",
+        "reason"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "case_fact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "variant_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "assessment": {
+          "enum": [
+            "met",
+            "not_met",
+            "unknown"
+          ]
+        },
+        "supports_conclusion": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

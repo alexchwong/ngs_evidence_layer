@@ -23,24 +23,27 @@ except ImportError:  # pragma: no cover - only partial-overlay test environments
 HERE = Path(__file__).resolve().parents[1]
 PROMPTS = HERE / "prompts" / "reasoning"
 
-ACTIVE_REASONING_PROMPTS = {
-    "diagnosis_who.md": "authority:",
-    "diagnosis_icc.md": "authority:",
-    "diagnosis_second.md": "authority:",
-    "diagnostic_evidence_rescue.md": "assignments:",
+OWNER_REASONING_PROMPTS = {
+    "diagnosis_who.md": "authority: who5",
+    "diagnosis_icc.md": "authority: icc",
+    "diagnosis_second.md": "authority: second_diagnosis",
+    "prognosis.md": "domain: prognosis",
+    "treatment.md": "domain: treatment",
+    "biomarker.md": "domain: biomarker",
+    "germline.md": "domain: germline",
+}
+
+OTHER_ACTIVE_REASONING_PROMPTS = {
+    "evidence_match.md": "assignments:",
     "diagnostic_evidence_audit.md": "audits:",
     "diagnostic_evidence_adjudicate.md": "adjudications:",
     "diagnostic_reasoning_audit.md": "derived_states:",
-    "prognosis.md": "domain:",
-    "treatment.md": "domain:",
-    "biomarker.md": "domain:",
-    "germline.md": "domain:",
-    "ptbg_evidence_rescue.md": "assignments:",
     "ptbg_evidence_audit.md": "audits:",
     "ptbg_evidence_adjudicate.md": "adjudications:",
     "ptbg_reasoning_audit.md": "derived_states:",
     "dissent_summary.md": "summary:",
 }
+
 
 
 WHO_MARKDOWN = """# WHO5 Diagnostic Proposal
@@ -150,15 +153,36 @@ class ReasoningSyntaxBoundaryTests(unittest.TestCase):
         self.assertIn("exactly one YAML mapping", result.feedback())
         self.assertNotIn("schema_required", result.feedback())
 
-    def test_all_active_reasoning_prompts_declare_yaml_only_mapping_and_required_envelope(self):
-        for name, envelope in ACTIVE_REASONING_PROMPTS.items():
+    def test_owner_reasoning_prompts_are_yaml_only_and_do_not_perform_evidence_matching(self):
+        for name, envelope in OWNER_REASONING_PROMPTS.items():
             with self.subTest(prompt=name):
                 text = (PROMPTS / name).read_text(encoding="utf-8")
-                self.assertIn("## Output serialization contract", text)
-                self.assertIn("Return exactly one YAML mapping", text)
-                self.assertIn("no Markdown headings", text)
-                self.assertIn("no tables", text)
-                self.assertIn("no `---` document separators", text)
+                self.assertIn("Return one YAML mapping only", text)
+                self.assertIn("```yaml", text)
+                self.assertIn(envelope, text)
+                self.assertIn("Do not", text)
+                self.assertIn("evidence", text.lower())
+                self.assertIn("separate", text.lower())
+                self.assertNotIn("card_tags:", text)
+                self.assertNotIn("evidence_card_tags:", text)
+                self.assertNotIn("root_id:", text)
+                self.assertNotIn("W-RULE", text)
+                self.assertNotIn("- id: R1", text)
+                self.assertNotIn("reasoning_ids:", text)
+                self.assertIn("supports_conclusion:", text)
+
+    def test_evidence_match_prompt_cannot_change_clinical_reasoning(self):
+        text = (PROMPTS / "evidence_match.md").read_text(encoding="utf-8")
+        self.assertIn("assignments:", text)
+        self.assertIn("reasoning_id", text)
+        self.assertIn("card_tags", text)
+        self.assertIn("Do not change", text)
+        self.assertNotIn("diagnosis:", text)
+
+    def test_other_active_reasoning_prompts_keep_structured_yaml_contracts(self):
+        for name, envelope in OTHER_ACTIVE_REASONING_PROMPTS.items():
+            with self.subTest(prompt=name):
+                text = (PROMPTS / name).read_text(encoding="utf-8")
                 self.assertIn("```yaml", text)
                 self.assertIn(envelope, text)
 
@@ -207,15 +231,14 @@ class ReasoningSyntaxBoundaryTests(unittest.TestCase):
         self.assertIn("Syntax-only repair required", source)
         self.assertIn("Change YAML/JSON serialization only", source)
 
-    def test_default_workflow_is_not_part_of_reasoning_syntax_fix(self):
+    def test_default_workflow_only_uses_embedded_progress_metadata_for_this_refactor(self):
         default = HERE / "workflow" / "default.yaml"
         if not default.is_file():
-            self.skipTest("partial changed-files overlay does not contain unchanged default.yaml")
-        reasoning = HERE / "workflow" / "reasoning.yaml"
-        self.assertTrue(reasoning.is_file())
-        # The fix is implemented in generic serialization infrastructure and
-        # reasoning-specific prompts/executors; no workflow graph edit is needed.
-        self.assertNotEqual(default.read_bytes(), reasoning.read_bytes())
+            self.skipTest("partial changed-files overlay does not contain default.yaml")
+        doc = yaml.safe_load(default.read_text(encoding="utf-8"))
+        self.assertIn("presentation", doc)
+        self.assertIn("progress_phases", doc["presentation"])
+        self.assertFalse((HERE / "workflow" / "default.progress.yaml").exists())
 
 
 if __name__ == "__main__":

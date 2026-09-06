@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain",
+    "propositions"
+  ],
+  "properties": {
+    "domain": {
+      "enum": [
+        "prognosis",
+        "treatment",
+        "biomarker",
+        "germline"
+      ]
+    },
+    "propositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bucket",
+          "text",
+          "reason",
+          "variant_ids",
+          "reportable",
+          "reasoning",
+          "conclusion",
+          "framework"
+        ],
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "variant_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "reportable": {
+            "type": "boolean"
+          },
+          "reasoning": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "rule",
+                "case_fact_ids",
+                "variant_ids",
+                "assessment",
+                "supports_conclusion",
+                "reason"
+              ],
+              "properties": {
+                "rule": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "case_fact_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "variant_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                },
+                "assessment": {
+                  "enum": [
+                    "met",
+                    "not_met",
+                    "unknown"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "supports_conclusion": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "conclusion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operator"
+            ],
+            "properties": {
+              "operator": {
+                "enum": [
+                  "all_of",
+                  "any_of"
+                ]
+              }
+            }
+          },
+          "framework": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

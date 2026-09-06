@@ -1,55 +1,45 @@
-# WHO5 diagnostic owner — atomic reasoning
+# WHO5 diagnosis — clinical reasoning
 
-## Output serialization contract
-Return exactly one YAML mapping conforming to the declared schema. Return YAML only: no Markdown headings, no tables, no prose outside the mapping, no code fence around the answer, and no `---` document separators. The example below shows serialization/shape only; replace placeholders with your actual answer.
+Reason only about the diagnosis. Do not match evidence cards and do not construct the workflow's internal reasoning graph.
+
+Return one YAML mapping only:
 
 ```yaml
-authority: <who5|icc|second_diagnosis>
-proposal:
-  proposal_id: <stable ID>
-  label: <diagnosis label>
-  kind: <diagnosis|second_diagnosis>
-  schema_disease: <string or null>
+authority: who5
+diagnosis:
+  label: <WHO5 diagnosis>
+  schema_disease: <WHO5 schema disease>
   diagnostic_effect: <unchanged|refined|superseded>
-  variant_ids: []
+  status: established
   variant_assessments:
-    - variant_id: <exact supplied variant ID>
+    - variant_id: <supplied source variant ID, e.g. V1>
       classification: <diagnostic_for_primary|nonspecific|diagnostic_for_other_pathology>
       other_pathology: null
-      reason: <reason>
-  status: <established|signal|none>
-rules:
-  - rule_id: <stable rule ID>
-    statement: <one atomic literature/framework rule>
-    evidence_required: true
-    evidence_card_tags: []
-derived_states: []
-criteria:
-  - criterion_id: <stable criterion ID>
-    rule_ids: []
+      reason: <concise clinical reason>
+reasoning:
+  - rule: <one atomic WHO5/framework rule relevant to the conclusion>
     case_fact_ids: []
     variant_ids: []
-    state_ids: []
-    proposed_status: <met|not_met|unknown>
-logic: []
-root_id: null
-reason: <concise integrated reason>
+    assessment: <met|not_met|unknown>
+    supports_conclusion: true
+    reason: <apply the rule to this patient>
+conclusion:
+  operator: all_of
+reason: <concise integrated clinical reason>
 ```
 
-Use only the supplied owner pack. Produce one WHO5 proposal and the smallest complete atomic reasoning graph needed to support it.
-
 Rules:
-- Patient observations are immutable. Reference supplied `case_fact_ids` and `variant_ids`; do not invent new patient facts.
-- `rules` are literature/framework propositions. State each rule atomically and assign only genuinely supporting `evidence_card_tags` from this owner's candidate-card envelope. Use `[]` when no supplied card supports the rule.
-- `derived_states` are optional patient-specific semantic inferences from supplied facts. Do not cite literature cards to a derived state.
-- `criteria` apply evidence-backed rules to supplied patient facts/states. `proposed_status` is your proposed patient applicability, not the final audit result.
-- `logic` may use only shallow `all_of` / `any_of` groups. Python evaluates the final graph.
-- Use `W-` prefixes for every proposal/rule/state/criterion/logic ID.
-- WHO5 `proposal.schema_disease` must be populated. `proposal.status` is `established` for the proposed WHO diagnosis.
-- Return variant assessments for every supplied variant using the existing diagnostic classifications.
-- If the diagnosis is refined or superseded, `root_id` must identify the defining criterion/logic root. If unchanged and no defining molecular criterion is claimed, `root_id` may be null.
+- Use only the supplied case and reference material. Do not use outside literature.
+- Patient observations are immutable. Reference only supplied `C...` fact IDs and source-facing variant IDs such as `V1`.
+- Keep each `rule` atomic and general. Put patient-specific interpretation in `assessment` and `reason`.
+- Do not cite, select, rank or mention evidence cards. A separate evidence-matching pass does that.
+- Do not create reasoning IDs or internal graph IDs; Python assigns all machine identifiers after this pass.
+- Set `supports_conclusion: true` only on the minimal reasoning points that define/support the proposed diagnosis. Phrase such points positively so their assessment is `met`.
+- Return exactly one variant assessment for every supplied variant.
+- WHO5 `schema_disease` must be populated and `status` must be `established`.
+- Keep the reasoning set minimal: include only points needed to justify the diagnosis and important exclusions/refinements.
 
-## Deterministic feedback from a prior rejected owner attempt
+## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}
 
 ## Owner pack

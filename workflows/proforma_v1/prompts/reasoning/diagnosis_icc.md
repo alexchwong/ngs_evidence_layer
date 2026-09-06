@@ -1,54 +1,44 @@
-# ICC diagnostic owner — atomic reasoning
+# ICC diagnosis — clinical reasoning
 
-## Output serialization contract
-Return exactly one YAML mapping conforming to the declared schema. Return YAML only: no Markdown headings, no tables, no prose outside the mapping, no code fence around the answer, and no `---` document separators. The example below shows serialization/shape only; replace placeholders with your actual answer.
+Reason only about the ICC diagnosis. Do not match evidence cards and do not construct the workflow's internal reasoning graph.
+
+Return one YAML mapping only using this shape:
 
 ```yaml
-authority: <who5|icc|second_diagnosis>
-proposal:
-  proposal_id: <stable ID>
-  label: <diagnosis label>
-  kind: <diagnosis|second_diagnosis>
-  schema_disease: <string or null>
+authority: icc
+diagnosis:
+  label: <ICC diagnosis>
+  schema_disease: null
   diagnostic_effect: <unchanged|refined|superseded>
-  variant_ids: []
+  status: established
   variant_assessments:
-    - variant_id: <exact supplied variant ID>
+    - variant_id: <supplied source variant ID, e.g. V1>
       classification: <diagnostic_for_primary|nonspecific|diagnostic_for_other_pathology>
       other_pathology: null
-      reason: <reason>
-  status: <established|signal|none>
-rules:
-  - rule_id: <stable rule ID>
-    statement: <one atomic literature/framework rule>
-    evidence_required: true
-    evidence_card_tags: []
-derived_states: []
-criteria:
-  - criterion_id: <stable criterion ID>
-    rule_ids: []
+      reason: <concise clinical reason>
+reasoning:
+  - rule: <one atomic ICC/framework rule relevant to the conclusion>
     case_fact_ids: []
     variant_ids: []
-    state_ids: []
-    proposed_status: <met|not_met|unknown>
-logic: []
-root_id: null
-reason: <concise integrated reason>
+    assessment: <met|not_met|unknown>
+    supports_conclusion: true
+    reason: <apply the rule to this patient>
+conclusion:
+  operator: all_of
+reason: <concise integrated clinical reason>
 ```
 
-Use only the supplied ICC owner pack. Assess ICC independently; do not assume that a WHO conclusion is correct.
-
 Rules:
-- Patient observations are immutable. Reference supplied `case_fact_ids` and `variant_ids`; do not invent patient facts.
-- `rules` are atomic ICC/literature propositions and may use only genuinely supporting supplied card tags.
-- `derived_states` are optional patient-specific inferences from supplied facts and are evidence-free patient reasoning objects.
-- `criteria` apply rules to this patient. `logic` uses only shallow `all_of` / `any_of` groups; Python evaluates it.
-- Use `I-` prefixes for all stable reasoning IDs.
-- `proposal.status` is `established`. `proposal.schema_disease` is normally null, except `no_haematological_malignancy` when that is the explicit ICC outcome.
-- Return variant assessments for every supplied variant.
-- A refined/superseded diagnosis requires a non-null defining `root_id`.
+- Assess ICC independently; do not assume WHO5 is correct.
+- Use only supplied case facts, source-facing variant IDs and reference material.
+- Do not cite, select, rank or mention evidence cards. Evidence matching is a separate pass.
+- Keep rules atomic and put patient-specific application in `assessment` and `reason`.
+- Do not create reasoning IDs or internal graph IDs; Python assigns all machine identifiers after this pass.
+- Set `supports_conclusion: true` only on the minimal reasoning points that define/support the proposed diagnosis, and only when their assessment is `met`.
+- Return exactly one variant assessment for every supplied variant.
+- `status` must be `established`. `schema_disease` is normally null, except use `no_haematological_malignancy` when that is the explicit ICC outcome.
 
-## Deterministic feedback from a prior rejected owner attempt
+## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}
 
 ## Owner pack

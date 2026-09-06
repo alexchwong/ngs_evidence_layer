@@ -5,8 +5,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 SCHEMA_VERSION = 1
 FINAL_STATES = {"completed", "skipped"}
 VALID_STATES = {"pending", "running", "completed", "skipped", "failed"}
@@ -18,11 +16,6 @@ class ProgressPlanError(ValueError):
 
 def _humanize(step_id: str) -> str:
     return step_id.replace("_", " ").replace(".", " · ").strip().title()
-
-
-def progress_definition_path(workflow) -> Path:
-    source = Path(workflow.source)
-    return source.with_name(f"{source.stem}.progress.yaml")
 
 
 def _fallback_plan(workflow) -> dict[str, Any]:
@@ -37,28 +30,20 @@ def _fallback_plan(workflow) -> dict[str, Any]:
 
 
 def load_progress_plan(workflow) -> dict[str, Any]:
-    """Load and validate presentation-only progress groups for a compiled workflow.
+    """Load and validate UI-only progress groups embedded in a workflow.
 
-    A sibling ``<workflow>.progress.yaml`` may group logical workflow steps into
-    human-readable phases.  If it is absent, every logical workflow step becomes
-    its own phase, so progress remains workflow-derived rather than hardcoded.
+    ``presentation.progress_phases`` groups logical workflow steps into
+    human-readable UI phases.  Presentation metadata cannot affect execution.
+    If omitted, every logical step becomes its own phase so progress remains
+    workflow-derived rather than hardcoded.
     """
-    if not getattr(workflow, "source", None):
+    doc = getattr(workflow, "doc", None) or {}
+    presentation = doc.get("presentation") or {}
+    phases = presentation.get("progress_phases") if isinstance(presentation, dict) else None
+    if phases is None:
         return _fallback_plan(workflow)
-    path = progress_definition_path(workflow)
-    if not path.is_file():
-        return _fallback_plan(workflow)
-    try:
-        doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except (OSError, yaml.YAMLError) as exc:
-        raise ProgressPlanError(f"invalid progress definition {path}: {exc}") from exc
-    if not isinstance(doc, dict):
-        raise ProgressPlanError(f"progress definition must be a mapping: {path}")
-    if doc.get("version", SCHEMA_VERSION) != SCHEMA_VERSION:
-        raise ProgressPlanError(f"unsupported progress definition version in {path}")
-    phases = doc.get("phases")
     if not isinstance(phases, list) or not phases:
-        raise ProgressPlanError(f"progress definition requires a non-empty phases list: {path}")
+        raise ProgressPlanError("workflow presentation.progress_phases requires a non-empty list")
 
     workflow_ids = [step.id for step in workflow.steps]
     known = set(workflow_ids)
@@ -67,16 +52,16 @@ def load_progress_plan(workflow) -> dict[str, Any]:
     normalized: list[dict[str, Any]] = []
     for index, raw in enumerate(phases, start=1):
         if not isinstance(raw, dict):
-            raise ProgressPlanError(f"progress phase {index} must be a mapping: {path}")
+            raise ProgressPlanError(f"progress phase {index} must be a mapping")
         phase_id = str(raw.get("id") or "").strip()
         label = str(raw.get("label") or "").strip()
         steps = raw.get("steps")
         if not phase_id or not label:
-            raise ProgressPlanError(f"progress phase {index} requires id and label: {path}")
+            raise ProgressPlanError(f"progress phase {index} requires id and label")
         if phase_id in seen_phases:
-            raise ProgressPlanError(f"duplicate progress phase id {phase_id!r}: {path}")
+            raise ProgressPlanError(f"duplicate progress phase id {phase_id!r}")
         if not isinstance(steps, list) or not steps or any(not isinstance(x, str) or not x for x in steps):
-            raise ProgressPlanError(f"progress phase {phase_id!r} requires a non-empty string steps list: {path}")
+            raise ProgressPlanError(f"progress phase {phase_id!r} requires a non-empty string steps list")
         unknown = [step_id for step_id in steps if step_id not in known]
         if unknown:
             raise ProgressPlanError(
@@ -96,7 +81,9 @@ def load_progress_plan(workflow) -> dict[str, Any]:
         raise ProgressPlanError(
             f"progress definition does not cover workflow step(s): {', '.join(missing)}"
         )
-    return {"version": SCHEMA_VERSION, "source": str(path), "phases": normalized}
+    source = getattr(workflow, "source", None)
+    source_label = f"{source}#presentation.progress_phases" if source is not None else None
+    return {"version": SCHEMA_VERSION, "source": source_label, "phases": normalized}
 
 
 class WorkflowProgress:
@@ -113,6 +100,7 @@ class WorkflowProgress:
         self._path: Path | None = None
         self._executor: str | None = None
         self._loaded = False
+        self._visible_high_water_index = 0
 
     def bind(self, context) -> None:
         path = Path(context.work) / "logs" / "workflow-progress.json"
@@ -138,6 +126,9 @@ class WorkflowProgress:
             return
         if doc.get("workflow_sha256") != self.workflow_sha256:
             return
+        saved_high = doc.get("visible_high_water_index")
+        if isinstance(saved_high, int) and 0 <= saved_high < len(self.plan["phases"]):
+            self._visible_high_water_index = max(self._visible_high_water_index, saved_high)
         rows = doc.get("steps") or []
         for row in rows:
             if not isinstance(row, dict):
@@ -157,6 +148,11 @@ class WorkflowProgress:
         if status not in VALID_STATES:
             raise ValueError(f"invalid workflow progress status {status!r}")
         self._status[step_id] = status
+        if status in {"running", "completed", "skipped", "failed"}:
+            for index, phase in enumerate(self.plan["phases"]):
+                if step_id in phase["steps"]:
+                    self._visible_high_water_index = max(self._visible_high_water_index, index)
+                    break
         if details:
             self._details[step_id] = {k: v for k, v in details.items() if v is not None}
         elif status in FINAL_STATES:
@@ -181,26 +177,25 @@ class WorkflowProgress:
             step_rows.append(row)
 
         phases = []
-        current_phase = None
-        current_step = next((row["id"] for row in step_rows if row["status"] == "running"), None)
-        for phase in self.plan["phases"]:
+        execution_current_step = next((row["id"] for row in step_rows if row["status"] == "running"), None)
+        complete = bool(step_rows) and all(row["status"] in FINAL_STATES for row in step_rows)
+        if execution_current_step is None and not complete:
+            execution_current_step = next((row["id"] for row in step_rows if row["status"] not in FINAL_STATES), None)
+
+        if complete and self.plan["phases"]:
+            self._visible_high_water_index = len(self.plan["phases"]) - 1
+        high = min(self._visible_high_water_index, max(0, len(self.plan["phases"]) - 1))
+        for index, phase in enumerate(self.plan["phases"]):
             statuses = [self._status[sid] for sid in phase["steps"]]
-            if any(status == "failed" for status in statuses):
-                status = "failed"
-            elif any(status == "running" for status in statuses):
-                status = "running"
-            elif all(status in FINAL_STATES for status in statuses):
+            if complete or index < high:
                 status = "completed"
+            elif index == high:
+                status = "completed" if all(x in FINAL_STATES for x in statuses) and (index == len(self.plan["phases"])-1 or all(self._status[sid] in FINAL_STATES for later in self.plan["phases"][index+1:] for sid in later["steps"])) else "running"
             else:
                 status = "pending"
             phases.append({**phase, "status": status})
-            if current_phase is None and status in {"running", "failed", "pending"}:
-                current_phase = phase["id"]
-        complete = bool(step_rows) and all(row["status"] in FINAL_STATES for row in step_rows)
-        if complete and phases:
-            current_phase = phases[-1]["id"]
-        if current_step is None and not complete:
-            current_step = next((row["id"] for row in step_rows if row["status"] not in FINAL_STATES), None)
+        visible_current_phase = self.plan["phases"][high]["id"] if self.plan["phases"] else None
+        current_step = execution_current_step
 
         return {
             "schema_version": SCHEMA_VERSION,
@@ -210,7 +205,11 @@ class WorkflowProgress:
             "progress_definition": self.plan.get("source"),
             "executor": self._executor,
             "complete": complete,
-            "current_phase": current_phase,
+            "current_phase": visible_current_phase,
+            "visible_current_phase": visible_current_phase,
+            "visible_high_water_phase": visible_current_phase,
+            "visible_high_water_index": self._visible_high_water_index,
+            "execution_current_step": execution_current_step,
             "current_step": current_step,
             "phases": phases,
             "steps": step_rows,

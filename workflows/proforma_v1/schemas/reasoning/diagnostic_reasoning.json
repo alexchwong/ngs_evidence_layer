@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "authority",
+    "diagnosis",
+    "reasoning",
+    "conclusion",
+    "reason"
+  ],
+  "properties": {
+    "authority": {
+      "enum": [
+        "who5",
+        "icc",
+        "second_diagnosis"
+      ]
+    },
+    "diagnosis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "schema_disease",
+        "diagnostic_effect",
+        "status",
+        "variant_assessments"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_disease": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "diagnostic_effect": {
+          "enum": [
+            "unchanged",
+            "refined",
+            "superseded"
+          ]
+        },
+        "status": {
+          "enum": [
+            "established",
+            "signal",
+            "none"
+          ]
+        },
+        "variant_assessments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant_id",
+              "classification",
+              "other_pathology",
+              "reason"
+            ],
+            "properties": {
+              "variant_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "classification": {
+                "enum": [
+                  "diagnostic_for_primary",
+                  "nonspecific",
+                  "diagnostic_for_other_pathology"
+                ]
+              },
+              "other_pathology": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "reasoning": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule",
+          "case_fact_ids",
+          "variant_ids",
+          "assessment",
+          "supports_conclusion",
+          "reason"
+        ],
+        "properties": {
+          "rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_fact_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "variant_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "assessment": {
+            "enum": [
+              "met",
+              "not_met",
+              "unknown"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "supports_conclusion": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "conclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator"
+      ],
+      "properties": {
+        "operator": {
+          "enum": [
+            "all_of",
+            "any_of"
+          ]
+        }
+      }
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

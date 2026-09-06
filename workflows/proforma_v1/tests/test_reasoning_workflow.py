@@ -1,191 +1,137 @@
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import yaml
-
-from validation.scripts.bundled_cases import retrieve_case_input
-from workflows.proforma_v1 import pipeline_registry, reasoning_runtime, self as self_executor, step as staged
-from workflows.proforma_v1.engine.workflow_compiler import compile_workflow
-from workflows.proforma_v1.engine.workflow_progress import load_progress_plan
-
+from jsonschema import Draft202012Validator
 
 HERE = Path(__file__).resolve().parents[1]
+WORKFLOW = HERE / "workflow" / "reasoning.yaml"
 DEFAULT = HERE / "workflow" / "default.yaml"
-REASONING = HERE / "workflow" / "reasoning.yaml"
-ATOMIC_SCHEMA = HERE / "schemas" / "reasoning" / "atomic_owner.json"
+SCHEMA = HERE / "schemas" / "workflow.schema.json"
 
 
-class ReasoningWorkflowTests(unittest.TestCase):
-    def test_reasoning_workflow_diverges_without_mutating_default_diagnosis_graph(self):
-        default_doc = yaml.safe_load(DEFAULT.read_text(encoding="utf-8"))
-        reasoning_doc = yaml.safe_load(REASONING.read_text(encoding="utf-8"))
-        default_steps = default_doc["steps"]
-        reasoning_steps = reasoning_doc["steps"]
-        self.assertIn("diagnosis.who1", default_steps)
-        self.assertIn("diagnosis.who1.evidence.audit", default_steps)
-        self.assertNotIn("diagnosis.who", default_steps)
-        self.assertNotIn("diagnosis.second", default_steps)
-        self.assertIn("diagnosis.who", reasoning_steps)
-        self.assertIn("diagnosis.icc", reasoning_steps)
-        self.assertIn("diagnosis.second", reasoning_steps)
-        self.assertIn("diagnosis.reasoning.audit", reasoning_steps)
-        self.assertEqual(reasoning_steps["structure"], default_steps["structure"])
-        self.assertEqual(default_steps["prognosis"]["prompt"], "prompts/prognosis.md")
-        self.assertEqual(reasoning_steps["prognosis"]["prompt"], "prompts/reasoning/prognosis.md")
-        self.assertEqual(reasoning_steps["prognosis"]["execution"]["self_group"], "ptbg_owners")
+class ReasoningWorkflowArchitectureTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+        cls.steps = cls.doc["steps"]
 
-    def test_reasoning_diagnosis_uses_executor_native_generic_handlers_and_rescue_only_matching(self):
-        reasoning_doc = yaml.safe_load(REASONING.read_text(encoding="utf-8"))
-        steps = reasoning_doc["steps"]
-        for owner in ("diagnosis.who", "diagnosis.icc", "diagnosis.second"):
-            self.assertEqual(steps[owner]["execution"]["provider_handler"], "reasoning_model")
-            self.assertEqual(steps[owner]["execution"]["self_handler"], "reasoning_model")
-        self.assertEqual(steps["diagnosis.registry"]["execution"]["self_handler"], "generic_transform")
-        self.assertEqual(
-            steps["diagnosis.evidence.assignment"]["when"],
-            {"has_items": {"artifact": "diagnostic_rescue_items"}},
-        )
-        self.assertEqual(steps["diagnosis.who.review"]["review"]["target"], "diagnosis.who")
-        self.assertEqual(steps["diagnosis.icc.review"]["review"]["target"], "diagnosis.icc")
-        self.assertEqual(steps["diagnosis.second.review"]["review"]["target"], "diagnosis.second")
-        self.assertNotIn("diagnosis.who", steps["diagnosis.icc.prepare"].get("needs", []))
-        self.assertNotIn("diagnosis.who", steps["diagnosis.second.prepare"].get("needs", []))
+    def test_reasoning_workflow_conforms_to_workflow_schema(self):
+        schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+        Draft202012Validator.check_schema(schema)
+        errors = sorted(Draft202012Validator(schema).iter_errors(self.doc), key=lambda e: list(e.absolute_path))
+        self.assertEqual([], [e.message for e in errors])
 
-    def test_reasoning_progress_groups_cover_each_logical_step_once(self):
-        workflow = compile_workflow(REASONING)
-        plan = load_progress_plan(workflow)
-        assigned = [step_id for phase in plan["phases"] for step_id in phase["steps"]]
+    def test_every_dependency_and_review_target_exists(self):
+        known = set(self.steps)
+        for step_id, step in self.steps.items():
+            with self.subTest(step=step_id):
+                self.assertFalse(set(step.get("needs") or []) - known)
+                review = step.get("review") or {}
+                if review:
+                    self.assertIn(review["target"], known)
+
+    def test_diagnosis_reason_then_em_for_each_owner(self):
+        order = list(self.steps)
+        for owner in ("who", "icc", "second"):
+            reason = f"diagnosis.{owner}.reason"
+            em = f"diagnosis.{owner}.em"
+            compile_id = f"diagnosis.{owner}.compile"
+            self.assertLess(order.index(reason), order.index(em))
+            self.assertLess(order.index(em), order.index(compile_id))
+            self.assertNotIn("evidence", (self.steps[reason].get("inputs") or {}).keys())
+            self.assertEqual(self.steps[em]["role"], "evidence_match")
+
+    def test_diagnosis_grouped_audits_follow_all_owner_em_steps(self):
+        order = list(self.steps)
+        last_em = max(order.index(f"diagnosis.{owner}.em") for owner in ("who", "icc", "second"))
+        self.assertGreater(order.index("diagnosis.evidence.audit"), last_em)
+        self.assertGreater(order.index("diagnosis.reasoning.audit"), order.index("diagnosis.evidence.finalize"))
+
+    def test_ptbg_each_domain_has_separate_reason_and_em(self):
+        order = list(self.steps)
+        for domain in ("prognosis", "treatment", "biomarker", "germline"):
+            reason, em, compile_id = f"{domain}.reason", f"{domain}.em", f"{domain}.compile"
+            self.assertLess(order.index(reason), order.index(em))
+            self.assertLess(order.index(em), order.index(compile_id))
+            self.assertEqual(self.steps[reason]["execution"]["self_handler"], "reasoning_model")
+            self.assertEqual(self.steps[em]["execution"]["self_handler"], "reasoning_model")
+            self.assertNotIn("self_group", self.steps[reason]["execution"])
+            self.assertNotIn("self_group", self.steps[em]["execution"])
+
+    def test_ptbg_grouped_audits_follow_all_domain_em_steps(self):
+        order = list(self.steps)
+        last_em = max(order.index(f"{d}.em") for d in ("prognosis", "treatment", "biomarker", "germline"))
+        self.assertGreater(order.index("ptbg.evidence.audit"), last_em)
+        self.assertGreater(order.index("ptbg.reasoning.audit"), order.index("ptbg.evidence.finalize"))
+
+    def test_retry_ownership_separates_em_from_clinical_reasoning(self):
+        for owner in ("who", "icc", "second"):
+            self.assertEqual(self.steps[f"diagnosis.{owner}.em.review"]["review"]["target"], f"diagnosis.{owner}.em")
+            self.assertEqual(self.steps[f"diagnosis.{owner}.review"]["review"]["target"], f"diagnosis.{owner}.reason")
+        for domain in ("prognosis", "treatment", "biomarker", "germline"):
+            self.assertEqual(self.steps[f"{domain}.em.review"]["review"]["target"], f"{domain}.em")
+            self.assertEqual(self.steps[f"{domain}.review"]["review"]["target"], f"{domain}.reason")
+
+    def test_self_no_longer_coalesces_clinical_reasoning_or_review_judgements(self):
+        self.assertEqual(set(self.doc.get("self_groups") or {}), {"final_presentation"})
+        grouped = {
+            step_id: step["execution"].get("self_group")
+            for step_id, step in self.steps.items()
+            if (step.get("execution") or {}).get("self_group")
+        }
+        self.assertTrue(grouped)
+        self.assertEqual(set(grouped.values()), {"final_presentation"})
+        self.assertTrue(all(step_id.startswith(("report.", "dissent.")) for step_id in grouped))
+
+    def test_embedded_progress_metadata_has_exact_step_coverage(self):
+        phases = self.doc["presentation"]["progress_phases"]
+        visible = [p["id"] for p in phases]
+        self.assertEqual(visible[:12], [
+            "case-preparation", "diagnosis-who", "diagnosis-icc", "diagnosis-second",
+            "diagnosis-evidence-audit", "diagnosis-reasoning-audit", "prognosis", "treatment",
+            "biomarker", "germline", "ptbg-evidence-audit", "ptbg-reasoning-audit",
+        ])
+        assigned = [step for phase in phases for step in phase["steps"]]
         self.assertEqual(len(assigned), len(set(assigned)))
-        self.assertEqual(set(assigned), {step.id for step in workflow.steps})
-        self.assertEqual(plan["phases"][0]["label"], "Case preparation")
-        self.assertEqual(plan["phases"][-1]["label"], "Report verification")
+        self.assertEqual(set(assigned), set(self.steps))
 
-    def test_reasoning_model_role_is_optional_for_legacy_profiles(self):
-        source = yaml.safe_load((HERE / "pipelines" / "self.yaml").read_text(encoding="utf-8"))
-        source["models"].pop("reasoning_audit")
-        with tempfile.TemporaryDirectory() as td:
-            path = Path(td) / "legacy-self.yaml"
-            path.write_text(yaml.safe_dump(source, sort_keys=False), encoding="utf-8")
-            plan = pipeline_registry.load_yaml(path)
-            self.assertEqual(plan.pipeline_id, "legacy-self")
-            with self.assertRaisesRegex(ValueError, "does not configure optional model role 'reasoning_audit'"):
-                pipeline_registry.binding(plan, "reasoning_audit")
-
-    def test_shipped_profiles_configure_reasoning_and_dissent_roles(self):
-        for name in ("openrouter", "lmstudio", "self"):
-            with self.subTest(pipeline=name):
-                plan = pipeline_registry.load(name)
-                reasoning = pipeline_registry.binding(plan, "reasoning_audit")
-                summary = pipeline_registry.binding(plan, "dissent_summary")
-                self.assertEqual(reasoning.reasoning, "high")
-                self.assertEqual(summary.reasoning, "low")
-                self.assertGreater(reasoning.max_tokens, 0)
-                self.assertGreater(summary.max_tokens, 0)
-
-    def test_validation_reports_all_deterministic_contract_problems(self):
-        bad = """
-authority: who5
-proposal:
-  proposal_id: P1
-  label: Example
-  kind: diagnosis
-rules:
-  - rule_id: R1
-    statement: Rule one
-    evidence_required: true
-  - rule_id: R1
-    statement: Rule duplicate
-    evidence_required: true
-derived_states:
-  - state_id: S1
-    label: State
-    case_fact_ids: [C999]
-    variant_ids: [v99]
-    proposed_value: example
-criteria:
-  - criterion_id: C1
-    rule_ids: [R1]
-    case_fact_ids: [C999]
-    variant_ids: [v99]
-    state_ids: [S1]
-    proposed_status: invalid_status
-logic: []
-root_id: null
-reason: Example reason
-"""
-        result = reasoning_runtime.audit_atomic_artifact(
-            bad,
-            fmt="yaml",
-            schema=ATOMIC_SCHEMA,
-            case_fact_ids={"C1"},
-            variant_ids={"v01"},
+    def test_visible_progress_high_water_does_not_move_back_on_retry(self):
+        from workflows.proforma_v1.engine.workflow_progress import WorkflowProgress
+        steps = tuple(SimpleNamespace(id=x) for x in ("a", "b", "c"))
+        workflow = SimpleNamespace(
+            workflow_id="test", source=Path("test.yaml"), source_sha256="abc", steps=steps,
+            doc={"presentation":{"progress_phases":[
+                {"id":"phase-a","label":"A","steps":["a"]},
+                {"id":"phase-b","label":"B","steps":["b"]},
+                {"id":"phase-c","label":"C","steps":["c"]},
+            ]}},
         )
-        self.assertFalse(result.ok)
-        codes = [issue.code for issue in result.issues]
-        self.assertIn("duplicate_reasoning_id", codes)
-        self.assertIn("unknown_case_fact_id", codes)
-        self.assertIn("unknown_variant_id", codes)
-        self.assertTrue(any(code.startswith("schema_") for code in codes))
-        feedback = result.feedback()
-        self.assertIn("Fix all of them in one complete redo", feedback)
-        self.assertGreaterEqual(feedback.count("What is wrong:"), 5)
-        self.assertGreaterEqual(feedback.count("What to fix:"), 5)
+        progress = WorkflowProgress(workflow)
+        progress.update("a", "completed")
+        progress.update("b", "running")
+        self.assertEqual(progress.snapshot()["visible_high_water_phase"], "phase-b")
+        progress.invalidate({"a", "b"})
+        snap = progress.snapshot()
+        self.assertEqual(snap["visible_high_water_phase"], "phase-b")
+        self.assertEqual(snap["current_phase"], "phase-b")
+        self.assertEqual(snap["phases"][0]["status"], "completed")
 
-    def test_safe_fence_repair_preserves_semantic_values(self):
-        payload = """authority: who5
-proposal: {proposal_id: P1, label: Example, kind: diagnosis}
-rules: []
-derived_states: []
-criteria: []
-logic: []
-root_id: null
-reason: keep-this-exact-value
-"""
-        fenced = "```yaml\n" + payload.rstrip() + "\n```\n"
-        result = reasoning_runtime.audit_atomic_artifact(
-            fenced,
-            fmt="yaml",
-            schema=ATOMIC_SCHEMA,
-            case_fact_ids=set(),
-            variant_ids=set(),
-        )
-        self.assertTrue(result.ok, result.feedback())
-        self.assertEqual(result.document["reason"], "keep-this-exact-value")
-        self.assertEqual([r.code for r in result.repairs], ["strip_outer_markdown_fence"])
+    def test_progress_sidecars_are_removed(self):
+        workflow_dir = HERE / "workflow"
+        self.assertFalse((workflow_dir / "reasoning.progress.yaml").exists())
+        self.assertFalse((workflow_dir / "default.progress.yaml").exists())
 
-    def test_reasoning_batches_respect_configured_limit(self):
-        batches = reasoning_runtime.batch_items(list(range(37)), 16)
-        self.assertEqual([len(batch) for batch in batches], [16, 16, 5])
-        self.assertEqual([item for batch in batches for item in batch], list(range(37)))
-
-    def test_demo_example_one_prepares_reasoning_workflow_and_emits_case_preparation_progress(self):
-        # This is a no-provider smoke test. It uses the repository's real bundled
-        # demo case and advances native-self only as far as the first model handoff.
-        clinical = retrieve_case_input("nel-demo", 1)
-        self.assertIn("NPM1", clinical)
-        self.assertIn("FLT3-ITD", clinical)
-        with tempfile.TemporaryDirectory() as td:
-            work = Path(td) / "demo-1-reasoning"
-            code = staged.main([
-                "setup",
-                "--mode", "nel-demo",
-                "--example", "1",
-                "--pipeline", "self",
-                "--workflow", str(REASONING),
-                "--work-dir", str(work),
-            ])
-            self.assertEqual(code, 0)
-            self.assertIn("NPM1", (work / "case.md").read_text(encoding="utf-8"))
-            result = self_executor.advance(work)
-            self.assertEqual(result["status"], "handoff")
-            progress = json.loads((work / "logs" / "workflow-progress.json").read_text(encoding="utf-8"))
-            self.assertEqual(progress["current_phase"], "case_preparation")
-            self.assertEqual(progress["current_step"], "structure")
-            self.assertEqual(progress["phases"][0]["label"], "Case preparation")
+    def test_default_workflow_embeds_presentation_without_reasoning_semantics(self):
+        default = yaml.safe_load(DEFAULT.read_text(encoding="utf-8"))
+        self.assertIn("presentation", default)
+        self.assertIn("progress_phases", default["presentation"])
+        self.assertNotIn("reasoning_model", DEFAULT.read_text(encoding="utf-8"))
+        self.assertIn("ptbg", default.get("self_groups") or {})
 
 
 if __name__ == "__main__":

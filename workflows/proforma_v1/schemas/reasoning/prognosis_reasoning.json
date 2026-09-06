@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "additionalProperties": false,
+  "required": ["domain", "frameworks", "variant_assessments"],
+  "properties": {
+    "domain": {"const": "prognosis"},
+    "frameworks": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+      "required": ["name", "applicable", "tier", "reason", "reasoning"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1}, "applicable": {"type": "boolean"},
+        "tier": {"type": ["string", "null"]}, "reason": {"type": "string", "minLength": 1},
+        "reasoning": {"type": "array", "items": {"$ref": "#/$defs/reasoningPoint"}}
+      }}},
+    "variant_assessments": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+      "required": ["variant_id", "framework_effects", "other_evidence"],
+      "properties": {
+        "variant_id": {"type": "string", "minLength": 1},
+        "framework_effects": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["framework", "effect", "reason", "reasoning"],
+          "properties": {"framework": {"type": "string", "minLength": 1}, "effect": {"enum": ["favorable", "adverse", "neutral"]}, "reason": {"type": "string", "minLength": 1}, "reasoning": {"type": "array", "items": {"$ref": "#/$defs/reasoningPoint"}}}}},
+        "other_evidence": {"type": "object", "additionalProperties": false,
+          "required": ["effect", "reason", "reasoning"],
+          "properties": {"effect": {"enum": ["favorable", "adverse", "neutral", "no_evidence"]}, "reason": {"type": ["string", "null"]}, "reasoning": {"type": "array", "items": {"$ref": "#/$defs/reasoningPoint"}}}}
+      }}}
+  },
+  "$defs": {"reasoningPoint": {"type": "object", "additionalProperties": false, "required": ["rule", "case_fact_ids", "variant_ids", "assessment", "supports_conclusion", "reason"], "properties": {"rule": {"type": "string", "minLength": 1}, "case_fact_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}, "variant_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}, "assessment": {"enum": ["met", "not_met", "unknown"]}, "supports_conclusion": {"type": "boolean"}, "reason": {"type": "string", "minLength": 1}}}}
+}

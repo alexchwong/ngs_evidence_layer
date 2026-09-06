@@ -1,31 +1,28 @@
-# PTBG patient-applicability reasoning audit
+# PTBG patient-applicability and conclusion-coherence audit
 
-## Output serialization contract
-Return exactly one YAML mapping conforming to the declared schema. Return YAML only: no Markdown headings, no tables, no prose outside the mapping, no code fence around the answer, and no `---` document separators. The example below shows serialization/shape only; replace placeholders with your actual answer.
+Return exactly one YAML mapping conforming to the declared schema. YAML only.
 
 ```yaml
-derived_states:
-  - state_id: <exact supplied state_id>
-    status: <supported|unsupported|indeterminate>
-    value: <audited value or null>
-    case_fact_ids: []
-    comments: []
+derived_states: []
 criteria:
-  - criterion_id: <exact supplied criterion/application ID>
+  - criterion_id: <exact supplied application_id>
     status: <met|not_met|unknown>
     case_fact_ids: []
     comments: []
+conclusions:
+  - conclusion_id: <exact supplied proposition/conclusion ID>
+    status: <coherent|incoherent|indeterminate>
+    comments: []
 ```
 
-Assess every supplied semantic derived state and semantic application using only the supplied evidence-approved rules and supplied patient facts.
-
-Rules:
-- Do not search for or choose literature.
-- Do not invent patient facts.
-- Do not change a rule because the patient does not satisfy it.
-- Return one derived_state result for every supplied derived-state item and one criteria result for every supplied semantic application. The criteria criterion_id is the supplied application_id.
-- Direct exact applications are intentionally absent; Python evaluates those deterministically.
-- Do not decide final reportability. Python evaluates proposition logic after this audit.
+Assess every supplied application and every final clinical conclusion using only evidence-approved rules and supplied patient facts.
+- Conclusion coherence is mandatory in prognosis, treatment, biomarker and germline.
+- Prognosis: framework applicability/tier and non-framework evidence must remain distinct; a cohort association cannot substitute for an IPSS-M tier.
+- Treatment: target/sensitivity/resistance category and named therapy must follow the reasoning.
+- Biomarker: MRD marker/not-marker must follow MRD-specific reasoning.
+- Germline: the final bucket must follow the integrated factor worksheet; discordant factors must genuinely weigh against `germline_suspicious`.
+- Do not search for literature or change rules.
+- If a conclusion is incoherent, explain the contradiction for targeted owner revision.
 
 ## Deterministic feedback from a prior invalid reasoning artifact
 {{ input.audit_feedback }}

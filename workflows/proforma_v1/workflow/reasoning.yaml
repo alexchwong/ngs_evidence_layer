@@ -1,8 +1,6 @@
 version: 1
 workflow_id: proforma-v1
 self_groups:
-  ptbg_owners:
-    strategy: batch_ready
   final_presentation:
     strategy: batch_ready
 evidence_policies:
@@ -55,7 +53,7 @@ steps:
     type: transform
     needs:
     - corpus
-    transform: reasoning_prepare_diagnostic_owner
+    transform: reasoning_prepare_diagnostic_reasoning
     output:
       artifact: diagnosis_who_pack
       format: yaml
@@ -63,7 +61,7 @@ steps:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  diagnosis.who:
+  diagnosis.who.reason:
     type: model
     needs:
     - diagnosis.who.prepare
@@ -73,30 +71,30 @@ steps:
       owner_pack:
         from: artifacts.diagnosis_who_pack
       audit_feedback:
-        from: feedback.diagnosis.who
+        from: feedback.diagnosis.who.reason
         optional: true
     output:
-      artifact: diagnosis_who_owner
+      artifact: diagnosis_who_reasoning
       format: yaml
-      schema: schemas/reasoning/diagnostic_owner.json
+      schema: schemas/reasoning/diagnostic_reasoning.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  diagnosis.who.validate:
+  diagnosis.who.reason.validate:
     type: transform
     needs:
-    - diagnosis.who
-    transform: reasoning_validate_diagnostic_owner
+    - diagnosis.who.reason
+    transform: reasoning_validate_diagnostic_reasoning_v2
     output:
-      artifact: diagnosis_who_owner_validation
+      artifact: diagnosis_who_reasoning_validation
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: diagnosis.who
+      target: diagnosis.who.reason
       verdict:
         path: status
         pass_values:
@@ -106,16 +104,88 @@ steps:
       on_fail:
         retry_target: true
         feedback:
-          from: artifacts.diagnosis_who_owner_validation
+          from: artifacts.diagnosis_who_reasoning_validation
           as: audit_feedback
         max_cycles: 1
         exhausted:
           action: stop
+  diagnosis.who.em.prepare:
+    type: transform
+    needs:
+    - diagnosis.who.reason.validate
+    transform: reasoning_prepare_diagnostic_evidence_match
+    output:
+      artifact: diagnosis_who_evidence_match_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.who.em:
+    type: model
+    needs:
+    - diagnosis.who.em.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/evidence_match.md
+    inputs:
+      match_items:
+        from: artifacts.diagnosis_who_evidence_match_items
+      audit_feedback:
+        from: feedback.diagnosis.who.em
+        optional: true
+    output:
+      artifact: diagnosis_who_evidence_match
+      format: yaml
+      schema: schemas/reasoning/evidence_match.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  diagnosis.who.em.validate:
+    type: transform
+    needs:
+    - diagnosis.who.em
+    transform: reasoning_validate_diagnostic_evidence_match
+    output:
+      artifact: diagnosis_who_evidence_match_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnosis_who_evidence_match_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.who.compile:
+    type: transform
+    needs:
+    - diagnosis.who.em.validate
+    transform: reasoning_compile_diagnostic_reasoning
+    output:
+      artifact: diagnosis_who_owner
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
   diagnosis.icc.prepare:
     type: transform
     needs:
     - corpus
-    transform: reasoning_prepare_diagnostic_owner
+    transform: reasoning_prepare_diagnostic_reasoning
     output:
       artifact: diagnosis_icc_pack
       format: yaml
@@ -123,7 +193,7 @@ steps:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  diagnosis.icc:
+  diagnosis.icc.reason:
     type: model
     needs:
     - diagnosis.icc.prepare
@@ -133,30 +203,30 @@ steps:
       owner_pack:
         from: artifacts.diagnosis_icc_pack
       audit_feedback:
-        from: feedback.diagnosis.icc
+        from: feedback.diagnosis.icc.reason
         optional: true
     output:
-      artifact: diagnosis_icc_owner
+      artifact: diagnosis_icc_reasoning
       format: yaml
-      schema: schemas/reasoning/diagnostic_owner.json
+      schema: schemas/reasoning/diagnostic_reasoning.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  diagnosis.icc.validate:
+  diagnosis.icc.reason.validate:
     type: transform
     needs:
-    - diagnosis.icc
-    transform: reasoning_validate_diagnostic_owner
+    - diagnosis.icc.reason
+    transform: reasoning_validate_diagnostic_reasoning_v2
     output:
-      artifact: diagnosis_icc_owner_validation
+      artifact: diagnosis_icc_reasoning_validation
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: diagnosis.icc
+      target: diagnosis.icc.reason
       verdict:
         path: status
         pass_values:
@@ -166,16 +236,88 @@ steps:
       on_fail:
         retry_target: true
         feedback:
-          from: artifacts.diagnosis_icc_owner_validation
+          from: artifacts.diagnosis_icc_reasoning_validation
           as: audit_feedback
         max_cycles: 1
         exhausted:
           action: stop
+  diagnosis.icc.em.prepare:
+    type: transform
+    needs:
+    - diagnosis.icc.reason.validate
+    transform: reasoning_prepare_diagnostic_evidence_match
+    output:
+      artifact: diagnosis_icc_evidence_match_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.icc.em:
+    type: model
+    needs:
+    - diagnosis.icc.em.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/evidence_match.md
+    inputs:
+      match_items:
+        from: artifacts.diagnosis_icc_evidence_match_items
+      audit_feedback:
+        from: feedback.diagnosis.icc.em
+        optional: true
+    output:
+      artifact: diagnosis_icc_evidence_match
+      format: yaml
+      schema: schemas/reasoning/evidence_match.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  diagnosis.icc.em.validate:
+    type: transform
+    needs:
+    - diagnosis.icc.em
+    transform: reasoning_validate_diagnostic_evidence_match
+    output:
+      artifact: diagnosis_icc_evidence_match_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.icc.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnosis_icc_evidence_match_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.icc.compile:
+    type: transform
+    needs:
+    - diagnosis.icc.em.validate
+    transform: reasoning_compile_diagnostic_reasoning
+    output:
+      artifact: diagnosis_icc_owner
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
   diagnosis.second.prepare:
     type: transform
     needs:
     - corpus
-    transform: reasoning_prepare_diagnostic_owner
+    transform: reasoning_prepare_diagnostic_reasoning
     output:
       artifact: diagnosis_second_pack
       format: yaml
@@ -183,7 +325,7 @@ steps:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  diagnosis.second:
+  diagnosis.second.reason:
     type: model
     needs:
     - diagnosis.second.prepare
@@ -193,30 +335,30 @@ steps:
       owner_pack:
         from: artifacts.diagnosis_second_pack
       audit_feedback:
-        from: feedback.diagnosis.second
+        from: feedback.diagnosis.second.reason
         optional: true
     output:
-      artifact: diagnosis_second_owner
+      artifact: diagnosis_second_reasoning
       format: yaml
-      schema: schemas/reasoning/diagnostic_owner.json
+      schema: schemas/reasoning/diagnostic_reasoning.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  diagnosis.second.validate:
+  diagnosis.second.reason.validate:
     type: transform
     needs:
-    - diagnosis.second
-    transform: reasoning_validate_diagnostic_owner
+    - diagnosis.second.reason
+    transform: reasoning_validate_diagnostic_reasoning_v2
     output:
-      artifact: diagnosis_second_owner_validation
+      artifact: diagnosis_second_reasoning_validation
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: diagnosis.second
+      target: diagnosis.second.reason
       verdict:
         path: status
         pass_values:
@@ -226,17 +368,89 @@ steps:
       on_fail:
         retry_target: true
         feedback:
-          from: artifacts.diagnosis_second_owner_validation
+          from: artifacts.diagnosis_second_reasoning_validation
           as: audit_feedback
         max_cycles: 1
         exhausted:
           action: stop
+  diagnosis.second.em.prepare:
+    type: transform
+    needs:
+    - diagnosis.second.reason.validate
+    transform: reasoning_prepare_diagnostic_evidence_match
+    output:
+      artifact: diagnosis_second_evidence_match_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  diagnosis.second.em:
+    type: model
+    needs:
+    - diagnosis.second.em.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/evidence_match.md
+    inputs:
+      match_items:
+        from: artifacts.diagnosis_second_evidence_match_items
+      audit_feedback:
+        from: feedback.diagnosis.second.em
+        optional: true
+    output:
+      artifact: diagnosis_second_evidence_match
+      format: yaml
+      schema: schemas/reasoning/evidence_match.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  diagnosis.second.em.validate:
+    type: transform
+    needs:
+    - diagnosis.second.em
+    transform: reasoning_validate_diagnostic_evidence_match
+    output:
+      artifact: diagnosis_second_evidence_match_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.second.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnosis_second_evidence_match_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  diagnosis.second.compile:
+    type: transform
+    needs:
+    - diagnosis.second.em.validate
+    transform: reasoning_compile_diagnostic_reasoning
+    output:
+      artifact: diagnosis_second_owner
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
   diagnosis.registry:
     type: transform
     needs:
-    - diagnosis.who.validate
-    - diagnosis.icc.validate
-    - diagnosis.second.validate
+    - diagnosis.who.compile
+    - diagnosis.icc.compile
+    - diagnosis.second.compile
     transform: reasoning_build_diagnostic_registry
     output:
       artifact: diagnostic_atomic_registry
@@ -245,86 +459,11 @@ steps:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  diagnosis.evidence.owner_assignments:
-    type: transform
-    needs:
-    - diagnosis.registry
-    transform: reasoning_collect_diagnostic_owner_assignments
-    output:
-      artifact: diagnostic_owner_assignments
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  diagnosis.evidence.rescue.prepare:
-    type: transform
-    needs:
-    - diagnosis.evidence.owner_assignments
-    transform: reasoning_prepare_diagnostic_rescue
-    output:
-      artifact: diagnostic_rescue_items
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  diagnosis.evidence.assignment:
-    type: model
-    needs:
-    - diagnosis.evidence.rescue.prepare
-    role: evidence_match
-    prompt: prompts/reasoning/diagnostic_evidence_rescue.md
-    inputs:
-      rescue_items:
-        from: artifacts.diagnostic_rescue_items
-      audit_feedback:
-        from: feedback.diagnosis.evidence.assignment
-        optional: true
-    output:
-      artifact: diagnostic_rescue_assignments
-      format: yaml
-      schema: schemas/reasoning/diagnostic_evidence_assignment.json
-    execution:
-      provider_handler: reasoning_model
-      self_handler: reasoning_model
-      self_mode: handoff
-    when:
-      has_items:
-        artifact: diagnostic_rescue_items
-  diagnosis.evidence.assignment.validate:
-    type: transform
-    needs:
-    - diagnosis.evidence.assignment
-    transform: reasoning_validate_diagnostic_rescue
-    output:
-      artifact: diagnostic_rescue_validation
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-    review:
-      target: diagnosis.evidence.assignment
-      verdict:
-        path: status
-        pass_values:
-        - pass
-      on_pass:
-        continue: true
-      on_fail:
-        retry_target: true
-        feedback:
-          from: artifacts.diagnostic_rescue_validation
-          as: audit_feedback
-        max_cycles: 1
-        exhausted:
-          action: stop
   diagnosis.evidence.merge:
     type: transform
     needs:
-    - diagnosis.evidence.assignment.validate
-    transform: reasoning_merge_diagnostic_assignments
+    - diagnosis.registry
+    transform: reasoning_merge_diagnostic_evidence_matches
     output:
       artifact: diagnostic_assignments
       format: yaml
@@ -395,10 +534,96 @@ steps:
         max_cycles: 1
         exhausted:
           action: stop
-  diagnosis.evidence.disputes:
+  diagnosis.who.em.review:
     type: transform
     needs:
     - diagnosis.evidence.audit.validate
+    transform: reasoning_diagnostic_em_audit_review
+    output:
+      artifact: diagnostic_who_em_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_who_em_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  diagnosis.icc.em.review:
+    type: transform
+    needs:
+    - diagnosis.evidence.audit.validate
+    transform: reasoning_diagnostic_em_audit_review
+    output:
+      artifact: diagnostic_icc_em_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.icc.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_icc_em_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  diagnosis.second.em.review:
+    type: transform
+    needs:
+    - diagnosis.evidence.audit.validate
+    transform: reasoning_diagnostic_em_audit_review
+    output:
+      artifact: diagnostic_second_em_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.second.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.diagnostic_second_em_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  diagnosis.evidence.disputes:
+    type: transform
+    needs:
+    - diagnosis.who.em.review
+    - diagnosis.icc.em.review
+    - diagnosis.second.em.review
     transform: reasoning_build_diagnostic_disputes
     output:
       artifact: diagnostic_evidence_disputes
@@ -537,7 +762,7 @@ steps:
     type: transform
     needs:
     - diagnosis.reasoning.audit.validate
-    transform: reasoning_evaluate_diagnoses
+    transform: reasoning_evaluate_diagnoses_v2
     output:
       artifact: diagnostic_evaluation
       format: yaml
@@ -558,7 +783,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: diagnosis.who
+      target: diagnosis.who.reason
       verdict:
         path: status
         pass_values:
@@ -586,7 +811,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: diagnosis.icc
+      target: diagnosis.icc.reason
       verdict:
         path: status
         pass_values:
@@ -614,7 +839,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: diagnosis.second
+      target: diagnosis.second.reason
       verdict:
         path: status
         pass_values:
@@ -647,7 +872,7 @@ steps:
     type: transform
     needs:
     - diagnosis.finalize
-    transform: reasoning_prepare_ptbg_owner
+    transform: reasoning_prepare_ptbg_reasoning
     output:
       artifact: prognosis_reasoning_pack
       format: yaml
@@ -655,43 +880,7 @@ steps:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  treatment.prepare:
-    type: transform
-    needs:
-    - diagnosis.finalize
-    transform: reasoning_prepare_ptbg_owner
-    output:
-      artifact: treatment_reasoning_pack
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  biomarker.prepare:
-    type: transform
-    needs:
-    - diagnosis.finalize
-    transform: reasoning_prepare_ptbg_owner
-    output:
-      artifact: biomarker_reasoning_pack
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  germline.prepare:
-    type: transform
-    needs:
-    - diagnosis.finalize
-    transform: reasoning_prepare_ptbg_owner
-    output:
-      artifact: germline_reasoning_pack
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  prognosis:
+  prognosis.reason:
     type: model
     needs:
     - prognosis.prepare
@@ -701,85 +890,21 @@ steps:
       owner_pack:
         from: artifacts.prognosis_reasoning_pack
       audit_feedback:
-        from: feedback.prognosis
+        from: feedback.prognosis.reason
         optional: true
     output:
-      artifact: prognosis_reasoning_owner
+      artifact: prognosis_reasoning
       format: yaml
-      schema: schemas/reasoning/ptbg_owner.json
+      schema: schemas/reasoning/prognosis_reasoning.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
-      self_group: ptbg_owners
       self_mode: handoff
-  treatment:
-    type: model
-    needs:
-    - treatment.prepare
-    role: ptbg
-    prompt: prompts/reasoning/treatment.md
-    inputs:
-      owner_pack:
-        from: artifacts.treatment_reasoning_pack
-      audit_feedback:
-        from: feedback.treatment
-        optional: true
-    output:
-      artifact: treatment_reasoning_owner
-      format: yaml
-      schema: schemas/reasoning/ptbg_owner.json
-    execution:
-      provider_handler: reasoning_model
-      self_handler: reasoning_model
-      self_group: ptbg_owners
-      self_mode: handoff
-  biomarker:
-    type: model
-    needs:
-    - biomarker.prepare
-    role: ptbg
-    prompt: prompts/reasoning/biomarker.md
-    inputs:
-      owner_pack:
-        from: artifacts.biomarker_reasoning_pack
-      audit_feedback:
-        from: feedback.biomarker
-        optional: true
-    output:
-      artifact: biomarker_reasoning_owner
-      format: yaml
-      schema: schemas/reasoning/ptbg_owner.json
-    execution:
-      provider_handler: reasoning_model
-      self_handler: reasoning_model
-      self_group: ptbg_owners
-      self_mode: handoff
-  germline:
-    type: model
-    needs:
-    - germline.prepare
-    role: ptbg
-    prompt: prompts/reasoning/germline.md
-    inputs:
-      owner_pack:
-        from: artifacts.germline_reasoning_pack
-      audit_feedback:
-        from: feedback.germline
-        optional: true
-    output:
-      artifact: germline_reasoning_owner
-      format: yaml
-      schema: schemas/reasoning/ptbg_owner.json
-    execution:
-      provider_handler: reasoning_model
-      self_handler: reasoning_model
-      self_group: ptbg_owners
-      self_mode: handoff
-  prognosis.validate:
+  prognosis.reason.validate:
     type: transform
     needs:
-    - prognosis
-    transform: reasoning_validate_ptbg_owner
+    - prognosis.reason
+    transform: reasoning_validate_ptbg_reasoning_v2
     output:
       artifact: prognosis_reasoning_validation
       format: yaml
@@ -788,7 +913,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: prognosis
+      target: prognosis.reason
       verdict:
         path: status
         pass_values:
@@ -803,11 +928,115 @@ steps:
         max_cycles: 1
         exhausted:
           action: stop
-  treatment.validate:
+  prognosis.em.prepare:
     type: transform
     needs:
-    - treatment
-    transform: reasoning_validate_ptbg_owner
+    - prognosis.reason.validate
+    transform: reasoning_prepare_ptbg_evidence_match_v2
+    output:
+      artifact: prognosis_evidence_match_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  prognosis.em:
+    type: model
+    needs:
+    - prognosis.em.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/evidence_match.md
+    inputs:
+      match_items:
+        from: artifacts.prognosis_evidence_match_items
+      audit_feedback:
+        from: feedback.prognosis.em
+        optional: true
+    output:
+      artifact: prognosis_evidence_match
+      format: yaml
+      schema: schemas/reasoning/evidence_match.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  prognosis.em.validate:
+    type: transform
+    needs:
+    - prognosis.em
+    transform: reasoning_validate_ptbg_evidence_match
+    output:
+      artifact: prognosis_evidence_match_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.prognosis_evidence_match_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  prognosis.compile:
+    type: transform
+    needs:
+    - prognosis.em.validate
+    transform: reasoning_compile_ptbg_reasoning
+    output:
+      artifact: prognosis_reasoning_owner
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  treatment.prepare:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: reasoning_prepare_ptbg_reasoning
+    output:
+      artifact: treatment_reasoning_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  treatment.reason:
+    type: model
+    needs:
+    - treatment.prepare
+    role: ptbg
+    prompt: prompts/reasoning/treatment.md
+    inputs:
+      owner_pack:
+        from: artifacts.treatment_reasoning_pack
+      audit_feedback:
+        from: feedback.treatment.reason
+        optional: true
+    output:
+      artifact: treatment_reasoning
+      format: yaml
+      schema: schemas/reasoning/treatment_reasoning.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  treatment.reason.validate:
+    type: transform
+    needs:
+    - treatment.reason
+    transform: reasoning_validate_ptbg_reasoning_v2
     output:
       artifact: treatment_reasoning_validation
       format: yaml
@@ -816,7 +1045,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: treatment
+      target: treatment.reason
       verdict:
         path: status
         pass_values:
@@ -831,11 +1060,115 @@ steps:
         max_cycles: 1
         exhausted:
           action: stop
-  biomarker.validate:
+  treatment.em.prepare:
     type: transform
     needs:
-    - biomarker
-    transform: reasoning_validate_ptbg_owner
+    - treatment.reason.validate
+    transform: reasoning_prepare_ptbg_evidence_match_v2
+    output:
+      artifact: treatment_evidence_match_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  treatment.em:
+    type: model
+    needs:
+    - treatment.em.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/evidence_match.md
+    inputs:
+      match_items:
+        from: artifacts.treatment_evidence_match_items
+      audit_feedback:
+        from: feedback.treatment.em
+        optional: true
+    output:
+      artifact: treatment_evidence_match
+      format: yaml
+      schema: schemas/reasoning/evidence_match.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  treatment.em.validate:
+    type: transform
+    needs:
+    - treatment.em
+    transform: reasoning_validate_ptbg_evidence_match
+    output:
+      artifact: treatment_evidence_match_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.treatment_evidence_match_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  treatment.compile:
+    type: transform
+    needs:
+    - treatment.em.validate
+    transform: reasoning_compile_ptbg_reasoning
+    output:
+      artifact: treatment_reasoning_owner
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  biomarker.prepare:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: reasoning_prepare_ptbg_reasoning
+    output:
+      artifact: biomarker_reasoning_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  biomarker.reason:
+    type: model
+    needs:
+    - biomarker.prepare
+    role: ptbg
+    prompt: prompts/reasoning/biomarker.md
+    inputs:
+      owner_pack:
+        from: artifacts.biomarker_reasoning_pack
+      audit_feedback:
+        from: feedback.biomarker.reason
+        optional: true
+    output:
+      artifact: biomarker_reasoning
+      format: yaml
+      schema: schemas/reasoning/biomarker_reasoning.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  biomarker.reason.validate:
+    type: transform
+    needs:
+    - biomarker.reason
+    transform: reasoning_validate_ptbg_reasoning_v2
     output:
       artifact: biomarker_reasoning_validation
       format: yaml
@@ -844,7 +1177,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: biomarker
+      target: biomarker.reason
       verdict:
         path: status
         pass_values:
@@ -859,11 +1192,115 @@ steps:
         max_cycles: 1
         exhausted:
           action: stop
-  germline.validate:
+  biomarker.em.prepare:
     type: transform
     needs:
-    - germline
-    transform: reasoning_validate_ptbg_owner
+    - biomarker.reason.validate
+    transform: reasoning_prepare_ptbg_evidence_match_v2
+    output:
+      artifact: biomarker_evidence_match_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  biomarker.em:
+    type: model
+    needs:
+    - biomarker.em.prepare
+    role: evidence_match
+    prompt: prompts/reasoning/evidence_match.md
+    inputs:
+      match_items:
+        from: artifacts.biomarker_evidence_match_items
+      audit_feedback:
+        from: feedback.biomarker.em
+        optional: true
+    output:
+      artifact: biomarker_evidence_match
+      format: yaml
+      schema: schemas/reasoning/evidence_match.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  biomarker.em.validate:
+    type: transform
+    needs:
+    - biomarker.em
+    transform: reasoning_validate_ptbg_evidence_match
+    output:
+      artifact: biomarker_evidence_match_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.biomarker_evidence_match_validation
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: stop
+  biomarker.compile:
+    type: transform
+    needs:
+    - biomarker.em.validate
+    transform: reasoning_compile_ptbg_reasoning
+    output:
+      artifact: biomarker_reasoning_owner
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  germline.prepare:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: reasoning_prepare_ptbg_reasoning
+    output:
+      artifact: germline_reasoning_pack
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  germline.reason:
+    type: model
+    needs:
+    - germline.prepare
+    role: ptbg
+    prompt: prompts/reasoning/germline.md
+    inputs:
+      owner_pack:
+        from: artifacts.germline_reasoning_pack
+      audit_feedback:
+        from: feedback.germline.reason
+        optional: true
+    output:
+      artifact: germline_reasoning
+      format: yaml
+      schema: schemas/reasoning/germline_reasoning.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  germline.reason.validate:
+    type: transform
+    needs:
+    - germline.reason
+    transform: reasoning_validate_ptbg_reasoning_v2
     output:
       artifact: germline_reasoning_validation
       format: yaml
@@ -872,7 +1309,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: germline
+      target: germline.reason
       verdict:
         path: status
         pass_values:
@@ -887,82 +1324,52 @@ steps:
         max_cycles: 1
         exhausted:
           action: stop
-  ptbg.registry:
+  germline.em.prepare:
     type: transform
     needs:
-    - prognosis.validate
-    - treatment.validate
-    - biomarker.validate
-    - germline.validate
-    transform: reasoning_build_ptbg_registry
+    - germline.reason.validate
+    transform: reasoning_prepare_ptbg_evidence_match_v2
     output:
-      artifact: ptbg_atomic_registry
+      artifact: germline_evidence_match_items
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  ptbg.evidence.owner_assignments:
-    type: transform
-    needs:
-    - ptbg.registry
-    transform: reasoning_collect_ptbg_owner_assignments
-    output:
-      artifact: ptbg_owner_assignments
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  ptbg.evidence.rescue.prepare:
-    type: transform
-    needs:
-    - ptbg.evidence.owner_assignments
-    transform: reasoning_prepare_ptbg_rescue
-    output:
-      artifact: ptbg_rescue_items
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  ptbg.evidence.assignment:
+  germline.em:
     type: model
     needs:
-    - ptbg.evidence.rescue.prepare
+    - germline.em.prepare
     role: evidence_match
-    prompt: prompts/reasoning/ptbg_evidence_rescue.md
+    prompt: prompts/reasoning/evidence_match.md
     inputs:
-      rescue_items:
-        from: artifacts.ptbg_rescue_items
+      match_items:
+        from: artifacts.germline_evidence_match_items
       audit_feedback:
-        from: feedback.ptbg.evidence.assignment
+        from: feedback.germline.em
         optional: true
     output:
-      artifact: ptbg_rescue_assignments
+      artifact: germline_evidence_match
       format: yaml
-      schema: schemas/reasoning/diagnostic_evidence_assignment.json
+      schema: schemas/reasoning/evidence_match.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-    when:
-      has_items:
-        artifact: ptbg_rescue_items
-  ptbg.evidence.assignment.validate:
+  germline.em.validate:
     type: transform
     needs:
-    - ptbg.evidence.assignment
-    transform: reasoning_validate_ptbg_rescue
+    - germline.em
+    transform: reasoning_validate_ptbg_evidence_match
     output:
-      artifact: ptbg_rescue_validation
+      artifact: germline_evidence_match_validation
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: ptbg.evidence.assignment
+      target: germline.em
       verdict:
         path: status
         pass_values:
@@ -972,16 +1379,43 @@ steps:
       on_fail:
         retry_target: true
         feedback:
-          from: artifacts.ptbg_rescue_validation
+          from: artifacts.germline_evidence_match_validation
           as: audit_feedback
         max_cycles: 1
         exhausted:
           action: stop
+  germline.compile:
+    type: transform
+    needs:
+    - germline.em.validate
+    transform: reasoning_compile_ptbg_reasoning
+    output:
+      artifact: germline_reasoning_owner
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  ptbg.registry:
+    type: transform
+    needs:
+    - prognosis.compile
+    - treatment.compile
+    - biomarker.compile
+    - germline.compile
+    transform: reasoning_build_ptbg_registry
+    output:
+      artifact: ptbg_atomic_registry
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
   ptbg.evidence.merge:
     type: transform
     needs:
-    - ptbg.evidence.assignment.validate
-    transform: reasoning_merge_ptbg_assignments
+    - ptbg.registry
+    transform: reasoning_merge_ptbg_evidence_matches
     output:
       artifact: ptbg_assignments
       format: yaml
@@ -1052,10 +1486,125 @@ steps:
         max_cycles: 1
         exhausted:
           action: stop
-  ptbg.evidence.disputes:
+  prognosis.em.review:
     type: transform
     needs:
     - ptbg.evidence.audit.validate
+    transform: reasoning_ptbg_em_audit_review
+    output:
+      artifact: prognosis_em_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.prognosis_em_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  treatment.em.review:
+    type: transform
+    needs:
+    - ptbg.evidence.audit.validate
+    transform: reasoning_ptbg_em_audit_review
+    output:
+      artifact: treatment_em_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.treatment_em_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  biomarker.em.review:
+    type: transform
+    needs:
+    - ptbg.evidence.audit.validate
+    transform: reasoning_ptbg_em_audit_review
+    output:
+      artifact: biomarker_em_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.biomarker_em_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  germline.em.review:
+    type: transform
+    needs:
+    - ptbg.evidence.audit.validate
+    transform: reasoning_ptbg_em_audit_review
+    output:
+      artifact: germline_em_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline.em
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.germline_em_review
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: continue_with_dissent
+  ptbg.evidence.disputes:
+    type: transform
+    needs:
+    - prognosis.em.review
+    - treatment.em.review
+    - biomarker.em.review
+    - germline.em.review
     transform: reasoning_build_ptbg_disputes
     output:
       artifact: ptbg_evidence_disputes
@@ -1127,22 +1676,10 @@ steps:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  ptbg.reasoning.direct:
-    type: transform
-    needs:
-    - ptbg.evidence.finalize
-    transform: reasoning_evaluate_ptbg_direct_applications
-    output:
-      artifact: ptbg_direct_applications
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
   ptbg.reasoning.prepare:
     type: transform
     needs:
-    - ptbg.reasoning.direct
+    - ptbg.evidence.finalize
     transform: reasoning_prepare_ptbg_reasoning_audit
     output:
       artifact: ptbg_reasoning_items
@@ -1218,7 +1755,7 @@ steps:
     type: transform
     needs:
     - ptbg.evaluate
-    transform: reasoning_ptbg_owner_review
+    transform: reasoning_ptbg_owner_review_v2
     output:
       artifact: prognosis_reasoning_review
       format: yaml
@@ -1227,7 +1764,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: prognosis
+      target: prognosis.reason
       verdict:
         path: status
         pass_values:
@@ -1246,7 +1783,7 @@ steps:
     type: transform
     needs:
     - ptbg.evaluate
-    transform: reasoning_ptbg_owner_review
+    transform: reasoning_ptbg_owner_review_v2
     output:
       artifact: treatment_reasoning_review
       format: yaml
@@ -1255,7 +1792,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: treatment
+      target: treatment.reason
       verdict:
         path: status
         pass_values:
@@ -1274,7 +1811,7 @@ steps:
     type: transform
     needs:
     - ptbg.evaluate
-    transform: reasoning_ptbg_owner_review
+    transform: reasoning_ptbg_owner_review_v2
     output:
       artifact: biomarker_reasoning_review
       format: yaml
@@ -1283,7 +1820,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: biomarker
+      target: biomarker.reason
       verdict:
         path: status
         pass_values:
@@ -1302,7 +1839,7 @@ steps:
     type: transform
     needs:
     - ptbg.evaluate
-    transform: reasoning_ptbg_owner_review
+    transform: reasoning_ptbg_owner_review_v2
     output:
       artifact: germline_reasoning_review
       format: yaml
@@ -1311,7 +1848,7 @@ steps:
       self_handler: generic_transform
       self_mode: deterministic
     review:
-      target: germline
+      target: germline.reason
       verdict:
         path: status
         pass_values:
@@ -1345,7 +1882,7 @@ steps:
     type: transform
     needs:
     - evidence.finalize
-    transform: reasoning_build_decision_ledger
+    transform: reasoning_build_decision_ledger_v2
     output:
       artifact: decision_ledger
       format: yaml
@@ -1372,7 +1909,7 @@ steps:
     - report.blocks
     role: report_write
     stage: report_write
-    prompt: prompts/report_write.md
+    prompt: prompts/reasoning/report_write.md
     output:
       artifact: report_draft
       format: yaml
@@ -1442,3 +1979,155 @@ steps:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
+# ============================================================
+# PRESENTATION METADATA — UI ONLY
+# This section groups executable steps for display. It MUST NOT
+# alter dependencies, routing, retries, conditions, or execution.
+# ============================================================
+presentation:
+  progress_phases:
+  - id: case-preparation
+    label: Case preparation
+    steps:
+    - structure
+    - corpus
+  - id: diagnosis-who
+    label: Diagnosis — WHO
+    steps:
+    - diagnosis.who.prepare
+    - diagnosis.who.reason
+    - diagnosis.who.reason.validate
+    - diagnosis.who.em.prepare
+    - diagnosis.who.em
+    - diagnosis.who.em.validate
+    - diagnosis.who.compile
+  - id: diagnosis-icc
+    label: Diagnosis — ICC
+    steps:
+    - diagnosis.icc.prepare
+    - diagnosis.icc.reason
+    - diagnosis.icc.reason.validate
+    - diagnosis.icc.em.prepare
+    - diagnosis.icc.em
+    - diagnosis.icc.em.validate
+    - diagnosis.icc.compile
+  - id: diagnosis-second
+    label: Diagnosis — Second
+    steps:
+    - diagnosis.second.prepare
+    - diagnosis.second.reason
+    - diagnosis.second.reason.validate
+    - diagnosis.second.em.prepare
+    - diagnosis.second.em
+    - diagnosis.second.em.validate
+    - diagnosis.second.compile
+  - id: diagnosis-evidence-audit
+    label: Diagnosis — Evidence audit
+    steps:
+    - diagnosis.registry
+    - diagnosis.evidence.merge
+    - diagnosis.evidence.audit.prepare
+    - diagnosis.evidence.audit
+    - diagnosis.evidence.audit.validate
+    - diagnosis.who.em.review
+    - diagnosis.icc.em.review
+    - diagnosis.second.em.review
+    - diagnosis.evidence.disputes
+    - diagnosis.evidence.adjudication
+    - diagnosis.evidence.adjudication.validate
+    - diagnosis.evidence.finalize
+  - id: diagnosis-reasoning-audit
+    label: Diagnosis — Reasoning audit
+    steps:
+    - diagnosis.reasoning.prepare
+    - diagnosis.reasoning.audit
+    - diagnosis.reasoning.audit.validate
+    - diagnosis.evaluate
+    - diagnosis.who.review
+    - diagnosis.icc.review
+    - diagnosis.second.review
+    - diagnosis.finalize
+  - id: prognosis
+    label: Prognosis
+    steps:
+    - prognosis.prepare
+    - prognosis.reason
+    - prognosis.reason.validate
+    - prognosis.em.prepare
+    - prognosis.em
+    - prognosis.em.validate
+    - prognosis.compile
+  - id: treatment
+    label: Treatment
+    steps:
+    - treatment.prepare
+    - treatment.reason
+    - treatment.reason.validate
+    - treatment.em.prepare
+    - treatment.em
+    - treatment.em.validate
+    - treatment.compile
+  - id: biomarker
+    label: Biomarker
+    steps:
+    - biomarker.prepare
+    - biomarker.reason
+    - biomarker.reason.validate
+    - biomarker.em.prepare
+    - biomarker.em
+    - biomarker.em.validate
+    - biomarker.compile
+  - id: germline
+    label: Germline
+    steps:
+    - germline.prepare
+    - germline.reason
+    - germline.reason.validate
+    - germline.em.prepare
+    - germline.em
+    - germline.em.validate
+    - germline.compile
+  - id: ptbg-evidence-audit
+    label: PTBG — Evidence audit
+    steps:
+    - ptbg.registry
+    - ptbg.evidence.merge
+    - ptbg.evidence.audit.prepare
+    - ptbg.evidence.audit
+    - ptbg.evidence.audit.validate
+    - prognosis.em.review
+    - treatment.em.review
+    - biomarker.em.review
+    - germline.em.review
+    - ptbg.evidence.disputes
+    - ptbg.evidence.adjudication
+    - ptbg.evidence.adjudication.validate
+    - ptbg.evidence.finalize
+  - id: ptbg-reasoning-audit
+    label: PTBG — Reasoning audit
+    steps:
+    - ptbg.reasoning.prepare
+    - ptbg.reasoning.audit
+    - ptbg.reasoning.audit.validate
+    - ptbg.evaluate
+    - prognosis.review
+    - treatment.review
+    - biomarker.review
+    - germline.review
+  - id: evidence-finalization
+    label: Evidence finalization
+    steps:
+    - evidence.finalize
+    - decision.ledger
+  - id: report-synthesis
+    label: Report synthesis
+    steps:
+    - report.blocks
+    - report.write
+    - dissent.summary
+  - id: report-verification
+    label: Report verification
+    steps:
+    - dissent.summary.validate
+    - report.preservation
+    - report.finalize

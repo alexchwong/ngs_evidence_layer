@@ -1,52 +1,82 @@
 # `reasoning.yaml`
 
-`reasoning.yaml` is the experimental atomic-reasoning proforma-v1 workflow. `default.yaml` remains the shipped workflow and is intentionally not modified by this implementation.
+`reasoning.yaml` is the experimental reasoning-first proforma-v1 workflow. Clinical models make clinical judgements; Python owns machine representation. `default.yaml` retains its existing execution graph and gains only embedded UI presentation metadata.
 
-## Diagnostic architecture
+## Core boundary
 
-WHO5, ICC and second/concurrent diagnosis are independent owners. Their literature rules are evidence-audited separately from patient applicability, then Python evaluates shallow `all_of` / `any_of` logic. Owner-proposed evidence assignments are accepted only inside frozen authority envelopes; missing assignments use rescue-only matching. Evidence adjudication is a separate independent pass. Failed owners receive one complete plain-English feedback bundle and one bounded redo before deterministic fallback/suppression.
+For every clinical owner:
 
-## PTBG architecture
+```text
+clinical reasoning → Python normalization → evidence match → Python compile/validate
+```
 
-Prognosis, treatment, biomarker/MRD and germline remain four logical owners. Each emits atomic propositions containing literature rules, optional derived patient states, applications and deterministic conclusion logic.
+The reasoning model does **not** assign evidence cards and does not author the internal atomic graph. It uses source-facing case/variant IDs and a lightweight reasoning schema. Python deterministically creates internal IDs, resolves source/internal aliases, fills machine-only fields and compiles the strict internal graph.
 
-- Prognosis explicitly separates framework applicability, framework rules, patient state, rule application and conclusion.
-- Treatment and biomarker can use exact deterministic applicability for literal one-fact matches and semantic audit only when needed.
-- Germline preserves a factor worksheet whose entries reference independently auditable patient applications; no hidden numeric score is used.
-- Owners may nominate evidence cards from their frozen domain envelope. A matcher runs only for missing assignments.
-- Evidence audit is rule/card fidelity only. Patient applicability is audited later.
-- Direct applicability is evaluated in Python only when an exact supplied fact/value comparison is declared. Composite applicability goes to the reasoning auditor.
-- Every reportable proposition is deterministically classified as kept, revised, dropped, unresolved or not reportable. Failed domain owners receive one bounded redo without rerunning unrelated owners.
+Evidence matching is a separate bounded judgement. It receives immutable reasoning rules plus the tagged candidate-card envelope and may only assign supporting cards; it cannot modify the clinical conclusion or patient applicability reasoning.
 
-## Self execution
+## Diagnosis
 
-Native `self` is the frontier-model path and deliberately uses fewer physical passes than provider execution while preserving logical audit boundaries.
+WHO5, ICC and second/concurrent diagnosis are independent owners:
 
-Routine target:
+1. WHO reason → WHO evidence match
+2. ICC reason → ICC evidence match
+3. second-diagnosis reason → second evidence match
+4. grouped diagnostic evidence audit
+5. separate grouped diagnostic reasoning audit
+6. Python evaluation/finalization
 
-1. structure + WHO
-2. ICC
-3. second diagnosis
-4. diagnostic review
-5. all four PTBG owners in one grouped handoff
-6. PTBG evidence/reasoning review
-7. report + user-facing dissent summary in one grouped handoff
+Evidence audit asks only whether assigned literature supports each rule. Reasoning audit separately asks whether evidence-audited rules have been applied correctly to the supplied patient facts and whether the clinical conclusion follows.
 
-Evidence adjudication and owner redo always break into separate conditional passes. An owner is never combined with the independent audit/adjudication of its own output.
+A rejected card assignment retries that owner's evidence-match step. An unsupported clinical proposition or patient-applicability/conclusion defect retries that owner's reasoning step. Machine/schema representation defects are Python/compiler defects and never consume a clinical-owner retry.
+
+## PTBG
+
+Prognosis, treatment, biomarker/MRD and germline use the same architecture independently:
+
+```text
+P reason → P evidence match
+T reason → T evidence match
+B reason → B evidence match
+G reason → G evidence match
+        ↓
+grouped PTBG evidence audit
+        ↓
+grouped PTBG reasoning audit
+        ↓
+Python evaluation
+```
+
+There is no grouped PTBG-owner reasoning handoff. Each domain has one bounded judgement at a time.
+
+## Native self
+
+Native `self` follows the same logical and cognitive boundaries as provider execution. Reasoning, evidence matching, evidence auditing, evidence adjudication and reasoning auditing are separate frontier handoffs. Deterministic Python steps may run between them. The only retained grouping is downstream final presentation, where report writing and ledger-faithful dissent presentation do not combine different clinical judgement types.
+
+## UI progress
+
+Progress presentation is embedded in the workflow YAML under the clearly separate top-level `presentation.progress_phases` section. It is UI-only and cannot alter execution, dependencies, retries or routing.
+
+The reasoning workflow exposes these meaningful phases before existing downstream report phases:
+
+- Diagnosis — WHO
+- Diagnosis — ICC
+- Diagnosis — Second
+- Diagnosis — Evidence audit
+- Diagnosis — Reasoning audit
+- Prognosis
+- Treatment
+- Biomarker
+- Germline
+- PTBG — Evidence audit
+- PTBG — Reasoning audit
+
+Internal normalize/compile/validation/retry steps remain inspectable in model activity and workflow traces without becoming progress-bar phases.
+
+The former `default.progress.yaml` and `reasoning.progress.yaml` sidecars are obsolete; progress metadata now lives inside `default.yaml` and `reasoning.yaml`.
 
 ## Decision provenance and `dissent.md`
 
-After PTBG review, `decision-ledger.yaml` records every diagnostic/PTBG decision and reviewed derived state, the facts considered, evidence rules/cards, terminal disposition and reason. `dissent.md` is then rendered deterministically from that ledger and always includes:
-
-- outcome counts;
-- facts considered;
-- considered-and-kept/revised decisions;
-- dropped decisions;
-- unresolved decisions;
-- non-reportable decisions;
-- evidence rules and accepted cards for each decision.
-
-A separate `dissent_summary` model role may add a short plain-English overview. It cannot change ledger dispositions. Invalid or unavailable summary output is ignored and the deterministic `dissent.md` remains complete, so presentation failure never blocks the clinical report.
+After PTBG review, `decision-ledger.yaml` records diagnostic/PTBG decisions, facts considered, accepted evidence, terminal disposition and reason. `dissent.md` remains deterministically rendered from that ledger. The optional dissent-summary model cannot change ledger dispositions.
 
 Select explicitly:
 

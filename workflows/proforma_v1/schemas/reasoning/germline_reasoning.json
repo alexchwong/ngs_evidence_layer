@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object", "additionalProperties": false,
+  "required": ["domain", "variant_assessments"], "properties": {
+    "domain": {"const": "germline"},
+    "variant_assessments": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+      "required": ["variant_id", "eligibility", "predisposition_evidence", "event_compatibility", "age", "vaf", "personal_history", "family_history", "phenotype", "bucket", "reason", "reasoning"],
+      "properties": {
+        "variant_id": {"type": "string", "minLength": 1}, "eligibility": {"enum": ["assess", "skip_no_predisposition_evidence"]},
+        "predisposition_evidence": {"type": ["string", "null"]},
+        "event_compatibility": {"$ref": "#/$defs/factor"}, "age": {"$ref": "#/$defs/factor"}, "vaf": {"$ref": "#/$defs/factor"},
+        "personal_history": {"$ref": "#/$defs/factor"}, "family_history": {"$ref": "#/$defs/factor"}, "phenotype": {"$ref": "#/$defs/factor"},
+        "bucket": {"type": ["string", "null"], "enum": ["germline_suspicious", "germline_against", "germline_uncertain", null]},
+        "reason": {"type": "string", "minLength": 1}, "reasoning": {"type": "array", "items": {"$ref": "#/$defs/reasoningPoint"}}
+      }}}
+  },
+  "$defs": {
+    "factor": {"type": ["object", "null"], "properties": {"status": {"enum": ["supportive", "consistent", "discordant", "not_supplied", "not_assessable"]}, "reason": {"type": "string", "minLength": 1}}, "required": ["status", "reason"], "additionalProperties": false},
+    "reasoningPoint": {"type": "object", "additionalProperties": false, "required": ["rule", "case_fact_ids", "variant_ids", "assessment", "supports_conclusion", "reason"], "properties": {"rule": {"type": "string", "minLength": 1}, "case_fact_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}, "variant_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}, "assessment": {"enum": ["met", "not_met", "unknown"]}, "supports_conclusion": {"type": "boolean"}, "reason": {"type": "string", "minLength": 1}}}
+  }
+}

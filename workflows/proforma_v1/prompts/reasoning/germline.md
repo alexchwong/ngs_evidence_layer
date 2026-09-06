@@ -1,57 +1,47 @@
-# Germline owner — atomic reasoning
+# Germline — clinical reasoning
 
-## Output serialization contract
-Return exactly one YAML mapping conforming to the declared schema. Return YAML only: no Markdown headings, no tables, no prose outside the mapping, no code fence around the answer, and no `---` document separators. The example below shows serialization/shape only; replace placeholders with your actual answer.
+Assess whether each supplied molecular finding creates sufficient patient-specific suspicion of constitutional predisposition to justify dedicated germline evaluation. Do not match evidence cards and do not construct internal graph IDs.
+
+Return one YAML mapping only:
 
 ```yaml
-domain: <prognosis|treatment|biomarker|germline>
-propositions:
-  - proposition_id: <stable proposition ID>
-    bucket: <domain bucket>
-    text: <reportable proposition>
-    reason: <reason>
-    variant_ids: []
-    reportable: true
-    rules:
-      - rule_id: <stable rule ID>
-        statement: <one atomic literature rule>
-        evidence_required: true
-        proposed_card_tags: []
-        direct_requirement: null
-    derived_states: []
-    applications:
-      - application_id: <stable application ID>
-        rule_ids: []
+domain: germline
+variant_assessments:
+  - variant_id: V1
+    eligibility: <assess|skip_no_predisposition_evidence>
+    predisposition_evidence: <inherited mechanism supported by supplied reference material or null>
+    event_compatibility: {status: <supportive|consistent|discordant|not_supplied|not_assessable>, reason: <...>}
+    age: {status: <supportive|consistent|discordant|not_supplied|not_assessable>, reason: <...>}
+    vaf: {status: <supportive|consistent|discordant|not_supplied|not_assessable>, reason: <...>}
+    personal_history: {status: <supportive|consistent|discordant|not_supplied|not_assessable>, reason: <...>}
+    family_history: {status: <supportive|consistent|discordant|not_supplied|not_assessable>, reason: <...>}
+    phenotype: {status: <supportive|consistent|discordant|not_supplied|not_assessable>, reason: <...>}
+    bucket: <germline_suspicious|germline_against|germline_uncertain|null>
+    reason: <integrated patient-specific conclusion>
+    reasoning:
+      - rule: <atomic inherited-predisposition rule>
         case_fact_ids: []
-        state_ids: []
-        mode: semantic
-        direct_match: null
-        proposed_status: <met|not_met|unknown>
-        reason: <reason>
-    conclusion:
-      operator: all_of
-      application_ids: []
-    framework: null
-    worksheet: []
+        variant_ids: [V1]
+        assessment: <met|not_met|unknown>
+        supports_conclusion: true
+        reason: <patient-specific application>
 ```
 
-Use only the supplied owner pack. Preserve the factorised germline worksheet while separating literature rules from patient-specific factor interpretation.
-
 Rules:
-- Patient facts are immutable. Reference supplied case_fact_ids and variant_ids only.
-- Literature/predisposition rules require supporting cards from the supplied candidate-card envelope.
-- Every rule must set `direct_requirement`. Use null unless the literature rule itself states an exact fact kind and expected value that can be audited verbatim. A direct patient application is permitted only against that audited requirement.
-- Patient factors such as event compatibility, age, VAF, personal history, family history and phenotype are applications of supplied facts; do not turn them into literature claims.
-- Use semantic applications for factors requiring clinical interpretation. Use direct exact applicability only where the expected value is literally testable from one supplied fact.
-- `worksheet` must contain exactly one row for each canonical factor: `predisposition_evidence`, `event_compatibility`, `age`, `vaf`, `personal_history`, `family_history`, `phenotype`. Never omit a factor; use `not_supplied` or `not_assessable` when appropriate.
-- Each worksheet row must use one status: `supportive` (actively supports germline suspicion), `consistent` (compatible but not independently supportive), `discordant` (weighs against the proposed germline interpretation), `not_supplied`, or `not_assessable`.
-- Patient-factor rows with `supportive`, `consistent`, or `discordant` must reference the application used to interpret that supplied factor. `application_id` may be null for `not_supplied` / `not_assessable` factors and for `predisposition_evidence`, whose literature support is audited separately.
-- Use only the canonical germline buckets `germline_suspicious`, `germline_against`, or `germline_uncertain`.
-- Do not use a hidden numeric score. Python checks consistency only; the owner proposes the clinical bucket and the independent reasoning audit checks the factors.
-- Use `G-` prefixes for proposition, rule, state and application IDs.
-- `framework` should normally be null.
+- Every supplied variant must appear exactly once.
+- Eligibility is corpus-bounded. Use `skip_no_predisposition_evidence` when supplied reference material does not establish a relevant inherited-predisposition association; then all six factor fields and `bucket` should be null in the final normalized artifact.
+- For `assess`, explicitly assess event compatibility, age, VAF, personal history, family history and phenotype.
+- `supportive` increases suspicion; `consistent` is neutral; `discordant` weighs against; missing data are `not_supplied`; supplied but uninterpretable data are `not_assessable`.
+- Do not use universal age or VAF thresholds.
+- Gene predisposition and event compatibility alone are insufficient for `germline_suspicious`.
+- `germline_suspicious` requires the overall patient-specific evidence to positively support constitutional origin. Discordant factors must genuinely weigh against this bucket.
+- `germline_against` is appropriate when the overall evidence weighs against constitutional origin even if germline origin cannot be absolutely excluded.
+- `germline_uncertain` is for genuinely indeterminate/competing evidence, not merely because constitutional testing has not yet occurred.
+- Do not claim confirmed germline status.
+- Use only supplied patient facts, source-facing variant IDs, authoritative diagnosis and reference material.
+- Do not cite or mention evidence cards. Evidence matching is separate.
 
-## Deterministic feedback from a prior rejected owner attempt
+## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}
 
 ## Owner pack

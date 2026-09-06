@@ -3,42 +3,37 @@ from __future__ import annotations
 
 
 def _reasoning_self_pass(step_id: str) -> tuple[str, bool, str]:
-    """Describe the frontier-model pass without changing logical audit boundaries."""
-    if step_id == "diagnosis.who":
-        return (
-            "structure_who", True,
-            "Continue the existing structure/WHO frontier pass through deterministic validation; stop before ICC owner work.",
-        )
-    if step_id == "diagnosis.icc":
-        return ("icc_owner", False, "Complete only the independent ICC owner work in this frontier pass.")
-    if step_id == "diagnosis.second":
-        return ("second_diagnosis_owner", False, "Complete only the independent second-diagnosis owner work in this frontier pass.")
-    if step_id in {
-        "diagnosis.evidence.assignment",
-        "diagnosis.evidence.audit",
-        "diagnosis.reasoning.audit",
-    }:
-        return (
-            "diagnostic_review", True,
-            "Remain in the same diagnostic-review frontier pass across deterministic interleaves. Stop if adjudication or owner redo is requested.",
-        )
-    if step_id == "diagnosis.evidence.adjudication":
-        return (
-            "diagnostic_adjudication", False,
-            "This is an independent adjudication pass. Do not treat it as continuation of the evidence auditor's pass.",
-        )
-    if step_id in {"prognosis", "treatment", "biomarker", "germline"}:
-        return ("ptbg_owners", False, "Complete the PTBG owner output requested by this handoff; grouped runs may request all four domain outputs together.")
-    if step_id in {"ptbg.evidence.assignment", "ptbg.evidence.audit", "ptbg.reasoning.audit"}:
-        return (
-            "ptbg_review", True,
-            "Remain in the same PTBG-review frontier pass across deterministic interleaves. Stop if adjudication or owner redo is requested.",
-        )
-    if step_id == "ptbg.evidence.adjudication":
-        return ("ptbg_adjudication", False, "This is an independent PTBG evidence adjudication pass, separate from the auditor.")
-    if step_id == "dissent.summary":
-        return ("final_presentation", True, "Produce only the ledger-faithful user summary; do not alter clinical decisions.")
-    return (step_id.replace(".", "_"), False, "Complete this bounded reasoning operation only.")
+    """Describe one bounded frontier-model judgement.
+
+    Reasoning, evidence matching, evidence auditing, reasoning auditing, and
+    adjudication are intentionally separate self handoffs.  Deterministic
+    transforms may run between them, but never merge judgement types merely to
+    reduce physical frontier calls.
+    """
+    explicit = {
+        "diagnosis.who.reason": ("diagnosis_who_reason", "Complete only WHO clinical reasoning. Do not match or cite evidence cards."),
+        "diagnosis.who.em": ("diagnosis_who_em", "Match supplied WHO reasoning rules to supplied cards only. Do not alter the clinical reasoning."),
+        "diagnosis.icc.reason": ("diagnosis_icc_reason", "Complete only ICC clinical reasoning. Do not match or cite evidence cards."),
+        "diagnosis.icc.em": ("diagnosis_icc_em", "Match supplied ICC reasoning rules to supplied cards only. Do not alter the clinical reasoning."),
+        "diagnosis.second.reason": ("diagnosis_second_reason", "Complete only second-diagnosis clinical reasoning. Do not match or cite evidence cards."),
+        "diagnosis.second.em": ("diagnosis_second_em", "Match supplied second-diagnosis reasoning rules to supplied cards only. Do not alter the clinical reasoning."),
+        "diagnosis.evidence.audit": ("diagnosis_evidence_audit", "Audit literature support for the grouped diagnostic assignments only; do not reassess patient applicability."),
+        "diagnosis.evidence.adjudication": ("diagnosis_evidence_adjudication", "Adjudicate only disputed diagnostic evidence-support findings."),
+        "diagnosis.reasoning.audit": ("diagnosis_reasoning_audit", "Audit patient applicability and diagnostic conclusions only, using evidence-audited rules. Do not rematch evidence."),
+        "ptbg.evidence.audit": ("ptbg_evidence_audit", "Audit literature support for grouped PTBG assignments only; do not reassess patient applicability."),
+        "ptbg.evidence.adjudication": ("ptbg_evidence_adjudication", "Adjudicate only disputed PTBG evidence-support findings."),
+        "ptbg.reasoning.audit": ("ptbg_reasoning_audit", "Audit PTBG patient applicability and conclusions only, using evidence-audited rules. Do not rematch evidence."),
+        "dissent.summary": ("final_presentation", "Produce only the ledger-faithful user summary; do not alter clinical decisions."),
+    }
+    if step_id in explicit:
+        pass_id, note = explicit[step_id]
+        return pass_id, False, note
+    for domain in ("prognosis", "treatment", "biomarker", "germline"):
+        if step_id == f"{domain}.reason":
+            return f"{domain}_reason", False, f"Complete only {domain} clinical reasoning. Do not match or cite evidence cards."
+        if step_id == f"{domain}.em":
+            return f"{domain}_em", False, f"Match supplied {domain} reasoning rules to supplied cards only. Do not alter the clinical reasoning."
+    return step_id.replace(".", "_"), False, "Complete this bounded reasoning operation only."
 
 
 def _decorate_reasoning_handoff(result, step_id: str):
@@ -179,23 +174,6 @@ class SelfExecutor:
     def execute_group(self, steps, context):
         names = {((step.execution or {}).get("self_handler")) for step in steps}
         group = (steps[0].execution or {}).get("self_group") if steps else None
-        if group == "ptbg_owners" and names == {"reasoning_model"}:
-            handler = self.handlers.get("generic_model")
-            if handler is None:
-                raise RuntimeError("PTBG reasoning group requires the generic_model self handler")
-            operations = {}
-            for step in steps:
-                result = handler(step, context) or {}
-                handoff = result.get("handoff") or {}
-                if result.get("status") != "handoff" or not isinstance(handoff.get("manifest"), dict):
-                    raise RuntimeError(f"PTBG owner {step.id!r} did not produce a self handoff")
-                operations[step.id] = handoff["manifest"]
-            return {"status": "handoff", "handoff": {"stage": "ptbg_owners", "manifest": {
-                "pass": "ptbg_owners", "self_pass": "ptbg_owners",
-                "continue_in_same_frontier_pass": False,
-                "self_pass_note": "Complete all supplied PTBG owner outputs in one frontier pass. Keep each domain artifact independent and do not perform the later evidence/reasoning audit here.",
-                "operations": operations,
-            }}}
         if group == "final_presentation" and names <= {"report_write", "reasoning_optional_model"}:
             operations = {}
             for step in steps:

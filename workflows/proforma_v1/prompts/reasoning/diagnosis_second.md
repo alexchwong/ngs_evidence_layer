@@ -1,55 +1,43 @@
-# Independent second-diagnosis owner — atomic reasoning
+# Second diagnosis — clinical reasoning
 
-## Output serialization contract
-Return exactly one YAML mapping conforming to the declared schema. Return YAML only: no Markdown headings, no tables, no prose outside the mapping, no code fence around the answer, and no `---` document separators. The example below shows serialization/shape only; replace placeholders with your actual answer.
+Assess only whether a concurrent/second haematological diagnosis is established or meaningfully signalled. Do not match evidence cards and do not construct the internal reasoning graph.
+
+Return one YAML mapping only:
 
 ```yaml
-authority: <who5|icc|second_diagnosis>
-proposal:
-  proposal_id: <stable ID>
-  label: <diagnosis label>
-  kind: <diagnosis|second_diagnosis>
-  schema_disease: <string or null>
-  diagnostic_effect: <unchanged|refined|superseded>
-  variant_ids: []
+authority: second_diagnosis
+diagnosis:
+  label: <concurrent diagnosis or "none">
+  schema_disease: null
+  diagnostic_effect: unchanged
+  status: <established|signal|none>
   variant_assessments:
-    - variant_id: <exact supplied variant ID>
+    - variant_id: <supplied source variant ID, e.g. V1>
       classification: <diagnostic_for_primary|nonspecific|diagnostic_for_other_pathology>
       other_pathology: null
-      reason: <reason>
-  status: <established|signal|none>
-rules:
-  - rule_id: <stable rule ID>
-    statement: <one atomic literature/framework rule>
-    evidence_required: true
-    evidence_card_tags: []
-derived_states: []
-criteria:
-  - criterion_id: <stable criterion ID>
-    rule_ids: []
+      reason: <concise clinical reason>
+reasoning:
+  - rule: <one atomic framework rule relevant to the possible second diagnosis>
     case_fact_ids: []
     variant_ids: []
-    state_ids: []
-    proposed_status: <met|not_met|unknown>
-logic: []
-root_id: null
-reason: <concise integrated reason>
+    assessment: <met|not_met|unknown>
+    supports_conclusion: true
+    reason: <apply the rule to this patient>
+conclusion:
+  operator: all_of
+reason: <concise integrated clinical reason>
 ```
 
-Assess whether the supplied case establishes a concurrent/second haematological diagnosis. Do not merely copy a WHO or ICC variant-assessment suggestion.
-
 Rules:
-- Use only supplied case facts, variants and candidate cards.
-- `proposal.kind` must be `second_diagnosis` and all stable IDs must use the `S-` prefix.
-- `proposal.status` is one of: `established`, `signal`, `none`.
-- Use `established` only when the complete defining rule is evidence-supported and the supplied patient facts satisfy it.
-- Use `signal` when a finding warrants consideration but the supplied facts do not establish the diagnosis.
-- `none` means no concurrent diagnosis is proposed.
-- Literature rules and patient applicability must be separated into `rules`, optional `derived_states`, and `criteria`.
-- If status is `established`, provide a defining `root_id`. `signal` and `none` may use null when no full defining root is claimed.
-- Card assignments may use only the supplied candidate-card envelope.
+- Use only the supplied case and reference material.
+- Do not cite, select, rank or mention evidence cards. A separate evidence matcher owns that task.
+- Do not create reasoning IDs or internal graph IDs; Python assigns all machine identifiers after this pass.
+- `established` requires a complete patient-specific reasoning basis; mark the defining reasoning point(s) with `supports_conclusion: true`.
+- `signal` means consideration is warranted but the supplied facts do not establish the diagnosis.
+- `none` means no concurrent diagnosis is proposed; no reasoning point needs to support a second-diagnosis conclusion.
+- Return exactly one variant assessment for every supplied variant.
 
-## Deterministic feedback from a prior rejected owner attempt
+## Feedback from a prior clinical-reasoning attempt
 {{ input.audit_feedback }}
 
 ## Owner pack
