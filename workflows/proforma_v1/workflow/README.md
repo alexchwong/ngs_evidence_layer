@@ -237,3 +237,23 @@ python -m unittest discover -s workflows/proforma_v1/tests -p "test_*.py"
 ```
 
 A useful experiment should be possible by copying a YAML and its assets; if changing the experiment requires editing executor orchestration, the abstraction boundary is probably wrong.
+
+## Shipped alternate workflows
+
+| File | Purpose |
+|---|---|
+| `default.yaml` | Canonical logical workflow. Everything else is a clone of it. |
+| `default_reviewed.yaml` | Secretary/precheck reasoning layer. Loop-heavy; see its README. |
+| `reasoning.yaml` | Generic reasoning-graph experiment. |
+| `default_reviewed_v2.yaml` | Claim-addressed audit overlay on an unmodified `default` clinical head and evidence chain. See `default_reviewed_v2.README.md`. |
+
+`default_reviewed_v2` is the reference example of the intended extension pattern: a new
+YAML plus prompts, schemas and allow-listed transforms, with no new handler code in
+either executor. If a new workflow cannot be built that way, the abstraction boundary is
+probably wrong.
+
+It also carries one enforced invariant worth reusing: it adds **at most one `review:`
+block, and that block declares no `feedback:`**. Omitting feedback turns `retry_target`
+into a clean regeneration from the original inputs rather than a repair conversation
+seeded with the model's own malformed output. `tests/test_default_reviewed_v2.py` fails
+the build if a second added block, any feedback binding, or `max_cycles > 1` appears.

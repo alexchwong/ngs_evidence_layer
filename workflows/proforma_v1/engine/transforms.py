@@ -122,6 +122,13 @@ def default_reviewed_reasoning(name):
     return apply_default_reviewed_reasoning
 
 
+def default_reviewed_v2(name):
+    def apply_default_reviewed_v2(value: Any, context: dict, params: dict) -> Any:
+        from workflows.proforma_v1 import default_reviewed_v2 as reviewed_v2
+        return reviewed_v2.run(name, context, params)
+    return apply_default_reviewed_v2
+
+
 REGISTRY = {
     "identity": identity,
     "load_corpus": delegated,
@@ -211,6 +218,19 @@ for _name in (
     "default_reviewed_render_reasoning_trace",
 ):
     REGISTRY[_name] = default_reviewed_reasoning(_name)
+
+
+for _name in (
+    "v2_diagnosis_coherence_packet",
+    "v2_validate_diagnosis_coherence",
+    "v2_dx_revision_targets",
+    "v2_dx_commit",
+    "v2_ptbg_coherence_packet",
+    "v2_validate_ptbg_coherence",
+    "v2_ptbg_revision_targets",
+    "v2_ptbg_commit",
+):
+    REGISTRY[_name] = default_reviewed_v2(_name)
 
 
 def apply(name: str, value: Any, *, context: dict | None = None, params: dict | None = None) -> Any:

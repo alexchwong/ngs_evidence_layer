@@ -14,6 +14,22 @@ python workflows/proforma_v1/step.py workflow-check
 
 Custom workflow authoring and `--workflow` examples are documented in `workflow/README.md`.
 
+## Adding a workflow without touching the executors
+
+`workflow/default_reviewed_v2.yaml` is the worked example. It adds twelve steps to a
+clone of `default.yaml` using only the workflow-agnostic handlers `generic_transform`,
+`generic_model` and `reasoning_model`, plus prompts, JSON Schemas and allow-listed
+transforms registered in `engine/transforms.py`. No lines were added to `step.py` or
+`self.py`, which is what keeps the provider and self adapters from diverging: there is no
+duplicated adapter code for them to drift in. `tests/test_default_reviewed_v2.py` asserts
+neither executor names the overlay.
+
+That workflow also enforces a repair-loop cap that is worth applying to any new workflow:
+at most one added `review:` block, no `feedback:` binding, `max_cycles: 1`, then
+`continue_with_dissent`. Feedback bindings are what turn a bounded retry into a cumulative
+repair conversation with cascade invalidation of descendants; `default_reviewed.yaml`
+declares 39 of them.
+
 ## `workflow/default.yaml` term reference
 
 This section is the developer-facing reference for every mapping term used by the
