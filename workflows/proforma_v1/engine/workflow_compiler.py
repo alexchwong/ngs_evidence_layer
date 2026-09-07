@@ -313,6 +313,11 @@ def compile_workflow(path: Path | str | None = None) -> CompiledWorkflow:
                     raise WorkflowCompileError(
                         f"step {sid!r} review feedback alias {feedback['as']!r} is not a declared input of target {target!r}"
                     )
+                unknown = sorted(set(feedback) - {"from", "as", "path"})
+                if unknown:
+                    raise WorkflowCompileError(f"step {sid!r} review feedback has unknown key(s) {unknown}")
+                if "path" in feedback and not str(feedback["path"] or "").strip():
+                    raise WorkflowCompileError(f"step {sid!r} review feedback declares an empty path")
         artifact = output.get("artifact")
         if artifact:
             if artifact in produced:

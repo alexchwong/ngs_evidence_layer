@@ -221,14 +221,11 @@ for _name in (
 
 
 for _name in (
-    "v2_diagnosis_coherence_packet",
-    "v2_validate_diagnosis_coherence",
-    "v2_dx_revision_targets",
-    "v2_dx_commit",
-    "v2_ptbg_coherence_packet",
-    "v2_validate_ptbg_coherence",
-    "v2_ptbg_revision_targets",
-    "v2_ptbg_commit",
+    "v2_coherence_packet",
+    "v2_correction_gate",
+    "v2_diagnosis_terminal",
+    "v2_ptbg_terminal",
+    "v2_diagnosis_provenance",
 ):
     REGISTRY[_name] = default_reviewed_v2(_name)
 

@@ -65,7 +65,7 @@ steps:
     - corpus
     role: diagnosis
     stage: diagnosis_who5
-    prompt: prompts/diagnosis_who5.md
+    prompt: prompts/default_reviewed_v2/diagnosis_who5.md
     output:
       artifact: diagnosis_who1
       format: yaml
@@ -74,10 +74,77 @@ steps:
       provider_handler: diagnosis_who1
       self_handler: diagnosis_who1
       self_mode: handoff
-  diagnosis.who1.routing_change:
+    inputs:
+      reasoning_correction:
+        from: feedback.reviewed_v2.who1.correction
+        optional: true
+  audit.who1.packet:
     type: transform
     needs:
     - diagnosis.who1
+    transform: v2_coherence_packet
+    output:
+      artifact: v2_who1_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: who1
+  audit.who1.coherence:
+    type: model
+    needs:
+    - audit.who1.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed_v2/diagnosis_coherence.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_who1_packet
+    output:
+      artifact: v2_who1_coherence
+      format: yaml
+      schema: schemas/default_reviewed_v2/owner_coherence.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  audit.who1.gate:
+    type: transform
+    needs:
+    - audit.who1.coherence
+    transform: v2_correction_gate
+    output:
+      artifact: v2_who1_gate
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: who1
+    review:
+      target: diagnosis.who1
+      verdict:
+        path: status
+        pass_values:
+        - pass
+        - audit_failed
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.v2_who1_gate
+          path: correction
+          as: reasoning_correction
+        max_cycles: 2
+        exhausted:
+          action: continue_with_dissent
+  diagnosis.who1.routing_change:
+    type: transform
+    needs:
+    - audit.who1.gate
     transform: assess_who1_routing_change
     output:
       artifact: who1_routing_change
@@ -168,7 +235,7 @@ steps:
     - diagnosis.who1.commit
     role: diagnosis
     stage: diagnosis_who5
-    prompt: prompts/diagnosis_who5.md
+    prompt: prompts/default_reviewed_v2/diagnosis_who5.md
     when:
       predicate: who2_required
     output:
@@ -179,14 +246,87 @@ steps:
       provider_handler: diagnosis_who2
       self_handler: diagnosis_who2
       self_mode: handoff
+    inputs:
+      reasoning_correction:
+        from: feedback.reviewed_v2.who2.correction
+        optional: true
+  audit.who2.packet:
+    type: transform
+    needs:
+    - diagnosis.who2
+    transform: v2_coherence_packet
+    output:
+      artifact: v2_who2_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: who2
+    when:
+      predicate: who2_required
+  audit.who2.coherence:
+    type: model
+    needs:
+    - audit.who2.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed_v2/diagnosis_coherence.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_who2_packet
+    output:
+      artifact: v2_who2_coherence
+      format: yaml
+      schema: schemas/default_reviewed_v2/owner_coherence.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      predicate: who2_required
+  audit.who2.gate:
+    type: transform
+    needs:
+    - audit.who2.coherence
+    transform: v2_correction_gate
+    output:
+      artifact: v2_who2_gate
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: who2
+    review:
+      target: diagnosis.who2
+      verdict:
+        path: status
+        pass_values:
+        - pass
+        - audit_failed
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.v2_who2_gate
+          path: correction
+          as: reasoning_correction
+        max_cycles: 2
+        exhausted:
+          action: continue_with_dissent
+    when:
+      predicate: who2_required
   diagnosis.icc:
     type: model
     needs:
     - diagnosis.who1.commit
-    - diagnosis.who2
+    - audit.who2.gate
     role: diagnosis
     stage: diagnosis_icc
-    prompt: prompts/diagnosis_icc.md
+    prompt: prompts/default_reviewed_v2/diagnosis_icc.md
     output:
       artifact: diagnosis_icc
       format: yaml
@@ -195,99 +335,80 @@ steps:
       provider_handler: diagnosis_icc
       self_handler: diagnosis_icc
       self_mode: handoff
-  audit.dx.packet:
+    inputs:
+      reasoning_correction:
+        from: feedback.reviewed_v2.icc.correction
+        optional: true
+  audit.icc.packet:
     type: transform
     needs:
     - diagnosis.icc
-    transform: v2_diagnosis_coherence_packet
+    transform: v2_coherence_packet
     output:
-      artifact: v2_dx_packet
+      artifact: v2_icc_packet
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-  audit.dx.coherence:
+      params:
+        owner: icc
+  audit.icc.coherence:
     type: model
     needs:
-    - audit.dx.packet
+    - audit.icc.packet
     role: reasoning_audit
     prompt: prompts/default_reviewed_v2/diagnosis_coherence.md
     inputs:
       coherence_packet:
-        from: artifacts.v2_dx_packet
+        from: artifacts.v2_icc_packet
     output:
-      artifact: v2_dx_coherence
+      artifact: v2_icc_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/diagnosis_coherence.json
+      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  audit.dx.validate:
+  audit.icc.gate:
     type: transform
     needs:
-    - audit.dx.coherence
-    transform: v2_validate_diagnosis_coherence
+    - audit.icc.coherence
+    transform: v2_correction_gate
     output:
-      artifact: v2_dx_validation
+      artifact: v2_icc_gate
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
+      params:
+        owner: icc
     review:
-      target: audit.dx.coherence
+      target: diagnosis.icc
       verdict:
         path: status
         pass_values:
         - pass
+        - audit_failed
       on_pass:
         continue: true
       on_fail:
         retry_target: true
-        max_cycles: 1
+        feedback:
+          from: artifacts.v2_icc_gate
+          path: correction
+          as: reasoning_correction
+        max_cycles: 2
         exhausted:
           action: continue_with_dissent
-  audit.dx.targets:
+  audit.diagnosis.terminal:
     type: transform
     needs:
-    - audit.dx.validate
-    transform: v2_dx_revision_targets
+    - audit.icc.gate
+    transform: v2_diagnosis_terminal
     output:
-      artifact: v2_dx_targets
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  audit.dx.revise:
-    type: model
-    needs:
-    - audit.dx.targets
-    role: diagnosis
-    prompt: prompts/default_reviewed_v2/revise.md
-    when:
-      has_items:
-        artifact: v2_dx_targets
-    inputs:
-      revision_targets:
-        from: artifacts.v2_dx_targets
-    output:
-      artifact: v2_dx_revisions
-      format: yaml
-      schema: schemas/default_reviewed_v2/revision.json
-    execution:
-      provider_handler: generic_model
-      self_handler: generic_model
-      self_mode: handoff
-  audit.dx.commit:
-    type: transform
-    needs:
-    - audit.dx.revise
-    transform: v2_dx_commit
-    output:
-      artifact: v2_dx_commit
+      artifact: v2_diagnosis_terminal
       format: yaml
     execution:
       provider_handler: generic_transform
@@ -296,7 +417,7 @@ steps:
   diagnosis.finalize:
     type: transform
     needs:
-    - audit.dx.commit
+    - audit.diagnosis.terminal
     transform: finalize_diagnosis
     output:
       artifact: diagnosis
@@ -304,13 +425,25 @@ steps:
       provider_handler: diagnosis_finalize
       self_handler: diagnosis_finalize
       self_mode: deterministic
+  audit.diagnosis.provenance:
+    type: transform
+    needs:
+    - diagnosis.finalize
+    transform: v2_diagnosis_provenance
+    output:
+      artifact: v2_diagnosis_provenance
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
   prognosis:
     type: model
     needs:
-    - diagnosis.finalize
+    - audit.diagnosis.provenance
     role: ptbg
     stage: prognosis
-    prompt: prompts/prognosis.md
+    prompt: prompts/default_reviewed_v2/prognosis.md
     output:
       artifact: prognosis
       format: yaml
@@ -326,13 +459,80 @@ steps:
       cards:
         from: owner.cards
       owner_assignment: true
+    inputs:
+      reasoning_correction:
+        from: feedback.reviewed_v2.prognosis.correction
+        optional: true
+  audit.prognosis.packet:
+    type: transform
+    needs:
+    - prognosis
+    transform: v2_coherence_packet
+    output:
+      artifact: v2_prognosis_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: prognosis
+  audit.prognosis.coherence:
+    type: model
+    needs:
+    - audit.prognosis.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed_v2/ptbg_coherence.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_prognosis_packet
+    output:
+      artifact: v2_prognosis_coherence
+      format: yaml
+      schema: schemas/default_reviewed_v2/owner_coherence.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  audit.prognosis.gate:
+    type: transform
+    needs:
+    - audit.prognosis.coherence
+    transform: v2_correction_gate
+    output:
+      artifact: v2_prognosis_gate
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: prognosis
+    review:
+      target: prognosis
+      verdict:
+        path: status
+        pass_values:
+        - pass
+        - audit_failed
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.v2_prognosis_gate
+          path: correction
+          as: reasoning_correction
+        max_cycles: 2
+        exhausted:
+          action: continue_with_dissent
   treatment:
     type: model
     needs:
-    - diagnosis.finalize
+    - audit.diagnosis.provenance
     role: ptbg
     stage: treatment
-    prompt: prompts/treatment.md
+    prompt: prompts/default_reviewed_v2/treatment.md
     output:
       artifact: treatment
       format: yaml
@@ -348,13 +548,80 @@ steps:
       cards:
         from: owner.cards
       owner_assignment: true
+    inputs:
+      reasoning_correction:
+        from: feedback.reviewed_v2.treatment.correction
+        optional: true
+  audit.treatment.packet:
+    type: transform
+    needs:
+    - treatment
+    transform: v2_coherence_packet
+    output:
+      artifact: v2_treatment_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: treatment
+  audit.treatment.coherence:
+    type: model
+    needs:
+    - audit.treatment.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed_v2/ptbg_coherence.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_treatment_packet
+    output:
+      artifact: v2_treatment_coherence
+      format: yaml
+      schema: schemas/default_reviewed_v2/owner_coherence.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  audit.treatment.gate:
+    type: transform
+    needs:
+    - audit.treatment.coherence
+    transform: v2_correction_gate
+    output:
+      artifact: v2_treatment_gate
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: treatment
+    review:
+      target: treatment
+      verdict:
+        path: status
+        pass_values:
+        - pass
+        - audit_failed
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.v2_treatment_gate
+          path: correction
+          as: reasoning_correction
+        max_cycles: 2
+        exhausted:
+          action: continue_with_dissent
   biomarker:
     type: model
     needs:
-    - diagnosis.finalize
+    - audit.diagnosis.provenance
     role: ptbg
     stage: biomarker
-    prompt: prompts/biomarker.md
+    prompt: prompts/default_reviewed_v2/biomarker.md
     output:
       artifact: biomarker
       format: yaml
@@ -370,13 +637,80 @@ steps:
       cards:
         from: owner.cards
       owner_assignment: true
+    inputs:
+      reasoning_correction:
+        from: feedback.reviewed_v2.biomarker.correction
+        optional: true
+  audit.biomarker.packet:
+    type: transform
+    needs:
+    - biomarker
+    transform: v2_coherence_packet
+    output:
+      artifact: v2_biomarker_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: biomarker
+  audit.biomarker.coherence:
+    type: model
+    needs:
+    - audit.biomarker.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed_v2/ptbg_coherence.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_biomarker_packet
+    output:
+      artifact: v2_biomarker_coherence
+      format: yaml
+      schema: schemas/default_reviewed_v2/owner_coherence.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  audit.biomarker.gate:
+    type: transform
+    needs:
+    - audit.biomarker.coherence
+    transform: v2_correction_gate
+    output:
+      artifact: v2_biomarker_gate
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: biomarker
+    review:
+      target: biomarker
+      verdict:
+        path: status
+        pass_values:
+        - pass
+        - audit_failed
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.v2_biomarker_gate
+          path: correction
+          as: reasoning_correction
+        max_cycles: 2
+        exhausted:
+          action: continue_with_dissent
   germline:
     type: model
     needs:
-    - diagnosis.finalize
+    - audit.diagnosis.provenance
     role: ptbg
     stage: germline
-    prompt: prompts/germline.md
+    prompt: prompts/default_reviewed_v2/germline.md
     output:
       artifact: germline
       format: yaml
@@ -392,13 +726,92 @@ steps:
       cards:
         from: owner.cards
       owner_assignment: true
+    inputs:
+      reasoning_correction:
+        from: feedback.reviewed_v2.germline.correction
+        optional: true
+  audit.germline.packet:
+    type: transform
+    needs:
+    - germline
+    transform: v2_coherence_packet
+    output:
+      artifact: v2_germline_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: germline
+  audit.germline.coherence:
+    type: model
+    needs:
+    - audit.germline.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed_v2/ptbg_coherence.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_germline_packet
+    output:
+      artifact: v2_germline_coherence
+      format: yaml
+      schema: schemas/default_reviewed_v2/owner_coherence.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  audit.germline.gate:
+    type: transform
+    needs:
+    - audit.germline.coherence
+    transform: v2_correction_gate
+    output:
+      artifact: v2_germline_gate
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: germline
+    review:
+      target: germline
+      verdict:
+        path: status
+        pass_values:
+        - pass
+        - audit_failed
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.v2_germline_gate
+          path: correction
+          as: reasoning_correction
+        max_cycles: 2
+        exhausted:
+          action: continue_with_dissent
+  audit.ptbg.terminal:
+    type: transform
+    needs:
+    - audit.prognosis.gate
+    - audit.treatment.gate
+    - audit.biomarker.gate
+    - audit.germline.gate
+    transform: v2_ptbg_terminal
+    output:
+      artifact: v2_ptbg_terminal
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
   evidence.assignment:
     type: evidence_review
     needs:
-    - prognosis
-    - treatment
-    - biomarker
-    - germline
+    - audit.ptbg.terminal
     role: evidence_match
     stage: evidence_match
     prompt: prompts/evidence_match.md
@@ -487,98 +900,10 @@ steps:
       provider_handler: evidence_finalize
       self_handler: evidence_finalize
       self_mode: deterministic
-  audit.ptbg.packet:
-    type: transform
-    needs:
-    - evidence.finalize
-    transform: v2_ptbg_coherence_packet
-    output:
-      artifact: v2_ptbg_packet
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  audit.ptbg.coherence:
-    type: model
-    needs:
-    - audit.ptbg.packet
-    role: reasoning_audit
-    prompt: prompts/default_reviewed_v2/ptbg_coherence.md
-    when:
-      has_items:
-        artifact: v2_ptbg_packet
-    inputs:
-      coherence_packet:
-        from: artifacts.v2_ptbg_packet
-    output:
-      artifact: v2_ptbg_coherence
-      format: yaml
-      schema: schemas/default_reviewed_v2/ptbg_coherence.json
-    execution:
-      provider_handler: generic_model
-      self_handler: generic_model
-      self_mode: handoff
-  audit.ptbg.validate:
-    type: transform
-    needs:
-    - audit.ptbg.coherence
-    transform: v2_validate_ptbg_coherence
-    output:
-      artifact: v2_ptbg_validation
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  audit.ptbg.targets:
-    type: transform
-    needs:
-    - audit.ptbg.validate
-    transform: v2_ptbg_revision_targets
-    output:
-      artifact: v2_ptbg_targets
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
-  audit.ptbg.revise:
-    type: model
-    needs:
-    - audit.ptbg.targets
-    role: ptbg
-    prompt: prompts/default_reviewed_v2/revise.md
-    when:
-      has_items:
-        artifact: v2_ptbg_targets
-    inputs:
-      revision_targets:
-        from: artifacts.v2_ptbg_targets
-    output:
-      artifact: v2_ptbg_revisions
-      format: yaml
-      schema: schemas/default_reviewed_v2/revision.json
-    execution:
-      provider_handler: generic_model
-      self_handler: generic_model
-      self_mode: handoff
-  audit.ptbg.commit:
-    type: transform
-    needs:
-    - audit.ptbg.revise
-    transform: v2_ptbg_commit
-    output:
-      artifact: v2_ptbg_commit
-      format: yaml
-    execution:
-      provider_handler: generic_transform
-      self_handler: generic_transform
-      self_mode: deterministic
   report.blocks:
     type: transform
     needs:
-    - audit.ptbg.commit
+    - evidence.finalize
     transform: report_blocks
     output:
       artifact: report_blocks
@@ -629,25 +954,19 @@ steps:
       provider_handler: report_finalize
       self_handler: report_finalize
       self_mode: deterministic
-
-# ============================================================
-# PRESENTATION METADATA — UI ONLY
-# This section groups executable steps for display. It MUST NOT
-# alter dependencies, routing, retries, conditions, or execution.
-# ============================================================
 presentation:
   model_roles:
-    structure: "Structures the raw case into normalized facts for downstream interpretation."
-    diagnosis: "Produces diagnostic assessments and classification conclusions."
-    ptbg: "Produces prognosis, treatment, biomarker, and germline conclusions."
-    evidence_match: "Selects corpus evidence that supports each clinical conclusion."
-    evidence_audit: "Independently checks whether selected evidence supports each conclusion."
-    evidence_adjudication: "Resolves disagreements between evidence matching and evidence audit."
-    report_write: "Writes the clinical report from approved conclusions and evidence."
-    preservation_check: "Checks that report synthesis preserved the approved clinical content."
-    marking: "Evaluates completed validation reports; it does not generate clinical conclusions."
-    reasoning_audit: "Checks whether each stated conclusion follows from the reasons the clinical owner gave."
-    syntax_repair: "Repairs malformed structured model output without changing clinical meaning."
+    structure: Structures the raw case into normalized facts for downstream interpretation.
+    diagnosis: Produces diagnostic assessments and classification conclusions.
+    ptbg: Produces prognosis, treatment, biomarker, and germline conclusions.
+    evidence_match: Selects corpus evidence that supports each clinical conclusion.
+    evidence_audit: Independently checks whether selected evidence supports each conclusion.
+    evidence_adjudication: Resolves disagreements between evidence matching and evidence audit.
+    report_write: Writes the clinical report from approved conclusions and evidence.
+    preservation_check: Checks that report synthesis preserved the approved clinical content.
+    marking: Evaluates completed validation reports; it does not generate clinical conclusions.
+    reasoning_audit: Checks whether each stated conclusion follows from the reasons the clinical owner gave.
+    syntax_repair: Repairs malformed structured model output without changing clinical meaning.
   progress_phases:
   - id: preparation
     label: Preparation
@@ -658,52 +977,61 @@ presentation:
     label: Diagnosis
     steps:
     - diagnosis.who1
+    - audit.who1.packet
+    - audit.who1.coherence
+    - audit.who1.gate
     - diagnosis.who1.routing_change
     - diagnosis.who1.evidence.assignment
     - diagnosis.who1.evidence.audit
     - diagnosis.who1.evidence.adjudication
     - diagnosis.who1.commit
     - diagnosis.who2
+    - audit.who2.packet
+    - audit.who2.coherence
+    - audit.who2.gate
     - diagnosis.icc
-    - audit.dx.packet
-    - audit.dx.coherence
-    - audit.dx.validate
-    - audit.dx.targets
-    - audit.dx.revise
-    - audit.dx.commit
+    - audit.icc.packet
+    - audit.icc.coherence
+    - audit.icc.gate
+    - audit.diagnosis.terminal
     - diagnosis.finalize
+    - audit.diagnosis.provenance
   - id: prognosis
     label: Prognosis
     steps:
     - prognosis
+    - audit.prognosis.packet
+    - audit.prognosis.coherence
+    - audit.prognosis.gate
   - id: treatment
     label: Treatment
     steps:
     - treatment
+    - audit.treatment.packet
+    - audit.treatment.coherence
+    - audit.treatment.gate
   - id: biomarker
     label: Biomarker
     steps:
     - biomarker
+    - audit.biomarker.packet
+    - audit.biomarker.coherence
+    - audit.biomarker.gate
   - id: germline
     label: Germline
     steps:
     - germline
+    - audit.germline.packet
+    - audit.germline.coherence
+    - audit.germline.gate
   - id: evidence
     label: Evidence
     steps:
+    - audit.ptbg.terminal
     - evidence.assignment
     - evidence.audit
     - evidence.adjudication
     - evidence.finalize
-  - id: audit
-    label: Reasoning audit
-    steps:
-    - audit.ptbg.packet
-    - audit.ptbg.coherence
-    - audit.ptbg.validate
-    - audit.ptbg.targets
-    - audit.ptbg.revise
-    - audit.ptbg.commit
   - id: report
     label: Report
     steps:

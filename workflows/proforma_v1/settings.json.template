@@ -11,6 +11,12 @@
     "preservation_attempts": 2,
     "evidence_resolution_attempts": 3
   },
+  "reviewed_v2_terminal_policy": {
+    "diagnosis": "withhold_affected_output",
+    "ptbg": "withhold_affected_output",
+    "surface_dissent": true,
+    "fail_run_on_unresolved": false
+  },
   "diagnosis": {
     "who5": {
       "included_publication_keys": [],

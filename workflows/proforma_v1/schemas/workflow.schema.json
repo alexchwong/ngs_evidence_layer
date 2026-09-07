@@ -255,6 +255,11 @@
                 "as": {
                   "type": "string",
                   "minLength": 1
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Optional dotted field of the reviewer artifact to send. Without it the whole artifact is passed, which leaks the reviewer's routing and control fields into the prompt of the step being asked to reconsider."
                 }
               }
             },
@@ -448,6 +453,13 @@
             },
             "self": {
               "$ref": "#/$defs/executorToggle"
+            },
+            "params": {
+              "type": "object",
+              "description": "Static parameters passed to a deterministic transform. Data only: never an expression, a path, or executable content.",
+              "additionalProperties": {
+                "type": ["string", "number", "boolean", "null"]
+              }
             }
           }
         },

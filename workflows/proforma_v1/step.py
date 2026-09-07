@@ -18,6 +18,7 @@ from workflows.proforma_v1 import card_identity, domain_contract, evidence_resol
 from workflows.proforma_v1.engine.context import WorkflowContext
 from workflows.proforma_v1.engine import schema_validation as generic_schema_validation
 from workflows.proforma_v1.engine import bindings as workflow_bindings, prompt_renderer as workflow_prompt_renderer, artifacts as workflow_artifacts
+from workflows.proforma_v1.engine import dissent as workflow_dissent
 from workflows.proforma_v1.engine.workflow_compiler import compile_workflow, describe as describe_workflow, resolve_workflow_path
 from workflows.proforma_v1.engine.workflow_runner import WorkflowRunner
 from workflows.proforma_v1.executors.provider import ProviderExecutor
@@ -192,111 +193,26 @@ def _risk(work,*,stage,risk_type,message,severity='warning',schema_element=None,
     _write(_risk_path(work),yaml.safe_dump(d,sort_keys=False,allow_unicode=True,width=110))
     return rid
 
-def _semantic_dissent_path(work): return layout.logs(work)/'semantic_dissent.yaml'
+# The semantic-dissent ledger itself lives in engine/dissent.py so audit
+# overlays can raise canonical dissent without importing an executor.  These
+# wrappers preserve the historical call sites in this module unchanged.
+def _semantic_dissent_path(work): return workflow_dissent.path(Path(work))
 
-def _semantic_dissent_doc(work):
-    """Load the persistent semantic-dissent issue ledger.
+def _semantic_dissent_doc(work): return workflow_dissent.doc(Path(work))
 
-    Schema v2 is issue-centric.  A small migration keeps older interrupted runs
-    readable: each legacy flat item becomes one open issue whose first history
-    event is the original dissent.
-    """
-    path=_semantic_dissent_path(work)
-    if path.is_file():
-        try:
-            doc=yaml.safe_load(_read(path)) or {}
-        except (OSError,yaml.YAMLError,TypeError):
-            doc={}
-        if isinstance(doc,dict) and isinstance(doc.get('issues'),list):
-            doc.setdefault('schema_version',2)
-            return doc
-        if isinstance(doc,dict) and isinstance(doc.get('items'),list):
-            issues=[]
-            for idx,row in enumerate(doc.get('items') or [],1):
-                reviewed=str(row.get('reviewed_text') or '').strip()
-                reasons=[str(x).strip() for x in row.get('dissent_reason') or [] if str(x).strip()]
-                actions=[str(x).strip() for x in row.get('action_recommended') or [] if str(x).strip()]
-                if not reviewed or not reasons or not actions: continue
-                did=str(row.get('id') or f'D{idx:03d}')
-                issues.append({
-                    'id':did,
-                    'issue_key':f'legacy:{did}',
-                    'reviewed_text':reviewed,
-                    'status':'open',
-                    'history':[{
-                        'stage':'legacy semantic dissent',
-                        'event':'raised',
-                        'reason':reasons,
-                        'resolution_recommendation':actions,
-                    }],
-                })
-            migrated={'schema_version':2,'issues':issues}
-            _write(path,yaml.safe_dump(migrated,sort_keys=False,allow_unicode=True,width=110))
-            return migrated
-    return {'schema_version':2,'issues':[]}
-
-def _semantic_dissent_issue(work,issue_key):
-    key=str(issue_key or '').strip()
-    if not key: return None
-    for issue in _semantic_dissent_doc(work).get('issues') or []:
-        if issue.get('issue_key')==key: return issue
-    return None
+def _semantic_dissent_issue(work,issue_key): return workflow_dissent.issue(Path(work),issue_key)
 
 def _semantic_dissent(work,*,issue_key,stage,reviewed_text,dissent_reason,action_recommended):
-    """Raise or revisit one semantic dissent issue.
-
-    `issue_key` is stable across retries/self-handoffs and is never rendered.
-    Repeated raises append history only when the stage/reason/recommendation is
-    materially different, so replay remains idempotent.
-    """
-    key=str(issue_key or '').strip(); stage=str(stage or '').strip(); reviewed=str(reviewed_text or '').strip()
-    reasons=[str(x).strip() for x in (dissent_reason if isinstance(dissent_reason,list) else [dissent_reason]) if str(x or '').strip()]
-    actions=[str(x).strip() for x in (action_recommended if isinstance(action_recommended,list) else [action_recommended]) if str(x or '').strip()]
-    if not key or not stage or not reviewed or not reasons or not actions: return None
-    doc=_semantic_dissent_doc(work); issues=doc.setdefault('issues',[])
-    issue=next((row for row in issues if row.get('issue_key')==key),None)
-    if issue is None:
-        did=f'D{len(issues)+1:03d}'
-        issue={'id':did,'issue_key':key,'reviewed_text':reviewed,'status':'open','history':[]}
-        issues.append(issue)
-    else:
-        did=issue.get('id')
-        if not issue.get('reviewed_text'): issue['reviewed_text']=reviewed
-        # A recurring concern means the issue is open again unless it was
-        # deliberately retained with dissent.
-        if issue.get('status')=='resolved': issue['status']='open'
-    event={'stage':stage,'event':'raised','reason':reasons,'resolution_recommendation':actions}
-    if event not in issue.setdefault('history',[]): issue['history'].append(event)
-    _write(_semantic_dissent_path(work),yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
-    _write_dissent(work)
-    return did
+    return workflow_dissent.raise_issue(
+        Path(work),issue_key=issue_key,stage=stage,reviewed_text=reviewed_text,
+        dissent_reason=dissent_reason,action_recommended=action_recommended,
+    )
 
 def _semantic_dissent_address(work,*,issue_key,stage,action,outcome=None,status=None):
-    """Append an action/outcome to an existing semantic dissent issue."""
-    key=str(issue_key or '').strip(); stage=str(stage or '').strip()
-    actions=[str(x).strip() for x in (action if isinstance(action,list) else [action]) if str(x or '').strip()]
-    outcomes=[str(x).strip() for x in (outcome if isinstance(outcome,list) else [outcome]) if str(x or '').strip()]
-    if not key or not stage or not actions: return None
-    doc=_semantic_dissent_doc(work); issues=doc.setdefault('issues',[])
-    issue=next((row for row in issues if row.get('issue_key')==key),None)
-    if issue is None: return None
-    event={'stage':stage,'event':'addressed','action':actions}
-    if outcomes: event['outcome']=outcomes
-    if event not in issue.setdefault('history',[]): issue['history'].append(event)
-    if status:
-        if status not in {'open','resolved','retained_with_dissent'}: raise ValueError(f'unsupported dissent status: {status}')
-        issue['status']=status
-    _write(_semantic_dissent_path(work),yaml.safe_dump(doc,sort_keys=False,allow_unicode=True,width=110))
-    _write_dissent(work)
-    return issue.get('id')
+    return workflow_dissent.address(Path(work),issue_key=issue_key,stage=stage,action=action,outcome=outcome,status=status)
 
 def _semantic_dissent_keys(work,prefix,*,statuses=('open',)):
-    wanted=set(statuses or [])
-    return [
-        str(issue.get('issue_key'))
-        for issue in _semantic_dissent_doc(work).get('issues') or []
-        if str(issue.get('issue_key') or '').startswith(prefix) and (not wanted or issue.get('status') in wanted)
-    ]
+    return workflow_dissent.keys(Path(work),prefix,statuses=statuses)
 
 def _progress_path(work): return layout.logs(work)/'progress.json'
 
@@ -1116,7 +1032,7 @@ def stage_diagnosis_who_pass(work,case,reg,eligible,manifest,profile,*,pass_numb
     allowed=_allowed_diseases(work); genes=runtime.case_genes(case); tag_by_id=card_identity.tag_by_id(manifest)
     who_cards=_diagnostic_cards(eligible,genes,history,'who5')
     out=_artifact(work,f'diagnosis_who5_pass_{pass_number}','who5.yaml',new=True)
-    prompt=prompt_text+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_diagnostic_cards(who_cards,tag_by_id,'who5')
+    prompt=prompt_text+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg,fields=model_context.DIAGNOSIS_REGISTRY_FIELDS)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_diagnostic_cards(who_cards,tag_by_id,'who5')
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id=f'diagnosis-who5-pass-{pass_number:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
     who=yaml.safe_load(_read(out)); return who,who_cards
@@ -1125,7 +1041,7 @@ def stage_diagnosis_who_pass(work,case,reg,eligible,manifest,profile,*,pass_numb
 def stage_diagnosis_icc_pass(work,case,reg,eligible,manifest,profile,*,history,who,prompt_text):
     genes=runtime.case_genes(case); tag_by_id=card_identity.tag_by_id(manifest)
     cards=_diagnostic_cards(eligible,genes,history,'icc'); out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
-    prompt=prompt_text+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(runtime.legacy_who_view(who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(cards,tag_by_id,'icc')
+    prompt=prompt_text+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg,fields=model_context.DIAGNOSIS_REGISTRY_FIELDS)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(runtime.legacy_who_view(who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(cards,tag_by_id,'icc')
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
     _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
     return yaml.safe_load(_read(out)),cards
@@ -1730,6 +1646,11 @@ def _write_dissent(work):
     if text: _write(path,text)
     elif path.exists(): path.unlink()
     return path if text else None
+
+# The shared ledger refreshes the human-facing surface through this hook, so a
+# dissent raised by an audit overlay reaches dissent.md without that overlay
+# needing to import an executor.
+workflow_dissent.set_renderer(_write_dissent)
 
 def stage_final(work,case,final_blocks,elements,all_cards,digest,manifest):
     ids=[]

@@ -57,9 +57,15 @@ checks that coverage.
 - `adjudication` — adjudicator configuration inside an evidence policy.
 - `steps` — mapping of logical step IDs to step definitions.
 - `presentation` — UI-only metadata that groups steps without affecting execution.
+- `model_roles` — UI-only descriptions of what each model role is responsible for.
 - `progress_phases` — ordered presentation groups used to report workflow progress.
 - `id` — stable identifier for a presentation phase.
 - `label` — human-readable presentation-phase name.
+- `params` — static data passed to a deterministic transform. Data only: never an
+  expression, a path, or executable content.
+- `syntax_repair` — model role that repairs malformed structured output without
+  changing clinical meaning. Serialisation repair is deliberately isolated from
+  semantic correction and carries its own attempt budget.
 
 ### Shipped logical step IDs
 
@@ -196,6 +202,10 @@ checks that coverage.
 - `retry_target` — invalidate/re-run the declared review target.
 - `feedback` — payload passed into the retried target.
 - `as` — input alias under which feedback is injected.
+- `path` — optional dotted field of the reviewer artifact to send instead of the
+  whole object. Without it a reviewer's routing and control fields are rendered
+  into the prompt of the step being asked to reconsider, which turns a finding
+  into an instruction.
 - `max_cycles` — finite bound on semantic target→review retry cycles.
 - `exhausted` — action to take after `max_cycles` has been consumed.
 - `action` — selected exhausted-policy action.

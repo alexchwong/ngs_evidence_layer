@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Two orthogonal judgements replace the former scope enum. 'scope: reason' meant 'the conclusion is right AND the derivation is wrong'; 'scope: conclusion' meant the converse. Both are conjunctions, so an assessment whose conclusion AND derivation are both defective had no truthful value available and the auditor was forced into an arbitrary choice. Asking the two questions separately removes the choice.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["conclusion_supported", "reason_defective"],
+  "properties": {
+    "conclusion_supported": {
+      "type": "boolean",
+      "description": "Does the stated conclusion stand, given the supplied patient findings and context?"
+    },
+    "reason_defective": {
+      "type": "boolean",
+      "description": "Is the stated derivation wrong as written, independently of whether the conclusion stands?"
+    },
+    "correction_brief": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "description": "Plain-English statement of the reasoning defect. Required whenever either judgement is defective. This is the only audit text the clinical owner is shown."
+    }
+  }
+}

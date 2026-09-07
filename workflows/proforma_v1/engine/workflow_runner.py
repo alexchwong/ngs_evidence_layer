@@ -422,6 +422,13 @@ class WorkflowRunner:
                         value = context.get(source.split(".", 1)[1])
                     else:
                         value = result.get("artifact")
+                    # An optional ``path`` narrows what the target actually
+                    # receives.  A reviewer artifact usually carries routing and
+                    # control fields alongside the material the target needs;
+                    # sending the whole object would leak the verdict into the
+                    # prompt of the model being asked to reconsider.
+                    if feedback.get("path"):
+                        value = _dig(value, str(feedback["path"]))
                     target = self.workflow.step(review["target"])
                     binding = (target.inputs or {}).get(feedback["as"]) or {}
                     ref = binding.get("from")

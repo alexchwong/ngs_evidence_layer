@@ -32,6 +32,11 @@ DOMAIN_CASE_FIELDS = ("provisional_disease", "case_facts", "ngs_result_completen
 GERMLINE_CASE_FIELDS = ("provisional_disease", "patient_age", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
 DEFAULT_REGISTRY_FIELDS = ("gene", "description")
 GERMLINE_REGISTRY_FIELDS = ("gene", "description", "event_type", "vaf")
+# Diagnosis owners apply closed allelic-state criteria (multi-hit TP53 is the
+# clearest example: one mutation at VAF >55% qualifies, below that it does not).
+# Withholding VAF from those owners left them unable to evaluate a criterion
+# whose defining card was already in their context.
+DIAGNOSIS_REGISTRY_FIELDS = ("gene", "description", "event_type", "vaf")
 # Domain (PTBG) stages classify variants.  They need to know *what* the disease
 # was called, not the diagnostic argument for it.  Dropping the free-text
 # `reason` paragraphs from the three diagnosis objects is the single largest

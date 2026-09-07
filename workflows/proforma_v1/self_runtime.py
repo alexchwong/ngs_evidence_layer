@@ -80,14 +80,23 @@ def accept_structured_case(work: Path) -> tuple[dict, dict]:
     )
     path.write_text(json.dumps(case, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     runtime.validate_case_text(path.read_text(encoding="utf-8"), require_gene_prefixed_description=True)
-    reg = {
-        f"v{i:02d}": {
+    # ``event_type`` and ``vaf`` are captured by structure_case and were being
+    # dropped here, which made model_context.GERMLINE_REGISTRY_FIELDS
+    # unsatisfiable and left diagnosis owners reporting that no VAF was
+    # supplied.  The registry now carries what the case captured; which stage
+    # sees which field remains a model_context projection decision.
+    reg = {}
+    for i, row in enumerate(case.get("variants") or [], 1):
+        entry = {
             "variant_id": row["variant_id"],
             "gene": row["gene"],
             "description": row["description"],
         }
-        for i, row in enumerate(case.get("variants") or [], 1)
-    }
+        for field in ("event_type", "vaf"):
+            value = row.get(field)
+            if value not in (None, ""):
+                entry[field] = value
+        reg[f"v{i:02d}"] = entry
     write_yaml(variants_path(work), {"variants": reg})
     return case, reg
 
@@ -238,13 +247,45 @@ def accept_icc(work: Path) -> dict:
 
 
 
+def _artifact_digest(path: Path) -> str | None:
+    """Content digest of one owner artifact, for finalization provenance only.
+
+    This proves *which version* of an artifact was finalized.  It makes no
+    judgement about whether the clinical content is correct.
+    """
+    import hashlib
+    path = Path(path)
+    if not path.is_file():
+        return None
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _who1_routing_source(who1: dict, who1_commit: dict | None) -> tuple[dict, str]:
+    """Choose between the live WHO1 artifact and the routing-gate snapshot.
+
+    ``accepted_who1`` is frozen when the WHO1 routing/evidence gate commits.
+    Anything that legitimately amends the WHO1 artifact afterwards — a reasoning
+    correction, a terminal-policy fallback — writes to the artifact, not to the
+    snapshot, so preferring the snapshot unconditionally silently resurrects the
+    pre-amendment diagnosis.  The live artifact wins whenever the two differ;
+    the snapshot is retained only as provenance.
+    """
+    snapshot = (who1_commit or {}).get('accepted_who1')
+    if not isinstance(snapshot, dict):
+        return who1, 'who1_artifact'
+    if runtime.legacy_who_view(snapshot) == runtime.legacy_who_view(who1):
+        return snapshot, 'who1_commit_snapshot'
+    return who1, 'who1_artifact_superseded_snapshot'
+
+
 def finalize_diagnosis(work: Path) -> dict:
     who1=accept_who(work,pass_number=1); icc=accept_icc(work)
     commit_path=_who1_commit_path(work)
     who1_commit=read_yaml(commit_path) if commit_path.is_file() else None
     who2_path=output_path(work,'diagnosis_who5_pass_2','who5.yaml')
     who2=accept_who(work,pass_number=2) if who2_path.is_file() else None
-    routing_who=who2 or (who1_commit or {}).get('accepted_who1') or who1
+    who1_routing,who1_provenance=_who1_routing_source(who1,who1_commit)
+    routing_who=who2 or who1_routing
     assessment_who=runtime.authoritative_who_assessment_source(who1,who2,who1_commit)
     relationship='same' if runtime.normalize_dx(routing_who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
     authoritative=2 if who2 is not None else 1
@@ -253,6 +294,12 @@ def finalize_diagnosis(work: Path) -> dict:
         'concurrent_pathology':runtime.concurrent_pathology_from_who(assessment_who),
         'relationship':relationship,
         'self_execution':{'who5_first_pass':runtime.legacy_who_view(who1),'who5_authoritative_pass':authoritative},
+        'provenance':{
+            'who5_routing_source':who1_provenance,
+            'who5_authoritative_pass':authoritative,
+            'who1_artifact_sha256':_artifact_digest(output_path(work,'diagnosis_who5_pass_1','who5.yaml')),
+            'icc_artifact_sha256':_artifact_digest(output_path(work,'diagnosis_icc','icc.yaml')),
+        },
     }
     write_yaml(output_path(work,'diagnosis','diagnosis-final.yaml'),diagnosis)
     history=list(load_case_registry(work)[0].get('bootstrap_cmcs') or [])
