@@ -4,10 +4,10 @@ Using only the supplied case, authoritative diagnosis, and prognosis cards, asse
 
 {{ include "../prognostic_frameworks.md" }}
 
-Clinical audit feedback (null on first pass):
-{{ input.clinical_audit_feedback }}
+Reasoning feedback (null on first pass):
+{{ input.reasoning_feedback }}
 
-If feedback is supplied, correct only the identified clinical coherence problem(s) and preserve unrelated valid decisions.
+If feedback is supplied, correct only the identified clinical coherence/evidence-loss problem(s) and preserve unrelated valid decisions.
 
 First identify the prognostic framework or frameworks that genuinely apply to the authoritative disease using the accepted framework preset above. Framework assessment is independent of whether any NGS variants were detected: use all supplied framework-relevant morphology, cytogenetic, molecular, and clinical findings. Zero, one, or multiple frameworks may be returned. Do not infer or change the disease from candidate cards, and do not select a framework merely because a card from another disease mentions a familiar gene or framework.
 For every supplied variant, assess two independent evidence channels:
@@ -23,4 +23,4 @@ For non-framework prognostic evidence, do not name the source in report-ready pr
 `ngs_no_variants_detected` means no SNV, short insertion/deletion, or short-range complex variant was detected in those genes within validated NGS assay scope; do not extend that negative result to copy-number changes, rearrangements, structural variants, or other unassayed variant classes.
 Keep every reason concise, report-ready, and faithful to the supplied evidence.
 
-Evidence assignment is downstream in this workflow. Do not choose or rank cards. Return every `evidence_card_tags` and `other_evidence_card_tags` list as `[]`.
+Evidence assignment is downstream in this workflow. Do not choose or rank cards and do not emit evidence-card/card-tag bookkeeping fields.

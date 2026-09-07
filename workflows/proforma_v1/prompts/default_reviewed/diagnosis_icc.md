@@ -6,11 +6,11 @@ Using only the supplied ICC authority cards, decide whether the NGS findings and
 Do not use outside medical knowledge or infer diagnostic relationships absent from the supplied cards.
 The WHO5 diagnosis is supplied only as context. Do not alter it and do not write a separate WHO5/ICC comparison.
 
-### Clinical audit feedback
+### Reasoning feedback
 
-The following is `null` on the first pass. If a previous clinical audit is supplied, correct only the identified clinical coherence problem(s), preserve unrelated valid decisions, and return the complete ICC proforma.
+The following is `null` on the first pass. If feedback from a pre- or post-evidence reasoning check is supplied, correct only the identified clinical coherence/evidence-loss problem(s), preserve unrelated valid decisions, and return the complete ICC proforma.
 
-{{ input.clinical_audit_feedback }}
+{{ input.reasoning_feedback }}
 
 ## 2. Determine case context
 

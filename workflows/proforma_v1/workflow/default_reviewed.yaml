@@ -3,7 +3,6 @@ workflow_id: proforma-v1-default-reviewed
 self_groups:
   ptbg:
     strategy: batch_ready
-
 evidence_policies:
   literature_support:
     assignment:
@@ -25,7 +24,6 @@ evidence_policies:
     adjudication:
       role: evidence_adjudication
       prompt: prompts/evidence/diagnosis_adjudicate.md
-
 steps:
   structure:
     type: model
@@ -33,8 +31,10 @@ steps:
     stage: structure_case
     prompt: prompts/structure_case.md
     inputs:
-      case_text: {from: run.case_text}
-      panel_scope: {from: assets.ngs_panel_scope}
+      case_text:
+        from: run.case_text
+      panel_scope:
+        from: assets.ngs_panel_scope
     output:
       artifact: structured_case
       format: json
@@ -48,26 +48,27 @@ steps:
       provider_handler: structure
       self_handler: structure
       self_mode: handoff
-
   corpus:
     type: transform
-    needs: [structure]
+    needs:
+    - structure
     transform: load_corpus
-    output: {artifact: corpus_state}
+    output:
+      artifact: corpus_state
     execution:
       provider_handler: corpus
       self_handler: corpus
       self_mode: deterministic
-
   diagnosis.who1:
     type: model
-    needs: [corpus]
+    needs:
+    - corpus
     role: diagnosis
     stage: diagnosis_who5
     prompt: prompts/default_reviewed/diagnosis_who5.md
     inputs:
-      clinical_audit_feedback:
-        from: feedback.default_reviewed.clinical_audit
+      reasoning_feedback:
+        from: feedback.default_reviewed.who1.reasoning
         optional: true
     output:
       artifact: diagnosis_who1
@@ -77,28 +78,197 @@ steps:
       provider_handler: diagnosis_who1
       self_handler: diagnosis_who1
       self_mode: handoff
-
+  who1.packet:
+    type: transform
+    needs:
+    - diagnosis.who1
+    transform: default_reviewed_owner_packet
+    output:
+      artifact: default_reviewed_who1_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  who1.secretary:
+    type: model
+    needs:
+    - who1.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/secretary.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_who1_packet
+      secretary_feedback:
+        from: feedback.default_reviewed.who1.secretary
+        optional: true
+    output:
+      artifact: default_reviewed_who1_secretary
+      format: yaml
+      schema: schemas/default_reviewed/secretary.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  who1.secretary.compile:
+    type: transform
+    needs:
+    - who1.secretary
+    transform: default_reviewed_compile_secretary
+    output:
+      artifact: default_reviewed_who1_reasoning
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: who1.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who1_reasoning
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  who1.precheck:
+    type: model
+    needs:
+    - who1.secretary.compile
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_precheck.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_who1_packet
+      compiled_reasoning:
+        from: artifacts.default_reviewed_who1_reasoning
+      precheck_feedback:
+        from: feedback.default_reviewed.who1.precheck
+        optional: true
+    output:
+      artifact: default_reviewed_who1_precheck
+      format: yaml
+      schema: schemas/default_reviewed/precheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  who1.precheck.validate:
+    type: transform
+    needs:
+    - who1.precheck
+    transform: default_reviewed_validate_precheck
+    output:
+      artifact: default_reviewed_who1_precheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: who1.precheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who1_precheck_validation
+          as: precheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  who1.precheck.representation:
+    type: transform
+    needs:
+    - who1.precheck.validate
+    transform: default_reviewed_precheck_representation_review
+    output:
+      artifact: default_reviewed_who1_representation_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: who1.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who1_representation_review
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  who1.precheck.coherence:
+    type: transform
+    needs:
+    - who1.precheck.representation
+    transform: default_reviewed_precheck_coherence_review
+    output:
+      artifact: default_reviewed_who1_coherence_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who1
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who1_coherence_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
   diagnosis.who1.routing_change:
     type: transform
-    needs: [diagnosis.who1]
+    needs:
+    - who1.precheck.coherence
     transform: assess_who1_routing_change
-    output: {artifact: who1_routing_change}
+    output:
+      artifact: who1_routing_change
     execution:
       provider_handler: who1_routing_change
       self_handler: who1_routing_change
       self_mode: deterministic
-
   diagnosis.who1.evidence.assignment:
     type: evidence_review
-    needs: [diagnosis.who1.routing_change]
+    needs:
+    - diagnosis.who1.routing_change
     role: evidence_match
     stage: evidence_match
     prompt: prompts/evidence/diagnosis_match.md
-    when: {predicate: who1_routing_changed}
+    when:
+      predicate: who1_routing_changed
     evidence:
       policy: diagnosis_complete_support
       timing: blocking
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
       match_passes: 2
     output:
       artifact: who1_evidence_assignments
@@ -108,18 +278,20 @@ steps:
       provider_handler: who1_evidence_assignment
       self_handler: who1_evidence_assignment
       self_mode: handoff
-
   diagnosis.who1.evidence.audit:
     type: evidence_review
-    needs: [diagnosis.who1.evidence.assignment]
+    needs:
+    - diagnosis.who1.evidence.assignment
     role: evidence_audit
     stage: evidence_audit
     prompt: prompts/evidence/diagnosis_audit.md
-    when: {predicate: who1_routing_changed}
+    when:
+      predicate: who1_routing_changed
     evidence:
       policy: diagnosis_complete_support
       timing: blocking
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
     output:
       artifact: who1_evidence_audits
       format: yaml
@@ -128,17 +300,19 @@ steps:
       provider_handler: who1_evidence_audit
       self_handler: who1_evidence_audit
       self_mode: handoff
-
   diagnosis.who1.evidence.adjudication:
     type: evidence_adjudication
-    needs: [diagnosis.who1.evidence.audit]
+    needs:
+    - diagnosis.who1.evidence.audit
     role: evidence_adjudication
     prompt: prompts/evidence/diagnosis_adjudicate.md
-    when: {predicate: who1_routing_changed}
+    when:
+      predicate: who1_routing_changed
     evidence:
       policy: diagnosis_complete_support
       timing: blocking
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
     output:
       artifact: who1_evidence_adjudication
       format: yaml
@@ -147,28 +321,122 @@ steps:
       provider_handler: who1_evidence_adjudication
       self_handler: who1_evidence_adjudication
       self_mode: handoff
-
+  who1.postcheck.prepare:
+    type: transform
+    needs:
+    - diagnosis.who1.evidence.adjudication
+    transform: default_reviewed_who1_postcheck_prepare
+    output:
+      artifact: default_reviewed_who1_postcheck_items
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  who1.postcheck:
+    type: model
+    needs:
+    - who1.postcheck.prepare
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_postcheck.md
+    when: &id001
+      has_items:
+        artifact: default_reviewed_who1_postcheck_items
+    inputs:
+      postcheck_items:
+        from: artifacts.default_reviewed_who1_postcheck_items
+      postcheck_feedback:
+        from: feedback.default_reviewed.who1.postcheck
+        optional: true
+    output:
+      artifact: default_reviewed_who1_postcheck
+      format: yaml
+      schema: schemas/default_reviewed/postcheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  who1.postcheck.validate:
+    type: transform
+    needs:
+    - who1.postcheck
+    transform: default_reviewed_validate_who1_postcheck
+    when: *id001
+    output:
+      artifact: default_reviewed_who1_postcheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: who1.postcheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who1_postcheck_validation
+          as: postcheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  who1.postcheck.review:
+    type: transform
+    needs:
+    - who1.postcheck.validate
+    transform: default_reviewed_who1_postcheck_review
+    output:
+      artifact: default_reviewed_who1_postcheck_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who1
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who1_postcheck_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
   diagnosis.who1.commit:
     type: transform
-    needs: [diagnosis.who1.evidence.adjudication]
+    needs:
+    - who1.postcheck.review
     transform: commit_who1_routing
-    output: {artifact: who1_commit}
+    output:
+      artifact: who1_commit
     execution:
       provider_handler: who1_commit
       self_handler: who1_commit
       self_mode: deterministic
-
   diagnosis.who2:
     type: model
-    needs: [diagnosis.who1.commit]
+    needs:
+    - diagnosis.who1.commit
     role: diagnosis
     stage: diagnosis_who5
     prompt: prompts/default_reviewed/diagnosis_who5.md
     inputs:
-      clinical_audit_feedback:
-        from: feedback.default_reviewed.clinical_audit
+      reasoning_feedback:
+        from: feedback.default_reviewed.who2.reasoning
         optional: true
-    when: {predicate: who2_required}
+    when:
+      predicate: who2_required
     output:
       artifact: diagnosis_who2
       format: yaml
@@ -177,16 +445,196 @@ steps:
       provider_handler: diagnosis_who2
       self_handler: diagnosis_who2
       self_mode: handoff
-
+  who2.packet:
+    type: transform
+    needs:
+    - diagnosis.who2
+    transform: default_reviewed_owner_packet
+    output:
+      artifact: default_reviewed_who2_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    when:
+      predicate: who2_required
+  who2.secretary:
+    type: model
+    needs:
+    - who2.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/secretary.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_who2_packet
+      secretary_feedback:
+        from: feedback.default_reviewed.who2.secretary
+        optional: true
+    output:
+      artifact: default_reviewed_who2_secretary
+      format: yaml
+      schema: schemas/default_reviewed/secretary.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when:
+      predicate: who2_required
+  who2.secretary.compile:
+    type: transform
+    needs:
+    - who2.secretary
+    transform: default_reviewed_compile_secretary
+    output:
+      artifact: default_reviewed_who2_reasoning
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: who2.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who2_reasoning
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+    when:
+      predicate: who2_required
+  who2.precheck:
+    type: model
+    needs:
+    - who2.secretary.compile
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_precheck.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_who2_packet
+      compiled_reasoning:
+        from: artifacts.default_reviewed_who2_reasoning
+      precheck_feedback:
+        from: feedback.default_reviewed.who2.precheck
+        optional: true
+    output:
+      artifact: default_reviewed_who2_precheck
+      format: yaml
+      schema: schemas/default_reviewed/precheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+    when: &id002
+      predicate: who2_required
+  who2.precheck.validate:
+    type: transform
+    needs:
+    - who2.precheck
+    transform: default_reviewed_validate_precheck
+    output:
+      artifact: default_reviewed_who2_precheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: who2.precheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who2_precheck_validation
+          as: precheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+    when: *id002
+  who2.precheck.representation:
+    type: transform
+    needs:
+    - who2.precheck.validate
+    transform: default_reviewed_precheck_representation_review
+    output:
+      artifact: default_reviewed_who2_representation_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: who2.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who2_representation_review
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+    when:
+      predicate: who2_required
+  who2.precheck.coherence:
+    type: transform
+    needs:
+    - who2.precheck.representation
+    transform: default_reviewed_precheck_coherence_review
+    output:
+      artifact: default_reviewed_who2_coherence_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who2
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_who2_coherence_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+    when:
+      predicate: who2_required
   diagnosis.icc:
     type: model
-    needs: [diagnosis.who1.commit, diagnosis.who2]
+    needs:
+    - diagnosis.who1.commit
+    - who2.precheck.coherence
     role: diagnosis
     stage: diagnosis_icc
     prompt: prompts/default_reviewed/diagnosis_icc.md
     inputs:
-      clinical_audit_feedback:
-        from: feedback.default_reviewed.clinical_audit
+      reasoning_feedback:
+        from: feedback.default_reviewed.icc.reasoning
         optional: true
     output:
       artifact: diagnosis_icc
@@ -196,31 +644,198 @@ steps:
       provider_handler: diagnosis_icc
       self_handler: diagnosis_icc
       self_mode: handoff
-
+  icc.packet:
+    type: transform
+    needs:
+    - diagnosis.icc
+    transform: default_reviewed_owner_packet
+    output:
+      artifact: default_reviewed_icc_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  icc.secretary:
+    type: model
+    needs:
+    - icc.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/secretary.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_icc_packet
+      secretary_feedback:
+        from: feedback.default_reviewed.icc.secretary
+        optional: true
+    output:
+      artifact: default_reviewed_icc_secretary
+      format: yaml
+      schema: schemas/default_reviewed/secretary.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  icc.secretary.compile:
+    type: transform
+    needs:
+    - icc.secretary
+    transform: default_reviewed_compile_secretary
+    output:
+      artifact: default_reviewed_icc_reasoning
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: icc.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_icc_reasoning
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  icc.precheck:
+    type: model
+    needs:
+    - icc.secretary.compile
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_precheck.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_icc_packet
+      compiled_reasoning:
+        from: artifacts.default_reviewed_icc_reasoning
+      precheck_feedback:
+        from: feedback.default_reviewed.icc.precheck
+        optional: true
+    output:
+      artifact: default_reviewed_icc_precheck
+      format: yaml
+      schema: schemas/default_reviewed/precheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  icc.precheck.validate:
+    type: transform
+    needs:
+    - icc.precheck
+    transform: default_reviewed_validate_precheck
+    output:
+      artifact: default_reviewed_icc_precheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: icc.precheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_icc_precheck_validation
+          as: precheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  icc.precheck.representation:
+    type: transform
+    needs:
+    - icc.precheck.validate
+    transform: default_reviewed_precheck_representation_review
+    output:
+      artifact: default_reviewed_icc_representation_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: icc.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_icc_representation_review
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  icc.precheck.coherence:
+    type: transform
+    needs:
+    - icc.precheck.representation
+    transform: default_reviewed_precheck_coherence_review
+    output:
+      artifact: default_reviewed_icc_coherence_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.icc
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_icc_coherence_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
   diagnosis.finalize:
     type: transform
-    needs: [diagnosis.icc]
+    needs:
+    - icc.precheck.coherence
     transform: finalize_diagnosis
-    output: {artifact: diagnosis}
+    output:
+      artifact: diagnosis
     execution:
       provider_handler: diagnosis_finalize
       self_handler: diagnosis_finalize
       self_mode: deterministic
-
   prognosis:
     type: model
-    needs: [diagnosis.finalize]
+    needs:
+    - diagnosis.finalize
     role: ptbg
     stage: stages/default_reviewed/prognosis.yaml
     prompt: prompts/default_reviewed/prognosis.md
     inputs:
-      clinical_audit_feedback:
-        from: feedback.default_reviewed.clinical_audit
+      reasoning_feedback:
+        from: feedback.default_reviewed.prognosis.reasoning
         optional: true
     output:
       artifact: prognosis
       format: yaml
-      schema: schemas/prognosis.json
+      schema: schemas/default_reviewed/prognosis.json
     execution:
       provider_handler: domain
       self_handler: ptbg
@@ -229,23 +844,190 @@ steps:
     evidence:
       policy: literature_support
       timing: deferred
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
       owner_assignment: false
-
+  prognosis.packet:
+    type: transform
+    needs:
+    - prognosis
+    transform: default_reviewed_owner_packet
+    output:
+      artifact: default_reviewed_prognosis_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  prognosis.secretary:
+    type: model
+    needs:
+    - prognosis.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/secretary.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_prognosis_packet
+      secretary_feedback:
+        from: feedback.default_reviewed.prognosis.secretary
+        optional: true
+    output:
+      artifact: default_reviewed_prognosis_secretary
+      format: yaml
+      schema: schemas/default_reviewed/secretary.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  prognosis.secretary.compile:
+    type: transform
+    needs:
+    - prognosis.secretary
+    transform: default_reviewed_compile_secretary
+    output:
+      artifact: default_reviewed_prognosis_reasoning
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_prognosis_reasoning
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  prognosis.precheck:
+    type: model
+    needs:
+    - prognosis.secretary.compile
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_precheck.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_prognosis_packet
+      compiled_reasoning:
+        from: artifacts.default_reviewed_prognosis_reasoning
+      precheck_feedback:
+        from: feedback.default_reviewed.prognosis.precheck
+        optional: true
+    output:
+      artifact: default_reviewed_prognosis_precheck
+      format: yaml
+      schema: schemas/default_reviewed/precheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  prognosis.precheck.validate:
+    type: transform
+    needs:
+    - prognosis.precheck
+    transform: default_reviewed_validate_precheck
+    output:
+      artifact: default_reviewed_prognosis_precheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis.precheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_prognosis_precheck_validation
+          as: precheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  prognosis.precheck.representation:
+    type: transform
+    needs:
+    - prognosis.precheck.validate
+    transform: default_reviewed_precheck_representation_review
+    output:
+      artifact: default_reviewed_prognosis_representation_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_prognosis_representation_review
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  prognosis.precheck.coherence:
+    type: transform
+    needs:
+    - prognosis.precheck.representation
+    transform: default_reviewed_precheck_coherence_review
+    output:
+      artifact: default_reviewed_prognosis_coherence_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_prognosis_coherence_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
   treatment:
     type: model
-    needs: [diagnosis.finalize]
+    needs:
+    - diagnosis.finalize
     role: ptbg
     stage: stages/default_reviewed/treatment.yaml
     prompt: prompts/default_reviewed/treatment.md
     inputs:
-      clinical_audit_feedback:
-        from: feedback.default_reviewed.clinical_audit
+      reasoning_feedback:
+        from: feedback.default_reviewed.treatment.reasoning
         optional: true
     output:
       artifact: treatment
       format: yaml
-      schema: schemas/treatment.json
+      schema: schemas/default_reviewed/treatment.json
     execution:
       provider_handler: domain
       self_handler: ptbg
@@ -254,23 +1036,190 @@ steps:
     evidence:
       policy: literature_support
       timing: deferred
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
       owner_assignment: false
-
+  treatment.packet:
+    type: transform
+    needs:
+    - treatment
+    transform: default_reviewed_owner_packet
+    output:
+      artifact: default_reviewed_treatment_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  treatment.secretary:
+    type: model
+    needs:
+    - treatment.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/secretary.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_treatment_packet
+      secretary_feedback:
+        from: feedback.default_reviewed.treatment.secretary
+        optional: true
+    output:
+      artifact: default_reviewed_treatment_secretary
+      format: yaml
+      schema: schemas/default_reviewed/secretary.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  treatment.secretary.compile:
+    type: transform
+    needs:
+    - treatment.secretary
+    transform: default_reviewed_compile_secretary
+    output:
+      artifact: default_reviewed_treatment_reasoning
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_treatment_reasoning
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  treatment.precheck:
+    type: model
+    needs:
+    - treatment.secretary.compile
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_precheck.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_treatment_packet
+      compiled_reasoning:
+        from: artifacts.default_reviewed_treatment_reasoning
+      precheck_feedback:
+        from: feedback.default_reviewed.treatment.precheck
+        optional: true
+    output:
+      artifact: default_reviewed_treatment_precheck
+      format: yaml
+      schema: schemas/default_reviewed/precheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  treatment.precheck.validate:
+    type: transform
+    needs:
+    - treatment.precheck
+    transform: default_reviewed_validate_precheck
+    output:
+      artifact: default_reviewed_treatment_precheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment.precheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_treatment_precheck_validation
+          as: precheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  treatment.precheck.representation:
+    type: transform
+    needs:
+    - treatment.precheck.validate
+    transform: default_reviewed_precheck_representation_review
+    output:
+      artifact: default_reviewed_treatment_representation_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_treatment_representation_review
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  treatment.precheck.coherence:
+    type: transform
+    needs:
+    - treatment.precheck.representation
+    transform: default_reviewed_precheck_coherence_review
+    output:
+      artifact: default_reviewed_treatment_coherence_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_treatment_coherence_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
   biomarker:
     type: model
-    needs: [diagnosis.finalize]
+    needs:
+    - diagnosis.finalize
     role: ptbg
     stage: stages/default_reviewed/biomarker.yaml
     prompt: prompts/default_reviewed/biomarker.md
     inputs:
-      clinical_audit_feedback:
-        from: feedback.default_reviewed.clinical_audit
+      reasoning_feedback:
+        from: feedback.default_reviewed.biomarker.reasoning
         optional: true
     output:
       artifact: biomarker
       format: yaml
-      schema: schemas/biomarker.json
+      schema: schemas/default_reviewed/biomarker.json
     execution:
       provider_handler: domain
       self_handler: ptbg
@@ -279,18 +1228,185 @@ steps:
     evidence:
       policy: literature_support
       timing: deferred
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
       owner_assignment: false
-
+  biomarker.packet:
+    type: transform
+    needs:
+    - biomarker
+    transform: default_reviewed_owner_packet
+    output:
+      artifact: default_reviewed_biomarker_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  biomarker.secretary:
+    type: model
+    needs:
+    - biomarker.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/secretary.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_biomarker_packet
+      secretary_feedback:
+        from: feedback.default_reviewed.biomarker.secretary
+        optional: true
+    output:
+      artifact: default_reviewed_biomarker_secretary
+      format: yaml
+      schema: schemas/default_reviewed/secretary.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  biomarker.secretary.compile:
+    type: transform
+    needs:
+    - biomarker.secretary
+    transform: default_reviewed_compile_secretary
+    output:
+      artifact: default_reviewed_biomarker_reasoning
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_biomarker_reasoning
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  biomarker.precheck:
+    type: model
+    needs:
+    - biomarker.secretary.compile
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_precheck.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_biomarker_packet
+      compiled_reasoning:
+        from: artifacts.default_reviewed_biomarker_reasoning
+      precheck_feedback:
+        from: feedback.default_reviewed.biomarker.precheck
+        optional: true
+    output:
+      artifact: default_reviewed_biomarker_precheck
+      format: yaml
+      schema: schemas/default_reviewed/precheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  biomarker.precheck.validate:
+    type: transform
+    needs:
+    - biomarker.precheck
+    transform: default_reviewed_validate_precheck
+    output:
+      artifact: default_reviewed_biomarker_precheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker.precheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_biomarker_precheck_validation
+          as: precheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  biomarker.precheck.representation:
+    type: transform
+    needs:
+    - biomarker.precheck.validate
+    transform: default_reviewed_precheck_representation_review
+    output:
+      artifact: default_reviewed_biomarker_representation_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_biomarker_representation_review
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  biomarker.precheck.coherence:
+    type: transform
+    needs:
+    - biomarker.precheck.representation
+    transform: default_reviewed_precheck_coherence_review
+    output:
+      artifact: default_reviewed_biomarker_coherence_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_biomarker_coherence_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
   germline:
     type: model
-    needs: [diagnosis.finalize]
+    needs:
+    - diagnosis.finalize
     role: ptbg
     stage: stages/default_reviewed/germline.yaml
     prompt: prompts/default_reviewed/germline.md
     inputs:
-      clinical_audit_feedback:
-        from: feedback.default_reviewed.clinical_audit
+      reasoning_feedback:
+        from: feedback.default_reviewed.germline.reasoning
         optional: true
     output:
       artifact: germline
@@ -304,12 +1420,182 @@ steps:
     evidence:
       policy: literature_support
       timing: deferred
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
       owner_assignment: false
-
+  germline.packet:
+    type: transform
+    needs:
+    - germline
+    transform: default_reviewed_owner_packet
+    output:
+      artifact: default_reviewed_germline_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  germline.secretary:
+    type: model
+    needs:
+    - germline.packet
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/secretary.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_germline_packet
+      secretary_feedback:
+        from: feedback.default_reviewed.germline.secretary
+        optional: true
+    output:
+      artifact: default_reviewed_germline_secretary
+      format: yaml
+      schema: schemas/default_reviewed/secretary.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  germline.secretary.compile:
+    type: transform
+    needs:
+    - germline.secretary
+    transform: default_reviewed_compile_secretary
+    output:
+      artifact: default_reviewed_germline_reasoning
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_germline_reasoning
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  germline.precheck:
+    type: model
+    needs:
+    - germline.secretary.compile
+    role: reasoning_audit
+    prompt: prompts/default_reviewed/reasoning_precheck.md
+    inputs:
+      owner_packet:
+        from: artifacts.default_reviewed_germline_packet
+      compiled_reasoning:
+        from: artifacts.default_reviewed_germline_reasoning
+      precheck_feedback:
+        from: feedback.default_reviewed.germline.precheck
+        optional: true
+    output:
+      artifact: default_reviewed_germline_precheck
+      format: yaml
+      schema: schemas/default_reviewed/precheck.json
+    execution:
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
+      self_mode: handoff
+  germline.precheck.validate:
+    type: transform
+    needs:
+    - germline.precheck
+    transform: default_reviewed_validate_precheck
+    output:
+      artifact: default_reviewed_germline_precheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline.precheck
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_germline_precheck_validation
+          as: precheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  germline.precheck.representation:
+    type: transform
+    needs:
+    - germline.precheck.validate
+    transform: default_reviewed_precheck_representation_review
+    output:
+      artifact: default_reviewed_germline_representation_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline.secretary
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_germline_representation_review
+          as: secretary_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  germline.precheck.coherence:
+    type: transform
+    needs:
+    - germline.precheck.representation
+    transform: default_reviewed_precheck_coherence_review
+    output:
+      artifact: default_reviewed_germline_coherence_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_germline_coherence_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
   evidence.assignment:
     type: evidence_review
-    needs: [prognosis, treatment, biomarker, germline]
+    needs:
+    - prognosis.precheck.coherence
+    - treatment.precheck.coherence
+    - biomarker.precheck.coherence
+    - germline.precheck.coherence
     role: evidence_match
     stage: evidence_match
     prompt: prompts/evidence_match.md
@@ -320,7 +1606,8 @@ steps:
     evidence:
       policy: literature_support
       timing: deferred
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
       rescue_match_passes: 1
     output:
       artifact: evidence_assignments
@@ -330,17 +1617,18 @@ steps:
       provider_handler: evidence_assignment
       self_handler: evidence_assignment
       self_mode: handoff
-
   evidence.audit:
     type: evidence_review
-    needs: [evidence.assignment]
+    needs:
+    - evidence.assignment
     role: evidence_audit
     stage: evidence_audit
     prompt: prompts/evidence_audit.md
     evidence:
       policy: literature_support
       timing: deferred
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
     output:
       artifact: evidence_audits
       format: yaml
@@ -351,26 +1639,32 @@ steps:
       self_mode: handoff
     review:
       target: evidence.assignment
-      verdict: {predicate: evidence_audit_resolved}
-      on_pass: {continue: true}
+      verdict:
+        predicate: evidence_audit_resolved
+      on_pass:
+        continue: true
       on_fail:
         retry_target: true
         feedback:
           from: artifacts.evidence_audits
           as: audit_feedback
         max_cycles: 2
-        exhausted: {action: continue_with_dissent}
-
+        exhausted:
+          action: continue_with_dissent
   evidence.adjudication:
     type: evidence_adjudication
-    needs: [evidence.audit]
-    barrier_for: [evidence.assignment, evidence.audit]
+    needs:
+    - evidence.audit
+    barrier_for:
+    - evidence.assignment
+    - evidence.audit
     role: evidence_adjudication
     prompt: prompts/evidence_adjudicate.md
     evidence:
       policy: literature_support
       timing: deferred
-      cards: {from: owner.cards}
+      cards:
+        from: owner.cards
     output:
       artifact: evidence_adjudication
       format: yaml
@@ -379,71 +1673,312 @@ steps:
       provider_handler: evidence_adjudication
       self_handler: evidence_adjudication
       self_mode: handoff
-
   evidence.finalize:
     type: transform
-    needs: [evidence.adjudication]
+    needs:
+    - evidence.adjudication
     transform: finalize_evidence
-    output: {artifact: evidence_enriched}
+    output:
+      artifact: evidence_enriched
     execution:
       provider_handler: evidence_finalize
       self_handler: evidence_finalize
       self_mode: deterministic
-
-  clinical.packet:
+  postcheck.prepare:
     type: transform
-    needs: [evidence.finalize]
-    transform: default_reviewed_clinical_packet
+    needs:
+    - evidence.finalize
+    transform: default_reviewed_postcheck_prepare
     output:
-      artifact: default_reviewed_clinical_packet
+      artifact: default_reviewed_postcheck_items
       format: yaml
     execution:
       provider_handler: generic_transform
       self_handler: generic_transform
       self_mode: deterministic
-
-  clinical.audit:
+  postcheck.reasoning:
     type: model
-    needs: [clinical.packet]
+    needs:
+    - postcheck.prepare
     role: reasoning_audit
-    prompt: prompts/default_reviewed/clinical_audit.md
+    prompt: prompts/default_reviewed/reasoning_postcheck.md
+    when: &id003
+      has_items:
+        artifact: default_reviewed_postcheck_items
     inputs:
-      clinical_packet: {from: artifacts.default_reviewed_clinical_packet}
+      postcheck_items:
+        from: artifacts.default_reviewed_postcheck_items
+      postcheck_feedback:
+        from: feedback.default_reviewed.postcheck
+        optional: true
     output:
-      artifact: clinical_audit
+      artifact: default_reviewed_postcheck
       format: yaml
-      schema: schemas/default_reviewed/clinical_audit.json
+      schema: schemas/default_reviewed/postcheck.json
     execution:
-      provider_handler: generic_model
-      self_handler: generic_model
+      provider_handler: reasoning_model
+      self_handler: reasoning_model
       self_mode: handoff
+  postcheck.validate:
+    type: transform
+    needs:
+    - postcheck.reasoning
+    transform: default_reviewed_validate_postcheck
+    when: *id003
+    output:
+      artifact: default_reviewed_postcheck_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: postcheck.reasoning
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_postcheck_validation
+          as: postcheck_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  postcheck.who1:
+    type: transform
+    needs:
+    - postcheck.validate
+    transform: default_reviewed_postcheck_review
+    output:
+      artifact: default_reviewed_postcheck_who1_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
     review:
       target: diagnosis.who1
       verdict:
         path: status
-        pass_values: [pass]
-      on_pass: {continue: true}
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
       on_fail:
         retry_target: true
         feedback:
-          from: artifacts.clinical_audit
-          as: clinical_audit_feedback
+          from: artifacts.default_reviewed_postcheck_who1_review
+          as: reasoning_feedback
         max_cycles: 2
-        exhausted: {action: stop}
-
+        exhausted:
+          action: stop
+  postcheck.who2:
+    type: transform
+    needs:
+    - postcheck.validate
+    transform: default_reviewed_postcheck_review
+    output:
+      artifact: default_reviewed_postcheck_who2_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.who2
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_postcheck_who2_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+    when:
+      predicate: who2_required
+  postcheck.icc:
+    type: transform
+    needs:
+    - postcheck.validate
+    transform: default_reviewed_postcheck_review
+    output:
+      artifact: default_reviewed_postcheck_icc_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: diagnosis.icc
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_postcheck_icc_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  postcheck.prognosis:
+    type: transform
+    needs:
+    - postcheck.validate
+    transform: default_reviewed_postcheck_review
+    output:
+      artifact: default_reviewed_postcheck_prognosis_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: prognosis
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_postcheck_prognosis_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  postcheck.treatment:
+    type: transform
+    needs:
+    - postcheck.validate
+    transform: default_reviewed_postcheck_review
+    output:
+      artifact: default_reviewed_postcheck_treatment_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: treatment
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_postcheck_treatment_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  postcheck.biomarker:
+    type: transform
+    needs:
+    - postcheck.validate
+    transform: default_reviewed_postcheck_review
+    output:
+      artifact: default_reviewed_postcheck_biomarker_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: biomarker
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_postcheck_biomarker_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  postcheck.germline:
+    type: transform
+    needs:
+    - postcheck.validate
+    transform: default_reviewed_postcheck_review
+    output:
+      artifact: default_reviewed_postcheck_germline_review
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: germline
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.default_reviewed_postcheck_germline_review
+          as: reasoning_feedback
+        max_cycles: 2
+        exhausted:
+          action: stop
+  reasoning.trace:
+    type: transform
+    needs:
+    - postcheck.who1
+    - postcheck.who2
+    - postcheck.icc
+    - postcheck.prognosis
+    - postcheck.treatment
+    - postcheck.biomarker
+    - postcheck.germline
+    transform: default_reviewed_render_reasoning_trace
+    output:
+      artifact: default_reviewed_reasoning_trace
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
   report.blocks:
     type: transform
-    needs: [clinical.audit]
+    needs:
+    - reasoning.trace
     transform: report_blocks
-    output: {artifact: report_blocks}
+    output:
+      artifact: report_blocks
     execution:
       provider_handler: report_blocks
       self_handler: report_blocks
       self_mode: deterministic
-
   report.write:
     type: render/report
-    needs: [report.blocks]
+    needs:
+    - report.blocks
     role: report_write
     stage: report_write
     prompt: prompts/report_write.md
@@ -455,10 +1990,10 @@ steps:
       provider_handler: report_write
       self_handler: report_write
       self_mode: handoff
-
   report.preservation:
     type: model
-    needs: [report.write]
+    needs:
+    - report.write
     role: preservation_check
     stage: report_preservation
     prompt: prompts/report_preservation.md
@@ -470,53 +2005,132 @@ steps:
       provider_handler: report_preservation
       self_handler: report_preservation
       self_mode: handoff
-      self: {enabled: false}
-
+      self:
+        enabled: false
   report.finalize:
     type: transform
-    needs: [report.preservation]
+    needs:
+    - report.preservation
     transform: finalize_report
-    output: {artifact: final_report}
+    output:
+      artifact: final_report
     execution:
       provider_handler: report_finalize
       self_handler: report_finalize
       self_mode: deterministic
-
 presentation:
   progress_phases:
   - id: preparation
     label: Preparation
-    steps: [structure, corpus]
+    steps:
+    - structure
+    - corpus
   - id: diagnosis
     label: Diagnosis
     steps:
     - diagnosis.who1
+    - who1.packet
+    - who1.secretary
+    - who1.secretary.compile
+    - who1.precheck
+    - who1.precheck.validate
+    - who1.precheck.representation
+    - who1.precheck.coherence
     - diagnosis.who1.routing_change
     - diagnosis.who1.evidence.assignment
     - diagnosis.who1.evidence.audit
     - diagnosis.who1.evidence.adjudication
+    - who1.postcheck.prepare
+    - who1.postcheck
+    - who1.postcheck.validate
+    - who1.postcheck.review
     - diagnosis.who1.commit
     - diagnosis.who2
+    - who2.packet
+    - who2.secretary
+    - who2.secretary.compile
+    - who2.precheck
+    - who2.precheck.validate
+    - who2.precheck.representation
+    - who2.precheck.coherence
     - diagnosis.icc
+    - icc.packet
+    - icc.secretary
+    - icc.secretary.compile
+    - icc.precheck
+    - icc.precheck.validate
+    - icc.precheck.representation
+    - icc.precheck.coherence
     - diagnosis.finalize
   - id: prognosis
     label: Prognosis
-    steps: [prognosis]
+    steps:
+    - prognosis
+    - prognosis.packet
+    - prognosis.secretary
+    - prognosis.secretary.compile
+    - prognosis.precheck
+    - prognosis.precheck.validate
+    - prognosis.precheck.representation
+    - prognosis.precheck.coherence
   - id: treatment
     label: Treatment
-    steps: [treatment]
+    steps:
+    - treatment
+    - treatment.packet
+    - treatment.secretary
+    - treatment.secretary.compile
+    - treatment.precheck
+    - treatment.precheck.validate
+    - treatment.precheck.representation
+    - treatment.precheck.coherence
   - id: biomarker
     label: Biomarker
-    steps: [biomarker]
+    steps:
+    - biomarker
+    - biomarker.packet
+    - biomarker.secretary
+    - biomarker.secretary.compile
+    - biomarker.precheck
+    - biomarker.precheck.validate
+    - biomarker.precheck.representation
+    - biomarker.precheck.coherence
   - id: germline
     label: Germline
-    steps: [germline]
+    steps:
+    - germline
+    - germline.packet
+    - germline.secretary
+    - germline.secretary.compile
+    - germline.precheck
+    - germline.precheck.validate
+    - germline.precheck.representation
+    - germline.precheck.coherence
   - id: evidence
     label: Evidence
-    steps: [evidence.assignment, evidence.audit, evidence.adjudication, evidence.finalize]
-  - id: clinical_audit
-    label: Clinical audit
-    steps: [clinical.packet, clinical.audit]
+    steps:
+    - evidence.assignment
+    - evidence.audit
+    - evidence.adjudication
+    - evidence.finalize
+  - id: reasoning-2
+    label: Reasoning — post-evidence
+    steps:
+    - postcheck.prepare
+    - postcheck.reasoning
+    - postcheck.validate
+    - postcheck.who1
+    - postcheck.who2
+    - postcheck.icc
+    - postcheck.prognosis
+    - postcheck.treatment
+    - postcheck.biomarker
+    - postcheck.germline
   - id: report
     label: Report
-    steps: [report.blocks, report.write, report.preservation, report.finalize]
+    steps:
+    - reasoning.trace
+    - report.blocks
+    - report.write
+    - report.preservation
+    - report.finalize

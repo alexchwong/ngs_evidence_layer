@@ -2,10 +2,10 @@
 
 Assess whether each supplied NGS molecular finding, together with the supplied clinical picture and the supplied germline evidence cards, raises sufficient suspicion for an inherited predisposition to warrant dedicated germline evaluation. When no NGS molecular findings are supplied, return `classification: []`; do not create a pseudo-variant for a negative NGS result.
 
-Clinical audit feedback (null on first pass):
-{{ input.clinical_audit_feedback }}
+Reasoning feedback (null on first pass):
+{{ input.reasoning_feedback }}
 
-If feedback is supplied, correct only the identified clinical coherence problem(s) and preserve unrelated valid decisions.
+If feedback is supplied, correct only the identified clinical coherence/evidence-loss problem(s) and preserve unrelated valid decisions.
 
 This step assesses whether germline evaluation is indicated; it does not establish whether a molecular finding is constitutionally present. A `germline_suspicious` classification means germline predisposition is sufficiently suspected to justify confirmation, not that germline status has been proven.
 
@@ -75,4 +75,4 @@ The final `reason` must:
 
 For `germline_suspicious`, recommend dedicated germline evaluation with constitutional confirmation without claiming confirmed germline status; genetic counselling or referral may also be recommended when supported by the supplied evidence.
 
-Evidence assignment is downstream in this workflow. Do not choose or rank cards. Return both `predisposition_evidence.evidence_card_tags` and the final `evidence_card_tags` as `[]`.
+Evidence assignment is downstream in this workflow. Do not choose or rank cards and do not emit evidence-card/card-tag bookkeeping fields.

@@ -15,14 +15,34 @@ class StructuredValidationError(ValueError):
     pass
 
 
+class _UniqueKeyLoader(yaml.SafeLoader):
+    pass
+
+
+def _construct_mapping(loader, node, deep=False):
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            line = key_node.start_mark.line + 1
+            raise StructuredValidationError(f"malformed yaml: duplicate mapping key {key!r} at line {line}")
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping)
+
+
 def parse(raw: str, fmt: str) -> Any:
     try:
         if fmt == "json":
             return json.loads(raw)
         if fmt == "yaml":
-            return yaml.safe_load(raw)
+            return yaml.load(raw, Loader=_UniqueKeyLoader)
         if fmt == "text":
             return raw
+    except StructuredValidationError:
+        raise
     except (json.JSONDecodeError, yaml.YAMLError) as exc:
         raise StructuredValidationError(f"malformed {fmt}: {exc}") from exc
     raise StructuredValidationError(f"unknown structured output format {fmt!r}")

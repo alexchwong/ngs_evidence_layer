@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Callable
+import hashlib
+import re
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -21,12 +24,6 @@ class ValidationIssue:
     expected: str | None = None
 
     def render(self, index: int) -> str:
-        """Render one issue over several short lines.
-
-        A single run-on line is harder for a small model to parse than a labelled
-        block, and the field path is the part that most needs to survive: it is
-        the only element that tells the model *where* to edit.
-        """
         lines = [f"{index}. {self.path}"]
         lines.append(f"   Problem: {self.problem}.")
         lines.append(f"   Required fix: {self.required_fix}.")
@@ -37,8 +34,6 @@ class ValidationIssue:
         return "\n".join(lines)
 
 
-# A model asked to repair forty simultaneous defects repairs a prefix and stops.
-# Report a bounded, representative set and say how many were withheld.
 MAX_RENDERED_ISSUES = 8
 
 
@@ -72,7 +67,6 @@ def fail(context: str, issues: list[ValidationIssue]) -> None:
 
 
 def safe_representation_repair(text: str) -> tuple[str, list[str]]:
-    """Apply only serialization-preserving cleanup with no interpretive judgement."""
     original = text
     stripped = text.strip()
     repairs: list[str] = []
@@ -81,8 +75,6 @@ def safe_representation_repair(text: str) -> tuple[str, list[str]]:
         if len(lines) >= 2 and lines[-1].strip() == "```":
             stripped = "\n".join(lines[1:-1])
             repairs.append("removed surrounding Markdown code fence")
-    # Trailing whitespace is never meaningful to YAML/JSON structure and is a
-    # recurrent source of exact-format failures in report lines.
     cleaned = "\n".join(line.rstrip() for line in stripped.splitlines()).strip()
     cleaned = cleaned + "\n" if cleaned else ""
     if cleaned != original and not repairs:
@@ -90,25 +82,13 @@ def safe_representation_repair(text: str) -> tuple[str, list[str]]:
     return cleaned, repairs
 
 
-def validate_with_safe_repair(
-    raw_text: str,
-    validator: Callable[[str], str],
-) -> tuple[str, str, list[str]]:
-    """Repair representation, then run the caller's task-specific validator."""
+def validate_with_safe_repair(raw_text: str, validator: Callable[[str], str]) -> tuple[str, str, list[str]]:
     candidate, repairs = safe_representation_repair(raw_text)
     message = validator(candidate)
     return candidate, message, repairs
 
 
 class RetryStagnationGuard:
-    """Track repeated identical invalid artifacts without altering retry policy.
-
-    ``observe`` returns the number of consecutive repeats *after* the first
-    occurrence of the same candidate/error pair.  A changed candidate or error
-    resets the count.  Callers can use this to stop wasting task retries on
-    a model that is returning the exact same invalid serialization.
-    """
-
     def __init__(self) -> None:
         self._last: tuple[str, str] | None = None
         self._repeats = 0
@@ -124,11 +104,6 @@ class RetryStagnationGuard:
 
 
 def stagnation_instruction(repeat_count: int) -> str:
-    """Add concise repair feedback when the same invalid artifact is repeated.
-
-    The caller owns the stopping policy.  This helper only tells the model that
-    its previous repair did not materially change the rejected artifact.
-    """
     if repeat_count <= 0:
         return ""
     return (
@@ -138,7 +113,6 @@ def stagnation_instruction(repeat_count: int) -> str:
 
 
 def retry_instruction(error: Exception) -> str:
-    """Render one complete, self-contained repair request for the next model attempt."""
     if isinstance(error, ValidationFailure):
         detail = str(error)
     else:
@@ -151,37 +125,7 @@ def retry_instruction(error: Exception) -> str:
     )
 
 
-# ---------------------------------------------------------------------------
-# Reusable validated-model-task runner
-# ---------------------------------------------------------------------------
-"""A workflow-neutral runner for "call a model, validate, repair, retry".
-
-Three behaviours make this worth extracting rather than re-deriving, and all
-three are preserved exactly:
-
-1. **Suspension.** With an interactive pipeline a model call does not return a
-   value: the process exits and a later invocation resumes. The runner therefore
-   keeps all loop state in `io.load_state`/`io.save_state` and raises `Suspend`
-   instead of owning an uninterruptible loop.
-2. **Nested budgets.** A serialization budget sits inside a rewrite budget, with
-   two distinct restart modes: `fresh` (discard the artifact, regenerate from the
-   original task) and `repair` (replay the artifact with feedback).
-3. **Serialization/content routing.** Issues classed `serialization` go to a
-   syntax-repair model; only content issues return to the originating task, so
-   the task is never asked to fix a quoted boolean.
-
-The runner performs no filesystem access and holds no domain vocabulary: every
-environment-specific action goes through `TaskIO`.
-"""
-
-import hashlib
-from dataclasses import dataclass, field
-from typing import Any, Callable
-
-
 class Truncated:
-    """A completion cut short by a provider token limit."""
-
     def __init__(self, content: str, *, max_tokens: int):
         self.content = content
         self.max_tokens = max_tokens
@@ -191,9 +135,16 @@ class TaskFailed(RuntimeError):
     """A task exhausted its budget, or stopped early because it was stagnating."""
 
 
-class Suspend(Exception):
-    """The runner needs a response it cannot obtain itself."""
+class TaskContractError(RuntimeError):
+    """The workflow itself made a model candidate fail a stated deterministic check.
 
+    This is non-retryable at the model layer.  It guards against impossible loops
+    such as: model emits a required field -> deterministic transform removes it ->
+    validator tells the model to add the same field again.
+    """
+
+
+class Suspend(Exception):
     def __init__(self, task_id: str, messages: list[dict], feedback: str = ""):
         self.task_id = task_id
         self.messages = messages
@@ -215,7 +166,7 @@ class TaskRequest:
     validate: Callable[[str], str]
     budgets: Budgets
     fmt: str | None = None
-    mode: str = "standard"          # 'standard' | 'proforma'
+    mode: str = "standard"
     prepare: Callable[[str], str] | None = None
 
 
@@ -249,8 +200,6 @@ class SyntaxAttempt:
     error: str | None = None
 
 
-# After this many consecutive identical (artifact, error) pairs another unchanged
-# retry has no expected value; surface the deterministic failure instead.
 STAGNATION_ABORT_AFTER = 2
 
 
@@ -265,7 +214,6 @@ def _serialization_issues(error: Exception) -> list[ValidationIssue]:
 
 
 def _content_error(error: Exception) -> str:
-    """Render feedback for the originating task, excluding serialization defects."""
     if isinstance(error, ValidationFailure):
         content = [i for i in error.issues if i.repair_class != "serialization"]
         if content:
@@ -288,18 +236,73 @@ def _truncation_instruction(max_tokens: int) -> str:
     )
 
 
+class _PreparedText(str):
+    """Prepared candidate retaining the pre-transform model text for invariant checks."""
+
+    def __new__(cls, value: str, raw_before_prepare: str):
+        obj = str.__new__(cls, value)
+        obj.raw_before_prepare = str(raw_before_prepare)
+        return obj
+
+
 def _prepare(request: TaskRequest, raw: str) -> str:
-    return request.prepare(raw) if request.prepare else raw
+    prepared = request.prepare(raw) if request.prepare else raw
+    if prepared == raw:
+        return prepared
+    return _PreparedText(prepared, raw)
+
+
+_REQUIRED_FIELD_PATTERNS = (
+    re.compile(r"\bmissing(?:\s+required)?(?:\s+field)?\s+[`'\"]?([A-Za-z_][A-Za-z0-9_]*)", re.I),
+    re.compile(r"[`'\"]([A-Za-z_][A-Za-z0-9_]*)[`'\"]\s+is\s+a\s+required\s+property", re.I),
+    re.compile(r"\brequired\s+(?:field|key)\s+[`'\"]?([A-Za-z_][A-Za-z0-9_]*)", re.I),
+)
+
+
+def _key_occurs(text: str, key: str) -> bool:
+    return bool(re.search(rf"(?m)^\s*(?:-\s+)?[\"']?{re.escape(key)}[\"']?\s*:", str(text or "")))
+
+
+def _prepare_contract_error(candidate: str, error: Exception) -> str | None:
+    """Detect validation feedback that contradicts the model's pre-transform artifact.
+
+    This deliberately handles only the high-confidence class that caused the
+    Dublin loop: feedback says a required field/key is missing, while that key is
+    visibly present before deterministic preparation and absent afterwards.  It
+    does not attempt to second-guess semantic validation.
+    """
+    raw = getattr(candidate, "raw_before_prepare", None)
+    if raw is None:
+        return None
+    detail = str(error)
+    names: list[str] = []
+    for pattern in _REQUIRED_FIELD_PATTERNS:
+        names.extend(pattern.findall(detail))
+    for key in dict.fromkeys(names):
+        if _key_occurs(raw, key) and not _key_occurs(candidate, key):
+            return (
+                f"workflow_contract_error: deterministic preparation removed required field {key!r} "
+                "that was present in the model candidate, then validation reported it missing. "
+                "Do not retry the model; repair the transform/schema ownership contract."
+            )
+    return None
 
 
 def _validate(request: TaskRequest, io: TaskIO, candidate: str) -> tuple[str, str]:
-    """Validate, routing representation-only defects to the syntax model first."""
     try:
         return candidate, request.validate(candidate)
     except ValidationFailure as exc:
+        contradiction = _prepare_contract_error(candidate, exc)
+        if contradiction:
+            raise TaskContractError(contradiction) from exc
         serial = _serialization_issues(exc)
         if not serial or io.call_syntax_model is None or request.budgets.serialization <= 0:
             raise
+    except Exception as exc:
+        contradiction = _prepare_contract_error(candidate, exc)
+        if contradiction:
+            raise TaskContractError(contradiction) from exc
+        raise
     repaired = candidate
     for attempt in range(1, request.budgets.serialization + 1):
         feedback = render_issues(serial)
@@ -312,11 +315,19 @@ def _validate(request: TaskRequest, io: TaskIO, candidate: str) -> tuple[str, st
         try:
             message = request.validate(repaired)
         except ValidationFailure as exc:
+            contradiction = _prepare_contract_error(repaired, exc)
+            if contradiction:
+                raise TaskContractError(contradiction) from exc
             serial = _serialization_issues(exc)
             io.record_syntax_attempt(SyntaxAttempt(request.task_id, attempt, repaired, str(exc)))
             if not serial:
                 raise
+        except TaskContractError:
+            raise
         except Exception as exc:
+            contradiction = _prepare_contract_error(repaired, exc)
+            if contradiction:
+                raise TaskContractError(contradiction) from exc
             io.record_syntax_attempt(SyntaxAttempt(request.task_id, attempt, repaired, str(exc)))
             raise
         else:
@@ -361,7 +372,6 @@ def _messages(request: TaskRequest, previous: str | None, feedback: str, mode: s
 
 
 def _consume(request: TaskRequest, io: TaskIO, completion) -> tuple[str, str | None]:
-    """Return (raw text, truncation feedback or None)."""
     if isinstance(completion, Truncated):
         return completion.content, _truncation_instruction(completion.max_tokens)
     content = getattr(completion, "content", completion)
@@ -369,17 +379,6 @@ def _consume(request: TaskRequest, io: TaskIO, completion) -> tuple[str, str | N
 
 
 def run(request: TaskRequest, io: TaskIO) -> str:
-    """Execute one validated model task. Returns the accepted artifact.
-
-    Raises `Suspend` when a response must come from outside the process, and
-    `TaskFailed` when a budget is exhausted or the model is stagnating.
-
-    Model-call start logging deliberately lives in ``model_observability``. The
-    task-local attempt counter resets when a semantic workflow review re-enters
-    an accepted model step, whereas observability owns the append-only physical
-    attempt number and can distinguish a semantic redo from an ordinary task
-    retry. Serialization-repair status remains task-local and is emitted here.
-    """
     state = io.load_state(request.task_id)
     attempts = request.budgets.rewrite + 1 if request.mode == "proforma" else request.budgets.content
     index = int(state.get("rewrites", 0))
@@ -390,14 +389,12 @@ def run(request: TaskRequest, io: TaskIO) -> str:
     existing = io.read_output()
     if existing is not None:
         existing_fp = _fingerprint(existing)
-        # A native-self suspension is not a model attempt.  After an invalid
-        # artifact has been consumed we persist its fingerprint; if the next
-        # process invocation sees the same file, it must re-issue the same
-        # repair handoff without incrementing the attempt counter again.
         already_consumed = state.get("consumed_output_fingerprint") == existing_fp
         if not already_consumed:
             try:
                 candidate, message = _validate(request, io, _prepare(request, existing))
+            except TaskContractError:
+                raise
             except Exception as exc:
                 feedback = _guard(request, io, state, existing, _content_error(exc))
                 previous = existing
@@ -416,15 +413,11 @@ def run(request: TaskRequest, io: TaskIO) -> str:
                 io.save_state(request.task_id, {})
                 return candidate
         else:
-            # Restore the persisted repair state verbatim.  This is the common
-            # path when a host model has not yet replaced the rejected output.
             previous = state.get("previous")
             mode = state.get("mode") or "repair"
             feedback = state.get("feedback") or ""
 
     if io.is_self:
-        # The response must come from a later invocation. All loop state is on
-        # disk, so re-entry resumes exactly here.
         raise Suspend(request.task_id, _messages(request, previous, feedback, mode), feedback)
 
     while index < attempts:
@@ -436,6 +429,8 @@ def run(request: TaskRequest, io: TaskIO) -> str:
             continue
         try:
             candidate, message = _validate(request, io, _prepare(request, raw))
+        except TaskContractError:
+            raise
         except ValidationFailure as exc:
             if request.mode == "proforma" and not [i for i in exc.issues if i.repair_class != "serialization"]:
                 previous, mode = None, "fresh"

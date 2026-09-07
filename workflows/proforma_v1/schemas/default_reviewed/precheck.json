@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["representation", "coherence"],
+  "$defs": {
+    "comments": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "properties": {
+    "representation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "comments"],
+      "properties": {
+        "status": {"enum": ["faithful", "not_faithful"]},
+        "comments": {"$ref": "#/$defs/comments"}
+      }
+    },
+    "coherence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "comments"],
+      "properties": {
+        "status": {"enum": ["coherent", "incoherent", "indeterminate"]},
+        "comments": {"$ref": "#/$defs/comments"}
+      }
+    }
+  }
+}

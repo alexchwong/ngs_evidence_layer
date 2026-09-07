@@ -13,65 +13,42 @@
         "required": [
           "variant", "gene", "observed_event_type", "observed_vaf", "eligibility",
           "predisposition_evidence", "event_compatibility", "age", "vaf",
-          "personal_history", "family_history", "phenotype", "bucket", "reason",
-          "evidence_card_tags"
+          "personal_history", "family_history", "phenotype", "bucket", "reason"
         ],
         "properties": {
           "variant": {"type": "string", "minLength": 1},
           "gene": {"type": "string", "minLength": 1},
-          "observed_event_type": {
-            "type": "string",
-            "enum": ["sequence_variant", "fusion", "copy_number", "structural_variant", "other", "unknown"]
-          },
+          "observed_event_type": {"type": "string", "enum": ["sequence_variant", "fusion", "copy_number", "structural_variant", "other", "unknown"]},
           "observed_vaf": {"type": ["string", "null"], "minLength": 1},
-          "eligibility": {"type": "string", "enum": ["assess", "skip_no_predisposition_evidence"]},
-          "predisposition_evidence": {
-            "oneOf": [{"$ref": "#/$defs/predispositionEvidence"}, {"type": "null"}]
-          },
+          "eligibility": {"enum": ["assess", "skip_no_predisposition_evidence"]},
+          "predisposition_evidence": {"oneOf": [{"$ref": "#/$defs/predispositionEvidence"}, {"type": "null"}]},
           "event_compatibility": {"oneOf": [{"$ref": "#/$defs/assessment"}, {"type": "null"}]},
           "age": {"oneOf": [{"$ref": "#/$defs/assessment"}, {"type": "null"}]},
           "vaf": {"oneOf": [{"$ref": "#/$defs/assessment"}, {"type": "null"}]},
           "personal_history": {"oneOf": [{"$ref": "#/$defs/assessment"}, {"type": "null"}]},
           "family_history": {"oneOf": [{"$ref": "#/$defs/assessment"}, {"type": "null"}]},
           "phenotype": {"oneOf": [{"$ref": "#/$defs/assessment"}, {"type": "null"}]},
-          "bucket": {
-            "type": ["string", "null"],
-            "enum": ["germline_suspicious", "germline_against", "germline_uncertain", null]
-          },
-          "reason": {"type": "string", "minLength": 1},
-          "evidence_card_tags": {"type": "array", "maxItems": 0, "items": {"type": "string"}}
+          "bucket": {"type": ["string", "null"], "enum": ["germline_suspicious", "germline_against", "germline_uncertain", null]},
+          "reason": {"type": "string", "minLength": 1}
         },
         "allOf": [
           {
             "if": {"properties": {"eligibility": {"const": "skip_no_predisposition_evidence"}}, "required": ["eligibility"]},
-            "then": {
-              "properties": {
-                "predisposition_evidence": {"type": "null"},
-                "event_compatibility": {"type": "null"},
-                "age": {"type": "null"},
-                "vaf": {"type": "null"},
-                "personal_history": {"type": "null"},
-                "family_history": {"type": "null"},
-                "phenotype": {"type": "null"},
-                "bucket": {"type": "null"},
-                "evidence_card_tags": {"maxItems": 0}
-              }
-            }
+            "then": {"properties": {
+              "predisposition_evidence": {"type": "null"}, "event_compatibility": {"type": "null"},
+              "age": {"type": "null"}, "vaf": {"type": "null"}, "personal_history": {"type": "null"},
+              "family_history": {"type": "null"}, "phenotype": {"type": "null"}, "bucket": {"type": "null"}
+            }}
           },
           {
             "if": {"properties": {"eligibility": {"const": "assess"}}, "required": ["eligibility"]},
-            "then": {
-              "properties": {
-                "predisposition_evidence": {"$ref": "#/$defs/predispositionEvidence"},
-                "event_compatibility": {"$ref": "#/$defs/assessment"},
-                "age": {"$ref": "#/$defs/assessment"},
-                "vaf": {"$ref": "#/$defs/assessment"},
-                "personal_history": {"$ref": "#/$defs/assessment"},
-                "family_history": {"$ref": "#/$defs/assessment"},
-                "phenotype": {"$ref": "#/$defs/assessment"},
-                "bucket": {"type": "string", "enum": ["germline_suspicious", "germline_against", "germline_uncertain"]}
-              }
-            }
+            "then": {"properties": {
+              "predisposition_evidence": {"$ref": "#/$defs/predispositionEvidence"},
+              "event_compatibility": {"$ref": "#/$defs/assessment"}, "age": {"$ref": "#/$defs/assessment"},
+              "vaf": {"$ref": "#/$defs/assessment"}, "personal_history": {"$ref": "#/$defs/assessment"},
+              "family_history": {"$ref": "#/$defs/assessment"}, "phenotype": {"$ref": "#/$defs/assessment"},
+              "bucket": {"type": "string", "enum": ["germline_suspicious", "germline_against", "germline_uncertain"]}
+            }}
           }
         ]
       }
@@ -79,25 +56,15 @@
   },
   "$defs": {
     "assessment": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["status", "reason"],
+      "type": "object", "additionalProperties": false, "required": ["status", "reason"],
       "properties": {
-        "status": {
-          "type": "string",
-          "enum": ["supportive", "consistent", "discordant", "not_supplied", "not_assessable"]
-        },
+        "status": {"enum": ["supportive", "consistent", "discordant", "not_supplied", "not_assessable"]},
         "reason": {"type": "string", "minLength": 1}
       }
     },
     "predispositionEvidence": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["mechanism", "evidence_card_tags"],
-      "properties": {
-        "mechanism": {"type": "string", "minLength": 1},
-        "evidence_card_tags": {"type": "array", "maxItems": 0, "items": {"type": "string"}}
-      }
+      "type": "object", "additionalProperties": false, "required": ["mechanism"],
+      "properties": {"mechanism": {"type": "string", "minLength": 1}}
     }
   }
 }

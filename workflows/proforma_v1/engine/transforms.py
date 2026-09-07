@@ -18,6 +18,7 @@ def derive_diagnostic_cmcs(value: Any, context: dict, params: dict) -> Any:
 
 
 
+
 def _reviewed_text_coherence_flags(diagnosis: Any) -> list[dict[str, str]]:
     """Conservative text-only flags; never infer a replacement diagnosis."""
     import re
@@ -44,50 +45,36 @@ def _reviewed_text_coherence_flags(diagnosis: Any) -> list[dict[str, str]]:
                 break
     return flags
 
-def default_reviewed_clinical_packet(value: Any, context: dict, params: dict) -> Any:
-    """Freeze the clinically relevant default-proforma state for one audit call.
 
-    This is deliberately a projection, not a clinical inference.  Native-self
-    resumes in a fresh process between frontier handoffs, so this boundary must
-    be able to hydrate the established default artifacts from disk rather than
-    relying on transient context alone.  No card filtering or clinical rewrite
-    occurs here.
-    """
+def default_reviewed_clinical_packet(value: Any, context: dict, params: dict) -> Any:
+    """Freeze the clinically relevant default-proforma state for one audit call."""
     from pathlib import Path
     from workflows.proforma_v1 import self_runtime as sr
 
     ctx = context.get("__workflow_context__") if isinstance(context, dict) else None
     get = ctx.get if ctx is not None and hasattr(ctx, "get") else context.get
     work = Path(context.get("__work__") or getattr(ctx, "work", "."))
-
     case = get("case")
     diagnosis = get("diagnosis")
     domains = get("domains") or {}
     assignments = get("evidence_assignments")
     audits = get("evidence_audits")
     adjudication = get("evidence_adjudication")
-
-    # The provider runner normally carries these objects in memory. Native-self
-    # does not, because each handoff is resumed by a new process. Hydrate only
-    # missing values from the canonical files already required upstream.
     if case is None:
         case, _registry = sr.load_case_registry(work)
     if diagnosis is None:
         diagnosis = sr.finalize_diagnosis(work)
     if not domains:
         domains = sr.load_domains(work)
-
     def read_if_present(group: str, name: str):
         path = sr.output_path(work, group, name)
         return sr.read_yaml(path) if path.is_file() else None
-
     if assignments is None:
         assignments = read_if_present("evidence_matches", "self-resolution.yaml")
     if audits is None:
         audits = read_if_present("evidence_audits", "self-audit.yaml")
     if adjudication is None:
         adjudication = read_if_present("evidence_adjudication", "adjudication.yaml")
-
     return {
         "structured_case": case,
         "diagnosis": diagnosis,
@@ -98,20 +85,11 @@ def default_reviewed_clinical_packet(value: Any, context: dict, params: dict) ->
         "evidence_adjudication": adjudication,
     }
 
-
 def delegated(value: Any, context: dict, params: dict) -> Any:
-    """Marker for transforms still implemented by the v6-compatible handler."""
     return value
 
 
 def reasoning_delegated(value: Any, context: dict, params: dict) -> Any:
-    """Reasoning-workflow marker for a cloned deterministic boundary.
-
-    Phase 1 intentionally preserves the shipped default behaviour while giving
-    ``reasoning.yaml`` distinct transform identities. Later reasoning phases can
-    replace these markers with reasoning-specific implementations without
-    changing the transform names used by ``default.yaml``.
-    """
     from workflows.proforma_v1 import reasoning_runtime
     return reasoning_runtime.delegated_transform(value, context=context, params=params)
 
@@ -136,6 +114,14 @@ def reasoning_ptbg(name):
     return apply_reasoning_ptbg
 
 
+
+def default_reviewed_reasoning(name):
+    def apply_default_reviewed_reasoning(value: Any, context: dict, params: dict) -> Any:
+        from workflows.proforma_v1 import default_reviewed_reasoning as reviewed
+        return reviewed.run(name, context, params)
+    return apply_default_reviewed_reasoning
+
+
 REGISTRY = {
     "identity": identity,
     "load_corpus": delegated,
@@ -148,8 +134,6 @@ REGISTRY = {
     "assess_who1_routing_change": delegated,
     "commit_who1_routing": delegated,
     "default_reviewed_clinical_packet": default_reviewed_clinical_packet,
-    # ``reasoning.yaml`` owns separate deterministic transform identities so
-    # experimental reasoning semantics never require edits to default names.
     "reasoning_load_corpus": reasoning_delegated,
     "reasoning_finalize_evidence": reasoning_delegated,
     "reasoning_report_blocks": reasoning_delegated,
@@ -179,7 +163,6 @@ REGISTRY = {
     "reasoning_evaluate_diagnoses": reasoning_diagnostic("reasoning_evaluate_diagnoses"),
     "reasoning_owner_review": reasoning_diagnostic("reasoning_owner_review"),
     "reasoning_finalize_atomic_diagnosis": reasoning_diagnostic("reasoning_finalize_atomic_diagnosis"),
-
     "reasoning_prepare_ptbg_reasoning": reasoning_ptbg("reasoning_prepare_ptbg_reasoning"),
     "reasoning_validate_ptbg_reasoning_v2": reasoning_ptbg("reasoning_validate_ptbg_reasoning_v2"),
     "reasoning_prepare_ptbg_evidence_match_v2": reasoning_ptbg("reasoning_prepare_ptbg_evidence_match_v2"),
@@ -212,6 +195,22 @@ REGISTRY = {
     "reasoning_report_blocks": reasoning_ptbg("reasoning_report_blocks"),
     "reasoning_finalize_report": reasoning_ptbg("reasoning_finalize_report"),
 }
+
+for _name in (
+    "default_reviewed_owner_packet",
+    "default_reviewed_compile_secretary",
+    "default_reviewed_validate_precheck",
+    "default_reviewed_precheck_representation_review",
+    "default_reviewed_precheck_coherence_review",
+    "default_reviewed_who1_postcheck_prepare",
+    "default_reviewed_validate_who1_postcheck",
+    "default_reviewed_who1_postcheck_review",
+    "default_reviewed_postcheck_prepare",
+    "default_reviewed_validate_postcheck",
+    "default_reviewed_postcheck_review",
+    "default_reviewed_render_reasoning_trace",
+):
+    REGISTRY[_name] = default_reviewed_reasoning(_name)
 
 
 def apply(name: str, value: Any, *, context: dict | None = None, params: dict | None = None) -> Any:

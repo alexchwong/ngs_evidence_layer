@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdicts"],
+  "properties": {
+    "verdicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["owner", "conclusion_id", "verdict", "comments"],
+        "properties": {
+          "owner": {"enum": ["who1", "who2", "icc", "prognosis", "treatment", "biomarker", "germline"]},
+          "conclusion_id": {"type": "string", "pattern": "^C[0-9]{3}$"},
+          "verdict": {"enum": ["survives", "survives_with_qualification", "revise"]},
+          "comments": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    }
+  }
+}

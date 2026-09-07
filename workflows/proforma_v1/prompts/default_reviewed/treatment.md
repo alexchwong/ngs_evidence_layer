@@ -2,10 +2,10 @@
 
 Using only the supplied case, authoritative diagnosis, and treatment cards, address every supplied variant in the authoritative disease. When no NGS variants are detected, return `classification: []`; do not create a pseudo-variant for a negative NGS result.
 
-Clinical audit feedback (null on first pass):
-{{ input.clinical_audit_feedback }}
+Reasoning feedback (null on first pass):
+{{ input.reasoning_feedback }}
 
-If feedback is supplied, correct only the identified clinical coherence problem(s) and preserve unrelated valid decisions.
+If feedback is supplied, correct only the identified clinical coherence/evidence-loss problem(s) and preserve unrelated valid decisions.
 
 Treatment categories:
 - `drug_target`: the molecular lesion is directly targetable.
@@ -21,4 +21,4 @@ Rules:
 - A variant with any positive treatment implication must not appear in `no_drug_implication`.
 - Keep reasons concise and evidence-backed.
 
-Evidence assignment is downstream in this workflow. Do not choose or rank cards. Return every `evidence_card_tags` list as `[]`.
+Evidence assignment is downstream in this workflow. Do not choose or rank cards and do not emit evidence-card/card-tag bookkeeping fields.
