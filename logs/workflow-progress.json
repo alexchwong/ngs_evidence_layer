@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "workflow_id": "proforma-v1",
+  "workflow_definition": "/home/alex-wong/vscode_projects/ngs_evidence_layer/workflows/proforma_v1/workflow/default.yaml",
+  "workflow_sha256": "126cae38369c3c8bb387ab564326029d2d5bb0ec0119e404ddd0f6bdedd1a95e",
+  "progress_definition": "/home/alex-wong/vscode_projects/ngs_evidence_layer/workflows/proforma_v1/workflow/default.yaml#presentation.progress_phases",
+  "executor": "self",
+  "complete": true,
+  "current_phase": "report",
+  "visible_current_phase": "report",
+  "visible_high_water_phase": "report",
+  "visible_high_water_index": 7,
+  "execution_current_phase": null,
+  "execution_current_step": null,
+  "current_step": null,
+  "phases": [
+    {
+      "id": "preparation",
+      "label": "Preparation",
+      "steps": [
+        "structure",
+        "corpus"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "diagnosis",
+      "label": "Diagnosis",
+      "steps": [
+        "diagnosis.who1",
+        "diagnosis.who1.routing_change",
+        "diagnosis.who1.evidence.assignment",
+        "diagnosis.who1.evidence.audit",
+        "diagnosis.who1.evidence.adjudication",
+        "diagnosis.who1.commit",
+        "diagnosis.who2",
+        "diagnosis.icc",
+        "diagnosis.finalize"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "prognosis",
+      "label": "Prognosis",
+      "steps": [
+        "prognosis"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "treatment",
+      "label": "Treatment",
+      "steps": [
+        "treatment"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "biomarker",
+      "label": "Biomarker",
+      "steps": [
+        "biomarker"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "germline",
+      "label": "Germline",
+      "steps": [
+        "germline"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "evidence",
+      "label": "Evidence",
+      "steps": [
+        "evidence.assignment",
+        "evidence.audit",
+        "evidence.adjudication",
+        "evidence.finalize"
+      ],
+      "status": "completed"
+    },
+    {
+      "id": "report",
+      "label": "Report",
+      "steps": [
+        "report.blocks",
+        "report.write",
+        "report.preservation",
+        "report.finalize"
+      ],
+      "status": "completed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "structure",
+      "status": "completed"
+    },
+    {
+      "id": "corpus",
+      "status": "completed"
+    },
+    {
+      "id": "diagnosis.who1",
+      "status": "completed"
+    },
+    {
+      "id": "diagnosis.who1.routing_change",
+      "status": "completed"
+    },
+    {
+      "id": "diagnosis.who1.evidence.assignment",
+      "status": "skipped",
+      "reason": "condition_false"
+    },
+    {
+      "id": "diagnosis.who1.evidence.audit",
+      "status": "skipped",
+      "reason": "condition_false"
+    },
+    {
+      "id": "diagnosis.who1.evidence.adjudication",
+      "status": "skipped",
+      "reason": "condition_false"
+    },
+    {
+      "id": "diagnosis.who1.commit",
+      "status": "completed"
+    },
+    {
+      "id": "diagnosis.who2",
+      "status": "skipped",
+      "reason": "condition_false"
+    },
+    {
+      "id": "diagnosis.icc",
+      "status": "completed"
+    },
+    {
+      "id": "diagnosis.finalize",
+      "status": "completed"
+    },
+    {
+      "id": "prognosis",
+      "status": "completed"
+    },
+    {
+      "id": "treatment",
+      "status": "completed"
+    },
+    {
+      "id": "biomarker",
+      "status": "completed"
+    },
+    {
+      "id": "germline",
+      "status": "completed"
+    },
+    {
+      "id": "evidence.assignment",
+      "status": "completed"
+    },
+    {
+      "id": "evidence.audit",
+      "status": "completed"
+    },
+    {
+      "id": "evidence.adjudication",
+      "status": "completed"
+    },
+    {
+      "id": "evidence.finalize",
+      "status": "completed"
+    },
+    {
+      "id": "report.blocks",
+      "status": "completed"
+    },
+    {
+      "id": "report.write",
+      "status": "completed"
+    },
+    {
+      "id": "report.preservation",
+      "status": "skipped",
+      "reason": "executor_disabled"
+    },
+    {
+      "id": "report.finalize",
+      "status": "completed"
+    }
+  ]
+}

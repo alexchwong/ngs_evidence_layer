@@ -331,10 +331,11 @@ class SharedRunnerTests(unittest.TestCase):
         provider = ProviderExecutor({name: (lambda step, ctx: {"status": "complete"}) for name in provider_names if name})
         self_exec = SelfExecutor({name: (lambda step, ctx: {"status": "complete"}) for name in self_names if name})
         common={"predicates":{"who1_routing_changed":lambda c:False,"who2_required":lambda c:False},"review_predicates":{"evidence_audit_resolved":lambda step,c,result:True}}
-        pctx = WorkflowContext(Path("."), "provider", data=dict(common))
-        sctx = WorkflowContext(Path("."), "self", data=dict(common))
-        WorkflowRunner(workflow, provider).run_all(pctx)
-        WorkflowRunner(workflow, self_exec).run_all(sctx)
+        with tempfile.TemporaryDirectory() as td:
+            pctx = WorkflowContext(Path(td), "provider", data=dict(common))
+            sctx = WorkflowContext(Path(td), "self", data=dict(common))
+            WorkflowRunner(workflow, provider).run_all(pctx)
+            WorkflowRunner(workflow, self_exec).run_all(sctx)
         expected = {s.id for s in workflow.steps}
         self.assertEqual(pctx.completed, expected)
         self.assertEqual(sctx.completed, expected)

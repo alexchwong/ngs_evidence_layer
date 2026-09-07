@@ -3360,7 +3360,11 @@ def reasoning_report_blocks(context: dict, params: dict) -> list[dict]:
         from workflows.proforma_v1 import self_runtime as sr, schema_validation
         sr.write_yaml(sr.output_path(work,"report_blocks","report-blocks.yaml"),{"blocks":blocks}); schema_validation.validate_report_source_blocks(blocks)
     except Exception: pass
-    ctx.put("blocks",blocks); return blocks
+    if hasattr(ctx,"put"):
+        ctx.put("blocks",blocks)
+    else:
+        ctx["blocks"]=blocks
+    return blocks
 
 
 def merge_diagnostic_evidence_matches(context: dict, params: dict) -> dict:

@@ -195,7 +195,9 @@ class WorkflowProgress:
         high = min(self._visible_high_water_index, max(0, len(self.plan["phases"]) - 1))
         for index, phase in enumerate(self.plan["phases"]):
             statuses = [self._status[sid] for sid in phase["steps"]]
-            if complete or index < high:
+            if "failed" in statuses:
+                status = "failed"
+            elif complete or index < high:
                 status = "completed"
             elif index == high:
                 status = "completed" if all(x in FINAL_STATES for x in statuses) and (index == len(self.plan["phases"])-1 or all(self._status[sid] in FINAL_STATES for later in self.plan["phases"][index+1:] for sid in later["steps"])) else "running"

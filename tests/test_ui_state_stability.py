@@ -38,7 +38,7 @@ class UIStateStabilityTests(unittest.TestCase):
         required = [
             "selectionGeneration:0",
             "selectedSnapshotCurrent(snapshot)",
-            "setConsoleTarget(d.run_id)",
+            "setSelectedRun(d.run_id)",
             "state.runs=mergePendingRuns(state.runs||[])",
             "['complete','marking_incomplete'].includes(target.status)",
             "btn.textContent=target.archived?'Archived':'Run complete'",
@@ -69,7 +69,7 @@ class UIStateStabilityTests(unittest.TestCase):
         self.assertNotEqual(patched, original)
         self.assertIn("selectionGeneration:0", patched)
         self.assertIn("Marking pending", patched)
-        self.assertIn("setConsoleTarget(d.run_id)", patched)
+        self.assertIn("setSelectedRun(d.run_id)", patched)
         self.assertIn("if(state.midMode==='dissent')tasks.push(loadDissent())", patched)
         self.assertNotIn("btn.textContent='Retry marking'", patched)
         self.assertNotIn(

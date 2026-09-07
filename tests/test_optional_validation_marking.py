@@ -39,17 +39,18 @@ class OptionalValidationMarkingTests(unittest.TestCase):
         self.assertIn("'/api/mark'", source)
         self.assertIn('path == "/api/mark"', server)
         self.assertIn('phase="marking"', server)
-        self.assertIn('is_validation_mode(mode)', server)
+        self.assertIn('mode == "nel-validate" or mode.startswith("nel-validate-")', server)
 
     def test_browser_extension_blocks_automatic_key_modal_and_restores_frozen_profile(self) -> None:
         source = (ROOT / "ui" / "assets" / "marking-controls.js").read_text(encoding="utf-8")
+        credentials = (ROOT / "ui" / "assets" / "run-credentials.js").read_text(encoding="utf-8")
         self.assertIn('dialog.dataset.nelManualOnly', source)
         self.assertIn("if (!userRequested) return undefined", source)
         self.assertIn('restoreFrozenProfile', source)
         self.assertIn("status.pipeline", source)
-        self.assertIn("id = 'providerActionError'", source)
-        self.assertIn('function gateProviderActions()', source)
-        self.assertIn("/^(Start|Resume)/", source)
+        self.assertIn('function installRunGate()', credentials)
+        self.assertIn("event.stopImmediatePropagation()", credentials)
+        self.assertIn("openKeyDialog", credentials)
 
     def test_batch_bundle_is_single_isolated_deterministic_deliverable(self) -> None:
         try:

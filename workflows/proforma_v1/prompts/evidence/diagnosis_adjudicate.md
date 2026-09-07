@@ -2,7 +2,9 @@
 
 For each disputed WHO1 diagnostic fact/card pair, decide only whether the supplied card is sufficient support for the proposed WHO5 diagnostic proposition under the diagnosis-complete-support policy.
 
-Consider the supplied case facts together with defining criteria, thresholds, exclusions, precedence/supersession, finite gene-set membership, schema disease and routing consequence where applicable. A defining criterion or threshold can support an exclusion when combined with a supplied case fact. Do not rewrite the diagnosis, introduce another card, or select evidence outside the disputed pair.
+Consider the supplied case facts together with defining criteria, thresholds, exclusions, precedence/supersession, finite gene-set membership, schema disease and routing consequence where applicable. Preserve all material restrictions in the diagnostic rule and its application, including where relevant allelic state, variant class, threshold, disease/subtype, co-mutation or exclusion context, cytogenetic context, population, framework/classification system, polarity, uncertainty, and evidentiary strength. A narrower or differently scoped card must be excluded when the proposed diagnostic proposition drops or changes a required restriction. Ordinary paraphrase is acceptable when the diagnostic meaning and restrictions are unchanged.
+
+A defining criterion or threshold can support an exclusion when combined with a supplied case fact. Do not rewrite the diagnosis, introduce another card, or select evidence outside the disputed pair.
 
 Dispute IDs are deterministic from the supplied dispute order: the first dispute is `D0001`, the second is `D0002`, and so on. Use those IDs only to identify your answers. Do not reproduce evidence IDs or card tags in the output. You may return the answer rows in any order. Return exactly one answer for every dispute ID; do not omit, duplicate, or invent IDs.
 

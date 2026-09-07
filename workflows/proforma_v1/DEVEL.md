@@ -40,6 +40,10 @@ checks that coverage.
 - `audit` — auditor configuration inside an evidence policy.
 - `adjudication` — adjudicator configuration inside an evidence policy.
 - `steps` — mapping of logical step IDs to step definitions.
+- `presentation` — UI-only metadata that groups steps without affecting execution.
+- `progress_phases` — ordered presentation groups used to report workflow progress.
+- `id` — stable identifier for a presentation phase.
+- `label` — human-readable presentation-phase name.
 
 ### Shipped logical step IDs
 

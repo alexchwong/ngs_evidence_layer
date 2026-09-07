@@ -7,6 +7,8 @@ Reasoning feedback (null on first pass):
 
 If feedback is supplied, correct only the identified clinical coherence/evidence-loss problem(s) and preserve unrelated valid decisions.
 
+Preserve material restrictions from the supplied evidence when stating clinical rules or applying them to this patient. Do not broaden a rule by dropping or changing required allelic state, variant class, threshold, disease/subtype, therapy or exposure context, co-mutation/exclusion context, cytogenetic context, population, endpoint, framework/source attribution, polarity, uncertainty, or evidentiary strength.
+
 Treatment categories:
 - `drug_target`: the molecular lesion is directly targetable.
 - `drug_sensitive`: the finding predicts increased sensitivity/response without itself being the direct target.

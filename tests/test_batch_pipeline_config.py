@@ -5,12 +5,10 @@ from pathlib import Path
 
 import yaml
 
+from workflows.proforma_v1 import pipeline_registry
+
 ROOT = Path(__file__).resolve().parents[1]
-ROLES = {
-    "structure", "diagnosis", "ptbg", "evidence_match", "evidence_audit",
-    "evidence_adjudication", "report_write", "preservation_check", "syntax_repair",
-    "marking",
-}
+ROLES = set(pipeline_registry.ROLES)
 
 
 class BatchPipelineConfigTests(unittest.TestCase):

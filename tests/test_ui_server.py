@@ -646,16 +646,22 @@ class ConfigCheckSecretTests(unittest.TestCase):
 
     @unittest.skipIf(os.environ.get("OPENROUTER_API_KEY"), "a real key is already in the environment")
     def test_key_satisfies_required_check(self):
-        without = server.config_check("openrouter")
+        from ui import workflow_server
+
+        without = workflow_server._ui_config_check("openrouter")
+        without_errors = [*(without.get("errors") or []), *(without.get("credential_errors") or [])]
         self.assertTrue(
-            any("OPENROUTER_API_KEY" in str(error) for error in without.get("errors", [])),
-            f"expected a missing-key error, got {without.get('errors')}",
+            without.get("credential_required")
+            and any("OPENROUTER_API_KEY" in str(error) for error in without_errors),
+            f"expected a missing-key error, got {without_errors}",
         )
         server.SECRETS["OPENROUTER_API_KEY"] = "test-key-not-used-for-a-request"
-        with_key = server.config_check("openrouter")
+        with_key = workflow_server._ui_config_check("openrouter")
+        with_key_errors = [*(with_key.get("errors") or []), *(with_key.get("credential_errors") or [])]
         self.assertFalse(
-            any("OPENROUTER_API_KEY" in str(error) for error in with_key.get("errors", [])),
-            f"key was not injected; errors: {with_key.get('errors')}",
+            with_key.get("credential_required")
+            or any("OPENROUTER_API_KEY" in str(error) for error in with_key_errors),
+            f"key was not injected; errors: {with_key_errors}",
         )
 
 

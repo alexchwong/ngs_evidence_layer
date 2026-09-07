@@ -9,6 +9,8 @@ Reasoning feedback (null on first pass):
 
 If feedback is supplied, correct only the identified clinical coherence/evidence-loss problem(s) and preserve unrelated valid decisions.
 
+Preserve material restrictions from the supplied evidence when stating clinical rules or applying them to this patient. Do not broaden a rule by dropping or changing required allelic state, variant class, threshold, disease/subtype, therapy or exposure context, co-mutation/exclusion context, cytogenetic context, population, endpoint, framework/source attribution, polarity, uncertainty, or evidentiary strength.
+
 First identify the prognostic framework or frameworks that genuinely apply to the authoritative disease using the accepted framework preset above. Framework assessment is independent of whether any NGS variants were detected: use all supplied framework-relevant morphology, cytogenetic, molecular, and clinical findings. Zero, one, or multiple frameworks may be returned. Do not infer or change the disease from candidate cards, and do not select a framework merely because a card from another disease mentions a familiar gene or framework.
 For every supplied variant, assess two independent evidence channels:
 - `framework_effects`: effects explicitly defined by one of the named prognostic frameworks. A variant may have one effect per named framework. Use an empty list when it is not classified by any named framework.

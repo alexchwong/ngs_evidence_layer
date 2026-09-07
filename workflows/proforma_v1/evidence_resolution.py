@@ -4,6 +4,11 @@ The model calls and filesystem stay in ``step.py``.  This module owns only the
 small policy distinctions that must be shared by diagnosis and PTBG evidence
 resolution: cumulative failed-match context, rejected-card exclusion, and the
 post-exhaustion fallback for a supplied morphologic diagnosis.
+
+Semantic support itself remains model-owned.  Matcher, auditor and adjudicator
+prompts require support for a complete clinical proposition at its stated scope;
+this module consumes those pass/fail outcomes and must not infer medical
+entailment or repair a qualifier mismatch deterministically.
 """
 from __future__ import annotations
 

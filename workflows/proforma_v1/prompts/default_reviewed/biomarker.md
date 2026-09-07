@@ -7,6 +7,8 @@ Reasoning feedback (null on first pass):
 
 If feedback is supplied, correct only the identified clinical coherence/evidence-loss problem(s) and preserve unrelated valid decisions.
 
+Preserve material restrictions from the supplied evidence when stating clinical rules or applying them to this patient. Do not broaden a rule by dropping or changing required allelic state, variant class, threshold, disease/subtype, therapy or exposure context, co-mutation/exclusion context, cytogenetic context, population, endpoint, framework/source attribution, polarity, uncertainty, or evidentiary strength.
+
 Rules:
 - Every positive MRD/biomarker claim must be supported by evidence explicitly applicable to the authoritative disease. Do not borrow biomarker evidence from another disease merely because the same gene or variant is present.
 - A card explicitly covering multiple diseases is usable when the authoritative disease is one of them.

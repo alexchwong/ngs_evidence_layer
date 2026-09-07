@@ -55,14 +55,13 @@ class WorkflowProgressTests(unittest.TestCase):
             self.assertEqual([p["id"] for p in plan["phases"]], ["alpha", "beta"])
             self.assertEqual([p["steps"] for p in plan["phases"]], [["alpha"], ["beta"]])
 
-    def test_sidecar_must_cover_each_step_exactly_once(self):
+    def test_embedded_plan_must_cover_each_step_exactly_once(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             workflow = DummyWorkflow(root, [DummyStep("alpha"), DummyStep("beta")])
-            (root / "test.progress.yaml").write_text(
-                "version: 1\nphases:\n  - id: first\n    label: First\n    steps: [alpha]\n",
-                encoding="utf-8",
-            )
+            workflow.doc = {"presentation": {"progress_phases": [
+                {"id": "first", "label": "First", "steps": ["alpha"]},
+            ]}}
             with self.assertRaisesRegex(ProgressPlanError, "does not cover"):
                 load_progress_plan(workflow)
 

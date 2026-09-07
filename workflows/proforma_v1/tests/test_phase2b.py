@@ -388,8 +388,9 @@ class Phase2BReviewRunnerTests(unittest.TestCase):
             return {"artifact": doc}
         handlers = {"target": target_handler, "audit": audit_handler, "final": lambda s, c: {"artifact": {"done": True}}}
         executor = ProviderExecutor(handlers, invalidator=lambda ids, ctx: invalidated.append(set(ids)))
-        ctx = WorkflowContext(Path("."), "provider")
-        result = WorkflowRunner(WF(), executor).run_all(ctx)
+        with tempfile.TemporaryDirectory() as td:
+            ctx = WorkflowContext(Path(td), "provider")
+            result = WorkflowRunner(WF(), executor).run_all(ctx)
         self.assertEqual(result.status, "complete")
         self.assertEqual(len(target_runs), 2)
         self.assertEqual(target_runs[1]["feedback.audit"]["accepted"], False)
