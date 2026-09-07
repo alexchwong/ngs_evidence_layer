@@ -32,6 +32,8 @@
     style.textContent = `
       #profileDialog table.roles [data-role-reasoning]{min-width:96px}
       #profileDialog .nel-reasoning-note{margin-top:6px}
+      #profileDialog .nel-role-description{margin-top:3px;max-width:280px;font-size:10px;line-height:1.25;color:var(--muted)}
+      #profileDialog .nel-role-description.nel-role-unused{font-style:italic}
     `;
     document.head.appendChild(style);
   }
@@ -63,6 +65,38 @@
       note.textContent = 'OpenRouter reasoning is per role. Default sends no reasoning-effort parameter; available effort levels depend on the selected model/provider.';
     } else {
       note.textContent = 'Per-role reasoning effort is unavailable for this provider class; use Default.';
+    }
+  }
+
+  function selectedWorkflowMetadata() {
+    const name = String(
+      document.getElementById('workflowSelect')?.value ||
+      state?.boot?.default_workflow ||
+      'default'
+    );
+    const workflow = (state?.boot?.workflows || []).find(row => String(row?.id || '') === name) || {};
+    const descriptions = workflow.model_roles && typeof workflow.model_roles === 'object'
+      ? workflow.model_roles
+      : {};
+    return { name, descriptions };
+  }
+
+  function updateRoleDescriptions() {
+    const { name, descriptions } = selectedWorkflowMetadata();
+    for (const tr of roleBody.querySelectorAll('tr[data-role]')) {
+      const role = tr.dataset.role;
+      const cell = tr.cells?.[0];
+      if (!role || !cell) continue;
+      let note = cell.querySelector('[data-role-description]');
+      if (!note) {
+        note = document.createElement('div');
+        note.dataset.roleDescription = '1';
+        note.className = 'nel-role-description';
+        cell.appendChild(note);
+      }
+      const description = String(descriptions[role] || '').trim();
+      note.textContent = description || `Not used in ${name}`;
+      note.classList.toggle('nel-role-unused', !description);
     }
   }
 
@@ -108,6 +142,7 @@
         select.addEventListener('change', () => { select.dataset.userSet = '1'; });
       }
     }
+    updateRoleDescriptions();
     applyProviderCapabilities();
   }
 
@@ -161,6 +196,9 @@
   document.addEventListener('change', event => {
     if (event.target?.id === 'profileProviderClass' || event.target?.id === 'providerClass') {
       queueMicrotask(applyProviderCapabilities);
+    }
+    if (event.target?.id === 'workflowSelect') {
+      queueMicrotask(updateRoleDescriptions);
     }
   });
   const observer = new MutationObserver(installSelects);

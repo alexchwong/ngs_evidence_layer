@@ -450,6 +450,17 @@ steps:
 # alter dependencies, routing, retries, conditions, or execution.
 # ============================================================
 presentation:
+  model_roles:
+    structure: "Structures the raw case into normalized facts for downstream interpretation."
+    diagnosis: "Produces diagnostic assessments and classification conclusions."
+    ptbg: "Produces prognosis, treatment, biomarker, and germline conclusions."
+    evidence_match: "Selects corpus evidence that supports each clinical conclusion."
+    evidence_audit: "Independently checks whether selected evidence supports each conclusion."
+    evidence_adjudication: "Resolves disagreements between evidence matching and evidence audit."
+    report_write: "Writes the clinical report from approved conclusions and evidence."
+    preservation_check: "Checks that report synthesis preserved the approved clinical content."
+    marking: "Evaluates completed validation reports; it does not generate clinical conclusions."
+    syntax_repair: "Repairs malformed structured model output without changing clinical meaning."
   progress_phases:
   - id: preparation
     label: Preparation

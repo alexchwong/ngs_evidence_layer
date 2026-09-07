@@ -18,6 +18,7 @@ from urllib.parse import quote, urlparse
 from ui import batch_server as batch
 base = batch.base
 from workflows.proforma_v1 import pipeline_registry
+from workflows.proforma_v1.engine.workflow_loader import load as load_workflow
 _BATCH_BOOTSTRAP = batch.bootstrap
 _BATCH_LIST_PIPELINES = batch.list_pipelines
 WORKFLOW_DIR = base.ROOT / "workflows" / "proforma_v1" / "workflow"
@@ -253,9 +254,25 @@ def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
     saved = base.save_pipeline(name, doc, overwrite=bool(payload.get("overwrite")))
     return {"name": name, "path": str(saved), "pipelines": list_pipelines()}
 
-def workflow_definitions() -> list[dict[str, str]]:
+def _workflow_role_descriptions(path: Path) -> dict[str, str]:
+    doc = load_workflow(path)
+    presentation = doc.get("presentation") or {}
+    roles = presentation.get("model_roles") or {}
+    if not isinstance(roles, dict):
+        return {}
+    return {
+        str(role): str(description).strip()
+        for role, description in roles.items()
+        if str(description).strip()
+    }
+
+def workflow_definitions() -> list[dict[str, Any]]:
     rows = [
-        {"id": path.stem, "label": path.stem}
+        {
+            "id": path.stem,
+            "label": path.stem,
+            "model_roles": _workflow_role_descriptions(path),
+        }
         for path in sorted(WORKFLOW_DIR.glob("*.yaml"))
         if path.is_file() and base.RUN_ID_RE.fullmatch(path.stem)
     ]
