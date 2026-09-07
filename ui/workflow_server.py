@@ -6,15 +6,18 @@ YAMLs without duplicating workflow execution logic in the UI.
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import os
 import sys
+import threading
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlparse
 from ui import batch_server as batch
 base = batch.base
+from workflows.proforma_v1 import pipeline_registry
 _BATCH_BOOTSTRAP = batch.bootstrap
 _BATCH_LIST_PIPELINES = batch.list_pipelines
 WORKFLOW_DIR = base.ROOT / "workflows" / "proforma_v1" / "workflow"
@@ -32,15 +35,84 @@ REASONING_LEVELS = ("default", "none", "minimal", "low", "medium", "high", "xhig
 LMSTUDIO_REASONING_LEVELS = ("default", "low", "medium", "high")
 LMSTUDIO_MIN_VERSION = "0.3.29"
 
+_SETUP_CREDENTIAL = threading.local()
 _BASE_CHILD_ENV = base.child_env
 def _ui_child_env() -> dict[str, str]:
-    """Opt UI-launched provider processes into transient live streaming."""
+    """Opt UI-launched provider processes into transient live streaming.
+
+    Setup is deterministic and never calls a provider.  When the selected
+    profile requires a credential that has not yet been supplied, a per-thread
+    sentinel lets the CLI configuration check complete without placing a fake
+    credential in shared process state.  Run-time provider calls never receive
+    this sentinel.
+    """
     env = _BASE_CHILD_ENV()
     env["NEL_MODEL_STREAM"] = "1"
     env["NEL_MODEL_ACTIVITY_DIR"] = str(MODEL_ACTIVITY_DIR)
+    setup_env = str(getattr(_SETUP_CREDENTIAL, "env_name", "") or "").strip()
+    if setup_env and not str(env.get(setup_env) or "").strip():
+        env[setup_env] = "__NEL_UI_SETUP_ONLY__"
     return env
 
 base.child_env = _ui_child_env
+
+
+def _profile_credential_status(pipeline: str) -> dict[str, Any]:
+    pipeline = str(pipeline or "").strip()
+    if not pipeline:
+        return {
+            "pipeline": "", "required": False, "env": "", "set": True,
+            "credential_required": False,
+        }
+    doc = base.read_pipeline(pipeline)
+    provider = doc.get("provider") or {}
+    if not isinstance(provider, dict):
+        provider = {}
+    required = bool(provider.get("api_key_required"))
+    env_name = str(provider.get("api_key_env") or "").strip()
+    value = str(base.SECRETS.get(env_name) or os.environ.get(env_name) or "").strip() if env_name else ""
+    return {
+        "pipeline": pipeline,
+        "required": required,
+        "env": env_name,
+        "set": bool(value) if required else True,
+        "credential_required": bool(required and env_name and not value),
+    }
+
+
+_BASE_CONFIG_CHECK = base.config_check
+def _ui_config_check(pipeline: str, cul: str = "") -> dict[str, Any]:
+    """Keep credential readiness separate from structural profile validity."""
+    doc = dict(_BASE_CONFIG_CHECK(pipeline, cul))
+    selected = str(pipeline or doc.get("pipeline") or "").strip()
+    try:
+        credential = _profile_credential_status(selected)
+    except base.UIError:
+        credential = {
+            "pipeline": selected, "required": False, "env": "", "set": True,
+            "credential_required": False,
+        }
+    errors = [str(item) for item in (doc.get("errors") or [])]
+    credential_errors: list[str] = []
+    env_name = str(credential.get("env") or "")
+    if credential.get("credential_required") and env_name:
+        marker = f"requires environment variable {env_name}"
+        kept: list[str] = []
+        for error in errors:
+            if marker in error:
+                credential_errors.append(error)
+            else:
+                kept.append(error)
+        errors = kept
+    doc["errors"] = errors
+    doc["credential_required"] = bool(credential.get("credential_required"))
+    doc["credential_env"] = env_name
+    doc["credential_errors"] = credential_errors
+    doc["ok"] = not errors
+    return doc
+
+base.config_check = _ui_config_check
+
 
 def _infer_provider_class(name: str, doc: dict[str, Any] | None = None, base_url: str = "") -> str:
     """Return the UI provider class without requiring a profile migration."""
@@ -80,6 +152,36 @@ def list_pipelines() -> list[dict[str, Any]]:
             name, doc, str(row.get("base_url") or "")
         )
     return rows
+
+
+def _complete_payload_roles(payload: dict[str, Any]) -> dict[str, Any]:
+    """Complete a sparse UI profile from the workflow-agnostic role catalogue."""
+    out = copy.deepcopy(payload)
+    roles_in = out.get("roles")
+    aliases = out.get("aliases")
+    if not isinstance(roles_in, dict) or not isinstance(aliases, list):
+        return out
+    first_alias = ""
+    for row in aliases:
+        if isinstance(row, dict) and str(row.get("alias") or "").strip():
+            first_alias = str(row["alias"]).strip()
+            break
+    if not first_alias:
+        return out
+    defaults = pipeline_registry.role_defaults()
+    for role in pipeline_registry.ROLES:
+        if role in roles_in:
+            continue
+        default = dict(defaults[role])
+        default["model"] = first_alias
+        roles_in[role] = default
+    return out
+
+
+def _profile_for_editor(name: str) -> dict[str, Any]:
+    """Present sparse profiles with all known role defaults without rewriting disk."""
+    return pipeline_registry.with_role_defaults(base.read_pipeline(name))
+
 
 def _apply_role_reasoning(doc: dict[str, Any], payload: dict[str, Any]) -> None:
     """Copy optional UI reasoning settings into model_roles after base composition."""
@@ -128,7 +230,8 @@ def _validate_provider_reasoning(doc: dict[str, Any], provider_class: str) -> No
 
 
 def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
-    """Save a profile with provider class and optional per-role reasoning effort."""
+    """Save a workflow-agnostic profile with missing known roles defaulted."""
+    payload = _complete_payload_roles(payload)
     name, doc = base.compose_pipeline(payload)
     _apply_role_reasoning(doc, payload)
     requested = str(payload.get("provider_class") or "").strip().lower()
@@ -178,6 +281,7 @@ def bootstrap() -> dict[str, Any]:
     doc["reasoning_levels"] = list(REASONING_LEVELS)
     doc["lmstudio_reasoning_levels"] = list(LMSTUDIO_REASONING_LEVELS)
     doc["lmstudio_min_version"] = LMSTUDIO_MIN_VERSION
+    doc["role_defaults"] = pipeline_registry.role_defaults()
     return doc
 
 def openrouter_models() -> dict[str, Any]:
@@ -266,6 +370,23 @@ def openrouter_model_providers(base_url: str, model: str, api_key_env: str) -> d
         "providers": [rows[key] for key in sorted(rows, key=str.casefold)],
     }
 
+
+def _start_setup(argv: list[str], *, run_id: str, pipeline: str, cleanup: list[Path]) -> dict[str, Any]:
+    """Start deterministic setup while deferring a missing provider credential."""
+    status = _profile_credential_status(pipeline)
+    _SETUP_CREDENTIAL.env_name = status.get("env") if status.get("credential_required") else ""
+    try:
+        return base.REGISTRY.start(
+            argv,
+            run_id=run_id,
+            phase="setup",
+            exclusive=base.is_local_pipeline(pipeline),
+            cleanup=cleanup,
+        )
+    finally:
+        _SETUP_CREDENTIAL.env_name = ""
+
+
 def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
     pipeline = str(payload.get("pipeline") or "").strip()
     batch._validate_pipeline(pipeline)
@@ -320,13 +441,7 @@ def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
         *args,
     ]
     try:
-        return base.REGISTRY.start(
-            argv,
-            run_id=run_id,
-            phase="setup",
-            exclusive=base.is_local_pipeline(pipeline),
-            cleanup=cleanup,
-        )
+        return _start_setup(argv, run_id=run_id, pipeline=pipeline, cleanup=cleanup)
     except base.UIError:
         for path in cleanup:
             try:
@@ -393,13 +508,7 @@ def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
         args += ["--case-ids", joined, "--run-id", batch_id]
     argv = [sys.executable, "-u", str(base.ROOT / "nel.py"), *args]
     try:
-        return base.REGISTRY.start(
-            argv,
-            run_id=batch_id,
-            phase="setup",
-            exclusive=base.is_local_pipeline(pipeline),
-            cleanup=cleanup,
-        )
+        return _start_setup(argv, run_id=batch_id, pipeline=pipeline, cleanup=cleanup)
     except base.UIError:
         for path in cleanup:
             try:
@@ -408,12 +517,41 @@ def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
                 pass
         raise
 
+
+def run_credential_status(run_ref: str) -> dict[str, Any]:
+    """Credential readiness for the frozen pipeline of a run/batch selection."""
+    run_ref = str(run_ref or "").strip()
+    kind = batch._top_kind(run_ref)
+    if kind == "batch":
+        pipeline = str(batch._batch_location(run_ref).manifest.get("pipeline") or "")
+    elif kind in {"run", "batch-child"}:
+        pipeline = str(batch._run_location(run_ref).manifest.get("pipeline") or "")
+    else:
+        raise base.UIError("credential status is unavailable for legacy/invalid runs", 409)
+    return _profile_credential_status(pipeline)
+
+
+_BATCH_ACTION_RUN = batch.action_run
+def action_run(payload: dict[str, Any]) -> dict[str, Any]:
+    run_ref = str(payload.get("run_id") or "").strip()
+    credential = run_credential_status(run_ref)
+    if credential.get("credential_required"):
+        env_name = str(credential.get("env") or "API key")
+        raise base.UIError(
+            f"{env_name} is required before starting pipeline {credential.get('pipeline')!r}",
+            401,
+        )
+    return _BATCH_ACTION_RUN(payload)
+
+
 # Handler methods in batch_server resolve these names in the batch_server module.
 batch.list_pipelines = list_pipelines
 batch.bootstrap = bootstrap
 batch.save_pipeline = save_pipeline
 batch.action_setup = action_setup
+batch.action_run = action_run
 
+_RUN_CREDENTIALS_SCRIPT = '<script src="/assets/run-credentials.js"></script>'
 _PROVIDER_MODELS_SCRIPT = '<script src="/assets/provider-models.js"></script>'
 _ROLE_REASONING_SCRIPT = '<script src="/assets/role-reasoning.js"></script>'
 _MODEL_ACTIVITY_SCRIPT = '<script src="/assets/model-activity.js"></script>'
@@ -429,7 +567,7 @@ def _serve_page_with_provider_models(self) -> None:
         text = batch.PAGE.read_text(encoding="utf-8")
     except OSError:
         return self._text(f"{batch.PAGE.relative_to(base.ROOT)} is missing\n", 500)
-    for script in (_PROVIDER_MODELS_SCRIPT, _ROLE_REASONING_SCRIPT, _MODEL_ACTIVITY_SCRIPT):
+    for script in (_RUN_CREDENTIALS_SCRIPT, _PROVIDER_MODELS_SCRIPT, _ROLE_REASONING_SCRIPT, _MODEL_ACTIVITY_SCRIPT):
         if script not in text:
             text = text.replace("</body>", f"{script}\n</body>", 1)
     body = text.replace("__NEL_TOKEN__", batch.Handler.token).encode("utf-8")
@@ -469,6 +607,11 @@ def _handle_with_provider_models(self, path: str, method: str) -> Any:
             self._param("model"),
             self._param("api_key_env"),
         )
+    if method == "GET" and path == "/api/pipeline":
+        name = str(self._param("name") or "")
+        return {"name": name, "doc": _profile_for_editor(name), "roles": list(pipeline_registry.ROLES)}
+    if method == "GET" and path == "/api/run-credential":
+        return run_credential_status(self._param("run"))
     return _BATCH_HANDLE(self, path, method)
 
 batch.Handler._handle = _handle_with_provider_models

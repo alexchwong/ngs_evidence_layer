@@ -58,7 +58,7 @@ class Phase3WorkflowTests(unittest.TestCase):
                 self.assertIn("evidence_adjudication", roles)
 
 
-    def test_workflow_local_pipeline_validation_remains_strict_for_missing_adjudication_role(self):
+    def test_workflow_local_pipeline_missing_adjudication_role_uses_global_default(self):
         with tempfile.TemporaryDirectory() as td:
             path=Path(td)/"lmstudio.yaml"
             doc=yaml.safe_load((HERE/"pipelines"/"lmstudio.yaml").read_text(encoding="utf-8"))
@@ -66,8 +66,11 @@ class Phase3WorkflowTests(unittest.TestCase):
             path.write_text(yaml.safe_dump(doc,sort_keys=False),encoding="utf-8")
             try:
                 pipeline_registry.configure(Path(td))
-                with self.assertRaisesRegex(ValueError,"model_roles must map exactly"):
-                    pipeline_registry.load("lmstudio")
+                plan=pipeline_registry.load("lmstudio")
+                binding=pipeline_registry.binding(plan,"evidence_adjudication")
+                self.assertEqual(binding.model,"qwen3-coder-next")
+                self.assertEqual(binding.max_tokens,16384)
+                self.assertEqual(binding.reasoning,"default")
             finally:
                 pipeline_registry.configure()
 

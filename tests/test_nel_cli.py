@@ -85,7 +85,7 @@ class LegacyFacadeTests(unittest.TestCase):
             frozen = runs / "legacy-demo" / "run-config" / "pipelines" / "self.yaml"
             self.assertEqual(frozen.read_bytes(), (nel.LEGACY_PIPELINES_DIR / "self.yaml").read_bytes())
 
-    def test_canonical_pipeline_validation_rejects_legacy_role_shape(self):
+    def test_canonical_pipeline_resolves_missing_role_from_global_defaults(self):
         from workflows.proforma_v1 import pipeline_registry
         import yaml
 
@@ -101,8 +101,11 @@ class LegacyFacadeTests(unittest.TestCase):
                     settings_path=nel.SETTINGS_TEMPLATE_PATH,
                     pipelines_dir=pipelines,
                 )
-                with self.assertRaisesRegex(ValueError, "model_roles must map exactly"):
-                    registry.load("lmstudio")
+                plan = registry.load("lmstudio")
+                binding = registry.binding(plan, "evidence_adjudication")
+                self.assertEqual(binding.model, "qwen3-coder-next")
+                self.assertEqual(binding.max_tokens, 16384)
+                self.assertEqual(binding.reasoning, "default")
             finally:
                 pipeline_registry.configure()
 
@@ -120,7 +123,9 @@ class LegacyFacadeTests(unittest.TestCase):
             valid = (nel.PIPELINES_DIR / "lmstudio.yaml").read_text(encoding="utf-8")
             (pipelines / "lmstudio.yaml").write_text(valid, encoding="utf-8")
             stale = yaml.safe_load(valid)
-            stale["model_roles"].pop("evidence_adjudication")
+            stale["model_roles"]["not_a_role"] = {
+                "model": "default", "temperature": 0.0, "max_tokens": 16384,
+            }
             (pipelines / "openrouter.yaml").write_text(
                 yaml.safe_dump(stale, sort_keys=False), encoding="utf-8"
             )

@@ -1,5 +1,6 @@
 """Small provider/model pipeline registry for proforma-v1; YAML filename stem is pipeline identity."""
 from __future__ import annotations
+import copy
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,9 +8,25 @@ from typing import Any
 import yaml
 from workflows.proforma_v1.model_binding import Binding
 HERE=Path(__file__).resolve().parent; ROOT=HERE/'pipelines'
+# Compatibility names retained for callers; these tuples are a global known-role
+# catalogue/order, not a declaration that every workflow or profile uses every role.
 CORE_ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication','report_write','preservation_check','marking','syntax_repair')
 OPTIONAL_ROLES=('reasoning_audit','dissent_summary')
 ROLES=CORE_ROLES+OPTIONAL_ROLES
+ROLE_DEFAULTS={
+    'structure':{'temperature':0.0,'max_tokens':65536,'reasoning':'default'},
+    'diagnosis':{'temperature':0.0,'max_tokens':65536,'reasoning':'default'},
+    'ptbg':{'temperature':0.0,'max_tokens':65536,'reasoning':'default'},
+    'evidence_match':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'evidence_audit':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'evidence_adjudication':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'report_write':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'preservation_check':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'marking':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'syntax_repair':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'reasoning_audit':{'temperature':0.0,'max_tokens':32768,'reasoning':'high'},
+    'dissent_summary':{'temperature':0.0,'max_tokens':16384,'reasoning':'low'},
+}
 REASONING_LEVELS=('default','none','minimal','low','medium','high','xhigh')
 _PROVIDER_ROUTING_LIST_FIELDS=('order','only','ignore')
 _PROVIDER_ROUTING_BOOL_FIELDS=('allow_fallbacks','require_parameters')
@@ -22,14 +39,12 @@ def configure(root:Path|str|None=None):
 @dataclass(frozen=True)
 class PipelinePlan:
     pipeline_id:str; description:str; path:Path; doc:dict[str,Any]
+def role_defaults()->dict[str,dict[str,Any]]:
+    return copy.deepcopy(ROLE_DEFAULTS)
 def _validate_role_rows(rows:Any,label:str)->None:
-    if not isinstance(rows,dict): raise ValueError(f'{label} must map exactly {list(CORE_ROLES)} with optional roles from {list(OPTIONAL_ROLES)}')
-    missing=set(CORE_ROLES)-set(rows); unknown=set(rows)-set(ROLES)
-    if missing or unknown:
-        detail=[]
-        if missing: detail.append('missing: '+', '.join(sorted(missing)))
-        if unknown: detail.append('unsupported: '+', '.join(sorted(unknown)))
-        raise ValueError(f'{label} must map exactly {list(CORE_ROLES)} with optional roles from {list(OPTIONAL_ROLES)} ({"; ".join(detail)})')
+    if not isinstance(rows,dict): raise ValueError(f'{label} must be a mapping of known model roles')
+    unknown=set(rows)-set(ROLES)
+    if unknown: raise ValueError(f'{label} has unsupported role(s): {", ".join(sorted(unknown))}')
     for role,row in rows.items():
         if not isinstance(row,dict) or not isinstance(row.get('model'),str) or not row['model'].strip(): raise ValueError(f'{label}.{role}.model must be non-empty')
         if not isinstance(row.get('max_tokens'),int) or isinstance(row.get('max_tokens'),bool) or row['max_tokens']<=0: raise ValueError(f'{label}.{role}.max_tokens must be positive')
@@ -88,6 +103,7 @@ def load_yaml(path:Path)->PipelinePlan:
         _validate_aliases(doc)
     else:
         _validate_role_rows(models,'pipeline.models')
+        if not models: raise ValueError('pipeline.models must configure at least one model')
     return PipelinePlan(path.stem,str(meta.get('description') or ''),path,doc)
 def _paths():
     # Discovery is filename-only. Validation belongs to load(name), so an
@@ -99,12 +115,41 @@ def load(name:str):
     if name not in paths: raise ValueError(f'unknown proforma-v1 pipeline {name!r}; choose one of: {", ".join(paths)}')
     return load_yaml(paths[name])
 def descriptions(): return {n:load(n).description for n in names()}
+def _first_model_selector(doc:dict[str,Any])->str:
+    aliases=doc.get('model_aliases')
+    if isinstance(aliases,dict) and aliases:
+        return str(next(iter(aliases)))
+    rows=doc.get('models')
+    if isinstance(rows,dict):
+        for row in rows.values():
+            if isinstance(row,dict) and isinstance(row.get('model'),str) and row['model'].strip():
+                return row['model'].strip()
+    provider=doc.get('provider') or {}
+    if isinstance(provider,dict) and provider.get('type')=='self':
+        return 'self'
+    raise ValueError('pipeline must configure at least one model before missing roles can use defaults')
+def _default_role_row(doc:dict[str,Any],role:str)->dict[str,Any]:
+    if role not in ROLE_DEFAULTS: raise ValueError(f'unknown model role {role!r}')
+    row=dict(ROLE_DEFAULTS[role]); row['model']=_first_model_selector(doc); return row
+def completed_role_rows(doc:dict[str,Any])->dict[str,dict[str,Any]]:
+    key='model_roles' if 'model_roles' in doc else 'models'
+    rows=doc.get(key) or {}
+    if not isinstance(rows,dict): raise ValueError(f'{key} must be a mapping')
+    out={role:dict(row) for role,row in rows.items() if isinstance(row,dict)}
+    for role in ROLES:
+        out.setdefault(role,_default_role_row(doc,role))
+    return out
+def with_role_defaults(doc:dict[str,Any])->dict[str,Any]:
+    out=copy.deepcopy(doc)
+    key='model_roles' if 'model_roles' in out else 'models'
+    out[key]=completed_role_rows(out)
+    return out
 def _resolved_row(plan:PipelinePlan,role:str)->tuple[dict[str,Any],dict[str,Any]|None]:
     rows=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
-    if role not in rows:
-        raise ValueError(f'pipeline {plan.pipeline_id!r} does not configure optional model role {role!r}')
-    if 'model_roles' not in plan.doc: return rows[role],None
-    row=rows[role]; alias=row['model']; entry=plan.doc['model_aliases'][alias]
+    row=rows.get(role) if isinstance(rows,dict) else None
+    if row is None: row=_default_role_row(plan.doc,role)
+    if 'model_roles' not in plan.doc: return dict(row),None
+    alias=row['model']; entry=plan.doc['model_aliases'][alias]
     if isinstance(entry,str): model=entry; routing=None
     else: model=entry['model']; routing=entry.get('provider')
     resolved=dict(row); resolved['model']=model
@@ -121,10 +166,10 @@ def binding(plan:PipelinePlan,role:str)->Binding:
     return Binding(pipeline=plan.pipeline_id,role=role,kind='openai-compatible',model=str(row['model']),temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']),base_url=base.rstrip('/'),base_url_env=env,api_key_env=api_env,api_key=os.environ.get(api_env,'') if api_env else '',timeout_s=float(provider.get('timeout_s',900)),provider_routing=provider_routing,reasoning=reasoning)
 def describe(plan):
     lines=[f'provider: {plan.doc["provider"]["type"]}','models:']
-    rows=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
+    source=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
     for role in ROLES:
-        if role not in rows: continue
         row,routing=_resolved_row(plan,role)
         suffix=f' provider={routing}' if routing else ''
-        lines.append(f'  {role}: {row["model"]} max_tokens={row["max_tokens"]} temperature={row.get("temperature",0)} reasoning={row.get("reasoning","default")}{suffix}')
+        defaulted=' defaulted' if role not in source else ''
+        lines.append(f'  {role}: {row["model"]} max_tokens={row["max_tokens"]} temperature={row.get("temperature",0)} reasoning={row.get("reasoning","default")}{suffix}{defaulted}')
     return lines
