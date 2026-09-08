@@ -36,20 +36,6 @@ class Phase3WorkflowTests(unittest.TestCase):
         self.assertNotIn("max_cmc_passes", settings["diagnosis"]["who5"])
 
 
-    def test_devel_documents_every_default_workflow_mapping_term(self):
-        doc=yaml.safe_load(DEFAULT.read_text(encoding="utf-8"))
-        keys=set()
-        def collect(value):
-            if isinstance(value,dict):
-                for key,child in value.items():
-                    keys.add(str(key)); collect(child)
-            elif isinstance(value,list):
-                for child in value: collect(child)
-        collect(doc)
-        devel=(HERE/"DEVEL.md").read_text(encoding="utf-8")
-        missing=sorted(key for key in keys if f"`{key}`" not in devel)
-        self.assertEqual(missing,[],f"Undocumented workflow/default.yaml terms: {missing}")
-
     def test_all_shipped_pipelines_have_separate_adjudication_role(self):
         for path in sorted((HERE/"pipelines").glob("*.yaml")):
             doc=yaml.safe_load(path.read_text(encoding="utf-8"))

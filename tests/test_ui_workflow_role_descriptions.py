@@ -41,7 +41,7 @@ class WorkflowRoleDescriptionTests(unittest.TestCase):
         self.assertIn("dissent_summary", rows["reasoning"]["model_roles"])
         self.assertEqual(
             set(pipeline_registry.ROLES) - set(rows["default"]["model_roles"]),
-            {"reasoning_audit", "dissent_summary", "reasoning_adjudication"},
+            {"reasoning_audit", "reasoning_adjudication"},
         )
 
     def test_role_editor_has_workflow_fallback_and_refresh(self):

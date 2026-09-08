@@ -19,6 +19,9 @@ prompt_modules:
   prognostic_frameworks:
     enabled: true
     version: v1
+  concurrent_pathology_suspicion:
+    enabled: false
+    version: v1
   deliberate:
     enabled: false
     version: v1

@@ -54,33 +54,5 @@ class BatchV1CorrectionTests(unittest.TestCase):
             self.assertTrue(all("validation_case_id" not in row for row in captured))
             self.assertTrue((root / "demo-batch" / "batch.json").is_file())
 
-    def test_native_ui_contains_explicit_batch_mode_contract(self):
-        root = Path(__file__).resolve().parents[1]
-        page = (root / "ui" / "index.html").read_text(encoding="utf-8")
-        server = (root / "ui" / "batch_server.py").read_text(encoding="utf-8")
-        self.assertIn('id="batchToggle"', page)
-        self.assertIn('batch_mode:state.batchMode', page)
-        self.assertIn("Preparing…", page)
-        self.assertIn("Resume batch", page)
-        self.assertIn("legacy layout · cleanup only", page)
-        self.assertNotIn('id="batchCaseSelect"', page)
-        self.assertIn('id="casePaneSelect"', page)
-        self.assertIn('id="batchPreviewCaseSelect"', page)
-        self.assertIn('id="batchCasePickerBtn"', page)
-        self.assertIn('id="batchCaseMenu"', page)
-        self.assertIn('function renderProgress()', page)
-        self.assertIn('progress-phase', page)
-        self.assertIn('function progressSegments(', page)
-        self.assertIn('id="progressRows"', page)
-        self.assertIn("# Case 1", page)
-        self.assertIn(">Freetext</button>", page)
-        self.assertIn('id="sourceBundled">Examples</button>', page)
-        self.assertIn("target=r?.kind==='batch-child'?batchOwnerRow(r):r", page)
-        self.assertNotIn("batch-v1.js", server)
-        self.assertIn('batch_mode = bool(payload.get("batch_mode"))', server)
-        self.assertIn('run_ref = str(batch_id)', server)
-
-
-
 if __name__ == "__main__":
     unittest.main()

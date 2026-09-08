@@ -33,6 +33,8 @@ Do not use outside medical knowledge or infer diagnostic relationships absent fr
 - `reason` is one concise patient-level proposition about the molecular/cytogenetic effect on diagnosis. Do not relitigate morphology.
 - Once the primary WHO5 diagnosis is fixed, do not change it merely because a different detected variant is classified as `diagnostic_for_other_pathology` below.
 
+{{ module "concurrent_pathology_suspicion" }}
+
 {{ module "variant_assessment" }}
 
 ## 8. Output contract

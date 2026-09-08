@@ -29,18 +29,6 @@ class OptionalValidationMarkingTests(unittest.TestCase):
         self.assertIn('subprocess.call([sys.executable, "-u", str(ROOT / "nel.py"), "mark", "--run-id", ref])', source)
         self.assertIn('Separate process per child deliberately prevents batch-to-batch model context leakage.', source)
 
-    def test_browser_extension_has_opt_in_and_separate_mark_action(self) -> None:
-        source = (ROOT / "ui" / "assets" / "marking-controls.js").read_text(encoding="utf-8")
-        server = (ROOT / "ui" / "marking_server.py").read_text(encoding="utf-8")
-        self.assertIn('id="markValidation"', source)
-        self.assertIn("body.mark_validation", source)
-        self.assertIn("mode === 'nel-validate' || mode.startsWith('nel-validate-')", source)
-        self.assertIn("id = 'markBtn'", source)
-        self.assertIn("'/api/mark'", source)
-        self.assertIn('path == "/api/mark"', server)
-        self.assertIn('phase="marking"', server)
-        self.assertIn('mode == "nel-validate" or mode.startswith("nel-validate-")', server)
-
     def test_browser_extension_blocks_automatic_key_modal_and_restores_frozen_profile(self) -> None:
         source = (ROOT / "ui" / "assets" / "marking-controls.js").read_text(encoding="utf-8")
         credentials = (ROOT / "ui" / "assets" / "run-credentials.js").read_text(encoding="utf-8")

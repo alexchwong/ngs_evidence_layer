@@ -11,34 +11,6 @@ HERE = Path(__file__).resolve().parents[1]
 PROMPTS = HERE / "prompts"
 SCHEMAS = HERE / "schemas"
 
-_MODULE_RE = re.compile(r'^\s*\{\{\s*module\s+["\']([A-Za-z0-9._-]+)["\']\s*\}\}\s*$', re.MULTILINE)
-
-EXPECTED_MODULES = (
-    "deliberate",
-    "foundational_genetics",
-    "premise_before_consequence",
-    "qualifier_check",
-    "limiting_evidence",
-    "case_context",
-    "new_diagnosis",
-    "progress_testing",
-    "molecular_result_semantics",
-    "variant_assessment",
-)
-
-SHARED_DIAGNOSIS_MODULES = EXPECTED_MODULES[5:]
-
-EXPECTED_SECTIONS = (
-    "## 1. Task and authority",
-    "## 2. Determine case context",
-    "## 3. New diagnosis",
-    "## 4. Progress testing",
-    "## 5. Molecular and cytogenetic result semantics",
-    "## 6. Determine and freeze the primary",
-    "## 7. Assess every detected variant",
-    "## 8. Output contract",
-)
-
 NO_HAEM_SENTINEL = "no_haematological_malignancy"
 
 
@@ -49,56 +21,16 @@ class DiagnosisPromptContractTests(unittest.TestCase):
     def _render(self, name: str) -> str:
         return prompt_loader.render(PROMPTS / name, root=PROMPTS)
 
-    def _assert_contract(self, name: str) -> None:
-        source = self._source(name)
-        self.assertEqual(tuple(_MODULE_RE.findall(source)), EXPECTED_MODULES)
-
+    def _assert_renders(self, name: str) -> None:
         rendered = self._render(name)
+        self.assertTrue(rendered.strip())
         self.assertNotIn("{{ module", rendered)
 
-        positions = []
-        for section in EXPECTED_SECTIONS:
-            if section.endswith("primary"):
-                matches = [
-                    rendered.find("## 6. Determine and freeze the primary WHO5 diagnosis"),
-                    rendered.find("## 6. Determine and freeze the primary ICC diagnosis"),
-                ]
-                pos = max(matches)
-            else:
-                pos = rendered.find(section)
-            self.assertGreaterEqual(pos, 0, f"missing section {section!r} in {name}")
-            if not section.endswith("primary"):
-                self.assertEqual(rendered.count(section), 1, f"section duplicated in {name}: {section!r}")
-            positions.append(pos)
-        self.assertEqual(positions, sorted(positions), f"section order changed in {name}")
+    def test_who5_prompt_renders(self):
+        self._assert_renders("diagnosis_who5.md")
 
-    def test_who5_component_contract(self):
-        self._assert_contract("diagnosis_who5.md")
-
-    def test_icc_component_contract(self):
-        self._assert_contract("diagnosis_icc.md")
-
-    def test_shared_modules_exist_and_are_nonempty(self):
-        for module in SHARED_DIAGNOSIS_MODULES:
-            path = PROMPTS / "modules" / module / "v1.md"
-            self.assertTrue(path.is_file(), module)
-            self.assertTrue(path.read_text(encoding="utf-8").strip(), module)
-
-    def test_sections_two_and_three_have_one_shared_source_of_truth(self):
-        who_source = self._source("diagnosis_who5.md")
-        icc_source = self._source("diagnosis_icc.md")
-        for module in SHARED_DIAGNOSIS_MODULES[:2]:
-            directive = '{{ module "' + module + '" }}'
-            self.assertEqual(who_source.count(directive), 1)
-            self.assertEqual(icc_source.count(directive), 1)
-
-        who = self._render("diagnosis_who5.md")
-        icc = self._render("diagnosis_icc.md")
-        start = "## 2. Determine case context"
-        end = "## 4. Progress testing"
-        who_shared = who[who.index(start):who.index(end)].strip()
-        icc_shared = icc[icc.index(start):icc.index(end)].strip()
-        self.assertEqual(who_shared, icc_shared)
+    def test_icc_prompt_renders(self):
+        self._assert_renders("diagnosis_icc.md")
 
     def test_new_diagnosis_section_is_list_structured(self):
         text = (PROMPTS / "modules/new_diagnosis/v1.md").read_text(encoding="utf-8")

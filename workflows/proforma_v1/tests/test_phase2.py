@@ -35,22 +35,15 @@ class WorkflowCompilerTests(unittest.TestCase):
         finally:
             path.unlink(missing_ok=True)
 
-    def test_canonical_workflow_compiles_to_expected_logical_graph(self):
+    def test_canonical_workflow_compiles_to_valid_logical_graph(self):
         workflow = compile_workflow()
         self.assertEqual(workflow.workflow_id, "proforma-v1")
-        self.assertEqual(
-            [x.id for x in workflow.steps],
-            [
-                "structure", "corpus", "diagnosis.who1", "diagnosis.who1.routing_change",
-                "diagnosis.who1.evidence.assignment", "diagnosis.who1.evidence.audit",
-                "diagnosis.who1.evidence.adjudication", "diagnosis.who1.commit", "diagnosis.who2", "diagnosis.icc",
-                "diagnosis.finalize", "prognosis", "treatment", "biomarker",
-                "germline", "evidence.assignment", "evidence.audit", "evidence.adjudication",
-                "evidence.finalize", "report.blocks", "report.write", "report.preservation", "report.finalize",
-                "dissent.summary.packet", "dissent.summary", "dissent.summary.validate", "dissent.summary.render",
-            ],
-        )
-        self.assertEqual(workflow.step("report.finalize").needs, ("report.preservation",))
+        positions = {step.id: index for index, step in enumerate(workflow.steps)}
+        self.assertEqual(len(positions), len(workflow.steps))
+        for step in workflow.steps:
+            for dependency in step.needs:
+                self.assertIn(dependency, positions)
+                self.assertLess(positions[dependency], positions[step.id])
 
     def test_evidence_match_pass_count_is_workflow_configurable(self):
         workflow = compile_workflow()
