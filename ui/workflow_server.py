@@ -10,7 +10,6 @@ import copy
 import hashlib
 import json
 import os
-import shutil
 import sys
 import threading
 from pathlib import Path
@@ -26,7 +25,6 @@ WORKFLOW_DIR = base.ROOT / "workflows" / "proforma_v1" / "workflow"
 DEFAULT_WORKFLOW = "default"
 DEFAULT_CONFIG_DIR = base.ROOT / "workflows" / "proforma_v1" / "configs" / "default"
 DEFAULT_CONFIG = "default"
-DEFAULT_CONFIG_STATE_DIR = base.ROOT / ".nel-ui" / "default-configs"
 OPENROUTER_MODELS_PATH = base.ROOT / "config" / "openrouter_models.json"
 MODEL_ACTIVITY_DIR = base.ROOT / ".nel-ui" / "activity"
 OPENROUTER_CATEGORIES = {
@@ -51,9 +49,6 @@ def _ui_child_env() -> dict[str, str]:
     setup_env = str(getattr(_SETUP_CREDENTIAL, "env_name", "") or "").strip()
     if setup_env and not str(env.get(setup_env) or "").strip():
         env[setup_env] = "__NEL_UI_SETUP_ONLY__"
-    default_config = str(getattr(_SETUP_CREDENTIAL, "default_config", "") or "").strip()
-    if default_config:
-        env["NEL_DEFAULT_CONFIG"] = default_config
     return env
 
 base.child_env = _ui_child_env
@@ -318,65 +313,6 @@ def _default_config_name(payload: dict[str, Any], workflow: str) -> str:
     return name
 
 
-def _config_state_path(owner: str) -> Path:
-    DEFAULT_CONFIG_STATE_DIR.mkdir(parents=True, exist_ok=True)
-    return DEFAULT_CONFIG_STATE_DIR / f"{base.check_run_id(owner)}.txt"
-
-
-def _config_snapshot_path(owner: str) -> Path:
-    DEFAULT_CONFIG_STATE_DIR.mkdir(parents=True, exist_ok=True)
-    return DEFAULT_CONFIG_STATE_DIR / f"{base.check_run_id(owner)}.yaml"
-
-
-def _remember_default_config(owner: str, name: str) -> None:
-    _config_state_path(owner).write_text(name + "\n", encoding="utf-8")
-    shutil.copyfile(DEFAULT_CONFIG_DIR / f"{name}.yaml", _config_snapshot_path(owner))
-
-
-def _remembered_default_config(owner: str) -> str:
-    try:
-        name = _config_state_path(owner).read_text(encoding="utf-8").strip()
-    except OSError:
-        return DEFAULT_CONFIG
-    available = {row["id"] for row in default_configs()}
-    return name if name in available else DEFAULT_CONFIG
-
-
-def _run_owner(run_ref: str) -> str:
-    return str(run_ref or "").split(":", 1)[0].strip()
-
-
-def _run_workflow_definition(run_ref: str) -> str:
-    kind = batch._top_kind(run_ref)
-    if kind == "batch":
-        return str(batch._batch_location(run_ref).manifest.get("workflow_definition") or DEFAULT_WORKFLOW)
-    location = batch._run_location(run_ref)
-    path = location.path / "run-config" / "manifest.json"
-    try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return DEFAULT_WORKFLOW
-    return str(doc.get("workflow_definition") or DEFAULT_WORKFLOW)
-
-
-def _freeze_default_config(run_ref: str) -> Path:
-    owner = _run_owner(run_ref)
-    name = _remembered_default_config(owner)
-    snapshot = _config_snapshot_path(owner)
-    source = snapshot if snapshot.is_file() else DEFAULT_CONFIG_DIR / f"{name}.yaml"
-    kind = batch._top_kind(run_ref)
-    if kind == "batch":
-        target = batch._batch_location(owner).path / "default-config.yaml"
-    elif kind == "batch-child":
-        target = batch._batch_location(owner).path / "default-config.yaml"
-    else:
-        target = batch._run_location(run_ref).path / "run-config" / "default-config.yaml"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if not target.is_file():
-        shutil.copyfile(source, target)
-    return target.resolve()
-
-
 def bootstrap() -> dict[str, Any]:
     doc = _BATCH_BOOTSTRAP()
     doc["pipelines"] = list_pipelines()
@@ -491,7 +427,7 @@ def _start_setup(argv: list[str], *, run_id: str, pipeline: str, cleanup: list[P
         _SETUP_CREDENTIAL.env_name = ""
 
 
-def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
+def _single_setup(payload: dict[str, Any], workflow: str, config_name: str) -> dict[str, Any]:
     pipeline = str(payload.get("pipeline") or "").strip()
     batch._validate_pipeline(pipeline)
     mode = str(payload.get("mode") or "").strip()
@@ -499,6 +435,8 @@ def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
         raise base.UIError(f"unsupported mode {mode!r}; choose one of: {', '.join(base.modes())}")
     label = mode
     args: list[str] = ["--workflow", workflow]
+    if workflow == "default":
+        args += ["--config", config_name]
     case_text = ""
     if mode == "ngs-report":
         case_text = str(payload.get("case_text") or "")
@@ -561,10 +499,7 @@ def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
     workflow = _workflow_name(payload)
     config_name = _default_config_name(payload, workflow)
     if not bool(payload.get("batch_mode")):
-        result = _single_setup(payload, workflow)
-        if workflow == "default":
-            _remember_default_config(str(result.get("run_id") or ""), config_name)
-        return result
+        return _single_setup(payload, workflow, config_name)
     mode = str(payload.get("mode") or "").strip()
     pipeline = str(payload.get("pipeline") or "").strip()
     batch._validate_pipeline(pipeline)
@@ -579,6 +514,8 @@ def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
         "--pipeline",
         pipeline,
     ]
+    if workflow == "default":
+        args += ["--config", config_name]
     cleanup: list[Path] = []
     if cul:
         args += ["--cul", cul]
@@ -621,8 +558,6 @@ def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
     try:
         result = _start_setup(argv, run_id=batch_id, pipeline=pipeline, cleanup=cleanup)
         result.setdefault("run_id", batch_id)
-        if workflow == "default":
-            _remember_default_config(batch_id, config_name)
         return result
     except base.UIError:
         for path in cleanup:
@@ -656,14 +591,7 @@ def action_run(payload: dict[str, Any]) -> dict[str, Any]:
             f"{env_name} is required before starting pipeline {credential.get('pipeline')!r}",
             401,
         )
-    if _run_workflow_definition(run_ref) != "default":
-        return _BATCH_ACTION_RUN(payload)
-    frozen = _freeze_default_config(run_ref)
-    _SETUP_CREDENTIAL.default_config = str(frozen)
-    try:
-        return _BATCH_ACTION_RUN(payload)
-    finally:
-        _SETUP_CREDENTIAL.default_config = ""
+    return _BATCH_ACTION_RUN(payload)
 
 
 batch.list_pipelines = list_pipelines

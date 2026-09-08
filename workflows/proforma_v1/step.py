@@ -14,7 +14,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import load_workflow_metadata, read_workflow_state, write_workflow_state
 from validation.scripts.package_marking import package_marking_bundle
 from validation.scripts.bundled_cases import is_validation_mode, write_demo_marking_criteria_after_report
-from workflows.proforma_v1 import canonicalization, card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, model_observability, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
+from workflows.proforma_v1 import canonicalization, card_identity, default_config, domain_contract, evidence_resolution, layout, model_client, model_context, model_observability, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 from workflows.proforma_v1.engine.context import WorkflowContext
 from workflows.proforma_v1.engine import schema_validation as generic_schema_validation
 from workflows.proforma_v1.engine import bindings as workflow_bindings, prompt_renderer as workflow_prompt_renderer, artifacts as workflow_artifacts
@@ -27,10 +27,13 @@ from workflows.proforma_v1.trace import TraceRecorder
 WORKFLOW_ID='proforma-v1'; RUN_STATE_SCHEMA_VERSION=3; HERE=Path(__file__).resolve().parent; PROMPTS=HERE/'prompts'; WORKFLOW_PATH=HERE/'workflow.json'
 SETTINGS_PATH=HERE/'settings.json'; SETTINGS_TEMPLATE_PATH=HERE/'settings.json.template'; USAGE_FILE='model-usage.json'
 
-def configure_runtime(*,settings_path=None,pipelines_dir=None,cul_path=None):
+_UNSET_CONFIG=object()
+
+def configure_runtime(*,settings_path=None,pipelines_dir=None,cul_path=None,config_path=_UNSET_CONFIG):
     """Bind workflow-local defaults or explicit public/frozen runtime inputs."""
     global SETTINGS_PATH, SETTINGS_TEMPLATE_PATH, CUL_LAYER
     if cul_path is not None: CUL_LAYER=cul.active_layer(explicit=cul_path)
+    if config_path is not _UNSET_CONFIG: default_config.bind_config(config_path)
     SETTINGS_PATH=Path(settings_path).expanduser().resolve() if settings_path is not None else HERE/'settings.json'
     SETTINGS_TEMPLATE_PATH=SETTINGS_PATH.with_name('settings.json.template') if settings_path is not None else HERE/'settings.json.template'
     pipeline_registry.configure(pipelines_dir)
@@ -1599,7 +1602,6 @@ def _dissent_origin_stage(issue):
     history=issue.get('history') or []
     return _dissent_stage_label(history[0].get('stage')) if history else 'unknown stage'
 
-
 def _clean_dissent_text(value):
     text=' '.join(str(value or '').split())
     text=re.sub(r'\[card:[0-9a-f]{12}\]','candidate card',text,flags=re.IGNORECASE)
@@ -1797,7 +1799,6 @@ def _provider_handlers(workflow):
             state=sr.read_yaml(sr._who1_gate_state_path(ctx.work)); item=state['item']
             prompt=_evidence_prompt(step,ctx,manifest)
             _model_call(ctx.work,call_id=f"who1-evidence-match-{manifest['match_pass']:02d}",role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,it=item:schema_validation.validate_evidence_match_batch(t,[{'evidence_id':it['evidence_id'],'candidate_card_tags':it['candidate_card_tags']}]),profile=ctx.profile,canonicalize=lambda t,it=item:canonicalization.canonicalize_evidence_match(t,[{'evidence_id':it['evidence_id'],'candidate_card_tags':it['candidate_card_tags']}]))
-
     def who1_evidence_audit_handler(step, ctx):
         from workflows.proforma_v1 import self_runtime as sr
         manifest=sr.prepare_who1_evidence_audit(ctx.work,prompt=step.prompt)
@@ -2222,21 +2223,22 @@ def _resolve_run_work_dir(work_dir):
 
 def build_parser():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='command',required=True)
-    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=supported_modes()); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names()); s.add_argument('--workflow',type=Path)
+    s=sub.add_parser('setup'); s.add_argument('--mode',required=True,choices=supported_modes()); s.add_argument('--case-file',type=Path); s.add_argument('--example',type=int); s.add_argument('--case-id'); s.add_argument('--work-dir',type=Path); s.add_argument('--pipeline',choices=pipeline_registry.names()); s.add_argument('--workflow',type=Path); s.add_argument('--config',type=Path)
     cs=sub.add_parser('check-stage'); cs.add_argument('--stage',required=True,choices=stage_checks.names()); cs.add_argument('--file',type=Path,required=True); cs.add_argument('--context',type=Path)
     sp=sub.add_parser('show-prompt'); sp.add_argument('--stage',required=True,choices=stage_checks.names()); sp.add_argument('--context',type=Path)
     sub.add_parser('stages')
     sub.add_parser('pipelines')
-    wc=sub.add_parser('workflow-check'); wc.add_argument('--workflow',type=Path)
+    wc=sub.add_parser('workflow-check'); wc.add_argument('--workflow',type=Path); wc.add_argument('--config',type=Path)
     pc=sub.add_parser('pipeline-check'); pc.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pc.add_argument('--workflow',type=Path)
     pp=sub.add_parser('pipeline-plan'); pp.add_argument('--pipeline',required=True,choices=pipeline_registry.names()); pp.add_argument('--workflow',type=Path)
     ps=sub.add_parser('pipeline'); ps.add_argument('pipeline_id',nargs='?',choices=pipeline_registry.names())
-    r=sub.add_parser('run'); r.add_argument('--work-dir',type=Path); r.add_argument('--workflow',type=Path)
+    r=sub.add_parser('run'); r.add_argument('--work-dir',type=Path); r.add_argument('--workflow',type=Path); r.add_argument('--config',type=Path)
     return p
 
 def main(argv=None):
     args=build_parser().parse_args(argv)
     try:
+        default_config.bind_config(getattr(args,'config',None))
         if args.command=='setup': return run_setup(args)
         if args.command=='check-stage': return run_check_stage(args)
         if args.command=='show-prompt': return run_show_prompt(args)

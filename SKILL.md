@@ -8,6 +8,8 @@ The **repository root** is the directory containing this `SKILL.md` file and `ne
 
 The canonical supported workflow family is `proforma-v1`. Its default declarative workflow definition is `workflows/proforma_v1/workflow/default.yaml`, selected publicly as `--workflow default`. Use the root `nel.py` facade for all product runs. `terraced-v6` is retained only as an explicit legacy/reproducibility path selected with root `--legacy`; never route a normal request to it.
 
+For `--workflow default`, prompt/enrichment configuration is selected with `--config <name>` from `workflows/proforma_v1/configs/default/<name>.yaml`; omitted `--config` means `default`. The selected config is frozen at setup and inherited by later `run`/`status` calls.
+
 ## Model-step execution
 
 When `nel.py run` returns `STATUS=handoff`, you are the model executor for that bounded step. Perform the reasoning yourself in the current session using only the returned manifest inputs and contract, write exactly the requested output file, then call `python nel.py run --run-id <id>` again.
@@ -29,7 +31,7 @@ python nel.py runs ...
 
 Root user configuration is in `config/`, including `config/pipelines/`, and belongs exclusively to canonical `proforma-v1`. Run artefacts are always under `runs/<run-id>/`.
 
-`nel.py` is the only public facade. Normal new runs use `proforma-v1`; `--workflow <name>` selects `workflows/proforma_v1/workflow/<name>.yaml` and defaults to `default`. The selected definition is frozen at setup and subsequent `run`/`status` calls inherit it. Explicit `--legacy` setup uses the retained legacy implementation with workflow-local settings/pipelines and does not accept `--workflow`. Existing runs are dispatched by their frozen workflow manifest. Do not reproduce executor stage logic in the root skill.
+`nel.py` is the only public facade. Normal new runs use `proforma-v1`; `--workflow <name>` selects `workflows/proforma_v1/workflow/<name>.yaml` and defaults to `default`. For the `default` workflow, `--config <name>` selects `workflows/proforma_v1/configs/default/<name>.yaml` and defaults to `default`. The selected workflow definition and config are frozen at setup and subsequent `run`/`status` calls inherit them. Explicit `--legacy` setup uses the retained legacy implementation with workflow-local settings/pipelines and accepts neither `--workflow` nor `--config`. Existing runs are dispatched by their frozen workflow manifest. Do not reproduce executor stage logic in the root skill.
 
 ## NGS report
 
@@ -39,10 +41,10 @@ For a request containing a clinical case and `ngs-report`:
 2. Run:
 
    ```bash
-   python nel.py setup --mode ngs-report --case <case-file> [--run-id <id>] [--pipeline <pipeline>] [--workflow <name>]
+   python nel.py setup --mode ngs-report --case <case-file> [--run-id <id>] [--pipeline <pipeline>] [--workflow <name>] [--config <name>]
    ```
 
-   Omit `--pipeline` unless the user selected one; the default comes from `config/settings.json`. Omit `--workflow` unless the user selected another proforma definition; the default is `default`.
+   Omit `--pipeline` unless the user selected one; the default comes from `config/settings.json`. Omit `--workflow` unless the user selected another proforma definition; the default is `default`. For `--workflow default`, omit `--config` unless the user selected another default-workflow config; the default is `default`.
 3. Record the returned `RUN_ID`.
 4. Call:
 
@@ -75,7 +77,7 @@ Then map a validation request to:
 python nel.py setup --mode <registered-validation-suite> --case-id <case-id>
 ```
 
-Append `--workflow <name>` only when the user explicitly selects a non-default proforma definition. Then use the same repeated `python nel.py run --run-id <id>` loop.
+Append `--workflow <name>` only when the user explicitly selects a non-default proforma definition. For the default workflow, append `--config <name>` only when the user explicitly selects a non-default config. Then use the same repeated `python nel.py run --run-id <id>` loop.
 
 During validation report generation, read only the selected clinical case supplied by setup. Do not retrieve or read evaluator-only marking criteria before `report-final.md` is complete.
 
@@ -93,7 +95,7 @@ to survey all run directories by workflow progress, or:
 python nel.py runs --incomplete
 ```
 
-to find incomplete runs. Use `python nel.py status --run-id <id>` before resuming an existing run. The run's frozen `workflow_definition` is authoritative; do not try to change it when resuming.
+to find incomplete runs. Use `python nel.py status --run-id <id>` before resuming an existing run. The run's frozen `workflow_definition` and `workflow_config` are authoritative; do not try to change them when resuming.
 
 ## Legacy workflow
 
@@ -103,6 +105,6 @@ to find incomplete runs. Use `python nel.py status --run-id <id>` before resumin
 python nel.py setup --legacy --mode <mode> [mode arguments] [--pipeline <pipeline>]
 ```
 
-`--legacy` selects `terraced-v6` and its workflow-local settings/pipelines; it never reuses root `config/settings.json` or `config/pipelines/`. Do not combine `--legacy` with `--workflow`. For self execution, follow the same repeated `python nel.py run --run-id <id>` handoff loop. Existing legacy runs are also resumed with ordinary `python nel.py run --run-id <id>` because their frozen manifest records the workflow. Do not pass `--legacy` to `run` or `status`.
+`--legacy` selects `terraced-v6` and its workflow-local settings/pipelines; it never reuses root `config/settings.json` or `config/pipelines/`. Do not combine `--legacy` with `--workflow` or `--config`. For self execution, follow the same repeated `python nel.py run --run-id <id>` handoff loop. Existing legacy runs are also resumed with ordinary `python nel.py run --run-id <id>` because their frozen manifest records the workflow. Do not pass `--legacy` to `run` or `status`.
 
 Do not route product requests to `legacy-v1`, `diagnosis-first-v1`, or terraced-v1 through terraced-v5.

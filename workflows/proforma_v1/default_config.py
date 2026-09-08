@@ -1,7 +1,7 @@
 """Default-workflow experimental configuration.
 
 The default workflow keeps one execution graph while allowing small prompt and
-meaning-preserving enrichment modules to be selected independently.  Selection
+meaning-preserving enrichment modules to be selected independently. Selection
 is intentionally default-workflow-only for now.
 """
 from __future__ import annotations
@@ -14,6 +14,7 @@ import yaml
 
 ENV_DEFAULT_CONFIG = "NEL_DEFAULT_CONFIG"
 BLANK_SECTION = "(this section intentionally left blank)"
+_BOUND_CONFIG: Path | None = None
 
 
 def package_root() -> Path:
@@ -29,10 +30,12 @@ def available_configs() -> tuple[str, ...]:
 
 
 def resolve_config(selection: str | Path | None = None) -> Path:
+    if selection is None and _BOUND_CONFIG is not None:
+        return _BOUND_CONFIG
     raw = str(selection or os.environ.get(ENV_DEFAULT_CONFIG) or "default").strip()
     candidate = Path(raw)
     if candidate.is_absolute():
-        # UI-launched runs may point at a frozen copy captured inside the run.
+        # UI/root-launched runs may point at a frozen copy captured inside the run.
         path = candidate.resolve()
     elif candidate.parent != Path(".") or candidate.suffix:
         path = (package_root() / candidate).resolve()
@@ -48,6 +51,16 @@ def resolve_config(selection: str | Path | None = None) -> Path:
             f"unknown default config {raw!r}; available: {', '.join(available_configs()) or 'none'}"
         )
     return path
+
+
+def bind_config(selection: str | Path | None) -> Path | None:
+    """Bind one explicit config for this process, or clear the process-local binding."""
+    global _BOUND_CONFIG
+    if selection is None:
+        _BOUND_CONFIG = None
+        return None
+    _BOUND_CONFIG = resolve_config(selection)
+    return _BOUND_CONFIG
 
 
 def load(selection: str | Path | None = None) -> dict[str, Any]:

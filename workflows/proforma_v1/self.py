@@ -35,9 +35,14 @@ EXIT_OK = 0
 EXIT_FAILURE = 1
 
 
-def configure_runtime(*, settings_path=None, pipelines_dir=None):
+_UNSET_CONFIG = object()
+
+def configure_runtime(*, settings_path=None, pipelines_dir=None, config_path=_UNSET_CONFIG):
     """Bind public or frozen per-run configuration through the staged core."""
-    return staged.configure_runtime(settings_path=settings_path, pipelines_dir=pipelines_dir)
+    kwargs = {"settings_path": settings_path, "pipelines_dir": pipelines_dir}
+    if config_path is not _UNSET_CONFIG:
+        kwargs["config_path"] = config_path
+    return staged.configure_runtime(**kwargs)
 
 
 def _print_manifest(data):
@@ -427,7 +432,6 @@ def _self_handlers():
         if staged.has_artifact(ctx.work,'diagnosis_who5_pass_2','who5.yaml'):
             _self_declared_validate('diagnosis.who2',ctx)
         return _handoff('diagnosis',decorate(manifest,step,ctx))
-
     def diagnosis_finalize(step, ctx):
         sr.finalize_diagnosis(ctx.work); _self_declared_validate('diagnosis.icc',ctx); return {'status':'complete'}
 
@@ -727,6 +731,7 @@ def build_parser():
     s.add_argument("--example", type=int)
     s.add_argument("--case-id")
     s.add_argument("--workflow", type=Path)
+    s.add_argument("--config", type=Path, help="default workflow prompt/enrichment config file")
     s.add_argument("--cul", help="corpus user layer profile or frozen layer path")
     sw = s.add_mutually_exclusive_group()
     sw.add_argument("--work-dir", type=Path)
@@ -735,8 +740,9 @@ def build_parser():
         q = sub.add_parser(name)
         q.add_argument("--work-dir", type=Path, required=True)
         q.add_argument("--workflow", type=Path)
+        q.add_argument("--config", type=Path, help="default workflow prompt/enrichment config file")
         q.add_argument("--cul", help="corpus user layer profile or frozen layer path")
-    wc=sub.add_parser("workflow-check"); wc.add_argument("--workflow",type=Path); wc.set_defaults(cul=None)
+    wc=sub.add_parser("workflow-check"); wc.add_argument("--workflow",type=Path); wc.add_argument("--config",type=Path); wc.set_defaults(cul=None)
     return p
 
 
@@ -779,6 +785,7 @@ def _bind_cul(args):
 def main(argv=None):
     args = build_parser().parse_args(argv)
     try:
+        staged.default_config.bind_config(getattr(args, "config", None))
         _bind_cul(args)
         if args.command=="workflow-check":
             [print(x) for x in staged.describe_workflow(staged._compile_selected_workflow(args.workflow))]
