@@ -59,7 +59,8 @@
             "enum": [
               "diagnostic_for_primary",
               "nonspecific",
-              "diagnostic_for_other_pathology"
+              "diagnostic_for_other_pathology",
+              "suspicious_for_other_pathology"
             ]
           },
           "other_pathology": {
@@ -78,7 +79,10 @@
             "if": {
               "properties": {
                 "classification": {
-                  "const": "diagnostic_for_other_pathology"
+                  "enum": [
+                    "diagnostic_for_other_pathology",
+                    "suspicious_for_other_pathology"
+                  ]
                 }
               },
               "required": [

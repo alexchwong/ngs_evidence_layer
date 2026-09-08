@@ -21,7 +21,7 @@ def concurrent_pathology_from_who(who:dict|None)->list[dict]:
     """Project WHO variant assessments into non-routing concurrent-pathology signals."""
     out=[]
     for row in (who or {}).get('variant_assessments') or []:
-        if not isinstance(row,dict) or row.get('classification')!='diagnostic_for_other_pathology':
+        if not isinstance(row,dict) or row.get('classification') not in {'diagnostic_for_other_pathology','suspicious_for_other_pathology'}:
             continue
         out.append({
             'variant_id':row.get('variant_id'),

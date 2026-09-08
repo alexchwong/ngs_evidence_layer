@@ -15,7 +15,8 @@ def _parsed(text,context,keys):
     return doc,list(iss.exact_keys(doc,keys,context))
 
 WHO5_LEGACY_KEYS={'schema_disease','diagnosis','diagnostic_effect','variants','reason'}
-WHO5_VARIANT_CLASSIFICATIONS=('diagnostic_for_primary','nonspecific','diagnostic_for_other_pathology')
+WHO5_VARIANT_CLASSIFICATIONS=('diagnostic_for_primary','nonspecific','diagnostic_for_other_pathology','suspicious_for_other_pathology')
+WHO5_OTHER_PATHOLOGY_CLASSIFICATIONS={'diagnostic_for_other_pathology','suspicious_for_other_pathology'}
 
 def _validate_who5_legacy_doc(doc,*,allowed_diseases,valid_variants,ctx):
     problems=[]
@@ -37,10 +38,10 @@ def _validate_variant_assessments(rows,*,valid_variants,path='variant_assessment
             classification=row.get('classification')
             problems += iss.enum_field(classification,WHO5_VARIANT_CLASSIFICATIONS,f'{rp}.classification',label='diagnostic classification')
             other=row.get('other_pathology')
-            if classification=='diagnostic_for_other_pathology':
+            if classification in WHO5_OTHER_PATHOLOGY_CLASSIFICATIONS:
                 problems += iss.text_field(other,f'{rp}.other_pathology')
             elif classification in WHO5_VARIANT_CLASSIFICATIONS and other is not None:
-                problems.append(ValidationIssue(f'{rp}.other_pathology','This row is not classified diagnostic_for_other_pathology, so other_pathology must be literal null','Set only other_pathology to literal null; keep the diagnostic classification and reason unchanged unless you conclude the classification itself was wrong',repair_class='content',received=iss.preview(other),expected='null'))
+                problems.append(ValidationIssue(f'{rp}.other_pathology','This row is not classified for another pathology, so other_pathology must be literal null','Set only other_pathology to literal null; keep the diagnostic classification and reason unchanged unless you conclude the classification itself was wrong',repair_class='content',received=iss.preview(other),expected='null'))
             problems += iss.text_field(row.get('reason'),f'{rp}.reason')
     return problems
 

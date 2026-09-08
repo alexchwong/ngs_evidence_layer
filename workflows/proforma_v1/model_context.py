@@ -18,6 +18,7 @@ Each function is a pure transform and is directly testable with a literal dict.
 """
 from __future__ import annotations
 import json
+import re
 import yaml
 # Fields of the structured case that a downstream stage may ask for.  ``variants``
 # is deliberately absent: the canonical registry is the only variant view a
@@ -30,18 +31,42 @@ ALLOWED_CASE_FIELDS = CASE_FIELDS + ("patient_age",)
 DIAGNOSIS_CASE_FIELDS = ("provisional_disease", "diagnosis_status", "morphologic_diagnosis_origin", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
 DOMAIN_CASE_FIELDS = ("provisional_disease", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
 GERMLINE_CASE_FIELDS = ("provisional_disease", "patient_age", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
-DEFAULT_REGISTRY_FIELDS = ("gene", "description")
-GERMLINE_REGISTRY_FIELDS = ("gene", "description", "event_type", "vaf")
+DEFAULT_REGISTRY_FIELDS = ("gene", "description", "protein_alias")
+GERMLINE_REGISTRY_FIELDS = ("gene", "description", "protein_alias", "event_type", "vaf")
 # Diagnosis owners apply closed allelic-state criteria (multi-hit TP53 is the
 # clearest example: one mutation at VAF >55% qualifies, below that it does not).
 # Withholding VAF from those owners left them unable to evaluate a criterion
 # whose defining card was already in their context.
-DIAGNOSIS_REGISTRY_FIELDS = ("gene", "description", "event_type", "vaf")
+DIAGNOSIS_REGISTRY_FIELDS = ("gene", "description", "protein_alias", "event_type", "vaf")
 # Domain (PTBG) stages classify variants.  They need to know *what* the disease
 # was called, not the diagnostic argument for it.  Dropping the free-text
 # `reason` paragraphs from the three diagnosis objects is the single largest
 # token reduction in the domain prompts.  Widen this tuple to re-include them.
 DOMAIN_DIAGNOSIS_FIELDS = ("schema_disease", "diagnosis", "variants")
+
+_AMINO_ACID_3_TO_1 = {
+    "Ala": "A", "Arg": "R", "Asn": "N", "Asp": "D", "Cys": "C",
+    "Gln": "Q", "Glu": "E", "Gly": "G", "His": "H", "Ile": "I",
+    "Leu": "L", "Lys": "K", "Met": "M", "Phe": "F", "Pro": "P",
+    "Ser": "S", "Thr": "T", "Trp": "W", "Tyr": "Y", "Val": "V",
+}
+_SIMPLE_PROTEIN_SUBSTITUTION = re.compile(
+    r"(?<![A-Za-z0-9])p\.?\(?(?P<ref>Ala|Arg|Asn|Asp|Cys|Gln|Glu|Gly|His|Ile|Leu|Lys|Met|Phe|Pro|Ser|Thr|Trp|Tyr|Val)(?P<pos>[1-9][0-9]*)(?P<alt>Ala|Arg|Asn|Asp|Cys|Gln|Glu|Gly|His|Ile|Leu|Lys|Met|Phe|Pro|Ser|Thr|Trp|Tyr|Val)\)?(?![A-Za-z0-9])"
+)
+
+def protein_substitution_alias(description: str | None) -> str | None:
+    """Return a one-letter alias only for an unambiguous simple protein substitution.
+
+    This is lexical normalization only: no transcript reconciliation, codon
+    inference, splice interpretation, indel handling, or clinical equivalence.
+    """
+    if not isinstance(description, str):
+        return None
+    matches = list(_SIMPLE_PROTEIN_SUBSTITUTION.finditer(description))
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    return f"{_AMINO_ACID_3_TO_1[match.group('ref')]}{match.group('pos')}{_AMINO_ACID_3_TO_1[match.group('alt')]}"
 
 def _yaml(doc) -> str:
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=110)
@@ -57,7 +82,7 @@ def canonical_registry(reg: dict, *, fields=DEFAULT_REGISTRY_FIELDS) -> dict:
     germline-specific projection; diagnosis, prognosis, treatment and biomarker
     prompts retain their existing registry view.
     """
-    allowed=set(DEFAULT_REGISTRY_FIELDS)|set(GERMLINE_REGISTRY_FIELDS)
+    allowed=set(DEFAULT_REGISTRY_FIELDS)|set(GERMLINE_REGISTRY_FIELDS)|{"protein_alias"}
     unknown=[f for f in fields if f not in allowed]
     if unknown:
         raise ValueError(f"unknown variant-registry projection field(s): {unknown}")
@@ -65,7 +90,12 @@ def canonical_registry(reg: dict, *, fields=DEFAULT_REGISTRY_FIELDS) -> dict:
     for vid, row in (reg or {}).items():
         if not isinstance(row, dict):
             continue
-        out[vid] = {field: row.get(field) for field in fields if field in row}
+        projected = {field: row.get(field) for field in fields if field in row}
+        if "protein_alias" in fields and "protein_alias" not in projected:
+            alias = protein_substitution_alias(row.get("description"))
+            if alias is not None:
+                projected["protein_alias"] = alias
+        out[vid] = projected
     return out
 
 def registry_context(reg: dict, *, fields=DEFAULT_REGISTRY_FIELDS) -> str:

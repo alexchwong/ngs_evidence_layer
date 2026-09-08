@@ -25,6 +25,7 @@ rules:
   - diagnostic_for_primary
   - nonspecific
   - diagnostic_for_other_pathology
+  - suspicious_for_other_pathology
   label: diagnostic classification
 retries:
   content: 2
