@@ -111,6 +111,14 @@ checks that coverage.
 - `report.preservation` — provider-side semantic preservation audit of report prose;
   disabled for native-self execution by the YAML.
 - `report.finalize` — deterministic final report assembly.
+- `dissent.summary.packet` — assemble unresolved semantic dissent into a bounded,
+  model-facing packet after the clinical report is finalized.
+- `dissent.summary` — optional `dissent_summary` model pass that condenses the
+  `dissent_packet` without changing the report or semantic dissent ledger.
+- `dissent.summary.validate` — deterministically verify that every packet issue is
+  represented exactly once and that no source issue was invented.
+- `dissent.summary.render` — install an accepted condensed dissent summary while
+  retaining the deterministic fallback when validation fails.
 
 ### Common step-definition terms
 
@@ -143,11 +151,15 @@ checks that coverage.
 - `panel_scope` — input alias for the configured NGS panel-scope asset.
 - `audit_feedback` — feedback alias exposed to rescue evidence matching after an
   audit-rejected assignment.
+- `dissent_packet` — input alias for the deterministic unresolved-dissent packet.
 - `run.case_text` — built-in binding for the current run's raw case text.
 - `assets.ngs_panel_scope` — built-in binding for the canonical setup copy of
   `config/ngs-panel-scope.md`.
 - `feedback.evidence.audit` — persisted review feedback from the evidence audit.
 - `artifacts.evidence_audits` — committed audit artifact used as feedback payload.
+- `has_items` — condition that runs a step only when its declared artifact is a
+  non-empty collection; the default workflow uses it to skip dissent summarization
+  when there are no unresolved issues.
 - `owner.cards` — immutable card envelope supplied to the owner/evidence operation.
 
 ### Checks and deterministic form validation
@@ -242,6 +254,8 @@ checks that coverage.
 - `ptbg` — model role used by prognosis/treatment/biomarker/germline operations.
 - `report_write` — report-writer model role.
 - `preservation_check` — report-preservation model role.
+- `dissent_summary` — optional model role for condensing unresolved dissent after
+  report finalization.
 - `marking` — evaluator-only post-report model role. It is not a clinical workflow step and must not receive marking criteria before `report-final.md` exists.
 
 ### Registered deterministic transforms used by the default workflow
@@ -258,6 +272,12 @@ checks that coverage.
 - `finalize_evidence` — commit evidence outcomes, suppression/dissent and metrics.
 - `report_blocks` — build deterministic report blocks from accepted clinical facts.
 - `finalize_report` — assemble final report artifacts.
+- `default_dissent_summary_packet` — project the semantic dissent ledger into the
+  bounded packet consumed by the optional summarizer.
+- `default_validate_dissent_summary` — validate complete, non-duplicated source
+  issue coverage in the model summary.
+- `default_install_dissent_summary` — render an accepted summary to `dissent.md`
+  without mutating final report artifacts or the semantic dissent ledger.
 
 ### Default artifact names
 

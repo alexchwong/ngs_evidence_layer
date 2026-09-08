@@ -443,6 +443,85 @@ steps:
       provider_handler: report_finalize
       self_handler: report_finalize
       self_mode: deterministic
+  dissent.packet:
+    type: transform
+    needs:
+    - report.finalize
+    transform: workflow_dissent_packet
+    output:
+      artifact: workflow_dissent_packet
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+  dissent.summarize:
+    type: model
+    needs:
+    - dissent.packet
+    role: dissent_summary
+    prompt: prompts/dissent_summary.md
+    inputs:
+      dissent_items:
+        from: artifacts.workflow_dissent_packet
+      audit_feedback:
+        from: feedback.dissent.summarize
+        optional: true
+    when:
+      has_items:
+        artifact: workflow_dissent_packet
+    output:
+      artifact: workflow_dissent_summary
+      format: yaml
+      schema: schemas/dissent_summary.json
+    execution:
+      provider_handler: reasoning_optional_model
+      self_handler: reasoning_optional_model
+      self_mode: handoff
+  dissent.summary.validate:
+    type: transform
+    needs:
+    - dissent.packet
+    - dissent.summarize
+    transform: workflow_validate_dissent_summary
+    output:
+      artifact: workflow_dissent_summary_validation
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+    review:
+      target: dissent.summarize
+      verdict:
+        path: status
+        pass_values:
+        - pass
+      on_pass:
+        continue: true
+      on_fail:
+        retry_target: true
+        feedback:
+          from: artifacts.workflow_dissent_summary_validation
+          path: feedback
+          as: audit_feedback
+        max_cycles: 1
+        exhausted:
+          action: route_to
+          route_to: dissent.render
+  dissent.render:
+    type: transform
+    needs:
+    - dissent.packet
+    - dissent.summary.validate
+    transform: workflow_render_dissent_summary
+    output:
+      artifact: workflow_dissent_render
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
 
 # ============================================================
 # PRESENTATION METADATA — UI ONLY
@@ -461,6 +540,7 @@ presentation:
     preservation_check: "Checks that report synthesis preserved the approved clinical content."
     marking: "Evaluates completed validation reports; it does not generate clinical conclusions."
     syntax_repair: "Repairs malformed structured model output without changing clinical meaning."
+    dissent_summary: "Summarizes semantic dissent for human review without changing ledger decisions."
   progress_phases:
   - id: preparation
     label: Preparation
@@ -509,3 +589,7 @@ presentation:
     - report.write
     - report.preservation
     - report.finalize
+    - dissent.packet
+    - dissent.summarize
+    - dissent.summary.validate
+    - dissent.render

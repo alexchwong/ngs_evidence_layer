@@ -11,15 +11,22 @@ HERE = Path(__file__).resolve().parents[1]
 PROMPTS = HERE / "prompts"
 SCHEMAS = HERE / "schemas"
 
-_INCLUDE_RE = re.compile(r'^\s*\{\{\s*include\s+["\']([^"\']+)["\']\s*\}\}\s*$', re.MULTILINE)
+_MODULE_RE = re.compile(r'^\s*\{\{\s*module\s+["\']([A-Za-z0-9._-]+)["\']\s*\}\}\s*$', re.MULTILINE)
 
-EXPECTED_COMPONENTS = (
-    "includes/diagnosis/case_context.md",
-    "includes/diagnosis/new_diagnosis.md",
-    "includes/diagnosis/progress_testing.md",
-    "includes/diagnosis/molecular_result_semantics.md",
-    "includes/diagnosis/variant_assessment.md",
+EXPECTED_MODULES = (
+    "deliberate",
+    "foundational_genetics",
+    "premise_before_consequence",
+    "qualifier_check",
+    "limiting_evidence",
+    "case_context",
+    "new_diagnosis",
+    "progress_testing",
+    "molecular_result_semantics",
+    "variant_assessment",
 )
+
+SHARED_DIAGNOSIS_MODULES = EXPECTED_MODULES[5:]
 
 EXPECTED_SECTIONS = (
     "## 1. Task and authority",
@@ -42,22 +49,12 @@ class DiagnosisPromptContractTests(unittest.TestCase):
     def _render(self, name: str) -> str:
         return prompt_loader.render(PROMPTS / name, root=PROMPTS)
 
-    def _component_order(self, path: Path) -> tuple[str, ...]:
-        found: list[str] = []
-        text = path.read_text(encoding="utf-8")
-        for include in _INCLUDE_RE.findall(text):
-            child = (path.parent / include).resolve()
-            found.append(child.relative_to(PROMPTS.resolve()).as_posix())
-            found.extend(self._component_order(child))
-        return tuple(found)
-
     def _assert_contract(self, name: str) -> None:
         source = self._source(name)
-        self.assertEqual(tuple(_INCLUDE_RE.findall(source)), EXPECTED_COMPONENTS)
-        self.assertEqual(self._component_order(PROMPTS / name), EXPECTED_COMPONENTS)
+        self.assertEqual(tuple(_MODULE_RE.findall(source)), EXPECTED_MODULES)
 
         rendered = self._render(name)
-        self.assertNotIn("{{ include", rendered)
+        self.assertNotIn("{{ module", rendered)
 
         positions = []
         for section in EXPECTED_SECTIONS:
@@ -81,17 +78,17 @@ class DiagnosisPromptContractTests(unittest.TestCase):
     def test_icc_component_contract(self):
         self._assert_contract("diagnosis_icc.md")
 
-    def test_shared_components_exist_and_are_nonempty(self):
-        for rel in EXPECTED_COMPONENTS:
-            path = PROMPTS / rel
-            self.assertTrue(path.is_file(), rel)
-            self.assertTrue(path.read_text(encoding="utf-8").strip(), rel)
+    def test_shared_modules_exist_and_are_nonempty(self):
+        for module in SHARED_DIAGNOSIS_MODULES:
+            path = PROMPTS / "modules" / module / "v1.md"
+            self.assertTrue(path.is_file(), module)
+            self.assertTrue(path.read_text(encoding="utf-8").strip(), module)
 
     def test_sections_two_and_three_have_one_shared_source_of_truth(self):
         who_source = self._source("diagnosis_who5.md")
         icc_source = self._source("diagnosis_icc.md")
-        for rel in EXPECTED_COMPONENTS[:2]:
-            directive = '{{ include "' + rel + '" }}'
+        for module in SHARED_DIAGNOSIS_MODULES[:2]:
+            directive = '{{ module "' + module + '" }}'
             self.assertEqual(who_source.count(directive), 1)
             self.assertEqual(icc_source.count(directive), 1)
 
@@ -104,7 +101,7 @@ class DiagnosisPromptContractTests(unittest.TestCase):
         self.assertEqual(who_shared, icc_shared)
 
     def test_new_diagnosis_section_is_list_structured(self):
-        text = (PROMPTS / "includes/diagnosis/new_diagnosis.md").read_text(encoding="utf-8")
+        text = (PROMPTS / "modules/new_diagnosis/v1.md").read_text(encoding="utf-8")
         self.assertIn("only when all of the following are true:", text)
         self.assertGreaterEqual(len(re.findall(r"^- ", text, flags=re.MULTILINE)), 6)
         self.assertNotIn("Return `schema_disease", text)

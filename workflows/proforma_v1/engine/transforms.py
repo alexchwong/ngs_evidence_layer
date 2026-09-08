@@ -231,6 +231,175 @@ for _name in (
     REGISTRY[_name] = default_reviewed_v2(_name)
 
 
+def workflow_dissent_packet(value: Any, context: dict, params: dict) -> Any:
+    """Project the canonical dissent ledger into a presentation-only model packet.
+
+    The ledger remains authoritative.  Stable issue IDs are retained solely so a
+    downstream summary can prove complete coverage; internal issue keys are not
+    exposed to the summarizer.
+    """
+    from pathlib import Path
+    from workflows.proforma_v1.engine import dissent as workflow_dissent
+
+    ctx = context.get("__workflow_context__") if isinstance(context, dict) else None
+    work = Path(context.get("__work__") or getattr(ctx, "work", "."))
+    issues = workflow_dissent.doc(work).get("issues") or []
+    packet = []
+    for issue in issues:
+        if not isinstance(issue, dict):
+            continue
+        issue_id = str(issue.get("id") or "").strip()
+        statement = str(issue.get("reviewed_text") or "").strip()
+        if not issue_id or not statement:
+            continue
+        history = []
+        for event in issue.get("history") or []:
+            if not isinstance(event, dict):
+                continue
+            projected = {}
+            for key in ("stage", "event", "reason", "action", "outcome", "resolution_recommendation"):
+                item = event.get(key)
+                if item not in (None, "", []):
+                    projected[key] = item
+            if projected and projected not in history:
+                history.append(projected)
+        packet.append({
+            "id": issue_id,
+            "statement": statement,
+            "status": str(issue.get("status") or "open"),
+            "history": history,
+        })
+    return packet
+
+
+def _workflow_dissent_summary_rows(packet: Any, summary: Any) -> tuple[list[dict], str | None]:
+    """Validate lossless source-issue coverage before accepting model prose."""
+    if not isinstance(packet, list):
+        return [], "dissent packet is not a list"
+    expected = [str(row.get("id") or "").strip() for row in packet if isinstance(row, dict)]
+    expected = [item for item in expected if item]
+    if not expected:
+        return [], None
+    rows = summary.get("summaries") if isinstance(summary, dict) else None
+    if not isinstance(rows, list) or not rows:
+        return [], "summary is unavailable or contains no summaries"
+    seen = []
+    cleaned = []
+    required_text = ("statement", "concern_critique", "decision_and_basis")
+    for index, row in enumerate(rows, 1):
+        if not isinstance(row, dict):
+            return [], f"summary row {index} is not an object"
+        ids = row.get("source_issue_ids")
+        if not isinstance(ids, list) or not ids:
+            return [], f"summary row {index} has no source_issue_ids"
+        ids = [str(item or "").strip() for item in ids]
+        if any(not item for item in ids) or len(set(ids)) != len(ids):
+            return [], f"summary row {index} has invalid source_issue_ids"
+        text = {key: str(row.get(key) or "").strip() for key in required_text}
+        if any(not text[key] for key in required_text):
+            return [], f"summary row {index} is missing required prose"
+        seen.extend(ids)
+        cleaned.append({"source_issue_ids": ids, **text})
+    if len(seen) != len(set(seen)):
+        return [], "a source issue appears in more than one summary row"
+    if set(seen) != set(expected):
+        missing = sorted(set(expected) - set(seen))
+        unknown = sorted(set(seen) - set(expected))
+        detail = []
+        if missing:
+            detail.append("missing " + ", ".join(missing))
+        if unknown:
+            detail.append("unknown " + ", ".join(unknown))
+        return [], "source issue coverage mismatch: " + "; ".join(detail)
+    return cleaned, None
+
+
+def workflow_validate_dissent_summary(value: Any, context: dict, params: dict) -> Any:
+    """Return a deterministic retry verdict for presentation-summary coverage.
+
+    This validator is deliberately structural only.  It does not assess whether
+    the model's prose is clinically correct; it verifies only that every canonical
+    ledger issue is represented exactly once and that required prose fields exist.
+    """
+    packet = context.get("workflow_dissent_packet") or []
+    if not packet:
+        return {"status": "pass", "feedback": "", "source_issues": 0, "summaries": 0}
+
+    rows, error = _workflow_dissent_summary_rows(packet, context.get("workflow_dissent_summary"))
+    if error:
+        return {
+            "status": "fail",
+            "feedback": (
+                "The dissent summary failed deterministic structural coverage validation. "
+                + error
+                + ". Return a complete summary covering every supplied source issue ID exactly once. "
+                  "Do not invent IDs and do not change clinical decisions or ledger facts."
+            ),
+            "source_issues": len(packet),
+            "summaries": 0,
+        }
+    return {
+        "status": "pass",
+        "feedback": "",
+        "source_issues": len(packet),
+        "summaries": len(rows),
+    }
+
+
+def workflow_render_dissent_summary(value: Any, context: dict, params: dict) -> Any:
+    """Replace ``dissent.md`` only with a complete, structurally valid summary.
+
+    Invalid or unavailable model output is non-clinical presentation failure: the
+    deterministic dissent already written by the clinical workflow is retained.
+    """
+    from pathlib import Path
+
+    ctx = context.get("__workflow_context__") if isinstance(context, dict) else None
+    work = Path(context.get("__work__") or getattr(ctx, "work", "."))
+    packet = context.get("workflow_dissent_packet") or []
+    target = work / "dissent.md"
+    if not packet:
+        if target.exists():
+            target.unlink()
+        return {"status": "no_dissent", "source_issues": 0, "summaries": 0}
+
+    rows, error = _workflow_dissent_summary_rows(packet, context.get("workflow_dissent_summary"))
+    if error:
+        return {
+            "status": "deterministic_fallback",
+            "reason": error,
+            "source_issues": len(packet),
+            "summaries": 0,
+        }
+
+    sections = ["# Semantic dissent"]
+    for index, row in enumerate(rows, 1):
+        sections.extend([
+            "",
+            f"## {index}",
+            "",
+            f"**Statement:** {row['statement']}",
+            "",
+            f"**Concern / Critique:** {row['concern_critique']}",
+            "",
+            f"**Decision and Basis:** {row['decision_and_basis']}",
+        ])
+    text = "\n".join(sections).rstrip() + "\n"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(target.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8")
+    temporary.replace(target)
+    return {
+        "status": "summarized",
+        "source_issues": len(packet),
+        "summaries": len(rows),
+    }
+
+
+REGISTRY["workflow_dissent_packet"] = workflow_dissent_packet
+REGISTRY["workflow_validate_dissent_summary"] = workflow_validate_dissent_summary
+REGISTRY["workflow_render_dissent_summary"] = workflow_render_dissent_summary
+
 def apply(name: str, value: Any, *, context: dict | None = None, params: dict | None = None) -> Any:
     if name not in REGISTRY:
         raise TransformError(f"unknown transform {name!r}; registered: {sorted(REGISTRY)}")
