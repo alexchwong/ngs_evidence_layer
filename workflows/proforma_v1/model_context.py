@@ -20,28 +20,17 @@ from __future__ import annotations
 import json
 import re
 import yaml
-# Fields of the structured case that a downstream stage may ask for.  ``variants``
-# is deliberately absent: the canonical registry is the only variant view a
-# downstream model is given. patient_age is allowed only for the germline-specific
-# projection so existing non-germline prompt context is unchanged.
+
+from workflows.proforma_v1 import default_config
+
 CASE_FIELDS = ("provisional_disease", "diagnosis_status", "morphologic_diagnosis_origin", "case_facts", "detected_variants_summary", "ngs_result_completeness", "ngs_no_variants_detected")
 ALLOWED_CASE_FIELDS = CASE_FIELDS + ("patient_age",)
-# Default projections per stage family.  These are the reviewable trim decisions;
-# widening one is a one-line change here rather than an edit to step.py.
 DIAGNOSIS_CASE_FIELDS = ("provisional_disease", "diagnosis_status", "morphologic_diagnosis_origin", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
 DOMAIN_CASE_FIELDS = ("provisional_disease", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
 GERMLINE_CASE_FIELDS = ("provisional_disease", "patient_age", "case_facts", "ngs_result_completeness", "ngs_no_variants_detected")
 DEFAULT_REGISTRY_FIELDS = ("gene", "description", "protein_alias")
 GERMLINE_REGISTRY_FIELDS = ("gene", "description", "protein_alias", "event_type", "vaf")
-# Diagnosis owners apply closed allelic-state criteria (multi-hit TP53 is the
-# clearest example: one mutation at VAF >55% qualifies, below that it does not).
-# Withholding VAF from those owners left them unable to evaluate a criterion
-# whose defining card was already in their context.
 DIAGNOSIS_REGISTRY_FIELDS = ("gene", "description", "protein_alias", "event_type", "vaf")
-# Domain (PTBG) stages classify variants.  They need to know *what* the disease
-# was called, not the diagnostic argument for it.  Dropping the free-text
-# `reason` paragraphs from the three diagnosis objects is the single largest
-# token reduction in the domain prompts.  Widen this tuple to re-include them.
 DOMAIN_DIAGNOSIS_FIELDS = ("schema_disease", "diagnosis", "variants")
 
 _AMINO_ACID_3_TO_1 = {
@@ -54,12 +43,9 @@ _SIMPLE_PROTEIN_SUBSTITUTION = re.compile(
     r"(?<![A-Za-z0-9])p\.?\(?(?P<ref>Ala|Arg|Asn|Asp|Cys|Gln|Glu|Gly|His|Ile|Leu|Lys|Met|Phe|Pro|Ser|Thr|Trp|Tyr|Val)(?P<pos>[1-9][0-9]*)(?P<alt>Ala|Arg|Asn|Asp|Cys|Gln|Glu|Gly|His|Ile|Leu|Lys|Met|Phe|Pro|Ser|Thr|Trp|Tyr|Val)\)?(?![A-Za-z0-9])"
 )
 
-def protein_substitution_alias(description: str | None) -> str | None:
-    """Return a one-letter alias only for an unambiguous simple protein substitution.
 
-    This is lexical normalization only: no transcript reconciliation, codon
-    inference, splice interpretation, indel handling, or clinical equivalence.
-    """
+def protein_substitution_alias(description: str | None) -> str | None:
+    """Return a one-letter alias only for an unambiguous simple protein substitution."""
     if not isinstance(description, str):
         return None
     matches = list(_SIMPLE_PROTEIN_SUBSTITUTION.finditer(description))
@@ -68,50 +54,49 @@ def protein_substitution_alias(description: str | None) -> str | None:
     match = matches[0]
     return f"{_AMINO_ACID_3_TO_1[match.group('ref')]}{match.group('pos')}{_AMINO_ACID_3_TO_1[match.group('alt')]}"
 
+
+def _protein_alias_enabled() -> bool:
+    """Return the selected v1 protein-alias enrichment state."""
+    spec = default_config.enrichment_spec("protein_hgvs_one_letter_alias")
+    if spec["version"] != "v1":
+        raise ValueError(
+            f"unsupported protein_hgvs_one_letter_alias version {spec['version']!r}; supported: v1"
+        )
+    return bool(spec["enabled"])
+
+
 def _yaml(doc) -> str:
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=110)
 
-def canonical_registry(reg: dict, *, fields=DEFAULT_REGISTRY_FIELDS) -> dict:
-    """Return the requested canonical registry projection with source IDs removed.
-    ``reg`` is keyed by canonical ID and each row carries ``variant_id`` (the
-    ``V1``-style source ID) for provenance.  That field must never reach a model:
-    it is the identifier the deterministic validators reject, and a model shown
-    both namespaces will reproduce whichever appeared more often.
 
-    Molecular event type and VAF are deliberately exposed only through the
-    germline-specific projection; diagnosis, prognosis, treatment and biomarker
-    prompts retain their existing registry view.
-    """
+def canonical_registry(reg: dict, *, fields=DEFAULT_REGISTRY_FIELDS) -> dict:
+    """Return the requested canonical registry projection with source IDs removed."""
     allowed=set(DEFAULT_REGISTRY_FIELDS)|set(GERMLINE_REGISTRY_FIELDS)|{"protein_alias"}
     unknown=[f for f in fields if f not in allowed]
     if unknown:
         raise ValueError(f"unknown variant-registry projection field(s): {unknown}")
     out = {}
+    alias_enabled = _protein_alias_enabled()
     for vid, row in (reg or {}).items():
         if not isinstance(row, dict):
             continue
         projected = {field: row.get(field) for field in fields if field in row}
-        if "protein_alias" in fields and "protein_alias" not in projected:
-            alias = protein_substitution_alias(row.get("description"))
-            if alias is not None:
-                projected["protein_alias"] = alias
+        if "protein_alias" in fields:
+            if not alias_enabled:
+                projected.pop("protein_alias", None)
+            elif "protein_alias" not in projected:
+                alias = protein_substitution_alias(row.get("description"))
+                if alias is not None:
+                    projected["protein_alias"] = alias
         out[vid] = projected
     return out
 
+
 def registry_context(reg: dict, *, fields=DEFAULT_REGISTRY_FIELDS) -> str:
-    """Render a canonical variant-registry projection as a model-facing YAML block."""
     return _yaml({"variants": canonical_registry(reg, fields=fields)})
 
 
 def case_projection(case: dict, *, fields=CASE_FIELDS) -> dict:
-    """Return only the requested structured-case fields.
-    ``variants`` is never included.  Callers that need variant identity supply
-    ``registry_context`` alongside this projection.
-    Legacy structured cases predate ``diagnosis_status``.  When a caller asks
-    for that field and it is absent, project ``new`` so old saved runs retain the
-    pre-existing de-novo diagnostic behaviour rather than failing or entering a
-    progress-marrow branch accidentally.
-    """
     unknown = [f for f in fields if f not in ALLOWED_CASE_FIELDS]
     if unknown:
         raise ValueError(f"unknown structured-case projection field(s): {unknown}")
@@ -120,18 +105,15 @@ def case_projection(case: dict, *, fields=CASE_FIELDS) -> dict:
         out["diagnosis_status"] = "new"
     return out
 
+
 def case_context(case: dict, *, fields=CASE_FIELDS) -> str:
-    """Render a structured-case projection as a model-facing JSON block."""
     doc = case_projection(case, fields=fields)
     if fields == DIAGNOSIS_CASE_FIELDS and "ngs_no_variants_detected" in doc:
         doc["genes_without_detected_ngs_variants"] = doc.pop("ngs_no_variants_detected")
     return json.dumps(doc, indent=2, ensure_ascii=False)
 
+
 def diagnosis_projection(diagnosis: dict, *, fields=DOMAIN_DIAGNOSIS_FIELDS) -> dict:
-    """Return the primary framework diagnoses reduced to the requested fields.
-    ``relationship`` is always retained: it is one token and it is the only part
-    of the diagnosis object a downstream stage cannot re-derive.
-    """
     out = {}
     for role in ("who5", "icc"):
         row = (diagnosis or {}).get(role)
@@ -144,15 +126,12 @@ def diagnosis_projection(diagnosis: dict, *, fields=DOMAIN_DIAGNOSIS_FIELDS) -> 
         out["relationship"] = diagnosis["relationship"]
     return out
 
+
 def diagnosis_context(diagnosis: dict, *, fields=DOMAIN_DIAGNOSIS_FIELDS) -> str:
-    """Render a diagnosis projection as a model-facing YAML block."""
     return _yaml(diagnosis_projection(diagnosis, fields=fields))
 
+
 def assert_canonical(text: str, *, source_ids) -> None:
-    """Fail loudly if a source-case ID reached a model-facing prompt.
-    This is a development guard, not a validator: it protects the invariant that
-    the ``V1``/``v01`` collision cannot silently return via a new prompt block.
-    """
     leaked = sorted({sid for sid in source_ids or () if sid and _whole_word(text, sid)})
     if leaked:
         raise AssertionError(
@@ -160,14 +139,12 @@ def assert_canonical(text: str, *, source_ids) -> None:
             "downstream prompts must expose canonical IDs only"
         )
 
-def _whole_word(text: str, token: str) -> bool:
-    import re
 
+def _whole_word(text: str, token: str) -> bool:
     return re.search(rf"(?<![A-Za-z0-9]){re.escape(token)}(?![A-Za-z0-9])", text or "") is not None
 
 
 def source_ids(reg: dict) -> list[str]:
-    """Source-case IDs currently held in the registry, for the guard above."""
     out = []
     for row in (reg or {}).values():
         if isinstance(row, dict) and isinstance(row.get("variant_id"), str):

@@ -5,21 +5,23 @@
 Using only the supplied WHO5 authority cards, decide whether the NGS findings and supplied cytogenetic or other molecular findings refine, supersede, or leave unchanged the starting diagnosis.
 Do not use outside medical knowledge or infer diagnostic relationships absent from the supplied cards.
 
-## 2. Determine case context
+{{ module "deliberate" }}
 
-{{ include "includes/diagnosis/case_context.md" }}
+{{ module "foundational_genetics" }}
 
-## 3. New diagnosis
+{{ module "premise_before_consequence" }}
 
-{{ include "includes/diagnosis/new_diagnosis.md" }}
+{{ module "qualifier_check" }}
 
-## 4. Progress testing
+{{ module "limiting_evidence" }}
 
-{{ include "includes/diagnosis/progress_testing.md" }}
+{{ module "case_context" }}
 
-## 5. Molecular and cytogenetic result semantics
+{{ module "new_diagnosis" }}
 
-{{ include "includes/diagnosis/molecular_result_semantics.md" }}
+{{ module "progress_testing" }}
+
+{{ module "molecular_result_semantics" }}
 
 ## 6. Determine and freeze the primary WHO5 diagnosis
 
@@ -31,9 +33,7 @@ Do not use outside medical knowledge or infer diagnostic relationships absent fr
 - `reason` is one concise patient-level proposition about the molecular/cytogenetic effect on diagnosis. Do not relitigate morphology.
 - Once the primary WHO5 diagnosis is fixed, do not change it merely because a different detected variant is classified as `diagnostic_for_other_pathology` below.
 
-## 7. Assess every detected variant
-
-{{ include "includes/diagnosis/variant_assessment.md" }}
+{{ module "variant_assessment" }}
 
 ## 8. Output contract
 

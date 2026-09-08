@@ -4,6 +4,16 @@ Assess whether each supplied NGS molecular finding, together with the supplied c
 
 This step assesses whether germline evaluation is indicated; it does not establish whether a molecular finding is constitutionally present. A `germline_suspicious` classification means germline predisposition is sufficiently suspected to justify confirmation, not that germline status has been proven.
 
+{{ module "deliberate" }}
+
+{{ module "foundational_genetics" }}
+
+{{ module "premise_before_consequence" }}
+
+{{ module "qualifier_check" }}
+
+{{ module "limiting_evidence" }}
+
 ## Eligibility
 
 Determine eligibility separately for every supplied molecular finding before completing detailed germline reasoning.

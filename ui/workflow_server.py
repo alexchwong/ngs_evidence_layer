@@ -10,6 +10,7 @@ import copy
 import hashlib
 import json
 import os
+import shutil
 import sys
 import threading
 from pathlib import Path
@@ -22,7 +23,10 @@ from workflows.proforma_v1.engine.workflow_loader import load as load_workflow
 _BATCH_BOOTSTRAP = batch.bootstrap
 _BATCH_LIST_PIPELINES = batch.list_pipelines
 WORKFLOW_DIR = base.ROOT / "workflows" / "proforma_v1" / "workflow"
-DEFAULT_WORKFLOW = "default_reviewed_v2"
+DEFAULT_WORKFLOW = "default"
+DEFAULT_CONFIG_DIR = base.ROOT / "workflows" / "proforma_v1" / "configs" / "default"
+DEFAULT_CONFIG = "default"
+DEFAULT_CONFIG_STATE_DIR = base.ROOT / ".nel-ui" / "default-configs"
 OPENROUTER_MODELS_PATH = base.ROOT / "config" / "openrouter_models.json"
 MODEL_ACTIVITY_DIR = base.ROOT / ".nel-ui" / "activity"
 OPENROUTER_CATEGORIES = {
@@ -38,21 +42,18 @@ LMSTUDIO_MIN_VERSION = "0.3.29"
 
 _SETUP_CREDENTIAL = threading.local()
 _BASE_CHILD_ENV = base.child_env
-def _ui_child_env() -> dict[str, str]:
-    """Opt UI-launched provider processes into transient live streaming.
 
-    Setup is deterministic and never calls a provider.  When the selected
-    profile requires a credential that has not yet been supplied, a per-thread
-    sentinel lets the CLI configuration check complete without placing a fake
-    credential in shared process state.  Run-time provider calls never receive
-    this sentinel.
-    """
+def _ui_child_env() -> dict[str, str]:
+    """Opt UI-launched provider processes into transient live streaming."""
     env = _BASE_CHILD_ENV()
     env["NEL_MODEL_STREAM"] = "1"
     env["NEL_MODEL_ACTIVITY_DIR"] = str(MODEL_ACTIVITY_DIR)
     setup_env = str(getattr(_SETUP_CREDENTIAL, "env_name", "") or "").strip()
     if setup_env and not str(env.get(setup_env) or "").strip():
         env[setup_env] = "__NEL_UI_SETUP_ONLY__"
+    default_config = str(getattr(_SETUP_CREDENTIAL, "default_config", "") or "").strip()
+    if default_config:
+        env["NEL_DEFAULT_CONFIG"] = default_config
     return env
 
 base.child_env = _ui_child_env
@@ -135,6 +136,7 @@ def _infer_provider_class(name: str, doc: dict[str, Any] | None = None, base_url
     if host in base.LOCAL_HOSTS or "lmstudio" in lowered or "lm-studio" in lowered:
         return "lmstudio"
     return "other"
+
 
 def list_pipelines() -> list[dict[str, Any]]:
     """Annotate existing profiles with a provider class for UI filtering."""
@@ -241,7 +243,6 @@ def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
     pipeline_meta = doc.setdefault("pipeline", {})
     if isinstance(pipeline_meta, dict):
         pipeline_meta["provider_class"] = provider_class
-    # Preserve batch execution policy just as batch_server.save_pipeline does.
     try:
         existing = base.read_pipeline(name)
     except base.UIError:
@@ -254,6 +255,7 @@ def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
     saved = base.save_pipeline(name, doc, overwrite=bool(payload.get("overwrite")))
     return {"name": name, "path": str(saved), "pipelines": list_pipelines()}
 
+
 def _workflow_role_descriptions(path: Path) -> dict[str, str]:
     doc = load_workflow(path)
     presentation = doc.get("presentation") or {}
@@ -265,6 +267,7 @@ def _workflow_role_descriptions(path: Path) -> dict[str, str]:
         for role, description in roles.items()
         if str(description).strip()
     }
+
 
 def workflow_definitions() -> list[dict[str, Any]]:
     rows = [
@@ -280,6 +283,18 @@ def workflow_definitions() -> list[dict[str, Any]]:
         raise base.UIError(f"no proforma-v1 workflow YAML files found in {WORKFLOW_DIR}", 500)
     return rows
 
+
+def default_configs() -> list[dict[str, str]]:
+    rows = [
+        {"id": path.stem, "label": path.stem}
+        for path in sorted(DEFAULT_CONFIG_DIR.glob("*.yaml"))
+        if path.is_file() and base.RUN_ID_RE.fullmatch(path.stem)
+    ]
+    if not rows:
+        raise base.UIError(f"no default workflow configs found in {DEFAULT_CONFIG_DIR}", 500)
+    return rows
+
+
 def _workflow_name(payload: dict[str, Any]) -> str:
     name = str(payload.get("workflow") or DEFAULT_WORKFLOW).strip()
     available = {row["id"] for row in workflow_definitions()}
@@ -290,11 +305,85 @@ def _workflow_name(payload: dict[str, Any]) -> str:
         )
     return name
 
+
+def _default_config_name(payload: dict[str, Any], workflow: str) -> str:
+    if workflow != "default":
+        return DEFAULT_CONFIG
+    name = str(payload.get("default_config") or DEFAULT_CONFIG).strip()
+    available = {row["id"] for row in default_configs()}
+    if name not in available:
+        raise base.UIError(
+            f"unknown default config {name!r}; choose one of: {', '.join(sorted(available))}", 400
+        )
+    return name
+
+
+def _config_state_path(owner: str) -> Path:
+    DEFAULT_CONFIG_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    return DEFAULT_CONFIG_STATE_DIR / f"{base.check_run_id(owner)}.txt"
+
+
+def _config_snapshot_path(owner: str) -> Path:
+    DEFAULT_CONFIG_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    return DEFAULT_CONFIG_STATE_DIR / f"{base.check_run_id(owner)}.yaml"
+
+
+def _remember_default_config(owner: str, name: str) -> None:
+    _config_state_path(owner).write_text(name + "\n", encoding="utf-8")
+    shutil.copyfile(DEFAULT_CONFIG_DIR / f"{name}.yaml", _config_snapshot_path(owner))
+
+
+def _remembered_default_config(owner: str) -> str:
+    try:
+        name = _config_state_path(owner).read_text(encoding="utf-8").strip()
+    except OSError:
+        return DEFAULT_CONFIG
+    available = {row["id"] for row in default_configs()}
+    return name if name in available else DEFAULT_CONFIG
+
+
+def _run_owner(run_ref: str) -> str:
+    return str(run_ref or "").split(":", 1)[0].strip()
+
+
+def _run_workflow_definition(run_ref: str) -> str:
+    kind = batch._top_kind(run_ref)
+    if kind == "batch":
+        return str(batch._batch_location(run_ref).manifest.get("workflow_definition") or DEFAULT_WORKFLOW)
+    location = batch._run_location(run_ref)
+    path = location.path / "run-config" / "manifest.json"
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return DEFAULT_WORKFLOW
+    return str(doc.get("workflow_definition") or DEFAULT_WORKFLOW)
+
+
+def _freeze_default_config(run_ref: str) -> Path:
+    owner = _run_owner(run_ref)
+    name = _remembered_default_config(owner)
+    snapshot = _config_snapshot_path(owner)
+    source = snapshot if snapshot.is_file() else DEFAULT_CONFIG_DIR / f"{name}.yaml"
+    kind = batch._top_kind(run_ref)
+    if kind == "batch":
+        target = batch._batch_location(owner).path / "default-config.yaml"
+    elif kind == "batch-child":
+        target = batch._batch_location(owner).path / "default-config.yaml"
+    else:
+        target = batch._run_location(run_ref).path / "run-config" / "default-config.yaml"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.is_file():
+        shutil.copyfile(source, target)
+    return target.resolve()
+
+
 def bootstrap() -> dict[str, Any]:
     doc = _BATCH_BOOTSTRAP()
     doc["pipelines"] = list_pipelines()
     doc["workflows"] = workflow_definitions()
     doc["default_workflow"] = DEFAULT_WORKFLOW
+    doc["default_configs"] = default_configs()
+    doc["default_default_config"] = DEFAULT_CONFIG
     if any(row.get("name") == "openrouter" and row.get("readable") for row in doc["pipelines"]):
         doc["default_pipeline"] = "openrouter"
     doc["reasoning_levels"] = list(REASONING_LEVELS)
@@ -302,6 +391,7 @@ def bootstrap() -> dict[str, Any]:
     doc["lmstudio_min_version"] = LMSTUDIO_MIN_VERSION
     doc["role_defaults"] = pipeline_registry.role_defaults()
     return doc
+
 
 def openrouter_models() -> dict[str, Any]:
     try:
@@ -333,12 +423,9 @@ def openrouter_models() -> dict[str, Any]:
         clean.append({"id": model_id, "name": name, "category": category})
     return {"version": int(doc.get("version") or 1), "models": clean}
 
+
 def openrouter_model_providers(base_url: str, model: str, api_key_env: str) -> dict[str, Any]:
-    """Return provider endpoint slugs available for one OpenRouter model.
-    OpenRouter routing is model-specific.  The endpoint ``tag`` is the exact
-    value accepted by provider.order/only/ignore, including variants such as
-    ``deepinfra/turbo``.  Secrets remain server-side.
-    """
+    """Return provider endpoint slugs available for one OpenRouter model."""
     base_url = str(base_url or "").strip().rstrip("/")
     model = str(model or "").strip()
     api_key_env = str(api_key_env or "").strip()
@@ -369,8 +456,6 @@ def openrouter_model_providers(base_url: str, model: str, api_key_env: str) -> d
     for endpoint in endpoints if isinstance(endpoints, list) else []:
         if not isinstance(endpoint, dict):
             continue
-        # OpenRouter's endpoint schemas have evolved. Prefer the routing tag,
-        # but accept the documented provider_tag/provider_slug names as well.
         tag = str(
             endpoint.get("provider_tag")
             or endpoint.get("tag")
@@ -460,7 +545,9 @@ def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
         *args,
     ]
     try:
-        return _start_setup(argv, run_id=run_id, pipeline=pipeline, cleanup=cleanup)
+        result = _start_setup(argv, run_id=run_id, pipeline=pipeline, cleanup=cleanup)
+        result.setdefault("run_id", run_id)
+        return result
     except base.UIError:
         for path in cleanup:
             try:
@@ -469,10 +556,15 @@ def _single_setup(payload: dict[str, Any], workflow: str) -> dict[str, Any]:
                 pass
         raise
 
+
 def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
     workflow = _workflow_name(payload)
+    config_name = _default_config_name(payload, workflow)
     if not bool(payload.get("batch_mode")):
-        return _single_setup(payload, workflow)
+        result = _single_setup(payload, workflow)
+        if workflow == "default":
+            _remember_default_config(str(result.get("run_id") or ""), config_name)
+        return result
     mode = str(payload.get("mode") or "").strip()
     pipeline = str(payload.get("pipeline") or "").strip()
     batch._validate_pipeline(pipeline)
@@ -527,7 +619,11 @@ def action_setup(payload: dict[str, Any]) -> dict[str, Any]:
         args += ["--case-ids", joined, "--run-id", batch_id]
     argv = [sys.executable, "-u", str(base.ROOT / "nel.py"), *args]
     try:
-        return _start_setup(argv, run_id=batch_id, pipeline=pipeline, cleanup=cleanup)
+        result = _start_setup(argv, run_id=batch_id, pipeline=pipeline, cleanup=cleanup)
+        result.setdefault("run_id", batch_id)
+        if workflow == "default":
+            _remember_default_config(batch_id, config_name)
+        return result
     except base.UIError:
         for path in cleanup:
             try:
@@ -560,10 +656,16 @@ def action_run(payload: dict[str, Any]) -> dict[str, Any]:
             f"{env_name} is required before starting pipeline {credential.get('pipeline')!r}",
             401,
         )
-    return _BATCH_ACTION_RUN(payload)
+    if _run_workflow_definition(run_ref) != "default":
+        return _BATCH_ACTION_RUN(payload)
+    frozen = _freeze_default_config(run_ref)
+    _SETUP_CREDENTIAL.default_config = str(frozen)
+    try:
+        return _BATCH_ACTION_RUN(payload)
+    finally:
+        _SETUP_CREDENTIAL.default_config = ""
 
 
-# Handler methods in batch_server resolve these names in the batch_server module.
 batch.list_pipelines = list_pipelines
 batch.bootstrap = bootstrap
 batch.save_pipeline = save_pipeline
@@ -574,6 +676,8 @@ _RUN_CREDENTIALS_SCRIPT = '<script src="/assets/run-credentials.js"></script>'
 _PROVIDER_MODELS_SCRIPT = '<script src="/assets/provider-models.js"></script>'
 _ROLE_REASONING_SCRIPT = '<script src="/assets/role-reasoning.js"></script>'
 _MODEL_ACTIVITY_SCRIPT = '<script src="/assets/model-activity.js"></script>'
+_DEFAULT_CONFIG_SCRIPT = '<script src="/assets/default-configs.js"></script>'
+
 
 def _serve_page_with_provider_models(self) -> None:
     """Serve the existing page and append provider/model and activity UI enhancements."""
@@ -586,7 +690,7 @@ def _serve_page_with_provider_models(self) -> None:
         text = batch.PAGE.read_text(encoding="utf-8")
     except OSError:
         return self._text(f"{batch.PAGE.relative_to(base.ROOT)} is missing\n", 500)
-    for script in (_RUN_CREDENTIALS_SCRIPT, _PROVIDER_MODELS_SCRIPT, _ROLE_REASONING_SCRIPT, _MODEL_ACTIVITY_SCRIPT):
+    for script in (_RUN_CREDENTIALS_SCRIPT, _PROVIDER_MODELS_SCRIPT, _ROLE_REASONING_SCRIPT, _MODEL_ACTIVITY_SCRIPT, _DEFAULT_CONFIG_SCRIPT):
         if script not in text:
             text = text.replace("</body>", f"{script}\n</body>", 1)
     body = text.replace("__NEL_TOKEN__", batch.Handler.token).encode("utf-8")
@@ -594,21 +698,22 @@ def _serve_page_with_provider_models(self) -> None:
 
 batch.Handler._serve_page = _serve_page_with_provider_models
 
+
 def _model_activity_path(run_ref: str) -> Path | None:
     kind = batch._top_kind(run_ref)
     if kind not in {"run", "batch-child"}:
         return None
-    # Resolve the run as a validation/containment check before deriving the
-    # transient session filename. No run path is exposed to the browser.
     batch._run_location(run_ref)
     digest = hashlib.sha256(run_ref.encode("utf-8")).hexdigest()
     return MODEL_ACTIVITY_DIR / f"{digest}.jsonl"
+
 
 def model_activity(run_ref: str, offset: int) -> dict[str, Any]:
     path = _model_activity_path(run_ref)
     if path is None:
         return {"offset": 0, "text": "", "size": 0}
     return batch._read_offset(path, offset)
+
 
 _BATCH_HANDLE = batch.Handler._handle
 def _handle_with_provider_models(self, path: str, method: str) -> Any:
@@ -635,6 +740,7 @@ def _handle_with_provider_models(self, path: str, method: str) -> Any:
 
 batch.Handler._handle = _handle_with_provider_models
 
+
 def _clear_model_activity() -> None:
     """Remove transient provider reasoning/output from the local UI session."""
     MODEL_ACTIVITY_DIR.mkdir(parents=True, exist_ok=True)
@@ -644,8 +750,8 @@ def _clear_model_activity() -> None:
         except OSError:
             pass
 
+
 def serve(port: int = 8765, open_browser: bool = True) -> int:
-    # Model reasoning/output is UI-session state, not a run/provenance artifact.
     _clear_model_activity()
     try:
         return int(batch.serve(port=port, open_browser=open_browser))

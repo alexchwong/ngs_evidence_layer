@@ -2,7 +2,17 @@
 
 Using only the supplied case, authoritative diagnosis, and prognosis cards, assess prognosis in the authoritative disease context.
 
-{{ include "prognostic_frameworks.md" }}
+{{ module "deliberate" }}
+
+{{ module "foundational_genetics" }}
+
+{{ module "premise_before_consequence" }}
+
+{{ module "qualifier_check" }}
+
+{{ module "limiting_evidence" }}
+
+{{ module "prognostic_frameworks" }}
 
 First identify the prognostic framework or frameworks that genuinely apply to the authoritative disease using the accepted framework preset above. Framework assessment is independent of whether any NGS variants were detected: use all supplied framework-relevant morphology, cytogenetic, molecular, and clinical findings. Zero, one, or multiple frameworks may be returned. Do not infer or change the disease from candidate cards, and do not select a framework merely because a card from another disease mentions a familiar gene or framework.
 For every supplied variant, assess two independent evidence channels:

@@ -1,0 +1,40 @@
+version: 1
+description: Default workflow baseline with current prompt assets enabled and experimental reasoning modules disabled.
+prompt_modules:
+  case_context:
+    enabled: true
+    version: v1
+  new_diagnosis:
+    enabled: true
+    version: v1
+  progress_testing:
+    enabled: true
+    version: v1
+  molecular_result_semantics:
+    enabled: true
+    version: v1
+  variant_assessment:
+    enabled: true
+    version: v1
+  prognostic_frameworks:
+    enabled: true
+    version: v1
+  deliberate:
+    enabled: false
+    version: v1
+  foundational_genetics:
+    enabled: false
+    version: v1
+  premise_before_consequence:
+    enabled: false
+    version: v1
+  qualifier_check:
+    enabled: false
+    version: v1
+  limiting_evidence:
+    enabled: false
+    version: v1
+deterministic_enrichments:
+  protein_hgvs_one_letter_alias:
+    enabled: true
+    version: v1

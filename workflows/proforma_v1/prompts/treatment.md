@@ -1,6 +1,15 @@
 # Treatment implications
 
 Using only the supplied case, authoritative diagnosis, and treatment cards, address every supplied variant in the authoritative disease. When no NGS variants are detected, return `classification: []`; do not create a pseudo-variant for a negative NGS result.
+
+{{ module "deliberate" }}
+
+{{ module "foundational_genetics" }}
+
+{{ module "premise_before_consequence" }}
+
+{{ module "qualifier_check" }}
+
 Treatment categories:
 - `drug_target`: the molecular lesion is directly targetable.
 - `drug_sensitive`: the finding predicts increased sensitivity/response without itself being the direct target.

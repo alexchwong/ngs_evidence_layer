@@ -6,17 +6,21 @@ Using only the supplied ICC authority cards, decide whether the NGS findings and
 Do not use outside medical knowledge or infer diagnostic relationships absent from the supplied cards.
 The WHO5 diagnosis is supplied only as context. Do not alter it and do not write a separate WHO5/ICC comparison.
 
-## 2. Determine case context
+{{ module "deliberate" }}
 
-{{ include "includes/diagnosis/case_context.md" }}
+{{ module "foundational_genetics" }}
 
-## 3. New diagnosis
+{{ module "premise_before_consequence" }}
 
-{{ include "includes/diagnosis/new_diagnosis.md" }}
+{{ module "qualifier_check" }}
 
-## 4. Progress testing
+{{ module "limiting_evidence" }}
 
-{{ include "includes/diagnosis/progress_testing.md" }}
+{{ module "case_context" }}
+
+{{ module "new_diagnosis" }}
+
+{{ module "progress_testing" }}
 
 For ICC specifically:
 - Negative NGS during `progress`, including loss of a previously detected disease-defining variant, is a current molecular response/MRD observation and must not be used to retrospectively criticize or invalidate the established diagnosis.
@@ -24,9 +28,7 @@ For ICC specifically:
 - Historical diagnostic findings may refine established AML to AML-MR when supplied diagnostic-phase findings meet the relevant ICC criteria.
 - A prior MPN with a current blast percentage meeting blast-phase criteria may be classified as blast-phase/transformed disease when the supplied ICC authority supports that change.
 
-## 5. Molecular and cytogenetic result semantics
-
-{{ include "includes/diagnosis/molecular_result_semantics.md" }}
+{{ module "molecular_result_semantics" }}
 
 ## 6. Determine and freeze the primary ICC diagnosis
 
@@ -36,9 +38,7 @@ For ICC specifically:
 - `reason` is one concise patient-level proposition about the molecular/cytogenetic effect on diagnosis. Do not relitigate morphology.
 - Once the primary ICC diagnosis is fixed, do not change it merely because a different detected variant is classified as `diagnostic_for_other_pathology` below.
 
-## 7. Assess every detected variant
-
-{{ include "includes/diagnosis/variant_assessment.md" }}
+{{ module "variant_assessment" }}
 
 ## 8. Output contract
 
