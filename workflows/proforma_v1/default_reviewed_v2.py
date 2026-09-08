@@ -1348,10 +1348,10 @@ def ptbg_terminal(value: Any, context: dict, params: dict) -> Any:
 def diagnosis_provenance(value: Any, context: dict, params: dict) -> Any:
     """Prove which artifact version was finalized, before the report is built.
 
-    Identity only.  This asserts that the object being carried forward is the
-    latest accepted owner artifact and records whether a terminal policy was
-    invoked.  It makes no judgement about whether the clinical conclusion is
-    correct.
+    Identity only.  This asserts that the object being carried forward matches
+    the WHO routing artifact selected by deterministic finalization and records
+    whether a terminal policy was invoked.  It makes no judgement about whether
+    the clinical conclusion is correct.
     """
     ctx = _ctx(context)
     work = _work(context)
@@ -1363,23 +1363,26 @@ def diagnosis_provenance(value: Any, context: dict, params: dict) -> Any:
     final = sr.read_yaml(final_path)
     provenance = dict(final.get("provenance") or {})
 
-    who1_path = sr.output_path(work, *DIAGNOSIS_ARTIFACTS["who1"])
-    who1 = sr.read_yaml(who1_path) if who1_path.is_file() else {}
-    who2_path = sr.output_path(work, *DIAGNOSIS_ARTIFACTS["who2"])
-    live = sr.read_yaml(who2_path) if who2_path.is_file() else who1
+    authoritative_who, authoritative_provenance = sr.resolve_authoritative_who_routing_source(work)
 
     issues = []
     finalized = _text((final.get("who5") or {}).get("diagnosis"))
-    if finalized != _text(live.get("diagnosis")):
+    authoritative_diagnosis = _text(authoritative_who.get("diagnosis"))
+    if finalized != authoritative_diagnosis:
         issues.append(
-            "finalized WHO5 diagnosis does not match the latest accepted WHO owner artifact"
+            "finalized WHO5 diagnosis does not match the authoritative WHO routing artifact"
         )
     terminal = _side_record(work, "diagnosis-terminal.yaml")
     record = {
         "finalized_who5": finalized,
-        "latest_owner_artifact": _text(live.get("diagnosis")),
-        "routing_source": provenance.get("who5_routing_source"),
-        "who1_artifact_sha256": provenance.get("who1_artifact_sha256"),
+        "latest_owner_artifact": authoritative_diagnosis,
+        "authoritative_who_diagnosis": authoritative_diagnosis,
+        "routing_source": authoritative_provenance.get("who5_routing_source"),
+        "authoritative_pass": authoritative_provenance.get("who5_authoritative_pass"),
+        "routing_artifact_sha256": authoritative_provenance.get("who5_routing_artifact_sha256"),
+        "who1_artifact_sha256": authoritative_provenance.get("who1_artifact_sha256"),
+        "who1_commit_artifact_sha256": authoritative_provenance.get("who1_commit_artifact_sha256"),
+        "who2_artifact_sha256": authoritative_provenance.get("who2_artifact_sha256"),
         "icc_artifact_sha256": provenance.get("icc_artifact_sha256"),
         "terminal_policy_invoked": bool(terminal.get("applied")),
         "terminal_applied": terminal.get("applied") or [],

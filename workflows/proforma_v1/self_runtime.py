@@ -7,6 +7,7 @@ by the self execution adapter.
 from __future__ import annotations
 
 import json
+import copy
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -273,31 +274,62 @@ def _who1_routing_source(who1: dict, who1_commit: dict | None) -> tuple[dict, st
     snapshot = (who1_commit or {}).get('accepted_who1')
     if not isinstance(snapshot, dict):
         return who1, 'who1_artifact'
+    if (who1_commit or {}).get('fallback') is True:
+        return snapshot, 'who1_commit_fallback'
     if runtime.legacy_who_view(snapshot) == runtime.legacy_who_view(who1):
         return snapshot, 'who1_commit_snapshot'
     return who1, 'who1_artifact_superseded_snapshot'
 
 
+def resolve_authoritative_who_routing_source(work: Path) -> tuple[dict, dict]:
+    """Resolve the WHO payload and identity used by deterministic finalization."""
+    work = Path(work)
+    who1 = accept_who(work, pass_number=1)
+    commit_path = _who1_commit_path(work)
+    who1_commit = read_yaml(commit_path) if commit_path.is_file() else None
+    who1_path = output_path(work, 'diagnosis_who5_pass_1', 'who5.yaml')
+    who1_sha256 = _artifact_digest(who1_path)
+    commit_sha256 = _artifact_digest(commit_path)
+    who2_path = output_path(work, 'diagnosis_who5_pass_2', 'who5.yaml')
+    who2 = accept_who(work, pass_number=2) if who2_path.is_file() else None
+    who1_routing, who1_source = _who1_routing_source(who1, who1_commit)
+    if who2 is not None:
+        return who2, {
+            'who5_routing_source': 'who2_artifact',
+            'who5_authoritative_pass': 2,
+            'who5_routing_artifact_sha256': _artifact_digest(who2_path),
+            'who1_artifact_sha256': who1_sha256,
+            'who1_commit_artifact_sha256': commit_sha256,
+            'who2_artifact_sha256': _artifact_digest(who2_path),
+        }
+    routing_sha256 = commit_sha256 if who1_source in {'who1_commit_fallback', 'who1_commit_snapshot'} else who1_sha256
+    return who1_routing, {
+        'who5_routing_source': who1_source,
+        'who5_authoritative_pass': 1,
+        'who5_routing_artifact_sha256': routing_sha256,
+        'who1_artifact_sha256': who1_sha256,
+        'who1_commit_artifact_sha256': commit_sha256,
+        'who2_artifact_sha256': None,
+    }
+
+
 def finalize_diagnosis(work: Path) -> dict:
+    routing_who,routing_provenance=resolve_authoritative_who_routing_source(work)
     who1=accept_who(work,pass_number=1); icc=accept_icc(work)
     commit_path=_who1_commit_path(work)
     who1_commit=read_yaml(commit_path) if commit_path.is_file() else None
     who2_path=output_path(work,'diagnosis_who5_pass_2','who5.yaml')
     who2=accept_who(work,pass_number=2) if who2_path.is_file() else None
-    who1_routing,who1_provenance=_who1_routing_source(who1,who1_commit)
-    routing_who=who2 or who1_routing
     assessment_who=runtime.authoritative_who_assessment_source(who1,who2,who1_commit)
     relationship='same' if runtime.normalize_dx(routing_who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
-    authoritative=2 if who2 is not None else 1
+    authoritative=routing_provenance['who5_authoritative_pass']
     diagnosis={
         'who5':runtime.legacy_who_view(routing_who),'icc':icc,
         'concurrent_pathology':runtime.concurrent_pathology_from_who(assessment_who),
         'relationship':relationship,
         'self_execution':{'who5_first_pass':runtime.legacy_who_view(who1),'who5_authoritative_pass':authoritative},
         'provenance':{
-            'who5_routing_source':who1_provenance,
-            'who5_authoritative_pass':authoritative,
-            'who1_artifact_sha256':_artifact_digest(output_path(work,'diagnosis_who5_pass_1','who5.yaml')),
+            **routing_provenance,
             'icc_artifact_sha256':_artifact_digest(output_path(work,'diagnosis_icc','icc.yaml')),
         },
     }
@@ -601,7 +633,7 @@ def who1_evidence_disputes(work: Path) -> tuple[list[str], list[dict]]:
 
 
 def prepare_who1_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> dict:
-    agreed,disputes=who1_evidence_disputes(work); crop=output_path(work,"diagnosis_who1_evidence_adjudication_input","disputes.yaml"); blind=[{"evidence_id":d["evidence_id"],"schema_id":d.get("schema_id"),"reason":d["reason"],"card_tag":d["card_tag"]} for d in disputes]; write_yaml(crop,{"disputes":blind})
+    agreed,disputes=who1_evidence_disputes(work); disputes=evidence_engine.adjudication_disputes(disputes); crop=output_path(work,"diagnosis_who1_evidence_adjudication_input","disputes.yaml"); blind=[{"dispute_id":d["dispute_id"],"evidence_id":d["evidence_id"],"schema_id":d.get("schema_id"),"reason":d["reason"],"card_tag":d["card_tag"]} for d in disputes]; write_yaml(crop,{"disputes":blind})
     if not disputes:
         out=_who1_gate_adjudication_path(work, create=True)
         write_yaml(out,{"adjudications":[]})
@@ -716,6 +748,78 @@ def _evidence_match_round_path(work: Path, rescue_round: int, pass_number: int) 
     if int(rescue_round) <= 1:
         return _evidence_match_pass_path(work, pass_number)
     return output_path(work, "evidence_matches", f"rescue-{int(rescue_round):02d}-pass-{int(pass_number):02d}.yaml")
+
+
+def _batch_output_path(work: Path, phase: str, batch_number: int, *, rescue_round: int | None = None, pass_number: int | None = None) -> Path:
+    if phase == "evidence_match":
+        prefix = f"rescue-{int(rescue_round or 1):02d}-pass-{int(pass_number or 1):02d}"
+        return output_path(work, "evidence_matches", f"{prefix}-batch-{int(batch_number):02d}.yaml")
+    if phase == "evidence_audit":
+        return output_path(work, "evidence_audits", f"batch-{int(batch_number):02d}.yaml")
+    if phase == "evidence_adjudication":
+        return output_path(work, "evidence_adjudication", f"batch-{int(batch_number):02d}.yaml")
+    raise ValueError(f"unknown evidence batch phase: {phase}")
+
+
+def _batch_limit(value: int | None) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError("evidence batch size must be a positive integer")
+    return value
+
+
+def _pending_batch(
+    work: Path,
+    *,
+    phase: str,
+    units: list[dict],
+    max_units: int | None,
+    validate_doc,
+    container: str,
+    id_field: str,
+    rescue_round: int | None = None,
+    pass_number: int | None = None,
+) -> tuple[dict | None, dict | None]:
+    """Return a pending batch descriptor or a strict merged model document."""
+    limit = _batch_limit(max_units)
+    batches = evidence_engine.partition_units(units, limit) if limit and len(units) > limit else [list(units)]
+    if len(batches) == 1:
+        return None, None
+    docs = []
+    for index, batch in enumerate(batches, 1):
+        path = _batch_output_path(
+            work, phase, index, rescue_round=rescue_round, pass_number=pass_number
+        )
+        validation_feedback = None
+        if path.is_file():
+            try:
+                doc = read_yaml(path)
+                validate_doc(copy.deepcopy(doc), batch)
+            except Exception as exc:
+                validation_feedback = str(exc)
+                path.unlink(missing_ok=True)
+            else:
+                docs.append(doc)
+                continue
+        if not path.is_file():
+            call_id = f"{phase.replace('_', '-')}-batch-{index:02d}"
+            if phase == "evidence_match":
+                call_id = (
+                    f"evidence-match-rescue-{int(rescue_round or 1):02d}-"
+                    f"pass-{int(pass_number or 1):02d}-batch-{index:02d}"
+                )
+            return ({
+                "batch_index": index,
+                "batch_count": len(batches),
+                "batch_units": batch,
+                "output": path,
+                "call_id": call_id,
+                **({"validation_feedback": validation_feedback} if validation_feedback else {}),
+            }, None)
+    return None, evidence_engine.merge_batch_rows(
+        units, docs, container=container, id_field=id_field
+    )
 
 
 def _remaining_tags(item: dict, state: dict) -> list[str]:
@@ -836,6 +940,7 @@ def prepare_evidence_resolution(
     specs: dict | None = None,
     rescue_match_passes: int = 1,
     owner_assignment_domains: set[str] | None = None,
+    max_units_per_call: int | None = None,
     # Backward-compatible keyword used by Phase-2B tests/commands. In Phase 3
     # these are rescue passes, because owner proformas are the initial assigner.
     max_match_passes: int | None = None,
@@ -934,14 +1039,32 @@ def prepare_evidence_resolution(
             if cid in by_id: catalog[cid]=by_id[cid]
         public_rows.append({"evidence_id":item["evidence_id"],"schema_id":item["schema_id"],"reason":item["reason"],"candidate_card_tags":tags})
     group=f"self_evidence_resolution_input_rescue_{rescue_round:02d}_pass_{next_pass:02d}"
+    pending,merged=_pending_batch(
+        work,phase="evidence_match",units=public_rows,max_units=max_units_per_call,
+        validate_doc=lambda doc,batch: schema_validation.validate_evidence_match_batch(
+            yaml.safe_dump(doc,sort_keys=False),
+            [{"evidence_id":row["evidence_id"],"candidate_card_tags":row["candidate_card_tags"]} for row in batch],
+        ),
+        container="matches",id_field="evidence_id",rescue_round=rescue_round,pass_number=next_pass,
+    )
+    if merged is not None:
+        write_yaml(_evidence_match_round_path(work,rescue_round,next_pass),merged)
+        return prepare_evidence_resolution(
+            work,prompt=prompt,contracts=contracts,specs=specs,rescue_match_passes=rescue_match_passes,
+            owner_assignment_domains=owner_assignment_domains,max_units_per_call=max_units_per_call,
+        )
+    batch_rows=list((pending or {}).get("batch_units") or public_rows)
     facts_path=output_path(work,group,"facts.md")
-    facts_path.write_text(_fact_blocks(public_rows,catalog,tag_by_id,card_tags_field="candidate_card_tags"),encoding="utf-8")
+    if pending is not None:
+        facts_path=output_path(work,f"{group}_batch_{pending['batch_index']:02d}","facts.md")
+    facts_path.write_text(_fact_blocks(batch_rows,catalog,tag_by_id,card_tags_field="candidate_card_tags"),encoding="utf-8")
     return {
         "pass":"evidence_resolution","complete":False,"match_pass":next_pass,"rescue_round":rescue_round,
-        "max_match_passes":rescue_match_passes,"rescue_match_passes":rescue_match_passes,"fact_count":len(public_rows),
+        "max_match_passes":rescue_match_passes,"rescue_match_passes":rescue_match_passes,"fact_count":len(batch_rows),
         "contract":contract_path("evidence_match"),"prompt":prompt,"facts":facts_path,"items":facts_path,
-        "output":_evidence_match_round_path(work,rescue_round,next_pass),
-        "validation_items":[{"evidence_id":r["evidence_id"],"candidate_card_tags":r["candidate_card_tags"]} for r in public_rows],
+        "output":pending["output"] if pending else _evidence_match_round_path(work,rescue_round,next_pass),
+        "validation_items":[{"evidence_id":r["evidence_id"],"candidate_card_tags":r["candidate_card_tags"]} for r in batch_rows],
+        **({k:pending[k] for k in ("batch_index","batch_count","call_id","validation_feedback") if k in pending} if pending else {}),
     }
 
 def _load_evidence_state(work: Path) -> dict:
@@ -1022,7 +1145,7 @@ def _committed_audit(work: Path, state: dict, path: Path) -> tuple[dict, list[di
     return doc,_audit_targets_from_committed_doc(doc)
 
 
-def prepare_evidence_audit(work: Path, *, prompt: Path | None = None) -> dict:
+def prepare_evidence_audit(work: Path, *, prompt: Path | None = None, max_units_per_call: int | None = None) -> dict:
     state = _load_evidence_state(work)
     output = output_path(work, "evidence_audits", "self-audit.yaml")
     committed=_committed_audit(work,state,output)
@@ -1046,10 +1169,24 @@ def prepare_evidence_audit(work: Path, *, prompt: Path | None = None) -> dict:
             cid = id_by_tag.get(tag)
             if cid in by_id:
                 catalog[cid] = by_id[cid]
+    pending,merged=_pending_batch(
+        work,phase="evidence_audit",units=targets,max_units=max_units_per_call,
+        validate_doc=lambda doc,batch: schema_validation.validate_evidence_audit_batch(
+            yaml.safe_dump(doc,sort_keys=False),
+            [{"evidence_id":row["evidence_id"],"selected_card_tags":row["selected_card_tags"]} for row in batch],
+        ),
+        container="audits",id_field="evidence_id",
+    )
+    if merged is not None:
+        write_yaml(output,merged)
+        return {"pass":"evidence_audit","required":True,"output":output,"targets":targets,"merged":True}
+    batch_targets=list((pending or {}).get("batch_units") or targets)
     group = "self_evidence_audit_input"
+    if pending is not None:
+        group = f"{group}_batch_{pending['batch_index']:02d}"
     facts_path = output_path(work, group, "facts.md")
     facts_path.write_text(
-        _fact_blocks(targets, catalog, tag_by_id, card_tags_field="selected_card_tags"),
+        _fact_blocks(batch_targets, catalog, tag_by_id, card_tags_field="selected_card_tags"),
         encoding="utf-8",
     )
     return {
@@ -1059,8 +1196,9 @@ def prepare_evidence_audit(work: Path, *, prompt: Path | None = None) -> dict:
         "prompt": prompt,
         "facts": facts_path,
         "items": facts_path,
-        "output": output,
-        "targets": targets,
+        "output": pending["output"] if pending else output,
+        "targets": batch_targets,
+        **({k:pending[k] for k in ("batch_index","batch_count","call_id","validation_feedback") if k in pending} if pending else {}),
     }
 
 
@@ -1179,7 +1317,7 @@ def compare_evidence(items: list[dict], matches: dict, audits: dict, targets: li
                 disputes.append({"evidence_id":eid,"schema_id":item["schema_id"],"reason":item["reason"],"card_tag":tag,"resolver_decision":"include","auditor_decision":"exclude","audit_comments":row.get("comments") or []})
     return agreed,disputes
 
-def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> dict:
+def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None, max_units_per_call: int | None = None) -> dict:
     state=_load_evidence_state(work)
     # If an audit output exists but has not yet been committed (for example a
     # provider resumed after the model call), commit it before constructing the
@@ -1188,7 +1326,9 @@ def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> 
     if apath.is_file():
         apply_evidence_audit(work); state=_load_evidence_state(work)
     accepted=state.get("accepted_card_tags_by_evidence_id") or {}
-    disputes=[d for d in (state.get("unresolved_disputes") or []) if not accepted.get(d["evidence_id"])]
+    disputes=evidence_engine.adjudication_disputes(
+        [d for d in (state.get("unresolved_disputes") or []) if not accepted.get(d["evidence_id"])]
+    )
     # Persist a compatibility/agreement view for audit/debug tooling.
     agreed=[]
     audit_by=state.get("audit_by_evidence_id") or {}
@@ -1199,7 +1339,7 @@ def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> 
             agreed.append({"evidence_id":eid,"schema_id":item.get("schema_id"),"card_tag":tag,"audit":(audit_by.get(eid) or {}).get(tag) or {"card_is_element_of_reason":True,"risk":"none","comments":[]}})
     write_yaml(output_path(work,"self_evidence","agreed.yaml"),{"assignments":agreed})
     crop=output_path(work,"self_evidence_adjudication_input","disputes.yaml")
-    blind=[{"evidence_id":d["evidence_id"],"schema_id":d.get("schema_id"),"reason":d["reason"],"card_tag":d["card_tag"]} for d in disputes]
+    blind=[{"dispute_id":d["dispute_id"],"evidence_id":d["evidence_id"],"schema_id":d.get("schema_id"),"reason":d["reason"],"card_tag":d["card_tag"]} for d in disputes]
     write_yaml(crop,{"disputes":blind})
     if not disputes:
         return {"pass":"evidence_adjudication","required":False,"disputes":crop}
@@ -1209,8 +1349,34 @@ def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> 
     for row in disputes:
         cid=id_by_tag.get(row["card_tag"])
         if cid and cid not in ids: ids.append(cid)
-    cards_md,_=_write_pool(work,"self_evidence_adjudication_input",[by_id[cid] for cid in ids if cid in by_id],manifest)
-    return {"pass":"evidence_adjudication","required":True,"contract":ADJUDICATION_PROMPT,"prompt":prompt,"disputes":crop,"cards":cards_md,"output":output_path(work,"evidence_adjudication","adjudication.yaml")}
+    canonical_output=output_path(work,"evidence_adjudication","adjudication.yaml")
+    pending,merged=_pending_batch(
+        work,phase="evidence_adjudication",units=blind,max_units=max_units_per_call,
+        validate_doc=lambda doc,batch: evidence_engine.validate_adjudication(doc,batch),
+        container="adjudications",id_field="dispute_id",
+    )
+    if merged is not None:
+        evidence_engine.validate_adjudication(copy.deepcopy(merged),blind)
+        write_yaml(canonical_output,merged)
+        return {"pass":"evidence_adjudication","required":True,"disputes":crop,"output":canonical_output,"merged":True}
+    batch_disputes=list((pending or {}).get("batch_units") or blind)
+    batch_crop=crop
+    if pending is not None:
+        group=f"self_evidence_adjudication_input_batch_{pending['batch_index']:02d}"
+        batch_crop=output_path(work,group,"disputes.yaml")
+        write_yaml(batch_crop,{"disputes":batch_disputes})
+    batch_ids=[]
+    for row in batch_disputes:
+        cid=id_by_tag.get(row["card_tag"])
+        if cid and cid not in batch_ids: batch_ids.append(cid)
+    pool_group="self_evidence_adjudication_input" if pending is None else f"self_evidence_adjudication_input_batch_{pending['batch_index']:02d}"
+    cards_md,_=_write_pool(work,pool_group,[by_id[cid] for cid in batch_ids if cid in by_id],manifest)
+    return {
+        "pass":"evidence_adjudication","required":True,"contract":ADJUDICATION_PROMPT,"prompt":prompt,
+        "disputes":batch_crop,"all_disputes":crop,"cards":cards_md,
+        "output":pending["output"] if pending else canonical_output,
+        **({k:pending[k] for k in ("batch_index","batch_count","call_id","validation_feedback") if k in pending} if pending else {}),
+    }
 
 def validate_adjudication(doc: dict, disputes: list[dict]) -> None:
     evidence_engine.validate_adjudication(doc, disputes)

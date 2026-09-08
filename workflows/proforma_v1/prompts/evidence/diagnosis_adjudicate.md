@@ -10,7 +10,7 @@ Consider the supplied case facts together with defining criteria, thresholds, ex
 
 A defining criterion or threshold can support an exclusion when combined with a supplied case fact. Likewise, a disease-specific molecular association can support a concurrent-pathology suspicion when combined with supplied patient findings. Do not rewrite the diagnosis, introduce another card, or select evidence outside the disputed pair.
 
-Dispute IDs are deterministic from the supplied dispute order: the first dispute is `D0001`, the second is `D0002`, and so on. Use those IDs only to identify your answers. Do not reproduce evidence IDs or card tags in the output. You may return the answer rows in any order. Return exactly one answer for every dispute ID; do not omit, duplicate, or invent IDs.
+Each supplied dispute contains a deterministic `dispute_id`. Copy that supplied ID exactly to identify your answer; do not derive or renumber IDs from row position. Do not reproduce evidence IDs or card tags in the output. You may return the answer rows in any order. Return exactly one answer for every supplied dispute ID; do not omit, duplicate, modify, or invent IDs.
 
 Return YAML only in this exact shape:
 ```yaml

@@ -3,6 +3,10 @@ workflow_id: proforma-v1
 self_groups:
   ptbg:
     strategy: batch_ready
+batching:
+  evidence_match: 8
+  evidence_audit: 8
+  evidence_adjudication: 8
 evidence_policies:
   literature_support:
     assignment:

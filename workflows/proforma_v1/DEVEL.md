@@ -49,6 +49,13 @@ checks that coverage.
 - `strategy` — batching strategy for a self group.
 - `batch_ready` — batch every simultaneously runnable member of that self group;
   the compiler rejects members that depend on one another.
+- `batching` — optional fixed-size physical batching for shared evidence model phases.
+  It changes call partitioning only; semantic units remain intact and merge back into
+  the ordinary canonical phase artifact.
+- `evidence_match` — maximum complete fact/candidate-card blocks per matcher call.
+- `evidence_audit` — maximum complete fact/selected-card blocks per auditor call.
+- `evidence_adjudication` — maximum complete, globally identified disputes per
+  adjudicator call.
 - `evidence_policies` — registry of evidence-policy prompt/role bundles.
 - `literature_support` — ordinary reportable-claim evidence policy.
 - `diagnosis_complete_support` — stricter WHO1 diagnostic-change evidence policy.

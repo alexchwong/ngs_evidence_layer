@@ -21,6 +21,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -83,6 +84,14 @@ class WorkflowShapeTests(unittest.TestCase):
     def test_default_is_untouched(self):
         for sid in ADDED_STEPS:
             self.assertNotIn(sid, self.default["steps"])
+
+    def test_evidence_batching_is_configured_only_for_v2(self):
+        self.assertNotIn("batching", self.default)
+        self.assertEqual(self.doc["batching"], {
+            "evidence_match": 8,
+            "evidence_audit": 8,
+            "evidence_adjudication": 8,
+        })
 
     def test_cloned_from_default_not_default_reviewed(self):
         reviewed = _load(REVIEWED)["steps"]
@@ -550,6 +559,78 @@ class TerminalPolicyTests(unittest.TestCase):
 
     def test_absent_configuration_uses_the_documented_default(self):
         self.assertEqual(v2.terminal_policy({}), v2.DEFAULT_TERMINAL_POLICY)
+
+
+class AuthoritativeWhoProvenanceTests(unittest.TestCase):
+    class _Context:
+        def __init__(self, work: Path):
+            self.work = work
+            self.data = {}
+
+        def get(self, key, default=None):
+            return self.data.get(key, default)
+
+        def put(self, key, value):
+            self.data[key] = value
+
+    def test_rejected_raw_who1_resolves_to_committed_fallback(self):
+        from workflows.proforma_v1 import self_runtime as sr
+
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            raw={"schema_disease":"AML","diagnosis":"rejected reclassification"}
+            fallback={"schema_disease":"MDS","diagnosis":"retained morphology"}
+            sr.write_yaml(sr._who1_commit_path(work,create=True),{
+                "accepted":False,"fallback":True,"accepted_who1":fallback,
+            })
+            with patch.object(sr,"accept_who",return_value=raw):
+                payload,provenance=sr.resolve_authoritative_who_routing_source(work)
+            self.assertEqual(payload,fallback)
+            self.assertEqual(provenance["who5_routing_source"],"who1_commit_fallback")
+            self.assertEqual(provenance["who5_authoritative_pass"],1)
+
+    def test_provenance_accepts_matching_fallback_and_rejects_genuine_mismatch(self):
+        from workflows.proforma_v1 import self_runtime as sr
+
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            raw={"schema_disease":"AML","diagnosis":"rejected reclassification"}
+            fallback={"schema_disease":"MDS","diagnosis":"retained morphology"}
+            sr.write_yaml(sr._who1_commit_path(work,create=True),{
+                "accepted":False,"fallback":True,"accepted_who1":fallback,
+            })
+            final_path=sr.output_path(work,"diagnosis","diagnosis-final.yaml")
+            sr.write_yaml(final_path,{"who5":fallback,"provenance":{"icc_artifact_sha256":"icc-hash"}})
+            ctx=self._Context(work)
+            context={"__workflow_context__":ctx,"__work__":str(work)}
+            with patch.object(sr,"accept_who",return_value=raw):
+                record=v2.diagnosis_provenance(None,context,{})
+            self.assertEqual(record["authoritative_who_diagnosis"],"retained morphology")
+            self.assertEqual(record["routing_source"],"who1_commit_fallback")
+            self.assertEqual(record["routing_artifact_sha256"],sr._artifact_digest(sr._who1_commit_path(work)))
+            self.assertEqual(record["routing_artifact_sha256"],record["who1_commit_artifact_sha256"])
+            self.assertEqual(record["issues"],[])
+
+            sr.write_yaml(final_path,{"who5":{"diagnosis":"different diagnosis"},"provenance":{}})
+            with patch.object(sr,"accept_who",return_value=raw), self.assertRaisesRegex(
+                v2.V2Error,"authoritative WHO routing artifact"
+            ):
+                v2.diagnosis_provenance(None,context,{})
+
+    def test_who2_is_authoritative_when_present(self):
+        from workflows.proforma_v1 import self_runtime as sr
+
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            raw={"schema_disease":"MDS","diagnosis":"WHO1"}
+            who2={"schema_disease":"AML","diagnosis":"WHO2"}
+            sr.write_yaml(sr.output_path(work,"diagnosis_who5_pass_2","who5.yaml"),who2)
+            with patch.object(sr,"accept_who",side_effect=lambda _work,pass_number: raw if pass_number==1 else who2):
+                payload,provenance=sr.resolve_authoritative_who_routing_source(work)
+            self.assertEqual(payload,who2)
+            self.assertEqual(provenance["who5_routing_source"],"who2_artifact")
+            self.assertEqual(provenance["who5_authoritative_pass"],2)
+            self.assertIsNotNone(provenance["who2_artifact_sha256"])
 
 
 class PatientFindingsTests(unittest.TestCase):

@@ -69,6 +69,24 @@
         }
       }
     },
+    "batching": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidence_match": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence_audit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence_adjudication": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
     "evidence_policies": {
       "type": "object",
       "minProperties": 1,

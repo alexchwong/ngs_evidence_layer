@@ -9,6 +9,46 @@ class EvidenceError(ValueError):
     pass
 
 
+def partition_units(units: list[dict] | tuple[dict, ...], max_units: int) -> list[list[dict]]:
+    """Partition ordered semantic units without mutating or splitting a unit."""
+    if isinstance(max_units, bool) or not isinstance(max_units, int) or max_units < 1:
+        raise EvidenceError("max_units must be a positive integer")
+    source = list(units)
+    return [source[index:index + max_units] for index in range(0, len(source), max_units)]
+
+
+def merge_batch_rows(
+    units: list[dict] | tuple[dict, ...],
+    batch_docs: list[dict] | tuple[dict, ...],
+    *,
+    container: str,
+    id_field: str,
+) -> dict:
+    """Strictly merge validated batch rows back into global semantic-unit order."""
+    expected = [str(unit[id_field]) for unit in units]
+    if len(set(expected)) != len(expected):
+        raise EvidenceError(f"source units contain duplicate {id_field}(s)")
+    expected_set = set(expected)
+    by_id: dict[str, dict] = {}
+    for batch_number, doc in enumerate(batch_docs, 1):
+        rows = doc.get(container) if isinstance(doc, dict) else None
+        if not isinstance(rows, list):
+            raise EvidenceError(f"{container} batch {batch_number} must contain a {container} list")
+        for row_number, row in enumerate(rows):
+            if not isinstance(row, dict):
+                raise EvidenceError(f"{container} batch {batch_number} row {row_number} must be a mapping")
+            identity = str(row.get(id_field))
+            if identity not in expected_set:
+                raise EvidenceError(f"{container} batch {batch_number} has unknown {id_field} {identity!r}")
+            if identity in by_id:
+                raise EvidenceError(f"{container} batches duplicate {id_field} {identity!r}")
+            by_id[identity] = row
+    missing = [identity for identity in expected if identity not in by_id]
+    if missing:
+        raise EvidenceError(f"{container} batches are missing {id_field}(s): {missing}")
+    return {container: [by_id[identity] for identity in expected]}
+
+
 @dataclass(frozen=True)
 class EvidencePolicy:
     name: str
@@ -197,6 +237,15 @@ def compare(*, claim: dict, assigned_card_tags: list[str] | tuple[str, ...], aud
 
 def adjudication_disputes(disputes: list[dict] | tuple[dict, ...]) -> list[dict]:
     """Return canonical disputes with stable, deterministic adjudication IDs."""
+    supplied = ["dispute_id" in dispute for dispute in disputes]
+    if any(supplied) and not all(supplied):
+        raise EvidenceError("disputes must either all supply dispute_id or all omit it")
+    if all(supplied):
+        rows = [dict(dispute) for dispute in disputes]
+        identities = [str(row["dispute_id"]) for row in rows]
+        if len(set(identities)) != len(identities):
+            raise EvidenceError("disputes contain duplicate dispute_id(s)")
+        return rows
     return [dict(dispute, dispute_id=f"D{index:04d}") for index, dispute in enumerate(disputes, 1)]
 
 

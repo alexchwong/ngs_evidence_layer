@@ -592,9 +592,9 @@ def _workflow_step_for_call(call_id):
     if call_id.startswith('who1-evidence-match-'): sid='diagnosis.who1.evidence.assignment'
     elif call_id=='who1-evidence-audit': sid='diagnosis.who1.evidence.audit'
     elif call_id=='who1-evidence-adjudication': sid='diagnosis.who1.evidence.adjudication'
-    elif call_id.startswith('evidence-match-batch-') or call_id.startswith('evidence-assignment-rescue-') or call_id=='evidence-assignment': sid='evidence.assignment'
+    elif call_id.startswith('evidence-match-batch-') or call_id.startswith('evidence-match-rescue-') or call_id.startswith('evidence-assignment-rescue-') or call_id=='evidence-assignment': sid='evidence.assignment'
     elif call_id.startswith('evidence-audit-batch-') or call_id=='evidence-audit': sid='evidence.audit'
-    elif call_id=='evidence-adjudication': sid='evidence.adjudication'
+    elif call_id.startswith('evidence-adjudication-batch-') or call_id=='evidence-adjudication': sid='evidence.adjudication'
     else: sid=mapping.get(call_id)
     if not sid: return None
     try: return workflow.step(sid)
@@ -1882,10 +1882,12 @@ def _provider_handlers(workflow):
         specs={d:workflow.step(d).stage_spec_obj for d in contracts}
         rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
         owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
+        batch_size=(workflow.doc.get('batching') or {}).get('evidence_match')
         while True:
             from workflows.proforma_v1 import default_reviewed_v2 as reviewed_v2
             manifest=reviewed_v2.prepare_evidence_resolution(
-                ctx.work,sr,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
+                ctx.work,sr,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,
+                owner_assignment_domains=owner_domains,max_units_per_call=batch_size,
             )
             if manifest.get('complete'):
                 break
@@ -1893,11 +1895,11 @@ def _provider_handlers(workflow):
             rescue_round=int(manifest.get('rescue_round',1))
             _status(f"  evidence rescue round {rescue_round} pass {pass_no}/{rescue_passes}: {manifest['fact_count']} fact(s)")
             validation_items=list(manifest['validation_items'])
-            call_id=f'evidence-assignment-rescue-{rescue_round:02d}-pass-{pass_no:02d}'
+            call_id=manifest.get('call_id') or f'evidence-assignment-rescue-{rescue_round:02d}-pass-{pass_no:02d}'
             _model_call(
                 ctx.work,call_id=call_id,role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
                 validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=ctx.profile,canonicalize=lambda t,vi=validation_items:canonicalization.canonicalize_evidence_match(t,vi),
-                max_attempts=_retry('evidence_match_model_attempts'),
+                max_attempts=_retry('evidence_match_model_attempts'),feedback=manifest.get('validation_feedback'),
             )
         doc=sr.accept_evidence_resolution(ctx.work); ctx.put('evidence_assignments',doc)
         return {'artifact':doc}
@@ -1905,37 +1907,54 @@ def _provider_handlers(workflow):
     def evidence_audit_handler(step,ctx):
         from workflows.proforma_v1 import self_runtime as sr
         _stage_status(ctx.work,'evidence.audit','Workflow — evidence audit')
-        manifest=sr.prepare_evidence_audit(ctx.work)
-        targets=list(manifest.get('targets') or [])
-        if not manifest.get('required'):
-            doc={'audits':[]}; sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
-            return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
-        validation_items=[{'evidence_id':x['evidence_id'],'selected_card_tags':x['selected_card_tags']} for x in targets]
-        _model_call(
-            ctx.work,call_id='evidence-audit',role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
-            validator=lambda t,vi=validation_items:schema_validation.validate_evidence_audit_batch(t,vi),profile=ctx.profile,canonicalize=lambda t,vi=validation_items:canonicalization.canonicalize_evidence_audit(t,vi),
-            max_attempts=_retry('evidence_audit_model_attempts'),
+        batch_size=(workflow.doc.get('batching') or {}).get('evidence_audit')
+        while True:
+            manifest=sr.prepare_evidence_audit(ctx.work,max_units_per_call=batch_size)
+            targets=list(manifest.get('targets') or [])
+            if not manifest.get('required'):
+                doc={'audits':[]}; sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
+                return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
+            if manifest.get('merged'):
+                break
+            validation_items=[{'evidence_id':x['evidence_id'],'selected_card_tags':x['selected_card_tags']} for x in targets]
+            _model_call(
+                ctx.work,call_id=manifest.get('call_id') or 'evidence-audit',role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
+                validator=lambda t,vi=validation_items:schema_validation.validate_evidence_audit_batch(t,vi),profile=ctx.profile,canonicalize=lambda t,vi=validation_items:canonicalization.canonicalize_evidence_audit(t,vi),
+                max_attempts=_retry('evidence_audit_model_attempts'),feedback=manifest.get('validation_feedback'),
+            )
+            if not manifest.get('batch_count'):
+                break
+        canonical=(
+            sr.output_path(ctx.work,'evidence_audits','self-audit.yaml')
+            if manifest.get('merged') else Path(manifest['output'])
         )
-        doc=yaml.safe_load(_read(manifest['output'])) or {}; sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
+        doc=yaml.safe_load(_read(canonical)) or {}; sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
         return {'artifact':doc}
 
     def evidence_adjudication_handler(step,ctx):
         from workflows.proforma_v1 import self_runtime as sr
-        manifest=sr.prepare_evidence_adjudication(ctx.work)
-        if not manifest.get('required'):
-            ctx.put('evidence_adjudication',{'adjudications':[]})
-            return {'status':'skipped','reason':'no_disagreement','artifact':{'adjudications':[]}}
-        disputes=(yaml.safe_load(_read(manifest['disputes'])) or {}).get('disputes') or []
-        def validate(text):
-            doc=yaml.safe_load(text)
-            if not isinstance(doc,dict): raise ValueError('evidence adjudication output must be a YAML mapping')
-            sr.validate_adjudication(doc,disputes)
-            return 'valid evidence adjudication'
-        _model_call(
-            ctx.work,call_id='evidence-adjudication',role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
-            validator=validate,profile=ctx.profile,max_attempts=_retry('evidence_audit_model_attempts'),
-        )
-        doc=yaml.safe_load(_read(manifest['output'])) or {}; ctx.put('evidence_adjudication',doc)
+        batch_size=(workflow.doc.get('batching') or {}).get('evidence_adjudication')
+        while True:
+            manifest=sr.prepare_evidence_adjudication(ctx.work,max_units_per_call=batch_size)
+            if not manifest.get('required'):
+                ctx.put('evidence_adjudication',{'adjudications':[]})
+                return {'status':'skipped','reason':'no_disagreement','artifact':{'adjudications':[]}}
+            if manifest.get('merged'):
+                break
+            disputes=(yaml.safe_load(_read(manifest['disputes'])) or {}).get('disputes') or []
+            def validate(text, expected=disputes):
+                doc=yaml.safe_load(text)
+                if not isinstance(doc,dict): raise ValueError('evidence adjudication output must be a YAML mapping')
+                sr.validate_adjudication(doc,expected)
+                return 'valid evidence adjudication'
+            _model_call(
+                ctx.work,call_id=manifest.get('call_id') or 'evidence-adjudication',role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
+                validator=validate,profile=ctx.profile,max_attempts=_retry('evidence_audit_model_attempts'),feedback=manifest.get('validation_feedback'),
+            )
+            if not manifest.get('batch_count'):
+                break
+        canonical=sr.output_path(ctx.work,'evidence_adjudication','adjudication.yaml')
+        doc=yaml.safe_load(_read(canonical)) or {}; ctx.put('evidence_adjudication',doc)
         return {'artifact':doc}
 
     def evidence_finalize_handler(step,ctx):

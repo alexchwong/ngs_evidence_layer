@@ -351,7 +351,7 @@ def _self_render_prompt(step, ctx, manifest: dict | None = None) -> Path | None:
         if isinstance(candidate,Path) and candidate.is_file():
             output_template=candidate.read_text(encoding="utf-8")
     text=workflow_prompt_renderer.render(step.prompt,root=ctx.get('workflow').asset_root,inputs=inputs,output_template=output_template)
-    feedback=(ctx.get('self_validation_feedback',{}) or {}).get(step.id)
+    feedback=(manifest or {}).get('validation_feedback') or (ctx.get('self_validation_feedback',{}) or {}).get(step.id)
     if feedback:
         text += (
             "\n\n# Deterministic validation feedback\n"
@@ -452,10 +452,12 @@ def _self_handlers():
             _self_declared_validate(domain,ctx)
         rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
         workflow=ctx.get('workflow')
+        batch_size=(workflow.doc.get('batching') or {}).get('evidence_match')
         owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
         from workflows.proforma_v1 import default_reviewed_v2 as reviewed_v2
         manifest=reviewed_v2.prepare_evidence_resolution(
-            ctx.work,sr,prompt=step.prompt,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
+            ctx.work,sr,prompt=step.prompt,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,
+            owner_assignment_domains=owner_domains,max_units_per_call=batch_size,
         )
         if manifest.get('complete'):
             doc=sr.accept_evidence_resolution(ctx.work)
@@ -465,22 +467,32 @@ def _self_handlers():
         return _handoff('evidence_resolution',decorate(public_manifest,step,ctx))
 
     def evidence_audit(step, ctx):
-        manifest=sr.prepare_evidence_audit(ctx.work,prompt=step.prompt)
+        workflow=ctx.get('workflow')
+        batch_size=(workflow.doc.get('batching') or {}).get('evidence_audit')
+        manifest=sr.prepare_evidence_audit(ctx.work,prompt=step.prompt,max_units_per_call=batch_size)
         _self_declared_validate('evidence.assignment',ctx)
         if not manifest.get('required'):
             sr.apply_evidence_audit(ctx.work)
             doc={'audits':[]}; ctx.put('evidence_audits',doc)
             return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
-        if Path(manifest['output']).is_file():
+        if manifest.get('merged') or (not manifest.get('batch_count') and Path(manifest['output']).is_file()):
             doc,_targets=sr.accept_evidence_audit(ctx.work); sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
             return {'status':'complete','artifact':doc}
         return _handoff('evidence_audit',decorate(manifest,step,ctx))
 
     def evidence_adjudication(step, ctx):
-        manifest=decorate(sr.prepare_evidence_adjudication(ctx.work,prompt=step.prompt),step,ctx)
+        workflow=ctx.get('workflow')
+        batch_size=(workflow.doc.get('batching') or {}).get('evidence_adjudication')
+        manifest=decorate(sr.prepare_evidence_adjudication(
+            ctx.work,prompt=step.prompt,max_units_per_call=batch_size
+        ),step,ctx)
         _self_declared_validate('evidence.audit',ctx)
         if not manifest.get('required'):
             return {'status':'complete','reason':'no_disagreement'}
+        if manifest.get('merged'):
+            doc=sr.read_yaml(sr.output_path(ctx.work,'evidence_adjudication','adjudication.yaml'))
+            ctx.put('evidence_adjudication',doc)
+            return {'status':'complete','artifact':doc}
         return _handoff('evidence_adjudication',manifest)
 
     def evidence_finalize(step, ctx):

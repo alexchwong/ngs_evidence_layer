@@ -643,9 +643,138 @@ class Phase3EvidenceRescueTests(unittest.TestCase):
                 manifest=self_runtime.prepare_evidence_adjudication(work)
             self.assertTrue(manifest["required"])
             crop=self_runtime.read_yaml(manifest["disputes"])["disputes"][0]
-            self.assertEqual(set(crop),{"evidence_id","schema_id","reason","card_tag"})
+            self.assertEqual(set(crop),{"dispute_id","evidence_id","schema_id","reason","card_tag"})
+            self.assertEqual(crop["dispute_id"],"D0001")
             self.assertNotIn("resolver_decision",crop)
             self.assertNotIn("audit_comments",crop)
+
+    def test_match_batches_keep_complete_fact_blocks_and_merge_in_global_order(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            state=self._state()
+            state["items"]=[]; state["elements"]=[]
+            state["current_assignment_by_evidence_id"]={}
+            state["accepted_card_tags_by_evidence_id"]={}
+            state["rejected_card_tags_by_evidence_id"]={}
+            state["assignment_meta_by_evidence_id"]={}
+            cards=[]; tags={}
+            for index in range(1,20):
+                eid=f"E{index:04d}"; cid=f"C{index:04d}"; tag=f"{index:012d}"
+                state["items"].append({
+                    "evidence_id":eid,"schema_id":f"S{index}","reason":f"fact {index}","statement":f"fact {index}",
+                    "candidate_card_ids":[cid],"candidate_card_tags":[f"[card:{tag}]"],"owner_card_tags":[],
+                })
+                state["current_assignment_by_evidence_id"][eid]=[]
+                state["accepted_card_tags_by_evidence_id"][eid]=[]
+                state["rejected_card_tags_by_evidence_id"][eid]=[]
+                state["assignment_meta_by_evidence_id"][eid]={}
+                cards.append({"card_id":cid,"interpretation":f"card {index}"}); tags[cid]=tag
+            self_runtime.write_yaml(self_runtime._evidence_state_path(work),state)
+            with patch.object(self_runtime,"corpus_state",return_value=(cards,[],"x",{})), \
+                 patch.object(self_runtime.card_identity,"tag_by_id",return_value=tags), \
+                 patch.object(self_runtime.staged,"_render_cards",side_effect=lambda selected,_tags:selected[0]["interpretation"]):
+                manifests=[]
+                for expected_size in (8,8,3):
+                    manifest=self_runtime.prepare_evidence_resolution(work,max_match_passes=1,max_units_per_call=8)
+                    manifests.append(manifest)
+                    self.assertEqual(manifest["fact_count"],expected_size)
+                    text=manifest["facts"].read_text(encoding="utf-8")
+                    self.assertEqual(text.count("<fact-"),expected_size)
+                    rows=manifest["validation_items"]
+                    self_runtime.write_yaml(manifest["output"],{"matches":[
+                        {"evidence_id":row["evidence_id"],"card_tags":[]} for row in rows
+                    ]})
+                final=self_runtime.prepare_evidence_resolution(work,max_match_passes=1,max_units_per_call=8)
+            self.assertTrue(final["complete"])
+            self.assertEqual([m["batch_index"] for m in manifests],[1,2,3])
+            merged=self_runtime.accept_evidence_resolution(work)
+            self.assertEqual([row["evidence_id"] for row in merged["matches"]],[f"E{i:04d}" for i in range(1,20)])
+
+    def test_audit_batches_keep_each_facts_selected_cards_together(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            state=self._state(); state["items"]=[]
+            state["current_assignment_by_evidence_id"]={}; state["accepted_card_tags_by_evidence_id"]={}
+            cards=[]; tags={}; match_rows=[]
+            for index in range(1,10):
+                eid=f"E{index:04d}"; selected=[]
+                for suffix in (1,2):
+                    cid=f"C{index:04d}-{suffix}"; tag=f"{index:010d}{suffix:02d}"
+                    cards.append({"card_id":cid,"interpretation":f"card {index}-{suffix}"}); tags[cid]=tag; selected.append(f"[card:{tag}]")
+                state["items"].append({"evidence_id":eid,"schema_id":f"S{index}","reason":f"fact {index}","candidate_card_tags":selected})
+                state["current_assignment_by_evidence_id"][eid]=list(selected); state["accepted_card_tags_by_evidence_id"][eid]=[]
+                match_rows.append({"evidence_id":eid,"card_tags":selected})
+            self_runtime.write_yaml(self_runtime._evidence_state_path(work),state)
+            self_runtime.write_yaml(self_runtime._evidence_match_final_path(work),{"matches":match_rows})
+            with patch.object(self_runtime,"_assert_audit_targets_applicable",return_value=None), \
+                 patch.object(self_runtime,"corpus_state",return_value=(cards,[],"x",{})), \
+                 patch.object(self_runtime.card_identity,"tag_by_id",return_value=tags), \
+                 patch.object(self_runtime.staged,"_render_cards",side_effect=lambda selected,_tags:selected[0]["interpretation"]):
+                for expected_size in (8,1):
+                    manifest=self_runtime.prepare_evidence_audit(work,max_units_per_call=8)
+                    self.assertEqual(len(manifest["targets"]),expected_size)
+                    for target in manifest["targets"]:
+                        self.assertEqual(len(target["selected_card_tags"]),2)
+                    self_runtime.write_yaml(manifest["output"],{"audits":[{
+                        "evidence_id":target["evidence_id"],"card_audits":[{
+                            "card_tag":tag,"card_is_element_of_reason":True,"risk":"none","comments":[]
+                        } for tag in target["selected_card_tags"]]
+                    } for target in manifest["targets"]]})
+                merged=self_runtime.prepare_evidence_audit(work,max_units_per_call=8)
+            self.assertTrue(merged["merged"])
+            doc=self_runtime.read_yaml(self_runtime.output_path(work,"evidence_audits","self-audit.yaml"))
+            self.assertEqual([row["evidence_id"] for row in doc["audits"]],[f"E{i:04d}" for i in range(1,10)])
+
+    def test_adjudication_batches_preserve_global_ids_and_retry_only_bad_batch(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            state=self._state(); state["current_assignment_by_evidence_id"]={}
+            state["accepted_card_tags_by_evidence_id"]={}; state["unresolved_disputes"]=[]
+            cards=[]; tags={}
+            for index in range(1,20):
+                eid=f"E{index:04d}"; cid=f"C{index:04d}"; tag=f"{index:012d}"
+                state["accepted_card_tags_by_evidence_id"][eid]=[]
+                state["unresolved_disputes"].append({
+                    "evidence_id":eid,"schema_id":f"S{index}","reason":f"fact {index}","card_tag":f"[card:{tag}]",
+                    "resolver_decision":"include","auditor_decision":"exclude","audit_comments":["bad"],
+                })
+                cards.append({"card_id":cid,"interpretation":f"card {index}"}); tags[cid]=tag
+            self_runtime.write_yaml(self_runtime._evidence_state_path(work),state)
+            with patch.object(self_runtime,"corpus_state",return_value=(cards,[],"x",{})), \
+                 patch.object(self_runtime.card_identity,"tag_by_id",return_value=tags), \
+                 patch.object(self_runtime,"_write_pool",side_effect=lambda _work,group,_cards,_manifest:(self_runtime.output_path(work,group,"cards.md"),[])):
+                first=self_runtime.prepare_evidence_adjudication(work,max_units_per_call=8)
+                first_ids=[row["dispute_id"] for row in self_runtime.read_yaml(first["disputes"])["disputes"]]
+                self.assertEqual(first_ids,[f"D{i:04d}" for i in range(1,9)])
+                self_runtime.write_yaml(first["output"],{"adjudications":[
+                    {"dispute_id":did,"decision":"exclude","reason":"answer"} for did in reversed(first_ids)
+                ]})
+                second=self_runtime.prepare_evidence_adjudication(work,max_units_per_call=8)
+                second_ids=[row["dispute_id"] for row in self_runtime.read_yaml(second["disputes"])["disputes"]]
+                self.assertEqual(second_ids,[f"D{i:04d}" for i in range(9,17)])
+                self_runtime.write_yaml(second["output"],{"adjudications":[
+                    {"dispute_id":"D0020","decision":"exclude","reason":"unknown"}
+                ]})
+                retried=self_runtime.prepare_evidence_adjudication(work,max_units_per_call=8)
+                self.assertIn("unknown dispute_id",retried["validation_feedback"])
+                self.assertTrue(first["output"].is_file())
+                self.assertEqual(retried["output"],second["output"])
+                self.assertEqual([row["dispute_id"] for row in self_runtime.read_yaml(retried["disputes"])["disputes"]],second_ids)
+                self_runtime.write_yaml(second["output"],{"adjudications":[
+                    {"dispute_id":did,"decision":"exclude","reason":"answer"} for did in reversed(second_ids)
+                ]})
+                third=self_runtime.prepare_evidence_adjudication(work,max_units_per_call=8)
+                third_ids=[row["dispute_id"] for row in self_runtime.read_yaml(third["disputes"])["disputes"]]
+                self.assertEqual(third_ids,["D0017","D0018","D0019"])
+                self_runtime.write_yaml(third["output"],{"adjudications":[
+                    {"dispute_id":did,"decision":"exclude","reason":"answer"} for did in reversed(third_ids)
+                ]})
+                merged=self_runtime.prepare_evidence_adjudication(work,max_units_per_call=8)
+            self.assertTrue(merged["merged"])
+            canonical=self_runtime.read_yaml(self_runtime.output_path(work,"evidence_adjudication","adjudication.yaml"))
+            self.assertEqual([row["dispute_id"] for row in canonical["adjudications"]],[f"D{i:04d}" for i in range(1,20)])
+            self_runtime.validate_adjudication(canonical,state["unresolved_disputes"])
+            self.assertEqual([row["evidence_id"] for row in canonical["adjudications"]],[f"E{i:04d}" for i in range(1,20)])
 
 
 class Phase3WhoRoutingTests(unittest.TestCase):
