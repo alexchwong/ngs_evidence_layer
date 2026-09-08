@@ -22,7 +22,7 @@ from workflows.proforma_v1.engine.workflow_loader import load as load_workflow
 _BATCH_BOOTSTRAP = batch.bootstrap
 _BATCH_LIST_PIPELINES = batch.list_pipelines
 WORKFLOW_DIR = base.ROOT / "workflows" / "proforma_v1" / "workflow"
-DEFAULT_WORKFLOW = "default"
+DEFAULT_WORKFLOW = "default_reviewed_v2"
 OPENROUTER_MODELS_PATH = base.ROOT / "config" / "openrouter_models.json"
 MODEL_ACTIVITY_DIR = base.ROOT / ".nel-ui" / "activity"
 OPENROUTER_CATEGORIES = {
@@ -295,6 +295,8 @@ def bootstrap() -> dict[str, Any]:
     doc["pipelines"] = list_pipelines()
     doc["workflows"] = workflow_definitions()
     doc["default_workflow"] = DEFAULT_WORKFLOW
+    if any(row.get("name") == "openrouter" and row.get("readable") for row in doc["pipelines"]):
+        doc["default_pipeline"] = "openrouter"
     doc["reasoning_levels"] = list(REASONING_LEVELS)
     doc["lmstudio_reasoning_levels"] = list(LMSTUDIO_REASONING_LEVELS)
     doc["lmstudio_min_version"] = LMSTUDIO_MIN_VERSION

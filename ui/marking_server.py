@@ -216,9 +216,6 @@ def _pump_run_with_retry(registry, child, handle, argv: list[str]) -> None:
                 handle.write(b"[nel-ui] terminal workflow failure; outer retry suppressed\n")
                 handle.flush()
                 break
-            # Exit 1 is the ordinary resumable workflow/provider failure. Other
-            # codes (handoff, stop/signal, configuration, terminal) are not
-            # blindly re-executed by the UI launcher.
             if code != 1 or attempt >= child.max_attempts:
                 break
 
@@ -362,56 +359,19 @@ def _patch_page_text(text: str) -> str:
             "async function refreshRuns(){const snapshot=selectedSnapshot();try{const runner=await api('/api/runner'),d=await api('/api/runs');state.runner=runner;state.runs=mergePendingRuns(d.runs||[]);if(selectedSnapshotCurrent(snapshot)&&state.selected&&!state.runs.some(r=>r.run_id===state.selected)&&!isActive(state.selected)){state.selectionGeneration+=1;state.selected='';setConsoleTarget('');resetRunArtifacts()}renderRuns();syncBatchSelectors();renderProgress();renderRunButton()}catch(e){setMessage($('prepareMsg'),e.message,true)}}",
             "selection-neutral run refresh",
         ),
-        (
-            "await refreshRuns(d.run_id);",
-            "await refreshRuns();",
-            "prepare refresh selection neutrality",
-        ),
-        (
-            "await refreshRuns(state.selected);await pollRunner()",
-            "await refreshRuns();await pollRunner()",
-            "run action refresh selection neutrality",
-        ),
-        (
-            "await refreshRuns(state.selected)}else{renderRuns();renderRunButton()}",
-            "await refreshRuns()}else{renderRuns();renderRunButton()}",
-            "runner refresh selection neutrality",
-        ),
-        (
-            "if(Math.random()<.25)await refreshRuns(state.selected)",
-            "if(Math.random()<.25)await refreshRuns()",
-            "periodic refresh selection neutrality",
-        ),
-        (
-            "$('refreshRuns').addEventListener('click',()=>refreshRuns(state.selected));",
-            "$('refreshRuns').addEventListener('click',()=>refreshRuns());",
-            "manual refresh selection neutrality",
-        ),
-        (
-            "current=doc?.current_phase||c.stage||'setup'",
-            "current=doc?.execution_current_phase||doc?.current_phase||c.stage||'setup'",
-            "batch execution phase label",
-        ),
-        (
-            "current=doc?.current_phase||st?.stage||r.stage||'setup'",
-            "current=doc?.execution_current_phase||doc?.current_phase||st?.stage||r.stage||'setup'",
-            "single execution phase label",
-        ),
+        ("await refreshRuns(d.run_id);", "await refreshRuns();", "prepare refresh selection neutrality"),
+        ("await refreshRuns(state.selected);await pollRunner()", "await refreshRuns();await pollRunner()", "run action refresh selection neutrality"),
+        ("await refreshRuns(state.selected)}else{renderRuns();renderRunButton()}", "await refreshRuns()}else{renderRuns();renderRunButton()}", "runner refresh selection neutrality"),
+        ("if(Math.random()<.25)await refreshRuns(state.selected)", "if(Math.random()<.25)await refreshRuns()", "periodic refresh selection neutrality"),
+        ("$('refreshRuns').addEventListener('click',()=>refreshRuns(state.selected));", "$('refreshRuns').addEventListener('click',()=>refreshRuns());", "manual refresh selection neutrality"),
+        ("current=doc?.current_phase||c.stage||'setup'", "current=doc?.execution_current_phase||doc?.current_phase||c.stage||'setup'", "batch execution phase label"),
+        ("current=doc?.current_phase||st?.stage||r.stage||'setup'", "current=doc?.execution_current_phase||doc?.current_phase||st?.stage||r.stage||'setup'", "single execution phase label"),
         (
             "return phases.map(phase=>{let cls='';if(phase.status==='completed')cls='done';else if(phase.status==='failed')cls='failed';else if(phase.status==='blocked')cls='blocked';else if(phase.status==='running'||phase.id===doc.current_phase)cls=blocked?'blocked':failed?'failed':'current';",
             "return phases.map(phase=>{let cls='';if(phase.id===(doc.execution_current_phase||doc.current_phase)&&!clinicalComplete)cls=blocked?'blocked':failed?'failed':'current';else if(phase.status==='completed')cls='done';else if(phase.status==='failed')cls='failed';else if(phase.status==='blocked')cls='blocked';else if(phase.status==='running')cls=blocked?'blocked':failed?'failed':'current';",
             "execution phase segment highlight",
         ),
-        (
-            "const id=doc.current_phase||stage,hit=doc.phases.find(x=>x.id===id);",
-            "const id=doc.execution_current_phase||stage||doc.current_phase,hit=doc.phases.find(x=>x.id===id);",
-            "execution phase text",
-        ),
-        (
-            "if(target.kind==='batch'){if(target.status==='complete'){btn.disabled=true;btn.textContent='Batch complete'}else if(target.status==='marking_incomplete'){btn.disabled=false;btn.textContent='Retry marking'}else{btn.disabled=false;btn.textContent=['complete_with_errors','stopped','blocked'].includes(target.status)?'Resume batch':'Start batch'}return}const marking=target.marking||{};if(target.complete||target.archived){if(!target.archived&&marking.applicable&&['pending','failed','stale'].includes(String(marking.status||'pending'))){btn.disabled=false;btn.textContent='Retry marking'}else{btn.disabled=true;btn.textContent=target.archived?'Archived':'Run complete'}}else{btn.disabled=false;btn.textContent='Start run'}",
-            "if(target.kind==='batch'){if(['complete','marking_incomplete'].includes(target.status)){btn.disabled=true;btn.textContent='Batch complete'}else{btn.disabled=false;btn.textContent=['complete_with_errors','stopped','blocked'].includes(target.status)?'Resume batch':'Start batch'}return}if(target.complete||target.archived){btn.disabled=true;btn.textContent=target.archived?'Archived':'Run complete'}else{btn.disabled=false;btn.textContent='Start run'}",
-            "separate clinical and marking buttons",
-        ),
+        ("const id=doc.current_phase||stage,hit=doc.phases.find(x=>x.id===id);", "const id=doc.execution_current_phase||stage||doc.current_phase,hit=doc.phases.find(x=>x.id===id);", "execution phase text"),
         (
             "function markingPhase(marking,clinicalComplete){if(!marking?.applicable)return null;const rawStatus=String(marking.status||'pending');let status='pending';if(rawStatus==='complete')status='completed';else if(rawStatus==='failed')status='failed';else if(rawStatus==='stale')status='blocked';else if(clinicalComplete)status='running';return{id:'validation.marking',label:'Marking',status,rawStatus}}",
             "function markingPhase(marking,clinicalComplete,markingActive=false){if(!marking?.applicable)return null;const rawStatus=String(marking.status||'pending');let status='pending';if(rawStatus==='complete')status='completed';else if(rawStatus==='failed')status='failed';else if(rawStatus==='stale')status='blocked';else if(markingActive)status='running';return{id:'validation.marking',label:'Marking',status,rawStatus}}",
@@ -427,31 +387,11 @@ def _patch_page_text(text: str) -> str:
             "function progressPhaseText(current,{complete=false,failed=false,blocked=false,marking=null,markingActive=false}={},doc=null){const clinicalComplete=doc?.complete??complete,mark=markingPhase(marking,clinicalComplete,markingActive);if(mark&&clinicalComplete){if(mark.rawStatus==='complete')return'Marking complete';if(mark.rawStatus==='failed')return'Marking failed';if(mark.rawStatus==='stale')return'Marking stale · retry required';return mark.status==='running'?'Marking':'Marking pending'}",
             "marking pending label",
         ),
-        (
-            "shown=active.length?active:(batch.status==='marking_incomplete'?unresolved:[]);",
-            "shown=active.length?active:((batch.status==='marking_incomplete'||batch.status==='complete')?unresolved:[]);",
-            "completed batch marking rows",
-        ),
-        (
-            "phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:c.marking},doc)",
-            "phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:c.marking,markingActive:markingActiveFor(c.run_id)},doc)",
-            "batch marking phase label",
-        ),
-        (
-            "progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:c.marking},doc)",
-            "progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:c.marking,markingActive:markingActiveFor(c.run_id)},doc)",
-            "batch marking segment",
-        ),
-        (
-            "phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking},doc);",
-            "phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking,markingActive:markingActiveFor(r.run_id)},doc);",
-            "single marking phase label",
-        ),
-        (
-            "progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking},doc)",
-            "progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking,markingActive:markingActiveFor(r.run_id)},doc)",
-            "single marking segment",
-        ),
+        ("shown=active.length?active:(batch.status==='marking_incomplete'?unresolved:[]);", "shown=active.length?active:((batch.status==='marking_incomplete'||batch.status==='complete')?unresolved:[]);", "completed batch marking rows"),
+        ("phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:c.marking},doc)", "phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:c.marking,markingActive:markingActiveFor(c.run_id)},doc)", "batch marking phase label"),
+        ("progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:c.marking},doc)", "progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:c.marking,markingActive:markingActiveFor(c.run_id)},doc)", "batch marking segment"),
+        ("phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking},doc);", "phase=progressPhaseText(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking,markingActive:markingActiveFor(r.run_id)},doc);", "single marking phase label"),
+        ("progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking},doc)", "progressSegments(current,{complete:clinicalComplete,failed,blocked,marking:st?.marking,markingActive:markingActiveFor(r.run_id)},doc)", "single marking segment"),
         (
             "async function loadConsole(){if(!state.selected)return;setConsoleTarget(state.selected);try{const pre=$('consoleView'),near=pre.scrollHeight-pre.scrollTop-pre.clientHeight<45,d=await api(`/api/console?run=${encodeURIComponent(state.selected)}&offset=${state.consoleOffset}`);if(d.offset<state.consoleOffset){pre.textContent='';state.consoleOffset=0}if(d.text)pre.textContent+=d.text;state.consoleOffset=d.offset;state.consoleCache[state.selected]={text:pre.textContent||'',offset:state.consoleOffset,scrollTop:near?pre.scrollHeight:pre.scrollTop};if(near)pre.scrollTop=pre.scrollHeight}catch(_){}}",
             "async function loadConsole(){if(!state.selected)return;const selected=state.selected,generation=state.selectionGeneration;setConsoleTarget(selected);try{const pre=$('consoleView'),near=pre.scrollHeight-pre.scrollTop-pre.clientHeight<45,d=await api(`/api/console?run=${encodeURIComponent(selected)}&offset=${state.consoleOffset}`);if(generation!==state.selectionGeneration||selected!==state.selected)return;if(d.offset<state.consoleOffset){pre.textContent='';state.consoleOffset=0}if(d.text)pre.textContent+=d.text;state.consoleOffset=d.offset;state.consoleCache[selected]={text:pre.textContent||'',offset:state.consoleOffset,scrollTop:near?pre.scrollHeight:pre.scrollTop};if(near)pre.scrollTop=pre.scrollHeight}catch(_){}}",
@@ -482,71 +422,19 @@ def _patch_page_text(text: str) -> str:
             "}catch(_){if(!selectedSnapshotCurrent(snapshot))return;state.usage=null;state.usageLedger=null;$('usageText').textContent='Usage pending.';renderUsageView()}}\nfunction renderStages(){renderProgress()}",
             "usage stale catch",
         ),
-        (
-            "async function loadCase(){const ref=contentRunRef();if(!ref)return;try{state.case=await api(`/api/case?run=${encodeURIComponent(ref)}`);renderCase()}catch(_){}}",
-            "async function loadCase(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/case?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.case=next;renderCase()}catch(_){}}",
-            "case stale guard",
-        ),
-        (
-            "async function loadReport(){const ref=contentRunRef();if(!ref)return;try{state.report=await api(`/api/report?run=${encodeURIComponent(ref)}`);renderReport()}catch(_){}}",
-            "async function loadReport(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/report?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.report=next;renderReport()}catch(_){}}",
-            "report stale guard",
-        ),
-        (
-            "async function loadSelectedModelTexts(){const ref=contentRunRef(),{operation,call,attempt}=selectedModel();",
-            "async function loadSelectedModelTexts(){const snapshot=selectedSnapshot(),ref=snapshot.ref,{operation,call,attempt}=selectedModel();",
-            "model text stale snapshot",
-        ),
-        (
-            "const next={ref,operation,call,attempt,output:entries[0],reasoning:entries[1],prompt:entries[2],messages:entries[3],validation:entries[4],metadata,repairs},signature=JSON.stringify(next);if(signature===state.modelTextSignature)return;state.modelTexts=next;",
-            "if(!selectedSnapshotCurrent(snapshot))return;const next={ref,operation,call,attempt,output:entries[0],reasoning:entries[1],prompt:entries[2],messages:entries[3],validation:entries[4],metadata,repairs},signature=JSON.stringify(next);if(signature===state.modelTextSignature)return;state.modelTexts=next;",
-            "model text stale guard",
-        ),
-        (
-            "async function loadModels(){if(state.modelLoading)return;const ref=contentRunRef();",
-            "async function loadModels(){if(state.modelLoading)return;const snapshot=selectedSnapshot(),ref=snapshot.ref;",
-            "model index stale snapshot",
-        ),
-        (
-            "if(!index){const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);index=legacyModelIndex(d.files||[])}const signature=JSON.stringify({ref,legacy,index}),",
-            "if(!index){const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);index=legacyModelIndex(d.files||[])}if(!selectedSnapshotCurrent(snapshot))return;const signature=JSON.stringify({ref,legacy,index}),",
-            "model index stale guard",
-        ),
-        (
-            "}catch(_){const signature=`error:${ref}`;state.modelIndex={operations:[]};",
-            "}catch(_){if(!selectedSnapshotCurrent(snapshot))return;const signature=`error:${ref}`;state.modelIndex={operations:[]};",
-            "model index stale catch",
-        ),
-        (
-            "async function loadDissent(){const ref=contentRunRef();if(!ref)return;try{state.dissent=await api(`/api/dissent?run=${encodeURIComponent(ref)}`);renderDissent()}catch(_){} }",
-            "async function loadDissent(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/dissent?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.dissent=next;renderDissent()}catch(_){} }",
-            "dissent stale guard",
-        ),
-        (
-            "async function loadMarking(){if(!state.selected)return;const ref=contentRunRef();if(!ref)return;try{state.marking=await api(`/api/marking?run=${encodeURIComponent(ref)}`);renderMarking()}catch(e){state.marking={available:false,applicable:false,status:'unavailable',text:'',error:e.message};renderMarking()}}",
-            "async function loadMarking(){if(!state.selected)return;const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/marking?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.marking=next;renderMarking()}catch(e){if(!selectedSnapshotCurrent(snapshot))return;state.marking={available:false,applicable:false,status:'unavailable',text:'',error:e.message};renderMarking()}}",
-            "marking stale guard",
-        ),
-        (
-            "async function loadFiles(){const ref=contentRunRef();if(!ref)return;try{const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);state.files=d.files||[];",
-            "async function loadFiles(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.files=d.files||[];",
-            "files stale guard",
-        ),
-        (
-            "}catch(e){$('reportPane').innerHTML=`<div class=\"pending\">${esc(e.message)}</div>`}}\nfunction buildFileTree",
-            "}catch(e){if(!selectedSnapshotCurrent(snapshot))return;$('reportPane').innerHTML=`<div class=\"pending\">${esc(e.message)}</div>`}}\nfunction buildFileTree",
-            "files stale catch",
-        ),
-        (
-            "async function loadFile(path){try{const ref=contentRunRef(),d=await api(`/api/file?run=${encodeURIComponent(ref)}&path=${encodeURIComponent(path)}`);state.filePath=path;",
-            "async function loadFile(path){const snapshot=selectedSnapshot();try{const ref=snapshot.ref,d=await api(`/api/file?run=${encodeURIComponent(ref)}&path=${encodeURIComponent(path)}`);if(!selectedSnapshotCurrent(snapshot))return;state.filePath=path;",
-            "file stale guard",
-        ),
-        (
-            "}catch(e){state.filePath=path;state.fileText=e.message;state.fileMeta=null;renderFiles()}}\nfunction formatBytes",
-            "}catch(e){if(!selectedSnapshotCurrent(snapshot))return;state.filePath=path;state.fileText=e.message;state.fileMeta=null;renderFiles()}}\nfunction formatBytes",
-            "file stale catch",
-        ),
+        ("async function loadCase(){const ref=contentRunRef();if(!ref)return;try{state.case=await api(`/api/case?run=${encodeURIComponent(ref)}`);renderCase()}catch(_){}}", "async function loadCase(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/case?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.case=next;renderCase()}catch(_){}}", "case stale guard"),
+        ("async function loadReport(){const ref=contentRunRef();if(!ref)return;try{state.report=await api(`/api/report?run=${encodeURIComponent(ref)}`);renderReport()}catch(_){}}", "async function loadReport(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/report?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.report=next;renderReport()}catch(_){}}", "report stale guard"),
+        ("async function loadSelectedModelTexts(){const ref=contentRunRef(),{operation,call,attempt}=selectedModel();", "async function loadSelectedModelTexts(){const snapshot=selectedSnapshot(),ref=snapshot.ref,{operation,call,attempt}=selectedModel();", "model text stale snapshot"),
+        ("const next={ref,operation,call,attempt,output:entries[0],reasoning:entries[1],prompt:entries[2],messages:entries[3],validation:entries[4],metadata,repairs},signature=JSON.stringify(next);if(signature===state.modelTextSignature)return;state.modelTexts=next;", "if(!selectedSnapshotCurrent(snapshot))return;const next={ref,operation,call,attempt,output:entries[0],reasoning:entries[1],prompt:entries[2],messages:entries[3],validation:entries[4],metadata,repairs},signature=JSON.stringify(next);if(signature===state.modelTextSignature)return;state.modelTexts=next;", "model text stale guard"),
+        ("async function loadModels(){if(state.modelLoading)return;const ref=contentRunRef();", "async function loadModels(){if(state.modelLoading)return;const snapshot=selectedSnapshot(),ref=snapshot.ref;", "model index stale snapshot"),
+        ("if(!index){const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);index=legacyModelIndex(d.files||[])}const signature=JSON.stringify({ref,legacy,index}),", "if(!index){const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);index=legacyModelIndex(d.files||[])}if(!selectedSnapshotCurrent(snapshot))return;const signature=JSON.stringify({ref,legacy,index}),", "model index stale guard"),
+        ("}catch(_){const signature=`error:${ref}`;state.modelIndex={operations:[]};", "}catch(_){if(!selectedSnapshotCurrent(snapshot))return;const signature=`error:${ref}`;state.modelIndex={operations:[]};", "model index stale catch"),
+        ("async function loadDissent(){const ref=contentRunRef();if(!ref)return;try{state.dissent=await api(`/api/dissent?run=${encodeURIComponent(ref)}`);renderDissent()}catch(_){} }", "async function loadDissent(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/dissent?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.dissent=next;renderDissent()}catch(_){} }", "dissent stale guard"),
+        ("async function loadMarking(){if(!state.selected)return;const ref=contentRunRef();if(!ref)return;try{state.marking=await api(`/api/marking?run=${encodeURIComponent(ref)}`);renderMarking()}catch(e){state.marking={available:false,applicable:false,status:'unavailable',text:'',error:e.message};renderMarking()}}", "async function loadMarking(){if(!state.selected)return;const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const next=await api(`/api/marking?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.marking=next;renderMarking()}catch(e){if(!selectedSnapshotCurrent(snapshot))return;state.marking={available:false,applicable:false,status:'unavailable',text:'',error:e.message};renderMarking()}}", "marking stale guard"),
+        ("async function loadFiles(){const ref=contentRunRef();if(!ref)return;try{const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);state.files=d.files||[];", "async function loadFiles(){const snapshot=selectedSnapshot(),ref=snapshot.ref;if(!ref)return;try{const d=await api(`/api/files?run=${encodeURIComponent(ref)}`);if(!selectedSnapshotCurrent(snapshot))return;state.files=d.files||[];", "files stale guard"),
+        ("}catch(e){$('reportPane').innerHTML=`<div class=\"pending\">${esc(e.message)}</div>`}}\nfunction buildFileTree", "}catch(e){if(!selectedSnapshotCurrent(snapshot))return;$('reportPane').innerHTML=`<div class=\"pending\">${esc(e.message)}</div>`}}\nfunction buildFileTree", "files stale catch"),
+        ("async function loadFile(path){try{const ref=contentRunRef(),d=await api(`/api/file?run=${encodeURIComponent(ref)}&path=${encodeURIComponent(path)}`);state.filePath=path;", "async function loadFile(path){const snapshot=selectedSnapshot();try{const ref=snapshot.ref,d=await api(`/api/file?run=${encodeURIComponent(ref)}&path=${encodeURIComponent(path)}`);if(!selectedSnapshotCurrent(snapshot))return;state.filePath=path;", "file stale guard"),
+        ("}catch(e){state.filePath=path;state.fileText=e.message;state.fileMeta=null;renderFiles()}}\nfunction formatBytes", "}catch(e){if(!selectedSnapshotCurrent(snapshot))return;state.filePath=path;state.fileText=e.message;state.fileMeta=null;renderFiles()}}\nfunction formatBytes", "file stale catch"),
         (
             "async function pollSelected(){if(!state.selected)return;const tasks=[loadConsole(),loadStatus(),loadBatchContext(),loadWorkflowProgress(),loadUsage(),loadCase(),loadReport(),loadDissent()];if(state.midMode==='models')tasks.push(loadModels());if(state.midMode==='marking')tasks.push(loadMarking());",
             "async function pollSelected(){if(!state.selected)return;const tasks=[loadConsole(),loadStatus(),loadBatchContext(),loadWorkflowProgress(),loadUsage(),loadCase(),loadReport()];if(state.midMode==='models')tasks.push(loadModels());if(state.midMode==='dissent')tasks.push(loadDissent());if(state.midMode==='marking')tasks.push(loadMarking());",

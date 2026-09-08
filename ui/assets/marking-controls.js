@@ -5,7 +5,6 @@
   const $ = id => document.getElementById(id);
   let setupBusy = false;
   let lastSelected = '';
-  let lastStatus = null;
   let pipelineRows = [];
   let refreshing = false;
 
@@ -28,110 +27,8 @@
     return doc;
   }
 
-  function validationSelection() {
-    const bundledVisible = !$('bundledFields')?.hidden;
-    const mode = String($('suiteSelect')?.value || '');
-    return bundledVisible && (mode === 'nel-validate' || mode.startsWith('nel-validate-'));
-  }
-
-  function installMarkingChoice() {
-    if ($('markValidation')) return;
-    const runId = $('runId')?.closest('.field');
-    if (!runId) return;
-    const row = document.createElement('label');
-    row.id = 'markValidationRow';
-    row.className = 'row';
-    row.style.cssText = 'justify-content:flex-start;margin:8px 0 2px;gap:7px';
-    row.innerHTML = '<input id="markValidation" type="checkbox" style="width:auto"> Automatically mark validation result <span class="hint">(off by default)</span>';
-    runId.insertAdjacentElement('afterend', row);
-    $('markValidation').checked = false;
-    updateMarkingChoice();
-  }
-
-  function updateMarkingChoice() {
-    const row = $('markValidationRow');
-    const box = $('markValidation');
-    if (!row || !box) return;
-    const applicable = validationSelection();
-    row.hidden = !applicable;
-    if (!applicable) box.checked = false;
-  }
-
-  function installMarkButton() {
-    if ($('markBtn')) return;
-    const run = $('runBtn');
-    if (!run) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.id = 'markBtn';
-    button.hidden = true;
-    button.textContent = 'Mark';
-    run.insertAdjacentElement('afterend', button);
-    button.addEventListener('click', markSelected);
-  }
-
   function selectedRef() {
     return document.querySelector('#runsList .run-row.selected')?.title || '';
-  }
-
-  function ownerRef(ref) {
-    return String(ref || '').split(':', 1)[0];
-  }
-
-  function message(text, error = false) {
-    const box = $('prepareMsg');
-    if (!box) return;
-    box.textContent = text;
-    box.hidden = !text;
-    box.classList.toggle('error', !!error);
-  }
-
-  function clinicalComplete(status) {
-    if (!status || typeof status !== 'object') return false;
-    if (status.kind === 'batch') {
-      return ['complete', 'marking_incomplete'].includes(String(status.stored_status || status.status || ''));
-    }
-    return status.complete === true;
-  }
-
-  function markingActionable(status) {
-    const marking = status?.marking || {};
-    return clinicalComplete(status) && marking.applicable === true && ['pending', 'partial', 'failed', 'stale'].includes(String(marking.status || 'pending'));
-  }
-
-  async function runnerMarkingActive(ref) {
-    if (!ref) return false;
-    try {
-      const doc = await api('/api/runner');
-      const owner = ownerRef(ref);
-      return (doc.children || []).some(row => row.run_id === owner && row.active && row.phase === 'marking');
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function applyMarkButton(status, markingActive, ownerClinicalComplete = true) {
-    const button = $('markBtn');
-    if (!button) return;
-    const actionable = ownerClinicalComplete && markingActionable(status);
-    button.hidden = !actionable && !markingActive;
-    button.disabled = !!markingActive;
-    if (markingActive) button.textContent = 'Marking…';
-    else button.textContent = ['partial', 'failed', 'stale'].includes(String(status?.marking?.status || '')) ? 'Retry marking' : 'Mark validation';
-  }
-
-  async function markSelected() {
-    const ref = selectedRef();
-    if (!ref) return;
-    const button = $('markBtn');
-    if (button) { button.disabled = true; button.textContent = 'Marking…'; }
-    try {
-      await api('/api/mark', { method: 'POST', body: { run_id: ref } });
-      message(`Marking started for ${ref}.`);
-    } catch (error) {
-      message(error.message, true);
-    }
-    await refreshSelected(true);
   }
 
   function profileClassFor(name) {
@@ -179,8 +76,6 @@
       const ref = selectedRef();
       if (!ref) {
         lastSelected = '';
-        lastStatus = null;
-        if ($('markBtn')) $('markBtn').hidden = true;
         return;
       }
       const doc = await api(`/api/status?run=${encodeURIComponent(ref)}`);
@@ -189,24 +84,7 @@
       if (!status) return;
       const changed = ref !== lastSelected;
       lastSelected = ref;
-      lastStatus = status;
       if (changed || force) await restoreFrozenProfile(String(status.pipeline || ''));
-      if (ref !== selectedRef()) return;
-      const active = await runnerMarkingActive(ref);
-      if (ref !== selectedRef()) return;
-      let executionStatus = status;
-      const owner = ownerRef(ref);
-      if (owner && owner !== ref) {
-        try {
-          const parent = await api(`/api/status?run=${encodeURIComponent(owner)}`);
-          if (ref !== selectedRef()) return;
-          if (parent.available && parent.status) executionStatus = parent.status;
-        } catch (_) {
-          // Keep the child status; the base UI will refresh the parent control.
-        }
-      }
-      if (ref !== selectedRef()) return;
-      applyMarkButton(status, active, clinicalComplete(executionStatus));
     } catch (_) {
       // The base interface owns status errors; do not duplicate them here.
     } finally {
@@ -294,7 +172,8 @@
       if (isSetup && typeof options.body === 'string') {
         try {
           const body = JSON.parse(options.body);
-          body.mark_validation = validationSelection() && !!$('markValidation')?.checked;
+          // UI marking is always explicit after clinical completion.
+          body.mark_validation = false;
           nextOptions = { ...options, body: JSON.stringify(body) };
         } catch (_) {
           // Leave malformed requests for the server to reject.
@@ -309,22 +188,11 @@
     };
   }
 
-  function wireChoiceUpdates() {
-    ['suiteSelect', 'sourcePaste', 'sourceBundled', 'batchToggle'].forEach(id => {
-      $(id)?.addEventListener('change', updateMarkingChoice);
-      $(id)?.addEventListener('click', () => setTimeout(updateMarkingChoice, 0));
-    });
-  }
-
   installFetchPolicy();
   installStabilityStyles();
   installKeyDialogPolicy();
-  installMarkingChoice();
-  installMarkButton();
-  wireChoiceUpdates();
 
   setInterval(() => {
-    updateMarkingChoice();
     gatePrepare();
     fixMarkingMessage();
     refreshSelected(false);
