@@ -157,7 +157,7 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
                 self.assertNotIn("cards", audit)
 
 
-    def test_prognosis_allows_source_direction_conflict_and_normalizes_no_evidence_reason(self):
+    def test_prognosis_preserves_source_direction_conflict_and_nonempty_no_evidence_reason(self):
         contract = domain_contract.contract("prognosis")
         registry = {
             "v01": {"gene": "ASXL1"},
@@ -199,12 +199,15 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
         normalized_doc = yaml.safe_load(normalized)
         self.assertEqual(normalized_doc["classification"][0]["other_evidence_effect"], "favorable")
         self.assertEqual(normalized_doc["classification"][0]["other_evidence_reason"], "Independent treatment-context evidence is favorable.")
-        self.assertIsNone(normalized_doc["classification"][1]["other_evidence_reason"])
-        self.assertIsNone(normalized_doc["classification"][2]["other_evidence_reason"])
         self.assertEqual(
-            [r["transform"] for r in records if r["transform"] == "null_reason_for_no_evidence"],
-            ["null_reason_for_no_evidence", "null_reason_for_no_evidence"],
+            normalized_doc["classification"][1]["other_evidence_reason"],
+            "No qualifying prognostic evidence was found.",
         )
+        self.assertEqual(
+            normalized_doc["classification"][2]["other_evidence_reason"],
+            "No qualifying prognostic evidence was found.",
+        )
+        self.assertFalse(any(r["transform"] == "blank_no_evidence_reason_to_null" for r in records))
         domain_contract.validate(
             normalized, contract,
             {"variants": ["v01", "v02", "v03"], "registry": registry, "authoritative_disease": "AML", "owner_card_tags": []},
@@ -246,7 +249,7 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
             with patch.object(staged_step, "_workflow_step_for_call", return_value=declared):
                 validator = staged_step._with_declared_validation("test", lambda text: "legacy valid")
                 self.assertEqual(validator('{"ids":["A"]}'), "legacy valid")
-                with self.assertRaisesRegex(Exception, "unknown value"):
+                with self.assertRaisesRegex(Exception, "not supplied"):
                     validator('{"ids":["Z"]}')
         finally:
             staged_step._ACTIVE_COMPILED_WORKFLOW = old_workflow
@@ -258,6 +261,7 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
         step = SimpleNamespace(
             id="custom.audit", type="model", checks=({"rule": "subset", "path": "ids", "source": "allowed"},),
             output={"artifact": "custom_audit", "format": "json"},
+            execution={},
         )
         workflow = SimpleNamespace(asset_root=HERE, step=lambda step_id: step)
         with tempfile.TemporaryDirectory() as td:
@@ -268,7 +272,7 @@ class Phase2BRuntimeCompatibilityTests(unittest.TestCase):
             output.write_text('{"ids":["A"]}', encoding="utf-8")
             self_driver._self_declared_validate(step.id, context)
             output.write_text('{"ids":["Z"]}', encoding="utf-8")
-            with self.assertRaisesRegex(Exception, "unknown value"):
+            with self.assertRaisesRegex(Exception, "not supplied"):
                 self_driver._self_declared_validate(step.id, context)
 
 

@@ -151,7 +151,7 @@ class PromptAndValidationTests(unittest.TestCase):
         fact_spec = {"rule": "sequential_ids", "path": "case_facts", "field": "fact_id", "prefix": "C"}
         checks.apply({"variants": [{"variant_id": "V1"}, {"variant_id": "V2"}]}, [variant_spec])
         checks.apply({"case_facts": [{"fact_id": "C1"}, {"fact_id": "C2"}]}, [fact_spec])
-        with self.assertRaisesRegex(checks.CheckFailure, r"expected \['V1', 'V2'\]"):
+        with self.assertRaisesRegex(checks.CheckFailure, r"sequential \['V1', 'V2'\]"):
             checks.apply({"variants": [{"variant_id": "V01"}, {"variant_id": "V02"}]}, [variant_spec])
 
         # Padding remains available, but must be an explicit workflow decision.
@@ -173,7 +173,7 @@ class PromptAndValidationTests(unittest.TestCase):
         self.assertEqual([row["variant_id"] for row in doc["variants"]], ["V1"])
 
     def test_generic_row_checks_do_not_silently_accept_unknown_or_non_mapping_rows(self):
-        with self.assertRaisesRegex(checks.CheckFailure, "expected exact row keys"):
+        with self.assertRaisesRegex(checks.CheckFailure, r"unexpected \[None\]"):
             checks.apply(
                 {"rows": [None]},
                 [{"rule": "one_row_per", "path": "rows", "key": "id", "source": "expected"}],
@@ -188,19 +188,19 @@ class PromptAndValidationTests(unittest.TestCase):
             {"rows": [{"id": "v01", "gene": "ASXL1"}]}, [spec],
             context={"registry": [{"id": "v01", "gene": "ASXL1"}]},
         )
-        with self.assertRaisesRegex(checks.CheckFailure, "unknown source key"):
+        with self.assertRaisesRegex(checks.CheckFailure, "not a supplied source identity"):
             checks.apply(
                 {"rows": [{"id": "v99", "gene": None}]}, [spec],
                 context={"registry": [{"id": "v01", "gene": "ASXL1"}]},
             )
 
     def test_explicit_empty_model_field_allowlist_rejects_model_owned_fields(self):
-        with self.assertRaisesRegex(assemblers.AssemblyError, "non-owned field"):
+        with self.assertRaisesRegex(assemblers.AssemblyError, "workflow-owned field"):
             assemblers.assemble(
                 "object_merge", {"model_field": "x"},
                 spec={"source": "base", "model_fields": []}, context={"base": {"locked": 1}},
             )
-        with self.assertRaisesRegex(assemblers.AssemblyError, "non-owned field"):
+        with self.assertRaisesRegex(assemblers.AssemblyError, "model does not own"):
             assemblers.assemble(
                 "keyed_rows", {"answers": {"v01": {"model_field": "x"}}},
                 spec={"source": "registry", "source_key": "id", "answers_path": "answers", "model_fields": []},
