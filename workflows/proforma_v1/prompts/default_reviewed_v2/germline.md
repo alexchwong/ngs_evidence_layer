@@ -6,18 +6,7 @@ This step assesses whether germline evaluation is indicated; it does not establi
 
 ## Reasoning correction
 
-`reasoning_correction` below is `null` on the first pass; ignore this section entirely when it is.
-
-When it is supplied, your previous answer to this same task failed an independent reasoning review. You are given your previous output and, in `correction_brief`, the specific reasoning defect the reviewer identified.
-
-Carry out the **full task again** from the original case, findings and cards supplied below. This is a fresh clinical reassessment, not a wording repair.
-
-- Do not repeat the identified reasoning error.
-- Do not merely rewrite the reason text to satisfy the criticism while leaving the same conclusion standing. If the identified defect removes the support for your previous conclusion, the conclusion must be reconsidered, along with every field that depended on it.
-- If, having reconsidered, you judge that your previous conclusion still holds on the supplied findings, you may return it — but state the derivation that actually supports it rather than the one the reviewer rejected.
-- Everything not touched by the identified defect should be reassessed on its merits, not preserved by default.
-
-The reviewer identifies faulty inference. It does not decide the clinical answer and has not been told what the answer should be. That decision remains yours.
+{{ include "../includes/reasoning_correction.md" }}
 
 {{ input.reasoning_correction }}
 
@@ -29,6 +18,8 @@ Determine eligibility separately for every supplied molecular finding before com
 - Use `eligibility: skip_no_predisposition_evidence` when the supplied germline evidence cards do not establish such an association.
 - Eligibility is corpus-bounded. Do not use pretrained knowledge, familiarity with a gene, or the existence of a non-germline evidence card to create germline eligibility.
 - A skipped finding receives no detailed germline worksheet and no germline bucket. Follow the output contract exactly for skipped rows.
+- For a skipped finding, set the detailed worksheet fields and `bucket` to literal YAML `null`, not objects whose members are null.
+- A skipped finding still requires a concise non-empty `reason` explaining that the supplied germline evidence did not establish eligibility; do not set `reason` to null.
 
 ## Detailed germline proforma
 

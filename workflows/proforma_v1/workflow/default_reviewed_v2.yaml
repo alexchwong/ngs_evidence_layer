@@ -104,15 +104,59 @@ steps:
     output:
       artifact: v2_who1_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  audit.who1.gate:
+  audit.who1.disputes:
     type: transform
     needs:
     - audit.who1.coherence
+    transform: v2_dispute_filter
+    output:
+      artifact: v2_who1_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: who1
+  audit.who1.adjudicate:
+    type: model
+    needs:
+    - audit.who1.disputes
+    role: reasoning_adjudication
+    prompt: prompts/default_reviewed_v2/dispute_adjudicate.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_who1_packet
+      disputes:
+        from: artifacts.v2_who1_disputes
+    when:
+      has_items:
+        artifact: v2_who1_disputes
+    output:
+      artifact: v2_who1_adjudication
+      format: yaml
+      schema: schemas/default_reviewed_v2/dispute_adjudication.json
+    checks:
+    - rule: rows_match_source_keys
+      path: adjudications
+      source: v2_who1_disputes
+      fields:
+      - proposition_id
+      - premise
+    execution:
+      provider_handler: generic_model
+      self_handler: generic_model
+      self_mode: handoff
+      params:
+        canonicalizer: adjudication_nulls
+  audit.who1.gate:
+    type: transform
+    needs:
+    - audit.who1.adjudicate
     transform: v2_correction_gate
     output:
       artifact: v2_who1_gate
@@ -129,7 +173,6 @@ steps:
         path: status
         pass_values:
         - pass
-        - audit_failed
       on_pass:
         continue: true
       on_fail:
@@ -278,17 +321,63 @@ steps:
     output:
       artifact: v2_who2_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
     when:
       predicate: who2_required
-  audit.who2.gate:
+  audit.who2.disputes:
     type: transform
     needs:
     - audit.who2.coherence
+    transform: v2_dispute_filter
+    output:
+      artifact: v2_who2_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: who2
+    when:
+      predicate: who2_required
+  audit.who2.adjudicate:
+    type: model
+    needs:
+    - audit.who2.disputes
+    role: reasoning_adjudication
+    prompt: prompts/default_reviewed_v2/dispute_adjudicate.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_who2_packet
+      disputes:
+        from: artifacts.v2_who2_disputes
+    when:
+      has_items:
+        artifact: v2_who2_disputes
+    output:
+      artifact: v2_who2_adjudication
+      format: yaml
+      schema: schemas/default_reviewed_v2/dispute_adjudication.json
+    checks:
+    - rule: rows_match_source_keys
+      path: adjudications
+      source: v2_who2_disputes
+      fields:
+      - proposition_id
+      - premise
+    execution:
+      provider_handler: generic_model
+      self_handler: generic_model
+      self_mode: handoff
+      params:
+        canonicalizer: adjudication_nulls
+  audit.who2.gate:
+    type: transform
+    needs:
+    - audit.who2.adjudicate
     transform: v2_correction_gate
     output:
       artifact: v2_who2_gate
@@ -305,7 +394,6 @@ steps:
         path: status
         pass_values:
         - pass
-        - audit_failed
       on_pass:
         continue: true
       on_fail:
@@ -365,15 +453,59 @@ steps:
     output:
       artifact: v2_icc_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  audit.icc.gate:
+  audit.icc.disputes:
     type: transform
     needs:
     - audit.icc.coherence
+    transform: v2_dispute_filter
+    output:
+      artifact: v2_icc_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: icc
+  audit.icc.adjudicate:
+    type: model
+    needs:
+    - audit.icc.disputes
+    role: reasoning_adjudication
+    prompt: prompts/default_reviewed_v2/dispute_adjudicate.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_icc_packet
+      disputes:
+        from: artifacts.v2_icc_disputes
+    when:
+      has_items:
+        artifact: v2_icc_disputes
+    output:
+      artifact: v2_icc_adjudication
+      format: yaml
+      schema: schemas/default_reviewed_v2/dispute_adjudication.json
+    checks:
+    - rule: rows_match_source_keys
+      path: adjudications
+      source: v2_icc_disputes
+      fields:
+      - proposition_id
+      - premise
+    execution:
+      provider_handler: generic_model
+      self_handler: generic_model
+      self_mode: handoff
+      params:
+        canonicalizer: adjudication_nulls
+  audit.icc.gate:
+    type: transform
+    needs:
+    - audit.icc.adjudicate
     transform: v2_correction_gate
     output:
       artifact: v2_icc_gate
@@ -390,7 +522,6 @@ steps:
         path: status
         pass_values:
         - pass
-        - audit_failed
       on_pass:
         continue: true
       on_fail:
@@ -489,15 +620,59 @@ steps:
     output:
       artifact: v2_prognosis_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  audit.prognosis.gate:
+  audit.prognosis.disputes:
     type: transform
     needs:
     - audit.prognosis.coherence
+    transform: v2_dispute_filter
+    output:
+      artifact: v2_prognosis_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: prognosis
+  audit.prognosis.adjudicate:
+    type: model
+    needs:
+    - audit.prognosis.disputes
+    role: reasoning_adjudication
+    prompt: prompts/default_reviewed_v2/dispute_adjudicate.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_prognosis_packet
+      disputes:
+        from: artifacts.v2_prognosis_disputes
+    when:
+      has_items:
+        artifact: v2_prognosis_disputes
+    output:
+      artifact: v2_prognosis_adjudication
+      format: yaml
+      schema: schemas/default_reviewed_v2/dispute_adjudication.json
+    checks:
+    - rule: rows_match_source_keys
+      path: adjudications
+      source: v2_prognosis_disputes
+      fields:
+      - proposition_id
+      - premise
+    execution:
+      provider_handler: generic_model
+      self_handler: generic_model
+      self_mode: handoff
+      params:
+        canonicalizer: adjudication_nulls
+  audit.prognosis.gate:
+    type: transform
+    needs:
+    - audit.prognosis.adjudicate
     transform: v2_correction_gate
     output:
       artifact: v2_prognosis_gate
@@ -514,7 +689,6 @@ steps:
         path: status
         pass_values:
         - pass
-        - audit_failed
       on_pass:
         continue: true
       on_fail:
@@ -578,15 +752,59 @@ steps:
     output:
       artifact: v2_treatment_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  audit.treatment.gate:
+  audit.treatment.disputes:
     type: transform
     needs:
     - audit.treatment.coherence
+    transform: v2_dispute_filter
+    output:
+      artifact: v2_treatment_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: treatment
+  audit.treatment.adjudicate:
+    type: model
+    needs:
+    - audit.treatment.disputes
+    role: reasoning_adjudication
+    prompt: prompts/default_reviewed_v2/dispute_adjudicate.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_treatment_packet
+      disputes:
+        from: artifacts.v2_treatment_disputes
+    when:
+      has_items:
+        artifact: v2_treatment_disputes
+    output:
+      artifact: v2_treatment_adjudication
+      format: yaml
+      schema: schemas/default_reviewed_v2/dispute_adjudication.json
+    checks:
+    - rule: rows_match_source_keys
+      path: adjudications
+      source: v2_treatment_disputes
+      fields:
+      - proposition_id
+      - premise
+    execution:
+      provider_handler: generic_model
+      self_handler: generic_model
+      self_mode: handoff
+      params:
+        canonicalizer: adjudication_nulls
+  audit.treatment.gate:
+    type: transform
+    needs:
+    - audit.treatment.adjudicate
     transform: v2_correction_gate
     output:
       artifact: v2_treatment_gate
@@ -603,7 +821,6 @@ steps:
         path: status
         pass_values:
         - pass
-        - audit_failed
       on_pass:
         continue: true
       on_fail:
@@ -667,15 +884,59 @@ steps:
     output:
       artifact: v2_biomarker_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  audit.biomarker.gate:
+  audit.biomarker.disputes:
     type: transform
     needs:
     - audit.biomarker.coherence
+    transform: v2_dispute_filter
+    output:
+      artifact: v2_biomarker_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: biomarker
+  audit.biomarker.adjudicate:
+    type: model
+    needs:
+    - audit.biomarker.disputes
+    role: reasoning_adjudication
+    prompt: prompts/default_reviewed_v2/dispute_adjudicate.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_biomarker_packet
+      disputes:
+        from: artifacts.v2_biomarker_disputes
+    when:
+      has_items:
+        artifact: v2_biomarker_disputes
+    output:
+      artifact: v2_biomarker_adjudication
+      format: yaml
+      schema: schemas/default_reviewed_v2/dispute_adjudication.json
+    checks:
+    - rule: rows_match_source_keys
+      path: adjudications
+      source: v2_biomarker_disputes
+      fields:
+      - proposition_id
+      - premise
+    execution:
+      provider_handler: generic_model
+      self_handler: generic_model
+      self_mode: handoff
+      params:
+        canonicalizer: adjudication_nulls
+  audit.biomarker.gate:
+    type: transform
+    needs:
+    - audit.biomarker.adjudicate
     transform: v2_correction_gate
     output:
       artifact: v2_biomarker_gate
@@ -692,7 +953,6 @@ steps:
         path: status
         pass_values:
         - pass
-        - audit_failed
       on_pass:
         continue: true
       on_fail:
@@ -756,15 +1016,59 @@ steps:
     output:
       artifact: v2_germline_coherence
       format: yaml
-      schema: schemas/default_reviewed_v2/owner_coherence.json
     execution:
       provider_handler: reasoning_model
       self_handler: reasoning_model
       self_mode: handoff
-  audit.germline.gate:
+  audit.germline.disputes:
     type: transform
     needs:
     - audit.germline.coherence
+    transform: v2_dispute_filter
+    output:
+      artifact: v2_germline_disputes
+      format: yaml
+    execution:
+      provider_handler: generic_transform
+      self_handler: generic_transform
+      self_mode: deterministic
+      params:
+        owner: germline
+  audit.germline.adjudicate:
+    type: model
+    needs:
+    - audit.germline.disputes
+    role: reasoning_adjudication
+    prompt: prompts/default_reviewed_v2/dispute_adjudicate.md
+    inputs:
+      coherence_packet:
+        from: artifacts.v2_germline_packet
+      disputes:
+        from: artifacts.v2_germline_disputes
+    when:
+      has_items:
+        artifact: v2_germline_disputes
+    output:
+      artifact: v2_germline_adjudication
+      format: yaml
+      schema: schemas/default_reviewed_v2/dispute_adjudication.json
+    checks:
+    - rule: rows_match_source_keys
+      path: adjudications
+      source: v2_germline_disputes
+      fields:
+      - proposition_id
+      - premise
+    execution:
+      provider_handler: generic_model
+      self_handler: generic_model
+      self_mode: handoff
+      params:
+        canonicalizer: adjudication_nulls
+  audit.germline.gate:
+    type: transform
+    needs:
+    - audit.germline.adjudicate
     transform: v2_correction_gate
     output:
       artifact: v2_germline_gate
@@ -781,7 +1085,6 @@ steps:
         path: status
         pass_values:
         - pass
-        - audit_failed
       on_pass:
         continue: true
       on_fail:
@@ -966,6 +1269,7 @@ presentation:
     preservation_check: Checks that report synthesis preserved the approved clinical content.
     marking: Evaluates completed validation reports; it does not generate clinical conclusions.
     reasoning_audit: Checks whether each stated conclusion follows from the reasons the clinical owner gave.
+    reasoning_adjudication: Independently decides whether an addressable audit criticism warrants owner reassessment.
     syntax_repair: Repairs malformed structured model output without changing clinical meaning.
   progress_phases:
   - id: preparation
@@ -979,6 +1283,8 @@ presentation:
     - diagnosis.who1
     - audit.who1.packet
     - audit.who1.coherence
+    - audit.who1.disputes
+    - audit.who1.adjudicate
     - audit.who1.gate
     - diagnosis.who1.routing_change
     - diagnosis.who1.evidence.assignment
@@ -988,10 +1294,14 @@ presentation:
     - diagnosis.who2
     - audit.who2.packet
     - audit.who2.coherence
+    - audit.who2.disputes
+    - audit.who2.adjudicate
     - audit.who2.gate
     - diagnosis.icc
     - audit.icc.packet
     - audit.icc.coherence
+    - audit.icc.disputes
+    - audit.icc.adjudicate
     - audit.icc.gate
     - audit.diagnosis.terminal
     - diagnosis.finalize
@@ -1002,6 +1312,8 @@ presentation:
     - prognosis
     - audit.prognosis.packet
     - audit.prognosis.coherence
+    - audit.prognosis.disputes
+    - audit.prognosis.adjudicate
     - audit.prognosis.gate
   - id: treatment
     label: Treatment
@@ -1009,6 +1321,8 @@ presentation:
     - treatment
     - audit.treatment.packet
     - audit.treatment.coherence
+    - audit.treatment.disputes
+    - audit.treatment.adjudicate
     - audit.treatment.gate
   - id: biomarker
     label: Biomarker
@@ -1016,6 +1330,8 @@ presentation:
     - biomarker
     - audit.biomarker.packet
     - audit.biomarker.coherence
+    - audit.biomarker.disputes
+    - audit.biomarker.adjudicate
     - audit.biomarker.gate
   - id: germline
     label: Germline
@@ -1023,6 +1339,8 @@ presentation:
     - germline
     - audit.germline.packet
     - audit.germline.coherence
+    - audit.germline.disputes
+    - audit.germline.adjudicate
     - audit.germline.gate
   - id: evidence
     label: Evidence

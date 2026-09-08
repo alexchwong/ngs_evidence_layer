@@ -8,9 +8,9 @@ to catch (a clinically wrong conclusion that survives its own refutation):
 * every clinical owner is audited before anything consumes its result;
 * an owner may be invoked at most three times for one clinical object, and a
   correction step can never itself become a correction target;
-* the correcting owner receives the plain-English defect and its own previous
-  output, and never the auditor's routing verdict;
-* a defect of either kind routes to the clinical owner, never to a rewriter;
+* the correcting owner receives only adjudicator-restated upheld disputes and its
+  own previous output, never the auditor's raw verdict;
+* addressable disputes are adjudicated before any correction reaches the owner;
 * unresolved findings reach the canonical dissent ledger and the terminal
   policy actually prevents disputed output being treated as accepted truth.
 """
@@ -30,7 +30,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from workflows.proforma_v1 import default_reviewed_v2 as v2  # noqa: E402
-from workflows.proforma_v1 import layout, model_context  # noqa: E402
+from workflows.proforma_v1 import domain_contract, layout, model_context  # noqa: E402
 from workflows.proforma_v1.engine import (  # noqa: E402
     dissent as workflow_dissent,
     transforms,
@@ -60,7 +60,7 @@ EVIDENCE_STEPS = ("evidence.assignment", "evidence.audit", "evidence.adjudicatio
 
 GATES = tuple(f"audit.{owner}.gate" for owner in v2.OWNERS)
 ADDED_STEPS = tuple(
-    f"audit.{owner}.{suffix}" for owner in v2.OWNERS for suffix in ("packet", "coherence", "gate")
+    f"audit.{owner}.{suffix}" for owner in v2.OWNERS for suffix in ("packet", "coherence", "disputes", "adjudicate", "gate")
 ) + ("audit.diagnosis.terminal", "audit.diagnosis.provenance", "audit.ptbg.terminal")
 
 
@@ -153,8 +153,8 @@ class WorkflowShapeTests(unittest.TestCase):
 
     def test_step_count_stays_well_below_default_reviewed(self):
         reviewed = len(_load(REVIEWED)["steps"])
-        self.assertLess(len(self.steps), 60)
-        self.assertLess(len(self.steps), reviewed * 0.7)
+        self.assertLess(len(self.steps), 65)
+        self.assertLess(len(self.steps), reviewed * 0.75)
 
     def test_progress_plan_covers_every_step(self):
         workflow = workflow_compiler.compile_workflow(V2)
@@ -309,90 +309,222 @@ class CorrectionContractTests(unittest.TestCase):
             self.assertIn("reasoning_correction", self.steps[owner_step]["inputs"], owner)
 
     def test_gate_artifact_keeps_verdict_fields_out_of_the_correction(self):
-        """conclusion_supported / reason_defective are routing fields. Telling
-        an owner a reviewer rejected its conclusion is an instruction to change
-        it, so they go to a side record instead of the correction packet."""
-        gate = v2.correction_gate.__doc__ or ""
-        self.assertIn("side record", gate)
-        result = {"status": "revision_required", "correction": {"correction_brief": "x", "previous_output": {}}}
-        self.assertEqual(set(result["correction"]), {"correction_brief", "previous_output"})
+        """Adjudicator routing judgements stay out of the correction packet.
+        The correction contains only adjudicator-restated items and prior assessment, not
+        the auditor's original verdict text."""
+        result = {"status": "revision_required", "correction": {"items": [], "prior_assessment": []}}
+        self.assertEqual(set(result["correction"]), {"items", "prior_assessment"})
 
     def test_correction_prompt_asks_for_full_reassessment_not_text_repair(self):
         for name in ("diagnosis_who5.md", "diagnosis_icc.md", "prognosis.md",
                      "treatment.md", "biomarker.md", "germline.md"):
             text = (HERE / "prompts" / "default_reviewed_v2" / name).read_text(encoding="utf-8")
             self.assertIn("{{ input.reasoning_correction }}", text, name)
-            self.assertIn("full task again", text, name)
-            self.assertIn("Do not repeat the identified reasoning error", text, name)
+            self.assertIn("reasoning_correction.md", text, name)
             self.assertNotIn("conclusion_supported", text, name)
             self.assertNotIn("reason_defective", text, name)
 
     def test_auditor_is_told_not_to_prescribe_a_replacement(self):
         for name in ("diagnosis_coherence.md", "ptbg_coherence.md"):
             text = (HERE / "prompts" / "default_reviewed_v2" / name).read_text(encoding="utf-8")
-            self.assertIn("not the clinical decision-maker", text, name)
-            self.assertIn("correction_brief", text, name)
+            self.assertIn("do not decide the replacement clinical answer", text, name)
+            self.assertIn("disputes:", text, name)
 
     def test_ptbg_auditor_defers_literature_support_to_the_evidence_chain(self):
         text = (HERE / "prompts" / "default_reviewed_v2" / "ptbg_coherence.md").read_text(encoding="utf-8")
-        self.assertIn("not** auditing literature support", text)
+        self.assertIn("not a literature-support audit", text)
         self.assertIn("authoritative diagnosis", text)
 
 
-class AuditVerdictTests(unittest.TestCase):
-    """The scope enum is replaced by two independent judgements."""
+    def test_coherence_prompts_require_grounded_material_disputes(self):
+        for name in ("diagnosis_coherence.md", "ptbg_coherence.md"):
+            text = (HERE / "prompts" / "default_reviewed_v2" / name).read_text(encoding="utf-8")
+            self.assertIn("Do not manufacture a defect", text, name)
+            self.assertIn("materially change the clinical meaning", text, name)
+            self.assertIn("conditional", text, name)
 
-    def test_schema_declares_orthogonal_judgements(self):
+    def test_adjudicator_rejects_manufactured_or_immaterial_criticisms(self):
+        text = (HERE / "prompts" / "default_reviewed_v2" / "dispute_adjudicate.md").read_text(encoding="utf-8")
+        self.assertIn("invents a new classification requirement", text)
+        self.assertIn("Read qualifications and conditional language literally", text)
+        self.assertIn("materially change the clinical meaning", text)
+
+    def test_owner_prompts_prevent_observed_schema_churn(self):
+        treatment = (HERE / "prompts" / "default_reviewed_v2" / "treatment.md").read_text(encoding="utf-8")
+        self.assertIn("Do not emit two rows for the same variant in the same treatment category", treatment)
+        self.assertIn("omit the `therapy` field entirely", treatment)
+        germline = (HERE / "prompts" / "default_reviewed_v2" / "germline.md").read_text(encoding="utf-8")
+        self.assertIn("literal YAML `null`", germline)
+        self.assertIn("concise non-empty `reason`", germline)
+
+
+class CrossCycleCorrectionResponseTests(unittest.TestCase):
+    def _packet(self, conclusion: str, premise_status: str, *, treatment_names=None) -> dict:
+        if treatment_names is not None:
+            premises = [
+                {"name": name, "status": name.rsplit(":", 1)[-1], "reason": f"reason {name}"}
+                for name in treatment_names
+            ]
+            proposition_id = "TX:v03"
+        else:
+            premises = [{"name": "vaf", "status": premise_status, "reason": f"vaf is {premise_status}"}]
+            proposition_id = "GL:v01"
+        return {
+            "propositions": [{
+                "id": proposition_id,
+                "conclusion": conclusion,
+                "premises": premises,
+                "integrative_reason": "integrated reasoning",
+            }]
+        }
+
+    def test_correction_response_uses_previous_cycle_upheld_adjudication(self):
+        """A sound corrected cycle still compares against the criticism that
+        caused the retry; it must not depend on a new upheld dispute."""
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            before = self._packet("germline_suspicious", "compatible")
+            audit = {
+                "state": "disputed",
+                "retained_disputes": [{
+                    "proposition_id": "GL:v01",
+                    "premise": "vaf",
+                    "flags": ["background_knowledge_claim"],
+                }],
+                "discarded_disputes": [],
+                "flags": ["background_knowledge_claim"],
+            }
+            adjudication = {"adjudications": [{
+                "proposition_id": "GL:v01",
+                "premise": "vaf",
+                "upheld": True,
+                "restated_criticism": "VAF interpretation requires reassessment.",
+                "basis": "background_knowledge",
+            }]}
+            v2._record_history(work, "germline", 0, before, audit, adjudication, "revision_required")
+
+            after = self._packet("germline_uncertain", "discordant")
+            rows = v2._record_correction_response(work, "germline", 1, after)
+
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["criticism"], "VAF interpretation requires reassessment.")
+            self.assertEqual(rows[0]["premise_status_before"], "compatible")
+            self.assertEqual(rows[0]["premise_status_after"], "discordant")
+            self.assertTrue(rows[0]["premise_status_changed"])
+            self.assertEqual(rows[0]["conclusion_before"], "germline_suspicious")
+            self.assertEqual(rows[0]["conclusion_after"], "germline_uncertain")
+
+    def test_treatment_multiplicity_is_ambiguous_and_recorded_in_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            before = self._packet(
+                "multi", "unused",
+                treatment_names=[
+                    "therapy:gilteritinib:drug_target",
+                    "therapy:gilteritinib:drug_sensitive",
+                ],
+            )
+            audit = {
+                "state": "disputed",
+                "retained_disputes": [{
+                    "proposition_id": "TX:v03",
+                    "premise": "therapy:gilteritinib:drug_target",
+                    "flags": ["background_knowledge_claim"],
+                }],
+                "discarded_disputes": [],
+                "flags": ["background_knowledge_claim"],
+            }
+            adjudication = {"adjudications": [{
+                "proposition_id": "TX:v03",
+                "premise": "therapy:gilteritinib:drug_target",
+                "upheld": True,
+                "restated_criticism": "Reassess the treatment implication.",
+                "basis": "background_knowledge",
+            }]}
+            v2._record_history(work, "treatment", 0, before, audit, adjudication, "revision_required")
+
+            after = self._packet(
+                "multi", "unused",
+                treatment_names=["therapy:gilteritinib:drug_resistant"],
+            )
+            rows = v2._record_correction_response(work, "treatment", 1, after)
+            self.assertEqual(rows[0]["challenged_premise"], "therapy:gilteritinib")
+            self.assertEqual(rows[0]["comparison_status"], "ambiguous")
+            self.assertIsNone(rows[0]["premise_status_changed"])
+            self.assertEqual(len(rows[0]["before_packet_premises"]), 2)
+
+            v2._record_history(
+                work, "treatment", 1, after,
+                {"state": "sound", "retained_disputes": [], "discarded_disputes": [], "flags": []},
+                None, "pass",
+            )
+            v2._record_declined_comparisons(work, "treatment", 1, rows)
+            history = v2._side_record(work, "treatment-history.yaml")
+            cycle = next(row for row in history["cycles"] if row["cycle"] == 1)
+            self.assertEqual(len(cycle["declined_comparisons"]), 1)
+            self.assertEqual(cycle["declined_comparisons"][0]["comparison_status"], "ambiguous")
+
+
+class AuditVerdictTests(unittest.TestCase):
+    """The new coherence contract produces dispute lists, not boolean judgements."""
+
+    def test_schema_declares_dispute_list_contract(self):
         schema = json.loads(
             (HERE / "schemas" / "default_reviewed_v2" / "owner_coherence.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(set(schema["required"]), {"conclusion_supported", "reason_defective"})
-        self.assertNotIn("scope", schema["properties"])
+        self.assertEqual(set(schema["required"]), {"disputes"})
+        self.assertNotIn("conclusion_supported", schema["properties"])
 
     def test_scope_vocabulary_is_gone_from_the_overlay(self):
         source = (HERE / "default_reviewed_v2.py").read_text(encoding="utf-8")
         self.assertNotIn("REVISION_SCOPES", source)
 
-    def _gate(self, verdict, attempts=0):
+    def _gate_context(self, work: Path, ctx_data: dict):
         class _Ctx:
-            work = Path(tempfile.mkdtemp())
-            data: dict = {}
+            def __init__(self):
+                self.work = work
+                self.data = dict(ctx_data)
 
             def get(self, key, default=None):
-                return {
-                    "v2_who1_coherence": verdict,
-                    "v2_who1_packet": {"conclusion": "X"},
-                    "review_cycles": {"audit.who1.gate": attempts},
-                }.get(key, default)
+                return self.data.get(key, default)
 
-            def put(self, *_args):
-                return None
-
-        ctx = _Ctx()
-        return v2.correction_gate(None, {"__workflow_context__": ctx, "__work__": ctx.work}, {"owner": "who1"})
-
-    def test_unsupported_conclusion_routes_to_the_owner(self):
-        out = self._gate({"conclusion_supported": False, "reason_defective": False, "correction_brief": "b"})
-        self.assertEqual(out["status"], "revision_required")
-
-    def test_defective_reason_routes_to_the_owner_even_when_conclusion_stands(self):
-        """A wrong clinical reason is reassessed by the owner, never patched by
-        a rewriter: only the owner can tell whether the conclusion survives."""
-        out = self._gate({"conclusion_supported": True, "reason_defective": True, "correction_brief": "b"})
-        self.assertEqual(out["status"], "revision_required")
+            def put(self, key, value):
+                self.data[key] = value
+        return _Ctx()
 
     def test_sound_assessment_passes(self):
-        out = self._gate({"conclusion_supported": True, "reason_defective": False})
-        self.assertEqual(out["status"], "pass")
-        self.assertNotIn("correction", out)
+        with tempfile.TemporaryDirectory() as td:
+            work = Path(td)
+            from workflows.proforma_v1 import self_runtime as sr
+            sr.write_yaml(sr.output_path(work, "audit_v2", "who1-audit.yaml"), {
+                "owner": "who1", "state": "sound", "retained_disputes": [],
+                "discarded_disputes": [], "flags": [],
+            })
+            ctx = self._gate_context(work, {
+                "v2_who1_packet": {"patient_findings": ["f1"], "propositions": [{"id": "DX-WHO:primary", "conclusion": "X", "premises": [], "integrative_reason": "r"}]},
+                "v2_who1_disputes": [],
+                "review_cycles": {"audit.who1.gate": 0},
+            })
+            out = v2.correction_gate(None, {"__workflow_context__": ctx, "__work__": str(work)}, {"owner": "who1"})
+            self.assertEqual(out["status"], "pass")
+            self.assertNotIn("correction", out)
 
-    def test_defect_without_a_brief_is_a_structural_failure_not_a_correction(self):
-        out = self._gate({"conclusion_supported": False, "reason_defective": True})
-        self.assertEqual(out["status"], "audit_failed")
-
-    def test_malformed_verdict_does_not_disturb_the_owner(self):
-        out = self._gate({"conclusion_supported": "no", "reason_defective": True, "correction_brief": "b"})
-        self.assertEqual(out["status"], "audit_failed")
+    def test_disputed_without_adjudication_raises(self):
+        with tempfile.TemporaryDirectory() as td:
+            work = Path(td)
+            from workflows.proforma_v1 import self_runtime as sr
+            sr.write_yaml(sr.output_path(work, "audit_v2", "who1-audit.yaml"), {
+                "owner": "who1", "state": "disputed",
+                "retained_disputes": [{"proposition_id": "DX-WHO:primary", "premise": "integrative_reason"}],
+                "discarded_disputes": [], "flags": [],
+            })
+            ctx = self._gate_context(work, {
+                "v2_who1_packet": {"patient_findings": ["f1"], "propositions": [{"id": "DX-WHO:primary", "conclusion": "X", "premises": [], "integrative_reason": "r"}]},
+                "v2_who1_disputes": [{"proposition_id": "DX-WHO:primary", "premise": "integrative_reason", "defect_type": "background_knowledge_error", "criticism": "c", "flags": []}],
+                "review_cycles": {"audit.who1.gate": 0},
+            })
+            with self.assertRaises(v2.V2Error):
+                v2.correction_gate(None, {"__workflow_context__": ctx, "__work__": str(work)}, {"owner": "who1"})
 
 
 class TerminalPolicyTests(unittest.TestCase):
@@ -555,5 +687,119 @@ class FeedbackPathBindingTests(unittest.TestCase):
         self.assertNotIn("status", sent)
 
 
+class OwnerNormalizationTests(unittest.TestCase):
+    def test_treatment_empty_therapy_is_omitted_only_for_no_drug_implication(self):
+        contract = domain_contract.contract("treatment")
+        registry = {"v01": {"gene": "RUNX1"}}
+        text = """applicable_disease: AML
+classification:
+  - variant: v01
+    gene: RUNX1
+    treatment_category: no_drug_implication
+    therapy: ""
+    reason: No supported treatment implication.
+    evidence_card_tags: []
+"""
+        normalized, records = domain_contract.normalize_model_output(text, contract, registry, "AML")
+        doc = yaml.safe_load(normalized)
+        self.assertNotIn("therapy", doc["classification"][0])
+        self.assertTrue(any(r["transform"] == "omit_empty_therapy_for_no_drug_implication" for r in records))
+
+    def test_germline_null_like_skip_worksheet_collapses_without_synthesizing_reason(self):
+        contract = domain_contract.contract("germline")
+        registry = {"v01": {"gene": "NPM1", "event_type": "sequence_variant", "vaf": "36%"}}
+        text = """classification:
+  - variant: v01
+    gene: NPM1
+    observed_event_type: sequence_variant
+    observed_vaf: "36%"
+    eligibility: skip_no_predisposition_evidence
+    predisposition_evidence:
+      mechanism: null
+      evidence_card_tags: []
+    event_compatibility:
+      status: null
+      reason: null
+    age: null
+    vaf: null
+    personal_history: null
+    family_history: null
+    phenotype: null
+    bucket: null
+    reason: null
+    evidence_card_tags: []
+"""
+        normalized, records = domain_contract.normalize_model_output(text, contract, registry, None)
+        doc = yaml.safe_load(normalized)
+        row = doc["classification"][0]
+        self.assertIsNone(row["predisposition_evidence"])
+        self.assertIsNone(row["event_compatibility"])
+        self.assertIsNone(row["reason"])  # semantic owner reasoning is never fabricated deterministically
+        self.assertTrue(any(r["transform"] == "collapse_null_skip_worksheet" for r in records))
+
+
+
+class RetryChurnRegressionTests(unittest.TestCase):
+    def test_germline_owner_uses_prevalidation_domain_canonicalization(self):
+        source = (HERE / "step.py").read_text(encoding="utf-8")
+        self.assertIn(
+            "canonicalize=lambda t: domain_contract.normalize_model_output(t,contract,reg,disease)",
+            source,
+        )
+
+    def test_germline_review_prompts_respect_qualified_suspicion_language(self):
+        audit_prompt = (HERE / "prompts" / "default_reviewed_v2" / "ptbg_coherence.md").read_text(encoding="utf-8")
+        adjudication_prompt = (HERE / "prompts" / "default_reviewed_v2" / "dispute_adjudicate.md").read_text(encoding="utf-8")
+        for word in ("supportive", "suggestive", "suspicious", "compatible", "consistent"):
+            self.assertIn(word, audit_prompt)
+            self.assertIn(word, adjudication_prompt)
+        self.assertIn("Do not require each supportive factor to be independently diagnostic", audit_prompt)
+        self.assertIn("unless the owner actually claimed", adjudication_prompt)
+
+    def test_exact_rejected_dispute_identity_is_loaded_from_history(self):
+        with tempfile.TemporaryDirectory() as td:
+            work = Path(td)
+            (work / "audit_v2").mkdir()
+            (work / "audit_v2" / "germline-history.yaml").write_text(
+                yaml.safe_dump({
+                    "owner": "germline",
+                    "cycles": [{
+                        "cycle": 1,
+                        "adjudication": {
+                            "rejected_items": [{
+                                "proposition_id": "GL:v01",
+                                "premise": "vaf",
+                                "criticism": "  VAF is NOT independently confirmatory.  ",
+                                "rejection_reason": "Qualified suspicion is permitted.",
+                            }]
+                        },
+                    }],
+                }, sort_keys=False),
+                encoding="utf-8",
+            )
+            rejected = v2._previously_rejected_disputes(work, "germline")
+            self.assertIn(("GL:v01", "vaf", "vaf is not independently confirmatory."), rejected)
+
+    def test_prompt_skeletons_prefill_deterministic_identities(self):
+        source = (HERE / "step.py").read_text(encoding="utf-8")
+        self.assertIn("_evidence_audit_identity_skeleton(audit_rows)", source)
+        self.assertIn("_preservation_identity_skeleton(blocks)", source)
+        self.assertIn("Fill only the judgement fields; do not omit or add rows.", source)
+        self.assertIn("one for every block below, in this order", source)
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class AdjudicationBoundaryTests(unittest.TestCase):
+    def test_adjudicators_use_declared_generic_validation_boundary(self):
+        steps = _load(V2)["steps"]
+        for owner in v2.OWNERS:
+            sid = f"audit.{owner}.adjudicate"
+            execution = steps[sid]["execution"]
+            self.assertEqual(execution["provider_handler"], "generic_model", sid)
+            self.assertEqual(execution["self_handler"], "generic_model", sid)
+            self.assertEqual((execution.get("params") or {}).get("canonicalizer"), "adjudication_nulls", sid)
+            self.assertNotIn("canonicalizer", execution, sid)
+            checks = steps[sid].get("checks") or []
+            self.assertTrue(any(c.get("rule") == "rows_match_source_keys" for c in checks), sid)

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "default_reviewed_v2 dispute adjudication",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adjudications"],
+  "properties": {
+    "adjudications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proposition_id",
+          "premise",
+          "upheld",
+          "basis",
+          "restated_criticism",
+          "rejection_reason"
+        ],
+        "properties": {
+          "proposition_id": {"type": "string", "minLength": 1},
+          "premise": {"type": "string", "minLength": 1},
+          "upheld": {"type": "boolean"},
+          "basis": {
+            "type": ["string", "null"],
+            "enum": ["supplied_finding", "background_knowledge", "internal", null]
+          },
+          "restated_criticism": {"type": ["string", "null"], "minLength": 1},
+          "rejection_reason": {"type": ["string", "null"], "minLength": 1}
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"upheld": {"const": true}},
+              "required": ["upheld"]
+            },
+            "then": {
+              "properties": {
+                "basis": {
+                  "type": "string",
+                  "enum": ["supplied_finding", "background_knowledge", "internal"]
+                },
+                "restated_criticism": {"type": "string", "minLength": 1},
+                "rejection_reason": {"type": "null"}
+              }
+            },
+            "else": {
+              "properties": {
+                "basis": {"type": "null"},
+                "restated_criticism": {"type": "null"},
+                "rejection_reason": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

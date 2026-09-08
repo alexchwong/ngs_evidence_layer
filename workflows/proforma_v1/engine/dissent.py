@@ -22,7 +22,7 @@ import yaml
 from workflows.proforma_v1 import layout
 
 SCHEMA_VERSION = 2
-STATUSES = ("open", "resolved", "retained_with_dissent")
+STATUSES = ("open", "resolved", "retained_with_dissent", "retained_without_review")
 
 _RENDERER: Callable[[Path], Any] | None = None
 

@@ -14,7 +14,7 @@ from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import load_workflow_metadata, read_workflow_state, write_workflow_state
 from validation.scripts.package_marking import package_marking_bundle
 from validation.scripts.bundled_cases import is_validation_mode, write_demo_marking_criteria_after_report
-from workflows.proforma_v1 import card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, model_observability, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
+from workflows.proforma_v1 import canonicalization, card_identity, domain_contract, evidence_resolution, layout, model_client, model_context, model_observability, pipeline_registry, prognosis_report, prompt_loader, rendering, runtime, schema_validation, stage_checks, stage_spec
 from workflows.proforma_v1.engine.context import WorkflowContext
 from workflows.proforma_v1.engine import schema_validation as generic_schema_validation
 from workflows.proforma_v1.engine import bindings as workflow_bindings, prompt_renderer as workflow_prompt_renderer, artifacts as workflow_artifacts
@@ -376,6 +376,11 @@ def _serialization_feedback(exc):
 
 def _prepare_structured(work,raw,fmt,call_id,syntax_binding,*,syntax_attempts,call_root=None,parent_attempt=None):
     if not fmt: return model_client.strip_code_fence(raw)
+    if str(fmt).lower() in {'yaml','yml'}:
+        repaired, records = canonicalization.repair_unquoted_yaml_colon(raw)
+        if records:
+            _log_transforms(work,[dict(record,stage=call_id) for record in records])
+            raw = repaired
     repair_callback=_syntax_callback(work,syntax_binding,call_id,syntax_attempts,call_root=call_root,parent_attempt=parent_attempt)
     try:
         result=syntax_repair.repair_structured_output(
@@ -535,7 +540,7 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
     )
 
 
-def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',mode='standard',max_attempts=None,max_rewrites=None,feedback=None,system_prompt=None):
+def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',mode='standard',max_attempts=None,max_rewrites=None,feedback=None,system_prompt=None,canonicalize=None):
     """Run one validated model task through the shared runner."""
     binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair')
     root=layout.model_step_dir(work,call_id,existing=False)
@@ -543,7 +548,12 @@ def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt
     if feedback: messages.append({'role':'user','content':feedback})
     def prepare(raw):
         text=_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=_retry('syntax_repair_attempts'),call_root=root,parent_attempt=max(1,len(list((root/'attempts').glob('[0-9][0-9]'))) if (root/'attempts').is_dir() else 1)) if fmt else model_client.strip_code_fence(raw)
-        return _sanitize_proforma_text(work,call_id,text) if mode=='proforma' and fmt=='yaml' else text
+        text=_sanitize_proforma_text(work,call_id,text) if mode=='proforma' and fmt=='yaml' else text
+        if canonicalize is not None:
+            text,records=canonicalize(text)
+            if records:
+                _log_transforms(work,[dict(record,stage=call_id) for record in records])
+        return text
     request=validated_model_task.TaskRequest(
         task_id=call_id,
         messages=messages,
@@ -605,7 +615,7 @@ def _with_declared_validation(call_id, validator):
         return message
     return combined
 
-def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',max_attempts=None,feedback=None,system_prompt=None,proforma=False,max_rewrites=None):
+def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',max_attempts=None,feedback=None,system_prompt=None,proforma=False,max_rewrites=None,canonicalize=None):
     """Run one validated model task.
 
     Retry, repair, budget and suspension behaviour now live in the shared runner
@@ -615,7 +625,7 @@ def _model_call(work,*,call_id,role,prompt,output,validator,profile=None,fmt='ya
     return _run_model_task(
         work,call_id=call_id,role=role,prompt=prompt,output=output,validator=_with_declared_validation(call_id,validator),
         profile=profile,fmt=fmt,mode='proforma' if proforma else 'standard',
-        max_attempts=max_attempts,max_rewrites=max_rewrites,feedback=feedback,system_prompt=system_prompt,
+        max_attempts=max_attempts,max_rewrites=max_rewrites,feedback=feedback,system_prompt=system_prompt,canonicalize=canonicalize,
     )
 
 
@@ -1005,7 +1015,7 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
         out=_artifact(work,f'diagnosis_who5_pass_{idx}','who5.yaml',new=True)
         prompt=_prompt('diagnosis_who5')+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_diagnostic_cards(who_cards,tag_by_id,'who5')
         model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
-        _model_call(work,call_id=f'diagnosis-who5-pass-{idx:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
+        _model_call(work,call_id=f'diagnosis-who5-pass-{idx:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True,canonicalize=lambda t:canonicalization.canonicalize_diagnosis(t,valid_variants=set(reg)))
         who=yaml.safe_load(_read(out)); cmcs=runtime.derive_cmcs(who); authoritative=idx
         if cmcs==prior: break
         for cmc in cmcs:
@@ -1018,7 +1028,7 @@ def stage_diagnosis(work,case,reg,eligible,manifest,profile):
     icc_cards=_diagnostic_cards(eligible,genes,history,'icc'); icc_out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
     iprompt=_prompt('diagnosis_icc')+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(runtime.legacy_who_view(who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,icc_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(icc_cards,tag_by_id,'icc')
     model_context.assert_canonical(iprompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=iprompt,output=icc_out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
+    _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=iprompt,output=icc_out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True,canonicalize=lambda t:canonicalization.canonicalize_diagnosis(t,valid_variants=set(reg)))
     icc=yaml.safe_load(_read(icc_out))
 
     relationship='same' if runtime.normalize_dx(who['diagnosis'])==runtime.normalize_dx(icc['diagnosis']) else 'different'
@@ -1034,7 +1044,7 @@ def stage_diagnosis_who_pass(work,case,reg,eligible,manifest,profile,*,pass_numb
     out=_artifact(work,f'diagnosis_who5_pass_{pass_number}','who5.yaml',new=True)
     prompt=prompt_text+f'\n\n# Starting morphologic diagnosis\n{case.get("provisional_disease")}\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg,fields=model_context.DIAGNOSIS_REGISTRY_FIELDS)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,who_cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Allowed schema diseases\n'+yaml.safe_dump(sorted(allowed))+'\n# WHO5 authority cards\n'+_render_diagnostic_cards(who_cards,tag_by_id,'who5')
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id=f'diagnosis-who5-pass-{pass_number:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True)
+    _model_call(work,call_id=f'diagnosis-who5-pass-{pass_number:02d}',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_who5_diagnosis(t,allowed_diseases=allowed,valid_variants=set(reg)),profile=profile,proforma=True,canonicalize=lambda t:canonicalization.canonicalize_diagnosis(t,valid_variants=set(reg)))
     who=yaml.safe_load(_read(out)); return who,who_cards
 
 
@@ -1043,7 +1053,7 @@ def stage_diagnosis_icc_pass(work,case,reg,eligible,manifest,profile,*,history,w
     cards=_diagnostic_cards(eligible,genes,history,'icc'); out=_existing_or_new(work,'diagnosis_icc','icc.yaml')
     prompt=prompt_text+'\n\n# Starting morphologic diagnosis\n'+str(case.get('provisional_disease'))+'\n\n# Variant registry\n```yaml\n'+model_context.registry_context(reg,fields=model_context.DIAGNOSIS_REGISTRY_FIELDS)+'```\n\n# Structured case\n```json\n'+model_context.case_context(case,fields=model_context.DIAGNOSIS_CASE_FIELDS)+'\n```\n\n# WHO5 result — context only\n```yaml\n'+yaml.safe_dump(runtime.legacy_who_view(who),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Deterministic finite-set context\n```yaml\n'+yaml.safe_dump(_finite_membership_context(reg,cards,tag_by_id),sort_keys=False,allow_unicode=True,width=110)+'```\n\n# ICC authority cards\n'+_render_diagnostic_cards(cards,tag_by_id,'icc')
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True)
+    _model_call(work,call_id='diagnosis-icc',role='diagnosis',prompt=prompt,output=out,validator=lambda t:schema_validation.validate_icc_diagnosis(t,valid_variants=set(reg)),profile=profile,proforma=True,canonicalize=lambda t:canonicalization.canonicalize_diagnosis(t,valid_variants=set(reg)))
     return yaml.safe_load(_read(out)),cards
 
 
@@ -1084,11 +1094,13 @@ def stage_domain(work,domain,case,reg,diagnosis,eligible,manifest,profile,*,prom
         +'\n\n'+domain_contract.skeleton(contract,sorted(reg),registry=reg,applicable_disease=disease))
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
     def validate_owner(text):
-        normalized,_records=domain_contract.normalize_model_output(text,contract,reg,disease)
         return domain_contract.validate(
-            normalized,contract,{"variants":sorted(valid),"registry":reg,"authoritative_disease":disease,"owner_card_tags":owner_card_tags},spec=stage_spec_override
+            text,contract,{"variants":sorted(valid),"registry":reg,"authoritative_disease":disease,"owner_card_tags":owner_card_tags},spec=stage_spec_override
         )
-    _model_call(work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=validate_owner,profile=profile,proforma=True)
+    _model_call(
+        work,call_id=domain,role='ptbg',prompt=prompt,output=out,validator=validate_owner,profile=profile,proforma=True,
+        canonicalize=lambda t: domain_contract.normalize_model_output(t,contract,reg,disease),
+    )
     normalized,identity_records=domain_contract.normalize_model_output(_read(out),contract,reg,disease)
     if identity_records:
         _log_transforms(work,[dict(record,stage=domain) for record in identity_records])
@@ -1302,7 +1314,7 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authorit
         validation_items=[{'evidence_id':x['evidence_id'],'candidate_card_tags':x['candidate_card_tags']} for x in public]
         _model_call(
             work,call_id=f'evidence-match-batch-{semantic_attempt:02d}',role='evidence_match',prompt=mprompt,output=mpath,
-            validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=profile,
+            validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=profile,canonicalize=lambda t,vi=validation_items:canonicalization.canonicalize_evidence_match(t,vi),
             max_attempts=_retry('evidence_match_model_attempts'),
         )
         matches=yaml.safe_load(_read(mpath))['matches']; mmap={m['evidence_id']:m for m in matches}
@@ -1330,10 +1342,11 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authorit
             selected_cards=[catalog[cid] for cid in selected_ids]
             aprompt=((audit_prompt if audit_prompt is not None else _prompt('evidence_audit'))+'\n\n# Selected reason/card sets\n```yaml\n'
                 +yaml.safe_dump({'items':audit_rows},sort_keys=False,allow_unicode=True,width=110)+'```\n'
-                +'\n# Selected card catalog\n'+_render_cards(selected_cards,tag_by_id)+'\n')
+                +'\n# Selected card catalog\n'+_render_cards(selected_cards,tag_by_id)+'\n\n'
+                +_evidence_audit_identity_skeleton(audit_rows))
             _model_call(
                 work,call_id=f'evidence-audit-batch-{semantic_attempt:02d}',role='evidence_audit',prompt=aprompt,output=apath,
-                validator=lambda t,ai=audit_items:schema_validation.validate_evidence_audit_batch(t,ai),profile=profile,
+                validator=lambda t,ai=audit_items:schema_validation.validate_evidence_audit_batch(t,ai),profile=profile,canonicalize=lambda t,ai=audit_items:canonicalization.canonicalize_evidence_audit(t,ai),
                 max_attempts=_retry('evidence_audit_model_attempts'),
             )
             audits=yaml.safe_load(_read(apath))['audits']
@@ -1390,6 +1403,42 @@ def stage_evidence(work,elements,cards_by_domain,reg,manifest,profile,*,authorit
     keep.sort(key=lambda el:order.get(el['schema_id'],len(order)))
     _write(_existing_or_new(work,'evidence_enriched','reportable-elements.yaml'),yaml.safe_dump({'elements':keep},sort_keys=False,allow_unicode=True,width=110))
     return keep
+
+def _evidence_audit_identity_skeleton(audit_rows):
+    """Render deterministic evidence/card identities; the model supplies only audit judgements."""
+    lines = [
+        "# Required evidence-audit output rows",
+        "Use these exact evidence/card identities. Fill only the judgement fields; do not omit or add rows.",
+        "```yaml",
+        "audits:",
+    ]
+    for item in audit_rows:
+        lines.append(f"  - evidence_id: {item['evidence_id']}")
+        lines.append("    card_audits:")
+        for tag in item.get("selected_card_tags") or []:
+            lines.append(f"      - card_tag: {json.dumps(tag, ensure_ascii=False)}")
+            lines.append("        card_is_element_of_reason: <true|false>")
+            lines.append("        risk: <none|warning>")
+            lines.append("        comments: <list of strings; [] when none>")
+    lines.append("```")
+    return "\n".join(lines) + "\n"
+
+
+def _preservation_identity_skeleton(blocks):
+    """Render deterministic block identities; the model supplies only preservation judgements."""
+    lines = [
+        "# Required preservation-audit output rows",
+        f"Return exactly {len(blocks)} audit row(s), one for every block below, in this order.",
+        "```yaml",
+        "audits:",
+    ]
+    for block in blocks:
+        lines.append(f"  - block_id: {json.dumps(block['block_id'], ensure_ascii=False)}")
+        lines.append("    preserved: <true|false>")
+        lines.append("    issue: <null|string; null when preserved is true>")
+    lines.append("```")
+    return "\n".join(lines) + "\n"
+
 
 def _genes(reg,variants):
     out=[]
@@ -1455,15 +1504,15 @@ def stage_report_write(work,blocks,case,reg,profile,*,prompt_text=None):
     path=_existing_or_new(work,'report_write','report-write.yaml')
     prompt=(prompt_text if prompt_text is not None else _prompt('report_write'))+'\n\n# Deterministic report blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Variant registry — naming context only\n```yaml\n'+model_context.registry_context(reg)+'```\n'
     model_context.assert_canonical(prompt,source_ids=model_context.source_ids(reg))
-    _model_call(work,call_id='report-write',role='report_write',prompt=prompt,output=path,validator=lambda t:schema_validation.validate_report_write(t,blocks),profile=profile,max_attempts=_retry('report_write_attempts'))
+    _model_call(work,call_id='report-write',role='report_write',prompt=prompt,output=path,validator=lambda t:schema_validation.validate_report_write(t,blocks),profile=profile,max_attempts=_retry('report_write_attempts'),canonicalize=lambda t:canonicalization.canonicalize_report_write(t,blocks))
     return yaml.safe_load(_read(path))['blocks']
 
 
 def stage_report_preservation(work,blocks,rendered,profile,*,prompt_text=None):
     apath=_existing_or_new(work,'report_write','report-preservation.yaml')
-    aprompt=(prompt_text if prompt_text is not None else _prompt('report_preservation'))+'\n\n# Deterministic source blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Rendered blocks\n```yaml\n'+yaml.safe_dump({'blocks':rendered},sort_keys=False,allow_unicode=True,width=110)+'```\n'
+    aprompt=(prompt_text if prompt_text is not None else _prompt('report_preservation'))+'\n\n# Deterministic source blocks\n```yaml\n'+yaml.safe_dump({'blocks':blocks},sort_keys=False,allow_unicode=True,width=110)+'```\n\n# Rendered blocks\n```yaml\n'+yaml.safe_dump({'blocks':rendered},sort_keys=False,allow_unicode=True,width=110)+'```\n\n'+_preservation_identity_skeleton(blocks)
     try:
-        _model_call(work,call_id='report-preservation',role='preservation_check',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_preservation(t,blocks),profile=profile,max_attempts=_retry('preservation_attempts'))
+        _model_call(work,call_id='report-preservation',role='preservation_check',prompt=aprompt,output=apath,validator=lambda t:schema_validation.validate_preservation(t,blocks),profile=profile,max_attempts=_retry('preservation_attempts'),canonicalize=lambda t:canonicalization.canonicalize_preservation(t,blocks))
         audits=yaml.safe_load(_read(apath))['audits']; return {a['block_id']:a for a in audits}
     except StepFailure as exc:
         return {b['block_id']:{'preserved':False,'issue':'Preservation audit unavailable: '+str(exc)} for b in blocks}
@@ -1579,6 +1628,8 @@ def _dissent_address_outcome(issue,event):
     action=' '.join(str(x) for x in event.get('action') or [])
     outcome=' '.join(str(x) for x in event.get('outcome') or [])
     text=(action+' '+outcome).lower()
+
+    if status=='retained_without_review': return 'Not independently reviewed'
 
     if key=='who1-routing-evidence-rejected': return 'Abandoned'
     if key.startswith('report-preservation:'): return 'Revised'
@@ -1745,7 +1796,7 @@ def _provider_handlers(workflow):
                 ctx.put('who1_evidence_assignments',doc); return {'artifact':doc,'status':'complete'}
             state=sr.read_yaml(sr._who1_gate_state_path(ctx.work)); item=state['item']
             prompt=_evidence_prompt(step,ctx,manifest)
-            _model_call(ctx.work,call_id=f"who1-evidence-match-{manifest['match_pass']:02d}",role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,it=item:schema_validation.validate_evidence_match_batch(t,[{'evidence_id':it['evidence_id'],'candidate_card_tags':it['candidate_card_tags']}]),profile=ctx.profile)
+            _model_call(ctx.work,call_id=f"who1-evidence-match-{manifest['match_pass']:02d}",role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,it=item:schema_validation.validate_evidence_match_batch(t,[{'evidence_id':it['evidence_id'],'candidate_card_tags':it['candidate_card_tags']}]),profile=ctx.profile,canonicalize=lambda t,it=item:canonicalization.canonicalize_evidence_match(t,[{'evidence_id':it['evidence_id'],'candidate_card_tags':it['candidate_card_tags']}]))
 
     def who1_evidence_audit_handler(step, ctx):
         from workflows.proforma_v1 import self_runtime as sr
@@ -1754,7 +1805,7 @@ def _provider_handlers(workflow):
             doc={'audits':[]}; ctx.put('who1_evidence_audits',doc); return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
         assignment=sr.accept_who1_evidence_resolution(ctx.work); tags=list((assignment.get('matches') or [{}])[0].get('card_tags') or [])
         prompt=_evidence_prompt(step,ctx,manifest)
-        _model_call(ctx.work,call_id='who1-evidence-audit',role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,tags=tags:schema_validation.validate_evidence_audit_batch(t,[{'evidence_id':'EWHO1','selected_card_tags':tags}]),profile=ctx.profile)
+        _model_call(ctx.work,call_id='who1-evidence-audit',role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,tags=tags:schema_validation.validate_evidence_audit_batch(t,[{'evidence_id':'EWHO1','selected_card_tags':tags}]),profile=ctx.profile,canonicalize=lambda t,tags=tags:canonicalization.canonicalize_evidence_audit(t,[{'evidence_id':'EWHO1','selected_card_tags':tags}]))
         doc=sr.accept_who1_evidence_audit(ctx.work); ctx.put('who1_evidence_audits',doc); return {'artifact':doc}
 
     def who1_evidence_adjudication_handler(step, ctx):
@@ -1832,8 +1883,9 @@ def _provider_handlers(workflow):
         rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
         owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
         while True:
-            manifest=sr.prepare_evidence_resolution(
-                ctx.work,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
+            from workflows.proforma_v1 import default_reviewed_v2 as reviewed_v2
+            manifest=reviewed_v2.prepare_evidence_resolution(
+                ctx.work,sr,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
             )
             if manifest.get('complete'):
                 break
@@ -1844,7 +1896,7 @@ def _provider_handlers(workflow):
             call_id=f'evidence-assignment-rescue-{rescue_round:02d}-pass-{pass_no:02d}'
             _model_call(
                 ctx.work,call_id=call_id,role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
-                validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=ctx.profile,
+                validator=lambda t,vi=validation_items:schema_validation.validate_evidence_match_batch(t,vi),profile=ctx.profile,canonicalize=lambda t,vi=validation_items:canonicalization.canonicalize_evidence_match(t,vi),
                 max_attempts=_retry('evidence_match_model_attempts'),
             )
         doc=sr.accept_evidence_resolution(ctx.work); ctx.put('evidence_assignments',doc)
@@ -1861,7 +1913,7 @@ def _provider_handlers(workflow):
         validation_items=[{'evidence_id':x['evidence_id'],'selected_card_tags':x['selected_card_tags']} for x in targets]
         _model_call(
             ctx.work,call_id='evidence-audit',role=step.role,prompt=_evidence_prompt(step,ctx,manifest),output=manifest['output'],
-            validator=lambda t,vi=validation_items:schema_validation.validate_evidence_audit_batch(t,vi),profile=ctx.profile,
+            validator=lambda t,vi=validation_items:schema_validation.validate_evidence_audit_batch(t,vi),profile=ctx.profile,canonicalize=lambda t,vi=validation_items:canonicalization.canonicalize_evidence_audit(t,vi),
             max_attempts=_retry('evidence_audit_model_attempts'),
         )
         doc=yaml.safe_load(_read(manifest['output'])) or {}; sr.apply_evidence_audit(ctx.work); ctx.put('evidence_audits',doc)
@@ -1926,7 +1978,9 @@ def _provider_handlers(workflow):
             generic_schema_validation.validate(text,fmt=fmt,schema=schema,check_specs=step.checks,context=ctx.data)
             return f'{step.id} valid'
         call_id='workflow-'+re.sub(r'[^a-zA-Z0-9_-]+','-',step.id).strip('-')
-        _model_call(ctx.work,call_id=call_id,role=step.role,prompt=_compiled_prompt(step,workflow,ctx),output=output,validator=validate,profile=ctx.profile,fmt=fmt)
+        canonicalizer=((step.execution or {}).get('params') or {}).get('canonicalizer')
+        canonicalize=canonicalization.named(canonicalizer) if canonicalizer else None
+        _model_call(ctx.work,call_id=call_id,role=step.role,prompt=_compiled_prompt(step,workflow,ctx),output=output,validator=validate,profile=ctx.profile,fmt=fmt,canonicalize=canonicalize)
         raw=_read(output); doc=json.loads(raw) if fmt=='json' else yaml.safe_load(raw)
         artifact_name=(step.output or {}).get('artifact')
         if artifact_name: ctx.put(artifact_name,doc)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 
 _FILENAME = "workflow-control.json"
@@ -13,6 +14,7 @@ _KEYS = (
     "review_terminal",
     "clinical_owner_redo_used",
     "redo_preservation",
+    "self_validation_feedback",
 )
 
 
@@ -43,4 +45,15 @@ def hydrate(context) -> None:
 def save(context) -> None:
     doc = {key: context.get(key) for key in _KEYS if context.get(key) not in (None, {}, "")}
     p = path(context.work)
-    p.write_text(json.dumps(doc, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{p.name}.", suffix=".tmp", dir=p.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with open(descriptor, "w", encoding="utf-8", closefd=True) as handle:
+            handle.write(json.dumps(doc, indent=2, ensure_ascii=False, sort_keys=True) + "\n")
+            handle.flush()
+        temporary.replace(p)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise

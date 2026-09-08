@@ -10,10 +10,15 @@ from types import SimpleNamespace
 
 from scripts import model_usage
 from scripts.core import validated_model_task
-from workflows.proforma_v1 import model_observability, reasoning_guards
+from workflows.proforma_v1 import canonicalization, default_reviewed_v2, model_observability, reasoning_guards
 from workflows.proforma_v1.engine import control_state
 from workflows.proforma_v1.engine.context import WorkflowContext
-from workflows.proforma_v1.engine.workflow_runner import WorkflowRunner, TerminalWorkflowFailure, TERMINAL_WORKFLOW_EXIT_CODE
+from workflows.proforma_v1.engine.workflow_runner import (
+    TERMINAL_WORKFLOW_EXIT_CODE,
+    TerminalWorkflowFailure,
+    WorkflowRunner,
+    raise_terminal_failure,
+)
 
 
 def _step(step_id, *, needs=(), review=None, artifact=None, inputs=None):
@@ -103,6 +108,43 @@ class ReasoningResumeHardeningTests(unittest.TestCase):
             runner = WorkflowRunner(workflow, executor)
             self.assertFalse(runner._step_done(context, review.id))
             self.assertNotIn(review.id, context.completed)
+
+    def test_raise_terminal_delegates_to_helper_with_identical_record(self):
+        workflow, _target, _review, _child = self._review_workflow()
+        with tempfile.TemporaryDirectory() as direct_tmp, tempfile.TemporaryDirectory() as runner_tmp:
+            direct_context = WorkflowContext(Path(direct_tmp), executor="provider")
+            direct_context.put("review_cycles", {"audit.owner.gate": 2})
+            with self.assertRaises(TerminalWorkflowFailure) as direct_failure:
+                raise_terminal_failure(
+                    direct_context,
+                    reviewer="audit.owner.adjudicate",
+                    message="invalid adjudication",
+                )
+
+            runner_context = WorkflowContext(Path(runner_tmp), executor="provider")
+            runner_context.put("review_cycles", {"audit.owner.gate": 2})
+            with self.assertRaises(TerminalWorkflowFailure) as runner_failure:
+                WorkflowRunner(workflow, _Executor())._raise_terminal(
+                    runner_context,
+                    "audit.owner.adjudicate",
+                    "invalid adjudication",
+                )
+
+            direct_record = (Path(direct_tmp) / "logs" / "workflow-failure.json").read_bytes()
+            runner_record = (Path(runner_tmp) / "logs" / "workflow-failure.json").read_bytes()
+            self.assertEqual(direct_record, runner_record)
+            record = json.loads(direct_record)
+            self.assertEqual(record["schema_version"], 1)
+            self.assertEqual(record["failure_class"], "terminal_review")
+            self.assertFalse(record["retryable"])
+            self.assertEqual(record["reviewer"], "audit.owner.adjudicate")
+            self.assertEqual(record["exit_code"], TERMINAL_WORKFLOW_EXIT_CODE)
+            self.assertEqual(direct_failure.exception.code, TERMINAL_WORKFLOW_EXIT_CODE)
+            self.assertEqual(runner_failure.exception.code, TERMINAL_WORKFLOW_EXIT_CODE)
+            self.assertEqual(
+                json.loads((Path(direct_tmp) / "logs" / "workflow-control.json").read_text()),
+                {"review_cycles": {"audit.owner.gate": 2}},
+            )
 
     def test_failed_review_blocks_hydration_of_descendants(self):
         workflow, target, review, child = self._review_workflow()
@@ -314,6 +356,38 @@ class ReasoningResumeHardeningTests(unittest.TestCase):
             resumed = WorkflowContext(work, executor="provider")
             control_state.hydrate(resumed)
             self.assertEqual(resumed.get("clinical_owner_redo_used"), {"prognosis": True, "who5": True})
+
+    def test_self_validation_feedback_persists_and_hydrates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            first = WorkflowContext(work, executor="self")
+            first.put("self_validation_feedback", {"audit.germline.adjudicate": "bad coverage"})
+            control_state.save(first)
+
+            resumed = WorkflowContext(work, executor="self")
+            control_state.hydrate(resumed)
+            self.assertEqual(
+                resumed.get("self_validation_feedback"),
+                {"audit.germline.adjudicate": "bad coverage"},
+            )
+
+            resumed.put("self_validation_feedback", {})
+            control_state.save(resumed)
+            persisted = json.loads((work / "logs" / "workflow-control.json").read_text())
+            self.assertNotIn("self_validation_feedback", persisted)
+
+    def test_control_state_hydrates_pre_change_documents(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            path = control_state.path(work)
+            path.write_text(
+                json.dumps({"review_cycles": {"audit.who1.gate": 1}}) + "\n",
+                encoding="utf-8",
+            )
+            resumed = WorkflowContext(work, executor="self")
+            control_state.hydrate(resumed)
+            self.assertEqual(resumed.get("review_cycles"), {"audit.who1.gate": 1})
+            self.assertIsNone(resumed.get("self_validation_feedback"))
 
     def test_failed_run_writes_partial_workflow_trace(self):
         workflow, target, review, _child = self._review_workflow()
@@ -599,6 +673,48 @@ class DiagnosticReasoningGuardTests(unittest.TestCase):
             "reasoning_compile_ptbg_reasoning", context,
             {"domain": "prognosis", "step_id": "prognosis.compile"},
         )
+
+    def test_python_repairs_unquoted_yaml_colon_without_changing_scalar_text(self):
+        raw = (
+            "diagnosis: MDS\n"
+            "reason: TP53 is present: therefore the diagnosis is refined\n"
+        )
+        repaired, records = canonicalization.repair_unquoted_yaml_colon(raw)
+        self.assertTrue(records)
+        import yaml
+        doc = yaml.safe_load(repaired)
+        self.assertEqual(doc["reason"], "TP53 is present: therefore the diagnosis is refined")
+
+    def test_terminal_evidence_projection_does_not_require_owner_mutation(self):
+        original_dx = {"icc": {"diagnosis": "owner diagnosis", "variants": ["v01"]}}
+        original_domains = {"prognosis": {"framework_adverse": [{"variants": ["v01"]}]}}
+        fake = SimpleNamespace()
+        fake.finalize_diagnosis = lambda work: original_dx
+        fake.accept_ptbg = lambda work, *args, **kwargs: original_domains
+        def prepare(work, **kwargs):
+            return {
+                "diagnosis": fake.finalize_diagnosis(work),
+                "domains": fake.accept_ptbg(work),
+            }
+        fake.prepare_evidence_resolution = prepare
+        saved_side = default_reviewed_v2._side_record
+        saved_dx = default_reviewed_v2._terminal_projected_diagnosis
+        saved_domains = default_reviewed_v2._terminal_projected_domains
+        try:
+            default_reviewed_v2._side_record = lambda work, name: {"applied": [{"mode": "withhold_affected_output"}]}
+            default_reviewed_v2._terminal_projected_diagnosis = lambda work, doc: {"icc": {"diagnosis": "withheld", "variants": []}}
+            default_reviewed_v2._terminal_projected_domains = lambda work, doc: {"prognosis": {"framework_adverse": []}}
+            result = default_reviewed_v2.prepare_evidence_resolution(Path('.'), fake)
+        finally:
+            default_reviewed_v2._side_record = saved_side
+            default_reviewed_v2._terminal_projected_diagnosis = saved_dx
+            default_reviewed_v2._terminal_projected_domains = saved_domains
+        self.assertEqual(result["diagnosis"]["icc"]["diagnosis"], "withheld")
+        self.assertEqual(result["domains"]["prognosis"]["framework_adverse"], [])
+        self.assertEqual(original_dx["icc"]["diagnosis"], "owner diagnosis")
+        self.assertEqual(original_domains["prognosis"]["framework_adverse"][0]["variants"], ["v01"])
+        self.assertIs(fake.finalize_diagnosis.__name__, '<lambda>') if False else None
+
 
 
 if __name__ == "__main__":

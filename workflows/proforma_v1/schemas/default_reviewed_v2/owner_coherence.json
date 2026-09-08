@@ -1,22 +1,44 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Two orthogonal judgements replace the former scope enum. 'scope: reason' meant 'the conclusion is right AND the derivation is wrong'; 'scope: conclusion' meant the converse. Both are conjunctions, so an assessment whose conclusion AND derivation are both defective had no truthful value available and the auditor was forced into an arbitrary choice. Asking the two questions separately removes the choice.",
+  "title": "default_reviewed_v2 addressable owner disputes",
   "type": "object",
   "additionalProperties": false,
-  "required": ["conclusion_supported", "reason_defective"],
+  "required": ["disputes"],
   "properties": {
-    "conclusion_supported": {
-      "type": "boolean",
-      "description": "Does the stated conclusion stand, given the supplied patient findings and context?"
-    },
-    "reason_defective": {
-      "type": "boolean",
-      "description": "Is the stated derivation wrong as written, independently of whether the conclusion stands?"
-    },
-    "correction_brief": {
-      "type": ["string", "null"],
-      "minLength": 1,
-      "description": "Plain-English statement of the reasoning defect. Required whenever either judgement is defective. This is the only audit text the clinical owner is shown."
+    "disputes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proposition_id",
+          "premise",
+          "defect_type",
+          "finding_quote",
+          "absent_finding",
+          "related_proposition_id",
+          "criticism"
+        ],
+        "properties": {
+          "proposition_id": {"type": "string", "minLength": 1},
+          "premise": {"type": "string", "minLength": 1},
+          "defect_type": {
+            "type": "string",
+            "enum": [
+              "contradicts_supplied_finding",
+              "asserts_unsupplied_finding",
+              "rule_restriction_unmet",
+              "internal_contradiction",
+              "wrong_disease_context",
+              "background_knowledge_error"
+            ]
+          },
+          "finding_quote": {"type": ["string", "null"]},
+          "absent_finding": {"type": ["string", "null"]},
+          "related_proposition_id": {"type": ["string", "null"]},
+          "criticism": {"type": "string", "minLength": 1}
+        }
+      }
     }
   }
 }

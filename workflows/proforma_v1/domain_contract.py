@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import json
+import re
 
 import yaml
 
@@ -19,6 +20,115 @@ _CATEGORY_FIELD = {
     "biomarker": "mrd_status",
     "germline": "bucket",
 }
+
+PREMISE_FIELDS = {
+    "germline": (
+        "event_compatibility",
+        "age",
+        "vaf",
+        "personal_history",
+        "family_history",
+        "phenotype",
+    ),
+    "prognosis": ("framework_effects", "other_evidence_effect"),
+    "treatment": ("therapy",),
+    "biomarker": ("mrd_status",),
+}
+
+
+def normalize_therapy(value) -> str:
+    """Return the stable packet identity for one therapy label.
+
+    Identity is case-insensitive, punctuation-insensitive and whitespace-stable.
+    Punctuation runs become separators rather than being concatenated, so labels
+    such as ``drug-a`` and ``drug a`` normalize consistently.
+    """
+    if value is None:
+        return "none"
+    normalized = re.sub(r"[\W_]+", " ", str(value).casefold(), flags=re.UNICODE)
+    return " ".join(normalized.split()) or "none"
+
+
+def premises(
+    rows: list[dict], domain: str, *, transform_records: list[dict] | None = None
+) -> list[dict]:
+    """Extract addressable owner premises from all rows for one variant."""
+    if domain not in PREMISE_FIELDS:
+        raise ValueError(f"unknown premise domain {domain!r}")
+    valid_rows = [row for row in rows if isinstance(row, dict)]
+    if not valid_rows:
+        return []
+
+    if domain == "germline":
+        row = valid_rows[0]
+        out = []
+        for name in PREMISE_FIELDS[domain]:
+            assessment = row.get(name)
+            if isinstance(assessment, dict):
+                out.append({
+                    "name": name,
+                    "status": assessment.get("status"),
+                    "reason": assessment.get("reason"),
+                })
+            else:
+                out.append({"name": name, "status": "null", "reason": None})
+        return out
+
+    if domain == "prognosis":
+        row = valid_rows[0]
+        out = []
+        for effect in row.get("framework_effects") or []:
+            if isinstance(effect, dict):
+                out.append({
+                    "name": f"framework:{effect.get('framework')}",
+                    "status": effect.get("effect"),
+                    "reason": effect.get("reason"),
+                })
+        out.append({
+            "name": "other_evidence",
+            "status": row.get("other_evidence_effect"),
+            "reason": row.get("other_evidence_reason"),
+        })
+        return out
+
+    if domain == "treatment":
+        keyed: dict[str, dict] = {}
+        for row in valid_rows:
+            category = str(row.get("treatment_category") or "").strip()
+            key = f"therapy:{normalize_therapy(row.get('therapy'))}:{category}"
+            previous = keyed.get(key)
+            if previous is None:
+                keyed[key] = row
+                continue
+            if previous != row:
+                from workflows.proforma_v1.default_reviewed_v2 import V2Error
+
+                raise V2Error(
+                    f"treatment variant {row.get('variant')!r} has conflicting rows for premise {key!r}"
+                )
+            if transform_records is not None:
+                transform_records.append({
+                    "transform": "merge_identical_treatment_premise",
+                    "variant": row.get("variant"),
+                    "premise": key,
+                })
+        return [
+            {
+                "name": key,
+                "status": row.get("treatment_category"),
+                "reason": row.get("reason"),
+                "derived": True,
+            }
+            for key, row in sorted(keyed.items())
+        ]
+
+    row = valid_rows[0]
+    return [{
+        "name": "mrd_status",
+        "status": row.get("mrd_status"),
+        "reason": row.get("reason"),
+        "derived": True,
+    }]
 
 
 @dataclass(frozen=True)
@@ -294,15 +404,74 @@ def normalize_model_output(text: str, c: DomainContract, registry: dict, applica
                     if row.get("observed_vaf") != observed_vaf:
                         records.append({"transform": "inject_observed_vaf", "path": f"classification[{i}].observed_vaf", "from": row.get("observed_vaf"), "to": observed_vaf})
                     row["observed_vaf"] = observed_vaf
+    # Representation-only row canonicalization. Never choose between differing rows.
+    rows = doc.get("classification")
+    if isinstance(rows, list):
+        deduped = []
+        for i, row in enumerate(rows):
+            if any(row == prior for prior in deduped):
+                records.append({"transform": "remove_exact_duplicate_row", "path": f"classification[{i}]", "from": row, "to": "<removed>"})
+                continue
+            deduped.append(row)
+        rows = deduped
+        expected = list(registry)
+        ids = [row.get("variant") if isinstance(row, dict) else None for row in rows]
+        # one-row-per-variant domains can be reordered safely. Treatment intentionally
+        # permits multiple distinct rows and is excluded.
+        if c.domain != "treatment" and len(ids) == len(expected) and set(ids) == set(expected) and len(set(ids)) == len(ids) and ids != expected:
+            by_id = {row["variant"]: row for row in rows}
+            records.append({"transform": "reorder_rows_to_registry", "path": "classification", "from": ids, "to": expected})
+            rows = [by_id[vid] for vid in expected]
+        doc["classification"] = rows
+
     if c.domain == "prognosis":
         rows = doc.get("classification")
         if isinstance(rows, list):
             for i, row in enumerate(rows):
                 if not isinstance(row, dict) or row.get("other_evidence_effect") != "no_evidence":
                     continue
-                if row.get("other_evidence_reason") is not None:
-                    records.append({"transform": "null_reason_for_no_evidence", "path": f"classification[{i}].other_evidence_reason", "from": row.get("other_evidence_reason"), "to": None})
-                row["other_evidence_reason"] = None
+                # Blank text is representation-only noise. Non-empty prose may express
+                # a conflicting semantic judgement and must go back to the owner.
+                reason = row.get("other_evidence_reason")
+                if isinstance(reason, str) and not reason.strip():
+                    records.append({"transform": "blank_no_evidence_reason_to_null", "path": f"classification[{i}].other_evidence_reason", "from": reason, "to": None})
+                    row["other_evidence_reason"] = None
+    if c.domain == "treatment":
+        rows = doc.get("classification")
+        if isinstance(rows, list):
+            for i, row in enumerate(rows):
+                if not isinstance(row, dict) or row.get("treatment_category") != "no_drug_implication":
+                    continue
+                therapy = row.get("therapy")
+                if therapy is None or (isinstance(therapy, str) and not therapy.strip()):
+                    if "therapy" in row:
+                        records.append({"transform": "omit_empty_therapy_for_no_drug_implication", "path": f"classification[{i}].therapy", "from": therapy, "to": "<omitted>"})
+                        row.pop("therapy", None)
+    if c.domain == "germline":
+        rows = doc.get("classification")
+        nullable_skip_fields = (
+            "predisposition_evidence", "event_compatibility", "age", "vaf",
+            "personal_history", "family_history", "phenotype",
+        )
+
+        def _null_like(value):
+            if value is None:
+                return True
+            if isinstance(value, list):
+                return all(_null_like(item) for item in value)
+            if isinstance(value, dict):
+                return all(_null_like(item) for item in value.values())
+            return False
+
+        if isinstance(rows, list):
+            for i, row in enumerate(rows):
+                if not isinstance(row, dict) or row.get("eligibility") != "skip_no_predisposition_evidence":
+                    continue
+                for field in nullable_skip_fields:
+                    value = row.get(field)
+                    if value is not None and _null_like(value):
+                        records.append({"transform": "collapse_null_skip_worksheet", "path": f"classification[{i}].{field}", "from": value, "to": None})
+                        row[field] = None
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=110), records
 
 

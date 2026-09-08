@@ -222,6 +222,7 @@ for _name in (
 
 for _name in (
     "v2_coherence_packet",
+    "v2_dispute_filter",
     "v2_correction_gate",
     "v2_diagnosis_terminal",
     "v2_ptbg_terminal",

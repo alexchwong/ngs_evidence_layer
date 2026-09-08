@@ -6,8 +6,9 @@ import copy
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from workflows.proforma_v1.engine import control_state
 from workflows.proforma_v1.engine.context import WorkflowContext
@@ -71,6 +72,43 @@ class TerminalWorkflowFailure(SystemExit):
 
     def __str__(self) -> str:
         return self.message
+
+
+def raise_terminal_failure(
+    context: WorkflowContext, *, reviewer: str, message: str
+) -> NoReturn:
+    """Record a non-retryable terminal failure, then raise it.
+
+    Any caller that stops a run for a semantic reason must go through here, not
+    raise :class:`TerminalWorkflowFailure` directly.  The exception carries the
+    failure to the current process; ``logs/workflow-failure.json`` lets the UI
+    and batch layers recognise it as non-retryable afterwards.
+    """
+    path = Path(context.work) / "logs" / "workflow-failure.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps({
+        "schema_version": 1,
+        "failure_class": "terminal_review",
+        "retryable": False,
+        "reviewer": reviewer,
+        "message": str(message),
+        "exit_code": TERMINAL_WORKFLOW_EXIT_CODE,
+    }, indent=2, ensure_ascii=False) + "\n"
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with open(descriptor, "w", encoding="utf-8", closefd=True) as handle:
+            handle.write(payload)
+            handle.flush()
+        temporary.replace(path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+    control_state.save(context)
+    print(f"proforma-v1 terminal failure: {message}", file=sys.stderr, flush=True)
+    raise TerminalWorkflowFailure(message, reviewer=reviewer)
 
 
 def _jsonable_copy(value: Any) -> Any:
@@ -331,19 +369,7 @@ class WorkflowRunner:
         return result
 
     def _raise_terminal(self, context: WorkflowContext, step_id: str, message: str) -> None:
-        path = Path(context.work) / "logs" / "workflow-failure.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({
-            "schema_version": 1,
-            "failure_class": "terminal_review",
-            "retryable": False,
-            "reviewer": step_id,
-            "message": str(message),
-            "exit_code": TERMINAL_WORKFLOW_EXIT_CODE,
-        }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        control_state.save(context)
-        print(f"proforma-v1 terminal failure: {message}", file=sys.stderr, flush=True)
-        raise TerminalWorkflowFailure(message, reviewer=step_id)
+        raise_terminal_failure(context, reviewer=step_id, message=message)
 
     def _review_terminal(self, context: WorkflowContext, step_id: str) -> dict | None:
         values = context.get("review_terminal", {}) or {}

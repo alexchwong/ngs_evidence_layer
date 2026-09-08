@@ -1,151 +1,71 @@
-"""Adapt `jsonschema` structural errors onto the proforma-v1 feedback vocabulary.
-
-Structure is expressed in real JSON Schema (Draft 2020-12). `jsonschema>=4.0` is
-already a declared dependency of this repository and is already used by
-`scripts/phase_validation/` — there is no reason to hand-roll a resolver for
-`$ref`, `$defs`, `oneOf` and `additionalProperties`.
-
-What this module does *not* do is pass `jsonschema`'s own messages through.
-Those are written for developers, and for `enum` they embed the entire
-vocabulary — which is precisely the failure this workflow removed in Phase 1.
-Every error is instead mapped onto an `issues.py` builder so a model sees the
-same wording it would have seen from a hand-written validator.
-"""
+"""Translate JSON-Schema failures into task-level plain-English repair feedback."""
 from __future__ import annotations
-
 import json
 from functools import lru_cache
 from pathlib import Path
-
 from jsonschema import Draft202012Validator
-
 from scripts.core.validated_model_task import ValidationIssue
 from workflows.proforma_v1 import issues as iss
 
-SCHEMA_ROOT = Path(__file__).resolve().parent / "schemas"
-
+SCHEMA_ROOT=Path(__file__).resolve().parent/'schemas'
 
 @lru_cache(maxsize=None)
-def load(name: str) -> dict:
-    path = name if Path(name).is_absolute() else SCHEMA_ROOT / Path(name).name
-    with open(path, encoding="utf-8") as handle:
-        schema = json.load(handle)
-    Draft202012Validator.check_schema(schema)
-    return schema
+def load(name:str)->dict:
+    path=name if Path(name).is_absolute() else SCHEMA_ROOT/Path(name).name
+    with open(path,encoding='utf-8') as f:schema=json.load(f)
+    Draft202012Validator.check_schema(schema); return schema
 
-
-def json_path(parts) -> str:
-    out = ""
-    for part in parts:
-        out += f"[{part}]" if isinstance(part, int) else (f".{part}" if out else str(part))
+def json_path(parts):
+    out=''
+    for p in parts: out += f'[{p}]' if isinstance(p,int) else (f'.{p}' if out else str(p))
     return out
 
+def _issue(path,problem,fix,*,repair_class='content',received=None,expected=None):
+    return ValidationIssue(path,problem.rstrip('. '),fix.rstrip('. ')+'. Preserve unrelated fields and decisions.',repair_class=repair_class,received=received,expected=expected)
 
-def _required_issue(err, path) -> list[ValidationIssue]:
-    expected = sorted(err.schema.get("properties", {}) or [])
-    return iss.exact_keys(err.instance, set(expected), path) if expected else [
-        ValidationIssue(
-            path,
-            f"missing required key(s) {sorted(err.validator_value)}",
-            f"return every required key: {sorted(err.validator_value)}",
-            repair_class="content",
-            received=str(sorted(err.instance)) if isinstance(err.instance, dict) else iss.preview(err.instance),
-        )
-    ]
+def _required_issue(err,path):
+    required=list(err.validator_value or [])
+    missing=[k for k in required if isinstance(err.instance,dict) and k not in err.instance]
+    return [_issue(path,f'This object is missing required field(s) {missing or required}',f'Add the missing required field(s) {missing or required} using the values required by the task; do not remove fields that are already valid',received=iss.preview(err.instance),expected=f'required fields: {required}')]
 
+def _type_issue(err,path):
+    wanted=err.validator_value; choices=[wanted] if isinstance(wanted,str) else list(wanted)
+    if choices==['string']: return iss.text_field(err.instance,path)
+    if choices==['boolean']: return iss.bool_field(err.instance,path)
+    if 'array' in choices and not isinstance(err.instance,(list,type(None))):
+        return [_issue(path,f'This field must be a list, but you returned {iss.type_name(err.instance)}','Return the same intended item(s) inside a YAML/JSON list; do not change their meaning',repair_class='serialization',received=iss.preview(err.instance),expected='list/array')]
+    if 'object' in choices and isinstance(err.instance,list) and len(err.instance)==1 and isinstance(err.instance[0],dict):
+        return [_issue(path,'This field must be one mapping/object, but it has an extra one-item list wrapper','Remove only the outer list wrapper and keep the contained fields/values unchanged',repair_class='serialization',received=iss.preview(err.instance),expected='mapping/object')]
+    if 'null' in choices:
+        readable=' or '.join('mapping/object' if x=='object' else 'list' if x=='array' else x for x in choices)
+        return [_issue(path,f'This field must use one of the allowed forms: {readable}; the current {iss.type_name(err.instance)} value does not match them',f'Return either literal null or the complete non-null form required by this field; do not use a partially empty object as a substitute for null',received=iss.preview(err.instance),expected=readable)]
+    readable=' or '.join(choices)
+    return [_issue(path,f'This field has the wrong representation: expected {readable}, received {iss.type_name(err.instance)}',f'Return the value using the required {readable} representation',received=iss.preview(err.instance),expected=readable)]
 
-def _type_issue(err, path) -> list[ValidationIssue]:
-    wanted = err.validator_value
-    wanted = wanted if isinstance(wanted, str) else "/".join(wanted)
-    if wanted == "string":
-        return iss.text_field(err.instance, path)
-    if wanted == "boolean":
-        return iss.bool_field(err.instance, path)
-    # A scalar that should have been a one-item list, or a single object that
-    # should have been wrapped, is reserialization rather than a content defect.
-    reserializable = (wanted == "array" and not isinstance(err.instance, (list, type(None)))) or (
-        wanted == "object" and isinstance(err.instance, list) and len(err.instance) == 1
-    )
-    return [
-        ValidationIssue(
-            path,
-            f"expected {wanted}; received {iss.type_name(err.instance)}",
-            "reserialize the existing value with the correct structure, without changing its content"
-            if reserializable
-            else f"supply a {wanted} value",
-            repair_class="serialization" if reserializable else "content",
-            received=iss.preview(err.instance),
-            expected=wanted,
-        )
-    ]
-
-
-def _combinator_issue(err, path) -> list[ValidationIssue]:
-    """Collapse oneOf/anyOf rather than fanning out one issue per branch."""
-    branches = []
+def _combinator_issue(err,path):
+    branches=[]
     for sub in err.validator_value or []:
-        if sub.get("type") == "null":
-            branches.append("null")
-        elif "$ref" in sub:
-            branches.append(str(sub["$ref"]).rsplit("/", 1)[-1])
-        else:
-            branches.append(sub.get("type", "value"))
-    return [
-        ValidationIssue(
-            path,
-            f"does not match any allowed form ({', '.join(branches)})",
-            f"use one of: {', '.join(branches)}",
-            repair_class="content",
-            received=iss.preview(err.instance),
-            expected=" | ".join(branches),
-        )
-    ]
+        if sub.get('type')=='null': branches.append('literal null')
+        elif '$ref' in sub: branches.append(str(sub['$ref']).rsplit('/',1)[-1])
+        elif sub.get('type')=='object': branches.append('the complete worksheet object')
+        else: branches.append(str(sub.get('type','allowed form')))
+    forms=' or '.join(branches) or 'one of the allowed forms'
+    return [_issue(path,f'The current value does not match any permitted form for this field',f'Return {forms}. If the task says this field is not applicable, use literal null rather than an object containing only null members',received=iss.preview(err.instance),expected=forms)]
 
-
-def issues_from_schema(doc, schema, *, context: str) -> list[ValidationIssue]:
-    """Map structural schema errors onto ValidationIssue, deterministically ordered."""
-    validator = Draft202012Validator(schema)
-    out: list[ValidationIssue] = []
-    seen: set[tuple] = set()
-    for err in sorted(validator.iter_errors(doc), key=lambda e: (list(map(str, e.absolute_path)), e.validator)):
-        path = json_path(err.absolute_path) or context
-        key = (path, err.validator)
-        if key in seen:
-            continue
-        seen.add(key)
-        kind = err.validator
-        if kind == "required":
-            out += _required_issue(err, path)
-        elif kind == "additionalProperties":
-            expected = sorted(err.schema.get("properties", {}) or [])
-            out += iss.exact_keys(err.instance, set(expected), path)
-        elif kind == "enum":
-            out += iss.enum_field(err.instance, err.validator_value, path, label="value")
-        elif kind == "type":
-            out += _type_issue(err, path)
-        elif kind in {"oneOf", "anyOf"}:
-            out += _combinator_issue(err, path)
-        elif kind == "minItems":
-            out += [
-                ValidationIssue(
-                    path,
-                    f"needs at least {err.validator_value} item(s); received {len(err.instance or [])}",
-                    f"supply at least {err.validator_value} item(s)",
-                    repair_class="content",
-                    received=iss.preview(err.instance),
-                )
-            ]
-        elif kind in {"minLength", "pattern"}:
-            out += iss.text_field(err.instance, path)
-        else:
-            out += [
-                ValidationIssue(
-                    path,
-                    f"does not satisfy the {kind} constraint",
-                    "correct the value to satisfy the declared output contract",
-                    repair_class="content",
-                    received=iss.preview(err.instance),
-                    expected=iss.preview(err.validator_value),
-                )
-            ]
+def issues_from_schema(doc,schema,*,context):
+    out=[]; seen=set(); validator=Draft202012Validator(schema)
+    for err in sorted(validator.iter_errors(doc),key=lambda e:(list(map(str,e.absolute_path)),e.validator)):
+        path=json_path(err.absolute_path) or context; key=(path,err.validator)
+        if key in seen: continue
+        seen.add(key); kind=err.validator
+        if kind=='required': out += _required_issue(err,path)
+        elif kind=='additionalProperties':
+            allowed=sorted((err.schema.get('properties') or {}).keys()); extra=sorted(set(err.instance)-set(allowed)) if isinstance(err.instance,dict) else []
+            out += [_issue(path,f'This object contains field(s) that are not part of the output contract: {extra}',f'Remove only these unexpected field(s): {extra}',received=iss.preview(err.instance),expected=f'allowed fields: {allowed}')]
+        elif kind=='enum': out += iss.enum_field(err.instance,err.validator_value,path,label='value')
+        elif kind=='type': out += _type_issue(err,path)
+        elif kind in {'oneOf','anyOf'}: out += _combinator_issue(err,path)
+        elif kind=='minItems': out += [_issue(path,f'This list has too few items: received {len(err.instance or [])}, minimum is {err.validator_value}',f'Add the required missing item(s) so the list has at least {err.validator_value}; do not duplicate existing rows to satisfy the count',received=iss.preview(err.instance))]
+        elif kind in {'minLength','pattern'}: out += iss.text_field(err.instance,path)
+        else: out += [_issue(path,f'This field violates the declared {kind} requirement',f'Correct this field to satisfy the output contract described in the task; do not change unrelated clinical/evidence content',received=iss.preview(err.instance),expected=iss.preview(err.validator_value))]
     return out

@@ -201,6 +201,11 @@ def _self_safe_serialization_cleanup(step_id: str, context: WorkflowContext) -> 
     from scripts.core.syntax_repair.adapters import adapter_for
     raw = path.read_text(encoding='utf-8')
     cleaned, repairs = adapter_for(fmt).deterministic_cleanup(raw)
+    transform_records=[]
+    if fmt in {'yaml','yml'}:
+        from workflows.proforma_v1 import canonicalization
+        cleaned2, transform_records = canonicalization.repair_unquoted_yaml_colon(cleaned)
+        cleaned = cleaned2
     if cleaned != raw:
         path.write_text(cleaned, encoding='utf-8')
     if repairs:
@@ -208,6 +213,8 @@ def _self_safe_serialization_cleanup(step_id: str, context: WorkflowContext) -> 
             {'stage': step_id, 'transform': 'safe_serialization_cleanup', 'detail': message}
             for message in repairs
         ])
+    if transform_records:
+        staged._log_transforms(context.work,[dict(record,stage=step_id) for record in transform_records])
 
 
 def _self_declared_validate(step_id: str, context: WorkflowContext) -> None:
@@ -223,7 +230,15 @@ def _self_declared_validate(step_id: str, context: WorkflowContext) -> None:
     if not path.is_file(): return
     schema_rel=(step.output or {}).get('schema')
     schema=generic_schema_validation.load_schema((workflow.asset_root/schema_rel).resolve()) if schema_rel else None
-    generic_schema_validation.validate(path.read_text(encoding='utf-8'),fmt=(step.output or {}).get('format','yaml'),schema=schema,check_specs=step.checks,context=context.data)
+    text=path.read_text(encoding='utf-8')
+    canonicalizer=((step.execution or {}).get('params') or {}).get('canonicalizer')
+    if canonicalizer:
+        from workflows.proforma_v1 import canonicalization
+        text,records=canonicalization.named(canonicalizer)(text)
+        if records:
+            path.write_text(text,encoding='utf-8')
+            staged._log_transforms(context.work,[dict(record,stage=step_id) for record in records])
+    generic_schema_validation.validate(text,fmt=(step.output or {}).get('format','yaml'),schema=schema,check_specs=step.checks,context=context.data)
 
 
 def _self_step_complete(step_id: str, context: WorkflowContext) -> bool:
@@ -438,8 +453,9 @@ def _self_handlers():
         rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
         workflow=ctx.get('workflow')
         owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
-        manifest=sr.prepare_evidence_resolution(
-            ctx.work,prompt=step.prompt,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
+        from workflows.proforma_v1 import default_reviewed_v2 as reviewed_v2
+        manifest=reviewed_v2.prepare_evidence_resolution(
+            ctx.work,sr,prompt=step.prompt,contracts=contracts,specs=specs,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains
         )
         if manifest.get('complete'):
             doc=sr.accept_evidence_resolution(ctx.work)
@@ -586,8 +602,10 @@ def advance(work: Path, *, workflow_path=None) -> dict:
     context.put('predicates',{'who2_required':_self_who2_required,'who1_routing_changed':lambda c: bool(sr.assess_who1_routing_change(c.work).get('changed'))})
     context.put('review_predicates',{'evidence_audit_resolved':lambda step,c,result: sr.evidence_audit_resolved(c.work)})
     runner=WorkflowRunner(workflow,SelfExecutor(_self_handlers(),completion=_self_step_complete,invalidator=_self_invalidate))
-    result=runner.advance(context)
-    control_state.save(context)
+    try:
+        result=runner.advance(context)
+    finally:
+        control_state.save(context)
     _write_self_trace(work,workflow,context,result.step_id)
     if result.status=='handoff':
         payload=result.handoff or {}
@@ -649,7 +667,8 @@ def cmd_evidence_resolution(args):
     rescue_passes=int((step.evidence or {}).get('rescue_match_passes',(step.evidence or {}).get('match_passes',1)))
     workflow=staged._workflow_for_run(work,args.workflow)
     owner_domains={d for d in ('prognosis','treatment','biomarker','germline') if bool((workflow.step(d).evidence or {}).get('owner_assignment',False))}
-    manifest=sr.prepare_evidence_resolution(work,prompt=step.prompt,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains)
+    from workflows.proforma_v1 import default_reviewed_v2 as reviewed_v2
+    manifest=reviewed_v2.prepare_evidence_resolution(work,sr,prompt=step.prompt,rescue_match_passes=rescue_passes,owner_assignment_domains=owner_domains)
     _print_manifest({k:v for k,v in manifest.items() if k!='validation_items'})
     return EXIT_OK
 

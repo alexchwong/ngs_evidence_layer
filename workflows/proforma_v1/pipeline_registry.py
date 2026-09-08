@@ -11,7 +11,7 @@ HERE=Path(__file__).resolve().parent; ROOT=HERE/'pipelines'
 # Compatibility names retained for callers; these tuples are a global known-role
 # catalogue/order, not a declaration that every workflow or profile uses every role.
 CORE_ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication','report_write','preservation_check','marking','syntax_repair')
-OPTIONAL_ROLES=('reasoning_audit','dissent_summary')
+OPTIONAL_ROLES=('reasoning_audit','reasoning_adjudication','dissent_summary')
 ROLES=CORE_ROLES+OPTIONAL_ROLES
 ROLE_DEFAULTS={
     'structure':{'temperature':0.0,'max_tokens':65536,'reasoning':'default'},
@@ -25,6 +25,7 @@ ROLE_DEFAULTS={
     'marking':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
     'syntax_repair':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
     'reasoning_audit':{'temperature':0.0,'max_tokens':32768,'reasoning':'high'},
+    'reasoning_adjudication':{'temperature':0.0,'max_tokens':32768,'reasoning':'high'},
     'dissent_summary':{'temperature':0.0,'max_tokens':16384,'reasoning':'low'},
 }
 REASONING_LEVELS=('default','none','minimal','low','medium','high','xhigh')
