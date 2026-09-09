@@ -233,7 +233,6 @@ function initPatch() {
       row?.click();
     });
   }
-  setInterval(() => { ensureParallelHint(); decorateRuns(); updateRunButton(); }, 750);
 }
 
 function escapeHtml(value) {
