@@ -16,6 +16,8 @@ If the fact is one atomic proposition, `card_is_element_of_reason` is true only 
 
 Use `risk: warning` only for a non-gating fidelity/context concern after complete proposition support is established. A material mismatch in restriction, scope, polarity, attribution, uncertainty, or evidentiary strength/modality is a failed card, not a warning. Use `comments: []` for an uncomplicated pass. For a failed card or a warning, give only a concise explanation of the mismatch or concern.
 
+{{ module "evidence_semantic_bridge" }}
+
 Return YAML only, preserving supplied evidence IDs, card IDs and order:
 ```yaml
 audits:

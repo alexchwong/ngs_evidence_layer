@@ -1,5 +1,6 @@
 version: 1
-description: Default workflow baseline with current prompt assets enabled and experimental reasoning modules disabled.
+description: Default workflow baseline with current prompt assets enabled and experimental
+  reasoning modules disabled.
 prompt_modules:
   case_context:
     enabled: true
@@ -35,6 +36,12 @@ prompt_modules:
     enabled: false
     version: v1
   limiting_evidence:
+    enabled: false
+    version: v1
+  evidence_semantic_bridge:
+    enabled: false
+    version: v1
+  evidence_reason_pruning:
     enabled: false
     version: v1
 deterministic_enrichments:

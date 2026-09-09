@@ -16,6 +16,8 @@ Later match passes, when configured, contain only facts that received zero cards
 
 Do not rewrite, broaden, narrow, or reinterpret the fact to fit a card.
 
+{{ module "evidence_semantic_bridge" }}
+
 Return YAML only, preserving supplied evidence IDs and order:
 ```yaml
 matches:

@@ -16,7 +16,7 @@ import yaml
 
 from validation.scripts.bundled_cases import is_validation_mode, marking_bundle_filename
 
-from workflows.proforma_v1 import card_identity, domain_contract, layout, model_context, runtime, schema_validation
+from workflows.proforma_v1 import card_identity, default_config, domain_contract, layout, model_context, runtime, schema_validation
 from workflows.proforma_v1 import step as staged
 from workflows.proforma_v1.engine import evidence as evidence_engine
 
@@ -1317,6 +1317,24 @@ def compare_evidence(items: list[dict], matches: dict, audits: dict, targets: li
                 disputes.append({"evidence_id":eid,"schema_id":item["schema_id"],"reason":item["reason"],"card_tag":tag,"resolver_decision":"include","auditor_decision":"exclude","audit_comments":row.get("comments") or []})
     return agreed,disputes
 
+def _evidence_reason_pruning_enabled() -> bool:
+    try:
+        return bool(default_config.module_spec("evidence_reason_pruning").get("enabled"))
+    except ValueError:
+        return False
+
+
+def _adjudication_context_tags(item: dict, state: dict, dispute_tag: str) -> list[str]:
+    """Fact-local card context for bounded reason pruning; never widen beyond retrieval."""
+    eid=item["evidence_id"]
+    accepted=(state.get("accepted_card_tags_by_evidence_id") or {}).get(eid) or []
+    current=(state.get("current_assignment_by_evidence_id") or {}).get(eid) or []
+    rejected=(state.get("rejected_card_tags_by_evidence_id") or {}).get(eid) or []
+    # Candidate tags are already-retrieved, fact-eligible cards, not the corpus.
+    candidates=item.get("candidate_card_tags") or []
+    return _stable_tags([*accepted,*current,*rejected,dispute_tag,*candidates])
+
+
 def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None, max_units_per_call: int | None = None) -> dict:
     state=_load_evidence_state(work)
     # If an audit output exists but has not yet been committed (for example a
@@ -1338,17 +1356,28 @@ def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None, max
             item=item_by.get(eid) or {}
             agreed.append({"evidence_id":eid,"schema_id":item.get("schema_id"),"card_tag":tag,"audit":(audit_by.get(eid) or {}).get(tag) or {"card_is_element_of_reason":True,"risk":"none","comments":[]}})
     write_yaml(output_path(work,"self_evidence","agreed.yaml"),{"assignments":agreed})
+    pruning_enabled=_evidence_reason_pruning_enabled()
     crop=output_path(work,"self_evidence_adjudication_input","disputes.yaml")
-    blind=[{"dispute_id":d["dispute_id"],"evidence_id":d["evidence_id"],"schema_id":d.get("schema_id"),"reason":d["reason"],"card_tag":d["card_tag"]} for d in disputes]
+    blind=[]
+    for d in disputes:
+        row={"dispute_id":d["dispute_id"],"evidence_id":d["evidence_id"],"schema_id":d.get("schema_id"),"reason":d["reason"],"card_tag":d["card_tag"]}
+        if pruning_enabled:
+            item=item_by.get(d["evidence_id"]) or {}
+            row["statement"]=item.get("statement")
+            row["context_card_tags"]=_adjudication_context_tags(item,state,d["card_tag"]) if item else [d["card_tag"]]
+        blind.append(row)
     write_yaml(crop,{"disputes":blind})
     if not disputes:
         return {"pass":"evidence_adjudication","required":False,"disputes":crop}
     all_cards,_eligible,_digest,manifest=corpus_state(work)
     tag_by_id=card_identity.tag_by_id(manifest); id_by_tag={f"[card:{tag}]":cid for cid,tag in tag_by_id.items()}; by_id={c["card_id"]:c for c in all_cards}
     ids=[]
-    for row in disputes:
-        cid=id_by_tag.get(row["card_tag"])
-        if cid and cid not in ids: ids.append(cid)
+    source_rows=blind if pruning_enabled else disputes
+    for row in source_rows:
+        tags=row.get("context_card_tags") or [row["card_tag"]]
+        for tag in tags:
+            cid=id_by_tag.get(tag)
+            if cid and cid not in ids: ids.append(cid)
     canonical_output=output_path(work,"evidence_adjudication","adjudication.yaml")
     pending,merged=_pending_batch(
         work,phase="evidence_adjudication",units=blind,max_units=max_units_per_call,
@@ -1367,8 +1396,10 @@ def prepare_evidence_adjudication(work: Path, *, prompt: Path | None = None, max
         write_yaml(batch_crop,{"disputes":batch_disputes})
     batch_ids=[]
     for row in batch_disputes:
-        cid=id_by_tag.get(row["card_tag"])
-        if cid and cid not in batch_ids: batch_ids.append(cid)
+        tags=row.get("context_card_tags") or [row["card_tag"]]
+        for tag in tags:
+            cid=id_by_tag.get(tag)
+            if cid and cid not in batch_ids: batch_ids.append(cid)
     pool_group="self_evidence_adjudication_input" if pending is None else f"self_evidence_adjudication_input_batch_{pending['batch_index']:02d}"
     cards_md,_=_write_pool(work,pool_group,[by_id[cid] for cid in batch_ids if cid in by_id],manifest)
     return {
@@ -1429,13 +1460,24 @@ def finalize_evidence(work: Path) -> list[dict]:
     by_id={c["card_id"]:c for c in all_cards}; id_by_tag={f"[card:{tag}]":cid for cid,tag in card_identity.tag_by_id(manifest).items()}
     audit_by=state.get("audit_by_evidence_id") or {}; meta_by=state.get("assignment_meta_by_evidence_id") or {}
     adjud_by={(x["evidence_id"],x["card_tag"]):x for x in (adjudications or {}).get("adjudications") or []}
+    amended_by_eid={}
+    if _evidence_reason_pruning_enabled():
+        for row in (adjudications or {}).get("adjudications") or []:
+            if row.get("decision")=="include" and row.get("amended_reason"):
+                previous=amended_by_eid.get(row["evidence_id"])
+                if previous is not None and previous != row["amended_reason"]:
+                    raise ValueError(f"conflicting amended reasons for {row['evidence_id']}")
+                amended_by_eid[row["evidence_id"]]=row["amended_reason"]
     eid_by_schema={x["schema_id"]:x["evidence_id"] for x in state.get("items") or []}
     keep=[]
     for el in state.get("elements") or []:
         eid=eid_by_schema.get(el["schema_id"])
         tags=list(accepted.get(eid,[]) if eid else [])
         if tags:
-            clone=dict(el); clone["evidence"]=[]
+            clone=dict(el)
+            if eid in amended_by_eid:
+                clone["reason"]=amended_by_eid[eid]
+            clone["evidence"]=[]
             for tag in tags:
                 cid=id_by_tag.get(tag)
                 if cid not in by_id: raise ValueError(f"accepted evidence references unknown runtime card tag {tag}")
@@ -1451,7 +1493,11 @@ def finalize_evidence(work: Path) -> list[dict]:
                 ev=staged._accepted_evidence(by_id[cid],tag,audit,semantic_attempt)
                 ev["assignment_origin"]=meta.get("origin") or ("adjudication" if adjud else "unknown")
                 if meta.get("rescue_round") is not None: ev["rescue_round"]=meta.get("rescue_round")
-                if adjud: ev["adjudication"]=adjud
+                if adjud:
+                    # amended_reason is an adjudication control field. Its adopted
+                    # value is applied to clone["reason"] above and hidden from
+                    # downstream evidence/report model context.
+                    ev["adjudication"]={k:v for k,v in adjud.items() if k != "amended_reason"}
                 clone["evidence"].append(ev)
                 if audit.get("risk")=="warning":
                     issue=f"evidence-warning:{el['schema_id']}:{tag}"

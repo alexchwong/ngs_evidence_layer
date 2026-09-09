@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "profile": "default_v2",
+  "description": "Default corpus user layer with experimental prognosis correction for contextual interpretation of SF3B1 in IPSS-M.",
+  "scope": {
+    "enabled": true,
+    "global": {
+      "categories": {
+        "include": [],
+        "exclude": []
+      },
+      "genes": {
+        "include": [],
+        "exclude": []
+      },
+      "cards": {
+        "include": [],
+        "exclude": []
+      }
+    },
+    "papers": {
+      "d-hner-2022-blood-140-1345": {
+        "categories": {
+          "exclude": [
+            "biomarker"
+          ]
+        }
+      },
+      "khoury-2022-leukemia-36-1703": {
+        "categories": {
+          "include": [
+            "diagnosis"
+          ]
+        }
+      },
+      "arber-2022-blood-140-1200": {
+        "categories": {
+          "include": [
+            "diagnosis"
+          ]
+        }
+      }
+    }
+  },
+  "amendments": {
+    "bernard-2022-nejm-evidence-1-na-C0020": {
+      "interpretation": "According to the IPSS-M framework for MDS, SF3B1a—SF3B1 mutation without BCOR, BCORL1, RUNX1, NRAS, STAG2, SRSF2, or del(5q)—is a main-effect finding with favourable prognostic weight. In the presence of isolated del(5q), SF3B1 does not meet the favourable SF3B1a configuration and should not be interpreted as an independently adverse SF3B1 effect solely because del(5q) is present. Other listed IPSS-M main-effect mutations retain their separately defined prognostic weights.",
+      "base_sha256": "9f2150853e622f810c6e70a9ff8dae1335f995114307e975b5340e0766eadb14",
+      "note": "Experimental clarification for SF3B1 with isolated del(5q); intended for validation before promotion to the accepted corpus."
+    }
+  }
+}
