@@ -12,7 +12,7 @@ WORKFLOW_DIR = ROOT / "workflows" / "proforma_v1" / "workflow"
 
 class WorkflowRoleDescriptionTests(unittest.TestCase):
     def test_shipped_workflows_describe_every_workflow_model_role(self):
-        for name in ("default", "default_reviewed", "reasoning"):
+        for name in ("default", "default_reviewed", "default_reviewed_v2", "reasoning"):
             path = WORKFLOW_DIR / f"{name}.yaml"
             workflow_compiler.compile_workflow(path)
             doc = load_workflow(path)
@@ -36,19 +36,24 @@ class WorkflowRoleDescriptionTests(unittest.TestCase):
     def test_workflow_bootstrap_metadata_distinguishes_used_roles(self):
         rows = {row["id"]: row for row in workflow_server.workflow_definitions()}
         self.assertNotIn("reasoning_audit", rows["default"]["model_roles"])
-        self.assertIn("reasoning_audit", rows["default_reviewed"]["model_roles"])
-        self.assertNotIn("dissent_summary", rows["default_reviewed"]["model_roles"])
+        self.assertNotIn("reasoning_adjudication", rows["default"]["model_roles"])
+        self.assertIn("reasoning_audit", rows["default_reviewed_v2"]["model_roles"])
+        self.assertIn("reasoning_adjudication", rows["default_reviewed_v2"]["model_roles"])
         self.assertIn("dissent_summary", rows["reasoning"]["model_roles"])
         self.assertEqual(
             set(pipeline_registry.ROLES) - set(rows["default"]["model_roles"]),
             {"reasoning_audit", "reasoning_adjudication"},
         )
 
-    def test_role_editor_has_workflow_fallback_and_refresh(self):
+    def test_role_editor_filters_rows_and_avoids_observer_loop(self):
         text = (ROOT / "ui" / "assets" / "role-reasoning.js").read_text(encoding="utf-8")
-        self.assertIn("Not used in ${name}", text)
+        self.assertIn("tr.hidden = !description;", text)
         self.assertIn("event.target?.id === 'workflowSelect'", text)
-        self.assertIn("updateRoleDescriptions();", text)
+        self.assertIn("updateRolePresentation();", text)
+        self.assertIn("observer.observe(roleBody, { childList: true });", text)
+        self.assertNotIn("subtree: true", text)
+        self.assertIn("if (note.textContent !== description) note.textContent = description;", text)
+        self.assertNotIn("state?.boot", text)
 
 
 if __name__ == "__main__":

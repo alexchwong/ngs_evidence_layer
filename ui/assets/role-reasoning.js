@@ -11,6 +11,7 @@
   if (!roleBody) return;
 
   let loadedReasoning = {};
+  let boot = null;
   const nativeFetch = window.fetch.bind(window);
 
   function selectedProviderClass() {
@@ -33,7 +34,6 @@
       #profileDialog table.roles [data-role-reasoning]{min-width:96px}
       #profileDialog .nel-reasoning-note{margin-top:6px}
       #profileDialog .nel-role-description{margin-top:3px;max-width:280px;font-size:10px;line-height:1.25;color:var(--muted)}
-      #profileDialog .nel-role-description.nel-role-unused{font-style:italic}
     `;
     document.head.appendChild(style);
   }
@@ -59,34 +59,40 @@
     const note = document.getElementById('nelReasoningNote');
     if (!note) return;
     const provider = selectedProviderClass();
+    let text = '';
     if (provider === 'lmstudio') {
-      note.textContent = `LM Studio ${LMSTUDIO_MIN_VERSION}+ uses /v1/responses. Per-role reasoning supports Default, Low, Medium, and High; Default sends no reasoning-effort parameter.`;
+      text = `LM Studio ${LMSTUDIO_MIN_VERSION}+ uses /v1/responses. Per-role reasoning supports Default, Low, Medium, and High; Default sends no reasoning-effort parameter.`;
     } else if (provider === 'openrouter') {
-      note.textContent = 'OpenRouter reasoning is per role. Default sends no reasoning-effort parameter; available effort levels depend on the selected model/provider.';
+      text = 'OpenRouter reasoning is per role. Default sends no reasoning-effort parameter; available effort levels depend on the selected model/provider.';
     } else {
-      note.textContent = 'Per-role reasoning effort is unavailable for this provider class; use Default.';
+      text = 'Per-role reasoning effort is unavailable for this provider class; use Default.';
     }
+    if (note.textContent !== text) note.textContent = text;
   }
 
   function selectedWorkflowMetadata() {
     const name = String(
       document.getElementById('workflowSelect')?.value ||
-      state?.boot?.default_workflow ||
+      boot?.default_workflow ||
       'default'
     );
-    const workflow = (state?.boot?.workflows || []).find(row => String(row?.id || '') === name) || {};
+    const workflow = (boot?.workflows || []).find(row => String(row?.id || '') === name) || {};
     const descriptions = workflow.model_roles && typeof workflow.model_roles === 'object'
       ? workflow.model_roles
       : {};
     return { name, descriptions };
   }
 
-  function updateRoleDescriptions() {
-    const { name, descriptions } = selectedWorkflowMetadata();
+  function updateRolePresentation() {
+    const { descriptions } = selectedWorkflowMetadata();
     for (const tr of roleBody.querySelectorAll('tr[data-role]')) {
       const role = tr.dataset.role;
+      if (!role) continue;
+      const description = String(descriptions[role] || '').trim();
+      tr.hidden = !description;
+      if (!description) continue;
       const cell = tr.cells?.[0];
-      if (!role || !cell) continue;
+      if (!cell) continue;
       let note = cell.querySelector('[data-role-description]');
       if (!note) {
         note = document.createElement('div');
@@ -94,9 +100,7 @@
         note.className = 'nel-role-description';
         cell.appendChild(note);
       }
-      const description = String(descriptions[role] || '').trim();
-      note.textContent = description || `Not used in ${name}`;
-      note.classList.toggle('nel-role-unused', !description);
+      if (note.textContent !== description) note.textContent = description;
     }
   }
 
@@ -142,7 +146,7 @@
         select.addEventListener('change', () => { select.dataset.userSet = '1'; });
       }
     }
-    updateRoleDescriptions();
+    updateRolePresentation();
     applyProviderCapabilities();
   }
 
@@ -184,6 +188,10 @@
       } catch (_) {}
     }
     const response = await nativeFetch(input, nextInit);
+    if (method === 'GET' && url === '/api/bootstrap' && response.ok) {
+      try { boot = await response.clone().json(); } catch (_) {}
+      queueMicrotask(updateRolePresentation);
+    }
     if (method === 'GET' && url.startsWith('/api/pipeline?') && response.ok) {
       try {
         const doc = await response.clone().json();
@@ -198,11 +206,11 @@
       queueMicrotask(applyProviderCapabilities);
     }
     if (event.target?.id === 'workflowSelect') {
-      queueMicrotask(updateRoleDescriptions);
+      queueMicrotask(updateRolePresentation);
     }
   });
   const observer = new MutationObserver(installSelects);
-  observer.observe(roleBody, { childList: true, subtree: true });
+  observer.observe(roleBody, { childList: true });
   document.getElementById('profileDialog')?.addEventListener('toggle', installSelects);
   document.getElementById('profileDialog')?.addEventListener('click', () => queueMicrotask(installSelects));
   installStyles();
