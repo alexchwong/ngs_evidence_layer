@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summaries"],
+  "properties": {
+    "summaries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_decision_ids", "domain", "topic", "summary"],
+        "properties": {
+          "source_decision_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "domain": {
+            "type": "string",
+            "enum": ["diagnosis", "prognosis", "treatment", "biomarker", "germline", "cross-domain"]
+          },
+          "topic": {"type": "string", "minLength": 1},
+          "summary": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

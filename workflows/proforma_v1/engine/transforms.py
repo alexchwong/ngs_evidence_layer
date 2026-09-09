@@ -129,6 +129,14 @@ def default_reviewed_v2(name):
     return apply_default_reviewed_v2
 
 
+def audit_log_transform(name):
+    """Thin registry adapter; only workflows that name these transforms invoke it."""
+    def apply_audit_log(value: Any, context: dict, params: dict) -> Any:
+        from workflows.proforma_v1.engine import audit_log
+        return audit_log.apply(name, value, context=context, params=params)
+    return apply_audit_log
+
+
 REGISTRY = {
     "identity": identity,
     "load_corpus": delegated,
@@ -142,6 +150,9 @@ REGISTRY = {
     "assess_who1_routing_change": delegated,
     "commit_who1_routing": delegated,
     "default_reviewed_clinical_packet": default_reviewed_clinical_packet,
+    "audit_log_packet": audit_log_transform("audit_log_packet"),
+    "audit_log_validate_summary": audit_log_transform("audit_log_validate_summary"),
+    "audit_log_render": audit_log_transform("audit_log_render"),
     "reasoning_load_corpus": reasoning_delegated,
     "reasoning_finalize_evidence": reasoning_delegated,
     "reasoning_report_blocks": reasoning_delegated,
@@ -235,7 +246,7 @@ for _name in (
 def workflow_dissent_packet(value: Any, context: dict, params: dict) -> Any:
     """Project the canonical dissent ledger into a presentation-only model packet.
 
-    The ledger remains authoritative.  Stable issue IDs are retained solely so a
+    The ledger remains authoritative. Stable issue IDs are retained solely so a
     downstream summary can prove complete coverage; internal issue keys are not
     exposed to the summarizer.
     """
@@ -318,7 +329,7 @@ def _workflow_dissent_summary_rows(packet: Any, summary: Any) -> tuple[list[dict
 def workflow_validate_dissent_summary(value: Any, context: dict, params: dict) -> Any:
     """Return a deterministic retry verdict for presentation-summary coverage.
 
-    This validator is deliberately structural only.  It does not assess whether
+    This validator is deliberately structural only. It does not assess whether
     the model's prose is clinically correct; it verifies only that every canonical
     ledger issue is represented exactly once and that required prose fields exist.
     """
