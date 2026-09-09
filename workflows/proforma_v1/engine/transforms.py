@@ -133,6 +133,7 @@ REGISTRY = {
     "identity": identity,
     "load_corpus": delegated,
     "finalize_diagnosis": delegated,
+    "finalize_icc_evidence": delegated,
     "finalize_evidence": delegated,
     "report_blocks": delegated,
     "finalize_report": delegated,

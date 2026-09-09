@@ -195,10 +195,81 @@ steps:
       provider_handler: diagnosis_icc
       self_handler: diagnosis_icc
       self_mode: handoff
+  diagnosis.icc.evidence.assignment:
+    type: evidence_review
+    needs:
+    - diagnosis.icc
+    role: evidence_match
+    stage: evidence_match
+    prompt: prompts/evidence/icc_match.md
+    evidence:
+      policy: diagnosis_complete_support
+      timing: blocking
+      cards:
+        from: owner.cards
+      match_passes: 2
+    output:
+      artifact: icc_evidence_assignments
+      format: yaml
+      schema: schemas/evidence_match.json
+    execution:
+      provider_handler: icc_evidence_assignment
+      self_handler: icc_evidence_assignment
+      self_mode: handoff
+  diagnosis.icc.evidence.audit:
+    type: evidence_review
+    needs:
+    - diagnosis.icc.evidence.assignment
+    role: evidence_audit
+    stage: evidence_audit
+    prompt: prompts/evidence/icc_audit.md
+    evidence:
+      policy: diagnosis_complete_support
+      timing: blocking
+      cards:
+        from: owner.cards
+    output:
+      artifact: icc_evidence_audits
+      format: yaml
+      schema: schemas/evidence_audit.json
+    execution:
+      provider_handler: icc_evidence_audit
+      self_handler: icc_evidence_audit
+      self_mode: handoff
+  diagnosis.icc.evidence.adjudication:
+    type: evidence_adjudication
+    needs:
+    - diagnosis.icc.evidence.audit
+    role: evidence_adjudication
+    prompt: prompts/evidence/icc_adjudicate.md
+    evidence:
+      policy: diagnosis_complete_support
+      timing: blocking
+      cards:
+        from: owner.cards
+    output:
+      artifact: icc_evidence_adjudication
+      format: yaml
+      schema: schemas/evidence_adjudicate.json
+    execution:
+      provider_handler: icc_evidence_adjudication
+      self_handler: icc_evidence_adjudication
+      self_mode: handoff
+  diagnosis.icc.evidence.finalize:
+    type: transform
+    needs:
+    - diagnosis.icc.evidence.adjudication
+    transform: finalize_icc_evidence
+    output:
+      artifact: icc_evidence_resolved
+    execution:
+      provider_handler: icc_evidence_finalize
+      self_handler: icc_evidence_finalize
+      self_mode: deterministic
   diagnosis.finalize:
     type: transform
     needs:
-    - diagnosis.icc
+    - diagnosis.icc.evidence.finalize
     transform: finalize_diagnosis
     output:
       artifact: diagnosis
@@ -558,6 +629,10 @@ presentation:
     - diagnosis.who1.commit
     - diagnosis.who2
     - diagnosis.icc
+    - diagnosis.icc.evidence.assignment
+    - diagnosis.icc.evidence.audit
+    - diagnosis.icc.evidence.adjudication
+    - diagnosis.icc.evidence.finalize
     - diagnosis.finalize
   - id: prognosis
     label: Prognosis

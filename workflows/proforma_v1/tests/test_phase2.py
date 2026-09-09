@@ -45,6 +45,24 @@ class WorkflowCompilerTests(unittest.TestCase):
                 self.assertIn(dependency, positions)
                 self.assertLess(positions[dependency], positions[step.id])
 
+    def test_icc_evidence_is_immediate_and_uses_dedicated_prompts(self):
+        workflow = compile_workflow()
+        order = [step.id for step in workflow.steps]
+        chain = [
+            "diagnosis.icc",
+            "diagnosis.icc.evidence.assignment",
+            "diagnosis.icc.evidence.audit",
+            "diagnosis.icc.evidence.adjudication",
+            "diagnosis.icc.evidence.finalize",
+            "diagnosis.finalize",
+            "prognosis",
+        ]
+        self.assertEqual([order.index(step) for step in chain], sorted(order.index(step) for step in chain))
+        self.assertEqual(workflow.step("diagnosis.icc.evidence.assignment").prompt.name, "icc_match.md")
+        self.assertEqual(workflow.step("diagnosis.icc.evidence.audit").prompt.name, "icc_audit.md")
+        self.assertEqual(workflow.step("diagnosis.icc.evidence.adjudication").prompt.name, "icc_adjudicate.md")
+        self.assertEqual(workflow.step("evidence.assignment").prompt.name, "evidence_match.md")
+
     def test_evidence_match_pass_count_is_workflow_configurable(self):
         workflow = compile_workflow()
         self.assertEqual(workflow.step("evidence.assignment").evidence["rescue_match_passes"], 1)

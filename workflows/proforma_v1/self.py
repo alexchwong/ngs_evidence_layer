@@ -286,6 +286,10 @@ def _self_step_complete(step_id: str, context: WorkflowContext) -> bool:
         'diagnosis.who1.evidence.adjudication': sr._who1_gate_adjudication_path(work).is_file(),
         'diagnosis.who1.commit': sr._who1_commit_path(work).is_file(),
         'diagnosis.icc': staged.has_artifact(work,'diagnosis_icc','icc.yaml'),
+        'diagnosis.icc.evidence.assignment': sr._icc_evidence_match_final_path(work).is_file(),
+        'diagnosis.icc.evidence.audit': sr._icc_evidence_audit_path(work).is_file(),
+        'diagnosis.icc.evidence.adjudication': sr._icc_evidence_adjudication_path(work).is_file(),
+        'diagnosis.icc.evidence.finalize': sr._icc_evidence_final_path(work).is_file(),
         'diagnosis.who2': staged.has_artifact(work,'diagnosis_who5_pass_2','who5.yaml'),
         'diagnosis.finalize': staged.has_artifact(work,'diagnosis','diagnosis-final.yaml'),
         'prognosis': staged.has_artifact(work,'prognosis_state','model-classification.yaml'),
@@ -432,6 +436,28 @@ def _self_handlers():
         if staged.has_artifact(ctx.work,'diagnosis_who5_pass_2','who5.yaml'):
             _self_declared_validate('diagnosis.who2',ctx)
         return _handoff('diagnosis',decorate(manifest,step,ctx))
+    def icc_evidence_assignment(step, ctx):
+        max_passes=int((step.evidence or {}).get('match_passes',2))
+        manifest=sr.prepare_icc_evidence_resolution(ctx.work,max_match_passes=max_passes,prompt=step.prompt)
+        if manifest.get('complete'):
+            doc=sr.accept_icc_evidence_resolution(ctx.work); ctx.put('icc_evidence_assignments',doc); return {'status':'complete','artifact':doc}
+        return _handoff('diagnosis_icc_evidence_match',decorate(manifest,step,ctx))
+
+    def icc_evidence_audit(step, ctx):
+        manifest=sr.prepare_icc_evidence_audit(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            doc={'audits':[]}; ctx.put('icc_evidence_audits',doc); return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
+        return _handoff('diagnosis_icc_evidence_audit',decorate(manifest,step,ctx))
+
+    def icc_evidence_adjudication(step, ctx):
+        manifest=sr.prepare_icc_evidence_adjudication(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            return {'status':'skipped','reason':'no_disagreement','artifact':{'adjudications':[]}}
+        return _handoff('diagnosis_icc_evidence_adjudication',decorate(manifest,step,ctx))
+
+    def icc_evidence_finalize(step, ctx):
+        doc=sr.finalize_icc_evidence(ctx.work); ctx.put('icc_evidence_resolved',doc); return {'status':'complete','artifact':doc}
+
     def diagnosis_finalize(step, ctx):
         sr.finalize_diagnosis(ctx.work); _self_declared_validate('diagnosis.icc',ctx); return {'status':'complete'}
 
@@ -550,6 +576,8 @@ def _self_handlers():
         'who1_evidence_assignment':who1_evidence_assignment,'who1_evidence_audit':who1_evidence_audit,
         'who1_evidence_adjudication':who1_evidence_adjudication,'who1_commit':who1_commit,
         'diagnosis_who2':who2,'diagnosis_icc':icc,
+        'icc_evidence_assignment':icc_evidence_assignment,'icc_evidence_audit':icc_evidence_audit,
+        'icc_evidence_adjudication':icc_evidence_adjudication,'icc_evidence_finalize':icc_evidence_finalize,
         'diagnosis_finalize':diagnosis_finalize,
         'ptbg':ptbg,'evidence_assignment':evidence_assignment,'evidence_audit':evidence_audit,
         'evidence_adjudication':evidence_adjudication,'evidence_finalize':evidence_finalize,

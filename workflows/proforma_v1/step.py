@@ -660,6 +660,9 @@ def _workflow_step_for_call(call_id):
     if call_id.startswith('who1-evidence-match-'): sid='diagnosis.who1.evidence.assignment'
     elif call_id=='who1-evidence-audit': sid='diagnosis.who1.evidence.audit'
     elif call_id=='who1-evidence-adjudication': sid='diagnosis.who1.evidence.adjudication'
+    elif call_id.startswith('icc-evidence-match-'): sid='diagnosis.icc.evidence.assignment'
+    elif call_id=='icc-evidence-audit': sid='diagnosis.icc.evidence.audit'
+    elif call_id=='icc-evidence-adjudication': sid='diagnosis.icc.evidence.adjudication'
     elif call_id.startswith('evidence-match-batch-') or call_id.startswith('evidence-match-rescue-') or call_id.startswith('evidence-assignment-rescue-') or call_id=='evidence-assignment': sid='evidence.assignment'
     elif call_id.startswith('evidence-audit-batch-') or call_id=='evidence-audit': sid='evidence.audit'
     elif call_id.startswith('evidence-adjudication-batch-') or call_id=='evidence-adjudication': sid='evidence.adjudication'
@@ -1910,6 +1913,38 @@ def _provider_handlers(workflow):
         cards_by=dict(ctx.get('cards_by_domain',{}) or {}); cards_by['diagnosis_icc']=cards; ctx.put('cards_by_domain',cards_by)
         return {'artifact':icc}
 
+    def icc_evidence_assignment_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        max_passes=int((step.evidence or {}).get('match_passes',2))
+        while True:
+            manifest=sr.prepare_icc_evidence_resolution(ctx.work,max_match_passes=max_passes,prompt=step.prompt)
+            if manifest.get('complete'):
+                doc=sr.accept_icc_evidence_resolution(ctx.work); ctx.put('icc_evidence_assignments',doc); return {'artifact':doc,'status':'complete'}
+            state=sr.read_yaml(sr._icc_evidence_state_path(ctx.work)); item=state['item']; prompt=_evidence_prompt(step,ctx,manifest)
+            _model_call(ctx.work,call_id=f"icc-evidence-match-{manifest['match_pass']:02d}",role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,it=item:schema_validation.validate_evidence_match_batch(t,[{'evidence_id':'EICC','candidate_card_tags':it['candidate_card_tags']}]),profile=ctx.profile,canonicalize=lambda t,it=item:canonicalization.canonicalize_evidence_match(t,[{'evidence_id':'EICC','candidate_card_tags':it['candidate_card_tags']}]))
+
+    def icc_evidence_audit_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        manifest=sr.prepare_icc_evidence_audit(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            doc={'audits':[]}; ctx.put('icc_evidence_audits',doc); return {'status':'skipped','reason':'no_matched_cards','artifact':doc}
+        tags=list((sr.accept_icc_evidence_resolution(ctx.work).get('matches') or [{}])[0].get('card_tags') or []); prompt=_evidence_prompt(step,ctx,manifest)
+        _model_call(ctx.work,call_id='icc-evidence-audit',role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,tags=tags:schema_validation.validate_evidence_audit_batch(t,[{'evidence_id':'EICC','selected_card_tags':tags}]),profile=ctx.profile,canonicalize=lambda t,tags=tags:canonicalization.canonicalize_evidence_audit(t,[{'evidence_id':'EICC','selected_card_tags':tags}]))
+        doc=sr.accept_icc_evidence_audit(ctx.work); ctx.put('icc_evidence_audits',doc); return {'artifact':doc}
+
+    def icc_evidence_adjudication_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        manifest=sr.prepare_icc_evidence_adjudication(ctx.work,prompt=step.prompt)
+        if not manifest.get('required'):
+            return {'status':'skipped','reason':'no_disagreement','artifact':{'adjudications':[]}}
+        _agreed,disputes=sr.icc_evidence_disputes(ctx.work); prompt=_evidence_prompt(step,ctx,manifest)
+        _model_call(ctx.work,call_id='icc-evidence-adjudication',role=step.role,prompt=prompt,output=manifest['output'],validator=lambda t,d=disputes:sr.evidence_engine.validate_adjudication(yaml.safe_load(t),d),profile=ctx.profile)
+        doc=sr.read_yaml(manifest['output']); ctx.put('icc_evidence_adjudication',doc); return {'artifact':doc}
+
+    def icc_evidence_finalize_handler(step, ctx):
+        from workflows.proforma_v1 import self_runtime as sr
+        doc=sr.finalize_icc_evidence(ctx.work); ctx.put('icc_evidence_resolved',doc); return {'artifact':doc}
+
     def diagnosis_finalize_handler(step, ctx):
         diagnosis,cmcs=stage_diagnosis_finalize_pass(ctx.work,ctx.get('case'),ctx.get('who1'),ctx.get('who1_commit'),ctx.get('who2'),ctx.get('icc'),list(ctx.get('diagnostic_history') or []))
         ctx.put('diagnosis',diagnosis); ctx.put('diagnostic_cmcs',cmcs)
@@ -2082,6 +2117,10 @@ def _provider_handlers(workflow):
         'who1_commit': who1_commit_handler,
         'diagnosis_who2': who2_handler,
         'diagnosis_icc': icc_handler,
+        'icc_evidence_assignment': icc_evidence_assignment_handler,
+        'icc_evidence_audit': icc_evidence_audit_handler,
+        'icc_evidence_adjudication': icc_evidence_adjudication_handler,
+        'icc_evidence_finalize': icc_evidence_finalize_handler,
         'diagnosis_finalize': diagnosis_finalize_handler,
         'domain': domain_handler,
         'evidence_assignment': evidence_assignment_handler,
@@ -2128,6 +2167,10 @@ def _provider_step_complete(step_id, ctx):
         'diagnosis.who1.commit': lambda: sr._who1_commit_path(work).is_file(),
         'diagnosis.who2': lambda: _model_step_validated(work,'diagnosis-who5-pass-02'),
         'diagnosis.icc': lambda: _model_step_validated(work,'diagnosis-icc'),
+        'diagnosis.icc.evidence.assignment': lambda: sr._icc_evidence_match_final_path(work).is_file(),
+        'diagnosis.icc.evidence.audit': lambda: sr._icc_evidence_audit_path(work).is_file(),
+        'diagnosis.icc.evidence.adjudication': lambda: sr._icc_evidence_adjudication_path(work).is_file(),
+        'diagnosis.icc.evidence.finalize': lambda: sr._icc_evidence_final_path(work).is_file(),
         'diagnosis.finalize': lambda: has_artifact(work,'diagnosis','diagnosis-final.yaml'),
         'prognosis': lambda: _model_step_validated(work,'prognosis') and has_artifact(work,'prognosis_state','model-classification.yaml'),
         'treatment': lambda: _model_step_validated(work,'treatment') and has_artifact(work,'treatment_state','model-classification.yaml'),

@@ -463,6 +463,25 @@ def _who1_commit_path(work: Path, *, create: bool = False) -> Path:
     return _who1_artifact_path(work, "diagnosis_who1_commit", "accepted-routing.yaml", create=create)
 
 
+def _icc_evidence_state_path(work: Path, *, create: bool = False) -> Path:
+    return _who1_artifact_path(work, "diagnosis_icc_evidence", "state.yaml", create=create)
+
+def _icc_evidence_match_pass_path(work: Path, pass_number: int, *, create: bool = False) -> Path:
+    return _who1_artifact_path(work, "diagnosis_icc_evidence", f"match-pass-{int(pass_number):02d}.yaml", create=create)
+
+def _icc_evidence_match_final_path(work: Path, *, create: bool = False) -> Path:
+    return _who1_artifact_path(work, "diagnosis_icc_evidence", "assignment.yaml", create=create)
+
+def _icc_evidence_audit_path(work: Path, *, create: bool = False) -> Path:
+    return _who1_artifact_path(work, "diagnosis_icc_evidence", "audit.yaml", create=create)
+
+def _icc_evidence_adjudication_path(work: Path, *, create: bool = False) -> Path:
+    return _who1_artifact_path(work, "diagnosis_icc_evidence", "adjudication.yaml", create=create)
+
+def _icc_evidence_final_path(work: Path, *, create: bool = False) -> Path:
+    return _who1_artifact_path(work, "diagnosis_icc_evidence", "resolved.yaml", create=create)
+
+
 def assess_who1_routing_change(work: Path) -> dict:
     case, _reg = load_case_registry(work)
     who1 = accept_who(work, pass_number=1)
@@ -683,6 +702,91 @@ def commit_who1_routing(work: Path) -> dict:
     write_yaml(_who1_commit_path(work, create=True),doc); return doc
 
 
+def _icc_evidence_state(work: Path, *, max_match_passes: int = 2) -> dict:
+    path=_icc_evidence_state_path(work)
+    if path.is_file():
+        state=read_yaml(path)
+        if int(state.get("max_match_passes",max_match_passes)) != int(max_match_passes):
+            raise ValueError("ICC evidence match pass count changed within run")
+        return state
+    icc=accept_icc(work); case,_reg=load_case_registry(work)
+    _all,eligible,digest,manifest=corpus_state(work)
+    who1=committed_who1(work,required=False) or accept_who(work,pass_number=1)
+    who2p=output_path(work,"diagnosis_who5_pass_2","who5.yaml")
+    who=accept_who(work,pass_number=2) if who2p.is_file() else who1
+    history=list(case.get("bootstrap_cmcs") or [])
+    for cmc in runtime.derive_cmcs(who):
+        if cmc not in history: history.append(cmc)
+    cards=staged._diagnostic_cards(eligible,runtime.case_genes(case),history,"icc")
+    tag_by_id=card_identity.tag_by_id(manifest)
+    item={"evidence_id":"EICC","schema_id":"DX-ICC","reason":icc.get("reason"),"statement":f"ICC classification: {icc.get('diagnosis')}.","candidate_card_ids":[c["card_id"] for c in cards],"candidate_card_tags":[f"[card:{tag_by_id[c['card_id']]}]" for c in cards]}
+    state={"item":item,"catalog_card_ids":item["candidate_card_ids"],"corpus_sha256":digest,"max_match_passes":int(max_match_passes)}
+    write_yaml(_icc_evidence_state_path(work,create=True),state); return state
+
+
+def prepare_icc_evidence_resolution(work: Path, *, max_match_passes: int = 2, prompt: Path | None = None) -> dict:
+    state=_icc_evidence_state(work,max_match_passes=max_match_passes); item=state["item"]; final=_icc_evidence_match_final_path(work); docs=[]
+    for n in range(1,int(max_match_passes)+1):
+        path=_icc_evidence_match_pass_path(work,n)
+        if not path.is_file(): break
+        schema_validation.validate_evidence_match_batch(path.read_text(encoding="utf-8"),[{"evidence_id":"EICC","candidate_card_tags":item["candidate_card_tags"]}])
+        doc=read_yaml(path); docs.append(doc); tags=list((doc.get("matches") or [{}])[0].get("card_tags") or [])
+        if tags:
+            write_yaml(_icc_evidence_match_final_path(work,create=True),{"matches":[{"evidence_id":"EICC","card_tags":tags}]}); return {"complete":True,"required":True,"output":final}
+    if len(docs)>=int(max_match_passes):
+        write_yaml(_icc_evidence_match_final_path(work,create=True),{"matches":[{"evidence_id":"EICC","card_tags":[]}]}); return {"complete":True,"required":True,"output":final}
+    _all,_eligible,_digest,manifest=corpus_state(work); by_id={c["card_id"]:c for c in _all}; tag_by_id=card_identity.tag_by_id(manifest); catalog={cid:by_id[cid] for cid in state["catalog_card_ids"] if cid in by_id}
+    facts=output_path(work,"diagnosis_icc_evidence_match_input","facts.md"); facts.write_text(_fact_blocks([item],catalog,tag_by_id,card_tags_field="candidate_card_tags"),encoding="utf-8")
+    return {"complete":False,"required":True,"match_pass":len(docs)+1,"contract":contract_path("evidence_match"),"prompt":prompt,"facts":facts,"items":facts,"output":_icc_evidence_match_pass_path(work,len(docs)+1,create=True)}
+
+
+def accept_icc_evidence_resolution(work: Path) -> dict:
+    state=read_yaml(_icc_evidence_state_path(work)); item=state["item"]; path=_icc_evidence_match_final_path(work)
+    if not path.is_file(): raise ValueError(f"ICC evidence assignment missing: {path}")
+    schema_validation.validate_evidence_match_batch(path.read_text(encoding="utf-8"),[{"evidence_id":"EICC","candidate_card_tags":item["candidate_card_tags"]}]); return read_yaml(path)
+
+
+def prepare_icc_evidence_audit(work: Path, *, prompt: Path | None = None) -> dict:
+    state=read_yaml(_icc_evidence_state_path(work)); item=state["item"]; assignment=accept_icc_evidence_resolution(work); tags=list((assignment.get("matches") or [{}])[0].get("card_tags") or []); out=_icc_evidence_audit_path(work,create=True)
+    if not tags: write_yaml(out,{"audits":[]}); return {"required":False,"output":out}
+    _all,_eligible,_digest,manifest=corpus_state(work); by_id={c["card_id"]:c for c in _all}; tag_by_id=card_identity.tag_by_id(manifest); id_by_tag={f"[card:{tag}]":cid for cid,tag in tag_by_id.items()}; catalog={id_by_tag[t]:by_id[id_by_tag[t]] for t in tags if t in id_by_tag and id_by_tag[t] in by_id}
+    row={"evidence_id":"EICC","schema_id":"DX-ICC","reason":item["reason"],"selected_card_tags":tags}; facts=output_path(work,"diagnosis_icc_evidence_audit_input","facts.md"); facts.write_text(_fact_blocks([row],catalog,tag_by_id,card_tags_field="selected_card_tags"),encoding="utf-8")
+    return {"required":True,"contract":contract_path("evidence_audit"),"prompt":prompt,"facts":facts,"items":facts,"output":out}
+
+
+def accept_icc_evidence_audit(work: Path) -> dict:
+    tags=list((accept_icc_evidence_resolution(work).get("matches") or [{}])[0].get("card_tags") or []); path=_icc_evidence_audit_path(work)
+    if not path.is_file(): raise ValueError(f"ICC evidence audit missing: {path}")
+    schema_validation.validate_evidence_audit_batch(path.read_text(encoding="utf-8"),[{"evidence_id":"EICC","selected_card_tags":tags}] if tags else []); return read_yaml(path)
+
+
+def icc_evidence_disputes(work: Path) -> tuple[list[str],list[dict]]:
+    item=read_yaml(_icc_evidence_state_path(work))["item"]; selected=list((accept_icc_evidence_resolution(work).get("matches") or [{}])[0].get("card_tags") or []); rows=accept_icc_evidence_audit(work).get("audits") or []; audits=(rows[0].get("card_audits") or []) if rows else []; generic=[{"card_tag":r["card_tag"],"decision":"include" if r.get("card_is_element_of_reason") else "exclude","comments":r.get("comments") or []} for r in audits]
+    result=evidence_engine.compare(claim={"evidence_id":"EICC","claim":item["reason"],"candidate_card_tags":item["candidate_card_tags"]},assigned_card_tags=selected,audit_rows=generic)
+    for d in result["disputes"]: d["reason"]=item["reason"]; d["schema_id"]="DX-ICC"
+    return result["agreed_include"],result["disputes"]
+
+
+def prepare_icc_evidence_adjudication(work: Path, *, prompt: Path | None = None) -> dict:
+    _agreed,disputes=icc_evidence_disputes(work); disputes=evidence_engine.adjudication_disputes(disputes); crop=output_path(work,"diagnosis_icc_evidence_adjudication_input","disputes.yaml"); write_yaml(crop,{"disputes":[{"dispute_id":d["dispute_id"],"evidence_id":d["evidence_id"],"schema_id":"DX-ICC","reason":d["reason"],"card_tag":d["card_tag"]} for d in disputes]}); out=_icc_evidence_adjudication_path(work,create=True)
+    if not disputes: write_yaml(out,{"adjudications":[]}); return {"required":False,"disputes":crop,"output":out}
+    _all,_eligible,_digest,manifest=corpus_state(work); by_id={c["card_id"]:c for c in _all}; tag_by_id=card_identity.tag_by_id(manifest); id_by_tag={f"[card:{tag}]":cid for cid,tag in tag_by_id.items()}; ids=[id_by_tag[d["card_tag"]] for d in disputes if d["card_tag"] in id_by_tag]; cards,_=_write_pool(work,"diagnosis_icc_evidence_adjudication_input",[by_id[cid] for cid in ids if cid in by_id],manifest,diagnosis_authority="icc")
+    return {"required":True,"prompt":prompt,"disputes":crop,"cards":cards,"output":out}
+
+
+def finalize_icc_evidence(work: Path) -> dict:
+    state=read_yaml(_icc_evidence_state_path(work)); agreed,disputes=icc_evidence_disputes(work); accepted=list(agreed); audit=accept_icc_evidence_audit(work); audit_rows=(audit.get("audits") or []); audit_by={r["card_tag"]:r for r in ((audit_rows[0].get("card_audits") or []) if audit_rows else [])}; adjud={"adjudications":[]}
+    if disputes:
+        path=_icc_evidence_adjudication_path(work)
+        if not path.is_file(): raise ValueError(f"ICC evidence disagreement requires adjudication: {path}")
+        adjud=read_yaml(path); evidence_engine.validate_adjudication(adjud,disputes)
+        for row in adjud.get("adjudications") or []:
+            if row.get("decision")=="include":
+                accepted.append(row["card_tag"])
+                audit_by[row["card_tag"]]={"card_tag":row["card_tag"],"card_is_element_of_reason":True,"risk":"none","comments":[]}
+    accepted=_stable_tags(accepted); doc={"schema_id":"DX-ICC","evidence_id":"EICC","accepted_card_tags":accepted,"candidate_card_tags":state["item"]["candidate_card_tags"],"audit_by_card_tag":audit_by,"adjudications":adjud.get("adjudications") or []}; write_yaml(_icc_evidence_final_path(work,create=True),doc); return doc
+
+
 def committed_who1(work: Path, *, required: bool = True) -> dict | None:
     path=_who1_commit_path(work)
     if not path.is_file():
@@ -880,6 +984,11 @@ def _initial_evidence_state(
     no_candidates = []
     owner_seed: dict[str,list[str]] = {}
     owner_origin: dict[str,dict[str,dict]] = {}
+    preaccepted: dict[str,list[str]] = {}
+    prerejected: dict[str,list[str]] = {}
+    preaudit: dict[str,dict[str,dict]] = {}
+    icc_resolved_path=_icc_evidence_final_path(work)
+    icc_resolved=read_yaml(icc_resolved_path) if icc_resolved_path.is_file() else None
     for el in elements:
         candidates = staged._candidate_cards(el, cards_by_domain, reg)
         if not candidates:
@@ -898,8 +1007,16 @@ def _initial_evidence_state(
         # tag outside the whole owner envelope was already rejected at the PTBG
         # owner validation boundary and fed back to that owner step.
         selected=[tag for tag in proposed if tag in set(candidate_tags)]
-        owner_seed[eid]=selected
-        owner_origin[eid]={tag:{"origin":"owner","rescue_round":0,"match_pass":0} for tag in selected}
+        if el.get("schema_id")=="DX-ICC" and isinstance(icc_resolved,dict):
+            accepted=[tag for tag in (icc_resolved.get("accepted_card_tags") or []) if tag in set(candidate_tags)]
+            preaccepted[eid]=accepted
+            prerejected[eid]=[tag for tag in candidate_tags if tag not in accepted]
+            preaudit[eid]=dict(icc_resolved.get("audit_by_card_tag") or {})
+            owner_seed[eid]=[]
+            owner_origin[eid]={tag:{"origin":"icc_dedicated","rescue_round":0,"match_pass":0} for tag in accepted}
+        else:
+            owner_seed[eid]=selected
+            owner_origin[eid]={tag:{"origin":"owner","rescue_round":0,"match_pass":0} for tag in selected}
         items.append({
             "evidence_id": eid,
             "schema_id": el["schema_id"],
@@ -920,10 +1037,10 @@ def _initial_evidence_state(
         "rescue_round": 1,
         "owner_assignment_domains": sorted(owner_assignment_domains),
         "current_assignment_by_evidence_id": owner_seed,
-        "accepted_card_tags_by_evidence_id": {x["evidence_id"]:[] for x in items},
-        "rejected_card_tags_by_evidence_id": {x["evidence_id"]:[] for x in items},
+        "accepted_card_tags_by_evidence_id": {x["evidence_id"]:list(preaccepted.get(x["evidence_id"],[])) for x in items},
+        "rejected_card_tags_by_evidence_id": {x["evidence_id"]:list(prerejected.get(x["evidence_id"],[])) for x in items},
         "assignment_meta_by_evidence_id": owner_origin,
-        "audit_by_evidence_id": {},
+        "audit_by_evidence_id": {x["evidence_id"]:dict(preaudit.get(x["evidence_id"],{})) for x in items},
         "unresolved_disputes": [],
         "processed_audit_sha256": None,
         "match_pass_by_evidence_id": {},

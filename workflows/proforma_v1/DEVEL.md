@@ -93,6 +93,7 @@ checks that coverage.
 - `diagnosis.who2` — optional WHO5 reconsideration pass, gated by the Phase 3
   `reconsider_after_cmc_expansion` setting and routing state.
 - `diagnosis.icc` — ICC diagnosis using the accepted WHO routing context.
+- `diagnosis.icc.evidence.*` — immediate ICC-specific evidence assignment, audit, cropped adjudication, and deterministic resolution using the frozen ICC authority-card pool. Resolved ICC evidence is carried into the later shared evidence finalizer and is not re-matched with PTBG prompts.
 - `diagnosis.finalize` — deterministic final diagnosis/routing artifact assembly. It also projects authoritative WHO `variant_assessments` classified as `diagnostic_for_other_pathology` into non-routing concurrent-pathology signals.
 - `prognosis` — prognosis owner proforma plus initial owner evidence assignment.
 - `treatment` — treatment owner proforma plus initial owner evidence assignment.
