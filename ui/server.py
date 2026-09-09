@@ -469,8 +469,12 @@ class Registry:
 
     def _pump(self, child: _Child, handle) -> None:
         try:
+            stream = child.proc.stdout
+            read_chunk = getattr(stream, "read1", None)
+            if read_chunk is None:
+                read_chunk = stream.read
             while True:
-                chunk = child.proc.stdout.read(1)
+                chunk = read_chunk(4096)
                 if not chunk:
                     break
                 handle.write(chunk)

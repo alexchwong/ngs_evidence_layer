@@ -197,8 +197,12 @@ def _pump_run_with_retry(registry, child, handle, argv: list[str]) -> None:
             handle.write(f"[nel-ui] run attempt {attempt}/{child.max_attempts}\n".encode("utf-8"))
             handle.flush()
             try:
+                stream = child.proc.stdout
+                read_chunk = getattr(stream, "read1", None)
+                if read_chunk is None:
+                    read_chunk = stream.read
                 while True:
-                    chunk = child.proc.stdout.read(1)
+                    chunk = read_chunk(4096)
                     if not chunk:
                         break
                     handle.write(chunk)

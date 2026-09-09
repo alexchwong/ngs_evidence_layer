@@ -575,6 +575,64 @@ class LifecycleTests(unittest.TestCase):
         self.assertFalse(server.case_path("orphan").exists())
 
 
+# ---------------------------------------------------------- console pumping
+
+class ConsolePumpTests(unittest.TestCase):
+    def test_pump_streams_live_output_and_preserves_all_bytes(self):
+        import subprocess
+        import time
+
+        registry = server.Registry()
+        code = (
+            "import sys,time; "
+            "sys.stdout.buffer.write(b'first\\n'); sys.stdout.buffer.flush(); "
+            "time.sleep(0.4); "
+            "sys.stdout.buffer.write(b'second\\n'); sys.stdout.buffer.flush()"
+        )
+        argv = [sys.executable, "-u", "-c", code]
+        proc = subprocess.Popen(
+            argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0
+        )
+        child = server._Child(
+            proc, "pump-test", "run", False, [], argv=argv
+        )
+        fd, raw_path = tempfile.mkstemp()
+        os.close(fd)
+        path = Path(raw_path)
+        handle = path.open("wb")
+        pump = threading.Thread(target=registry._pump, args=(child, handle), daemon=True)
+        pump.start()
+        deadline = time.time() + 2.0
+        live = b""
+        while time.time() < deadline:
+            live = path.read_bytes()
+            if b"first\n" in live:
+                break
+            time.sleep(0.01)
+        self.assertIn(b"first\n", live)
+        self.assertIsNone(proc.poll(), "first console output should be visible before process exit")
+        pump.join(timeout=3.0)
+        self.assertFalse(pump.is_alive())
+        final = path.read_bytes()
+        path.unlink(missing_ok=True)
+        self.assertIn(b"first\nsecond\n", final)
+        self.assertIn(b"finished with exit code 0", final)
+
+    def test_all_ui_console_pumps_use_chunked_reads(self):
+        from ui import enhancements, marking_server
+        import inspect
+
+        sources = [
+            Path(server.__file__).read_text(encoding="utf-8"),
+            inspect.getsource(server.Registry._pump),
+            inspect.getsource(marking_server._pump_run_with_retry),
+        ]
+        for source in sources:
+            self.assertNotIn("stdout.read(1)", source)
+        self.assertIn("read_chunk(4096)", inspect.getsource(server.Registry._pump))
+        self.assertIn("read_chunk(4096)", inspect.getsource(marking_server._pump_run_with_retry))
+
+
 # --------------------------------------------------------------- admission
 
 class AdmissionTests(unittest.TestCase):
