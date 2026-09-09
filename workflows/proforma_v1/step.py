@@ -8,7 +8,7 @@ import yaml
 
 REPO_ROOT=Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path: sys.path.insert(0,str(REPO_ROOT))
-from scripts.core import citations, corpus, cul, retrieval as core_retrieval, syntax_repair, validated_model_task
+from scripts.core import citations, corpus, cul, retrieval as core_retrieval, schema_preserving_repair, syntax_repair, validated_model_task
 from scripts import model_usage
 from scripts.setup_workflow import setup_workflow
 from scripts.workflow_registry import load_workflow_metadata, read_workflow_state, write_workflow_state
@@ -327,6 +327,61 @@ def _syntax_callback(work,binding,call_id,total_attempts,*,call_root=None,parent
     return repair
 
 
+_SCHEMA_REPAIR_SYSTEM_PROMPT = (
+    "You repair only schema/shape defects in a structured artifact. Preserve every clinical fact, "
+    "conclusion, enum choice, reason, supplied ID, and evidence assignment exactly. Do not invent, "
+    "remove, or reinterpret informational content. Return only the complete repaired artifact."
+)
+_CONTENT_REPAIR_SYSTEM_PROMPT = (
+    "You are the content-repair owner for a bounded clinical NGS workflow step. Use the full original "
+    "task, case, evidence, prior accepted state, and deterministic validation feedback supplied in the "
+    "messages. Re-evaluate only rejected issues; preserve unrelated decisions and supplied IDs. Return "
+    "exactly the requested complete artifact and no commentary."
+)
+
+
+def _repair_role_callback(work,binding,call_id,repair_role,*,call_root=None,parent_attempt=None):
+    """Provider/self callback for schema- or content-repair roles.
+
+    These calls are separate logical model operations so profile authors can bind a
+    different model without changing the original clinical-owner role.
+    """
+    system_prompt=_SCHEMA_REPAIR_SYSTEM_PROMPT if repair_role=='schema_repair' else _CONTENT_REPAIR_SYSTEM_PROMPT
+    def invoke(payload,attempt):
+        rid=f'{call_id}-{repair_role.replace("_","-")}-{attempt}'
+        if isinstance(payload,list): messages=[dict(row) for row in payload]
+        else: messages=[{'role':'system','content':system_prompt},{'role':'user','content':str(payload)}]
+        if messages and messages[0].get('role')=='system':
+            messages[0]={'role':'system','content':system_prompt+'\n\n'+str(messages[0].get('content') or '')}
+        else: messages.insert(0,{'role':'system','content':system_prompt})
+        root=layout.model_step_dir(work,rid,existing=False)
+        out=root/'output.txt'
+        _write(root/'messages.json',json.dumps(messages,indent=2,ensure_ascii=False)+'\n')
+        _write(root/'prompt.md',_render_bundle(rid,messages,out))
+        _status(f'  {call_id}: {repair_role.replace("_"," ")} {attempt}')
+        if binding.is_self:
+            if out.is_file(): return _read(out)
+            raise Handoff(rid,root/'prompt.md',out)
+        started=time.perf_counter()
+        logical_id=_logical_operation_id(call_id)
+        try: comp=model_client.complete_messages(binding,messages)
+        except model_client.TruncatedCompletion as exc:
+            duration_ms=round((time.perf_counter()-started)*1000)
+            _record_usage(work,rid,binding.model,attempt,exc.usage,role=repair_role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind=repair_role,generation_id=exc.generation_id)
+            return validated_model_task.Truncated(exc.content,max_tokens=exc.max_tokens)
+        except RuntimeError as exc:
+            duration_ms=round((time.perf_counter()-started)*1000)
+            _record_usage(work,rid,binding.model,attempt,None,role=repair_role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind=repair_role,error=exc)
+            raise StepFailure(str(exc)) from exc
+        duration_ms=round((time.perf_counter()-started)*1000)
+        text=comp.content if isinstance(comp,model_client.Completion) else comp
+        usage=comp.usage if isinstance(comp,model_client.Completion) else None
+        _record_usage(work,rid,binding.model,attempt,usage,role=repair_role,provider=_provider_name(binding),duration_ms=duration_ms,logical_operation=logical_id,call_kind=repair_role,generation_id=comp.generation_id if isinstance(comp,model_client.Completion) else None)
+        _write(out,text)
+        return text
+    return invoke
+
+
 def _archive_failed_syntax_attempts(work, call_id, attempts):
     """Copy rejected syntax/serialization repair responses into logs/errors.
 
@@ -458,7 +513,7 @@ def _logical_operation_id(call_id):
     return step.id if step is not None else call_id
 
 
-def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
+def _task_io(work,*,call_id,role,binding,syntax_binding,schema_binding,content_binding,output,root):
     """Bind the shared runner to this workflow's filesystem, logging and provider.
 
     The runner performs no I/O of its own; everything environment-specific is
@@ -507,6 +562,10 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
         callback=_syntax_callback(work,syntax_binding,call_id,_retry('syntax_repair_attempts'),call_root=root,parent_attempt=model_attempt)
         result=callback(prompt,attempt); syntax_paths[attempt]=callback.observed_paths[attempt]; return result
 
+
+    call_schema=_repair_role_callback(work,schema_binding,call_id,'schema_repair',call_root=root,parent_attempt=model_attempt)
+    call_content=_repair_role_callback(work,content_binding,call_id,'content_repair',call_root=root,parent_attempt=model_attempt)
+
     def record(attempt):
         observed=model_observability.attempt_dir(root,attempt.index)
         if (observed/'call.json').is_file():
@@ -532,6 +591,8 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
     return validated_model_task.TaskIO(
         call_model=call_model,
         call_syntax_model=call_syntax,
+        call_schema_model=call_schema,
+        call_content_model=call_content,
         load_state=lambda key:_retry_entry(work,key),
         save_state=lambda key,value:_set_retry_entry(work,key,value),
         read_output=lambda:_read(output) if output.is_file() else None,
@@ -545,12 +606,15 @@ def _task_io(work,*,call_id,role,binding,syntax_binding,output,root):
 
 def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt='yaml',mode='standard',max_attempts=None,max_rewrites=None,feedback=None,system_prompt=None,canonicalize=None):
     """Run one validated model task through the shared runner."""
-    binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair')
+    binding=_profile(work,profile,role); syntax_binding=_profile(work,profile,'syntax_repair'); schema_binding=_profile(work,profile,'schema_repair'); content_binding=_profile(work,profile,'content_repair')
     root=layout.model_step_dir(work,call_id,existing=False)
     messages=[{'role':'system','content':system_prompt or model_client.SYSTEM_PROMPT},{'role':'user','content':prompt}]
     if feedback: messages.append({'role':'user','content':feedback})
     def prepare(raw):
         text=_prepare_structured(work,raw,fmt,call_id,syntax_binding,syntax_attempts=_retry('syntax_repair_attempts'),call_root=root,parent_attempt=max(1,len(list((root/'attempts').glob('[0-9][0-9]'))) if (root/'attempts').is_dir() else 1)) if fmt else model_client.strip_code_fence(raw)
+        if fmt and str(fmt).lower() in {'yaml','yml','json'}:
+            text,records=schema_preserving_repair.normalize_text(text,format_name=fmt)
+            if records: _log_transforms(work,[dict(record,stage=call_id) for record in records])
         text=_sanitize_proforma_text(work,call_id,text) if mode=='proforma' and fmt=='yaml' else text
         if canonicalize is not None:
             text,records=canonicalize(text)
@@ -568,9 +632,10 @@ def _run_model_task(work,*,call_id,role,prompt,output,validator,profile=None,fmt
             content=int(max_attempts if max_attempts is not None else _retry('fatal_model_attempts')),
             serialization=_retry('syntax_repair_attempts'),
             rewrite=int(max_rewrites if max_rewrites is not None else _retry('proforma_rewrite_attempts')),
+            schema=1,
         ),
     )
-    io=_task_io(work,call_id=call_id,role=role,binding=binding,syntax_binding=syntax_binding,output=output,root=root)
+    io=_task_io(work,call_id=call_id,role=role,binding=binding,syntax_binding=syntax_binding,schema_binding=schema_binding,content_binding=content_binding,output=output,root=root)
     try:
         candidate=validated_model_task.run(request,io)
     except validated_model_task.Suspend as suspend:

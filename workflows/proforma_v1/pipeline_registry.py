@@ -10,7 +10,10 @@ from workflows.proforma_v1.model_binding import Binding
 HERE=Path(__file__).resolve().parent; ROOT=HERE/'pipelines'
 # Compatibility names retained for callers; these tuples are a global known-role
 # catalogue/order, not a declaration that every workflow or profile uses every role.
-CORE_ROLES=('structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication','report_write','preservation_check','marking','syntax_repair')
+CORE_ROLES=(
+    'structure','diagnosis','ptbg','evidence_match','evidence_audit','evidence_adjudication',
+    'report_write','preservation_check','marking','syntax_repair','schema_repair','content_repair'
+)
 OPTIONAL_ROLES=('reasoning_audit','reasoning_adjudication','dissent_summary')
 ROLES=CORE_ROLES+OPTIONAL_ROLES
 ROLE_DEFAULTS={
@@ -24,6 +27,8 @@ ROLE_DEFAULTS={
     'preservation_check':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
     'marking':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
     'syntax_repair':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'schema_repair':{'temperature':0.0,'max_tokens':16384,'reasoning':'default'},
+    'content_repair':{'temperature':0.0,'max_tokens':65536,'reasoning':'default'},
     'reasoning_audit':{'temperature':0.0,'max_tokens':32768,'reasoning':'high'},
     'reasoning_adjudication':{'temperature':0.0,'max_tokens':32768,'reasoning':'high'},
     'dissent_summary':{'temperature':0.0,'max_tokens':16384,'reasoning':'low'},
@@ -107,8 +112,6 @@ def load_yaml(path:Path)->PipelinePlan:
         if not models: raise ValueError('pipeline.models must configure at least one model')
     return PipelinePlan(path.stem,str(meta.get('description') or ''),path,doc)
 def _paths():
-    # Discovery is filename-only. Validation belongs to load(name), so an
-    # unrelated invalid/custom YAML cannot block a selected pipeline.
     return {p.stem:p for p in sorted(ROOT.glob('*.yaml'))}
 def names(): return tuple(_paths())
 def load(name:str):
@@ -118,16 +121,13 @@ def load(name:str):
 def descriptions(): return {n:load(n).description for n in names()}
 def _first_model_selector(doc:dict[str,Any])->str:
     aliases=doc.get('model_aliases')
-    if isinstance(aliases,dict) and aliases:
-        return str(next(iter(aliases)))
+    if isinstance(aliases,dict) and aliases: return str(next(iter(aliases)))
     rows=doc.get('models')
     if isinstance(rows,dict):
         for row in rows.values():
-            if isinstance(row,dict) and isinstance(row.get('model'),str) and row['model'].strip():
-                return row['model'].strip()
+            if isinstance(row,dict) and isinstance(row.get('model'),str) and row['model'].strip(): return row['model'].strip()
     provider=doc.get('provider') or {}
-    if isinstance(provider,dict) and provider.get('type')=='self':
-        return 'self'
+    if isinstance(provider,dict) and provider.get('type')=='self': return 'self'
     raise ValueError('pipeline must configure at least one model before missing roles can use defaults')
 def _default_role_row(doc:dict[str,Any],role:str)->dict[str,Any]:
     if role not in ROLE_DEFAULTS: raise ValueError(f'unknown model role {role!r}')
@@ -137,14 +137,10 @@ def completed_role_rows(doc:dict[str,Any])->dict[str,dict[str,Any]]:
     rows=doc.get(key) or {}
     if not isinstance(rows,dict): raise ValueError(f'{key} must be a mapping')
     out={role:dict(row) for role,row in rows.items() if isinstance(row,dict)}
-    for role in ROLES:
-        out.setdefault(role,_default_role_row(doc,role))
+    for role in ROLES: out.setdefault(role,_default_role_row(doc,role))
     return out
 def with_role_defaults(doc:dict[str,Any])->dict[str,Any]:
-    out=copy.deepcopy(doc)
-    key='model_roles' if 'model_roles' in out else 'models'
-    out[key]=completed_role_rows(out)
-    return out
+    out=copy.deepcopy(doc); key='model_roles' if 'model_roles' in out else 'models'; out[key]=completed_role_rows(out); return out
 def _resolved_row(plan:PipelinePlan,role:str)->tuple[dict[str,Any],dict[str,Any]|None]:
     rows=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
     row=rows.get(role) if isinstance(rows,dict) else None
@@ -157,8 +153,7 @@ def _resolved_row(plan:PipelinePlan,role:str)->tuple[dict[str,Any],dict[str,Any]
     return resolved,dict(routing) if routing is not None else None
 def binding(plan:PipelinePlan,role:str)->Binding:
     if role not in ROLES: raise ValueError(f'unknown model role {role!r}')
-    provider=plan.doc['provider']; row,provider_routing=_resolved_row(plan,role); kind=provider['type']
-    reasoning=str(row.get('reasoning','default'))
+    provider=plan.doc['provider']; row,provider_routing=_resolved_row(plan,role); kind=provider['type']; reasoning=str(row.get('reasoning','default'))
     if kind=='self': return Binding(pipeline=plan.pipeline_id,role=role,kind='self',model='self',temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']),reasoning=reasoning)
     base=str(provider.get('base_url') or ''); env=str(provider.get('base_url_env') or '')
     if env and os.environ.get(env,'').strip(): base=os.environ[env].strip()
@@ -166,11 +161,8 @@ def binding(plan:PipelinePlan,role:str)->Binding:
     api_env=str(provider.get('api_key_env') or '')
     return Binding(pipeline=plan.pipeline_id,role=role,kind='openai-compatible',model=str(row['model']),temperature=float(row.get('temperature',0)),max_tokens=int(row['max_tokens']),base_url=base.rstrip('/'),base_url_env=env,api_key_env=api_env,api_key=os.environ.get(api_env,'') if api_env else '',timeout_s=float(provider.get('timeout_s',900)),provider_routing=provider_routing,reasoning=reasoning)
 def describe(plan):
-    lines=[f'provider: {plan.doc["provider"]["type"]}','models:']
-    source=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
+    lines=[f'provider: {plan.doc["provider"]["type"]}','models:']; source=plan.doc['model_roles'] if 'model_roles' in plan.doc else plan.doc['models']
     for role in ROLES:
-        row,routing=_resolved_row(plan,role)
-        suffix=f' provider={routing}' if routing else ''
-        defaulted=' defaulted' if role not in source else ''
+        row,routing=_resolved_row(plan,role); suffix=f' provider={routing}' if routing else ''; defaulted=' defaulted' if role not in source else ''
         lines.append(f'  {role}: {row["model"]} max_tokens={row["max_tokens"]} temperature={row.get("temperature",0)} reasoning={row.get("reasoning","default")}{suffix}{defaulted}')
     return lines
