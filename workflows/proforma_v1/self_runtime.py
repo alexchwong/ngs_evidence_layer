@@ -698,8 +698,18 @@ def commit_who1_routing(work: Path, *, context=None) -> dict:
             raise ValueError(message)
         fallback_schema=runtime.vocab.canonical_case_disease(case.get("provisional_disease"))
         routing_changed=bool(change.get("routing_changed", change.get("changed")))
+        previous_cmcs=list((change.get("previous") or {}).get("cmcs") or case.get("bootstrap_cmcs") or [])
+        if not fallback_schema:
+            previous_routes=[]
+            for cmc in previous_cmcs:
+                canonical=runtime.vocab.canonical_case_disease(cmc)
+                if canonical and canonical not in previous_routes:
+                    previous_routes.append(canonical)
+            if len(previous_routes) == 1:
+                # The pre-WHO1 route is already-established deterministic state.
+                # Restore it even when the rejected WHO1 proposal changed routing.
+                fallback_schema=previous_routes[0]
         if not fallback_schema and not routing_changed:
-            previous_cmcs=list((change.get("previous") or {}).get("cmcs") or case.get("bootstrap_cmcs") or [])
             proposed_schema=(change.get("proposed") or {}).get("schema_disease")
             if proposed_schema and proposed_schema in previous_cmcs:
                 # Reuse only the already-established schema route. The rejected

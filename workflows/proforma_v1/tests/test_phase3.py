@@ -870,6 +870,27 @@ class Phase3WhoRoutingTests(unittest.TestCase):
              patch.object(self_runtime,"load_case_registry",return_value=(case,{})):
             self.assertFalse(self_executor._self_who2_required(ctx))
 
+    def test_rejected_routing_change_uses_unique_previous_route_when_supplied_morphology_is_unmappable(self):
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case={"provisional_disease":"myelodysplastic neoplasm with increased blasts-1","morphologic_diagnosis_origin":"supplied","bootstrap_cmcs":["MDS"]}
+            who1={"schema_disease":"AML","diagnosis":"AML, myelodysplasia-related","diagnostic_effect":"updated","variants":["v01"],"reason":"unsupported"}
+            change={"changed":True,"routing_changed":True,"previous":{"schema_disease":None,"cmcs":["MDS"]},"proposed":{"schema_disease":"AML","cmcs":["AML"]}}
+            patches=self._patch_common(case,who1,change,[])
+            real_canonical=self_runtime.runtime.vocab.canonical_case_disease
+            def canonical(term):
+                if term == case["provisional_disease"]:
+                    return None
+                return real_canonical(term)
+            with patches[0],patches[1],patches[2],patches[3],patches[4],patches[5], \
+                 patch.object(self_runtime.runtime.vocab,"canonical_case_disease",side_effect=canonical), \
+                 patch.object(self_runtime.staged,"_semantic_dissent"),patch.object(self_runtime.staged,"_semantic_dissent_address"):
+                doc=self_runtime.commit_who1_routing(work)
+            self.assertFalse(doc["accepted"]); self.assertTrue(doc["fallback"])
+            self.assertEqual(doc["accepted_who1"]["schema_disease"],"MDS")
+            self.assertEqual(doc["accepted_who1"]["diagnosis"],case["provisional_disease"])
+            self.assertEqual(doc["routing_cmcs"],["MDS"])
+
     def test_rejected_routing_change_falls_back_to_supplied_morphology(self):
         with tempfile.TemporaryDirectory() as td:
             work=Path(td); layout.ensure_dirs(work)
