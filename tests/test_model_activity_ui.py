@@ -67,6 +67,10 @@ class ModelActivityUITests(unittest.TestCase):
         doc = {"model_roles": {"diagnosis": {"reasoning": "high"}}}
         workflow_server._validate_provider_reasoning(doc, "lmstudio")
 
+    def test_lmstudio_allows_none_reasoning_for_native_chat(self):
+        doc = {"model_roles": {"diagnosis": {"reasoning": "none"}}}
+        workflow_server._validate_provider_reasoning(doc, "lmstudio")
+
     def test_lmstudio_rejects_openrouter_only_reasoning_levels(self):
         doc = {"model_roles": {"diagnosis": {"reasoning": "xhigh"}}}
         with self.assertRaisesRegex(workflow_server.base.UIError, "not supported for LM Studio"):

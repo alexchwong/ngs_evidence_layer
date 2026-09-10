@@ -3,10 +3,11 @@
   const LEVELS = ['default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
   const PROVIDER_LEVELS = {
     openrouter: LEVELS,
-    lmstudio: ['default', 'low', 'medium', 'high'],
+    lmstudio: ['default', 'none', 'low', 'medium', 'high'],
     other: ['default'],
   };
   const LMSTUDIO_MIN_VERSION = '0.3.29';
+  const LMSTUDIO_NATIVE_MIN_VERSION = '0.4.0';
   const roleBody = document.getElementById('roleRows');
   if (!roleBody) return;
 
@@ -61,7 +62,7 @@
     const provider = selectedProviderClass();
     let text = '';
     if (provider === 'lmstudio') {
-      text = `LM Studio ${LMSTUDIO_MIN_VERSION}+ uses /v1/responses. Per-role reasoning supports Default, Low, Medium, and High; Default sends no reasoning-effort parameter.`;
+      text = `LM Studio Default/Low/Medium/High use /v1/responses (${LMSTUDIO_MIN_VERSION}+). None uses /api/v1/chat with reasoning off (${LMSTUDIO_NATIVE_MIN_VERSION}+).`;
     } else if (provider === 'openrouter') {
       text = 'OpenRouter reasoning is per role. Default sends no reasoning-effort parameter; available effort levels depend on the selected model/provider.';
     } else {

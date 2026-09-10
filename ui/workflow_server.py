@@ -35,8 +35,9 @@ OPENROUTER_CATEGORIES = {
 
 PROVIDER_CLASSES = {"lmstudio", "openrouter", "other"}
 REASONING_LEVELS = ("default", "none", "minimal", "low", "medium", "high", "xhigh")
-LMSTUDIO_REASONING_LEVELS = ("default", "low", "medium", "high")
+LMSTUDIO_REASONING_LEVELS = ("default", "none", "low", "medium", "high")
 LMSTUDIO_MIN_VERSION = "0.3.29"
+LMSTUDIO_NATIVE_MIN_VERSION = "0.4.0"
 
 _SETUP_CREDENTIAL = threading.local()
 _BASE_CHILD_ENV = base.child_env
@@ -209,7 +210,8 @@ def _validate_provider_reasoning(doc: dict[str, Any], provider_class: str) -> No
             if provider_class == "lmstudio":
                 raise base.UIError(
                     f"role {role} reasoning {effort!r} is not supported for LM Studio; choose one of: {', '.join(allowed)}. "
-                    f"NEL supports LM Studio {LMSTUDIO_MIN_VERSION}+ via /v1/responses."
+                    f"Default/low/medium/high use /v1/responses (LM Studio {LMSTUDIO_MIN_VERSION}+); "
+                    f"none uses /api/v1/chat with reasoning off (LM Studio {LMSTUDIO_NATIVE_MIN_VERSION}+)."
                 )
             raise base.UIError(f"role {role} reasoning must be Default for provider class {provider_class}")
 
@@ -311,6 +313,7 @@ def bootstrap() -> dict[str, Any]:
     doc["reasoning_levels"] = list(REASONING_LEVELS)
     doc["lmstudio_reasoning_levels"] = list(LMSTUDIO_REASONING_LEVELS)
     doc["lmstudio_min_version"] = LMSTUDIO_MIN_VERSION
+    doc["lmstudio_native_min_version"] = LMSTUDIO_NATIVE_MIN_VERSION
     doc["role_defaults"] = pipeline_registry.role_defaults()
     return doc
 

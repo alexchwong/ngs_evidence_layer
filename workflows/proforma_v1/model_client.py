@@ -69,8 +69,13 @@ class _ResponsesUnsupported(RuntimeError):
     """LM Studio does not expose the OpenAI-compatible Responses endpoint."""
 
 
+class _NativeChatUnsupported(RuntimeError):
+    """LM Studio does not expose the native v1 chat endpoint."""
+
+
 LMSTUDIO_MIN_VERSION = "0.3.29"
-LMSTUDIO_REASONING_LEVELS = {"low", "medium", "high"}
+LMSTUDIO_NATIVE_MIN_VERSION = "0.4.0"
+LMSTUDIO_RESPONSES_REASONING_LEVELS = {"low", "medium", "high"}
 
 
 def _is_lmstudio(binding: Binding) -> bool:
@@ -82,14 +87,77 @@ def _is_lmstudio(binding: Binding) -> bool:
     return host in {"localhost", "127.0.0.1", "::1"} or selector.startswith("lmstudio")
 
 
+def _lmstudio_transport(binding: Binding) -> str:
+    return "lmstudio-native" if str(binding.reasoning or "default").strip().lower() == "none" else "responses"
+
+
 def _endpoint(binding: Binding, *, transport: str | None = None) -> str:
-    selected = transport or ("responses" if _is_lmstudio(binding) else "chat")
+    selected = transport or (_lmstudio_transport(binding) if _is_lmstudio(binding) else "chat")
+    if selected == "lmstudio-native":
+        base = binding.base_url.rstrip("/")
+        if base.endswith("/v1"):
+            base = base[:-3]
+        return f"{base}/api/v1/chat"
     suffix = "responses" if selected == "responses" else "chat/completions"
     return f"{binding.base_url.rstrip('/')}/{suffix}"
 
 
 def _usage(document: dict) -> dict[str, object] | None:
     return model_usage.normalize_provider_usage(document)
+
+
+def _lmstudio_native_usage(document: dict[str, Any]) -> dict[str, object] | None:
+    stats = document.get("stats")
+    if not isinstance(stats, dict):
+        return None
+    usage: dict[str, object] = {}
+    input_tokens = stats.get("input_tokens")
+    output_tokens = stats.get("total_output_tokens")
+    reasoning_tokens = stats.get("reasoning_output_tokens")
+    if isinstance(input_tokens, int) and not isinstance(input_tokens, bool) and input_tokens >= 0:
+        usage["prompt_tokens"] = input_tokens
+    if isinstance(output_tokens, int) and not isinstance(output_tokens, bool) and output_tokens >= 0:
+        usage["completion_tokens"] = output_tokens
+    if "prompt_tokens" in usage and "completion_tokens" in usage:
+        usage["total_tokens"] = int(usage["prompt_tokens"]) + int(usage["completion_tokens"])
+    if isinstance(reasoning_tokens, int) and not isinstance(reasoning_tokens, bool) and reasoning_tokens >= 0:
+        usage["reasoning_tokens"] = reasoning_tokens
+    return usage or None
+
+
+def _lmstudio_native_output(document: dict[str, Any]) -> tuple[str, str | None, list[dict[str, Any]] | None]:
+    output = document.get("output")
+    if not isinstance(output, list):
+        return "", None, None
+    messages: list[str] = []
+    reasoning_parts: list[str] = []
+    reasoning_details: list[dict[str, Any]] = []
+    for item in output:
+        if not isinstance(item, dict):
+            continue
+        item_type = str(item.get("type") or "").strip().lower()
+        content = item.get("content")
+        if not isinstance(content, str):
+            continue
+        if item_type == "message":
+            messages.append(content)
+        elif item_type == "reasoning":
+            reasoning_parts.append(content)
+            reasoning_details.append(item)
+    return "".join(messages), "".join(reasoning_parts) or None, reasoning_details or None
+
+
+def _lmstudio_native_generation_id(document: dict[str, Any]) -> str | None:
+    value = document.get("response_id")
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def _lmstudio_native_unavailable(binding: Binding, detail: str = "") -> RuntimeError:
+    suffix = f" ({detail})" if detail else ""
+    return RuntimeError(
+        f"LM Studio {LMSTUDIO_NATIVE_MIN_VERSION}+ is required for reasoning=none via /api/v1/chat"
+        f"{suffix}. Upgrade LM Studio or choose a different reasoning setting."
+    )
 
 
 def _argv_value(flag: str) -> str:
@@ -215,14 +283,29 @@ def _reasoning_request(binding: Binding) -> dict[str, Any] | None:
     if _is_openrouter(binding):
         return {"effort": effort}
     if _is_lmstudio(binding):
-        if effort not in LMSTUDIO_REASONING_LEVELS:
-            allowed = ", ".join(sorted(LMSTUDIO_REASONING_LEVELS))
+        if effort == "none":
+            return None
+        if effort not in LMSTUDIO_RESPONSES_REASONING_LEVELS:
+            allowed = ", ".join(sorted(LMSTUDIO_RESPONSES_REASONING_LEVELS))
             raise RuntimeError(
                 f"LM Studio reasoning effort {effort!r} is unsupported by NEL; "
-                f"choose default, {allowed}"
+                f"choose default, none, {allowed}"
             )
         return {"effort": effort}
     return None
+
+
+def _lmstudio_native_prompt(messages: list[dict[str, str]]) -> tuple[str | None, str]:
+    system_parts = [str(row.get("content") or "") for row in messages if row.get("role") == "system"]
+    conversation = [row for row in messages if row.get("role") != "system"]
+    if len(conversation) == 1 and conversation[0].get("role") == "user":
+        user_input = str(conversation[0].get("content") or "")
+    else:
+        user_input = "\n\n".join(
+            f"[{str(row.get('role') or 'user').upper()}]\n{str(row.get('content') or '')}"
+            for row in conversation
+        )
+    return ("\n\n".join(part for part in system_parts if part) or None), user_input
 
 
 def _payload(
@@ -232,8 +315,20 @@ def _payload(
     stream: bool,
     transport: str | None = None,
 ) -> dict[str, Any]:
-    selected = transport or ("responses" if _is_lmstudio(binding) else "chat")
-    if selected == "responses":
+    selected = transport or (_lmstudio_transport(binding) if _is_lmstudio(binding) else "chat")
+    if selected == "lmstudio-native":
+        system_prompt, user_input = _lmstudio_native_prompt(messages)
+        payload = {
+            "model": binding.model,
+            "input": user_input,
+            "temperature": binding.temperature,
+            "max_output_tokens": binding.max_tokens,
+            "reasoning": "off",
+            "stream": stream,
+        }
+        if system_prompt is not None:
+            payload["system_prompt"] = system_prompt
+    elif selected == "responses":
         payload: dict[str, Any] = {
             "model": binding.model,
             "input": messages,
@@ -298,6 +393,12 @@ def _read_json_response(binding: Binding, request, *, transport: str) -> tuple[d
         with urllib.request.urlopen(request, timeout=binding.timeout_s) as response:
             body = response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
+        if transport == "lmstudio-native" and exc.code in {404, 405}:
+            try:
+                exc.read()
+            except OSError:
+                pass
+            raise _NativeChatUnsupported(f"HTTP {exc.code}") from exc
         if transport == "responses" and exc.code in {404, 405}:
             try:
                 exc.read()
@@ -467,6 +568,42 @@ def _complete_responses_nonstreaming(
     return Completion(content, usage, generation_id, reasoning or None, reasoning_details)
 
 
+
+
+def _complete_lmstudio_native_nonstreaming(
+    binding: Binding,
+    messages: list[dict[str, str]],
+    activity: _ActivityWriter | None = None,
+) -> Completion:
+    transport = "lmstudio-native"
+    request = _request(
+        binding,
+        _payload(binding, messages, stream=False, transport=transport),
+        transport=transport,
+    )
+    try:
+        document, body = _read_json_response(binding, request, transport=transport)
+    except _NativeChatUnsupported as exc:
+        raise _lmstudio_native_unavailable(binding, str(exc)) from exc
+    content, reasoning, reasoning_details = _lmstudio_native_output(document)
+    if not content.strip():
+        raise RuntimeError(f"provider returned an empty completion: {body[:600]}")
+    usage = _lmstudio_native_usage(document)
+    generation_id = _lmstudio_native_generation_id(document)
+    if activity is not None:
+        if reasoning:
+            activity.reasoning(reasoning)
+        activity.output(content)
+        activity.emit(
+            "finish",
+            finish_reason="stop",
+            reasoning_exposed=activity.reasoning_exposed,
+            streamed=False,
+            transport="api/v1/chat",
+        )
+    return Completion(content, usage, generation_id, reasoning, reasoning_details)
+
+
 def _complete_nonstreaming(
     binding: Binding,
     messages: list[dict[str, str]],
@@ -474,6 +611,8 @@ def _complete_nonstreaming(
 ) -> Completion:
     if not _is_lmstudio(binding):
         return _complete_chat_nonstreaming(binding, messages, activity)
+    if _lmstudio_transport(binding) == "lmstudio-native":
+        return _complete_lmstudio_native_nonstreaming(binding, messages, activity)
     try:
         return _complete_responses_nonstreaming(binding, messages, activity)
     except _ResponsesUnsupported as exc:
@@ -560,6 +699,12 @@ def _open_stream(binding: Binding, request, *, transport: str):
     try:
         return urllib.request.urlopen(request, timeout=binding.timeout_s)
     except urllib.error.HTTPError as exc:
+        if transport == "lmstudio-native" and exc.code in {404, 405}:
+            try:
+                exc.read()
+            except OSError:
+                pass
+            raise _NativeChatUnsupported(f"HTTP {exc.code}") from exc
         if transport == "responses" and exc.code in {404, 405}:
             try:
                 exc.read()
@@ -794,6 +939,107 @@ def _complete_responses_streaming(
     )
 
 
+
+
+def _complete_lmstudio_native_streaming(
+    binding: Binding,
+    messages: list[dict[str, str]],
+    activity: _ActivityWriter,
+) -> Completion:
+    transport = "lmstudio-native"
+    request = _request(
+        binding,
+        _payload(binding, messages, stream=True, transport=transport),
+        transport=transport,
+    )
+    try:
+        response = _open_stream(binding, request, transport=transport)
+    except _NativeChatUnsupported as exc:
+        raise _lmstudio_native_unavailable(binding, str(exc)) from exc
+    saw_event = False
+    content_parts: list[str] = []
+    reasoning_parts: list[str] = []
+    final_result: dict[str, Any] | None = None
+    stream_error: str | None = None
+
+    try:
+        with response:
+            for raw_line in response:
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line or line.startswith(":") or not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if not data:
+                    continue
+                try:
+                    document = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(document, dict):
+                    continue
+                saw_event = True
+                event_type = str(document.get("type") or "").strip().lower()
+                if event_type == "message.delta":
+                    chunk = document.get("content")
+                    if isinstance(chunk, str) and chunk:
+                        content_parts.append(chunk)
+                        activity.output(chunk)
+                elif event_type == "reasoning.delta":
+                    chunk = document.get("content")
+                    if isinstance(chunk, str) and chunk:
+                        reasoning_parts.append(chunk)
+                        activity.reasoning(chunk)
+                elif event_type == "error":
+                    error = document.get("error")
+                    if isinstance(error, dict):
+                        stream_error = str(error.get("message") or error.get("type") or "LM Studio native chat stream error")
+                    else:
+                        stream_error = "LM Studio native chat stream error"
+                elif event_type == "chat.end":
+                    result = document.get("result")
+                    if isinstance(result, dict):
+                        final_result = result
+    except TimeoutError as exc:
+        raise RuntimeError(f"provider request timed out after {binding.timeout_s}s") from exc
+    except OSError as exc:
+        if not saw_event and not content_parts:
+            raise _StreamingUnsupported(str(exc)) from exc
+        raise RuntimeError(f"provider stream failed for {binding.model!r}: {exc}") from exc
+
+    if not saw_event:
+        raise _StreamingUnsupported("provider returned no SSE native chat events")
+    content = "".join(content_parts)
+    final_reasoning = None
+    reasoning_details = None
+    usage = None
+    generation_id = None
+    if final_result is not None:
+        final_content, final_reasoning, reasoning_details = _lmstudio_native_output(final_result)
+        if not content.strip() and final_content:
+            content = final_content
+            activity.output(content)
+        if not reasoning_parts and final_reasoning:
+            reasoning_parts.append(final_reasoning)
+            activity.reasoning(final_reasoning)
+        usage = _lmstudio_native_usage(final_result)
+        generation_id = _lmstudio_native_generation_id(final_result)
+    if stream_error:
+        raise RuntimeError(stream_error)
+    if not content.strip():
+        raise RuntimeError("provider returned an empty completion")
+    activity.emit(
+        "finish",
+        finish_reason="stop",
+        reasoning_exposed=activity.reasoning_exposed,
+        streamed=True,
+        transport="api/v1/chat",
+    )
+    return Completion(
+        content, usage, generation_id,
+        "".join(reasoning_parts) or None, reasoning_details,
+    )
+
+
 def _complete_streaming(
     binding: Binding,
     messages: list[dict[str, str]],
@@ -801,6 +1047,8 @@ def _complete_streaming(
 ) -> Completion:
     if not _is_lmstudio(binding):
         return _complete_chat_streaming(binding, messages, activity)
+    if _lmstudio_transport(binding) == "lmstudio-native":
+        return _complete_lmstudio_native_streaming(binding, messages, activity)
     try:
         return _complete_responses_streaming(binding, messages, activity)
     except _ResponsesUnsupported as exc:
