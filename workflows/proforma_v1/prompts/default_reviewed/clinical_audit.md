@@ -19,7 +19,7 @@ Use only the supplied case and accepted clinical artifacts. Do not introduce a n
 3. **Prognosis framework preservation**
    - Apply the accepted framework preset below. A framework required by the authoritative disease must not disappear or be replaced by a cohort study/non-framework source.
 
-{{ include "../prognostic_frameworks.md" }}
+{{ module "prognostic_frameworks" }}
 
 4. **Germline threshold coherence**
    - `germline_suspicious` requires patient-specific positive support for constitutional origin; mere biological possibility, a known predisposition association, or missing family history is insufficient.

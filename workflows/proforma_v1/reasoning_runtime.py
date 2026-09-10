@@ -15,6 +15,7 @@ import re
 
 import yaml
 from jsonschema import Draft202012Validator
+from workflows.proforma_v1 import default_config
 from scripts.core.syntax_repair.adapters import (
     WrongStructuredArtifactError,
     SyntaxParseError,
@@ -2798,16 +2799,38 @@ _PTBG_BUCKET_REPORTABLE = {
     "biomarker": {"mrd_marker": True, "not_mrd_marker": False},
     "germline": {"germline_suspicious": True, "germline_against": False, "germline_uncertain": False},
 }
-_PROGNOSTIC_FRAMEWORK_PRESET = {
-    "AML": ("ELN 2022 genetic risk classification",),
-    "MDS": ("IPSS-M",),
-    "CMML": ("CPSS-Mol",),
-    "Primary myelofibrosis": ("MIPSS70", "MIPSS70-plus", "MIPSS70+ v2.0"),
-    "Post-PV/post-ET myelofibrosis": ("MYSEC-PM",),
-    "Essential thrombocythaemia": ("MIPSS-ET", "revised IPSET-thrombosis"),
-    "Polycythaemia vera": ("MIPSS-PV",),
-    "CHIP/CCUS": ("CHRS",),
-}
+_PROGNOSTIC_FRAMEWORK_LINE_RE = re.compile(r"^- ([^:]+): `([^`]+)`\s*$")
+
+
+def _parse_prognostic_framework_preset(text: str) -> dict[str, tuple[str, ...]]:
+    """Parse the versioned prognostic-framework module's deterministic preset."""
+    parsed: dict[str, list[str]] = {}
+    saw_bullet = False
+    for line in text.splitlines():
+        if not line.startswith("- "):
+            continue
+        saw_bullet = True
+        match = _PROGNOSTIC_FRAMEWORK_LINE_RE.fullmatch(line)
+        if match is None:
+            raise ValueError(f"invalid prognostic framework preset line: {line!r}")
+        disease, framework = (part.strip() for part in match.groups())
+        if not disease or not framework:
+            raise ValueError(f"invalid prognostic framework preset line: {line!r}")
+        parsed.setdefault(disease, []).append(framework)
+    if not saw_bullet or not parsed:
+        raise ValueError("prognostic framework prompt module contains no parseable preset entries")
+    return {disease: tuple(frameworks) for disease, frameworks in parsed.items()}
+
+
+def _prognostic_framework_preset() -> dict[str, tuple[str, ...]]:
+    spec = default_config.module_spec("prognostic_frameworks")
+    if not spec["enabled"]:
+        return {}
+    path = default_config.module_asset_path("prognostic_frameworks")
+    try:
+        return _parse_prognostic_framework_preset(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ValueError(f"cannot read prognostic framework prompt module {path}: {exc}") from exc
 
 
 def _source_label_for_card(card: dict) -> str | None:
@@ -3046,12 +3069,13 @@ def validate_ptbg_reasoning_v2(context: dict, params: dict) -> dict:
     doc = _ptbg_reasoning(ctx, domain)
     issues = _simple_ptbg_issues(doc, domain=domain, case=case, internal_registry=registry)
     if domain == "prognosis":
+        preset = _prognostic_framework_preset()
         disease = _authoritative_disease(context)
-        required = set(_PROGNOSTIC_FRAMEWORK_PRESET.get(str(disease), ())) if disease != "no_haematological_malignancy" else set()
+        required = set(preset.get(str(disease), ())) if disease != "no_haematological_malignancy" else set()
         selected = {x.get("name") for x in doc.get("frameworks") or [] if isinstance(x, dict) and x.get("applicable") is True}
         for name in sorted(required - selected):
             issues.append(AuditIssue("missing_required_prognostic_framework", "$.frameworks", f"authoritative disease {disease!r} requires assessment of prognostic framework {name!r}", f"include {name!r} and assess applicability/tier from supplied findings; use tier: null if a tier cannot be assigned"))
-        allowed=set(sum((list(v) for v in _PROGNOSTIC_FRAMEWORK_PRESET.values()), []))
+        allowed=set(sum((list(v) for v in preset.values()), []))
         for i, row in enumerate(doc.get("frameworks") or []):
             if isinstance(row,dict) and row.get("name") not in allowed:
                 issues.append(AuditIssue("unknown_prognostic_framework", f"$.frameworks[{i}].name", f"{row.get('name')!r} is not an accepted framework", "use only the accepted disease-to-framework preset"))

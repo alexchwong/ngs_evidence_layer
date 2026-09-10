@@ -35,11 +35,10 @@ def _render_module(name: str, *, root: Path, stack: tuple[Path, ...]) -> str:
     if not spec["enabled"]:
         return default_config.BLANK_SECTION
     package = _package_root(root)
-    child = package / "prompts" / "modules" / name / f"{spec['version']}.md"
-    if not child.is_file():
-        raise PromptIncludeError(
-            f"prompt module asset not found for {name!r} version {spec['version']!r}: {child}"
-        )
+    try:
+        child = default_config.module_asset_path(name)
+    except ValueError as exc:
+        raise PromptIncludeError(str(exc)) from exc
     return render(child, root=package, _stack=stack).rstrip()
 
 

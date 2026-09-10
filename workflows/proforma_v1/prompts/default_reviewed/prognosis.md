@@ -2,7 +2,7 @@
 
 Using only the supplied case, authoritative diagnosis, and prognosis cards, assess prognosis in the authoritative disease context.
 
-{{ include "../prognostic_frameworks.md" }}
+{{ module "prognostic_frameworks" }}
 
 Reasoning feedback (null on first pass):
 {{ input.reasoning_feedback }}

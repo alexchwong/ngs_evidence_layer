@@ -93,6 +93,17 @@ def module_spec(name: str, selection: str | Path | None = None) -> dict[str, Any
     return {"enabled": enabled, "version": version}
 
 
+def module_asset_path(name: str, selection: str | Path | None = None) -> Path:
+    """Return the configured versioned prompt-module asset path."""
+    spec = module_spec(name, selection)
+    path = package_root() / "prompts" / "modules" / name / f"{spec['version']}.md"
+    if not path.is_file():
+        raise ValueError(
+            f"prompt module asset not found for {name!r} version {spec['version']!r}: {path}"
+        )
+    return path
+
+
 def enrichment_spec(name: str, selection: str | Path | None = None) -> dict[str, Any]:
     doc = load(selection)
     enrichments = doc.get("deterministic_enrichments") or {}

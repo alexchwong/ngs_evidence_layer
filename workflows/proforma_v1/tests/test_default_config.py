@@ -64,6 +64,25 @@ class DefaultConfigTests(unittest.TestCase):
         self.assertNotIn(default_config.BLANK_SECTION, text)
         self.assertNotIn("protein_alias", registry["v01"])
 
+
+    def test_default_reviewed_prompts_render_versioned_prognostic_framework_module(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(default_config.ENV_DEFAULT_CONFIG, None)
+            for rel in (
+                "prompts/default_reviewed/prognosis.md",
+                "prompts/default_reviewed/clinical_audit.md",
+                "prompts/default_reviewed_v2/prognosis.md",
+            ):
+                with self.subTest(prompt=rel):
+                    text = prompt_loader.render(Path(rel), root=ROOT)
+                    self.assertIn("ELN 2022 genetic risk classification", text)
+                    self.assertNotIn('{{ module "prognostic_frameworks" }}', text)
+
+    def test_module_asset_path_tracks_configured_version(self):
+        path = default_config.module_asset_path("prognostic_frameworks")
+        self.assertEqual(path.name, "v1.md")
+        self.assertTrue(path.is_file())
+
     def test_simple_three_letter_protein_substitution_alias_is_unchanged(self):
         self.assertEqual(model_context.protein_substitution_alias("TP53 p.Arg175His"), "R175H")
         self.assertIsNone(model_context.protein_substitution_alias("TP53 exon 5 deletion"))

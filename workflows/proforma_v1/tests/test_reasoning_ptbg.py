@@ -50,6 +50,39 @@ class ReasoningPtbgTests(unittest.TestCase):
                 self.ctx[f"{domain}_evidence_match"] = {"assignments": [{"reasoning_id": x["reasoning_id"], "card_tags": ["[card:aaaaaaaaaaaa]"]} for x in pack["items"]]}
                 self.assertEqual(rr.validate_ptbg_evidence_match(self.wrap, {"domain": domain})["status"], "pass")
 
+
+    def test_prognostic_framework_preset_is_parsed_from_versioned_module(self):
+        text = (Path(__file__).resolve().parents[1] / "prompts" / "modules" / "prognostic_frameworks" / "v1.md").read_text(encoding="utf-8")
+        preset = rr._parse_prognostic_framework_preset(text)
+        self.assertEqual(
+            preset["Primary myelofibrosis"],
+            ("MIPSS70", "MIPSS70-plus", "MIPSS70+ v2.0"),
+        )
+
+    def test_prognostic_framework_preset_uses_selected_module_asset(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as tmp:
+            v1 = Path(tmp) / "v1.md"
+            v2 = Path(tmp) / "v2.md"
+            v1.write_text("- MDS: `IPSS-M`\n", encoding="utf-8")
+            v2.write_text("- MDS: `TEST-FRAMEWORK`\n", encoding="utf-8")
+            selected = {"version": "v1"}
+
+            def fake_spec(name):
+                return {"enabled": True, "version": selected["version"]}
+
+            def fake_path(name):
+                return v1 if selected["version"] == "v1" else v2
+
+            with patch.object(rr.default_config, "module_spec", fake_spec), patch.object(rr.default_config, "module_asset_path", fake_path):
+                self.assertEqual(rr._prognostic_framework_preset()["MDS"], ("IPSS-M",))
+                selected["version"] = "v2"
+                self.assertEqual(rr._prognostic_framework_preset()["MDS"], ("TEST-FRAMEWORK",))
+
+    def test_prognostic_framework_preset_rejects_malformed_bullet(self):
+        with self.assertRaisesRegex(ValueError, "invalid prognostic framework preset line"):
+            rr._parse_prognostic_framework_preset("- MDS: IPSS-M\n")
+
     def test_mds_requires_ipss_m(self):
         bad = ptbg("prognosis"); bad["frameworks"] = []
         self.ctx["prognosis_reasoning"] = bad
