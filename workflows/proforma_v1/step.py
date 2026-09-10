@@ -1889,7 +1889,7 @@ def _provider_handlers(workflow):
 
     def who1_commit_handler(step, ctx):
         from workflows.proforma_v1 import self_runtime as sr
-        commit=sr.commit_who1_routing(ctx.work); ctx.put('who1_commit',commit); ctx.put('committed_who1',commit['accepted_who1'])
+        commit=sr.commit_who1_routing(ctx.work, context=ctx); ctx.put('who1_commit',commit); ctx.put('committed_who1',commit['accepted_who1'])
         history=list((ctx.get('case') or {}).get('bootstrap_cmcs') or [])
         for cmc in commit.get('routing_cmcs') or []:
             if cmc not in history: history.append(cmc)

@@ -895,6 +895,26 @@ class Phase3WhoRoutingTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,"inferred"):
                     self_runtime.commit_who1_routing(work)
 
+    def test_rejected_inferred_routing_change_is_terminal_in_workflow_context_and_emits_audit_log(self):
+        from workflows.proforma_v1.engine.context import WorkflowContext
+        from workflows.proforma_v1.engine.workflow_runner import TerminalWorkflowFailure
+        with tempfile.TemporaryDirectory() as td:
+            work=Path(td); layout.ensure_dirs(work)
+            case={"provisional_disease":"No morphologic diagnosis supplied","morphologic_diagnosis_origin":"inferred","bootstrap_cmcs":[]}
+            who1={"schema_disease":"CHIP","diagnosis":"Clonal haematopoiesis of indeterminate potential (CHIP)","diagnostic_effect":"updated","variants":["v01"],"reason":"unsupported"}
+            change={"changed":True,"previous":{},"proposed":{"schema_disease":"CHIP"}}
+            patches=self._patch_common(case,who1,change,[])
+            ctx=WorkflowContext(work, executor="provider")
+            with patches[0],patches[1],patches[2],patches[3],patches[4],patches[5]:
+                with self.assertRaisesRegex(TerminalWorkflowFailure,"starting diagnosis was inferred"):
+                    self_runtime.commit_who1_routing(work, context=ctx)
+            failure=json.loads((work/"logs"/"workflow-failure.json").read_text(encoding="utf-8"))
+            self.assertFalse(failure["retryable"])
+            audit=(work/"audit-log.md").read_text(encoding="utf-8")
+            self.assertIn("Clonal haematopoiesis of indeterminate potential", audit)
+            self.assertIn("did not retain any card", audit)
+            self.assertIn("no supplied morphologic diagnosis", audit.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

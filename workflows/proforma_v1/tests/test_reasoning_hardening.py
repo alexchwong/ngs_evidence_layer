@@ -141,10 +141,23 @@ class ReasoningResumeHardeningTests(unittest.TestCase):
             self.assertEqual(record["exit_code"], TERMINAL_WORKFLOW_EXIT_CODE)
             self.assertEqual(direct_failure.exception.code, TERMINAL_WORKFLOW_EXIT_CODE)
             self.assertEqual(runner_failure.exception.code, TERMINAL_WORKFLOW_EXIT_CODE)
+            audit = (Path(direct_tmp) / "audit-log.md").read_text(encoding="utf-8")
+            self.assertIn("# Audit log", audit)
+            self.assertIn("non-resumable terminal condition", audit)
+            self.assertIn("invalid adjudication", audit)
+            self.assertTrue((Path(runner_tmp) / "audit-log.md").is_file())
             self.assertEqual(
                 json.loads((Path(direct_tmp) / "logs" / "workflow-control.json").read_text()),
                 {"review_cycles": {"audit.owner.gate": 2}},
             )
+
+    def test_ordinary_failure_does_not_emit_terminal_audit_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            with self.assertRaises(RuntimeError):
+                raise RuntimeError("retryable ordinary failure")
+            self.assertFalse((work / "audit-log.md").exists())
+            self.assertFalse((work / "logs" / "workflow-failure.json").exists())
 
     def test_failed_review_blocks_hydration_of_descendants(self):
         workflow, target, review, child = self._review_workflow()

@@ -665,7 +665,7 @@ def prepare_who1_evidence_adjudication(work: Path, *, prompt: Path | None = None
     return {"required":True,"prompt":prompt,"disputes":crop,"cards":cards,"output":_who1_gate_adjudication_path(work, create=True)}
 
 
-def commit_who1_routing(work: Path) -> dict:
+def commit_who1_routing(work: Path, *, context=None) -> dict:
     change=assess_who1_routing_change(work); who1=accept_who(work,pass_number=1); case,_reg=load_case_registry(work)
     accepted_tags=[]; rejected=False
     if change.get("changed"):
@@ -681,7 +681,21 @@ def commit_who1_routing(work: Path) -> dict:
     fallback=False
     if rejected:
         if case.get("morphologic_diagnosis_origin") != "supplied":
-            raise ValueError("WHO1 diagnostic change failed blocking evidence support and the starting diagnosis was inferred; no deterministic fallback diagnosis is available")
+            message = "WHO1 diagnostic change failed blocking evidence support and the starting diagnosis was inferred; no deterministic fallback diagnosis is available"
+            issue="who1-diagnostic-evidence-rejected-no-fallback"
+            staged._semantic_dissent(
+                work, issue_key=issue, stage="WHO1 blocking diagnostic evidence",
+                reviewed_text=f"Proposed WHO5 diagnosis: {who1.get('diagnosis')}",
+                dissent_reason=[
+                    "The WHO1 diagnostic proposal did not retain any card after blocking evidence review.",
+                    "The starting diagnosis was inferred rather than supplied, so there is no supplied morphologic diagnosis that can be restored deterministically.",
+                ],
+                action_recommended="Stop the run rather than commit an unsupported diagnosis or fabricate a fallback diagnosis.",
+            )
+            if context is not None:
+                from workflows.proforma_v1.engine.workflow_runner import raise_terminal_failure
+                raise_terminal_failure(context, reviewer="diagnosis.who1.commit", message=message)
+            raise ValueError(message)
         fallback_schema=runtime.vocab.canonical_case_disease(case.get("provisional_disease"))
         routing_changed=bool(change.get("routing_changed", change.get("changed")))
         if not fallback_schema and not routing_changed:
@@ -692,7 +706,21 @@ def commit_who1_routing(work: Path) -> dict:
                 # subtype/diagnostic wording is not imported into the fallback.
                 fallback_schema=proposed_schema
         if not fallback_schema:
-            raise ValueError("WHO1 diagnostic change failed blocking evidence support and the supplied morphologic diagnosis cannot be deterministically mapped to an existing schema route")
+            message = "WHO1 diagnostic change failed blocking evidence support and the supplied morphologic diagnosis cannot be deterministically mapped to an existing schema route"
+            issue="who1-diagnostic-evidence-rejected-unmappable-fallback"
+            staged._semantic_dissent(
+                work, issue_key=issue, stage="WHO1 blocking diagnostic evidence",
+                reviewed_text=f"Proposed WHO5 diagnosis: {who1.get('diagnosis')}",
+                dissent_reason=[
+                    "The WHO1 diagnostic proposal did not retain any card after blocking evidence review.",
+                    f"The supplied morphologic diagnosis '{case.get('provisional_disease')}' could not be mapped deterministically to an existing schema route.",
+                ],
+                action_recommended="Stop the run rather than commit an unsupported diagnosis or guess a schema route for the supplied morphology.",
+            )
+            if context is not None:
+                from workflows.proforma_v1.engine.workflow_runner import raise_terminal_failure
+                raise_terminal_failure(context, reviewer="diagnosis.who1.commit", message=message)
+            raise ValueError(message)
         accepted_who1={"schema_disease":fallback_schema,"diagnosis":case.get("provisional_disease"),"diagnostic_effect":"unchanged","variants":[],"reason":"The supplied morphologic diagnosis is retained unchanged because the proposed WHO5 diagnostic change did not pass blocking evidence review."}
         fallback=True
         issue="who1-routing-evidence-rejected"

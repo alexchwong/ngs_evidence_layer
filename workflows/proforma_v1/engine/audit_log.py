@@ -539,6 +539,73 @@ def _public_decision(row: dict) -> dict:
     return out
 
 
+def render_terminal_failure(work: Path, failure: dict[str, Any]) -> dict[str, Any]:
+    """Deterministically render ``audit-log.md`` for a non-resumable run.
+
+    This path is intentionally separate from the normal model-summarized audit
+    tail.  It is called only after the workflow has explicitly classified a
+    failure as non-retryable, so ordinary/retryable exceptions never create a
+    post-mortem audit log.  Rendering is deterministic because a terminal run
+    must not depend on another model call merely to explain why it stopped.
+    """
+    work = Path(work)
+    target = work / "audit-log.md"
+    legacy = work / "dissent.md"
+    if legacy.exists():
+        legacy.unlink()
+
+    reviewer = str((failure or {}).get("reviewer") or "workflow").strip()
+    message = str((failure or {}).get("message") or "The workflow stopped at a non-resumable failure.").strip()
+    sections = [
+        "# Audit log",
+        "",
+        "## Run outcome",
+        "",
+        "The case did not complete. The workflow reached a non-resumable terminal condition, so automatic resume/retry was forbidden.",
+        "",
+        f"**Terminal stage:** {reviewer}",
+        "",
+        f"**Reason:** {message}",
+    ]
+
+    issues = workflow_dissent.doc(work).get("issues") or []
+    if issues:
+        sections.extend(["", "## Semantic review history"] )
+    for issue in issues:
+        if not isinstance(issue, dict):
+            continue
+        reviewed = str(issue.get("reviewed_text") or "").strip()
+        if not reviewed:
+            continue
+        sections.extend(["", f"### {reviewed}", ""] )
+        for event in issue.get("history") or []:
+            if not isinstance(event, dict):
+                continue
+            stage = str(event.get("stage") or "semantic review").strip()
+            kind = str(event.get("event") or "event").strip()
+            sections.append(f"**{stage} — {kind}**")
+            for key, label in (
+                ("reason", "Concern"),
+                ("resolution_recommendation", "Recommended action"),
+                ("action", "Action"),
+                ("outcome", "Outcome"),
+            ):
+                values = event.get(key)
+                values = values if isinstance(values, list) else [values]
+                values = [str(item).strip() for item in values if str(item or "").strip()]
+                if values:
+                    sections.append(f"- {label}: " + "; ".join(values))
+        status = str(issue.get("status") or "").strip()
+        if status:
+            sections.append(f"- Status at termination: {status}")
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(target.name + ".tmp")
+    temporary.write_text("\n".join(sections).rstrip() + "\n", encoding="utf-8")
+    temporary.replace(target)
+    return {"status": "terminal_failure", "issue_count": len(issues), "path": str(target)}
+
+
 def audit_log_packet(value: Any, context: dict, params: dict) -> Any:
     """Build a compact, decision-centric default-workflow semantic audit packet."""
     _ctx, get, work = _workflow_context(context)

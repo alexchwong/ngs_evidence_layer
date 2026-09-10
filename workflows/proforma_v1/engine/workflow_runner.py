@@ -107,6 +107,15 @@ def raise_terminal_failure(
         temporary.unlink(missing_ok=True)
         raise
     control_state.save(context)
+    # Only this explicit non-retryable path emits a failure audit log. Ordinary
+    # exceptions remain resumable/retryable and must not create a post-mortem.
+    try:
+        from workflows.proforma_v1.engine import audit_log
+        audit_log.render_terminal_failure(Path(context.work), json.loads(payload))
+    except Exception as exc:
+        # Failure presentation is best-effort and must never mask the original
+        # terminal condition. The structured workflow-failure record remains.
+        print(f"proforma-v1 terminal audit-log render failed: {exc}", file=sys.stderr, flush=True)
     print(f"proforma-v1 terminal failure: {message}", file=sys.stderr, flush=True)
     raise TerminalWorkflowFailure(message, reviewer=reviewer)
 

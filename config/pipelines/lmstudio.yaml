@@ -35,10 +35,6 @@ model_roles:
     model: default
   syntax_repair:
     model: default
-  schema_repair:
-    model: default
-  content_repair:
-    model: default
   evidence_adjudication:
     model: default
   reasoning_audit:

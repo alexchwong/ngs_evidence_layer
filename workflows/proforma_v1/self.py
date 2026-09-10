@@ -425,7 +425,7 @@ def _self_handlers():
         return _handoff('diagnosis_who1_evidence_adjudication',decorate(manifest,step,ctx))
 
     def who1_commit(step, ctx):
-        commit=sr.commit_who1_routing(ctx.work); ctx.put('who1_commit',commit); ctx.put('committed_who1',commit['accepted_who1']); return {'status':'complete','artifact':commit}
+        commit=sr.commit_who1_routing(ctx.work, context=ctx); ctx.put('who1_commit',commit); ctx.put('committed_who1',commit['accepted_who1']); return {'status':'complete','artifact':commit}
 
     def who2(step, ctx):
         return _handoff('diagnosis',decorate(sr.prepare_who(ctx.work,pass_number=2,prompt=step.prompt),step,ctx))

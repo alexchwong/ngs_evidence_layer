@@ -318,8 +318,8 @@ def prognosis_contract(doc, context, params):
                     repair_class="content", received=name, expected="unique framework name",
                 ))
             names.append(name)
-        combined = " ".join(str(framework.get(k) or "") for k in ("tier", "reason"))
-        if _NOT_CALCULABLE.search(combined):
+        tier = framework.get("tier")
+        if isinstance(tier, str) and _NOT_CALCULABLE.search(tier):
             out.append(ValidationIssue(
                 f"prognostic_frameworks[{i}].tier",
                 "reports an inability to calculate/assign the framework tier",
