@@ -174,9 +174,9 @@ Molecular testing identifies:
 
 #### R2 — Prognostic interpretation
 
-- **R2C2.** State that CALR type-1 or type-1-like status is a favourable molecular variable in the relevant MIPSS70+ framework.
-- **R2C3.** State that ASXL1 mutation is an adverse molecular variable in the relevant MIPSS70+ framework.
-- **R2C4.** State that U2AF1 Q157 mutation is an adverse molecular variable in MIPSS70+ v2.0.
+- **R2C1.** State that CALR type-1 or type-1-like status is a favourable molecular variable in the relevant MIPSS70+ framework.
+- **R2C2.** State that ASXL1 mutation is an adverse molecular variable in the relevant MIPSS70+ framework.
+- **R2C3.** State that U2AF1 Q157 mutation is an adverse molecular variable in MIPSS70+ v2.0.
 
 ## Case 7
 

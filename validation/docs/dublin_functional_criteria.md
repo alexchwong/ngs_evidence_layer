@@ -68,9 +68,9 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     },
     "6": {
       "R1C1": "F1",
+      "R2C1": "F9",
       "R2C2": "F9",
-      "R2C3": "F9",
-      "R2C4": "F9"
+      "R2C3": "F9"
     },
     "7": {
       "R1C1": "F1",

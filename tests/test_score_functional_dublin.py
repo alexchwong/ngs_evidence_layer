@@ -39,7 +39,7 @@ class DublinFunctionalSpecificationTests(unittest.TestCase):
             "F1": {"1","2","3","6","7","8","10"},
             "F2": {"1","2","3","4","5","9"},
             "F3": {"3","5","8"},
-            "F4": {"1","3","6","9"},
+            "F4": {"1","3","9"},
             "F5": {"1","2","9"},
             "F6": {"1","2","3"},
             "F7": {"1","4","7"},
@@ -92,7 +92,7 @@ class DublinFunctionalScoringTests(unittest.TestCase):
 
     def test_partial_criterion_makes_function_not_met(self):
         results = all_met(self.spec, "6")
-        results["R2C3"] = {"met": False, "failure_mode": "partial"}
+        results["R2C2"] = {"met": False, "failure_mode": "partial"}
         score = scorer.score_case("6", marking_text(results), self.spec)
         self.assertEqual(score["functions"]["F9"]["result"], "not_met")
 

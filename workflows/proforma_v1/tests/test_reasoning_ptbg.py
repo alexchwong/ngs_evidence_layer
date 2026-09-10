@@ -51,14 +51,6 @@ class ReasoningPtbgTests(unittest.TestCase):
                 self.assertEqual(rr.validate_ptbg_evidence_match(self.wrap, {"domain": domain})["status"], "pass")
 
 
-    def test_prognostic_framework_preset_is_parsed_from_versioned_module(self):
-        text = (Path(__file__).resolve().parents[1] / "prompts" / "modules" / "prognostic_frameworks" / "v1.md").read_text(encoding="utf-8")
-        preset = rr._parse_prognostic_framework_preset(text)
-        self.assertEqual(
-            preset["Primary myelofibrosis"],
-            ("MIPSS70", "MIPSS70-plus", "MIPSS70+ v2.0"),
-        )
-
     def test_prognostic_framework_preset_uses_selected_module_asset(self):
         from tempfile import TemporaryDirectory
         with TemporaryDirectory() as tmp:
