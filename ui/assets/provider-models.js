@@ -312,9 +312,17 @@
         overwriteApprovedName = '';
         return;
       }
-      if ($('overwriteProfile')) $('overwriteProfile').checked = false;
       const row = profileRow(name);
-      if (!row) return;
+      if (!row) {
+        if ($('overwriteProfile')) $('overwriteProfile').checked = false;
+        return;
+      }
+      const loadedName = String($('profileDialog')?.dataset.loadedProfile || '').trim();
+      if (!row.shipped && loadedName === name) {
+        if ($('overwriteProfile')) $('overwriteProfile').checked = true;
+        return;
+      }
+      if ($('overwriteProfile')) $('overwriteProfile').checked = false;
       event.preventDefault();
       event.stopImmediatePropagation();
       if (row.shipped) {

@@ -55,6 +55,8 @@ def test_profile_editor_layout_contract() -> None:
     assert "nel-profile-identity-actions" in text
     assert "actions.appendChild(saveButton)" in text
     assert "Overwrite profile?" in text
+    assert "dataset.loadedProfile" in text
+    assert "!row.shipped && loadedName === name" in text
     assert "installConnectionSummary" in text
     assert "Local OpenAI-compatible models served by LM Studio." in text
     assert "Hosted models accessed through OpenRouter" in text

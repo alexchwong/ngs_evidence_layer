@@ -310,6 +310,14 @@ class CompositionTests(unittest.TestCase):
         _name, doc = server.compose_pipeline(payload)
         self.assertEqual(doc["model_roles"]["structure"], {"model": "fast"})
 
+    def test_second_alias_can_be_assigned_to_a_role(self):
+        payload = _valid_payload()
+        payload["roles"]["diagnosis"]["model"] = "plain"
+        _name, doc = server.compose_pipeline(payload)
+        self.assertEqual(set(doc["model_aliases"]), {"fast", "plain"})
+        self.assertEqual(doc["model_roles"]["diagnosis"], {"model": "plain"})
+        server.validate_pipeline(doc)
+
     def test_order_split_into_list(self):
         _name, doc = server.compose_pipeline(_valid_payload())
         routing = doc["model_aliases"]["fast"]["provider"]
