@@ -695,28 +695,21 @@ Restores `paper.md` and `metadata.json`. `redo.json` names the next census, prov
 and review attempt so regenerated files cannot collide with archived legacy or versioned
 filenames. Complete Phases 1–4 and confirm normally.
 
-### Redo the provisional extraction
+### Redo the provisional card set
 
 ```bash
 python scripts/prepare_redo.py provisional --key <publication-key>
 ```
 
-Restores `paper.md`, `metadata.json`, and the accepted census using its archived filename.
-The census is read-only; if it must change, use `census` mode. Complete Phases 2–4.
-
-### Review accepted cards
-
-```bash
-python scripts/prepare_redo.py cards --key <publication-key>
-```
-
 Restores `paper.md`, `metadata.json`, the accepted census, and `paper.final.json` from the
-archive/accepted state into `work/`. Phase 2R is interactive: the accepted final is the
+archive/accepted state into `work/` and enters Phase 2R. The census is read-only; if it
+must change, use `census` mode. Phase 2R is interactive: the accepted final is the
 immutable baseline, proposed changes do nothing until explicitly approved by the user,
 and `FINALIZE` writes both the decision ledger and the revised provisional. Deterministic
 validation rejects any card/evidence difference not represented by an approved
 `add`/`modify`/`delete` decision. Phase 3 reviews the changed/new subset and Phase 4 then
-uses the normal adjudication workflow. There is no separate Phase 5 or Phase 5R.
+uses the normal adjudication workflow. There is no separate Phase 5 or Phase 5R. `cards` is retained as a compatibility alias
+for the same Phase 2R preparation path.
 
 ### Confirmation and history
 

@@ -54,8 +54,10 @@ def _restore_bytes(path, payload):
         raise
 
 
-def _resolve_lineage_file(working, kind, round_number, revision=None):
-    if revision is not None:
+def _resolve_lineage_file(
+    working, kind, round_number, revision=None, namespace_declared=False
+):
+    if namespace_declared or revision is not None:
         return ingest_artifacts.resolve_phase_for_round(
             working, kind, round_number, revision=revision
         )
@@ -64,7 +66,25 @@ def _resolve_lineage_file(working, kind, round_number, revision=None):
     )
 
 
-def _validate_original_history(paths, working, final, metadata, census, revision=None):
+def _redo_lineage_namespace(marker):
+    """Return the namespace declared by a redo marker's provisional output.
+
+    ``next_outputs.provisional`` is authoritative for workspaces prepared while
+    provisional redos still used the unqualified namespace. Newer provisional and
+    cards redos declare a revision-qualified output and continue to resolve strictly
+    within that namespace.
+    """
+    provisional_name = (marker.get("next_outputs") or {}).get("provisional")
+    if not isinstance(provisional_name, str):
+        revision = marker.get("revision") if marker.get("mode") == "cards" else None
+        return revision is not None, revision
+    identity = ingest_artifacts.phase_identity(Path(provisional_name), "provisional")
+    return (True, identity[0]) if identity is not None else (False, None)
+
+
+def _validate_original_history(
+    paths, working, final, metadata, census, revision=None, namespace_declared=False
+):
     errors = []
     warnings = []
     approved_round = (final.get("audit") or {}).get("approved_round")
@@ -73,10 +93,12 @@ def _validate_original_history(paths, working, final, metadata, census, revision
         return errors, warnings, None, None, None
     try:
         provisional_path = _resolve_lineage_file(
-            working, "provisional", approved_round, revision=revision
+            working, "provisional", approved_round, revision=revision,
+            namespace_declared=namespace_declared,
         )
         review_path = _resolve_lineage_file(
-            working, "review", approved_round, revision=revision
+            working, "review", approved_round, revision=revision,
+            namespace_declared=namespace_declared,
         )
     except ValueError as exc:
         errors.append(str(exc))
@@ -346,9 +368,9 @@ def _validate_redo(
     redo_number = marker.get("redo")
     if not isinstance(redo_number, int) or redo_number < 1:
         errors.append("redo.json redo must be a positive integer")
-    revision = marker.get("revision") if mode == "cards" else None
-    if mode == "cards" and (not isinstance(revision, int) or revision < 1):
-        errors.append("cards redo requires a positive accepted-card revision number")
+    revision = marker.get("revision") if mode in {"provisional", "cards"} else None
+    if mode in {"provisional", "cards"} and (not isinstance(revision, int) or revision < 1):
+        errors.append(f"{mode} redo requires a positive accepted-card revision number")
 
     if not archive_root.is_dir():
         errors.append(f"redo archive folder is missing or invalid: {archive_root}")
@@ -483,10 +505,13 @@ def confirm(args):
     redo_path = working / "redo.json"
     is_redo = redo_path.is_file()
     redo_marker = validation.read_json(redo_path, "redo marker") if is_redo else None
-    revision = redo_marker.get("revision") if is_redo and redo_marker.get("mode") == "cards" else None
+    namespace_declared, revision = (
+        _redo_lineage_namespace(redo_marker) if is_redo else (False, None)
+    )
 
     original_errors, original_warnings, report, active_provisional_path, _ = _validate_original_history(
-        paths, working, final, metadata, census, revision=revision
+        paths, working, final, metadata, census, revision=revision,
+        namespace_declared=namespace_declared,
     )
     errors.extend(original_errors)
     warnings.extend(original_warnings)
@@ -541,7 +566,7 @@ def confirm(args):
                 )
                 current_accepted_final = current_envelope_for_delta.get("final") or None
         require_phase2r_ledger = bool(
-            is_redo and redo_marker.get("mode") == "cards"
+            is_redo and redo_marker.get("mode") in {"provisional", "cards"}
         ) or _has_prior_phase4_handoff(working, active_provisional_path)
         errors.extend(
             _validate_phase2r_delta_history(

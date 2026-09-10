@@ -16,6 +16,23 @@ import prepare_redo  # noqa: E402
 
 
 class RedoTests(unittest.TestCase):
+    def test_redo_lineage_revision_follows_declared_provisional_output(self):
+        legacy_marker = {
+            "mode": "provisional",
+            "revision": 3,
+            "next_outputs": {"provisional": "paper.provisional-v003.json"},
+        }
+        current_marker = {
+            "mode": "provisional",
+            "revision": 3,
+            "next_outputs": {
+                "provisional": "paper.provisional-rev003-v001.json"
+            },
+        }
+
+        self.assertEqual(confirm._redo_lineage_namespace(legacy_marker), (True, None))
+        self.assertEqual(confirm._redo_lineage_namespace(current_marker), (True, 3))
+
     def make_state(self, root, *, legacy=True):
         key = "example-paper"
         paper_id = "11111111-1111-1111-1111-111111111111"
@@ -99,13 +116,26 @@ class RedoTests(unittest.TestCase):
             self.assertEqual(marker["next_outputs"]["provisional"], "paper.provisional-v005.json")
             self.assertEqual(marker["next_outputs"]["review"], "paper.review-v005.json")
 
-    def test_provisional_redo_restores_archived_census_only(self):
+    def test_provisional_redo_enters_phase2r_revision_namespace(self):
         with tempfile.TemporaryDirectory() as tmp:
             values = self.prepare(Path(tmp), "provisional")
             destination, marker = values[-2:]
             self.assertTrue((destination / "paper.census.json").is_file())
-            self.assertFalse((destination / "paper.final.json").exists())
+            self.assertTrue((destination / "paper.final.json").is_file())
             self.assertEqual(marker["mode"], "provisional")
+            self.assertEqual(marker["revision"], 1)
+            self.assertEqual(
+                marker["next_outputs"]["provisional"],
+                "paper.provisional-rev001-v001.json",
+            )
+            self.assertEqual(
+                marker["next_outputs"]["review"],
+                "paper.review-rev001-v001.json",
+            )
+            self.assertEqual(
+                marker["next_outputs"]["phase2r_decisions"],
+                "paper.phase2r-decisions-rev001-v001.json",
+            )
 
     def test_cards_review_restores_final_and_uses_separate_revision_namespace(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -125,6 +155,21 @@ class RedoTests(unittest.TestCase):
             self.assertNotIn("targets", marker)
             self.assertFalse((destination / "paper.phase5-targets.json").exists())
 
+    def test_phase2r_redo_requires_matching_decision_ledger(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            values = self.prepare(Path(tmp), "provisional")
+            destination, marker = values[-2:]
+            provisional = destination / marker["next_outputs"]["provisional"]
+            provisional.write_text(json.dumps({"round": 2}))
+            errors = confirm._validate_phase2r_delta_history(
+                working=destination,
+                provisional_path=provisional,
+                current_accepted_final={"round": 1},
+                require_ledger=True,
+            )
+            self.assertEqual(len(errors), 1)
+            self.assertIn("no matching user decision ledger", errors[0])
+
     def test_archive_only_preparation_supports_all_modes(self):
         for mode in ("census", "provisional", "cards"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
@@ -133,7 +178,7 @@ class RedoTests(unittest.TestCase):
                 self.assertEqual(marker["schema_version"], "2.1")
                 self.assertEqual(marker["baseline_source"], "archive")
                 self.assertTrue((destination / "paper.census.json").is_file())
-                self.assertEqual((destination / "paper.final.json").is_file(), mode == "cards")
+                self.assertEqual((destination / "paper.final.json").is_file(), mode in {"provisional", "cards"})
 
     def test_preparation_rejects_partial_accepted_pair(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -167,7 +212,7 @@ class RedoTests(unittest.TestCase):
             (destination / census_name).write_text(
                 json.dumps({"paper_id": paper_id, "entries": [{"claim_id": "Q999"}]})
             )
-        if mode == "cards":
+        if mode in {"provisional", "cards"}:
             provisional_name = marker["next_outputs"]["provisional"]
             revision = marker["revision"]
             round_number = 2
@@ -205,6 +250,7 @@ class RedoTests(unittest.TestCase):
                 return_value=([], [], {"cards": 1, "ratio": 1.0}),
             ),
             mock.patch.object(confirm.validation, "schema_errors", return_value=[]),
+            mock.patch.object(confirm, "_validate_phase2r_delta_history", return_value=[]),
         ):
             result = confirm.confirm(args)
         return key, accept, archive, work, envelope, census, result

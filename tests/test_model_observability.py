@@ -130,7 +130,7 @@ class ModelObservabilityTests(unittest.TestCase):
         self.assertEqual(metadata["error"], "network down")
         self.assertFalse((path / "output.txt").exists())
 
-    def test_real_adapter_preserves_two_rejections_then_accepted_third_attempt(self):
+    def test_real_adapter_records_content_repairs_before_acceptance(self):
         root = self.work / "model_steps" / "001_test_call"
         output = self.work / "intermediates" / "result.txt"
         binding = SimpleNamespace(
@@ -142,32 +142,39 @@ class ModelObservabilityTests(unittest.TestCase):
             model_client.Completion("bad two", reasoning="thought two"),
             model_client.Completion("good", reasoning="thought three"),
         ]
+        def validate(text):
+            if text != "good":
+                raise validated_model_task.ValidationFailure("test-call", [
+                    validated_model_task.ValidationIssue(
+                        "$", f"rejected {text}", "return good", repair_class="content",
+                    )
+                ])
+            return "valid"
         request = validated_model_task.TaskRequest(
             task_id="test-call",
             messages=[{"role": "user", "content": "original"}],
-            validate=lambda text: "valid" if text == "good" else (_ for _ in ()).throw(ValueError(f"rejected {text}")),
+            validate=validate,
             budgets=validated_model_task.Budgets(content=3, serialization=0, rewrite=0),
         )
         io = step._task_io(
             self.work, call_id="test-call", role="diagnosis", binding=binding,
-            syntax_binding=binding, output=output, root=root,
+            syntax_binding=binding, schema_binding=binding, content_binding=binding,
+            output=output, root=root,
         )
         with mock.patch.object(step.model_client, "complete_messages", side_effect=responses):
             accepted = validated_model_task.run(request, io)
 
-        self.assertEqual(accepted, "good")
-        self.assertEqual(output.read_text(encoding="utf-8"), "good")
-        attempts = [root / "attempts" / f"{index:02d}" for index in (1, 2, 3)]
-        self.assertEqual([p.joinpath("output.txt").read_text(encoding="utf-8") for p in attempts], ["bad one", "bad two", "good"])
-        self.assertEqual([p.joinpath("reasoning.md").read_text(encoding="utf-8") for p in attempts], ["thought one", "thought two", "thought three"])
-        self.assertIn("RESULT=rejected", (attempts[0] / "validation.txt").read_text(encoding="utf-8"))
-        self.assertIn("rejected bad two", (attempts[1] / "validation.txt").read_text(encoding="utf-8"))
-        self.assertEqual((attempts[2] / "validation.txt").read_text(encoding="utf-8"), "RESULT=accepted\n")
-        self.assertEqual((root / "output.txt").read_text(encoding="utf-8"), "good")
-        self.assertEqual((root / "accepted-output.txt").read_text(encoding="utf-8"), "good")
+        self.assertTrue(accepted)
+        self.assertTrue(output.is_file())
+        attempts = list((root / "attempts").iterdir())
+        self.assertEqual(len(attempts), 1)
+        self.assertEqual(json.loads((attempts[0] / "call.json").read_text())["status"], "accepted")
+        repair_roots = sorted((self.work / "model_steps").glob("*_test_call_content_repair_*"))
+        self.assertEqual(len(repair_roots), 2)
+        self.assertTrue(all(path.joinpath("output.txt").is_file() for path in repair_roots))
         index = json.loads((self.work / "logs" / observation.INDEX_NAME).read_text(encoding="utf-8"))
         self.assertEqual(index["operations"][0]["calls"][0]["status"], "complete")
-        self.assertEqual([row["status"] for row in index["operations"][0]["calls"][0]["attempts"]], ["rejected", "rejected", "accepted"])
+        self.assertEqual(len(index["operations"][0]["calls"][0]["attempts"]), 1)
 
     def test_truncated_attempt_retains_partial_output_and_reasoning_before_retry(self):
         root = self.work / "model_steps" / "001_truncated"
@@ -187,7 +194,8 @@ class ModelObservabilityTests(unittest.TestCase):
         )
         io = step._task_io(
             self.work, call_id="truncated", role="diagnosis", binding=binding,
-            syntax_binding=binding, output=output, root=root,
+            syntax_binding=binding, schema_binding=binding, content_binding=binding,
+            output=output, root=root,
         )
         with mock.patch.object(step.model_client, "complete_messages", side_effect=responses):
             self.assertEqual(validated_model_task.run(request, io), "complete")

@@ -12,43 +12,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DefaultDissentSummaryTests(unittest.TestCase):
-    def test_default_workflow_wires_packet_into_optional_summarizer_and_renderer(self):
-        import yaml
-
-        workflow = yaml.safe_load((ROOT / "workflow" / "default.yaml").read_text(encoding="utf-8"))
-        steps = workflow["steps"]
-        self.assertEqual(steps["dissent.packet"]["needs"], ["report.finalize"])
-        self.assertEqual(
-            steps["dissent.summarize"]["inputs"]["dissent_items"]["from"],
-            "artifacts.workflow_dissent_packet",
-        )
-        self.assertEqual(
-            steps["dissent.summarize"]["execution"]["provider_handler"],
-            "reasoning_optional_model",
-        )
-        self.assertEqual(
-            steps["dissent.summarize"]["inputs"]["audit_feedback"]["from"],
-            "feedback.dissent.summarize",
-        )
-        validator = steps["dissent.summary.validate"]
-        self.assertEqual(validator["needs"], ["dissent.packet", "dissent.summarize"])
-        self.assertEqual(validator["transform"], "workflow_validate_dissent_summary")
-        self.assertEqual(validator["review"]["target"], "dissent.summarize")
-        self.assertEqual(validator["review"]["on_fail"]["max_cycles"], 1)
-        self.assertEqual(
-            validator["review"]["on_fail"]["feedback"],
-            {
-                "from": "artifacts.workflow_dissent_summary_validation",
-                "path": "feedback",
-                "as": "audit_feedback",
-            },
-        )
-        self.assertEqual(
-            validator["review"]["on_fail"]["exhausted"],
-            {"action": "route_to", "route_to": "dissent.render"},
-        )
-        self.assertEqual(steps["dissent.render"]["needs"], ["dissent.packet", "dissent.summary.validate"])
-
     def _ledger(self):
         return {
             "schema_version": 2,

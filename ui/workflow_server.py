@@ -184,6 +184,8 @@ def _apply_role_reasoning(doc: dict[str, Any], payload: dict[str, Any]) -> None:
         effort = str(source.get("reasoning") or "").strip().lower()
         if effort and effort not in REASONING_LEVELS:
             raise base.UIError(f"role {role} reasoning must be one of: {', '.join(REASONING_LEVELS)}")
+        if effort and isinstance(roles_doc.get(role), dict):
+            roles_doc[role]["reasoning"] = effort
 
 
 def _validate_provider_reasoning(doc: dict[str, Any], provider_class: str) -> None:

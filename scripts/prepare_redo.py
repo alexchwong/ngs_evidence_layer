@@ -94,7 +94,7 @@ def _next_card_revision(envelope, archive_source):
     recorded = [
         item.get("revision", 0)
         for item in (envelope.get("redos") or [])
-        if isinstance(item, dict) and item.get("mode") == "cards"
+        if isinstance(item, dict) and item.get("mode") in {"provisional", "cards"}
     ]
     archived = []
     redo_dir = archive_source / "redo"
@@ -107,7 +107,7 @@ def _next_card_revision(envelope, archive_source):
                 marker = read_json(marker_path, "archived redo marker")
             except ValueError:
                 continue
-            if marker.get("mode") == "cards" and isinstance(marker.get("revision"), int):
+            if marker.get("mode") in {"provisional", "cards"} and isinstance(marker.get("revision"), int):
                 archived.append(marker["revision"])
     return max(recorded + archived + [0]) + 1
 
@@ -184,7 +184,7 @@ def prepare(args):
         baseline_source,
     ) = _baseline_state(args)
     redo_sequence = _next_redo_sequence(envelope, archive_source)
-    revision = _next_card_revision(envelope, archive_source) if mode == "cards" else None
+    revision = _next_card_revision(envelope, archive_source) if mode in {"provisional", "cards"} else None
     next_census_attempt = ingest_artifacts.next_census_attempt(archive_source)
     next_provisional_attempt = ingest_artifacts.next_phase_attempt(
         archive_source, "provisional", revision=None
@@ -207,13 +207,13 @@ def prepare(args):
         # read-only baseline that preserves the already-confirmed category scope;
         # Phase 1 writes the next versioned census beside it rather than overwriting it.
         census_path = _restore_census(archive_source, work_destination, census)
-        if mode == "cards":
+        if mode in {"provisional", "cards"}:
             _restore_final(archive_source, work_destination, base_final)
 
         next_outputs = {}
         if mode == "census":
             next_outputs["census"] = ingest_artifacts.census_name(next_census_attempt)
-        if mode in {"census", "provisional"}:
+        if mode == "census":
             next_outputs["provisional"] = ingest_artifacts.provisional_name(
                 next_provisional_attempt
             )
@@ -272,7 +272,7 @@ def main():
     print(f"REDO READY: {args.publication_key}")
     print(f"Mode: {args.mode}")
     print(f"Redo: {marker['redo']:03d}")
-    if args.mode == "cards":
+    if args.mode in {"provisional", "cards"}:
         print(f"Accepted-card revision: {marker['revision']:03d}")
     for phase, filename in marker["next_outputs"].items():
         print(f"Next {phase}: {filename}")

@@ -1998,6 +1998,8 @@ presentation:
     preservation_check: "Checks that report synthesis preserved the approved clinical content."
     marking: "Evaluates completed validation reports; it does not generate clinical conclusions."
     syntax_repair: "Repairs malformed structured model output without changing clinical meaning."
+    schema_repair: "Repairs structured-output schema and shape while preserving informational values."
+    content_repair: "Re-evaluates validation failures while preserving unrelated clinical decisions."
   progress_phases:
   - id: case-preparation
     label: Case preparation

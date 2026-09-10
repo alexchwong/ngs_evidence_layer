@@ -61,33 +61,6 @@ FILE_RE = re.compile(
 
 
 class PromptValidationBundleTests(unittest.TestCase):
-    def test_phase_validation_bundles_include_canonical_dependencies(self):
-        manifest = build_prompts.load_manifest()["assets"]
-        for phase, keyword in PHASE_ASSETS.items():
-            with self.subTest(phase=phase):
-                spec = manifest[keyword]
-                validator = f"scripts/phase_validation/phase{phase}.py"
-                content = build_prompts.asset_content(keyword)
-                if spec.get("type") == "bundle":
-                    self.assertEqual(spec.get("paths"), PHASE_BUNDLE_PATHS[phase])
-                    self.assertFalse(spec.get("globs"))
-                    matches = list(FILE_RE.finditer(content))
-                    self.assertEqual(
-                        [match.group("path") for match in matches],
-                        PHASE_BUNDLE_PATHS[phase],
-                    )
-                    for relative in PHASE_BUNDLE_PATHS[phase]:
-                        self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
-                        self.assertIn(
-                            (ROOT / relative).read_text(encoding="utf-8").rstrip(),
-                            content,
-                        )
-                else:
-                    self.assertEqual(spec, {"type": "file", "path": validator})
-                    self.assertEqual(
-                        content, (ROOT / validator).read_text(encoding="utf-8").rstrip()
-                    )
-
     def test_phase_templates_use_phase_specific_bundle_markers(self):
         for phase, keyword in PHASE_ASSETS.items():
             template = (

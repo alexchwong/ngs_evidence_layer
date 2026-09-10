@@ -1275,6 +1275,8 @@ presentation:
     reasoning_audit: Checks whether each stated conclusion follows from the reasons the clinical owner gave.
     reasoning_adjudication: Independently decides whether an addressable audit criticism warrants owner reassessment.
     syntax_repair: Repairs malformed structured model output without changing clinical meaning.
+    schema_repair: Repairs structured-output schema and shape while preserving informational values.
+    content_repair: Re-evaluates validation failures while preserving unrelated clinical decisions.
   progress_phases:
   - id: preparation
     label: Preparation

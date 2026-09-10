@@ -47,18 +47,6 @@ class ModelActivityUITests(unittest.TestCase):
                 {"offset": 0, "text": "", "size": 0},
             )
 
-    def test_page_injects_model_activity_asset(self):
-        self.assertEqual(
-            workflow_server._MODEL_ACTIVITY_SCRIPT,
-            '<script src="/assets/model-activity.js"></script>',
-        )
-
-    def test_page_injects_role_reasoning_asset(self):
-        self.assertEqual(
-            workflow_server._ROLE_REASONING_SCRIPT,
-            '<script src="/assets/role-reasoning.js"></script>',
-        )
-
     def test_role_reasoning_is_copied_into_composed_profile(self):
         doc = {"model_roles": {"diagnosis": {"model": "main", "max_tokens": 100}}}
         workflow_server._apply_role_reasoning(

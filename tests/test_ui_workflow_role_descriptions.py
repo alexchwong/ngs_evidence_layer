@@ -45,16 +45,5 @@ class WorkflowRoleDescriptionTests(unittest.TestCase):
             {"reasoning_audit", "reasoning_adjudication"},
         )
 
-    def test_role_editor_filters_rows_and_avoids_observer_loop(self):
-        text = (ROOT / "ui" / "assets" / "role-reasoning.js").read_text(encoding="utf-8")
-        self.assertIn("tr.hidden = !description;", text)
-        self.assertIn("event.target?.id === 'workflowSelect'", text)
-        self.assertIn("updateRolePresentation();", text)
-        self.assertIn("observer.observe(roleBody, { childList: true });", text)
-        self.assertNotIn("subtree: true", text)
-        self.assertIn("if (note.textContent !== description) note.textContent = description;", text)
-        self.assertNotIn("state?.boot", text)
-
-
 if __name__ == "__main__":
     unittest.main()

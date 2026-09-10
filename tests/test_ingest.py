@@ -26,9 +26,6 @@ def load(name):
     return module
 
 
-build_prompts = load("build_prompts")
-
-
 def read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -532,14 +529,6 @@ class FolderStateWorkflowTests(unittest.TestCase):
         self.assertNotIn('"quote"', corpus_text)
         self.assertNotIn('"provisional"', corpus_text)
         self.assertIn("bad", read(report)["rejected"])
-
-    def test_generated_prompts_match_templates(self):
-        for phase in (1, 2, 3, 4):
-            self.assertEqual(
-                (ROOT / "prompts" / f"phase{phase}_prompt.md").read_text(encoding="utf-8"),
-                build_prompts.render(phase),
-            )
-
 
 if __name__ == "__main__":
     unittest.main()

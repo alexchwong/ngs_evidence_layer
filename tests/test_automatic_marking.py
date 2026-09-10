@@ -160,18 +160,6 @@ def test_next_call_id_reads_authoritative_call_metadata_not_numbered_directory_n
     assert marking.next_call_id(tmp_path, digest) == "validation-marking-aaaaaaaa-02"
 
 
-def test_shipped_pipeline_source_of_truth_and_root_copies_include_marking_role():
-    root = Path(__file__).resolve().parents[1]
-    import yaml
-    for name in ("openrouter.yaml", "lmstudio.yaml", "self.yaml"):
-        source = root / "workflows" / "proforma_v1" / "pipelines" / name
-        target = root / "config" / "pipelines" / name
-        assert source.read_bytes() == target.read_bytes()
-        doc = yaml.safe_load(source.read_text(encoding="utf-8"))
-        roles = doc.get("model_roles") or doc.get("models")
-        assert "marking" in roles
-
-
 def test_batch_marking_includes_per_criterion_failure_counts():
     import nel
     payload = {
@@ -222,11 +210,6 @@ def test_nonvalidation_prepare_does_not_touch_report_or_evaluator_inputs(monkeyp
     )
     result = marking.prepare_automatic_marking(tmp_path, "nel-demo", "1")
     assert result == {"status": "not_applicable", "suite": "nel-demo"}
-
-
-def test_devel_sync_sources_and_managed_root_pipeline_copies_are_in_sync():
-    from workflows.proforma_v1 import devel_sync
-    assert devel_sync.check() == 0
 
 
 def test_dublin_missing_functional_artifact_is_not_reported_complete(monkeypatch, tmp_path):

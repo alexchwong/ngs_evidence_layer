@@ -6,7 +6,7 @@ Active phase: **Phase 2 only**. This prompt is the sole authority for this sessi
 Normal Phase 2 required read-only inputs are `paper.md`, `metadata.json`, one active census file, and `phase2_prompt.md`. The census may use `paper.census-vNNN.json` or legacy `paper.census.json` (treated as v001). A retry may also include the prior provisional and `paper.provisional-critique[-revRRR]-vNNN.md`. A prepared accepted-paper redo may include `redo.json`. A **Phase 2 resume after a Phase 1 census repair** additionally requires the source census tied to the most recent valid Phase 2 checkpoint plus its matching `paper.phase2-state-vNNN.json`. That checkpoint source census may be older than the immediately preceding repaired census when an earlier repair attempt was still defective. Treat the checkpoint as immutable reviewed state, not as a provisional output.
 
 **Phase 2R** is the interactive card-review branch. It is entered either:
-1. from accepted-card review, with `paper.final.json` plus `redo.json` mode `cards`; or
+1. from accepted-card review, with `paper.final.json` plus `redo.json` mode `provisional` or compatibility mode `cards`; or
 2. from Phase 4, with the active provisional, its matching review, and `paper.phase4-decisions[-revRRR]-vNNN.json` whose purpose is `phase2r_handoff`.
 
 Use every input read-only; never overwrite an earlier phase attempt.

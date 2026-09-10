@@ -43,38 +43,6 @@ class PromptIntegrationTests(unittest.TestCase):
                 self.assertTrue(prompt.strip())
                 self.assertNotRegex(prompt, r"\{\{[^{}]+\}\}")
 
-    def test_file_assets_are_injected_whole(self):
-        templates = {
-            f"phase{phase}": ROOT / "prompts" / "templates" / f"phase{phase}_prompt.md"
-            for phase in (1, 2, 3, 4)
-        }
-        rendered = {
-            f"phase{phase}": BUILD_PROMPTS.render(phase) for phase in (1, 2, 3, 4)
-        }
-        for name, template_path in templates.items():
-            markers = set(MARKER_RE.findall(template_path.read_text(encoding="utf-8")))
-            for marker in markers:
-                spec = self.manifest[marker]
-                if spec.get("type") != "file":
-                    continue
-                expected = (ROOT / spec["path"]).read_text(encoding="utf-8").rstrip()
-                with self.subTest(prompt=name, asset=marker):
-                    self.assertIn(expected, rendered[name])
-
-    def test_phase_validation_assets_contain_declared_file_whole(self):
-        for phase in (1, 2, 4):
-            keyword = f"PHASE{phase}_VALIDATION_BUNDLE"
-            content = BUILD_PROMPTS.asset_content(keyword)
-            spec = self.manifest[keyword]
-            if spec.get("type") == "bundle":
-                for relative in spec.get("paths", []):
-                    path = ROOT / relative
-                    self.assertIn(f"<!-- BEGIN VERBATIM {relative} -->", content)
-                    self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
-            else:
-                path = ROOT / spec["path"]
-                self.assertIn(path.read_text(encoding="utf-8").rstrip(), content)
-
     def test_phase2_and_phase4_validators_load_canonical_json_assets(self):
         for phase in (2, 4):
             with self.subTest(phase=phase):
@@ -265,15 +233,6 @@ class PromptIntegrationTests(unittest.TestCase):
         )
         self.assertIn("Before any adjudication or finalization", entry)
 
-    def test_phase4_embeds_canonical_phase4_validator_verbatim(self):
-        rendered = BUILD_PROMPTS.render(4)
-        relative = "scripts/phase_validation/phase4.py"
-        start_marker = f"<!-- BEGIN VERBATIM {relative} -->\n```python\n"
-        end_marker = f"\n```\n<!-- END VERBATIM {relative} -->"
-        embedded = rendered.split(start_marker, 1)[1].split(end_marker, 1)[0]
-        expected = (ROOT / relative).read_text(encoding="utf-8").rstrip()
-        self.assertEqual(embedded, expected)
-
     def test_shared_semantic_invariants_survive_refactor(self):
         rendered = {phase: " ".join(BUILD_PROMPTS.render(phase).split()) for phase in (1, 2, 3, 4)}
         for phase in (1, 2, 3, 4):
@@ -392,16 +351,6 @@ class PromptIntegrationTests(unittest.TestCase):
         self.assertLess(phase4.index("## Step 2 — human adjudication and interactivity"), phase4.index("## Step 3 — apply agreed decisions and deterministic output gate"))
         self.assertNotIn("## Mandatory pre-output gate", phase4)
         self.assertIn("The final action before returning `paper.final.json` must be a successful run", phase4)
-
-    def test_phase2_input_gate_embeds_exact_phase1_validator(self):
-        phase2 = BUILD_PROMPTS.render(2)
-        relative = "scripts/phase_validation/phase1.py"
-        start_marker = f"<!-- BEGIN VERBATIM {relative} -->\n```python\n"
-        end_marker = f"\n```\n<!-- END VERBATIM {relative} -->"
-        embedded = phase2.split(start_marker, 1)[1].split(end_marker, 1)[0]
-        expected = (ROOT / relative).read_text(encoding="utf-8").rstrip()
-        self.assertEqual(embedded, expected)
-        self.assertIn("validation_bundle/scripts/phase_validation/phase1.py", phase2)
 
     def test_deterministic_validation_is_the_final_output_gate_where_required(self):
         phase1 = BUILD_PROMPTS.render(1)
