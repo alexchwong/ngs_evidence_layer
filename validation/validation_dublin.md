@@ -119,8 +119,7 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the WHO5 diagnosis is MDS with biallelic TP53 inactivation.
-- **R1C2.** State that the ICC diagnosis is MDS with mutated TP53.
+- **R1C1.** Recognize that the TP53 mutation together with del(17p) supports TP53-defined MDS / biallelic or multi-hit TP53 inactivation.
 
 #### R2 — Prognostic interpretation
 
@@ -153,7 +152,7 @@ Molecular testing identifies:
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that SF3B1 with del(5q) corresponds to the less-favourable SF3B1-with-5q context in IPSS-M rather than the more favourable isolated SF3B1 molecular group.
+- **R2C1.** Recognize SF3B1^5q as an adverse main-effect prognostic variable in IPSS-M, distinct from the favourable SF3B1α context.
 
 ## Case 6
 
@@ -171,11 +170,10 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the CALR type-1 mutation is a driver abnormality consistent with the established primary myelofibrosis diagnosis.
+- **R1C1.** Retain the established diagnosis of primary myelofibrosis and recognize CALR type-1 as a canonical MPN driver supporting that diagnosis.
 
 #### R2 — Prognostic interpretation
 
-- **R2C1.** State that the overall molecular profile has adverse prognostic features despite the favourable CALR type-1 driver because ASXL1 and U2AF1 Q157 are adverse co-mutations.
 - **R2C2.** State that CALR type-1 or type-1-like status is a favourable molecular variable in the relevant MIPSS70+ framework.
 - **R2C3.** State that ASXL1 mutation is an adverse molecular variable in the relevant MIPSS70+ framework.
 - **R2C4.** State that U2AF1 Q157 mutation is an adverse molecular variable in MIPSS70+ v2.0.
@@ -197,7 +195,7 @@ Molecular testing identifies:
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the WHO5 diagnosis is MDS with increased blasts-1 (MDS-IB1) and the ICC diagnosis is MDS with excess blasts (MDS-EB); monosomy 7 is an MDS-defining cytogenetic abnormality rather than a separate named MDS subtype.
+- **R1C1.** Do not alter the supplied MDS diagnosis or morphology-based subtype on the basis of monosomy 7; monosomy 7 does not itself define a named disease subtype.
 
 #### R2 — Prognostic interpretation
 
@@ -260,6 +258,10 @@ Cytogenetics: 46,XY[20].
 
 - **R3C1.** State that IDH2 NM_002168.4:c.515G>A p.(Arg172Lys) is therapeutically actionable and supports IDH2-directed therapy in an appropriate treatment setting.
 
+#### R4 — MRD interpretation
+
+- **R4C1.** Do not present IDH2 or SRSF2 as a preferred validated stand-alone molecular MRD marker for this AML.
+
 ## Case 10
 
 ### Case summary
@@ -276,8 +278,7 @@ Cytogenetics: 46,XY[20]; FISH negative for 17p deletion.
 
 #### R1 — Diagnosis and classification
 
-- **R1C1.** State that the WHO5 diagnosis is MDS with low blasts (MDS-LB).
-- **R1C2.** State that the ICC diagnosis is MDS, NOS with multilineage dysplasia, demonstrating a WHO5/ICC terminology difference in this case.
+- **R1C1.** Retain the supplied MDS diagnosis; an isolated monoallelic TP53 mutation without evidence of a second TP53 hit does not justify a TP53-defined diagnostic label.
 
 #### R2 — Prognostic interpretation
 

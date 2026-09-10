@@ -13,7 +13,7 @@ After marking, `validation/scripts/score_functional_dublin.py` reads the machine
 - **F3 — Concurrent diagnosis:** detect a second or concurrent haematological diagnosis.
 - **F4 — Prognosis:** provide clinically appropriate molecular prognostic interpretation.
 - **F5 — Therapeutic relevance:** identify therapeutically relevant molecular findings.
-- **F6 — Molecular MRD:** identify the preferred appropriate molecular MRD target when one is present.
+- **F6 — Molecular MRD:** correctly identify an appropriate preferred molecular MRD target when one is present, and avoid presenting unsuitable findings as validated stand-alone molecular MRD markers.
 - **F7 — Possible germline variant:** identify a variant that is potentially germline in the supplied clinical context.
 - **F8 — Germline predisposition syndrome:** identify the associated germline predisposition syndrome.
 - **F9 — Disease-specific molecular prognostic system:** correctly recognise and apply molecular variables within the formal prognostic systems deliberately tested by Dublin: **IPSS-M, MIPSS70+/MIPSS70+ v2.0, and CPSS-Mol**. ELN AML risk is assessed under F4, not F9.
@@ -40,7 +40,6 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     },
     "10": {
       "R1C1": "F1",
-      "R1C2": "F1",
       "R2C1": "F9"
     },
     "2": {
@@ -58,7 +57,6 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     },
     "4": {
       "R1C1": "F2",
-      "R1C2": "F2",
       "R2C1": "F9",
       "R5C1": "F7",
       "R5C2": "F8"
@@ -70,14 +68,13 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     },
     "6": {
       "R1C1": "F1",
-      "R2C1": "F4",
       "R2C2": "F9",
       "R2C3": "F9",
       "R2C4": "F9"
     },
     "7": {
       "R1C1": "F1",
-      "R2C1": "F9",
+      "R2C1": "F4",
       "R2C2": "F9",
       "R5C1": "F7",
       "R5C2": "F8"
@@ -91,7 +88,8 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     "9": {
       "R1C1": "F2",
       "R2C1": "F4",
-      "R3C1": "F5"
+      "R3C1": "F5",
+      "R4C1": "F6"
     }
   },
   "functions": {
@@ -100,7 +98,7 @@ The mapping below is authoritative. Do not duplicate it in Python, prompts, or a
     "F3": "Detect a second or concurrent haematological diagnosis.",
     "F4": "Provide clinically appropriate molecular prognostic interpretation.",
     "F5": "Identify therapeutically relevant molecular findings.",
-    "F6": "Identify the preferred appropriate molecular MRD target when one is present.",
+    "F6": "Correctly identify an appropriate preferred molecular MRD target when one is present, and avoid presenting unsuitable findings as validated stand-alone molecular MRD markers.",
     "F7": "Identify a variant that is potentially germline in the supplied clinical context.",
     "F8": "Identify the associated germline predisposition syndrome.",
     "F9": "Correctly recognise and apply molecular variables within the disease-specific prognostic systems deliberately tested by Dublin: IPSS-M, MIPSS70+/MIPSS70+ v2.0, and CPSS-Mol."
