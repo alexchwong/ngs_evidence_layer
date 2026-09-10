@@ -306,22 +306,6 @@ In MDS treated with hypomethylating agents, DDX41 mutation is associated with fa
 
 Patients with higher-risk MDS are considered for disease-modifying therapies intended to prolong survival, including hypomethylating agents and allogeneic transplantation.
 
-## bernard-2022-nejm-evidence-1-na-C0020
-
-**Category:** prognosis
-
-**Genes:** TP53, KMT2A, FLT3, SF3B1, NPM1, RUNX1, NRAS, ETV6, IDH2, CBL, EZH2, U2AF1, SRSF2, DNMT3A, ASXL1, KRAS
-
-**Diseases:** MDS
-
-**Evidence tier:** multivariable-adjusted
-
-**Locator:** Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction
-
-### Interpretation
-
-According to the IPSS-M framework for MDS, multihit TP53, KMT2A (MLL) partial tandem duplication, FLT3 ITD/TKD, SF3B1 mutation with isolated del(5q), and mutations in NPM1, RUNX1, NRAS, ETV6, IDH2, CBL, EZH2, U2AF1, SRSF2, DNMT3A, ASXL1, and KRAS are main-effect molecular findings that individually contribute adverse prognostic weight. SF3B1a—SF3B1 mutation without BCOR, BCORL1, RUNX1, NRAS, STAG2, SRSF2, or del(5q)—is a main-effect finding that individually contributes favourable prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.
-
 ## bernard-2022-nejm-evidence-1-na-C0022
 
 **Category:** prognosis
@@ -336,4 +320,52 @@ According to the IPSS-M framework for MDS, multihit TP53, KMT2A (MLL) partial ta
 
 ### Interpretation
 
-In MDS, mutations in BCOR, BCORL1, CEBPA, ETNK1, GATA2, GNB1, IDH1, NF1, PHF6, PPM1D, PRPF8, PTPN11, SETBP1, STAG2, or WT1 are associated with adverse prognostic effects of similar magnitude. Their adverse effects are cumulative across this gene group, but the source observed saturation of additive risk beyond two mutated genes, so additional mutations beyond two did not add further adverse prognostic value.
+According to the IPSS-M framework for MDS, BCOR, BCORL1, CEBPA, ETNK1, GATA2, GNB1, IDH1, NF1, PHF6, PPM1D, PRPF8, PTPN11, SETBP1, STAG2, and WT1 form the residual gene group. Mutations in these genes contribute cumulative adverse prognostic weight through the residual mutation count rather than as individually modelled main effects; this contribution is capped at two mutated residual genes because additive risk saturated beyond two.
+
+## bernard-2022-nejm-evidence-1-na-C0023
+
+**Category:** prognosis
+
+**Genes:** TP53, KMT2A, FLT3, NPM1, RUNX1, NRAS, ETV6, IDH2, CBL, EZH2, U2AF1, SRSF2, DNMT3A, ASXL1, KRAS
+
+**Diseases:** MDS
+
+**Evidence tier:** multivariable-adjusted
+
+**Locator:** Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction
+
+### Interpretation
+
+According to the IPSS-M framework for MDS, multihit TP53, KMT2A (MLL) partial tandem duplication, FLT3 ITD/TKD, and mutations in NPM1, RUNX1, NRAS, ETV6, IDH2, CBL, EZH2, U2AF1, SRSF2, DNMT3A, ASXL1, and KRAS are main-effect molecular findings that individually contribute adverse prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.
+
+## bernard-2022-nejm-evidence-1-na-C0024
+
+**Category:** prognosis
+
+**Genes:** SF3B1, BCOR, BCORL1, RUNX1, NRAS, STAG2, SRSF2
+
+**Diseases:** MDS
+
+**Evidence tier:** multivariable-adjusted
+
+**Locator:** Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction
+
+### Interpretation
+
+According to the IPSS-M framework for MDS, SF3B1a—SF3B1 mutation without BCOR, BCORL1, RUNX1, NRAS, STAG2, SRSF2, or del(5q)—is a main-effect finding that individually contributes favourable-direction prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.
+
+## bernard-2022-nejm-evidence-1-na-C0025
+
+**Category:** prognosis
+
+**Genes:** SF3B1
+
+**Diseases:** MDS
+
+**Evidence tier:** multivariable-adjusted
+
+**Locator:** Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction
+
+### Interpretation
+
+According to the IPSS-M framework for MDS, SF3B1 mutation with isolated del(5q)—defined as del(5q) alone or with one additional aberration excluding −7/del(7q)—is a main-effect molecular finding that individually contributes adverse prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.

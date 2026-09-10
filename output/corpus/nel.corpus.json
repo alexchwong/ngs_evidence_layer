@@ -1,12 +1,12 @@
 {
   "corpus_version": "1.2",
   "counts": {
-    "cards": 1075,
-    "census_entries": 2467,
-    "completed_papers": 33,
+    "cards": 1081,
+    "census_entries": 2596,
+    "completed_papers": 34,
     "rejected_papers": 0
   },
-  "generated_at": "2026-09-04T06:52:22.123200+00:00",
+  "generated_at": "2026-09-10T04:13:34.326003+00:00",
   "publications": [
     {
       "document": {
@@ -4667,24 +4667,8 @@
             "genes": [
               "FLT3"
             ],
-            "interpretation": "According to ELN-DAVID 2025, FLT3-ITD UHS-NGS should not be the sole MRD test during follow-up of FLT3-ITD-mutated acute myeloid leukemia when other MRD markers are available, because FLT3-ITD-negative relapses can occur.",
+            "interpretation": "According to ELN-DAVID 2025, in FLT3-ITD-mutated acute myeloid leukemia, FLT3-ITD UHS-NGS should not be used as the sole MRD test during follow-up when another MRD marker is available, because FLT3-ITD-negative relapse can occur; complementary MRD assessment should therefore also be performed when possible.",
             "locator": "Table 3 recommendation C9; section C2 NGS-based MRD assessment",
-            "secondary_citation": null
-          },
-          {
-            "card_id": "cloos-2026-blood-147-1147-C0069",
-            "category": "biomarker",
-            "disease_ancestors": [],
-            "diseases": [
-              "AML"
-            ],
-            "evidence_tier": "guideline criterion",
-            "genes": [
-              "NPM1",
-              "FLT3"
-            ],
-            "interpretation": "According to ELN-DAVID 2025, in acute myeloid leukemia with both NPM1 mutation and FLT3-ITD, NPM1 MRD testing can serve as a stand-alone marker when FLT3-ITD UHS-NGS is unavailable.",
-            "locator": "Section C2 NGS-based MRD assessment using FLT3-ITD",
             "secondary_citation": null
           },
           {
@@ -4813,40 +4797,8 @@
               "NPM1",
               "FLT3"
             ],
-            "interpretation": "According to ELN-DAVID 2025, acute myeloid leukemia with both NPM1 mutation and FLT3-ITD should undergo NPM1 qPCR MRD assessment and, when available, FLT3-ITD UHS-NGS MRD assessment.",
-            "locator": "Table 4, intermediate-risk FLT3-ITD and mutNPM1 subgroup",
-            "secondary_citation": null
-          },
-          {
-            "card_id": "cloos-2026-blood-147-1147-C0081",
-            "category": "biomarker",
-            "disease_ancestors": [],
-            "diseases": [
-              "AML"
-            ],
-            "evidence_tier": "guideline criterion",
-            "genes": [
-              "NPM1",
-              "FLT3"
-            ],
-            "interpretation": "According to ELN-DAVID 2025, in acute myeloid leukemia with both NPM1 mutation and FLT3-ITD, peripheral-blood NPM1 qPCR is recommended after 2 treatment cycles or before HCT.",
-            "locator": "Table 4, intermediate-risk FLT3-ITD and mutNPM1 subgroup",
-            "secondary_citation": null
-          },
-          {
-            "card_id": "cloos-2026-blood-147-1147-C0082",
-            "category": "biomarker",
-            "disease_ancestors": [],
-            "diseases": [
-              "AML"
-            ],
-            "evidence_tier": "guideline criterion",
-            "genes": [
-              "NPM1",
-              "FLT3"
-            ],
-            "interpretation": "According to ELN-DAVID 2025, in acute myeloid leukemia with both NPM1 mutation and FLT3-ITD, bone-marrow NPM1 qPCR is recommended at end of treatment.",
-            "locator": "Table 4, intermediate-risk FLT3-ITD and mutNPM1 subgroup",
+            "interpretation": "According to ELN-DAVID 2025, in acute myeloid leukemia with both an NPM1 mutation and FLT3-ITD, NPM1 qPCR is recommended for MRD assessment together with FLT3-ITD UHS-NGS when available; if FLT3-ITD UHS-NGS is unavailable, NPM1 MRD testing may serve as the stand-alone molecular MRD marker.",
+            "locator": "Table 4, intermediate-risk FLT3-ITD and mutNPM1 subgroup; section C2 NGS-based MRD assessment using FLT3-ITD",
             "secondary_citation": null
           },
           {
@@ -5034,22 +4986,6 @@
             ],
             "interpretation": "According to ELN-DAVID 2025, an end-of-treatment PML::RARA qPCR warning response in acute promyelocytic leukemia should prompt repeat MRD assessment after about 4 weeks.",
             "locator": "Table 5 PML::RARA EOT warning row and footnote ‡",
-            "secondary_citation": null
-          },
-          {
-            "card_id": "cloos-2026-blood-147-1147-C0100",
-            "category": "biomarker",
-            "disease_ancestors": [],
-            "diseases": [
-              "AML"
-            ],
-            "evidence_tier": "guideline criterion",
-            "genes": [
-              "NPM1",
-              "FLT3"
-            ],
-            "interpretation": "According to ELN-DAVID 2025, in acute myeloid leukemia with both NPM1 mutation and FLT3-ITD, FLT3-ITD UHS-NGS after 2 cycles or before HCT should preferentially use bone marrow rather than peripheral blood.",
-            "locator": "Table 4, intermediate-risk FLT3-ITD and mutNPM1 subgroup",
             "secondary_citation": null
           },
           {
@@ -5435,6 +5371,22 @@
             "interpretation": "According to ELN-DAVID 2025, when multiple FLT3-ITD clones are present in UHS-NGS MRD testing for acute myeloid leukemia, the VAF and sequence of each FLT3-ITD clone should be reported.",
             "locator": "Table 3 recommendation C8; section C2 NGS-based MRD assessment",
             "secondary_citation": null
+          },
+          {
+            "card_id": "cloos-2026-blood-147-1147-C0129",
+            "category": "biomarker",
+            "disease_ancestors": [],
+            "diseases": [
+              "AML"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "NPM1",
+              "FLT3"
+            ],
+            "interpretation": "According to ELN-DAVID 2025, in acute myeloid leukemia with both an NPM1 mutation and FLT3-ITD, after 2 intensive-chemotherapy cycles or before HCT, NPM1 qPCR is recommended in peripheral blood and FLT3-ITD UHS-NGS preferentially in bone marrow over peripheral blood; at end of treatment, NPM1 qPCR is recommended in bone marrow, while FLT3-ITD UHS-NGS preferentially uses bone marrow over peripheral blood, with the latter recommendation based on limited evidence and expert opinion.",
+            "locator": "Table 4, intermediate-risk FLT3-ITD and mutNPM1 subgroup",
+            "secondary_citation": null
           }
         ],
         "census_entries": 165,
@@ -5501,7 +5453,7 @@
           "AML",
           "APL"
         ],
-        "extraction_date": "2026-08-21",
+        "extraction_date": "2026-09-10",
         "extraction_model": "GPT-5.6 Sol",
         "genes_covered": [
           "ANKRD26",
@@ -5526,15 +5478,15 @@
           "TP53",
           "WT1"
         ],
-        "paper_nickname": "ELN-DAVID 2025 AML MRD recommendations",
+        "paper_nickname": "ELN-DAVID 2025 AML MRD Guidelines",
         "publication_key": "cloos-2026-blood-147-1147",
         "publication_type": "guideline"
       },
       "source": {
         "acceptance_path": "confirmed",
         "audit": {
-          "approved_round": 2,
-          "audit_date": "2026-08-21",
+          "approved_round": 3,
+          "audit_date": "2026-09-10",
           "audit_model": "Claude Opus 5",
           "extraction_model_reviewed": "GPT-5.6 Sol",
           "publication_type_verdict": {
@@ -5544,297 +5496,297 @@
           "results": [
             {
               "card_id": "cloos-2026-blood-147-1147-C0001",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0002",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0003",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0004",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0005",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0006",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0007",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0008",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0009",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0010",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0011",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0012",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0013",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0014",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0015",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0016",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0017",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0021",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0022",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0024",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0025",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0026",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0027",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0028",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0029",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0030",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0031",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0032",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0033",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0034",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0035",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0036",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0037",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0038",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0040",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0041",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0042",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0043",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0044",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0045",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0046",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0047",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0048",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0049",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0050",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0051",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0052",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0055",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0057",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0058",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0059",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0060",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0061",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0062",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0063",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0064",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0065",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0066",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0067",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
@@ -5843,43 +5795,38 @@
               "verdict": "pass"
             },
             {
-              "card_id": "cloos-2026-blood-147-1147-C0069",
-              "review_basis": "phase3",
-              "verdict": "pass"
-            },
-            {
               "card_id": "cloos-2026-blood-147-1147-C0071",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0072",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0073",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0074",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0076",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0078",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0079",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
@@ -5888,202 +5835,192 @@
               "verdict": "pass"
             },
             {
-              "card_id": "cloos-2026-blood-147-1147-C0081",
-              "review_basis": "phase3",
-              "verdict": "pass"
-            },
-            {
-              "card_id": "cloos-2026-blood-147-1147-C0082",
-              "review_basis": "phase3",
-              "verdict": "pass"
-            },
-            {
               "card_id": "cloos-2026-blood-147-1147-C0083",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0084",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0086",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0087",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0088",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0093",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0095",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0096",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0097",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0098",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0099",
-              "review_basis": "phase3",
-              "verdict": "pass"
-            },
-            {
-              "card_id": "cloos-2026-blood-147-1147-C0100",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0103",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0105",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0106",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0107",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0108",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0109",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0110",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0111",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0112",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0113",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0114",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0115",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0116",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0118",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0119",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0120",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0121",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0122",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0123",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0124",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0125",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0126",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0127",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "cloos-2026-blood-147-1147-C0128",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "cloos-2026-blood-147-1147-C0129",
+              "review_basis": "phase4_adjudicated",
               "verdict": "pass"
             }
           ]
         },
         "extraction": {
-          "cards": 107,
+          "cards": 104,
           "census_claims": 165,
           "census_entries": 165,
-          "ratio": 0.65
+          "ratio": 0.63
         },
         "input_id": "38aa8749-11da-5075-991d-15315d144543",
         "markdown_sha256": "17102aea29c8ea5dcb023381d144e909557716a3e65c9ee45d935c059dd606fa",
@@ -24539,6 +24476,264 @@
       "document": {
         "cards": [
           {
+            "card_id": "sanz-2019-apl-C0003",
+            "category": "diagnosis",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "PML",
+              "RARA",
+              "ZBTB16",
+              "NPM1",
+              "NUMA1",
+              "STAT5B",
+              "PRKAR1A",
+              "FIP1L1",
+              "BCOR",
+              "OBFC2A",
+              "TBLR1",
+              "GTF2I",
+              "IRF2BP2",
+              "FNDC3B"
+            ],
+            "interpretation": "According to the ELN recommendation, APL diagnosis should be confirmed by molecular detection of PML::RARA or a recognized rare RARA fusion; reported rare fusions include ZBTB16::RARA, NPM1::RARA, NUMA1::RARA, STAT5B::RARA, PRKAR1A::RARA, FIP1L1::RARA, BCOR::RARA, OBFC2A::RARA, TBLR1::RARA, GTF2I::RARA, IRF2BP2::RARA, and FNDC3B::RARA.",
+            "locator": "Table 1, recommendation 1.3; Management of special situations and APL molecular variants; Table 4",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "sanz-2019-apl-C0017",
+            "category": "prognosis",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "FLT3"
+            ],
+            "interpretation": "In APL treated with ATO plus ATRA, FLT3-ITD does not confer a worse prognosis.",
+            "locator": "Approach to the patient with suspected APL > Genetic diagnosis",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "sanz-2019-apl-C0040",
+            "category": "biomarker",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [
+              "PML",
+              "RARA"
+            ],
+            "interpretation": "In APL, PML::RARA transcript quantification by RT-PCR or RQ-PCR is used for subsequent molecular MRD evaluation.",
+            "locator": "Approach to the patient with suspected APL > Genetic diagnosis",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "sanz-2019-apl-C0072",
+            "category": "treatment",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ZBTB16",
+              "RARA"
+            ],
+            "interpretation": "APL with ZBTB16::RARA is poorly responsive to ATRA.",
+            "locator": "Table 4, ZBTB16-RARA row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "sanz-2019-apl-C0084",
+            "category": "treatment",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "restated secondary",
+            "genes": [
+              "ZBTB16",
+              "RARA"
+            ],
+            "interpretation": "APL with ZBTB16::RARA is poorly responsive to ATO.",
+            "locator": "Table 4, ZBTB16-RARA row",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "sanz-2019-apl-C0095",
+            "category": "treatment",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "For newly diagnosed non–high-risk APL with presenting WBC ≤10 × 10^9/L, ATRA plus ATO without chemotherapy is the recommended first-line treatment; ATRA plus anthracycline-based chemotherapy is an alternative when ATO is contraindicated or unaffordable.",
+            "locator": "Treatment options > Non-high-risk patients; Table 2, recommendation 2.2",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "sanz-2019-apl-C0097",
+            "category": "treatment",
+            "disease_ancestors": [
+              "AML"
+            ],
+            "diseases": [
+              "APL"
+            ],
+            "evidence_tier": "guideline criterion",
+            "genes": [],
+            "interpretation": "For newly diagnosed high-risk APL with presenting WBC >10 × 10^9/L, two valid first-line approaches are ATRA plus ATO with cytoreductive chemotherapy or conventional ATRA plus anthracycline-based chemotherapy.",
+            "locator": "Treatment options > High-risk patients; Table 2, recommendation 2.3",
+            "secondary_citation": null
+          }
+        ],
+        "census_entries": 129,
+        "citation": {
+          "authors": [
+            "Sanz MA",
+            "Fenaux P",
+            "Tallman MS",
+            "Estey EH",
+            "Löwenberg B",
+            "Naoe T",
+            "Lengfelder E",
+            "Döhner H",
+            "Burnett AK",
+            "Chen S",
+            "Mathews V",
+            "Iland H",
+            "Rego E",
+            "Kantarjian H",
+            "Adès L",
+            "Avvisati G",
+            "Montesinos P",
+            "Platzbecker U",
+            "Ravandi F",
+            "Russell NH",
+            "Lo-Coco F"
+          ],
+          "citation_incomplete": [],
+          "display": "Sanz MA, Fenaux P, Tallman MS, Estey EH, Löwenberg B, Naoe T, et al. Management of acute promyelocytic leukemia: updated recommendations from an expert panel of the European LeukemiaNet. Blood. 2019;133(15):1630-1643.",
+          "doi": "10.1182/blood-2019-01-894980",
+          "issue": "15",
+          "journal": "Blood",
+          "pages": "1630-1643",
+          "title": "Management of acute promyelocytic leukemia: updated recommendations from an expert panel of the European LeukemiaNet",
+          "volume": "133",
+          "year": 2019
+        },
+        "diseases_covered": [
+          "APL"
+        ],
+        "extraction_date": "2026-09-10",
+        "extraction_model": "GPT-5.6 Sol",
+        "genes_covered": [
+          "BCOR",
+          "FIP1L1",
+          "FLT3",
+          "FNDC3B",
+          "GTF2I",
+          "IRF2BP2",
+          "NPM1",
+          "NUMA1",
+          "OBFC2A",
+          "PML",
+          "PRKAR1A",
+          "RARA",
+          "STAT5B",
+          "TBLR1",
+          "ZBTB16"
+        ],
+        "paper_nickname": "European LeukemiaNet (ELN) Guidelines for APL",
+        "publication_key": "sanz-2019-apl",
+        "publication_type": "guideline"
+      },
+      "source": {
+        "acceptance_path": "confirmed",
+        "audit": {
+          "approved_round": 1,
+          "audit_date": "2026-09-10",
+          "audit_model": "Claude Opus 5",
+          "extraction_model_reviewed": "GPT-5.6 Sol",
+          "publication_type_verdict": {
+            "verdict": "pass",
+            "verified_by_phase3": true
+          },
+          "results": [
+            {
+              "card_id": "sanz-2019-apl-C0003",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "sanz-2019-apl-C0017",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "sanz-2019-apl-C0095",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "sanz-2019-apl-C0097",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "sanz-2019-apl-C0072",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "sanz-2019-apl-C0084",
+              "review_basis": "phase3",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "sanz-2019-apl-C0040",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            }
+          ]
+        },
+        "extraction": {
+          "cards": 7,
+          "census_claims": 129,
+          "census_entries": 129,
+          "ratio": 0.05
+        },
+        "input_id": "ccab7152-c2c7-59cc-b234-144640b82ab4",
+        "markdown_sha256": "06bc518fac2b9b8675a2f907dbc4710a9cc597c3deee4e95be3a635230bcf9c9",
+        "source_filename": "Sanz-2019-APL.pdf",
+        "source_sha256": "72ea30fb5595931ea83652ec839026ba17de1791cf41b3eb228a288a17dd68fc",
+        "warnings": []
+      }
+    },
+    {
+      "document": {
+        "cards": [
+          {
             "card_id": "dinardo-2020-genotype-specific-venetoclax-C0001",
             "category": "treatment",
             "disease_ancestors": [],
@@ -26583,36 +26778,6 @@
             "secondary_citation": null
           },
           {
-            "card_id": "bernard-2022-nejm-evidence-1-na-C0020",
-            "category": "prognosis",
-            "disease_ancestors": [],
-            "diseases": [
-              "MDS"
-            ],
-            "evidence_tier": "multivariable-adjusted",
-            "genes": [
-              "TP53",
-              "KMT2A",
-              "FLT3",
-              "SF3B1",
-              "NPM1",
-              "RUNX1",
-              "NRAS",
-              "ETV6",
-              "IDH2",
-              "CBL",
-              "EZH2",
-              "U2AF1",
-              "SRSF2",
-              "DNMT3A",
-              "ASXL1",
-              "KRAS"
-            ],
-            "interpretation": "According to the IPSS-M framework for MDS, multihit TP53, KMT2A (MLL) partial tandem duplication, FLT3 ITD/TKD, SF3B1 mutation with isolated del(5q), and mutations in NPM1, RUNX1, NRAS, ETV6, IDH2, CBL, EZH2, U2AF1, SRSF2, DNMT3A, ASXL1, and KRAS are main-effect molecular findings that individually contribute adverse prognostic weight. SF3B1a—SF3B1 mutation without BCOR, BCORL1, RUNX1, NRAS, STAG2, SRSF2, or del(5q)—is a main-effect finding that individually contributes favourable prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.",
-            "locator": "Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction",
-            "secondary_citation": null
-          },
-          {
             "card_id": "bernard-2022-nejm-evidence-1-na-C0022",
             "category": "prognosis",
             "disease_ancestors": [],
@@ -26637,8 +26802,73 @@
               "STAG2",
               "WT1"
             ],
-            "interpretation": "In MDS, mutations in BCOR, BCORL1, CEBPA, ETNK1, GATA2, GNB1, IDH1, NF1, PHF6, PPM1D, PRPF8, PTPN11, SETBP1, STAG2, or WT1 are associated with adverse prognostic effects of similar magnitude. Their adverse effects are cumulative across this gene group, but the source observed saturation of additive risk beyond two mutated genes, so additional mutations beyond two did not add further adverse prognostic value.",
+            "interpretation": "According to the IPSS-M framework for MDS, BCOR, BCORL1, CEBPA, ETNK1, GATA2, GNB1, IDH1, NF1, PHF6, PPM1D, PRPF8, PTPN11, SETBP1, STAG2, and WT1 form the residual gene group. Mutations in these genes contribute cumulative adverse prognostic weight through the residual mutation count rather than as individually modelled main effects; this contribution is capped at two mutated residual genes because additive risk saturated beyond two.",
             "locator": "Results — Feature Selection for IPSS-M Model Development; Table 1 — gene residuals",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0023",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "TP53",
+              "KMT2A",
+              "FLT3",
+              "NPM1",
+              "RUNX1",
+              "NRAS",
+              "ETV6",
+              "IDH2",
+              "CBL",
+              "EZH2",
+              "U2AF1",
+              "SRSF2",
+              "DNMT3A",
+              "ASXL1",
+              "KRAS"
+            ],
+            "interpretation": "According to the IPSS-M framework for MDS, multihit TP53, KMT2A (MLL) partial tandem duplication, FLT3 ITD/TKD, and mutations in NPM1, RUNX1, NRAS, ETV6, IDH2, CBL, EZH2, U2AF1, SRSF2, DNMT3A, ASXL1, and KRAS are main-effect molecular findings that individually contribute adverse prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.",
+            "locator": "Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0024",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SF3B1",
+              "BCOR",
+              "BCORL1",
+              "RUNX1",
+              "NRAS",
+              "STAG2",
+              "SRSF2"
+            ],
+            "interpretation": "According to the IPSS-M framework for MDS, SF3B1a—SF3B1 mutation without BCOR, BCORL1, RUNX1, NRAS, STAG2, SRSF2, or del(5q)—is a main-effect finding that individually contributes favourable-direction prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.",
+            "locator": "Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction",
+            "secondary_citation": null
+          },
+          {
+            "card_id": "bernard-2022-nejm-evidence-1-na-C0025",
+            "category": "prognosis",
+            "disease_ancestors": [],
+            "diseases": [
+              "MDS"
+            ],
+            "evidence_tier": "multivariable-adjusted",
+            "genes": [
+              "SF3B1"
+            ],
+            "interpretation": "According to the IPSS-M framework for MDS, SF3B1 mutation with isolated del(5q)—defined as del(5q) alone or with one additional aberration excluding −7/del(7q)—is a main-effect molecular finding that individually contributes adverse prognostic weight. A main-effect finding is modelled individually in IPSS-M, so its gene-specific prognostic contribution is incorporated directly rather than through the residual mutation count.",
+            "locator": "Results — Feature Selection for IPSS-M Model Development; Table 1 — IPSS-M Risk Score Construction",
             "secondary_citation": null
           }
         ],
@@ -26724,7 +26954,7 @@
         "diseases_covered": [
           "MDS"
         ],
-        "extraction_date": "2026-08-21",
+        "extraction_date": "2026-09-10",
         "extraction_model": "GPT-5.6 Sol",
         "genes_covered": [
           "ASXL1",
@@ -26760,15 +26990,15 @@
           "U2AF1",
           "WT1"
         ],
-        "paper_nickname": "IPSS-M Risk stratification for myelodysplastic neoplasm (MDS)",
+        "paper_nickname": "Bernard IPSS-M 2022",
         "publication_key": "bernard-2022-nejm-evidence-1-na",
         "publication_type": "primary study"
       },
       "source": {
         "acceptance_path": "confirmed",
         "audit": {
-          "approved_round": 2,
-          "audit_date": "2026-08-21",
+          "approved_round": 3,
+          "audit_date": "2026-09-10",
           "audit_model": "Claude Opus 5",
           "extraction_model_reviewed": "GPT-5.6 Sol",
           "publication_type_verdict": {
@@ -26778,57 +27008,52 @@
           "results": [
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0001",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0002",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0003",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0004",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0005",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0006",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0007",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0008",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0009",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0010",
-              "review_basis": "phase4_adjudicated",
-              "verdict": "pass"
-            },
-            {
-              "card_id": "bernard-2022-nejm-evidence-1-na-C0020",
-              "review_basis": "phase4_adjudicated",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
@@ -26838,56 +27063,71 @@
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0011",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0012",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0013",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0014",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0015",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0016",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0017",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0018",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
               "verdict": "pass"
             },
             {
               "card_id": "bernard-2022-nejm-evidence-1-na-C0019",
-              "review_basis": "phase3",
+              "review_basis": "carried_forward",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0023",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0024",
+              "review_basis": "phase4_adjudicated",
+              "verdict": "pass"
+            },
+            {
+              "card_id": "bernard-2022-nejm-evidence-1-na-C0025",
+              "review_basis": "phase4_adjudicated",
               "verdict": "pass"
             }
           ]
         },
         "extraction": {
-          "cards": 21,
+          "cards": 23,
           "census_claims": 34,
           "census_entries": 34,
-          "ratio": 0.62
+          "ratio": 0.68
         },
         "input_id": "f6f179da-542a-5f28-a3ba-e12798579924",
         "markdown_sha256": "b4de4293499a82b5f68eea66f77f4ec881fa692ced5868d223e03a227e9a5c13",
