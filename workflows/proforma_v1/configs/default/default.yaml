@@ -17,6 +17,9 @@ prompt_modules:
   variant_assessment:
     enabled: true
     version: v1
+  who5_schema_disease_policy:
+    enabled: true
+    version: v1
   prognostic_frameworks:
     enabled: true
     version: v1

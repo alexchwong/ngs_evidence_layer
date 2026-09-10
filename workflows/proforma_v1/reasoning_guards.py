@@ -143,37 +143,6 @@ def _merge_validation_issues(result: dict, issues: list[dict]) -> dict:
     return output
 
 
-def _authoritative_schema_disease(context: dict, domain: str) -> str:
-    pack = _get(context, f"{domain}_reasoning_pack") or {}
-    diagnosis = pack.get("authoritative_diagnosis") or {} if isinstance(pack, dict) else {}
-    who = diagnosis.get("who5") or {} if isinstance(diagnosis, dict) else {}
-    return str(who.get("schema_disease") or "") if isinstance(who, dict) else ""
-
-
-def prognosis_framework_issues(document: Any, *, schema_disease: str) -> list[dict]:
-    if not isinstance(document, dict) or str(schema_disease).strip().upper() != "MDS":
-        return []
-    rows = document.get("frameworks") or []
-    names = [str(row.get("name") or "") for row in rows if isinstance(row, dict)]
-    issues: list[dict] = []
-    if "IPSS-M" not in names:
-        issues.append(_issue(
-            "missing_required_prognostic_framework",
-            "$.frameworks",
-            "the authoritative WHO5 disease is MDS but IPSS-M is absent from the framework assessment",
-            "retain the exact preset framework name 'IPSS-M' for MDS; a semantic redo must not rename the framework to the disease label or to a cohort study",
-        ))
-    for index, name in enumerate(names):
-        if name and name != "IPSS-M":
-            issues.append(_issue(
-                "unknown_prognostic_framework",
-                f"$.frameworks[{index}].name",
-                f"MDS framework name {name!r} is not the accepted preset framework 'IPSS-M'",
-                "use the exact framework name 'IPSS-M' and keep non-framework cohort/variant associations under other_evidence",
-            ))
-    return issues
-
-
 def _render_feedback(issues: list[dict]) -> str:
     if not issues:
         return ""
@@ -317,8 +286,4 @@ def after_ptbg_transform(name: str, result: Any, context: dict, params: dict) ->
     domain = _ptbg_domain(params)
     document = _get(context, f"{domain}_reasoning") or {}
     extra = reasoning_contract_issues(document)
-    if domain == "prognosis":
-        extra.extend(prognosis_framework_issues(
-            document, schema_disease=_authoritative_schema_disease(context, domain)
-        ))
     return _merge_validation_issues(result, extra)

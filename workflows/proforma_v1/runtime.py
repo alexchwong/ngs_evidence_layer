@@ -6,12 +6,26 @@ import yaml
 from scripts import vocab
 from validation.scripts.bundled_cases import is_bundled_mode, retrieve_case_input
 from scripts.core.validated_model_task import ValidationIssue, fail
-from workflows.proforma_v1 import layout
+from workflows.proforma_v1 import default_config, layout
 HERE=Path(__file__).resolve().parent; REPO_ROOT=HERE.parents[1]
-WHO5_EXCLUDED_SCHEMA_DISEASES={'MDS/AML'}
 HEADINGS={'**Diagnosis**':'diagnosis','**Prognosis**':'prognosis','**Treatment Implications**':'treatment','**MRD**':'biomarker','**Germline**':'germline'}
 DOMAIN_HEADINGS={v:k for k,v in HEADINGS.items()}
 WHO5_LEGACY_FIELDS=('schema_disease','diagnosis','diagnostic_effect','variants','reason')
+_WHO5_SCHEMA_EXCLUSION_RE=re.compile(r"^- `([^`]+)`\s*$")
+
+def _who5_schema_disease_exclusions()->set[str]:
+    """Load deterministic WHO5 schema exclusions from the selected editable module."""
+    spec=default_config.module_spec('who5_schema_disease_policy')
+    if not spec['enabled']:
+        return set()
+    path=default_config.module_asset_path('who5_schema_disease_policy')
+    exclusions=set()
+    for line in path.read_text(encoding='utf-8').splitlines():
+        match=_WHO5_SCHEMA_EXCLUSION_RE.fullmatch(line.strip())
+        if match:
+            exclusions.add(match.group(1).strip())
+    return exclusions
+
 EVENT_TYPES={'sequence_variant','fusion','copy_number','structural_variant','other','unknown'}
 def legacy_who_view(who:dict|None)->dict:
     """Project a WHO model artifact to the pre-variant-assessment workflow contract."""
@@ -45,7 +59,8 @@ def setup_assets(work_dir:Path,*,mode:str,case_id:str|None=None,example:int|None
     if panel_root.is_file() and panel_root!=panel_out: shutil.move(str(panel_root),str(panel_out))
     cmc_root=work/'case-major-categories.json'; cmc_out=layout.setup(work,'case-major-categories.json',existing=False)
     cmc_out.write_text(json.dumps({'case_major_categories':list(vocab.CASE_MAJOR_CATEGORIES),'instruction':'bootstrap_cmcs are retrieval scaffolds only. Authoritative CMCs are derived deterministically from validated WHO5 schema diseases.'},indent=2,ensure_ascii=False)+'\n',encoding='utf-8'); cmc_root.unlink(missing_ok=True)
-    allowed=[d for d in vocab.CASE_DISEASES if d not in WHO5_EXCLUDED_SCHEMA_DISEASES]
+    excluded=_who5_schema_disease_exclusions()
+    allowed=[d for d in vocab.CASE_DISEASES if d not in excluded]
     layout.setup(work,'allowed-schema-diseases.json',existing=False).write_text(json.dumps({'schema_version':1,'allowed_schema_diseases':allowed,'instruction':'WHO5 schema disease controls deterministic CMC routing; ICC never routes evidence.'},indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
     if is_bundled_mode(mode):
         selector=example if mode=='nel-demo' else case_id

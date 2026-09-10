@@ -37,6 +37,8 @@ Do not use outside medical knowledge or infer diagnostic relationships absent fr
 
 {{ module "variant_assessment" }}
 
+{{ module "who5_schema_disease_policy" }}
+
 ## 8. Output contract
 
 Return YAML only:

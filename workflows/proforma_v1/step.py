@@ -89,16 +89,20 @@ def _card_render_mode():
     if mode not in {'compact','verbose'}: raise StepFailure("rendering.cards must be 'compact' or 'verbose'")
     return mode
 
-_REPORTABILITY_DEFAULTS={
-    'diagnosis':{'who5':True,'icc':True,'concurrent_pathology':True},
-    'prognosis':{'framework_favorable':True,'framework_adverse':True,'framework_neutral':True,'other_evidence_favorable':True,'other_evidence_adverse':True,'other_evidence_neutral':True,'no_prognostic_evidence':False,'prognostic_frameworks':True},
-    'treatment':{'drug_target':True,'drug_sensitive':True,'drug_resistant':True,'no_drug_implication':False},
-    'biomarker':{'mrd_marker':True,'not_mrd_marker':False},
-    'germline':{'germline_suspicious':True,'germline_against':False,'germline_uncertain':False},
-}
+_DIAGNOSIS_REPORTABILITY_DEFAULTS={'who5':True,'icc':True,'concurrent_pathology':True}
+
+def _reportability_default(domain,key):
+    if domain=='diagnosis':
+        return _DIAGNOSIS_REPORTABILITY_DEFAULTS.get(key,True)
+    if domain in {'prognosis','treatment','biomarker','germline'}:
+        policy=stage_spec.load(domain).reportability
+        if key not in policy:
+            raise StepFailure(f'missing reportability policy for {domain}.{key} in {stage_spec.load(domain).path}')
+        return policy[key]
+    return True
 
 def _reportable(domain,key):
-    default=_REPORTABILITY_DEFAULTS.get(domain,{}).get(key,True)
+    default=_reportability_default(domain,key)
     reportability=load_settings().get('reportability') or {}
     domains=reportability.get('domains') or {}
     domain_cfg=domains.get(domain) or {}

@@ -641,19 +641,15 @@ class DiagnosticReasoningGuardTests(unittest.TestCase):
         self.assertIn("$.reasoning[0].variant_ids", missing)
         self.assertIn("$.reasoning[0].reason", missing)
 
-    def test_mds_prognosis_framework_is_exactly_ipss_m(self):
+    def test_ptbg_guard_does_not_duplicate_prognostic_framework_validation(self):
         document = {"frameworks": [{"name": "MDS", "reasoning": []}], "variant_assessments": []}
-        context = {
-            "prognosis_reasoning": document,
-            "prognosis_reasoning_pack": {"authoritative_diagnosis": {"who5": {"schema_disease": "MDS"}}},
-        }
+        context = {"prognosis_reasoning": document}
         result = reasoning_guards.after_ptbg_transform(
             "reasoning_validate_ptbg_reasoning_v2", {"status": "pass", "issues": []}, context,
             {"domain": "prognosis", "step_id": "prognosis.reason.validate"},
         )
-        codes = [row["code"] for row in result["issues"]]
-        self.assertIn("missing_required_prognostic_framework", codes)
-        self.assertIn("unknown_prognostic_framework", codes)
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["issues"], [])
 
     def test_compiler_requires_both_reason_and_evidence_match_reviews_to_pass(self):
         context = {
