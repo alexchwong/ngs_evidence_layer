@@ -33,6 +33,7 @@ ROLE_DEFAULTS={
     'reasoning_adjudication':{'temperature':0.0,'max_tokens':32768,'reasoning':'high'},
     'dissent_summary':{'temperature':0.0,'max_tokens':16384,'reasoning':'low'},
 }
+ALIAS_DEFAULTS={'temperature':0.0,'max_tokens':16384,'reasoning':'default'}
 REASONING_LEVELS=('default','none','minimal','low','medium','high','xhigh')
 _PROVIDER_ROUTING_LIST_FIELDS=('order','only','ignore')
 _PROVIDER_ROUTING_BOOL_FIELDS=('allow_fallbacks','require_parameters')
@@ -47,15 +48,23 @@ class PipelinePlan:
     pipeline_id:str; description:str; path:Path; doc:dict[str,Any]
 def role_defaults()->dict[str,dict[str,Any]]:
     return copy.deepcopy(ROLE_DEFAULTS)
+def _validate_inference_fields(row:dict[str,Any],label:str,*,required:bool=False)->None:
+    if required or 'temperature' in row:
+        value=row.get('temperature')
+        if not isinstance(value,(int,float)) or isinstance(value,bool): raise ValueError(f'{label}.temperature must be numeric')
+    if required or 'max_tokens' in row:
+        value=row.get('max_tokens')
+        if not isinstance(value,int) or isinstance(value,bool) or value<=0: raise ValueError(f'{label}.max_tokens must be positive')
+    if required or 'reasoning' in row:
+        reasoning=row.get('reasoning')
+        if not isinstance(reasoning,str) or reasoning not in REASONING_LEVELS: raise ValueError(f'{label}.reasoning must be one of {list(REASONING_LEVELS)}')
 def _validate_role_rows(rows:Any,label:str)->None:
     if not isinstance(rows,dict): raise ValueError(f'{label} must be a mapping of known model roles')
     unknown=set(rows)-set(ROLES)
     if unknown: raise ValueError(f'{label} has unsupported role(s): {", ".join(sorted(unknown))}')
     for role,row in rows.items():
         if not isinstance(row,dict) or not isinstance(row.get('model'),str) or not row['model'].strip(): raise ValueError(f'{label}.{role}.model must be non-empty')
-        if not isinstance(row.get('max_tokens'),int) or isinstance(row.get('max_tokens'),bool) or row['max_tokens']<=0: raise ValueError(f'{label}.{role}.max_tokens must be positive')
-        reasoning=row.get('reasoning','default')
-        if not isinstance(reasoning,str) or reasoning not in REASONING_LEVELS: raise ValueError(f'{label}.{role}.reasoning must be one of {list(REASONING_LEVELS)}')
+        _validate_inference_fields(row,f'{label}.{role}')
 def _validate_provider_routing(value:Any,label:str)->None:
     if not isinstance(value,dict): raise ValueError(f'{label} must be a mapping')
     unknown=set(value)-_PROVIDER_ROUTING_FIELDS
@@ -75,6 +84,12 @@ def _validate_execution(value:Any)->None:
         limit=value['max_parallel_cases']
         if not isinstance(limit,int) or isinstance(limit,bool) or limit<=0:
             raise ValueError('execution.max_parallel_cases must be a positive integer')
+def alias_defaults(entry:Any)->dict[str,Any]:
+    if isinstance(entry,str):
+        return {'model':entry,**ALIAS_DEFAULTS}
+    out=dict(ALIAS_DEFAULTS)
+    out.update({k:v for k,v in entry.items() if k in {'model','temperature','max_tokens','reasoning','provider'}})
+    return out
 def _validate_aliases(doc:dict[str,Any])->None:
     aliases=doc.get('model_aliases'); roles=doc.get('model_roles')
     if not isinstance(aliases,dict) or not aliases: raise ValueError('model_aliases must be a non-empty mapping')
@@ -85,14 +100,17 @@ def _validate_aliases(doc:dict[str,Any])->None:
             if not value.strip(): raise ValueError(f'{label} must be a non-empty model id')
             continue
         if not isinstance(value,dict): raise ValueError(f'{label} must be a model id string or mapping')
-        unknown=set(value)-{'model','provider'}
+        unknown=set(value)-{'model','provider','temperature','max_tokens','reasoning'}
         if unknown: raise ValueError(f'{label} has unsupported field(s): {", ".join(sorted(unknown))}')
         if not isinstance(value.get('model'),str) or not value['model'].strip(): raise ValueError(f'{label}.model must be non-empty')
+        _validate_inference_fields(alias_defaults(value),label,required=True)
         if 'provider' in value: _validate_provider_routing(value['provider'],f'{label}.provider')
     _validate_role_rows(roles,'model_roles')
     for role,row in roles.items():
         alias=row['model']
         if alias not in aliases: raise ValueError(f'model_roles.{role}.model references unknown alias {alias!r}')
+        effective=alias_defaults(aliases[alias]); effective.update({k:v for k,v in row.items() if k != 'model'})
+        _validate_inference_fields(effective,f'model_roles.{role}',required=True)
 def load_yaml(path:Path)->PipelinePlan:
     path=Path(path); doc=yaml.safe_load(path.read_text(encoding='utf-8'))
     if not isinstance(doc,dict) or not isinstance(doc.get('pipeline'),dict): raise ValueError(f'invalid pipeline YAML: {path}')
@@ -146,10 +164,11 @@ def _resolved_row(plan:PipelinePlan,role:str)->tuple[dict[str,Any],dict[str,Any]
     row=rows.get(role) if isinstance(rows,dict) else None
     if row is None: row=_default_role_row(plan.doc,role)
     if 'model_roles' not in plan.doc: return dict(row),None
-    alias=row['model']; entry=plan.doc['model_aliases'][alias]
-    if isinstance(entry,str): model=entry; routing=None
-    else: model=entry['model']; routing=entry.get('provider')
-    resolved=dict(row); resolved['model']=model
+    alias=row['model']; entry=alias_defaults(plan.doc['model_aliases'][alias])
+    routing=entry.get('provider')
+    resolved={k:v for k,v in entry.items() if k!='provider'}
+    resolved.update({k:v for k,v in row.items() if k!='model'})
+    resolved['model']=entry['model']
     return resolved,dict(routing) if routing is not None else None
 def binding(plan:PipelinePlan,role:str)->Binding:
     if role not in ROLES: raise ValueError(f'unknown model role {role!r}')

@@ -153,62 +153,50 @@ def list_pipelines() -> list[dict[str, Any]]:
 
 
 def _complete_payload_roles(payload: dict[str, Any]) -> dict[str, Any]:
-    """Complete a sparse UI profile from the workflow-agnostic role catalogue."""
+    """Complete missing role assignments without materialising inference defaults."""
     out = copy.deepcopy(payload)
     roles_in = out.get("roles")
     aliases = out.get("aliases")
     if not isinstance(roles_in, dict) or not isinstance(aliases, list):
         return out
-    first_alias = ""
-    for row in aliases:
-        if isinstance(row, dict) and str(row.get("alias") or "").strip():
-            first_alias = str(row["alias"]).strip()
-            break
+    first_alias = next((str(row.get("alias") or "").strip() for row in aliases if isinstance(row, dict) and str(row.get("alias") or "").strip()), "")
     if not first_alias:
         return out
-    defaults = pipeline_registry.role_defaults()
     for role in pipeline_registry.ROLES:
-        if role in roles_in:
-            continue
-        default = dict(defaults[role])
-        default["model"] = first_alias
-        roles_in[role] = default
+        roles_in.setdefault(role, {"model": first_alias})
     return out
 
 
 def _profile_for_editor(name: str) -> dict[str, Any]:
-    """Present sparse profiles with all known role defaults without rewriting disk."""
-    return pipeline_registry.with_role_defaults(base.read_pipeline(name))
+    """Return the sparse profile; the browser displays inherited alias defaults."""
+    return copy.deepcopy(base.read_pipeline(name))
 
 
 def _apply_role_reasoning(doc: dict[str, Any], payload: dict[str, Any]) -> None:
-    """Copy optional UI reasoning settings into model_roles after base composition."""
+    """Validate optional role reasoning overrides already composed by the base UI."""
     roles_in = payload.get("roles") or {}
     roles_doc = doc.get("model_roles") or {}
     if not isinstance(roles_in, dict) or not isinstance(roles_doc, dict):
         return
-    for role, target in roles_doc.items():
-        if not isinstance(target, dict):
-            continue
-        source = roles_in.get(role) or {}
+    for role, source in roles_in.items():
         if not isinstance(source, dict):
             continue
-        effort = str(source.get("reasoning") or "default").strip().lower()
-        if effort not in REASONING_LEVELS:
-            raise base.UIError(
-                f"role {role} reasoning must be one of: {', '.join(REASONING_LEVELS)}"
-            )
-        target["reasoning"] = effort
+        effort = str(source.get("reasoning") or "").strip().lower()
+        if effort and effort not in REASONING_LEVELS:
+            raise base.UIError(f"role {role} reasoning must be one of: {', '.join(REASONING_LEVELS)}")
 
 
 def _validate_provider_reasoning(doc: dict[str, Any], provider_class: str) -> None:
     rows = doc.get("model_roles") or {}
-    if not isinstance(rows, dict):
+    aliases = doc.get("model_aliases") or {}
+    if not isinstance(rows, dict) or not isinstance(aliases, dict):
         return
     for role, row in rows.items():
         if not isinstance(row, dict):
             continue
-        effort = str(row.get("reasoning") or "default").strip().lower()
+        alias = str(row.get("model") or "")
+        alias_row = pipeline_registry.alias_defaults(aliases.get(alias, ""))
+        effort = str(row.get("reasoning", alias_row.get("reasoning", "default"))).strip().lower()
         if provider_class == "openrouter":
             allowed = REASONING_LEVELS
         elif provider_class == "lmstudio":
@@ -218,17 +206,14 @@ def _validate_provider_reasoning(doc: dict[str, Any], provider_class: str) -> No
         if effort not in allowed:
             if provider_class == "lmstudio":
                 raise base.UIError(
-                    f"role {role} reasoning {effort!r} is not supported for LM Studio; "
-                    f"choose one of: {', '.join(allowed)}. "
+                    f"role {role} reasoning {effort!r} is not supported for LM Studio; choose one of: {', '.join(allowed)}. "
                     f"NEL supports LM Studio {LMSTUDIO_MIN_VERSION}+ via /v1/responses."
                 )
-            raise base.UIError(
-                f"role {role} reasoning must be Default for provider class {provider_class}"
-            )
+            raise base.UIError(f"role {role} reasoning must be Default for provider class {provider_class}")
 
 
 def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
-    """Save a workflow-agnostic profile with missing known roles defaulted."""
+    """Save a workflow-agnostic profile with sparse role overrides."""
     payload = _complete_payload_roles(payload)
     name, doc = base.compose_pipeline(payload)
     _apply_role_reasoning(doc, payload)
@@ -249,7 +234,6 @@ def save_pipeline(payload: dict[str, Any]) -> dict[str, Any]:
         doc["execution"] = {"max_parallel_cases": batch._execution_limit(doc)}
     saved = base.save_pipeline(name, doc, overwrite=bool(payload.get("overwrite")))
     return {"name": name, "path": str(saved), "pipelines": list_pipelines()}
-
 
 def _workflow_role_descriptions(path: Path) -> dict[str, str]:
     doc = load_workflow(path)

@@ -11,60 +11,35 @@ provider:
   timeout_s: 900
   api_key_required: true
 model_aliases:
-  default: qwen/qwen3-coder-next
+  default:
+    model: qwen/qwen3-coder-next
+    temperature: 0.0
+    max_tokens: 16384
+    reasoning: default
 model_roles:
   structure:
     model: default
-    temperature: 0.0
-    max_tokens: 65536
   diagnosis:
     model: default
-    temperature: 0.0
-    max_tokens: 65536
   ptbg:
     model: default
-    temperature: 0.0
-    max_tokens: 65536
   evidence_match:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
   evidence_audit:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
   report_write:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
   preservation_check:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
   marking:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
   syntax_repair:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
   evidence_adjudication:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
   reasoning_audit:
     model: default
-    temperature: 0.0
-    max_tokens: 32768
-    reasoning: high
   reasoning_adjudication:
     model: default
-    temperature: 0.0
-    max_tokens: 32768
-    reasoning: high
   dissent_summary:
     model: default
-    temperature: 0.0
-    max_tokens: 16384
-    reasoning: low

@@ -662,11 +662,10 @@ def _routing(raw: Any) -> dict[str, Any]:
 
 def compose_pipeline(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     name = str(payload.get("name") or "").strip()
-    pipeline_path(name)  # validates the stem
+    pipeline_path(name)
     if name in SHIPPED_PIPELINES:
         raise UIError(
-            f"{name} is a profile shipped with the repository and is read-only; "
-            "save under a new name"
+            f"{name} is a profile shipped with the repository and is read-only; save under a new name"
         )
     provider_in = payload.get("provider") or {}
     base_url = str(provider_in.get("base_url") or "").strip()
@@ -688,8 +687,16 @@ def compose_pipeline(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             raise UIError(f"model option {alias!r} needs a model ID")
         if alias in aliases:
             raise UIError(f"model option {alias!r} is defined twice")
+        alias_row: dict[str, Any] = {
+            "model": model,
+            "temperature": _float(row.get("temperature"), 0.0, f"model option {alias} temperature"),
+            "max_tokens": _positive_int(row.get("max_tokens"), 16384, f"model option {alias} max_tokens"),
+            "reasoning": str(row.get("reasoning") or "default").strip().lower(),
+        }
         routing = _routing(row.get("routing"))
-        aliases[alias] = {"model": model, "provider": routing} if routing else model
+        if routing:
+            alias_row["provider"] = routing
+        aliases[alias] = alias_row
 
     roles_in = payload.get("roles") or {}
     if not isinstance(roles_in, dict):
@@ -701,9 +708,7 @@ def compose_pipeline(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     if missing:
         raise UIError(f"role assignment is missing: {', '.join(missing)}")
     if extra:
-        raise UIError(
-            f"role assignment names roles this workflow does not have: {', '.join(extra)}"
-        )
+        raise UIError(f"role assignment names roles this workflow does not have: {', '.join(extra)}")
     model_roles: dict[str, Any] = {}
     for role in roles():
         row = roles_in.get(role) or {}
@@ -712,11 +717,22 @@ def compose_pipeline(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         alias = str(row.get("model") or "").strip()
         if alias not in aliases:
             raise UIError(f"role {role} names model option {alias!r}, which is not defined")
-        model_roles[role] = {
-            "model": alias,
-            "temperature": _float(row.get("temperature"), 0.0, f"role {role} temperature"),
-            "max_tokens": _positive_int(row.get("max_tokens"), None, f"role {role} max_tokens"),
-        }
+        role_row: dict[str, Any] = {"model": alias}
+        defaults = aliases[alias]
+        temp_text = str(row.get("temperature") if row.get("temperature") is not None else "").strip()
+        if temp_text:
+            value = _float(temp_text, defaults["temperature"], f"role {role} temperature")
+            if value != defaults["temperature"]:
+                role_row["temperature"] = value
+        max_text = str(row.get("max_tokens") if row.get("max_tokens") is not None else "").strip()
+        if max_text:
+            value = _positive_int(max_text, defaults["max_tokens"], f"role {role} max_tokens")
+            if value != defaults["max_tokens"]:
+                role_row["max_tokens"] = value
+        reasoning = str(row.get("reasoning") or "").strip().lower()
+        if reasoning and reasoning != defaults["reasoning"]:
+            role_row["reasoning"] = reasoning
+        model_roles[role] = role_row
 
     provider: dict[str, Any] = {
         "type": "openai-compatible",
@@ -736,15 +752,13 @@ def compose_pipeline(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     doc = {
         "pipeline": {
             "version": 1,
-            "description": str(payload.get("description") or "").strip()
-                           or f"Proforma-v1 profile {name}.",
+            "description": str(payload.get("description") or "").strip() or f"Proforma-v1 profile {name}.",
         },
         "provider": provider,
         "model_aliases": aliases,
         "model_roles": model_roles,
     }
     return name, doc
-
 
 def validate_pipeline(doc: dict[str, Any]) -> None:
     import tempfile

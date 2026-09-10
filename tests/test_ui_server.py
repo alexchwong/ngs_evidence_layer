@@ -290,9 +290,25 @@ class CompositionTests(unittest.TestCase):
         self.assertEqual(name, "ui-test")
         server.validate_pipeline(doc)
 
-    def test_scalar_alias_without_routing(self):
+    def test_alias_defaults_are_canonical_without_routing(self):
         _name, doc = server.compose_pipeline(_valid_payload())
-        self.assertEqual(doc["model_aliases"]["plain"], "openai/gpt-oss-20b")
+        self.assertEqual(doc["model_aliases"]["plain"], {
+            "model": "openai/gpt-oss-20b",
+            "temperature": 0.0,
+            "max_tokens": 16384,
+            "reasoning": "default",
+        })
+
+    def test_role_values_equal_to_alias_defaults_are_omitted(self):
+        _name, doc = server.compose_pipeline(_valid_payload())
+        self.assertEqual(doc["model_roles"]["structure"], {"model": "fast"})
+
+    def test_blank_role_values_inherit_alias_defaults(self):
+        payload = _valid_payload()
+        payload["roles"]["structure"]["temperature"] = ""
+        payload["roles"]["structure"]["max_tokens"] = ""
+        _name, doc = server.compose_pipeline(payload)
+        self.assertEqual(doc["model_roles"]["structure"], {"model": "fast"})
 
     def test_order_split_into_list(self):
         _name, doc = server.compose_pipeline(_valid_payload())

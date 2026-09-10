@@ -42,6 +42,35 @@ class ReasoningRoleRegistryTests(unittest.TestCase):
         self.assertEqual(pipeline_registry.binding(plan, "diagnosis").reasoning, "high")
         self.assertEqual(pipeline_registry.binding(plan, "structure").reasoning, "default")
 
+    def test_alias_defaults_supply_inference_parameters(self):
+        doc = _doc()
+        doc["model_aliases"]["main"] = {
+            "model": "example/model",
+            "temperature": 0.25,
+            "max_tokens": 12345,
+            "reasoning": "medium",
+        }
+        for row in doc["model_roles"].values():
+            row.pop("temperature", None)
+            row.pop("max_tokens", None)
+            row.pop("reasoning", None)
+        plan = self._load(doc)
+        binding = pipeline_registry.binding(plan, "diagnosis")
+        self.assertEqual(binding.temperature, 0.25)
+        self.assertEqual(binding.max_tokens, 12345)
+        self.assertEqual(binding.reasoning, "medium")
+
+    def test_role_override_wins_over_alias_default(self):
+        doc = _doc()
+        doc["model_aliases"]["main"] = {
+            "model": "example/model", "temperature": 0.0, "max_tokens": 16384, "reasoning": "default"
+        }
+        doc["model_roles"]["diagnosis"] = {"model": "main", "max_tokens": 65536, "reasoning": "high"}
+        plan = self._load(doc)
+        binding = pipeline_registry.binding(plan, "diagnosis")
+        self.assertEqual(binding.max_tokens, 65536)
+        self.assertEqual(binding.reasoning, "high")
+
     def test_invalid_reasoning_level_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "reasoning must be one of"):
             self._load(_doc("ultra"))

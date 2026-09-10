@@ -105,18 +105,26 @@
   }
 
   function reasoningForRole(role) {
-    const value = String(loadedReasoning?.[role] || 'default').toLowerCase();
-    return LEVELS.includes(value) ? value : 'default';
+    const value = String(loadedReasoning?.[role] || '').toLowerCase();
+    return LEVELS.includes(value) ? value : '';
+  }
+
+  function aliasDefaultForRow(tr) {
+    const alias = tr?.querySelector('[data-role-model]')?.value || '';
+    const card = [...document.querySelectorAll('#aliases .alias-card')].find(c => c.querySelector('[data-alias]')?.value.trim() === alias);
+    return String(card?.querySelector('[data-alias-reasoning]')?.value || 'default').toLowerCase();
   }
 
   function applyProviderCapabilities() {
     const allowed = new Set(allowedLevels());
     for (const select of roleBody.querySelectorAll('[data-role-reasoning]')) {
       for (const option of select.options) option.disabled = !allowed.has(option.value);
-      if (!allowed.has(select.value)) {
-        select.value = 'default';
+      if (select.value && !allowed.has(select.value)) {
+        select.value = '';
         select.dataset.userSet = '1';
       }
+      const tr = select.closest('tr');
+      if (select.options[0]) select.options[0].textContent = `Default – ${aliasDefaultForRow(tr) === 'default' ? 'Default' : aliasDefaultForRow(tr)[0].toUpperCase() + aliasDefaultForRow(tr).slice(1)}`;
     }
     updateNote();
   }
@@ -130,6 +138,10 @@
         cell.dataset.reasoningCell = '1';
         const select = document.createElement('select');
         select.dataset.roleReasoning = '1';
+        const inherit = document.createElement('option');
+        inherit.value = '';
+        inherit.textContent = 'Default – Default';
+        select.appendChild(inherit);
         for (const level of LEVELS) {
           const option = document.createElement('option');
           option.value = level;
@@ -155,8 +167,8 @@
     loadedReasoning = {};
     if (rows && typeof rows === 'object') {
       for (const [role, row] of Object.entries(rows)) {
-        if (row && typeof row === 'object') loadedReasoning[role] = row.reasoning || 'default';
-        else loadedReasoning[role] = 'default';
+        if (row && typeof row === 'object') loadedReasoning[role] = row.reasoning || '';
+        else loadedReasoning[role] = '';
       }
     }
     queueMicrotask(() => {
@@ -170,7 +182,7 @@
     for (const tr of roleBody.querySelectorAll('tr[data-role]')) {
       const role = tr.dataset.role;
       const select = tr.querySelector('[data-role-reasoning]');
-      if (role && payload.roles[role] && select) payload.roles[role].reasoning = select.value || 'default';
+      if (role && payload.roles[role] && select) payload.roles[role].reasoning = select.value || '';
     }
     const providerClass = selectedProviderClass();
     if (providerClass) payload.provider_class = providerClass;
@@ -207,6 +219,9 @@
     }
     if (event.target?.id === 'workflowSelect') {
       queueMicrotask(updateRolePresentation);
+    }
+    if (event.target?.matches?.('[data-role-model],[data-alias-reasoning]')) {
+      queueMicrotask(applyProviderCapabilities);
     }
   });
   const observer = new MutationObserver(installSelects);
