@@ -20,6 +20,9 @@ venv/
 # pasted clinical case. Both are recreated on demand and neither is a deliverable.
 /.nel-ui/
 
+# Manual blinded-report evaluation output and its provenance index.
+/evaluation/
+
 # The Corpus User Layer editor is a generated local tool owned by cul.py, and
 # its remembered downloads directory is machine-specific. Profiles themselves
 # (config/cul/*.json) are intentionally not ignored: a shared profile is worth
