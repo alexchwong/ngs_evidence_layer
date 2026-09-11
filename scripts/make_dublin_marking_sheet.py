@@ -2,8 +2,9 @@
 """Create a source-blinded CSV marking sheet for exported Dublin reports.
 
 The script reads only blinded report filenames; it does not read hash_index.csv.
-Rows are sorted by filename so Excel order matches opening the reports alphabetically.
+Rows are grouped by Dublin case (case-1 through case-10), then naturally/numerically sorted by blinded filename within each case.
 Applicable Dublin rubric cells are blank for manual entry; non-applicable cells are N/A.
+By default an existing sheet is updated in place: marked rows are preserved, untouched rows are refreshed, and new reports are added.
 """
 from __future__ import annotations
 
@@ -24,6 +25,16 @@ CRITERION_RE = re.compile(r"^- \*\*(R([1-5])C([1-9][0-9]*))\.\*\*", re.MULTILINE
 
 class MarkingSheetError(RuntimeError):
     pass
+
+
+def _natural_key(value: str) -> tuple[tuple[int, object], ...]:
+    """Return a case-insensitive natural/numeric collation key.
+
+    Numeric runs compare as integers, so ``report-2.md`` sorts before
+    ``report-10.md``. Text runs compare case-insensitively.
+    """
+    parts = re.split(r"(\d+)", value.casefold())
+    return tuple((0, int(part)) if part.isdigit() else (1, part) for part in parts if part)
 
 
 def _criterion_key(value: str) -> tuple[int, int]:
@@ -89,27 +100,43 @@ def _discover_reports(reports_dir: Path) -> list[tuple[str, str]]:
     if not reports_dir.is_dir():
         raise MarkingSheetError(f"blinded reports directory is missing: {reports_dir}")
 
-    markdown = sorted((path for path in reports_dir.iterdir() if path.is_file() and path.suffix.lower() == ".md"),
-                      key=lambda path: path.name.casefold())
-    if not markdown:
-        raise MarkingSheetError(f"no blinded Markdown reports found in {reports_dir}")
-
     reports: list[tuple[str, str]] = []
     unexpected: list[str] = []
-    for path in markdown:
-        match = REPORT_RE.fullmatch(path.name)
-        if not match:
-            unexpected.append(path.name)
-            continue
-        reports.append((path.name, match.group(1)))
+    counts = {case: 0 for case in EXPECTED_CASES}
+
+    # Marking order deliberately follows the folder layout: case-1 ... case-10,
+    # with reports alphabetically sorted by blinded filename inside each case.
+    for case in EXPECTED_CASES:
+        case_dir = reports_dir / f"case-{case}"
+        if not case_dir.is_dir():
+            raise MarkingSheetError(f"blinded case directory is missing: {case_dir}")
+
+        markdown = sorted(
+            (path for path in case_dir.iterdir() if path.is_file() and path.suffix.lower() == ".md"),
+            key=lambda path: _natural_key(path.name),
+        )
+        for path in markdown:
+            match = REPORT_RE.fullmatch(path.name)
+            if not match or match.group(1) != case:
+                unexpected.append(str(path.relative_to(reports_dir)))
+                continue
+            reports.append((path.name, case))
+            counts[case] += 1
+
+    root_markdown = sorted(
+        (path.name for path in reports_dir.iterdir()
+         if path.is_file() and path.suffix.lower() == ".md"),
+        key=_natural_key,
+    )
+    if root_markdown:
+        unexpected.extend(root_markdown)
+
     if unexpected:
         raise MarkingSheetError(
-            "unexpected Markdown file(s) in blinded reports directory: " + ", ".join(unexpected)
+            "unexpected or misplaced Markdown report(s) in blinded reports directory: "
+            + ", ".join(unexpected)
         )
 
-    counts = {case: 0 for case in EXPECTED_CASES}
-    for _filename, case in reports:
-        counts[case] += 1
     missing = [case for case, count in counts.items() if count == 0]
     if missing:
         raise MarkingSheetError(
@@ -126,48 +153,167 @@ def _discover_reports(reports_dir: Path) -> list[tuple[str, str]]:
     return reports
 
 
+def _read_existing_sheet(output_path: Path, fields: list[str]) -> dict[str, dict[str, str]]:
+    if not output_path.exists() or output_path.stat().st_size == 0:
+        return {}
+
+    # Excel may persist trailing, completely empty columns after the real table.
+    # Accept those harmless columns, but continue to fail closed for any named
+    # extra column, missing/reordered expected column, or data in an extra column.
+    with output_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        raw_rows = list(csv.reader(handle))
+
+    if not raw_rows:
+        raise MarkingSheetError(f"existing marking sheet has no header: {output_path}")
+
+    header = raw_rows[0]
+    if header[: len(fields)] != fields:
+        raise MarkingSheetError(
+            "existing marking sheet columns do not match the current Dublin rubric; "
+            f"expected leading columns {fields}, found {header}. "
+            "Migrate the sheet deliberately rather than risking entered marks."
+        )
+
+    extra_headers = header[len(fields):]
+    if any(value.strip() for value in extra_headers):
+        raise MarkingSheetError(
+            "existing marking sheet contains unexpected named column(s) after the Dublin rubric: "
+            + ", ".join(repr(value) for value in extra_headers if value.strip())
+        )
+
+    rows: dict[str, dict[str, str]] = {}
+    expected_width = len(fields)
+    for line_number, values in enumerate(raw_rows[1:], start=2):
+        # csv.reader may return fewer cells when a row does not explicitly carry
+        # all trailing empty fields. Pad before inspecting the canonical columns.
+        if len(values) < expected_width:
+            values = values + [""] * (expected_width - len(values))
+
+        extras = values[expected_width:]
+        if any(value.strip() for value in extras):
+            raise MarkingSheetError(
+                f"existing marking sheet has data in trailing non-rubric column(s) at line {line_number}: "
+                f"{output_path}"
+            )
+
+        canonical = values[:expected_width]
+        row = dict(zip(fields, canonical))
+        filename = (row.get("filename") or "").strip()
+        if not filename:
+            # Ignore a completely blank trailing Excel row, but not a partially
+            # populated row with no filename.
+            if not any(value.strip() for value in canonical):
+                continue
+            raise MarkingSheetError(
+                f"existing marking sheet has a blank filename at line {line_number}: {output_path}"
+            )
+        if filename in rows:
+            raise MarkingSheetError(
+                f"existing marking sheet contains duplicate filename {filename!r}: {output_path}"
+            )
+        rows[filename] = row
+    return rows
+
+
+def _row_has_marks(row: dict[str, str], criteria: list[str]) -> bool:
+    """Return True when a row contains user-entered marking data.
+
+    Blank cells and deterministic ``N/A`` placeholders are not marks. Any value
+    in an applicable criterion cell, total, or comments is treated as user data
+    and causes the whole row to be preserved verbatim during normal updates.
+    """
+    for field in [*criteria, "total", "comments"]:
+        value = (row.get(field) or "").strip()
+        if value and value.upper() != "N/A":
+            return True
+    return False
+
+
+def _blank_row(filename: str, case: str, criteria: list[str], applicable: set[str]) -> dict[str, str]:
+    fields = ["filename", "case", *criteria, "total", "comments"]
+    row = {field: "" for field in fields}
+    row["filename"] = filename
+    row["case"] = f"case-{case}"
+    for criterion in criteria:
+        if criterion not in applicable:
+            row[criterion] = "N/A"
+    return row
+
+
 def build_sheet(*, reports_dir: Path, suite_path: Path, output_path: Path, force: bool = False) -> int:
     criteria_by_case = _parse_suite(suite_path)
     reports = _discover_reports(reports_dir)
     criteria = sorted({criterion for values in criteria_by_case.values() for criterion in values}, key=_criterion_key)
     fields = ["filename", "case", *criteria, "total", "comments"]
 
-    if output_path.exists() and output_path.stat().st_size > 0 and not force:
+    existing = {} if force else _read_existing_sheet(output_path, fields)
+    current_filenames = {filename for filename, _case in reports}
+
+    # Default update mode is conservative. A marked row whose source report is
+    # no longer present is never silently discarded; use hash_batch_dublin.py
+    # --remove (or --force after deliberate review) to resolve it explicitly.
+    stale_marked = sorted(
+        (filename for filename, row in existing.items()
+         if filename not in current_filenames and _row_has_marks(row, criteria)),
+        key=_natural_key,
+    )
+    if stale_marked:
         raise MarkingSheetError(
-            f"refusing to overwrite existing marking sheet: {output_path}; use --force only if you intend to replace it"
+            "existing marking sheet contains marked row(s) whose report file is no longer present: "
+            + ", ".join(stale_marked)
+            + ". Refusing to discard entered marks."
         )
+
+    rows: list[dict[str, str]] = []
+    preserved = 0
+    refreshed = 0
+    added = 0
+    for filename, case in reports:
+        applicable = set(criteria_by_case[case])
+        prior = existing.get(filename)
+        if prior is not None and _row_has_marks(prior, criteria):
+            expected_case = f"case-{case}"
+            if (prior.get("case") or "").strip() != expected_case:
+                raise MarkingSheetError(
+                    f"marked row {filename!r} has case {(prior.get('case') or '')!r}; expected {expected_case!r}"
+                )
+            rows.append(prior)
+            preserved += 1
+        else:
+            rows.append(_blank_row(filename, case, criteria, applicable))
+            if prior is None:
+                added += 1
+            else:
+                refreshed += 1
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
-        for filename, case in reports:
-            applicable = set(criteria_by_case[case])
-            row = {field: "" for field in fields}
-            row["filename"] = filename
-            row["case"] = f"case-{case}"
-            for criterion in criteria:
-                if criterion not in applicable:
-                    row[criterion] = "N/A"
-            writer.writerow(row)
+        writer.writerows(rows)
 
     run_count = len(reports) // 10
     print(f"REPORTS={len(reports)}")
     print(f"RUNS={run_count}")
+    print(f"PRESERVED_MARKED_ROWS={preserved}")
+    print(f"REFRESHED_UNMARKED_ROWS={refreshed}")
+    print(f"ADDED_ROWS={added}")
     print(f"OUTPUT={output_path.resolve()}")
-    print("ORDER=filename ascending")
+    print("ORDER=case numeric ascending, then filename natural/numeric ascending within case")
+    print("MODE=force-rebuild" if force else "MODE=update-preserve-marks")
     return len(reports)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reports", type=Path, default=DEFAULT_REPORTS_DIR,
-                        help="directory containing blinded *-case-N.md reports")
+                        help="directory containing case-N/ subfolders of blinded *-case-N.md reports")
     parser.add_argument("--suite", type=Path, default=DEFAULT_SUITE,
                         help="canonical Dublin validation Markdown used only to determine applicable criterion IDs")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT,
-                        help="CSV file to create (default: evaluation/marking_sheet.csv)")
+                        help="CSV file to create or incrementally update (default: evaluation/marking_sheet.csv)")
     parser.add_argument("--force", action="store_true",
-                        help="replace an existing marking sheet; normally refused to protect entered marks")
+                        help="rebuild the sheet from reports and discard any existing entered marks/comments")
     args = parser.parse_args(argv)
     try:
         build_sheet(
