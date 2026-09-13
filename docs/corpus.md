@@ -1,6 +1,6 @@
 # Current corpus
 
-The current 0.3.1 corpus contains 32 active publications. Publications are grouped below by
+The current 0.3.1 corpus contains 34 active publications. Publications are grouped below by
 `latest_accepted_in_version` from `output/corpus/nel.index.json`. Card and acceptance-version
 metadata are stored in the index; matching citation metadata, including DOI, is stored in
 `output/corpus/nel.corpus.json`.
@@ -8,6 +8,8 @@ metadata are stored in the index; matching citation metadata, including DOI, is 
 ### Last modified in v0.3.1
 | Publication key | DOI | Paper nickname | Contribution to corpus |
 |---|---|---|---|
+| `frebourg-2020-tp53-germline` | `10.1038/s41431-020-0638-4` | ERN GENTURIS TP53 Guidelines 2020 | Heritable TP53-related cancer syndrome recognition, germline testing, surveillance, and family-management guidance. |
+| `sanz-2019-apl` | `10.1182/blood-2019-01-894980` | European LeukemiaNet (ELN) Guidelines for APL | APL diagnosis, molecular monitoring, risk-adapted management, treatment, and relapse guidance. |
 | `bluteau-2014-ankrd26` | `10.1172/JCI71861` | Bluteau ANKRD26 Thrombocytopenia 2014 | ANKRD26 5′-UTR thrombocytopenia, MAPK activation, inherited predisposition, and myeloid-malignancy risk. |
 | `dinardo-2020-genotype-specific-venetoclax` | `10.1182/blood.2019003988` | DiNardo Venetoclax AML Response 2020 | Genotype-specific venetoclax response and resistance in AML, including NPM1/IDH sensitivity and FLT3/RAS/TP53 resistance patterns. |
 | `drazer-2018-germline-vaf` | `10.1182/bloodadvances.2017013037` | Drazer Germline VAF Study 2018 | Tumour-panel VAF and gene context for recognising possible germline variants and selecting confirmatory testing. |

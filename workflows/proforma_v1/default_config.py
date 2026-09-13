@@ -1,8 +1,8 @@
-"""Default-workflow experimental configuration.
+"""Configuration loader for the canonical default workflow.
 
-The default workflow keeps one execution graph while allowing small prompt and
-meaning-preserving enrichment modules to be selected independently. Selection
-is intentionally default-workflow-only for now.
+The default workflow keeps one execution graph while allowing prompt and
+meaning-preserving enrichment modules to be selected independently. Unspecified
+selection resolves to the supported ``default.yaml`` configuration.
 """
 from __future__ import annotations
 

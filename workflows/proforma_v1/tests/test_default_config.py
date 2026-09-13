@@ -15,30 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DefaultConfigTests(unittest.TestCase):
-    def test_shipped_default_preserves_existing_assets_and_alias_but_disables_new_modules(self):
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop(default_config.ENV_DEFAULT_CONFIG, None)
-            doc = default_config.load()
-            self.assertTrue(doc["prompt_modules"]["case_context"]["enabled"])
-            self.assertTrue(doc["prompt_modules"]["prognostic_frameworks"]["enabled"])
-            for name in (
-                "deliberate",
-                "foundational_genetics",
-                "premise_before_consequence",
-                "qualifier_check",
-                "limiting_evidence",
-            ):
-                self.assertFalse(doc["prompt_modules"][name]["enabled"])
-            self.assertTrue(doc["deterministic_enrichments"]["protein_hgvs_one_letter_alias"]["enabled"])
-
-    def test_disabled_module_renders_intentional_blank_without_section_name(self):
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop(default_config.ENV_DEFAULT_CONFIG, None)
-            text = prompt_loader.render(Path("prompts/diagnosis_who5.md"), root=ROOT)
-        self.assertIn(default_config.BLANK_SECTION, text)
-        self.assertNotIn("## Deliberate before committing", text)
-        self.assertIn("## 2. Determine case context", text)
-
     def test_versioned_module_and_alias_switch_can_be_selected_by_absolute_config(self):
         base = default_config.load()
         for name in (
@@ -63,7 +39,6 @@ class DefaultConfigTests(unittest.TestCase):
         self.assertIn("## Establish prerequisites before consequences", text)
         self.assertNotIn(default_config.BLANK_SECTION, text)
         self.assertNotIn("protein_alias", registry["v01"])
-
 
     def test_default_reviewed_prompts_render_versioned_prognostic_framework_module(self):
         with patch.dict(os.environ, {}, clear=False):

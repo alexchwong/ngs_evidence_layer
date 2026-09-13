@@ -64,18 +64,9 @@ files are staged. See [Pre-release housekeeping](#pre-release-housekeeping).
 See [`workflows.md`](workflows.md) for the full workflow-separation contract, cloning
 procedure, modification boundaries, validation, and promotion/removal steps.
 
-**Default workflow:** `proforma-v1` — Canonical declarative proforma workflow with blocking WHO1 routing, concurrent-pathology reporting, PTBG owner proformas, and audited/adjudicated evidence resolution before final synthesis.
+**Supported product workflow:** `default` — the canonical declarative workflow implemented by `proforma-v1`, with blocking WHO1 routing, concurrent-pathology reporting, PTBG owner proformas, and audited/adjudicated evidence resolution before final synthesis. Its recommended configuration is `workflows/proforma_v1/configs/default/default.yaml`; `legacy.yaml` preserves the previous baseline for reproducibility.
 
-**Runnable legacy workflow:** `terraced-v6` — Retained only for root `nel.py --legacy` compatibility and frozen-run reproducibility. Its settings/pipelines remain workflow-local and it does not own or publish root workflow configuration.
-
-**Diagnosis-first compatibility workflow:** `diagnosis-first-v1` — Answers diagnostic rules first to establish
-the integrated diagnosis, then passes that diagnosis into a second pass over the remaining
-agreed reporting rules.
-
-**Alternate workflows:**
-
-- `legacy-v1` — Adjudicates and appends the integrated diagnosis before a single later
-  pass evaluates the complete case against all agreed reporting rules.
+Other workflow implementations (`terraced-v6`, `diagnosis-first-v1`, `legacy-v1`, and experimental clones) are retained only as developer/historical source and are not supported user-facing workflows.
 
 Create an isolated experimental workflow with:
 

@@ -1,14 +1,14 @@
 ---
 name: ngs-evidence-layer
-description: Runs the canonical proforma-v1 NGS Evidence Layer product through the root nel.py interface.
+description: Runs the canonical default NGS Evidence Layer workflow through the root nel.py interface.
 ---
 # NGS Evidence Layer
 
 The **repository root** is the directory containing this `SKILL.md` file and `nel.py`. Before running any command, use that directory as the working directory. All relative paths below are relative to the repository root.
 
-The canonical supported workflow family is `proforma-v1`. Its default declarative workflow definition is `workflows/proforma_v1/workflow/default.yaml`, selected publicly as `--workflow default`. Use the root `nel.py` facade for all product runs. `terraced-v6` is retained only as an explicit legacy/reproducibility path selected with root `--legacy`; never route a normal request to it.
+The supported product workflow is `default`, implemented by `workflows/proforma_v1/workflow/default.yaml` and exposed through the root `nel.py` facade. Normal runs use this workflow and its `default` config without requiring explicit selectors.
 
-For `--workflow default`, prompt/enrichment configuration is selected with `--config <name>` from `workflows/proforma_v1/configs/default/<name>.yaml`; omitted `--config` means `default`. The selected config is frozen at setup and inherited by later `run`/`status` calls.
+The default workflow configuration is `workflows/proforma_v1/configs/default/default.yaml`. Omitted `--config` therefore uses the recommended setup; `--config legacy` is retained only for explicit reproducibility. The selected config is frozen at setup and inherited by later `run`/`status` calls.
 
 ## Model-step execution
 
@@ -29,9 +29,9 @@ python nel.py status ...
 python nel.py runs ...
 ```
 
-Root user configuration is in `config/`, including `config/pipelines/`, and belongs exclusively to canonical `proforma-v1`. Run artefacts are always under `runs/<run-id>/`.
+Root user configuration is in `config/`, including `config/pipelines/`, and belongs to the canonical default workflow. Run artefacts are always under `runs/<run-id>/`.
 
-`nel.py` is the only public facade. Normal new runs use `proforma-v1`; `--workflow <name>` selects `workflows/proforma_v1/workflow/<name>.yaml` and defaults to `default`. For the `default` workflow, `--config <name>` selects `workflows/proforma_v1/configs/default/<name>.yaml` and defaults to `default`. The selected workflow definition and config are frozen at setup and subsequent `run`/`status` calls inherit them. Explicit `--legacy` setup uses the retained legacy implementation with workflow-local settings/pipelines and accepts neither `--workflow` nor `--config`. Existing runs are dispatched by their frozen workflow manifest. Do not reproduce executor stage logic in the root skill.
+`nel.py` is the only public facade. Normal new runs use the canonical `default` workflow and its `default` config. Both are frozen at setup and subsequent `run`/`status` calls inherit them. `--config legacy` is available only when the user explicitly requests the previous baseline. Existing runs are dispatched by their frozen workflow manifest. Do not reproduce executor stage logic in the root skill.
 
 ## NGS report
 
@@ -41,10 +41,10 @@ For a request containing a clinical case and `ngs-report`:
 2. Run:
 
    ```bash
-   python nel.py setup --mode ngs-report --case <case-file> [--run-id <id>] [--pipeline <pipeline>] [--workflow <name>] [--config <name>]
+   python nel.py setup --mode ngs-report --case <case-file> [--run-id <id>] [--pipeline <pipeline>] [--config legacy]
    ```
 
-   Omit `--pipeline` unless the user selected one; the default comes from `config/settings.json`. Omit `--workflow` unless the user selected another proforma definition; the default is `default`. For `--workflow default`, omit `--config` unless the user selected another default-workflow config; the default is `default`.
+   Omit `--pipeline` unless the user selected one; the default comes from `config/settings.json`. Omit `--config` for normal runs so the supported `default` config is used. Use `--config legacy` only when the user explicitly requests the previous baseline configuration.
 3. Record the returned `RUN_ID`.
 4. Call:
 
@@ -77,7 +77,7 @@ Then map a validation request to:
 python nel.py setup --mode <registered-validation-suite> --case-id <case-id>
 ```
 
-Append `--workflow <name>` only when the user explicitly selects a non-default proforma definition. For the default workflow, append `--config <name>` only when the user explicitly selects a non-default config. Then use the same repeated `python nel.py run --run-id <id>` loop.
+For normal runs, do not add a workflow or config selector. Append `--config legacy` only when the user explicitly requests the previous baseline configuration. Then use the same repeated `python nel.py run --run-id <id>` loop.
 
 During validation report generation, read only the selected clinical case supplied by setup. Do not retrieve or read evaluator-only marking criteria before `report-final.md` is complete.
 
@@ -97,14 +97,3 @@ python nel.py runs --incomplete
 
 to find incomplete runs. Use `python nel.py status --run-id <id>` before resuming an existing run. The run's frozen `workflow_definition` and `workflow_config` are authoritative; do not try to change them when resuming.
 
-## Legacy workflow
-
-`proforma-v1` remains canonical. Only when the user explicitly requests the prior product workflow, create it through the root facade:
-
-```bash
-python nel.py setup --legacy --mode <mode> [mode arguments] [--pipeline <pipeline>]
-```
-
-`--legacy` selects `terraced-v6` and its workflow-local settings/pipelines; it never reuses root `config/settings.json` or `config/pipelines/`. Do not combine `--legacy` with `--workflow` or `--config`. For self execution, follow the same repeated `python nel.py run --run-id <id>` handoff loop. Existing legacy runs are also resumed with ordinary `python nel.py run --run-id <id>` because their frozen manifest records the workflow. Do not pass `--legacy` to `run` or `status`.
-
-Do not route product requests to `legacy-v1`, `diagnosis-first-v1`, or terraced-v1 through terraced-v5.

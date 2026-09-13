@@ -1,6 +1,6 @@
 # Proforma v1 — native self execution
 
-`proforma-v1` is the canonical product workflow family. The repository-root `SKILL.md` and `nel.py` are the public interface; this workflow-local skill documents the internal native-self adapter used behind that facade.
+`proforma-v1` implements the canonical public `default` workflow. The repository-root `SKILL.md` and `nel.py` are the public interface; this workflow-local skill documents the internal native-self adapter used behind that facade.
 
 `proforma_v1` has one selected declarative workflow definition and two execution adapters. The selected YAML, not this file, owns clinical operations, dependencies, conditions, evidence barriers, self batching, and intentional executor-specific omissions.
 
@@ -9,7 +9,7 @@
 - Default / explicit self execution: the public driver is root `nel.py`; it delegates clinical progression to `workflows/proforma_v1/self.py` and owns post-report validation marking.
 - Explicit non-self provider: use `workflows/proforma_v1/step.py` after root setup.
 - Both workflow-local adapters accept `--workflow <yaml>` for run-time workflow assertions. If omitted, both use the workflow bound during setup.
-- The public root facade accepts `--workflow <name>` and resolves it to `workflows/proforma_v1/workflow/<name>.yaml`; `default` is the default public selection.
+- The supported public root selection is `default`, resolved to `workflows/proforma_v1/workflow/default.yaml`; other definitions are developer-only.
 - Never infer the clinical stage sequence from this document. Always ask the workflow driver what is next.
 
 ## Native-self loop

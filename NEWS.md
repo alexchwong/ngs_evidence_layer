@@ -1,5 +1,9 @@
 # NEWS
 ## 0.3.1
+- Promoted enhanced reasoning settings to the canonical default workflow configuration.
+- Renamed the previous default configuration to `legacy` for reproducibility.
+- User documentation now presents `default` as the sole supported workflow.
+- Release payloads now include canonical workflow configuration YAML files.
 - Added a local browser interface for run setup, provider profiles, workflow-aware progress, reports, files, dissent, usage, and themes.
 - Added CLI and browser batch execution with selectable cases, stopping, case switching, and persistent per-case consoles.
 - Added selectable `proforma-v1` workflow definitions, frozen with prepared runs for reproducible alternate proforma workflows.

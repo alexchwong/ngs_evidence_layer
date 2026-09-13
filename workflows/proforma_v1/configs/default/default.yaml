@@ -1,6 +1,5 @@
 version: 1
-description: Default workflow baseline with current prompt assets enabled and experimental
-  reasoning modules disabled.
+description: Canonical default workflow configuration with the recommended reasoning modules enabled.
 prompt_modules:
   case_context:
     enabled: true
@@ -24,28 +23,28 @@ prompt_modules:
     enabled: true
     version: v1
   concurrent_pathology_suspicion:
-    enabled: false
+    enabled: true
     version: v1
   deliberate:
-    enabled: false
+    enabled: true
     version: v1
   foundational_genetics:
-    enabled: false
+    enabled: true
     version: v1
   premise_before_consequence:
-    enabled: false
+    enabled: true
     version: v1
   qualifier_check:
-    enabled: false
+    enabled: true
     version: v1
   limiting_evidence:
-    enabled: false
+    enabled: true
     version: v1
   evidence_semantic_bridge:
-    enabled: false
+    enabled: true
     version: v1
   evidence_reason_pruning:
-    enabled: false
+    enabled: true
     version: v1
 deterministic_enrichments:
   protein_hgvs_one_letter_alias:

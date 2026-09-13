@@ -629,7 +629,18 @@ class Phase3EvidenceRescueTests(unittest.TestCase):
                 manifest=self_runtime.prepare_evidence_adjudication(work)
             self.assertTrue(manifest["required"])
             crop=self_runtime.read_yaml(manifest["disputes"])["disputes"][0]
-            self.assertEqual(set(crop),{"dispute_id","evidence_id","schema_id","reason","card_tag"})
+            self.assertEqual(
+                set(crop),
+                {
+                    "dispute_id",
+                    "evidence_id",
+                    "schema_id",
+                    "reason",
+                    "card_tag",
+                    "statement",
+                    "context_card_tags",
+                },
+            )
             self.assertEqual(crop["dispute_id"],"D0001")
             self.assertNotIn("resolver_decision",crop)
             self.assertNotIn("audit_comments",crop)
